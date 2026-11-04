@@ -6,9 +6,9 @@
 // display settings, its sounds, its engine's networks and its own tools (the area map, the image of a line, the
 // opening book). The page gives its own menus (the Export menu, the New menu) in the step bar (`tools`).
 //
-// Each part is shaped for both boards: Enclosure's (Hedge School's review/enclosureView.ts) and Blueprints' (Drawing
-// Board's board/Board.svelte). Blueprints' moves are placements and edits, named by strategyjam.org's strings, and two
-// edits can give the same hand (docs/design/33-drawing-board.md, items 5 and 9). The view compares the engine's moves
+// Each part is shaped for both boards: Enclosure's (Hedge School's review/enclosureView.ts) and Blueprints' (Cyanotype's
+// board/Board.svelte). Blueprints' moves are placements and edits, named by strategyjam.org's strings, and two
+// edits can give the same hand (docs/design/33-cyanotype.md, items 5 and 9). The view compares the engine's moves
 // (the candidates, their twins, a line's steps) with the game's `equal`. The game's tree, the engine's queries and the
 // stored results know a move by its name: there, two names are two moves.
 import type { Component, Snippet } from "svelte";
@@ -301,7 +301,7 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   shape: { name: string; help: string }; // its choice's name in the display settings, and the choice's help
   moveText: string; // the class of a move's text in the move list: as wide as the widest move
   // Each move on a line of its own in the move list, the turn's number at its first: moves too long for two to a row
-  // (Blueprints', as on Drawing Board's Practice). None: two to a row, as Lichess's
+  // (Blueprints', as on Cyanotype's Practice). None: two to a row, as Lichess's
   oneMoveALine?: boolean;
   nameText: string; // the class of a candidate's name in the table: as wide as the widest move's name
   /** Each candidate's name in the table as large as its cell allows, measured: its full size, or smaller where it is

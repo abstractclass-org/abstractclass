@@ -8009,3 +8009,25 @@ abscls-8tl1.21.
   fill, the border and the text colour in both themes. One opens the confirm step of Abort and of Resign in a game.
   It runs only when Drawing Board's build has the practice bot (`npm run engine` before the build). The other adds a
   `btn-danger` button to a page, and the Tests workflow runs it.
+
+### Blueprints' site is Cyanotype (2026-11-04)
+
+abscls-8tl1.23.
+
+- **The decision:** Blueprints' site is named **Cyanotype**, in place of Drawing Board. The owner's words: "It's so
+  generic it can be applied to many other games", then "yes, Cyanotype". A cyanotype is the printing process that
+  made blueprints: white lines on Prussian blue. The engine and its practice bot keep the name Stamp Duty.
+- **The whole name changes now,** the internal names too: the folder `apps/cyanotype`, the package `cyanotype`, the
+  storage keys (`cyanotype:…`), the userscript's files (`/cyanotype.user.js`, `/cyanotype.meta.js`), the deploy job
+  `cyanotype`, the repository variable `CYANOTYPE_PAGES_PROJECT` and the tests' `CYANOTYPE_BASE_URL`. No release
+  exists yet, so no visitor keeps a game, a setting or an installed userscript under the old names, and the change
+  needs no migration.
+- **The address:** `cyanotype.abstractclass.org`, from the Pages project `cyanotype`. `cyanotype.pages.dev` belongs
+  to another site, so the project is at `cyanotype-ztp.pages.dev`. The deploy job built a preview's address as
+  `<branch>.<project>.pages.dev`, which would have sent a preview's userscript to the other site. It now takes the
+  host from the repository variable `CYANOTYPE_PAGES_HOST`, and compares it with the project's address in
+  Cloudflare's API before the build (docs/hosting.md, section 9).
+- **The site's text:** the home page's heading and the About page's paragraph on the names played on the old name.
+  They now tell of the cyanotype.
+- **History:** the earlier entries of this log, and the requests to the engine repository, keep the name Drawing
+  Board. There, Drawing Board is Cyanotype.

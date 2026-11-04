@@ -1,8 +1,8 @@
 # The site's tests on each push to dev (docs/hosting.md, "Deploy, check and roll back"): the type check, the unit tests,
 # and the browser tests in Chromium on Linux (tests/): the layout sweep, and the practice games' consent across tabs.
 # Beside them, the layout sweep in Chromium on Windows. On a production build with the practice games' storage on, so
-# that the consent banner shows on every page, and the practice games' test runs. Both jobs also serve Drawing Board's
-# build (DB_BASE_URL), for the layout test of the monospaced font on that site. A release takes only a commit whose
+# that the consent banner shows on every page, and the practice games' test runs. Both jobs also serve Cyanotype's
+# build (CYANOTYPE_BASE_URL), for the layout test of the monospaced font on that site. A release takes only a commit whose
 # run passed. The deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in Edge
 # stays an option before a release. A newer push cancels a run still going for an older one. The repository is public,
 # so the standard runners cost no minutes.
@@ -59,15 +59,15 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps --only-shell chromium
-      # Drawing Board's preview (port 4174) beside the site's, for the layout test of the monospaced font on Drawing
-      # Board (tests/layout.spec.ts), which runs only when DB_BASE_URL gives the preview's address. Its build is the one
-      # that check:all made in this run (the step drawingboard-build), so a stale build cannot pass.
+      # Cyanotype's preview (port 4174) beside the site's, for the layout test of the monospaced font on Cyanotype
+      # (tests/layout.spec.ts), which runs only when CYANOTYPE_BASE_URL gives the preview's address. Its build is the one
+      # that check:all made in this run (the step cyanotype-build), so a stale build cannot pass.
       - name: The browser tests, in Chromium
         env:
-          DB_BASE_URL: http://127.0.0.1:4174
+          CYANOTYPE_BASE_URL: http://127.0.0.1:4174
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
-          npm run preview --workspace=drawingboard -- --host 127.0.0.1 --port 4174 --strictPort &
+          npm run preview --workspace=cyanotype -- --host 127.0.0.1 --port 4174 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
           npx playwright test --project=chromium
@@ -107,9 +107,9 @@ jobs:
           VITE_EDITION: early
           VITE_STORE_PRACTICE_GAMES: "on"
 
-      # Drawing Board's build, for its layout test below: check:all, which makes it on Linux, does not run on this job.
+      # Cyanotype's build, for its layout test below: check:all, which makes it on Linux, does not run on this job.
       - run: npm run build
-        working-directory: apps/drawingboard
+        working-directory: apps/cyanotype
 
       # Playwright keeps its browsers in the user's AppData on Windows.
       - name: Cache Playwright's browsers
@@ -120,15 +120,15 @@ jobs:
       # The headless shell only: the project chromium runs headless, with no channel.
       - run: npx playwright install --only-shell chromium
       # Bash, not the default PowerShell, for the commands of the Linux job: the previews in the background, the waits.
-      # Drawing Board's preview and DB_BASE_URL, as on Linux, so that the layout test of the monospaced font runs on
-      # Drawing Board too, with Windows' fonts and rendering.
+      # Cyanotype's preview and CYANOTYPE_BASE_URL, as on Linux, so that the layout test of the monospaced font runs on
+      # Cyanotype too, with Windows' fonts and rendering.
       - name: The layout sweep, in Chromium on Windows
         shell: bash
         env:
-          DB_BASE_URL: http://127.0.0.1:4174
+          CYANOTYPE_BASE_URL: http://127.0.0.1:4174
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
-          npm run preview --workspace=drawingboard -- --host 127.0.0.1 --port 4174 --strictPort &
+          npm run preview --workspace=cyanotype -- --host 127.0.0.1 --port 4174 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
           npx playwright test tests/layout.spec.ts --project=chromium

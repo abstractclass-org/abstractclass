@@ -1,8 +1,8 @@
 # The shared packages: the engine, the storage and the analysis, behind a game interface
 
 **Status:** in force. Built: the engine, the storage, the analysis, the review's view and the import's frame are in
-`packages/`. The view's game interface rests on Hedge School's board and on Blueprints' (item 9). Drawing Board gives
-Blueprints' part with its review (abscls-8tl1.7). The import's frame serves Hedge School's tools and Drawing Board's
+`packages/`. The view's game interface rests on Hedge School's board and on Blueprints' (item 9). Cyanotype gives
+Blueprints' part with its review (abscls-8tl1.7). The import's frame serves Hedge School's tools and Cyanotype's
 (item 10).
 **Decided:** 2026-10-19.
 
@@ -159,7 +159,7 @@ edit in the same commit), so their changes still apply.
    of work in progress (`bar-glider`) and the step bar's dock (`.step-dock`). The general controls that the view uses
    (the main button, the icon button, the dialogs and the keys' lists) are in `@abstractclass/site`'s `site.css`. A site
    gives the board's colour (Tailwind's `board`, from `--board-bg`) and the second number's line (`area`, from
-   `--area`). The split happened on Blueprints' board, the first board of a second game (Drawing Board, design
+   `--area`). The split happened on Blueprints' board, the first board of a second game (Cyanotype, design
    33, in place of a rehearsal game on Connect-4's board). The view's game interface (`packages/review/src/game.ts`,
    `ViewGame`) extends the game interface (item 2), and its types (`ViewTypes`) extend `GameTypes`. A site gives one
    object, and its pages give it to the view (the prop `view`). Hedge School's is `src/lib/review/enclosureView.ts`. The
@@ -170,7 +170,7 @@ edit in the same commit), so their changes still apply.
      (`pointed`), the line (each move with its mover, and its `step` once the rules have played it), the shape of the
      line's numbers (circles, or the threat's triangles), the move shown faintly (`preview`), the labels' marks, the
      layers, the player's own moves, the area map and the notes. `pointed` has one name and one meaning on both
-     boards: Hedge School's board takes it as its prop `highlight`, and Drawing Board's as its prop `pointed`, which
+     boards: Hedge School's board takes it as its prop `highlight`, and Cyanotype's as its prop `pointed`, which
      was `pinned`. The area map's switch and legend are a snippet that the board places (`mapControls`): Enclosure's
      board puts them in its empty margin above its top row. The skeleton shows the game's empty board (`EmptyBoard`).
    - **The player's own moves** (`input`, `inputStatus`, `clicks`): the game makes its own input. The view resets it
@@ -202,7 +202,7 @@ edit in the same commit), so their changes still apply.
    - **One type for the game:** Hedge School's `Enclosure` (`enclosure.ts`) extends `ViewTypes`, so that the review
      (`Review<Enclosure>`), the analysis and the view take one type. The view takes the game's types from `view` alone
      (TypeScript's `NoInfer` on its other props).
-10. **The import's frame in a package of its own.** Drawing Board takes strategyjam.org's games of Blueprints as Hedge
+10. **The import's frame in a package of its own.** Cyanotype takes strategyjam.org's games of Blueprints as Hedge
     School takes its games of Enclosure (designs 11 and 22, design 33). So the parts of Hedge School's import that are
     not Enclosure's moved out of its `src/lib/game/` into `@abstractclass/import` (`packages/import`), as pure renames
     first: the bookmarklet (`bookmarklet.ts`), the userscript (`userscript.ts`), the page code's frame
@@ -225,8 +225,8 @@ edit in the same commit), so their changes still apply.
     - **What stays in each site:** Hedge School's `src/lib/game/tools.ts` (the page code that reads meaf.us and
       strategyjam.org, the tools' names, the collie, the button's places and `toolSource`) and `sources.ts` (its
       sources, with meaf.us's tools and Constellation's export, and the events with its analytics). Its page readers
-      and records (`meafPage.ts`, `meaf.ts`, `strategyjamPage.ts`, `strategyjam.ts`) stay as they were. Drawing
-      Board's are its `src/lib/game/tools.ts` and `strategyjamPage.ts` (design 33).
+      and records (`meafPage.ts`, `meaf.ts`, `strategyjamPage.ts`, `strategyjam.ts`) stay as they were. Cyanotype's
+      are its `src/lib/game/tools.ts` and `strategyjamPage.ts` (design 33).
     - **Hedge School's tools work as before.** Its routes keep their addresses (`/bookmarklet.js`,
       `/hedge-school.user.js`, `/hedge-school.meta.js`). The userscript's header is the same but for the build's time.
       The code of the bookmarklet and of the userscript changed in its frame: the site's parts come as data, and the
@@ -235,7 +235,7 @@ edit in the same commit), so their changes still apply.
       player whose Tampermonkey has not yet taken the update sees the notice to update it once. The bookmark's loader
       takes the site's name as a third argument. A bookmark made before keeps its own loader, with the same version,
       so no player is asked to drag it again.
-    - **Each site has its own reader of strategyjam.org's game page.** Hedge School's and Drawing Board's
+    - **Each site has its own reader of strategyjam.org's game page.** Hedge School's and Cyanotype's
       `strategyjamPage.ts` read the same props of the page, and give different games: Enclosure's and Blueprints'. They
       stay each site's, as Hedge School's tests check its reader as it is. One reader can serve both later, with both
       sites' tests.
@@ -295,15 +295,15 @@ edit in the same commit), so their changes still apply.
   WebAssembly from the page (the Vite condition `onnxruntime-web-use-extern-wasm`), and the workers as modules. Hedge
   School's `vite.config.ts` sets the last two. The engine package names `onnxruntime-web` as a peer dependency: the
   site's copy, whose WebAssembly the fetch script stores. A second site copies these until the template moves them
-  into the package. Drawing Board's engine runs on the CPU alone: its lock has no GPU module, so the fetch script
+  into the package. Cyanotype's engine runs on the CPU alone: its lock has no GPU module, so the fetch script
   stores no ONNX Runtime for it.
 - **Paths in the documents:** a path that starts with `packages/` starts at the repository's root. A path to Hedge
   School's files starts at `apps/hedgeschool`, as before ([docs/README.md](../README.md)).
 - **A change to a package is a change to every site that uses it.** Its tests and each site's checks run for it.
 - **The engine's protocol:** each site's code is written for one protocol, and the engine package refuses a module of
   another minor version (`protocol.ts`, `speaksProtocol`). Hedge School's is 0.6.1, the package's `PROTOCOL`. A site
-  whose engine speaks another names its protocol in its `engine.lock.json`, and the manifest carries it: Drawing
-  Board's 0.7.1, with the search of the root's views (design 33, "The engine's files"). The fields of `describe` are
+  whose engine speaks another names its protocol in its `engine.lock.json`, and the manifest carries it: Cyanotype's
+  0.7.1, with the search of the root's views (design 33, "The engine's files"). The fields of `describe` are
   each game's own: Enclosure's are in Hedge School's `src/lib/engine/position.ts`.
 
 ## Where it is
@@ -341,7 +341,7 @@ edit in the same commit), so their changes still apply.
   Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files, which each site runs in its own folder (`npm run engine`). `protocol.ts`: the protocol that each site's code
-  is written for (Hedge School 0.6.x, Drawing Board 0.7.x with the root's views), from the site's `engine.lock.json`
+  is written for (Hedge School 0.6.x, Cyanotype 0.7.x with the root's views), from the site's `engine.lock.json`
   and its manifest.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
   words), `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one

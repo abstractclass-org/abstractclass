@@ -295,7 +295,7 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
 12. **The candidates table's Move header opens its column.** The table's columns are fixed, so that it keeps its layout
     from position to position, and the Move column takes the room that the others leave. A move's name gets smaller
     where its cell is narrow, down to its least size: Hedge School's names by their cell's width (70% at the least),
-    and Drawing Board's each by its own width (65%, its design 33). Below it the name is cut, and its last 1.25 em
+    and Cyanotype's each by its own width (65%, its design 33). Below it the name is cut, and its last 1.25 em
     fades out, so that the player sees that it is cut. While a name in the table is smaller than its full size or
     cut, the Move header is a button with a mark: "Move ›" (Hedge School's "Edge ›"). A click opens the column: every
     name at its full size, in a column as wide as the widest name, and the table as wide as it then needs, so that

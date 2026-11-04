@@ -1,0 +1,29 @@
+# Cloudflare Pages' response headers, as Hedge School's (its static/_headers). Pages reads this file and does not serve
+# it.
+
+# Search engines index the live address only (docs/design/23-search.md). Cloudflare's own addresses for the project
+# (cyanotype-ztp.pages.dev) and for each preview (dev.cyanotype-ztp.pages.dev, a commit's hash) answer with noindex, so
+# that no copy of a page competes with the live one. Each page also names its live address as canonical.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+# Files whose paths change when their content does: the build's hashed code. Browsers keep them for a year without
+# asking again.
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The tools' files (docs/design/11-early-access.md): the bookmarklet's code, which the bookmark loads at each click,
+# and the userscript, which Tampermonkey checks for updates. Their paths stay when their content changes, so a browser
+# asks again each time: an unchanged file costs a "not modified" reply. Without this, Cloudflare lets a browser keep a
+# .js file for 4 hours.
+/bookmarklet.js
+  Cache-Control: no-cache
+
+/cyanotype.user.js
+  Cache-Control: no-cache
+
+/cyanotype.meta.js
+  Cache-Control: no-cache

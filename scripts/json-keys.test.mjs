@@ -4,7 +4,7 @@ import { duplicateKeys } from "./json-keys.mjs";
 
 test("two dependencies blocks, as a merge can leave them, are found", () => {
   const text = `{
-	"name": "drawingboard",
+	"name": "cyanotype",
 	"dependencies": { "@abstractclass/record": "*" },
 	"imports": { "#lib/*": "./src/lib/*" },
 	"dependencies": { "@abstractclass/site": "*" }

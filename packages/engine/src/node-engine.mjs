@@ -1,6 +1,6 @@
 // The engine's CPU module in Node, through the engine's own library, as a worker runs it (worker.ts): for the checks
 // that run outside a browser. It reads what fetch-engine.mjs wrote to a site's static/engine. Both sites take it:
-// Hedge School's and Drawing Board's checks and scripts.
+// Hedge School's and Cyanotype's checks and scripts.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";

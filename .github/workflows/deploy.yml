@@ -6,7 +6,7 @@
 # The build is the one that Cloudflare's own build ran (npm run build:cloudflare): the engine's release with its SHA-256
 # checks, the unit tests, the type check, then the build. A failed step deploys nothing, and the site stays as it was.
 # The job hub deploys the hub at abstractclass.org (apps/hub) to its own Pages project, beside the site's job. The job
-# drawingboard deploys Drawing Board (apps/drawingboard) to its own Pages project too.
+# cyanotype deploys Cyanotype (apps/cyanotype) to its own Pages project too.
 name: Deploy
 
 on:
@@ -111,20 +111,20 @@ jobs:
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
           npx --yes wrangler@4.144.0 pages deploy public "${args[@]}"
 
-  # Drawing Board, Blueprints' site (design 33; docs/hosting.md, "Drawing Board"): apps/drawingboard, built and checked
-  # as the site's build is, to the Pages project that the repository variable DRAWINGBOARD_PAGES_PROJECT names. A push
+  # Cyanotype, Blueprints' site (design 33; docs/hosting.md, "Cyanotype"): apps/cyanotype, built and checked
+  # as the site's build is, to the Pages project that the repository variable CYANOTYPE_PAGES_PROJECT names. A push
   # to main deploys the live site, and a push to another branch a preview, as for the site. While the variable is
   # empty, the job is skipped, and the workflow passes without it. Its pages are prerendered, and the canonical
   # address is the live one in src/lib/site.ts. Its userscript holds the build's own address, as the site's does, so
-  # its build takes the branch variables too. Wrangler is the site job's version. It runs in apps/drawingboard, which
+  # its build takes the branch variables too. Wrangler is the site job's version. It runs in apps/cyanotype, which
   # has no functions/ folder: in the workflow's default folder, it would upload Hedge School's Function.
-  drawingboard:
-    if: vars.DRAWINGBOARD_PAGES_PROJECT != ''
+  cyanotype:
+    if: vars.CYANOTYPE_PAGES_PROJECT != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: apps/drawingboard
+        working-directory: apps/cyanotype
     env:
       BRANCH: ${{ github.ref_name }}
     steps:
@@ -137,16 +137,37 @@ jobs:
         working-directory: .
 
       # The two variables of Cloudflare's own build that vite.config.ts reads, as in the site's job: the branch (main
-      # names the live site's address) and the preview's address, for the userscript. The preview's address takes the
-      # project's pages.dev address to be its name's (docs/hosting.md, section 9): if Pages gave it another, a
-      # preview's userscript opens the wrong address.
+      # names the live site's address) and the preview's address, for the userscript. A preview is at
+      # <branch>.<host>, where the host is the project's pages.dev address. That host is not always the project's
+      # name: Pages adds characters when the name's address is taken (the project cyanotype is at
+      # cyanotype-ztp.pages.dev). So the host is the repository variable CYANOTYPE_PAGES_HOST (docs/hosting.md,
+      # section 9). The build needs it, so Wrangler's deploy output, which comes after the build, cannot give it.
+      # Before the build, the step compares the variable with the project's address in Cloudflare's API. A missing or
+      # wrong host fails the job, and no userscript that loads from a wrong address is deployed.
       - name: The branch and its address
         env:
-          PROJECT: ${{ vars.DRAWINGBOARD_PAGES_PROJECT }}
+          PROJECT: ${{ vars.CYANOTYPE_PAGES_PROJECT }}
+          HOST: ${{ vars.CYANOTYPE_PAGES_HOST }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          if [ -z "$HOST" ]; then
+            echo "::error::The repository variable CYANOTYPE_PAGES_HOST is empty. Set it to the pages.dev address of the Pages project $PROJECT (docs/hosting.md, section 9)."
+            exit 1
+          fi
+          url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT"
+          if ! reply=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$url"); then
+            echo "::error::Cloudflare's API did not give the Pages project $PROJECT, so its address cannot be checked."
+            exit 1
+          fi
+          actual=$(printf '%s' "$reply" | jq -r '.result.subdomain // empty')
+          if [ "$HOST" != "$actual" ]; then
+            echo "::error::CYANOTYPE_PAGES_HOST is '$HOST', but the Pages project $PROJECT is at '$actual'. Set the variable to '$actual' (docs/hosting.md, section 9)."
+            exit 1
+          fi
           alias=$(printf '%s' "$BRANCH" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g')
           echo "CF_PAGES_BRANCH=$BRANCH" >> "$GITHUB_ENV"
-          echo "CF_PAGES_URL=https://$alias.$PROJECT.pages.dev" >> "$GITHUB_ENV"
+          echo "CF_PAGES_URL=https://$alias.$HOST" >> "$GITHUB_ENV"
 
       # The shared packages' checks and tests (design 29), then the site's own: a failed step deploys nothing.
       - name: The packages' checks and tests
@@ -158,7 +179,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT: ${{ vars.DRAWINGBOARD_PAGES_PROJECT }}
+          PROJECT: ${{ vars.CYANOTYPE_PAGES_PROJECT }}
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           args=(--project-name="$PROJECT" --branch="$BRANCH" --commit-hash="$GITHUB_SHA")

@@ -203,7 +203,7 @@ How strong each setting plays against people is not measured yet.
   display settings are kept under `hedge-school:practice-display:2`.
 - **The card and the frame:** `packages/practice/src/PracticeCard.svelte` (the settings card) and
   `PracticeFrame.svelte` (the game's layout: the row, the square board, the side column and the step bar), which
-  Drawing Board's practice shares (design 33). The page gives their content.
+  Cyanotype's practice shares (design 33). The page gives their content.
 - **The files:** the release's practice files in `engine.lock.json`, which `npm run engine`
   (`packages/engine/src/fetch-engine.mjs`) puts in `static/engine/engine-54486cd-lib/` and the bot's module folders.
 - **The ways in:** the header, the sitemap, and the Analysis board's Play button (`src/routes/analysis/+page.svelte`).

@@ -1,7 +1,7 @@
 // The player's notes on the board (design 07): rings round points and lines between points, drawn with the right
 // button, as Lichess's board draws circles and arrows (its chessground board's drawable shapes). A note is only a
 // drawing: it is not an edge, and cuts or encloses nothing. A point is the game's: Enclosure's point (x, y), and
-// Blueprints' hex (q, r), which Drawing Board's board draws as a marked hex and an arrow (design 33). Each site's
+// Blueprints' hex (q, r), which Cyanotype's board draws as a marked hex and an arrow (design 33). Each site's
 // board draws the notes, and each site gives its keys for the colours (`BrushKeys`) and its rule for the same note
 // (`SameNote`).
 
@@ -26,7 +26,7 @@ export function sameNote(a: BoardNote, b: BoardNote): boolean {
 }
 
 /** The same ring, or the same arrow from the same point to the same point, as chessground's `sameEndpoints`: an arrow
- *  drawn the other way is another note. Drawing Board's rule (design 33), whose arrow has a head. */
+ *  drawn the other way is another note. Cyanotype's rule (design 33), whose arrow has a head. */
 export const sameEndpoints: SameNote = (a, b) =>
   samePoint(a.at, b.at) && (a.to && b.to ? samePoint(a.to, b.to) : !a.to && !b.to);
 
@@ -43,7 +43,7 @@ export function toggleNote(notes: BoardNote[], note: BoardNote, same: SameNote =
 export const ringed = (notes: readonly BoardNote[], p: Point, brush: NoteBrush) =>
   notes.some(n => !n.to && n.brush === brush && samePoint(n.at, p));
 
-/** The notes after a drag of rings (Drawing Board's Shift with the right button, design 33): a ring in the colour at
+/** The notes after a drag of rings (Cyanotype's Shift with the right button, design 33): a ring in the colour at
  *  each point that the drag goes across, where a ring of another colour changes colour. With `clear`, the drag removes
  *  that colour's rings at those points instead. A note between two points stays. When nothing changes, the same
  *  notes. */

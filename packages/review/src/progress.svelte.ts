@@ -6,7 +6,7 @@
 // their step comes). The step's own part never shows less than it has shown (held): a count that grows makes it wait
 // instead of going back. Another review depth or game starts it again. After the review, while the area map is on and
 // the review's results lack maps, the map stage (design 30) is one more part, which never holds the review's end: the
-// review is done without it. Both sites' review pages take it (Hedge School's, Drawing Board's).
+// review is done without it. Both sites' review pages take it (Hedge School's, Cyanotype's).
 import { untrack } from "svelte";
 import { SWEEP_VISITS, MAP_VISITS } from "@abstractclass/analysis/cache.ts";
 import type { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";

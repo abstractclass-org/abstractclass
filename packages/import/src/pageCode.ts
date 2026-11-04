@@ -1,6 +1,6 @@
 // The functions that the bookmarklet (bookmarklet.ts) and the userscript (userscript.ts) run in the game's page: a
 // site's page code, which reads the game that a game site's page holds and writes its record. Hedge School's reads
-// meaf.us and strategyjam.org (its src/lib/game/tools.ts), Drawing Board's strategyjam.org. Each function is
+// meaf.us and strategyjam.org (its src/lib/game/tools.ts), Cyanotype's strategyjam.org. Each function is
 // self-contained, so the tools carry them as text: one object of them, by name, which the tool's own code takes as its
 // argument.
 import type { Tool } from "./importHash.ts";

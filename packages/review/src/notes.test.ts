@@ -18,7 +18,7 @@ test("a ring or a line drawn again goes; in another colour it changes colour", (
   assert.deepEqual(toggleNote(notes, ring(10, 11, "yellow")), [ring(10, 11, "yellow"), notes[1]]);
 });
 
-test("Drawing Board's arrow keeps its direction, as chessground's sameEndpoints: drawn back, another arrow", () => {
+test("Cyanotype's arrow keeps its direction, as chessground's sameEndpoints: drawn back, another arrow", () => {
   const ab = line([0, 0], [2, -1]), ba = line([2, -1], [0, 0], "yellow");
   assert.ok(sameEndpoints(ab, line([0, 0], [2, -1], "grey")) && !sameEndpoints(ab, ba));
   assert.ok(sameEndpoints(ring(0, 0), ring(0, 0, "yellow")));

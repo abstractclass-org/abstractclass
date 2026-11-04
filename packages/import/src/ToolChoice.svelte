@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The import page's choice for a tool's game (Hedge School's designs 21 and 22, Drawing Board's design 33): the
+  // The import page's choice for a tool's game (Hedge School's designs 21 and 22, Cyanotype's design 33): the
   // notice for an out-of-date tool, the game in one line, then the two ways for the game, the review and the Analysis
   // board, each with what it does. Each site gives its own words: the texts that a player follows, in strict
   // Simplified Technical English.
@@ -16,7 +16,7 @@
     length: string;
     /** More about the game, under its line. */
     children?: Snippet;
-    /** What the page does before it offers the ways (Drawing Board's check of the record): it shows in their place. */
+    /** What the page does before it offers the ways (Cyanotype's check of the record): it shows in their place. */
     pending?: string;
     review: Way;
     analyze: Way;

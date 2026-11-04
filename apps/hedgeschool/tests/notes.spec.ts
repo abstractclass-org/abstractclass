@@ -3,11 +3,11 @@
 // the colour by Hedge School's keys (BRUSH_KEYS in packages/review/src/notes.ts): purple with no key, yellow with Shift
 // or Ctrl, green with Alt, grey with both. The same note again removes it, and in another colour changes its colour. A
 // line drawn the other way is the same line: it has no head. A left click on the board clears the position's notes.
-// The notes stay with their position for the visit. Drawing Board's notes are in drawingboard-notes.spec.ts. Run: npx
+// The notes stay with their position for the visit. Cyanotype's notes are in cyanotype-notes.spec.ts. Run: npx
 // playwright test tests/notes.spec.ts.
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { rightClick, rightDrag } from "./drawingboard-notes.ts";
+import { rightClick, rightDrag } from "./cyanotype-notes.ts";
 
 const board = (page: Page) => page.locator("svg[aria-label='Enclosure board']");
 /** The point of the window at a point (x, y) of the board (or past its edge), by the board's drawing's own transform:

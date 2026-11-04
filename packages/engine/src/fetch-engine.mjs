@@ -3,7 +3,7 @@
 // worker loads by URL. Their version is the installed package's, which package-lock.json pins. Node finds the package
 // as it finds an import of this script. Writes static/engine/manifest.json, which the site reads to find the files and
 // to name them in its results. Both sites run it, each in its own folder (its `npm run engine`): Hedge School's lock
-// has Enclosure's engine, Drawing Board's Blueprints'.
+// has Enclosure's engine, Cyanotype's Blueprints'.
 //
 //   node ../../packages/engine/src/fetch-engine.mjs [--deploy]      in the site's folder
 //

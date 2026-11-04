@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const site = join(root, "apps/hedgeschool");
-const board = join(root, "apps/drawingboard");
+const board = join(root, "apps/cyanotype");
 
 const steps = [
   // No package.json with a key twice (a merge can leave two "dependencies" blocks), and the root scripts' own tests.
@@ -28,10 +28,10 @@ const steps = [
     name: "build", cwd: site, command: "npm run build",
     env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },
   },
-  // Drawing Board, Blueprints' site (design 33): its type check, its unit tests and its build.
-  { name: "drawingboard-check", cwd: board, command: "npm run check" },
-  { name: "drawingboard-test", cwd: board, command: "npm test" },
-  { name: "drawingboard-build", cwd: board, command: "npm run build" },
+  // Cyanotype, Blueprints' site (design 33): its type check, its unit tests and its build.
+  { name: "cyanotype-check", cwd: board, command: "npm run check" },
+  { name: "cyanotype-test", cwd: board, command: "npm test" },
+  { name: "cyanotype-build", cwd: board, command: "npm run build" },
 ];
 
 const results = [];

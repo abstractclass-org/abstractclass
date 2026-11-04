@@ -42,14 +42,14 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   Git Bash, its quotes reach cmd with backslashes, cmd does not set the variable, and the tests go to port 4173 with no
   error. The project `edge` comes only with `HS_EDGE=1` (the note "Edge starts only with `HS_EDGE=1`").
   `npx playwright test --list` shows the tests with no browser, and shows the project `edge` only with the variable.
-- **The layout test on Drawing Board:** the test "the monospaced font draws no ligatures on Drawing Board" runs only
-  when `DB_BASE_URL` gives the address of a running Drawing Board preview. Without the variable, Playwright skips the
-  test with no error: its line in the output shows `-`, not `ok` or `✓`. The Tests workflow builds Drawing Board in
-  each run, starts its preview on port 4174 and sets the variable. To run the test here, build Drawing Board (`npm run
-  build` in `apps/drawingboard`). Start its preview as in the note "The local server", in `apps/drawingboard` and on a
-  port other than Hedge School's. Then set `DB_BASE_URL` to the address of that preview, in the same way as `BASE_URL`
-  (the note "The layout test"). The test does not serve a build itself, because a stale build would pass with no
-  message.
+- **The layout test on Cyanotype:** the test "the monospaced font draws no ligatures on Cyanotype" runs only
+  when `CYANOTYPE_BASE_URL` gives the address of a running Cyanotype preview. Without the variable, Playwright skips the
+  test with no error: its line in the output shows `-`, not `ok` or `✓`. The Tests workflow builds Cyanotype in
+  each run, starts its preview on port 4174 and sets the variable. To run the test here, build Cyanotype (`npm run
+  build` in `apps/cyanotype`). Start its preview as in the note "The local server", in `apps/cyanotype` and on a
+  port other than Hedge School's. Then set `CYANOTYPE_BASE_URL` to the address of that preview, in the same way as
+  `BASE_URL` (the note "The layout test"). The test does not serve a build itself, because a stale build would pass
+  with no message.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
 - **The local server:** `node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`
@@ -154,12 +154,12 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   the GPU on Windows while no training ran. Check that the GPU worker started before a
   measurement relies on it: in one review with the real GPU's flags, WebGPU gave an adapter, but the engine settings
   said "The GPU did not start: 9943656". The cause is not known.
-  - **Off the GPU, for a run that needs no WebGPU** (the layout test, Drawing Board's practice games): with
+  - **Off the GPU, for a run that needs no WebGPU** (the layout test, Cyanotype's practice games): with
     `--disable-gpu` alone, Chromium's GPU process (`--type=gpu-process --use-angle=swiftshader-webgl`) still opens the
     RTX 5080's adapter. Windows' GPU Engine counters list it there, with 0 KB of GPU memory and 0% on every engine,
     and `nvidia-smi` does not list it. `--disable-d3d11` and `--disable-gpu-process-for-dx12-info-collection` added
     do not change that. With `--disable-software-rasterizer` added to the three, no process of the browser shows in
-    the counters, the GPU process too, and the pages still play (2026-10-30, on Drawing Board's Practice).
+    the counters, the GPU process too, and the pages still play (2026-10-30, on Cyanotype's Practice).
     `playwright.config.ts` gives the four to Chromium on Windows. To check a run, read the counters
     `\GPU Engine(*)\Utilization Percentage` and `\GPU Process Memory(*)\Dedicated Usage` for each process under the
     job's.

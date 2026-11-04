@@ -1,6 +1,6 @@
 // The review's display settings as a site keeps them in its browser (design 06): each site's under its own key, with
-// its defaults, its board's layers and its game's sets of move sounds (Hedge School's review/display.ts, Drawing
-// Board's). Storage can be blocked (a private window, blocked site data), so every read and write may fail, and the
+// its defaults, its board's layers and its game's sets of move sounds (Hedge School's review/display.ts,
+// Cyanotype's). Storage can be blocked (a private window, blocked site data), so every read and write may fail, and the
 // defaults then hold. A kept value that is not one of the setting's values gives way to the default.
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import type { Display } from "./game.ts";

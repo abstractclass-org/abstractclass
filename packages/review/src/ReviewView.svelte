@@ -165,8 +165,8 @@
     labelVisits?: number; // the label budget: a move is judged once both its positions have this many visits
     engine?: EngineSettings; // the engine's settings (design 09), shown in the settings panel
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
-    // What the GPU does in this review, and its first download (design 15). None: the site offers no GPU (Drawing
-    // Board's engine runs on the CPU only), and the engine settings do not show it.
+    // What the GPU does in this review, and its first download (design 15). None: the site offers no GPU (Cyanotype's
+    // engine runs on the CPU only), and the engine settings do not show it.
     gpu?: { status: GpuStatus; downloadMB: string };
   }
   let { view, R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0,

@@ -29,11 +29,11 @@
 // can search several views of the board. A reply of more views has no network's raw values, and a query whose searches
 // find no candidate is refused with an error of the field `maxVisits`. New in it: a query's `rootViews`, `rootInfo`'s
 // `views` and `searches`, and a candidate's `checkVisits`. Enclosure's engine stays 0.6.x, so each site says which
-// protocol its code is written for: Hedge School PROTOCOL, Drawing Board ROOT_VIEWS_PROTOCOL (its engine.lock.json's
+// protocol its code is written for: Hedge School PROTOCOL, Cyanotype ROOT_VIEWS_PROTOCOL (its engine.lock.json's
 // `protocol`, which fetch-engine.mjs copies into the manifest).
 //
 // 0.7.1 is compatible (abscls-csmy): a query whose searches find no candidate, as with few visits over many views, is
-// no longer refused. The search gives its first pass's policy move. Drawing Board's practice bot then plays at any
+// no longer refused. The search gives its first pass's policy move. Cyanotype's practice bot then plays at any
 // visits from 1, as Hedge School's does.
 //
 // The fields of describe, describe_game and play are each game's own: the engine package types only the analysis and

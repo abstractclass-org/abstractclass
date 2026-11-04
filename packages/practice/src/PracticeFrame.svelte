@@ -8,7 +8,7 @@
   //   on Lichess's game page (Hedge School: Enclosure's board). With the gauge, the board's column is the gauge's width
   //   wider, and the row starts at the board's edge.
   // - "fill": the window's height, less the row, and all the width that the side column leaves at its widest
-  //   (Drawing Board: Blueprints' board has no edge). In one column, the height that the site gives (`fillHeight`).
+  //   (Cyanotype: Blueprints' board has no edge). In one column, the height that the site gives (`fillHeight`).
   // The site gives the content: the row, the gauge, the board, the side column's content and the bar's tools.
   import type { Snippet } from "svelte";
   import { stripBox } from "@abstractclass/review/PlayerCard.svelte";

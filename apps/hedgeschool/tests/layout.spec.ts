@@ -10,17 +10,17 @@
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
-// monospaced font draws no ligatures, on Hedge School and on Drawing Board (DB_BASE_URL). Two check Drawing Board's
-// Practice (DB_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check Drawing
-// Board's import page: the choice for a tool's game, and a record that the engine refuses. One checks Drawing Board's
+// monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). Two check Cyanotype's
+// Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check Cyanotype's
+// import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. A last test checks the
 // step bar on a phone, on the review, the Analysis board and Practice. Run: npm run test:layout (the site running
 // first).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
-import { REFUSED, SPREAD_BOARD, noReview, reviewTestGame, toolLink } from "./drawingboard-review.ts";
-import { analysisAt, drawEach } from "./drawingboard-notes.ts";
+import { REFUSED, SPREAD_BOARD, noReview, reviewTestGame, toolLink } from "./cyanotype-review.ts";
+import { analysisAt, drawEach } from "./cyanotype-notes.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -133,14 +133,14 @@ function monoSettings(page: Page) {
 // The monospaced font draws no ligatures (design 06, item 11), on both sites: a record's text shows as it is, and the
 // columns keep their width of 0.6 em a character. Fira Code's ligatures keep that width, so the settings show them,
 // not the width. The pages: each site's Notation page, and Hedge School's editor, whose position field is in Fira Code.
-// Drawing Board's test runs when DB_BASE_URL gives its running preview.
-const DRAWING_BOARD = process.env.DB_BASE_URL;
+// Cyanotype's test runs when CYANOTYPE_BASE_URL gives its running preview.
+const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 for (const [site, urls] of Object.entries({
   "Hedge School": ["/notation", "/editor"],
-  "Drawing Board": DRAWING_BOARD ? [new URL("/notation", DRAWING_BOARD).href] : [],
+  "Cyanotype": CYANOTYPE ? [new URL("/notation", CYANOTYPE).href] : [],
 })) {
   test(`the monospaced font draws no ligatures on ${site}`, async ({ page }) => {
-    test.skip(!urls.length, "DB_BASE_URL gives no Drawing Board preview");
+    test.skip(!urls.length, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     for (const url of urls) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
@@ -153,10 +153,10 @@ for (const [site, urls] of Object.entries({
   });
 }
 
-// Drawing Board's Practice (its design 33, "Practice against Stamp Duty"), when DB_BASE_URL gives its preview. The page
+// Cyanotype's Practice (its design 33, "Practice against Stamp Duty"), when CYANOTYPE_BASE_URL gives its preview. The page
 // as the site's build gives it: the settings card with the engine's files, a notice without them (CI's build has none).
 // With the practice bot, a game in progress, the player to move: the lab's middle game, Stamp Duty's own moves
-// (apps/drawingboard/src/lib/board/fixtures.json). Besides the sweep, design 06's window sizes, 2,560 x 1,440 among them.
+// (apps/cyanotype/src/lib/board/fixtures.json). Besides the sweep, design 06's window sizes, 2,560 x 1,440 among them.
 // The page's own rules: the status line shows its whole text, the hands' panel stays on the board, and in one column
 // (under 800 pixels) the field is at least as high as it is wide.
 const DB_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
@@ -170,24 +170,24 @@ async function problemsAtSizes(page: Page, own: (p: Page) => Promise<string[]> =
   }
   return found;
 }
-test("layout of Drawing Board's /practice", async ({ page }) => {
-  test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
-  await page.goto(new URL("/practice", DRAWING_BOARD).href);
-  await page.evaluate(() => localStorage.removeItem("drawing-board:practice-game:1"));
+test("layout of Cyanotype's /practice", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  await page.goto(new URL("/practice", CYANOTYPE).href);
+  await page.evaluate(() => localStorage.removeItem("cyanotype:practice-game:1"));
   await page.reload();
   await expect(page.getByRole("button", { name: "Play as Blue" }).or(page.getByRole("alert"))).toBeVisible({ timeout: 60_000 });
-  expect(await sweep(page, "Drawing Board's /practice")).toBe("");
+  expect(await sweep(page, "Cyanotype's /practice")).toBe("");
 });
 
-test("layout of a practice game on Drawing Board", async ({ page }) => {
-  test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
-  const manifest = await page.request.get(new URL("/engine/manifest.json", DRAWING_BOARD).href).then(r => r.json()).catch(() => null);
+test("layout of a practice game on Cyanotype", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json()).catch(() => null);
   test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
-            "Drawing Board's preview has no practice bot: run `npm run engine` in apps/drawingboard before its build");
-  const fixtures = JSON.parse(readFileSync("../drawingboard/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
+            "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build");
+  const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
   const moves = fixtures.find(f => f.name === "A middle game")!.moves; // Red to move
-  await page.goto(new URL("/practice", DRAWING_BOARD).href);
-  await page.evaluate(kept => localStorage.setItem("drawing-board:practice-game:1", JSON.stringify(kept)),
+  await page.goto(new URL("/practice", CYANOTYPE).href);
+  await page.evaluate(kept => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify(kept)),
     { version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
       human: 1, name: "", seed: 1, moves, builds: [], started: new Date().toISOString() });
   await page.reload();
@@ -201,32 +201,32 @@ test("layout of a practice game on Drawing Board", async ({ page }) => {
     if (innerWidth < 800 && field && field.height < field.width - 1) out.push(`the field is ${Math.round(field.width)} wide and ${Math.round(field.height)} high`);
     return out;
   });
-  expect(await sweep(page, "a practice game on Drawing Board", own)).toBe("");
+  expect(await sweep(page, "a practice game on Cyanotype", own)).toBe("");
   expect(await problemsAtSizes(page, own)).toEqual([]);
 });
 
-// Drawing Board's review and Analysis board (its design 33), when DB_BASE_URL gives its preview with the engine's
-// files: the review's test game up to turn 20, reviewed (drawingboard-review.ts), and the Analysis board on the practice
+// Cyanotype's review and Analysis board (its design 33), when CYANOTYPE_BASE_URL gives its preview with the engine's
+// files: the review's test game up to turn 20, reviewed (cyanotype-review.ts), and the Analysis board on the practice
 // bot's position of more views. Besides the sweep, design 06's window sizes.
 for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as const) {
-  test(`layout of Drawing Board's ${name}`, async ({ page }) => {
+  test(`layout of Cyanotype's ${name}`, async ({ page }) => {
     test.setTimeout(30 * 60_000); // the review at Lite takes about 15 minutes, before the sweep
     const skip = await noReview(page);
     test.skip(!!skip, skip);
     if (path) {
-      await page.goto(new URL(path, DRAWING_BOARD).href);
+      await page.goto(new URL(path, CYANOTYPE).href);
       await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
       await expect(page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]").first()).toBeVisible({ timeout: 300_000 });
     } else await reviewTestGame(page);
     const found = await problemsAtSizes(page);
-    expect([await sweep(page, `Drawing Board's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
+    expect([await sweep(page, `Cyanotype's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
   });
 }
 
-// Drawing Board's board with the player's notes (its design 33, "The player's notes"), on the Analysis board with the
+// Cyanotype's board with the player's notes (its design 33, "The player's notes"), on the Analysis board with the
 // review's test game, the engine off: in each colour four hexes marked by a right drag with Shift and an arrow, at
 // design 06's sizes. The notes stay with the board when the window's size changes, and stay inside the field.
-test("layout of Drawing Board's board with notes", async ({ page }) => {
+test("layout of Cyanotype's board with notes", async ({ page }) => {
   const skip = await noReview(page);
   test.skip(!!skip, skip);
   await page.setViewportSize({ width: 1376, height: 952 });
@@ -254,7 +254,7 @@ test("layout of the choice for a tool's game", async ({ page }) => {
   expect(await sweep(page, "/import, a tool's game")).toBe("");
 });
 
-// Drawing Board's import page (its design 33), when DB_BASE_URL gives its preview with the engine's files: the choice
+// Cyanotype's import page (its design 33), when CYANOTYPE_BASE_URL gives its preview with the engine's files: the choice
 // for the review's test game, below the notice that an out-of-date userscript gets, and a record that the engine
 // refuses (REFUSED: an x on a move that captures nothing). Besides the sweep, design 06's window sizes.
 const IMPORT_PAGES: [string, string | undefined, (p: Page) => Locator][] = [
@@ -262,13 +262,13 @@ const IMPORT_PAGES: [string, string | undefined, (p: Page) => Locator][] = [
   ["a refused record", REFUSED, p => p.getByRole("alert")],
 ];
 for (const [name, record, shown] of IMPORT_PAGES) {
-  test(`layout of Drawing Board's import page: ${name}`, async ({ page }) => {
+  test(`layout of Cyanotype's import page: ${name}`, async ({ page }) => {
     const skip = await noReview(page);
     test.skip(!!skip, skip);
     await page.goto(toolLink({ tool: "userscript", v: "old", at: 5, record }));
     await expect(shown(page)).toBeVisible({ timeout: 120_000 });
     const found = await problemsAtSizes(page);
-    expect([await sweep(page, `Drawing Board's /import, ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
+    expect([await sweep(page, `Cyanotype's /import, ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
   });
 }
 

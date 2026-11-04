@@ -1,0 +1,39 @@
+@import "tailwindcss";
+/* The sites' shared style: Hedge School's colour tokens, its base styles and its page area (packages/site). */
+@import "@abstractclass/site/site.css";
+/* The review's view and its parts, with their style (packages/review): Tailwind finds their classes there. */
+@import "@abstractclass/review/review.css";
+/* The practice's settings card and game frame (packages/practice): Tailwind finds their classes there. */
+@import "@abstractclass/practice/practice.css";
+/* The import page's choice for a tool's game (packages/import): Tailwind finds its classes there. */
+@import "@abstractclass/import/import.css";
+
+/* Cyanotype's accent (design 33, "Consequences"): Hedge School's lavender (apps/hedgeschool/src/app.css), on the
+   tokens that the sites share, until Cyanotype's own colour comes with its logo. */
+:root, [data-theme="light"] {
+  --accent: #6f5aa8; /* lavender: 5.2:1 as text on the page, 5.7:1 under white text */
+  --on-accent: #ffffff; /* text on the accent */
+}
+:root[data-theme="dark"] {
+  --accent: #b8a6e8; /* pale lavender: 5.9:1 as text on panel-2, 8.2:1 under near-black text */
+  --on-accent: #16181c;
+}
+
+/* The board's tokens, which the shared style and the view's do not hold: Hedge School's (apps/hedgeschool/src/app.css),
+   as the site starts with Hedge School's style. And the review's line of the players' second number (the view's game
+   interface, `second`: the stars), Hedge School's magenta for its area. */
+:root, [data-theme="light"] {
+  --board-bg: #f3ead7;
+  --board-dot: #b9ab8d;
+  --area: #a8508f;
+}
+:root[data-theme="dark"] {
+  --board-bg: #3a362e;
+  --board-dot: #6d6555;
+  --area: #d27fbb;
+}
+/* The tokens as Tailwind's colours, beside the shared ones (site.css) and the view's (review.css), as Hedge School's. */
+@theme inline {
+  --color-board: var(--board-bg);
+  --color-area: var(--area);
+}
