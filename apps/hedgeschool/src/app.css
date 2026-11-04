@@ -17,8 +17,6 @@
   --on-accent: #ffffff; /* text on the accent */
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
-  /* A protected edge's halo: a neutral that is neither player's colour, a warm grey on the light board and a warm
-     off-white on the dark one, each the board's contrast. */
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
   /* The position symbols' shades (the book's table, design 32, item 3): the stronger the position, the farther its
      symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in OKLCH,

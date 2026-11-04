@@ -94,11 +94,12 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
     `src/lib/edition.ts`: "© 2026 Yshan"). The repository is public and has no licence file, so these terms are its
     terms too. GitHub's own terms still let each of its users view the repository and fork it on GitHub. The
     notices page states these terms first, and then the licences of the works of others that the site ships: the MIT
-    licence there covers those works only. These licences cannot be removed: MIT, for example, requires its notice in
-    every copy, and the site sends those libraries to each visitor. An open licence such as MIT would let anyone serve
-    the site for profit. For the repository, a licence for non-commercial use (PolyForm Noncommercial 1.0.0) is the
-    nearest to these terms. It would not cover the sounds: the Pixabay Content License does not permit their passing
-    on alone.
+    licence and the font's licence there cover those works only. These licences cannot be removed: MIT, for example,
+    requires its notice in every copy, and the SIL Open Font License 1.1 of the font Fira Code asks that each copy of
+    the font carries its copyright line and the licence. The site sends those libraries and that font to each visitor.
+    An open licence such as MIT would let anyone serve the site for profit. For the repository, a licence for
+    non-commercial use (PolyForm Noncommercial 1.0.0) is the nearest to these terms. It would not cover the sounds:
+    the Pixabay Content License does not permit their passing on alone.
     **The engine and its networks** have the same holder and the same terms, set in the engine repository (its
     `games/enclosure/docs/design/21-release-terms.md`, requests 14 and 21): all rights reserved, with Hedge School and
     its visitors permitted to serve and run them. The terms also cover the engine's outputs: its analyses, and the
@@ -321,7 +322,8 @@ read the game from the player's own page.
 - One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check
   for a deleted game: `keepBranches` in `packages/analysis/src/analysis.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
-  `packages/site/src/prose.ts` (their text style), `packages/site/src/LibraryNotices.svelte` (the pages' libraries).
+  `packages/site/src/prose.ts` (their text style), `packages/site/src/LibraryNotices.svelte` (the pages' libraries and
+  the font Fira Code).
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
   when the address holds a game, by the page that removes it (design 22).
 - Hosting: `package.json` (`build:cloudflare`), `.node-version` (at the root), `static/_headers`, `vite.config.ts`

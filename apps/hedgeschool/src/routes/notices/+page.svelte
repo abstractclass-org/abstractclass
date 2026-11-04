@@ -1,6 +1,6 @@
 <script lang="ts">
   // The site's own terms, the engine's terms, then the licences of what the site ships of others' work (design 11): in
-  // the engine, the libraries in the pages, an icon, the sounds.
+  // the engine, the libraries and the font Fira Code in the pages, an icon, the sounds.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import { SITE_COPYRIGHT, SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";

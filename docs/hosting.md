@@ -345,7 +345,7 @@ job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so th
   `enclosure-board.css`, from Hedge School's home board (`src/lib/home/replay.json`). Run it again at the root after
   that board's scenes change: `node apps/hub/scripts/enclosure-board.mjs`. The step `hub-board` of `npm run check:all`
   fails when the two files are not what the script writes, and when a colour token of `style.css` is not Hedge
-  School's (`src/app.css`).
+  School's (`packages/site/src/site.css`, `packages/review/src/review.css` and `apps/hedgeschool/src/app.css`).
 
 **The owner's steps, once:**
 

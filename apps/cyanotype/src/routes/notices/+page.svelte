@@ -1,6 +1,6 @@
 <script lang="ts">
-  // The site's own terms, then the licences of what the site ships of others' work (design 11): the libraries in the
-  // pages. The engine's terms come with the engine.
+  // The site's own terms, then the licences of what the site ships of others' work (design 11): the libraries and the
+  // font Fira Code in the pages. The engine's terms come with the engine.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import LibraryNotices from "@abstractclass/site/LibraryNotices.svelte";

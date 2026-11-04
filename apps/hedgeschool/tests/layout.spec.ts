@@ -136,7 +136,8 @@ function monoSettings(page: Page) {
 // The monospaced font draws no ligatures (design 06, item 11), on both sites: a record's text shows as it is, and the
 // columns keep their width of 0.6 em a character. Fira Code's ligatures keep that width, so the settings show them,
 // not the width. The pages: each site's Notation page, and Hedge School's editor, whose position field is in Fira Code.
-// Cyanotype's test runs when CYANOTYPE_BASE_URL gives its running preview.
+// Cyanotype's test runs when CYANOTYPE_BASE_URL gives its running preview. A CI run with no address stops in
+// playwright.config.ts, so that the test cannot skip there with no message.
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 for (const [site, urls] of Object.entries({
   "Hedge School": ["/notation", "/editor"],
