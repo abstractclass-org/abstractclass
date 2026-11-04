@@ -334,7 +334,7 @@
   ],
   "narrative": {
     "northStar": "The game first, one column",
-    "overview": "The hub is one calm column of games, one entry for each game. Each entry leads with the game's name, because a player knows the game before the site. The page refuses the landing-page hero and the row of equal cards. Its look is Hedge School's look. The hub copies Hedge School's colour tokens (`packages/site/src/site.css`, `packages/review/src/review.css` and `apps/hedgeschool/src/app.css`) in the same names, its system sans, its hairlines and its board drawing. A visitor who goes from the hub to a game's site sees no change of world.\n\nThe page is quiet and sparse. Ink on a warm page carries the text. Hairlines separate the entries. Lavender appears only on the actions, the links and the focus ring. The one moving thing on the page is each game's board, which replays a real scene edge by edge in CSS. The theme follows the system's colour scheme, because the hub keeps nothing in the browser.\n\nThe page runs under a strict Content Security Policy: no script, no inline style, and only its own files. Every visual effect is a rule in a stylesheet of the hub's own origin. The board is inline SVG with classes, never `style` attributes.",
+    "overview": "The hub is one calm column of games, one entry for each game. Each entry leads with the game's name, because a player knows the game before the site. The page refuses the landing-page hero and the row of equal cards. Its look is Hedge School's look. The hub copies Hedge School's colour tokens (`apps/hedgeschool/src/app.css` and the shared style sheets that it imports) in the same names, its system sans, its hairlines and its board drawing. A visitor who goes from the hub to a game's site sees no change of world.\n\nThe page is quiet and sparse. Ink on a warm page carries the text. Hairlines separate the entries. Lavender appears only on the actions, the links and the focus ring. The one moving thing on the page is each game's board, which replays a real scene edge by edge in CSS. The theme follows the system's colour scheme, because the hub keeps nothing in the browser.\n\nThe page runs under a strict Content Security Policy: no script, no inline style, and only its own files. Every visual effect is a rule in a style sheet of the hub's own origin. The board is inline SVG with classes, never `style` attributes.",
     "keyCharacteristics": [
       "One centred column of 47.5rem, with 1rem gutters.",
       "The game's name is the largest type on the page.",
@@ -355,7 +355,7 @@
       },
       {
         "name": "The Same Names Rule",
-        "body": "A colour token on the hub has the name and the value of its Hedge School token. A change to a shared value starts in Hedge School's `site.css`, `review.css` or `app.css`.",
+        "body": "A colour token on the hub has the name and the value of its Hedge School token. A change to a shared value starts in Hedge School's tokens (`app.css`, or a shared style sheet that it imports).",
         "section": "colors"
       },
       {

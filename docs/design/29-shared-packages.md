@@ -346,9 +346,10 @@ edit in the same commit), so their changes still apply.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
   words), `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one
   that fills the room), `bot.ts`, `botWorker.ts` and `botMessages.ts` (the page's side of the practice bot and its
-  worker, with the site's worker module) and `practice.css` (the package's Tailwind source, and the utility
-  `btn-danger`: the button that ends something for good, in the blunder's red from the view's `--blunder-fill`. It is
-  here and not in `site.css`, because the site package must not read the view's tokens). Its check is `svelte-check`.
+  worker, with the site's worker module) and `practice.css` (the package's Tailwind source). `practice.css` also holds
+  the utility `btn-danger`, the style of a button that ends something for good. `btn-danger` reads the view's
+  `--blunder-fill`. The site package must not read the view's tokens, so `btn-danger` is not in `site.css`. The
+  package's check is `svelte-check`.
   `apps/hedgeschool/src/lib/practice/hedgefund.ts`: Hedge School's part.
 - `.github/workflows/tests.yml` and `deploy.yml`: the packages' checks.
 

@@ -42,17 +42,16 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   Git Bash, its quotes reach cmd with backslashes, cmd does not set the variable, and the tests go to port 4173 with no
   error. The project `edge` comes only with `HS_EDGE=1` (the note "Edge starts only with `HS_EDGE=1`").
   `npx playwright test --list` shows the tests with no browser, and shows the project `edge` only with the variable.
-- **The layout test on Cyanotype:** the tests that open a Cyanotype page run only when `CYANOTYPE_BASE_URL` gives the
-  address of a running Cyanotype preview. They are the ligature test ("the monospaced font draws no ligatures on
-  Cyanotype"), the Practice, review and import tests of `layout.spec.ts`, `notices.spec.ts` and the specs
-  `cyanotype-*.spec.ts`. Outside CI, without the variable, Playwright skips them with no error: their lines in the
-  output show `-`, not `ok` or `✓`. In CI, a run with no variable stops before any test
-  (`apps/hedgeschool/playwright.config.ts`), because a run that skips every Cyanotype test passes and tests no
-  Cyanotype page. The Tests workflow builds Cyanotype in each run, starts its preview on port 4174 and sets the
-  variable. To run the tests here, build Cyanotype (`npm run build` in `apps/cyanotype`). Start its preview as in the
-  note "The local server", in `apps/cyanotype` and on a port other than Hedge School's. Then set `CYANOTYPE_BASE_URL`
-  to the address of that preview, in the same way as `BASE_URL` (the note "The layout test"). The tests do not serve a
-  build themselves, because a stale build would pass with no message.
+- **The tests on Cyanotype:** the tests that open a Cyanotype page run only when `CYANOTYPE_BASE_URL` gives the address
+  of a running Cyanotype preview. They are the tests of `layout.spec.ts` and `notices.spec.ts` whose names hold
+  "Cyanotype", and the specs `cyanotype-*.spec.ts`. Outside CI, without the variable, Playwright skips them with no
+  error: their lines in the output show `-`, not `ok` or `✓`. In CI, a run with no variable stops before any test
+  (`apps/hedgeschool/playwright.config.ts` gives the reason). The Tests workflow builds Cyanotype in each run, starts
+  its preview on port 4174 and sets the variable. To run the tests here, build Cyanotype: `npm run engine`, then
+  `npm run build`, in `apps/cyanotype`. Without the engine's files, the tests that need them skip with a message.
+  Start Cyanotype's preview as in the note "The local server", in `apps/cyanotype` and on a port other than Hedge
+  School's. Then set `CYANOTYPE_BASE_URL` to the address of that preview, in the same way as `BASE_URL` (the note
+  "The layout test"). The tests do not serve a build themselves, because a stale build would pass with no message.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
 - **The local server:** `node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`

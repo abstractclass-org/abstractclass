@@ -40,9 +40,9 @@ new builds arrive often.
   played, so they show the last moves too. The board follows the theme
   (unlike both sites' boards, which have their own setting), so the player's notes have a value for each board. Plain
   CSS stays where utilities read worse: the board's SVG styles (`Board.svelte`), the review page's layout grid with its
-  `calc()` board size (design 06), and the tokens and base element styles in `app.css`. Links are underlined unless they
-  are not in running text (`no-underline`). A page's `main` uses `box-content`, so its `max-w-*` limit is the width of
-  its content.
+  `calc()` board size (design 06), the tokens (`site.css`, `review.css` and `app.css`) and the base element styles
+  (`site.css`). Links are underlined unless they are not in running text (`no-underline`). A page's `main` uses
+  `box-content`, so its `max-w-*` limit is the width of its content.
 - **Components with keyboard and focus behaviour:** Bits UI 2 (`bits-ui`), a headless library for Svelte 5. It gives
   the roles, the keys and the focus handling, and leaves the styles to Tailwind. The review's tabs and its display
   menu use it (`Tabs`, `Popover`).

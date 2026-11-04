@@ -1,6 +1,6 @@
-// The page's scroll (SiteFrame.svelte): on a screen with a mouse, the page scrolls in its own area under the site's header
-// (#page), which stays in view and reaches the window's edges, while the scroll bar's room stays on every page. On a
-// touch screen, the document scrolls, as it does by default. Code that needs the page's scroll reads it here.
+// The page's scroll (SiteFrame.svelte): on a screen with a mouse, the page scrolls in its own area under the site's
+// header (#page), which stays in view and reaches the window's edges, while the scroll bar's room stays on every page.
+// On a touch screen, the document scrolls, as it does by default. Code that needs the page's scroll reads it here.
 
 /** The element that scrolls the page on a screen with a mouse. */
 export const pageArea = () => document.getElementById("page");

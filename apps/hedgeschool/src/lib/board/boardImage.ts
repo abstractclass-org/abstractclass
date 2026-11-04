@@ -73,7 +73,7 @@ async function boardCanvas(props: BoardProps, caption: string[], width: number):
   Promise<{ canvas: HTMLCanvasElement; colour: Record<(typeof FLAT)[number], string> }> {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
-  host.dataset.theme = "light"; // the light theme's colours (site.css, review.css, app.css)
+  host.dataset.theme = "light"; // the light theme's colours (app.css and the shared style sheets that it imports)
   host.className = "fixed top-0 -left-[100000px] w-[600px] pointer-events-none";
   document.body.append(host);
   let markup: string, colour: Record<(typeof FLAT)[number], string>;

@@ -1,6 +1,6 @@
 /* The hub at abstractclass.org (apps/hub/DESIGN.md). It looks like Hedge School: these are Hedge School's colour
-   tokens (packages/site/src/site.css, packages/review/src/review.css and apps/hedgeschool/src/app.css), in the same
-   names. The hub keeps nothing in the browser, so its theme is the system's. */
+   tokens (apps/hedgeschool/src/app.css and the shared style sheets that it imports), in the same names. The hub keeps
+   nothing in the browser, so its theme is the system's. */
 :root {
   --bg: #f6f5f2;
   --panel: #ffffff;
