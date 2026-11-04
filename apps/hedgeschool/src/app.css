@@ -4,7 +4,8 @@
 @import "@abstractclass/site/site.css";
 /* The review's view and its parts, with their style (packages/review): Tailwind finds their classes there. */
 @import "@abstractclass/review/review.css";
-/* The practice's settings card and game frame (packages/practice): Tailwind finds their classes there. */
+/* The practice's settings card and game frame (packages/practice): Tailwind finds their classes there. Its utility
+   `btn-danger` also colours ConfirmDialog's action. */
 @import "@abstractclass/practice/practice.css";
 /* The import page's choice for a tool's game (packages/import): Tailwind finds its classes there. */
 @import "@abstractclass/import/import.css";

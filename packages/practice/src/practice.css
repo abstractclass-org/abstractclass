@@ -3,8 +3,8 @@
 @source ".";
 
 /* A button that ends something for good (Abort and Resign once confirmed, a game's Delete): in the blunder's red, the
-   view's token (review.css). It lives here and not in site.css, because the site package must not read the view's
-   tokens, and every site that shows Practice, or a dialog of Hedge School's, imports this file. */
+   view's token (review.css). Not in site.css: the site package must not read the view's tokens
+   (decisions/product.md, "`btn-danger` moves to the practice package"). */
 @utility btn-danger {
   background: var(--blunder-fill);
   border-color: var(--blunder-fill);

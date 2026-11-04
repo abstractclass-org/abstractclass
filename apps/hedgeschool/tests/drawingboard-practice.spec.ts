@@ -7,9 +7,9 @@
 // the bot at 1 and 2 visits has its own test (apps/drawingboard/src/lib/practice/bot.engine.test.ts). The site's
 // build and the Tests workflow have no engine files (design 33, "The engine's files"), so the tests skip, with a
 // message, when the preview has no practice bot: run `npm run engine` in apps/drawingboard before its build. A last
-// test keeps a game whose network the site does not ship: the page drops it and shows the settings card. The confirm
-// button of Resign and Abort is the red of the blunder in both themes (Hedge School's own is the same button): one
-// test opens the step in a game, and one test, which needs no bot, checks the style of the utility itself. Run:
+// test keeps a game whose network the site does not ship: the page drops it and shows the settings card. In a game,
+// the confirm button of Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility
+// itself (`btn-danger`), so that the Tests workflow runs it too. Run:
 // npm run test:layout -- tests/drawingboard-practice.spec.ts, with DB_BASE_URL.
 import { expect, test, type Page } from "@playwright/test";
 
@@ -58,6 +58,17 @@ async function botManifest(page: Page) {
   return manifest;
 }
 
+/** Starts a game against the practice bot at 32 visits, the player on a side. */
+async function startGame(page: Page, manifest: { artifacts: { kind: string; id: string }[] }, side: "Blue" | "Red") {
+  await page.setViewportSize({ width: 1376, height: 952 });
+  await page.goto(new URL("/practice", DRAWING_BOARD).href);
+  await page.evaluate(network => localStorage.setItem("drawing-board:practice-choices:1",
+                        JSON.stringify({ bot: { network, visits: 32, variety: "low" }, side: "random", name: "" })),
+                      manifest.artifacts.find(a => a.kind === "model")!.id);
+  await page.reload();
+  await page.getByRole("button", { name: `Play as ${side}` }).click({ timeout: 60_000 });
+}
+
 for (const side of ["Blue", "Red"] as const) {
   test(`a whole game against Stamp Duty on Drawing Board, the player ${side}`, async ({ page }) => {
     const manifest = await botManifest(page);
@@ -70,15 +81,7 @@ for (const side of ["Blue", "Red"] as const) {
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
     };
-    await page.setViewportSize({ width: 1376, height: 952 });
-    await page.goto(new URL("/practice", DRAWING_BOARD).href);
-    await page.evaluate(network => {
-      localStorage.removeItem("drawing-board:practice-game:1");
-      localStorage.setItem("drawing-board:practice-choices:1",
-                           JSON.stringify({ bot: { network, visits: 32, variety: "low" }, side: "random", name: "" }));
-    }, manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id);
-    await page.reload();
-    await page.getByRole("button", { name: `Play as ${side}` }).click({ timeout: 60_000 });
+    await startGame(page, manifest, side);
     const player = side === "Blue" ? 0 : 1;
     let status = await turn(page), reloaded = false, moves = 0;
     while (status.startsWith("Your turn")) {
@@ -124,50 +127,38 @@ test("a kept game whose network the site does not ship gives way to the settings
   expect(errors).toEqual([]);
 });
 
-// The blunder's fill (--blunder-fill, review.css) in each theme, with the white text of the button.
+// The blunder's fill (--blunder-fill, review.css) in each theme: the fill of Hedge School's confirm button.
 const DANGER_FILL = { light: "rgb(212, 58, 58)", dark: "rgb(226, 72, 69)" } as const;
-const WHITE = "rgb(255, 255, 255)";
 
-/** Waits until a button has the confirm button's colours in a theme: the fill, the border and the text. */
-async function expectDangerStyle(button: ReturnType<Page["locator"]>, theme: "light" | "dark") {
-  await button.page().evaluate(t => { document.documentElement.dataset.theme = t; }, theme);
-  await expect(button).toHaveCSS("background-color", DANGER_FILL[theme]);
-  await expect(button).toHaveCSS("border-top-color", DANGER_FILL[theme]);
-  await expect(button).toHaveCSS("color", WHITE);
+/** Waits until a button has the confirm button's colours in each theme: the fill, the border and the white text. */
+async function expectDangerStyle(button: ReturnType<Page["locator"]>) {
+  for (const theme of ["light", "dark"] as const) {
+    await button.page().evaluate(t => { document.documentElement.dataset.theme = t; }, theme);
+    await expect(button).toHaveCSS("background-color", DANGER_FILL[theme]);
+    await expect(button).toHaveCSS("border-top-color", DANGER_FILL[theme]);
+    await expect(button).toHaveCSS("color", "rgb(255, 255, 255)");
+  }
 }
 
-for (const action of ["Resign", "Abort"] as const) {
-  test(`the confirm button of ${action} has the blunder's red on Drawing Board, in both themes`, async ({ page }) => {
-    const manifest = await botManifest(page);
-    const errors: string[] = [];
-    page.on("pageerror", e => errors.push(String(e)));
-    await page.setViewportSize({ width: 1376, height: 952 });
-    await page.goto(new URL("/practice", DRAWING_BOARD).href);
-    await page.evaluate(network => {
-      localStorage.removeItem("drawing-board:practice-game:1");
-      localStorage.setItem("drawing-board:practice-choices:1",
-                           JSON.stringify({ bot: { network, visits: 32, variety: "low" }, side: "random", name: "" }));
-    }, manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id);
-    await page.reload();
-    await page.getByRole("button", { name: "Play as Blue" }).click({ timeout: 60_000 });
+test("the confirm button of Abort and Resign has the blunder's red on Drawing Board, in both themes", async ({ page }) => {
+  const manifest = await botManifest(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await startGame(page, manifest, "Blue");
+  // One game for both: a click on Resign while Abort's step is open opens Resign's step.
+  for (const action of ["Abort", "Resign"]) {
     const opener = page.getByRole("button", { name: action, exact: true });
     await expect(opener).toBeEnabled({ timeout: 60_000 });
     await opener.click();
-    const confirm = page.getByRole("alertdialog", { name: action }).getByRole("button", { name: action, exact: true });
-    await expect(confirm).toBeVisible();
-    await expectDangerStyle(confirm, "light");
-    await expectDangerStyle(confirm, "dark");
-    await page.evaluate(() => localStorage.removeItem("drawing-board:practice-game:1"));
-    expect(errors).toEqual([]);
-  });
-}
+    await expectDangerStyle(page.getByRole("alertdialog", { name: action }).getByRole("button", { name: action, exact: true }));
+  }
+  expect(errors).toEqual([]);
+});
 
 test("btn-danger has the blunder's red in Drawing Board's style, in both themes", async ({ page }) => {
   test.skip(!DRAWING_BOARD, "DB_BASE_URL gives no Drawing Board preview");
-  await page.goto(new URL("/practice", DRAWING_BOARD).href);
-  const button = page.locator("button.btn-danger-probe");
+  await page.goto(new URL("/about", DRAWING_BOARD).href); // a page with no engine: the site's style is the same
   await page.evaluate(() => document.body.append(Object.assign(document.createElement("button"),
-                                                               { className: "btn-danger btn-danger-probe", textContent: "Resign" })));
-  await expectDangerStyle(button, "light");
-  await expectDangerStyle(button, "dark");
+                                                               { className: "btn-danger", textContent: "Resign" })));
+  await expectDangerStyle(page.locator("body > button.btn-danger"));
 });

@@ -104,10 +104,11 @@ new builds arrive often.
   workspace ([design 26](26-one-repository.md)).
 - `packages/site/src/site.css`: the general colour tokens, Tailwind's theme from them, and the base element styles.
   It also holds the general controls (the main button, the icon button, the dialogs, the menus and the keys' lists).
-  `packages/review/src/review.css`: the view's tokens (the quality labels', the last move's, the score line's and the
-  engine's), the one-column variant, `bar-glider` and the step bar's dock. `packages/practice/src/practice.css`: the
-  utility `btn-danger`, which reads the view's `--blunder-fill`. `src/app.css`: Hedge School's own tokens (the accent,
-  the board's, the notes' and the area line's) and the utility `board-points`.
+  `packages/review/src/review.css`: the view's tokens (the quality labels', the last move's, the score line's, the
+  engine's and the notes'), the one-column variant, `bar-glider` and the step bar's dock.
+  `packages/practice/src/practice.css`: the utility `btn-danger`, which reads the view's `--blunder-fill`.
+  `src/app.css`: Hedge School's own tokens (the accent, the board's, the area line's and the position symbols' shades)
+  and the utility `board-points`.
 - `engine.lock.json` and `packages/engine/src/fetch-engine.mjs` (`npm run engine`): the engine's artifacts.
 
 ## Log entries

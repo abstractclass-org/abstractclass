@@ -7989,16 +7989,23 @@ abscls-8tl1.16. Design 33, "The player's notes", gives the result. What the issu
   Firefox's menu on screen, and the page cannot stop it. Ctrl and Alt do not open it. The sites are tested in Chromium
   only.
 
-### `btn-danger` moves to the practice package (2026-11-04, abscls-8tl1.21)
+### `btn-danger` moves to the practice package (2026-11-04)
+
+abscls-8tl1.21.
 
 - **The fault:** Drawing Board's Practice confirms Abort and Resign with a button of class `btn-danger`, but the
   utility was defined only in Hedge School's `src/app.css`. In Drawing Board the button had no fill, no border colour
-  and no white text.
+  and no white text. The move of the review's styles (2026-10-26) kept `btn-danger` in Hedge School's `app.css`,
+  because no package used it. That is still true, but now each site uses it, so the two sites need one definition.
 - **The place:** `packages/practice/src/practice.css`. Both sites import it, and the practice package already depends
   on the view's package, so the utility keeps `--blunder-fill` (review.css) and its declarations do not change.
   `site.css` would need a token of its own with the same two values, because the site package must not read the
-  view's tokens. Two copies of one colour can drift apart. The cost of the choice: a game's Delete in Hedge School's
-  ConfirmDialog is outside Practice, and it gets the utility through the site's import of `practice.css`.
+  view's tokens. Two copies of one colour can drift apart. The cost of the choice: Hedge School's ConfirmDialog (a
+  game's Delete on the review's home, and the Delete of the practice games on the Privacy page) is outside Practice.
+  It gets the utility through the site's import of `practice.css`.
 - **Checked:** Hedge School's built CSS has the same two rules of `btn-danger` (plain and `:not(:disabled)`) with the
-  same declarations. Drawing Board's built CSS has them now. A browser test asserts the confirm button's background
-  in both themes (`tests/drawingboard-practice.spec.ts`).
+  same declarations. Drawing Board's built CSS now has the plain rule. It has no `:not(:disabled)` rule, because no
+  page of Drawing Board's uses that variant. Two browser tests (`tests/drawingboard-practice.spec.ts`) assert the
+  fill, the border and the text colour in both themes. One opens the confirm step of Abort and of Resign in a game.
+  It runs only when Drawing Board's build has the practice bot (`npm run engine` before the build). The other adds a
+  `btn-danger` button to a page, and the Tests workflow runs it.
