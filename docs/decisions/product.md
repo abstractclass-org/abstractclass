@@ -8451,3 +8451,40 @@ Cloudflare Pages serves no file over 25 MiB. The job deployed nothing.
   workflow runs beside the Tests workflow, so a preview's upload still fails at Wrangler. On the build before the
   fix, the check failed and named the WebAssembly file. Its tests (`scripts/build-sizes.test.mjs`) give it a file one
   byte over 25 MiB.
+
+### Cyanotype's layout test loads a stored review (2026-11-06)
+
+The Tests workflow's Windows job failed on each push from b5de5d7 to 5bfb97e (runs 42048843987 and 42054680726). The
+layout test's case "layout of Cyanotype's review" reviewed the test game with the engine, on the CPU, and waited
+20 minutes for "Review done". On the Windows runner of 5bfb97e, the page then showed 30 of the 39 positions reviewed.
+The review was slow, not stuck: it took 12.3 minutes on b50abfe. On Linux, the same game was reviewed twice, once in
+`cyanotype-review.spec.ts` and once in the layout test (abscls-8tl1.27).
+
+- **One live review.** Only `cyanotype-review.spec.ts` reviews the test game with the engine, in its `beforeAll`. It
+  runs on Linux only, because the Windows job runs only the layout test.
+- **A stored review for the layout test.** `apps/hedgeschool/tests/fixtures/cyanotype-review.json` holds the results
+  of a real review of the test game with engine-3ac5c2fc: 79 results, the 39 positions at 32 and 512 visits, and the
+  Analysis board's position at 512. `scripts/cyanotype-review-fixture.mjs` (in `apps/hedgeschool`) writes it again.
+  `storeReview` (`tests/cyanotype-review.ts`) puts the results in the browser's store of analyses before the page
+  opens. The review case has the engine off. The Analysis board case has the engine on, because with the engine off
+  the board shows "Not analyzed yet." for a position that the store holds (abscls-8tl1.32). Its search takes the
+  stored result and asks nothing of the engine.
+- **The guards.** `expectNoSearch` counts the page's messages to the engine's workers, and fails a case that asked
+  for a search. With the store emptied, the board searched once and the guard failed. `storeReview` fails with a
+  message to run the script again when the preview serves another search or network than the stored results name,
+  or when the site no longer reads the results' keys.
+- **The time limits** in `.github/workflows/tests.yml`: 60 minutes on Linux (from 75) and 30 on Windows (from 60).
+- **The times.** On this machine, with 2 threads, the browser suite took 53.5 minutes before and 38.1 after. The
+  first CI run after the change (42099998632, at ebfcdcc) passed:
+
+  | Job | Before: b50abfe (42010774180) | Before: 5bfb97e (42054680726) | After: ebfcdcc |
+  | --- | --- | --- | --- |
+  | Linux, the job | 62.8 min | 38.4 min | 47.9 min |
+  | Linux, the live review in `cyanotype-review.spec.ts` | 18.6 min | 9.6 min | 16.2 min |
+  | Linux, the layout test's review | 19.2 min | 10.1 min | 33.9 s |
+  | Windows, the job | 25.5 min | failed at the case's 20 min | 15.2 min |
+  | Windows, the layout test's review | 12.3 min | over 20 min | 35.1 s |
+
+  In the run at ebfcdcc, the Linux job's Playwright install took 9.3 minutes, and its browser suite 37.0. The
+  Analysis board's case took 34.2 s on Linux and 35.0 s on Windows. The live review's wait of 20 minutes leaves a
+  small margin on a slow Linux runner (abscls-8tl1.33).
