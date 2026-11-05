@@ -1,7 +1,7 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -36,6 +36,13 @@ export default defineConfig({
 		__SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin),
 		__USERSCRIPT_VERSION__: JSON.stringify(userscriptVersion), __USERSCRIPT_CODE__: JSON.stringify(userscriptCode),
 	},
+	// ONNX Runtime Web in its form that takes its WebAssembly from the page, as in Hedge School's vite.config.ts. The
+	// shared engine session (@abstractclass/analysis/session.svelte.ts) names the GPU worker
+	// (@abstractclass/engine/gpuWorker.ts), so the build bundles it. In its usual form, ONNX Runtime makes the build copy
+	// its WebAssembly (25.5 MiB) into the site, over Cloudflare Pages' 25 MiB for a file. When engine.lock.json has a GPU
+	// module, fetch-engine.mjs stores ONNX Runtime's files in static/engine, as for Hedge School. Until Blueprints has a
+	// GPU build, Cyanotype's engine runs on the CPU only (design 33, "The engine's files").
+	resolve: { conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions] },
 	plugins: [
 		tailwindcss(),
 		sveltekit({

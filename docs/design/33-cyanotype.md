@@ -279,10 +279,22 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    `static/engine`, they skip with a message, and `/practice` says that the engine is not on the site. In CI, the
    browser tests of the review and of Practice fail instead of skipping, so that a build without the files cannot pass
    there.
-4. **The CPU only.** The lock has no GPU module, so the fetch script stores no ONNX Runtime for Cyanotype. The
-   rules' worker starts the engine with `createCpuEngine` alone. The bot is the practice bot with one search thread,
-   whose network runs in its own module, and its worker has no ONNX Runtime and no WebGPU code: Blueprints has no
-   threaded bot.
+4. **The CPU only, until Blueprints has a GPU build.** This is not a choice: Blueprints' release has no GPU module
+   for the browser, and Blueprints is to get one, as Enclosure has. The lock has no GPU module, so the fetch script
+   stores no ONNX Runtime for Cyanotype. The rules' worker starts the engine with `createCpuEngine` alone. The bot
+   is the practice bot with one search thread, whose network runs in its own module, and its worker has no ONNX
+   Runtime and no WebGPU code: Blueprints has no threaded bot. The GPU setting is Off whatever the browser kept
+   (`src/lib/analysis/engineSettings.ts`), so the shared engine session never starts the GPU worker. Without a GPU
+   module in the manifest, it would say that the build has none (`packages/analysis/src/gpu.svelte.ts`,
+   `GpuControl.apply`).
+5. **ONNX Runtime's files come from `static/engine`, as for Hedge School.** The shared engine session names the GPU
+   worker (`packages/engine/src/gpuWorker.ts`), so the build bundles that worker with ONNX Runtime Web, ready for a
+   GPU module. `vite.config.ts` takes ONNX Runtime Web's form that takes its WebAssembly from the page (the resolve
+   condition `onnxruntime-web-use-extern-wasm`), as Hedge School's does. When the lock has a GPU module, the fetch
+   script stores ONNX Runtime's two files in `static/engine`, with no change to the script. In its usual form, ONNX
+   Runtime makes the build copy its WebAssembly (25.5 MiB) into the site, over Cloudflare Pages' 25 MiB for one file,
+   and the deploy fails. The step `cyanotype-build-sizes` of `npm run check:all` fails on a file of the build over
+   25 MiB.
 
 ## Practice against Stamp Duty
 
@@ -776,6 +788,7 @@ engine's legal moves" (2026-10-27), "The import's frame in packages/import, and 
 "Drawing Board's practice: the bot and the page" (2026-10-30), "Drawing Board's practice on protocol 0.7.1"
 (2026-10-30), "Drawing Board's review and Analysis board" (2026-11-01), "Drawing Board's import page opens the
 review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02), "Blueprints' site is
-Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05), and
-"Cyanotype's engine from Blueprints' first release" (2026-11-05). The earlier entries name the site by its first name,
+Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05),
+"Cyanotype's engine from Blueprints' first release" (2026-11-05), and "Cyanotype's build without ONNX Runtime's
+WebAssembly" (2026-11-05). The earlier entries name the site by its first name,
 Drawing Board.

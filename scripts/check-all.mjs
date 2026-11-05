@@ -28,12 +28,15 @@ const steps = [
     name: "build", cwd: site, command: "npm run build",
     env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },
   },
+  // No file of a build over Cloudflare Pages' 25 MiB, which refuses the upload (docs/hosting.md, section 2).
+  { name: "build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/hedgeschool/build" },
   // Cyanotype, Blueprints' site (design 33): its engine's release files, its type check, its unit tests and its build.
   // Cyanotype's steps come last, so that a failure of its engine step skips only Cyanotype's steps.
   { name: "cyanotype-engine", cwd: cyanotype, command: "npm run engine -- --deploy", stopsOnFailure: true },
   { name: "cyanotype-check", cwd: cyanotype, command: "npm run check" },
   { name: "cyanotype-test", cwd: cyanotype, command: "npm test" },
   { name: "cyanotype-build", cwd: cyanotype, command: "npm run build" },
+  { name: "cyanotype-build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/cyanotype/build" },
 ];
 
 const results = [];
