@@ -34,7 +34,7 @@ import type { Game, GameTypes, Player } from "./game.ts";
 import { deepEnough, earlierIndex, equalDepth, keepsGain, moverScore, moverWin, onlyMove, otherCandidate, sameMove, secondChoice, withTwins, type Analysis,
          type Candidate, type GameEnding, type ReviewData } from "./model.ts";
 import { ONLY_MOVE_GAP } from "./labels.ts";
-import { lastMove, mainIndex, parentKey, pathKey, prefixKeys } from "./tree.ts";
+import { lastMove, mainIndex, parentKey, pathKey, prefixKeys, sameNodes } from "./tree.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { DEEP_VISITS, LABEL_VISITS, MAP_SLICE, MAP_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAt, cacheGetAtLeast, cachePut, mapGet, mapPut,
@@ -241,8 +241,8 @@ export class GameAnalysis<G extends GameTypes> {
     // For each edge but the last, the position after the engine's second choice, which confirms a Great. For each turn
     // but the last, the position after its other candidate, which confirms a Great by turn.
     const after = (i: number, c: Candidate<G["move"]> | undefined) => (c ? this.analysisAfter(i, this.game.moveName(c.edge)) : undefined);
-    // Each position's analysis with its twins by position (withTwins)
-    const own = this.game.afterKey ? this.analysis.map((a, i) => this.twinsAt(this.mainNames.slice(0, i), a)) : this.analysis;
+    // Each position's analysis with its twins by position (withTwins). A game without them keeps its own array.
+    const own = this.game.afterKey ? this.analysis.map((_, i) => this.mainAnalysis(i)) : this.analysis;
     const seconds = this.played.map((_, i) => (i + 1 < this.played.length ? after(i, secondChoice(own[i])) : undefined));
     const others = this.played.map((_, i) => {
       const turn = this.turnAt(i);
@@ -361,20 +361,47 @@ export class GameAnalysis<G extends GameTypes> {
    *  confirmation). */
   analysisOf(path: string[]): Analysis<G["move"]> | undefined {
     const i = mainIndex(path, this.mainNames);
-    if (i !== null) return this.twinsAt(path, this.analysis[i]);
+    if (i !== null) return this.mainAnalysis(i);
     const key = pathKey(path), node = this.branches[key];
-    return node ? this.twinsAt(path, node.analysis) : this.outside[key];
+    return node ? this.twinsAt(key, node.position, node.analysis) : this.outside[key];
   }
 
-  /** The analysis `a` of the position at `path` in the tree, with the moves that give one position as twins (model.ts,
-   *  withTwins): the engine's candidates, and the tree's moves from the position, the game's and the variations'. */
-  private twinsAt(path: string[], a: Analysis<G["move"]> | undefined): Analysis<G["move"]> | undefined {
-    const before = a && this.game.afterKey ? this.positionAt(path) : undefined;
-    if (!a || !before) return a;
-    const i = mainIndex(path, this.mainNames), key = pathKey(path);
-    const moves = [...(i !== null && i < this.played.length ? [this.played[i].edge] : []),
-                   ...Object.entries(this.branches).filter(([k]) => parentKey(k) === key).map(([, n]) => n.move.edge)];
-    return withTwins(this.game, a, before, moves);
+  /** The analysis of the game's position `i`, with its twins by position (twinsAt). */
+  private mainAnalysis(i: number): Analysis<G["move"]> | undefined {
+    return this.twinsAt(this.mainKeys[i], this.positions[i], this.analysis[i]);
+  }
+
+  /** The analysis `a` of the tree's position `before` with path key `key`, with the moves that give one position as
+   *  twins (model.ts, withTwins): the engine's candidates, and the tree's moves from the position (treeMoves). */
+  private twinsAt(key: string, before: G["position"] | undefined, a: Analysis<G["move"]> | undefined) {
+    return a && before && this.game.afterKey ? withTwins(this.game, a, before, this.treeMoves.get(key)) : a;
+  }
+
+  /** The tree's moves from each position, by its path key: the game's move, then the variations' in the order they were
+   *  added. Only for a game whose moves can give one position (`afterKey`): twinsAt and nodesOf read them. */
+  private treeMoves = $derived.by(() => {
+    const out = new Map<string, (G["move"] | null)[]>();
+    if (!this.game.afterKey) return out;
+    this.played.forEach((m, i) => out.set(this.mainKeys[i], [m.edge]));
+    for (const [key, node] of Object.entries(this.branches)) {
+      const parent = parentKey(key), moves = out.get(parent);
+      if (moves) moves.push(node.move.edge);
+      else out.set(parent, [node.move.edge]);
+    }
+    return out;
+  });
+
+  /** The path `target`, with each move that gives the same position as a move of the tree from there on that move
+   *  (tree.ts, sameNodes): one position is one node (Cyanotype's design 33, item 9). `target` itself for a game without
+   *  `afterKey`. */
+  nodesOf(target: string[]): string[] {
+    const afterKey = this.game.afterKey;
+    if (!afterKey) return target;
+    const pass = this.game.moveName(null);
+    return sameNodes(target, path => (this.treeMoves.get(pathKey(path)) ?? []).map(m => this.game.moveName(m)), (path, name) => {
+      const before = this.positionAt(path);
+      return !before ? null : name === pass ? name : afterKey(this.game.parseMove(name), before);
+    });
   }
 
   /** The analysis of the position after the engine's second choice at `path`, which confirms a Great (confirmGreats). */
@@ -481,7 +508,7 @@ export class GameAnalysis<G extends GameTypes> {
     // turn of the board needs each of its edges evaluated, as its label does (onlyJudged).
     const asked = (i: number) => !this.board || !!this.judgedMain[this.mainKeys[i + 1]];
     for (let i = 0; i + 1 < this.played.length; i++)
-      if (asked(i)) check(this.board, this.analysisOf(this.mainNames.slice(0, i)), () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
+      if (asked(i)) check(this.board, this.mainAnalysis(i), () => this.mainNames.slice(0, i), this.played[i].edge, this.played[i].player, false);
     for (const [key, node] of Object.entries(this.branches)) {
       if (!node.judged) continue;
       const before = key.split(" ").slice(0, -1);
@@ -490,7 +517,7 @@ export class GameAnalysis<G extends GameTypes> {
     for (let i = 0; i < this.played.length; i++) {
       const turn = this.turnAt(i);
       if (turn && i + turn.length < this.played.length && turn.every((_, k) => asked(i + k)))
-        checkTurn(this.board, this.analysisOf(this.mainNames.slice(0, i)), () => this.mainNames.slice(0, i), turn, this.played[i].player);
+        checkTurn(this.board, this.mainAnalysis(i), () => this.mainNames.slice(0, i), turn, this.played[i].player);
     }
     // A variation's turns judged on request: each judged variation move that ends a turn, with its turn's edge before it.
     for (const [key, node] of Object.entries(this.branches)) {

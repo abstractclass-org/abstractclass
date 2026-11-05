@@ -8,7 +8,8 @@ import "./testing/svelteModules.ts";
 import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import type { EnginePool } from "@abstractclass/engine/pool.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
-import { distinctCandidates, rankOf, review, sameMove, shownCandidates, twinsOf, withTwins, type Analysis, type ReviewData } from "./model.ts";
+import { distinctCandidates, judgeTurn, rankOf, review, sameMove, shownCandidates, twinsOf, withTwins, type Analysis,
+         type ReviewData } from "./model.ts";
 import { SWEEP_VISITS, analysisKey, cachePut } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
 import { wordFields, words, type Words } from "./testing/game.ts";
@@ -117,6 +118,21 @@ test("moves that give one position are one move: the engine's candidates, and th
   assert.equal(sameMove(keyed, two, "ab", "abc"), false);
 });
 
+test("a turn in the engine's order is its turn where its first edge gives the same position, not the mirror image", () => {
+  // The first choice "ab" and its line's next edge "c". "ab'" is its symmetric twin (protocol 0.4), and "ba" gives the
+  // same position (withTwins).
+  const start = withTwins(keyed, { blueWin: 0.5, visits: 100, lead: 0, candidates: [
+    { edge: "ab", visits: 60, blueWin: 0.5, lead: 0, line: ["ab", "c"] }, { edge: "ab'", visits: 60, blueWin: 0.5, lead: 0, twinOf: "ab" },
+    { edge: "d", visits: 40, blueWin: 0.3, lead: 0 }] }, words.position(wordFields(0)), ["ba"]);
+  const after = { blueWin: 0.4, blueScore: 0, visits: 100 };
+  const label = (turn: string[]) => judgeTurn(keyed, 0, turn, start, undefined, after, false, undefined, undefined, undefined)?.label;
+  // "ba" then "c" is the engine's turn. After the mirror image "ab'", the engine's next edge is the mirror image of
+  // "c", so "ab'" then "c" is another turn: as for Enclosure's symmetric twins before the twins by position.
+  assert.equal(label(["ba", "c"]), "best");
+  assert.notEqual(label(["ab'", "c"]), "best");
+  assert.equal(label(["c", "ab"]), "best"); // the engine's edges in the other order
+});
+
 test("the analysis of a game gives each position's analysis with the moves that give one position as twins", async () => {
   const pool = {
     search: "test", model: { sha256: "m" },
@@ -143,6 +159,15 @@ test("the analysis of a game gives each position's analysis with the moves that 
   await other.fromStore("test", "m");
   await other.addLine(["ba"], false);
   assert.deepEqual(other.analysisOf([])?.candidates.map(c => [c.edge, c.twinOf]), [["ab", undefined], ["ba", "ab"], ["d", undefined]]);
+  // A line that the player plays goes along the tree's node of each position that it gives, as far as the tree goes
+  assert.deepEqual(other.nodesOf(["ab", "x"]), ["ba", "x"]);
+  assert.deepEqual(other.nodesOf(["d", "c"]), ["d", "c"]);
+  assert.deepEqual(other.nodesOf(["ac"]), ["ac"]);
+  // A game without the key: the path as it is
+  const plain = new GameAnalysis(words, pool, ["ba", "c"], "twins-plain");
+  await plain.start();
+  const path = ["ab"];
+  assert.equal(plain.nodesOf(path), path);
 });
 
 test("a candidate shows within 3 of Go's points times the game's score scale", () => {

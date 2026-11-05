@@ -53,6 +53,8 @@
     otherAt(path: string[], turn: (G["move"] | null)[]): Analysis<G["move"]> | undefined; // the same for a turn
     earlierAt(path: string[], mover: Player): Analysis<G["move"]> | undefined; // before the other player's last turn, which a Great must gain on
     valuesAt(path: string[]): Analysis<G["move"]> | undefined; // the values that judge a position: the book's where it holds it, else the engine's
+    analysisOf(path: string[]): Analysis<G["move"]> | undefined; // a position's analysis, with the moves that give one position as twins
+    nodesOf(path: string[]): string[]; // the path along the tree's nodes, where its moves give their positions
     awaitsGreat(key: string): boolean; // the move into this path key waits for the searches of its Great
     turnKeys(path: string[]): string[]; // the variation moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
@@ -148,9 +150,9 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, withTwins, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
-  import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sameNodes, sharedLength, siblingLine, treeLines, withLine,
+  import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
 
   interface Props {
@@ -286,11 +288,8 @@
   // stops (the Analysis board's, an unfinished game) has a search at its last position, as any position.
   const over = $derived(!!position.over);
   // The engine's own result: where the review takes a position's values from the book, the analysis column shows the
-  // engine's search there (ReviewData `searched`)
-  const ownAnalysis = $derived(over ? undefined : mainAt !== null ? (R.data.searched ?? R.data.analysis)[mainAt] : branchNode?.analysis);
-  // With the moves that give one position as twins: the candidates, and the tree's moves from here (withTwins)
-  const analysis = $derived(ownAnalysis && view.afterKey
-    ? withTwins(view, ownAnalysis, position, childrenOf(path).map(c => moveOf(c.at(-1)!))) : ownAnalysis);
+  // engine's search there (ReviewData `searched`). Both come with their twins by position (GameAnalysis.analysisOf).
+  const analysis = $derived(over ? undefined : mainAt !== null ? (R.data.searched ?? R.data.analysis)[mainAt] : branchNode && game?.analysisOf(path));
   // The position's complexity (model.ts), and its likely edges for the meter
   const difficulty = $derived(complexity(analysis, position.player));
   const meter = $derived(likelyMoves(analysis, position.player));
@@ -351,17 +350,6 @@
   function childrenOf(p: string[]): string[][] {
     const i = mainIndex(p, mainNames);
     return [...(i !== null && i < mainNames.length ? [[...p, mainNames[i]]] : []), ...branchKids(p)];
-  }
-  function moveOf(name: string): G["move"] | null { return name === "pass" ? null : view.parseMove(name); }
-  /** The path with each move that gives the same position as a move of the tree from there on that move (sameNodes):
-   *  one position is one node. */
-  function treeNodes(target: string[]): string[] {
-    const afterKey = view.afterKey;
-    if (!afterKey) return target;
-    return sameNodes(target, p => childrenOf(p).map(c => c.at(-1)!), (p, name) => {
-      const before = positionOf(p), m = moveOf(name);
-      return !before ? null : m ? afterKey(m, before) : name;
-    });
   }
   const positionOf = (p: string[]): G["position"] | undefined => {
     const i = mainIndex(p, mainNames);
@@ -495,7 +483,7 @@
    *  A review snapshot plays along the tree alone, and its bar says why (nudge). `feature`: what the player used. `stepwise`:
    *  it goes there edge by edge, at the engine's line's pace (a trap and its refutation, design 32, item 7). */
   async function playPath(target: string[], feature: string, stepwise = false) {
-    target = treeNodes(target);
+    target = game?.nodesOf(target) ?? target; // a move that gives a node's position goes there
     if (snapshot && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) { nudge(); return; }
     used(feature);
     if (onplay) await onplay(target);
@@ -1889,7 +1877,7 @@
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
           <!-- A name that fits its cell (`fitName`) leaves room for the twins' mark -->
-          <td><div class="@container flex items-center gap-1 min-w-0"><span data-name style:max-width={twins.length && view.fitName ? "calc(100% - 1.25em)" : undefined} class="flex-none {view.nameText} [--on-text:var(--panel)] [&>*]:align-middle
+          <td><div class="@container flex items-center gap-1 min-w-0"><span data-name class="flex-none {view.nameText} {twins.length && view.fitName ? 'max-w-[calc(100%_-_1.25em)]' : ''} [--on-text:var(--panel)] [&>*]:align-middle
                 data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(c.edge, mover, position)} />{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
                 class="flex-none leading-none font-normal text-muted" title="{view.twinWords ?? "Mirror"}: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>

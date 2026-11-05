@@ -13,7 +13,7 @@ import { PLAYER_NAME, WHOLE, type NotePart, type ViewTypes } from "@abstractclas
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import { moveName, moveText, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type EngineStep, type GamePosition } from "../board/described.ts";
-import { anchorOf, hexKey, parseHex } from "../board/hex.ts";
+import { hexKey, inFrame, parseHex } from "../board/hex.ts";
 import type { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import type { InputRules } from "../board/input.ts";
 import { footprintOf, starsOf, type Blueprint, type BoardMove, type Hand, type Kind, type SitePosition } from "../board/position.ts";
@@ -125,25 +125,21 @@ export function lineMovers(p: Position, n: number): Player[] {
   return movers;
 }
 
-/** A blueprint moved so that its anchor cell (the least r, then the least q) is at 0,0: its own frame. */
+/** A blueprint in its own frame (hex.ts, inFrame): its anchor cell at 0,0. */
 function inOwnFrame(b: Blueprint): Blueprint {
-  const anchor = anchorOf(Object.keys(b).map(parseHex));
-  if (!anchor || (anchor[0] === 0 && anchor[1] === 0)) return b;
-  return Object.fromEntries(Object.entries(b).map(([key, kind]) => {
-    const [q, r] = parseHex(key);
-    return [hexKey([q - anchor[0], r - anchor[1]]), kind];
-  }));
+  const keys = Object.keys(b), hexes = inFrame(keys.map(parseHex));
+  return Object.fromEntries(keys.map((key, k) => [hexKey(hexes[k]), b[key]]));
 }
 
 /** The mover's hand after an edit (design 33, item 5): the cell goes from `from` to `to`, both in the frames before the
- *  edit, then the two blueprints go back to their own frames. Null when the hand has no cell at `from`. */
-export function handAfter(hand: Hand, { from, to }: Extract<Move, { kind: "edit" }>): Hand | null {
+ *  edit, then the blueprints go back to their own frames. Null when the hand has no cell at `from`. */
+export function handAfter(hand: Hand, { from, to }: Extract<Move, { kind: "edit" }>): Blueprint[] | null {
   const kind = hand[from.blueprint - 1][hexKey([from.q, from.r])];
   if (!kind) return null;
   const next: Blueprint[] = hand.map(b => ({ ...b }));
   delete next[from.blueprint - 1][hexKey([from.q, from.r])];
   next[to.blueprint - 1][hexKey([to.q, to.r])] = kind;
-  return next.map((b, i) => (i === from.blueprint - 1 || i === to.blueprint - 1 ? inOwnFrame(b) : b)) as unknown as Hand;
+  return next.map(inOwnFrame);
 }
 
 /** A set of cells as a key: each cell's hex and the first letter of its kind, in order. */
@@ -158,10 +154,12 @@ export function afterKey(move: Move, before: Pick<Position, "player" | "blueprin
   const hand = before.blueprints[before.player];
   if (move.kind === "place") {
     const cells = footprintOf(hand[move.blueprint - 1], [move.q, move.r]);
-    return cells.length ? `place ${cellsKey(cells.map(c => [hexKey(c.hex), c.kind]))}` : `move ${moveName(move)}`;
+    if (cells.length) return `place ${cellsKey(cells.map(c => [hexKey(c.hex), c.kind]))}`;
+  } else {
+    const after = handAfter(hand, move);
+    if (after) return `hand ${after.map(b => cellsKey(Object.entries(b))).join(" | ")}`;
   }
-  const after = handAfter(hand, move);
-  return after ? `hand ${after.map(b => cellsKey(Object.entries(b))).join(" | ")}` : `move ${moveName(move)}`;
+  return `move ${moveName(move)}`;
 }
 
 /** Blueprints' game. A move's name is its one spelling (notation.ts), so two moves have one name exactly when

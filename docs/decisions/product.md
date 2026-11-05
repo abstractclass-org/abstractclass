@@ -8179,6 +8179,8 @@ one move in the review.
     the same line after them, but values of their own. The move played never gives a candidate's position under
     another name. 62 positions have such legal moves: 125,322 legal moves give 124,984 positions. At position 87,
     the move played (`1:0,0>1:2,-1`) has a twin among the legal moves, which the search there did not list.
+  - A second run on positions 0 to 38 and 83, with the same engine, network and visits, gave the same counts: 728
+    candidates and no pair on turns 1 to 20, and the same pair at position 83. Its first choice there had 86 visits.
 - **Each place that compares two moves of one position**, and what went wrong with two names for one position:
   - The candidates (`distinctCandidates`): two rows of the table and two ranks on the board for one move. The engine's
     second choice (`secondChoice`, `onlyMove`) could be the first choice's twin, so a Great's gap read 0.
@@ -8191,6 +8193,10 @@ one move in the review.
   - A line's steps (`stepsOf`) and the turn's marks on the board (`ReviewBoard.svelte`): these compare a line with
     the line whose steps came, and a mark with the moves that it marks. A name that differs gets its steps from the
     engine again. The board shows the same position.
+  - Not changed, still by name: the engine's best line under a Mistake's or a Blunder's note follows the game's line
+    only by the moves' names. The listed line marks its moves played in the tree by their names too. A Great's
+    confirmation searches the position after the second choice by its name. A turn in the other order compares by
+    names (design 29, item 9).
 - **The cost of each place,** measured in Node on the test game's positions 0, 1, 20, 42, 83 and 100:
   - The site's key of the position after a move (`afterKey`): 5.2 to 9.9 µs for an edit, 1.3 to 3.1 µs for a
     placement.
@@ -8201,16 +8207,19 @@ one move in the review.
   - The twins of one analysis by the key (`withTwins`), with the position's candidates (4 to 21) and the move played:
     17 to 133 µs, once for each analysis and moves.
 - **The choice: the game's key of the position after a move, and twins.** The game interface takes an optional
-  `afterKey(move, before)`. Where the review reads an analysis with its position (the shared analysis's `analysisOf`
-  and `data`, and the view's analysis on screen), `withTwins` makes a candidate that gives an earlier candidate's
-  position its twin. A move of the tree that gives a candidate's position under another name becomes a twin too. The
-  tree takes a move that gives a tree move's position along that move (`sameNodes`).
+  `afterKey(move, before)`. The shared analysis gives each analysis with its twins (`analysisOf` and `data`, which the
+  view reads too). There, `withTwins` makes a candidate that gives an earlier candidate's position its twin. A move of
+  the tree that gives a candidate's position under another name becomes a twin too. The tree takes a move that gives
+  a tree move's position along that move (the shared analysis's `nodesOf`, with `sameNodes`).
   - Every comparison of the list gives one answer: each reads the analysis's candidates and their twins, as the
     review already reads Enclosure's symmetric twins. `equal` with the position would leave `distinctCandidates`,
     `secondChoice` and `onlyMove` wrong, because they take no position.
   - One interface: Enclosure gives no key, and `equal` keeps its meaning and its tests. Hedge School's analyses come
     back as they are.
-  - Simplest: of the model's functions, only `sameTurn` takes more: the turn's two analyses.
+  - Simplest: of the model's functions, only `sameTurn` takes more: the turn's two analyses. In the turn's order, it
+    takes only the twins by position (`samePosition`), not Enclosure's symmetric twins. After a symmetric twin, the
+    position is the mirror image, so the engine's second edge is another edge there. A first version took both, and
+    then labelled Best an Enclosure turn of the first choice's mirror image and the line's second edge.
   - Cost: the key is in the site, 100 to 500 times faster than the engine's describe, and synchronous. The twins of an
     analysis are kept, so a page that derives them again pays nothing.
 - **The key** (`src/lib/review/blueprints.ts`): for an edit, the mover's hand after it, with the two blueprints back
@@ -8218,10 +8227,11 @@ one move in the review.
   group all 2,090 legal moves as the engine's positions after them do (`blueprints.engine.test.ts`).
 - **The table's mark ⇅** names Blueprints' twins "Same position" (the view's `twinWords`). Cyanotype's name fills its
   cell, so a row with twins leaves room for the mark.
-- **What the owner sees:** on turns 1 to 20, nothing changes. At position 83, the table has three rows in place of
+- **What changes on the page:** on turns 1 to 20, nothing changes. At position 83, the table has three rows in place of
   four, with ⇅ on the first choice, and the hand's panel shows rank 1 on both edits. The screenshots, before and
   after: the Analysis board at position 83, at 512 visits, 1,376 by 952 pixels, in headless Chromium.
 - **Tests:** `src/lib/review/twins.test.ts` in Cyanotype, on position 83: the key, the table's rows, the rank, the
   label, a turn's label, the note, the other candidate, a twin from the tree and the tree's node. Without the change,
   four of its five tests fail. The analysis package's `game.test.ts` and `tree.test.ts` check `withTwins`, the shared
-  analysis's twins and `sameNodes` on the packages' test game.
+  analysis's twins and tree nodes (`nodesOf`), a turn in the engine's order with a twin of each kind, and
+  `sameNodes` on the packages' test game.

@@ -105,15 +105,19 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
      takes the key as an optional member (design 29, item 9). Enclosure gives none: each edge gives a position of its
      own.
    - **The candidates' twins.** Where the review reads an analysis with its position, a candidate that gives the
-     position of an earlier candidate becomes the earlier one's twin. A move of the tree from that position (the
-     game's move or a variation's) that gives a candidate's position under another name becomes a twin too
-     (`withTwins`, in the analysis package). The review takes a twin as the same move, as it takes Enclosure's
-     symmetric twins: one row of the table, one rank on the board, and Best for either move. The table's mark ⇅
-     names the twins "Same position". A twin from the tree has the candidate's values and the rest of its line, but
-     no prior. So the meter and the complexity count the network's prior once.
+     position of an earlier candidate becomes the earlier one's twin. A move of the tree from that position can give
+     a candidate's position under another name: the game's move or a variation's. It becomes a twin too (`withTwins`,
+     in the analysis package). The review takes a twin as the same move, as it takes Enclosure's symmetric twins: one
+     row of the table, one rank on the board, and Best for either move. The table's mark ⇅ names the twins "Same
+     position". A twin from the tree has the candidate's values and the rest of its line, but no prior. So the meter
+     and the complexity count the network's prior once.
+   - **A turn of two moves** is the engine's turn when each of its moves gives the position of the engine's move in
+     the same order. A symmetric twin of the first move does not count: after it, the position is the mirror image,
+     so the engine's second move is another move there. In the other order, the moves compare by their names, as
+     before (design 29, item 9).
    - **The tree.** A move from the board, a candidate or a line goes along the tree's move that gives the same
-     position, where the tree has one: one position is one node. After the tree's last known position, the positions
-     are not known yet, so the moves make new nodes.
+     position, where the tree has one: one position is one node (the shared analysis's `nodesOf`). After the tree's
+     last known position, the positions are not known yet, so the moves make new nodes.
    - **The move list's note** names the engine's choice only for a move that gives another position.
    - **Names stay where the engine reads them.** The engine's queries, the stored results and a line's steps keep each
      move by its name. When a line changes to a move with another name, its steps come from the engine again. The

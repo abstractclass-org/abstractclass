@@ -30,8 +30,9 @@ export interface Candidate<M> {
   lineVisits?: number[];
   // A symmetric twin (protocol 0.4): in a position that is its own image, the searched edge of which this edge is the
   // mirror image. The engine lists the twin right after it, with its values and visits. Or a move with another name
-  // that gives the same position as the candidate `twinOf` (withTwins).
+  // that gives the same position as the candidate `twinOf` (withTwins), with `samePosition`.
   twinOf?: M;
+  samePosition?: true;
 }
 /** `ownership`: the engine's ownership of each of the game's points (KataGo's, @abstractclass/engine/protocol.ts,
  *  AnalysisReply), from Blue's side, in hundredths: 100 is Blue's at every turn end left, −100 Red's. Absent from a
@@ -228,13 +229,25 @@ export function sameMove<M>(game: Moves<M>, a: Analysis<M> | undefined, x: M, y:
   return game.equal(searched(x), searched(y));
 }
 
-/** The same turn: the same edges, in either order. In their order, each edge is one move with the turn's in its own
- *  position (sameMove): `start`, the analysis before the turn, and `middle`, after its first edge. */
+/** Whether two edges give one position from the analysed position: the same edge, or twins by position (withTwins,
+ *  `samePosition`). Not symmetric twins: a symmetric twin gives the position's mirror image. */
+function samePosition<M>(game: Moves<M>, a: Analysis<M> | undefined, x: M, y: M): boolean {
+  const searched = (e: M) => {
+    const c = a?.candidates.find(c => c.samePosition && game.equal(c.edge, e));
+    return c?.twinOf ?? e;
+  };
+  return game.equal(searched(x), searched(y));
+}
+
+/** The same turn: the same edges, in either order. In their order, each edge can be another that gives the same
+ *  position (samePosition): from `start`, the analysis before the turn, and from `middle`, after its first edge. A
+ *  symmetric twin of the first edge does not count: the engine's second edge after it is another edge. */
 function sameTurn<M>(game: Moves<M>, played: (M | null)[], turn: M[], start?: Analysis<M>, middle?: Analysis<M>): boolean {
   if (played.length !== turn.length || played.some(e => e == null)) return false;
   const [a, b] = played as M[];
-  return turn.length === 1 ? sameMove(game, start, a, turn[0])
-    : (sameMove(game, start, a, turn[0]) && sameMove(game, middle, b, turn[1])) || (game.equal(a, turn[1]) && game.equal(b, turn[0]));
+  return turn.length === 1 ? samePosition(game, start, a, turn[0])
+    : (samePosition(game, start, a, turn[0]) && samePosition(game, middle, b, turn[1]))
+      || (game.equal(a, turn[1]) && game.equal(b, turn[0]));
 }
 
 // The analyses with their twins by position (withTwins), for each analysis and the moves given with it.
@@ -245,40 +258,45 @@ const twinned = new WeakMap<object, Map<string, unknown>>();
  *  one's twin, and each of `moves` (the tree's moves from the position) that gives the same position as a candidate
  *  under another name is listed after it as its twin. Such a move has the candidate's values and the rest of its line,
  *  but no prior: the network gave the prior to the candidate. So the shared code takes them as one move, as it takes
- *  the symmetric twins (sameMove, rankOf, distinctCandidates). `a` itself where the game has no `afterKey`, or where
- *  no two moves give one position. The same object again for the same analysis and moves. */
+ *  the symmetric twins (sameMove, rankOf, distinctCandidates). These twins have `samePosition`, which a turn's edges in
+ *  the engine's order need (sameTurn). `a` itself where the game has no `afterKey`, or where no two moves give one
+ *  position. The same object again for the same analysis and moves. */
 export function withTwins<M, P>(game: { afterKey?(move: M, before: P): string; moveName(move: M | null): string },
                                 a: Analysis<M>, before: P, moves: (M | null)[] = []): Analysis<M> {
-  if (!game.afterKey) return a;
+  const afterKey = game.afterKey;
+  if (!afterKey) return a;
   const names = moves.map(m => game.moveName(m)).join(" ");
-  const kept = twinned.get(a)?.get(names) as Analysis<M> | undefined;
+  let byMoves = twinned.get(a);
+  const kept = byMoves?.get(names) as Analysis<M> | undefined;
   if (kept) return kept;
-  const key = (m: M) => game.afterKey!(m, before);
-  const searched = new Map<string, Candidate<M>>(); // the first candidate that gives each position, by its key
+  const key = (m: M) => afterKey(m, before);
+  const firstByKey = new Map<string, Candidate<M>>(); // the first candidate that gives each position, by its key
   let changed = false;
-  const candidates = a.candidates.map(c => {
+  const candidates = a.candidates.map((c): Candidate<M> => {
     if (c.twinOf) return c;
-    const k = key(c.edge), first = searched.get(k);
-    if (!first) { searched.set(k, c); return c; }
+    const k = key(c.edge), first = firstByKey.get(k);
+    if (!first) { firstByKey.set(k, c); return c; }
     changed = true;
-    return { ...c, twinOf: first.edge };
+    return { ...c, twinOf: first.edge, samePosition: true };
   });
   const listed = new Set(candidates.map(c => game.moveName(c.edge)));
   for (const m of moves) {
-    const c = m == null || listed.has(game.moveName(m)) ? undefined : searched.get(key(m));
-    if (!m || !c) continue;
+    if (m == null) continue;
+    const name = game.moveName(m), c = listed.has(name) ? undefined : firstByKey.get(key(m));
+    if (!c) continue;
     const { prior: _, ...values } = c;
-    const twin: Candidate<M> = { ...values, edge: m, twinOf: c.edge, ...(c.line ? { line: [m, ...c.line.slice(1)] } : {}) };
+    const twin: Candidate<M> = { ...values, edge: m, twinOf: c.edge, samePosition: true,
+                                 ...(c.line ? { line: [m, ...c.line.slice(1)] } : {}) };
     // After the candidate and its twins, as the engine lists a symmetric twin
     let at = candidates.indexOf(c) + 1;
     while (at < candidates.length && candidates[at].twinOf === c.edge) at++;
     candidates.splice(at, 0, twin);
-    listed.add(game.moveName(m));
+    listed.add(name);
     changed = true;
   }
   const out = changed ? { ...a, candidates } : a;
-  if (!twinned.has(a)) twinned.set(a, new Map());
-  twinned.get(a)!.set(names, out);
+  if (!byMoves) twinned.set(a, byMoves = new Map());
+  byMoves.set(names, out);
   return out;
 }
 
