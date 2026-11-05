@@ -6,9 +6,10 @@ import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { loadEngine, networkName, settingsFor } from "#lib/analysis/engineSettings.ts";
 import { EnginePool } from "@abstractclass/engine/pool.ts";
 import { modelOf, type Manifest } from "@abstractclass/engine/client.ts";
-import { SITE_NAME } from "#lib/edition.ts";
+import { EARLY_ACCESS, SITE_NAME } from "#lib/edition.ts";
 import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
+import { siteBook } from "#lib/book/place.svelte.ts";
 import { annotatedRecord } from "./annotate.ts";
 import { loadDisplay } from "./display.ts";
 import { openStored } from "./storedReview.ts";
@@ -40,7 +41,8 @@ export async function annotatedFromStore(id: string, manifest: Manifest | null):
     await pool.start(manifest, network);
     const game = new GameAnalysis(enclosure, pool, stored.record.moves, id);
     // The book's values, as the review takes them (the stages did not search those positions), and the stored results
-    if (!(await openStored(game, visits, model.sha256, pool.search!))) throw new Error(game.error);
+    const book = EARLY_ACCESS ? siteBook() : null;
+    if (!(await openStored(game, visits, pool.search!, model.sha256, book))) throw new Error(game.error);
     const data = game.data(playerNames(stored.record.tags));
     if (!data) throw new Error("the engine could not read this game");
     // A game this browser has not reviewed with the current engine and network, or only in part: a record without the

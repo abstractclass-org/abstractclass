@@ -8356,16 +8356,13 @@ both trees found it.
 - **What the test runs:** `src/lib/review/labels.snapshot.test.ts`, in the step `site-test` of `npm run check:all`.
   It reads each review file, puts its results in a store in memory, and runs the code that the review page runs:
   `GameAnalysis` with the page's `enclosure` game and the engine's rules (`describe_game` from the CPU module in
-  Node, with no network), then `data` and `review` at the label budget. The steps from the rules to the stored results
-  are `openStored` (`src/lib/review/storedReview.ts`): the rules, the book's values, then `fromStore`. The review
-  page's review snapshot and the annotated record of a stored game (`exportText.ts`) take the same steps. It reads the
-  engine from `static/engine`, as the book's and the lessons' tests do. The step `engine` of `check:all` runs first.
-  Without the engine, the test skips, and with the variable `CI` set it fails, with a message that names the missing
-  engine. So the label snapshot cannot stop running in CI without a sign.
+  Node, with no network), then `fromStore`, `data` and `review` at the label budget. It reads the engine from
+  `static/engine`, as the book's and the lessons' tests do. The step `engine` of `check:all` runs first. Without the
+  engine, the test skips.
 - **Two labels for each move:** no deployed site serves a book, so its review searches every position. The dev and
   preview servers serve the test book (`tests/fixtures/test-book/prototype`). There the early edition's review takes
   the book's values at the positions that the book holds. The test labels each review both ways. It gives the book's
-  values with `giveBook` (`reviewBook.ts`), with the book read from disk. The labels with no book are the same as
+  values as `reviewBook.ts` (`giveBook`) does, with the book read from disk. The labels with no book are the same as
   the labels of the test's first commit (d05b155), which took the rules from the notation. With the book, 13 labels
   by edge and 10 by turn differ from them:
 
@@ -8410,9 +8407,7 @@ both trees found it.
   and nothing else changed, the test fails on `twin-turn-review.json`. Turn 2 (O11-Q10 N9-Q10) is a Best turn in place
   of a Blunder, and its second edge N9-Q10 is Best in place of a Blunder, with no book and with the book. The other
   five reviews pass with it. The test passes with the current `sameTurn`.
-- **To update the label snapshot on purpose:** in `apps/hedgeschool`, run
-  `node --test --test-update-snapshots src/lib/review/labels.snapshot.test.ts`, read the diff of
-  `tests/snapshots/review-labels/`, and commit it with the change. The commit message says why each label moved.
+- **To update the label snapshot on purpose:** see the test's header. The commit message says why each label moved.
 - **Not covered:** Cyanotype's labels. Its stored review comes with abscls-8tl1.27.
 
 ### Cyanotype's build without ONNX Runtime's WebAssembly (2026-11-05)
@@ -8513,3 +8508,36 @@ The review was slow, not stuck: it took 12.3 minutes on b50abfe. On Linux, the s
   In the run at ebfcdcc, the Linux job's Playwright install took 9.3 minutes, and its browser suite 37.0. The
   Analysis board's case took 34.2 s on Linux and 35.0 s on Windows. The live review's wait of 20 minutes leaves a
   small margin on a slow Linux runner (abscls-8tl1.33).
+
+### The stored review's steps in one place, and the label snapshot in CI (2026-11-06)
+
+These steps follow the label snapshot of Hedge School's stored reviews (2026-11-05, above).
+
+- **One place for the steps:** `src/lib/review/storedReview.ts` holds the steps that open a review from the
+  browser's store alone, with no search. `startWithBook` runs the rules (`GameAnalysis.start`), then gives the book's
+  values (`giveBook`). `openStored` runs `startWithBook`, then reads the stored results (`fromStore`). The annotated
+  record of a stored game (`exportText.ts`) and the label snapshot take `openStored`. The review page's review
+  snapshot takes `startWithBook`: it finds the earlier review's search once the book has given its values, then reads
+  the search's results. The live review (`startReview`) stays apart: its book's values come while the review works,
+  after its first frame, and a store read that fails does not stop it.
+- **The book before the stored results, in the annotated record too:** the annotated record of a stored game read
+  the stored results first and then took the book's values. It now takes the book's values first, as the review page
+  does. The stored results that it reads after the main line (the Greats' confirmations) depend on the book's values:
+  a Great's test reads the book's value at a book position (design 32, "A book position's values"). So where a Great's
+  test meets a book position, the record now has the review page's labels. On the six stored reviews of the label
+  snapshot, the text is the same: the code before and after the change gave the same 24 records, byte for byte (with
+  no book and with the test book, by edge and by turn).
+- **The book as a parameter:** `giveBook` takes the book. The review page and the annotated record give the site's
+  book in the early edition (`EARLY_ACCESS ? siteBook() : null`), and the label snapshot gives the test book, read
+  from disk. So the test does not load `src/lib/edition.ts`, whose values only a build gives.
+- **No skip in CI:** without the engine in `static/engine`, the label snapshot skips. With the variable `CI` set, each
+  of its tests fails, with a message that names the missing engine. In CI the step `engine` of `check:all` fetches the
+  engine first, so a missing engine is a fault.
+- **The review snapshot in the browser:** `tests/review-snapshot.spec.ts` opens `hedgefund-review.json` as a review
+  by an earlier engine: its review file gets an engine module that no site ships, and its results a search that is
+  not the site's. The review snapshot must show the move list of the review of the unchanged file, by edge and by
+  turn. It covers a mark that names its search, whose file holds no result of the book's positions where the site
+  gives the test book, and an older mark, which names none.
+- **The fixtures' notes:** the header of `scripts/test-fixture.mjs` gives the command of `twin-turn-review.json`. It
+  also says that the first edge of Red's turn 2 in `book-turn-label-review.json` (N8-Q10) is Good with no book and an
+  Inaccuracy with the test book, in a turn that is a Blunder with both. No stored review was made again.

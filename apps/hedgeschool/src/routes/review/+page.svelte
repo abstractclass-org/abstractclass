@@ -40,7 +40,8 @@
            type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
   import { giveBook } from "#lib/book/reviewBook.ts";
-  import { openStored } from "#lib/review/storedReview.ts";
+  import { siteBook } from "#lib/book/place.svelte.ts";
+  import { startWithBook } from "#lib/review/storedReview.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "#lib/measure.ts";
@@ -48,7 +49,7 @@
   import { annotatedText } from "#lib/review/exportText.ts";
   import type { Unit } from "#lib/review/enclosure.ts";
   import type { GameRecord } from "#lib/game/record.ts";
-  import { SITE_VERSION } from "#lib/edition.ts";
+  import { EARLY_ACCESS, SITE_VERSION } from "#lib/edition.ts";
   import { readSession, writeSession } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
@@ -262,6 +263,9 @@
     }
   });
 
+  /** The book that the review takes values from (book/reviewBook.ts, giveBook): the site's, in the early edition. */
+  const siteReviewBook = () => (EARLY_ACCESS ? siteBook() : null);
+
   /** Reviews the game with the site's engine: the rules first, then the sweep. `chosen`: the player chose Review again
    *  on a review snapshot, whose pool ends once the new one has the rules, so that the board keeps working meanwhile. */
   async function startReview(moves: string[], chosen: boolean) {
@@ -277,7 +281,7 @@
       performance.mark("review:rules"); // the start's steps, for measuring it (the browser's performance timeline)
       // The book's values of the game's book positions, which the stages then do not search: they come while the review
       // works, as the book's parts load (design 32, "The review")
-      void giveBook(g);
+      void giveBook(g, siteReviewBook());
       await warm;
       if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
       preloaded = true;
@@ -309,17 +313,15 @@
       // that the test needs come once the rules give the game's positions and the book its values there.
       const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
       const g = new GameAnalysis(enclosure, rules, moves, kept!.id), line = snapshotPositions(moves);
-      let needed!: (positions: string[][]) => void;
-      const found = snapshotSearch(mark.search, mark.model, line, mark.visits, started, new Promise(r => (needed = r)));
-      found.catch(() => {}); // a rules worker that does not start fails the review snapshot below
-      // The positions that the search must hold, once the book has given its values. An older mark, which names no
-      // search, is older than the book: its review searched every position, and the removal of earlier results keeps
-      // them by that rule (earlierResults.ts)
-      const search = await started.then(() => openStored(g, mark.visits, mark.model, () => {
-        needed(mark.search === undefined ? line : line.filter((_, i) => !g.bookResults[i + 1])); // line[i]: after i + 1 moves
-        return found;
-      }));
-      if (!search) { rules.terminate(); return false; } // without the rules, the review shows why
+      // An older mark, which names no search, is older than the book: its review searched every position, and the
+      // removal of earlier results keeps them by that rule (earlierResults.ts)
+      const needed = started.then(async () => {
+        await startWithBook(g, mark.visits, siteReviewBook()); // the rules, then the book's values (storedReview.ts)
+        return mark.search === undefined ? line : line.filter((_, i) => !g.bookResults[i + 1]); // line[i]: after i + 1 moves
+      });
+      const search = await snapshotSearch(mark.search, mark.model, line, mark.visits, started, needed);
+      if (!search || !g.rulesReady) { rules.terminate(); return false; } // without the rules, the review shows why
+      await g.fromStore(search, mark.model);
       g.freeze(search, mark.model); // its maps from the store alone
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });

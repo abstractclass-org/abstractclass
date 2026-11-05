@@ -30,7 +30,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { registerHooks } from "node:module";
 import { fileURLToPath } from "node:url";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { PositionQuery } from "@abstractclass/engine/protocol.ts";
@@ -43,17 +42,6 @@ import { parseRecord, playerNames } from "#lib/game/record.ts";
 import { readReviewFile } from "#lib/game/reviewFile.ts";
 import { enclosure, moveName, PLAYER_NAME, review, sameEdge, type Review } from "./enclosure.ts";
 
-// storedReview.ts gives the book with reviewBook.ts, which reads the site's edition (edition.ts). Vite gives
-// edition.ts its values in a build (import.meta.env, `define`), and Node gives none. Here edition.ts has the values of
-// a build with no settings: the test gives the book itself.
-registerHooks({
-  load(url, context, next) {
-    const loaded = next(url, context);
-    if (!url.endsWith("/src/lib/edition.ts")) return loaded;
-    const source = String(loaded.source).replaceAll("import.meta.env", "({})").replace(/__[A-Z_]+__/g, '""');
-    return { ...loaded, source };
-  },
-});
 memoryDb(queueMicrotask); // the store that fromStore reads
 const { GameAnalysis } = await import("@abstractclass/analysis/analysis.svelte.ts");
 const { OpeningBook } = await import("#lib/book/lookup.svelte.ts");
@@ -96,17 +84,16 @@ async function labelled(name: string): Promise<Labelled> {
   });
   assert.equal(await dbPutMany(STORES.analysis, entries), entries.length);
   const pool = { rules, cancel() {} } as unknown as EnginePool;
-  /** The review's labels with this book, or with none, and its positions in the book. */
+  /** The review with this book, or with none, and its labels. */
   const labels = async (book: typeof testBook | null) => {
     const g = new GameAnalysis(enclosure, pool, record.moves, search);
-    const refused = () => `${name}: the rules refused the game: ${g.error}`;
-    assert.equal(await openStored(g, visits, model, search, book), search, refused());
-    const d = g.data(playerNames(record.tags), ending);
-    assert.ok(d, refused());
-    return { R: review(d, "lead", LABEL_VISITS), inBook: g.positions.map((_, i) => !!g.bookResults[i]) };
+    await openStored(g, visits, search, model, book);
+    const d = g.data(playerNames(record.tags), ending); // none when the rules refuse the game
+    assert.ok(d, `${name}: the rules refused the game: ${g.error}`);
+    return { g, R: review(d, "lead", LABEL_VISITS) };
   };
   const [plain, booked] = await Promise.all([labels(null), labels(testBook)]);
-  return { plain: plain.R, booked: booked.R, inBook: booked.inBook };
+  return { plain: plain.R, booked: booked.R, inBook: booked.g.positions.map((_, i) => !!booked.g.bookResults[i]) };
 }
 const reviews = new Map<string, Promise<Labelled>>();
 const labelledOnce = (name: string) => reviews.get(name) ?? reviews.set(name, labelled(name)).get(name)!;
