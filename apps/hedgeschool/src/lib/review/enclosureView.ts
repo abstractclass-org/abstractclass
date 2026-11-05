@@ -17,7 +17,7 @@ import { OUT, type BookAt } from "#lib/book/lookup.svelte.ts";
 import { gameOpening, openingRow, trapRows } from "#lib/book/game.ts";
 import ReviewBookTable from "#lib/book/ReviewBookTable.svelte";
 import { NETWORKS, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
-import { SIGNS_HELP } from "@abstractclass/review/ownership.ts";
+import { DIFFERENCE_HELP } from "@abstractclass/review/ownership.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
 import { drawnBoard, occupancy, pointReading } from "./enclosureMap.ts";
 import { imageCaption, imageName } from "./enclosureImage.ts";
@@ -114,7 +114,7 @@ export const enclosureView: ViewGame<Enclosure> = {
     close: "will be closed",
     lose: "will be lost",
     help: "Shades or marks each point from the engine's forecast, in the style below. While a line or a preview shows, the map shows the position after its last drawn edge. The key t shows or hides the map.",
-    styleHelp: `Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects to happen next, whoever moves. Dots show open area that a player will probably close. Hatching shows closed area that its owner will probably lose. After vs before: how the last move, or the line on the board, changed the forecast for the player who moved. ${SIGNS_HELP}`,
+    styleHelp: `Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects to happen next, whoever moves. Dots show open area that a player will probably close. Hatching shows closed area that its owner will probably lose. ${DIFFERENCE_HELP}`,
   },
 
   image: {

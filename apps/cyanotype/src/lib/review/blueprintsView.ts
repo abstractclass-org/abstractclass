@@ -8,7 +8,7 @@
 // The board's box fills the room that the side columns leave, with the hands in a panel over it, and under it in one
 // column, as on Practice.
 import type { ViewGame } from "@abstractclass/review/game.ts";
-import { held, SIGNS_HELP } from "@abstractclass/review/ownership.ts";
+import { DIFFERENCE_HELP, held } from "@abstractclass/review/ownership.ts";
 import { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import { INPUT_CLICKS, inputStatus } from "../board/input.ts";
 import { ONE_COLUMN_HEIGHT } from "../board/keptPanel.svelte.ts";
@@ -123,5 +123,5 @@ export const AREA_MAP: NonNullable<ViewGame<Blueprints>["map"]> = {
   close: "will be filled",
   lose: "will be captured",
   help: "Shades or marks each hex of the engine's view from its forecast, in the style below. The engine sees the hexes round the last placements: a hex outside its view has no mark. While a line or a preview shows, the map shows the position after its last drawn move. The key t shows or hides the map.",
-  styleHelp: `Forecast: who the engine expects to hold each hex at the game's end, and how surely. A small hex on a cell shows a cell that the other player will probably capture. Forecast vs board: what the engine expects to happen next, whoever moves. Dots show empty hexes that a player will probably fill. Hatching shows cells that their owner will probably lose. After vs before: how the last move, or the line on the board, changed the forecast for the player who moved. ${SIGNS_HELP}`,
+  styleHelp: `Forecast: who the engine expects to hold each hex at the game's end, and how surely. A small hex on a cell shows a cell that the other player will probably capture. Forecast vs board: what the engine expects to happen next, whoever moves. Dots show empty hexes that a player will probably fill. Hatching shows cells that their owner will probably lose. ${DIFFERENCE_HELP}`,
 };

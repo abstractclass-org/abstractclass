@@ -8238,20 +8238,20 @@ one move in the review.
 
 ### The signs of After vs before by good and bad: a green plus, a yellow minus (2026-11-04)
 
-abscls-8fe7. The proposal, of 2026-10-23: the signs of the area map's style "After vs before" take neutral colours by
-good and bad for the player who chose, for both sides. A green plus is good for that player, and a yellow minus is
-bad. Each sign took a side's colour: a plus the chooser's, a minus the enemy's. So a blue minus read as "Blue lost
-here", where it meant that the point moved toward Blue, which was bad for Red, the player who chose. The colour and
-the shape said two things, and the colour won. KaTrain's loss grid draws its losses in one colour of its evaluation
-scale, whichever side moved, so the change moves back toward KaTrain. The entry of 2026-10-21, "The marks of After vs
-before, and 0.05", gave the players' colours for one colour language on the board. Green and yellow are the labels'
-colours for good and inaccurate, so the signs now speak the labels' language, and that reason turns around. Hedge
-School and Cyanotype take one rule. Design 30 gives the result.
+abscls-8fe7. The proposal: the signs of the area map's style "After vs before" take colours that are not the players',
+by good and bad for the player who chose, for both sides. A green plus is good for that player, and a yellow minus is
+bad. Each sign took a side's colour: a plus the colour of the player who chose, a minus the enemy's. So a blue minus
+read as "Blue lost here", where it meant that the point moved toward Blue, which was bad for Red, the player who chose.
+The colour and the shape said two things, and the colour won. KaTrain's loss grid draws its losses in one colour of its
+evaluation scale, whichever side moved, so the change moves back toward KaTrain. The entry of 2026-10-21, "The marks of
+After vs before, and 0.05", gave the players' colours for one colour language on the board. Green and yellow are the
+labels' colours for good and inaccurate, so the signs now speak the labels' language, and that reason turns around.
+Hedge School and Cyanotype take one rule. Design 30 gives the result.
 
 - **The colours** are two tokens in `packages/review/src/review.css`, `--sign-green` and `--sign-yellow`. The boards
   and the legend draw a sign in them, and the setting's explanation names them, from one name each (`SIGN_COLOUR`,
-  `signInk` and `SIGNS_HELP` in `ownership.ts`). The two sites share the board's colours: #f3ead7 in the light theme,
-  #3a362e in the dark theme. The contrasts (WCAG 2.2, 1.4.11, at least 3:1):
+  `signInk` and `DIFFERENCE_HELP` in `ownership.ts`). The two sites share the board's colours: #f3ead7 in the light
+  theme, #3a362e in the dark theme. The contrasts (WCAG 2.2, 1.4.11, at least 3:1):
 
   | Sign | Theme | Colour | Board | Blue cell or edge | Red cell or edge | Blue region | Red region |
   | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -8270,7 +8270,7 @@ School and Cyanotype take one rule. Design 30 gives the result.
 - **The shapes stay,** the plus and the minus, so that the colour is not the only cue (1.4.1). Green against yellow
   is 1.04:1 in the light theme and 1.24:1 in the dark theme: a red-green colour-blind player reads the shapes.
 - **The text.** The explanation of "Area map style" says "A green plus shows a rise: good for that player. A yellow
-  minus shows a fall: bad for that player." in the place of the sentences about the players' colours, on both sites.
-  The legend's two signs take the same colours.
+  minus shows a fall: bad for that player." in the place of the sentences about the players' colours. The two sites
+  share the style's whole explanation (`DIFFERENCE_HELP`). The legend's two signs take the same colours.
 - **Cyanotype offers no area map yet** (its design 33, "No area map yet"). Its board and its kept explanation
   (`AREA_MAP`) take the rule, for when it does.

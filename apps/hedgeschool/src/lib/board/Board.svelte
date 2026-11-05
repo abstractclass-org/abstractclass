@@ -76,7 +76,7 @@
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
   // a map mark's pattern: the change style's by side, a sign by its kind alone
-  const markId = (kind: "close" | "lose" | SignKind, side?: 0 | 1) => `${uid}-${kind}${side === undefined ? "" : `-${side}`}`;
+  const markId = (m: { kind: "close" | "lose"; side: 0 | 1 } | { kind: SignKind }) => `${uid}-${m.kind}${"side" in m ? m.side : ""}`;
   const blendId = `${uid}-area-blend`;
   const N = 19;
   // A label badge's radius. On a length-1 edge, whose line is 0.68 between its nodes, the badge sidesteps by 80% of its
@@ -279,10 +279,10 @@
          hatching on closed area that its owner will lose. Unlike the regions' solid fill, they read as a forecast. The
          tiles are in the board's units, so that the marks of next points join, and no dot falls on a lattice point. -->
     {#each ([0, 1] as const) as side (side)}
-      <pattern id={markId("close", side)} class="change p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
+      <pattern id={markId({ kind: "close", side })} class="change p{side}" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
         <circle cx="0.25" cy="0.25" r="0.075" />
       </pattern>
-      <pattern id={markId("lose", side)} class="change p{side}" patternUnits="userSpaceOnUse" width="0.4" height="0.4"
+      <pattern id={markId({ kind: "lose", side })} class="change p{side}" patternUnits="userSpaceOnUse" width="0.4" height="0.4"
                patternTransform="rotate(45)">
         <line x1="0" y1="0.2" x2="0.4" y2="0.2" />
       </pattern>
@@ -291,7 +291,7 @@
          green plus where the forecast rose for them, a yellow minus where it fell (signInk). A halo in the board's
          colour keeps each sign whole, and 3:1 against what is round it, on a region, by an edge or on a mark. -->
     {#each [["rise", "M0.25 0.13V0.37M0.13 0.25H0.37"], ["fall", "M0.13 0.25H0.37"]] as const as [kind, d] (kind)}
-      <pattern id={markId(kind)} class="sign" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
+      <pattern id={markId({ kind })} class="sign" patternUnits="userSpaceOnUse" width="0.5" height="0.5">
         <path {d} class="halo" />
         <path {d} class="ink" style:stroke={signInk(kind)} />
       </pattern>
@@ -335,7 +335,7 @@
     {#each points as [x, y] (pointKey(x, y))}
       {@const m = areaMap[y * N + x]}
       {#if m && m.kind !== "hold"}
-        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{"side" in m ? markId(m.kind, m.side) : markId(m.kind)})" opacity={"strength" in m ? m.strength : 1} />
+        <rect x={x - 0.5} y={sy(y) - 0.5} width="1" height="1" fill="url(#{markId(m)})" opacity={"strength" in m ? m.strength : 1} />
       {/if}
     {/each}
   {/if}

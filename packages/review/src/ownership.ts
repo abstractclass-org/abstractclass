@@ -28,12 +28,13 @@ export type SignKind = "rise" | "fall";
  *  inaccurate. Each is the colour's one name: the explanations say it, and the boards and the legend draw the sign in
  *  its token, `--sign-green` or `--sign-yellow` (review.css), by `signInk`. The plus and the minus carry the meaning
  *  too, for a player who cannot tell green from yellow. */
-export const SIGN_COLOUR = { rise: "green", fall: "yellow" } as const satisfies Record<SignKind, string>;
+const SIGN_COLOUR = { rise: "green", fall: "yellow" } as const satisfies Record<SignKind, string>;
 /** The colour that a board draws a sign of `kind` in: var(--sign-green) or var(--sign-yellow). */
 export const signInk = (kind: SignKind) => `var(--sign-${SIGN_COLOUR[kind]})`;
-/** What the signs say, for a game's explanation of the map's styles (its view's `styleHelp`), after the sentence that
- *  names the player who moved. */
-export const SIGNS_HELP = `A ${SIGN_COLOUR.rise} plus shows a rise: good for that player. ` +
+/** The explanation of the difference style, the same in every game's explanation of the map's styles (its view's
+ *  `styleHelp`), with the colours of its signs. */
+export const DIFFERENCE_HELP = "After vs before: how the last move, or the line on the board, changed the forecast for " +
+  `the player who moved. A ${SIGN_COLOUR.rise} plus shows a rise: good for that player. ` +
   `A ${SIGN_COLOUR.fall} minus shows a fall: bad for that player.`;
 
 /** KaTrain's gamma on its territory's alpha (gui/theme.py, OWNERSHIP_GAMMA): a point held weakly still shows. */

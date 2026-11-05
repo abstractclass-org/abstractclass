@@ -3,7 +3,8 @@
 // 19 × 19 points, as Enclosure's, whose state now is given by point. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, shade, SIGN_COLOUR, signInk } from "./ownership.ts";
+import { askOrder, changeMap, DIFFERENCE_HELP, differenceMap, differenceReading, mapStep, ownershipMap, shade, signInk }
+  from "./ownership.ts";
 import type { AreaMark } from "./ownership.ts";
 
 const N = 19;
@@ -83,23 +84,18 @@ test("the difference: where the forecast fell and where it rose, from the mover'
   assert.equal(blue[5]?.kind, "fall"); // from 0 on, every change shows
   // From Red's side, Blue's fall is Red's rise
   const red = differenceMap(before, after, 1, 0).slice(1, 4);
+  assert.deepEqual(red[0], { kind: "rise", strength: 1 }); // 1.40 rose for Red: capped at 1, and no side, as Blue's
   assert.deepEqual(red.map(m => m?.kind), ["rise", "fall", "rise"]);
   // The smallest value marked applies to both
   assert.deepEqual(differenceMap(before, after, 0, 35).slice(1, 6).map(m => m?.kind ?? null), ["fall", null, "fall", null, null]);
 });
 
-test("the difference's signs: green where the forecast rose for the player who chose, yellow where it fell, either side", () => {
-  // (1, 0) moves from Blue toward Red, and (2, 0) from Red toward Blue: no sign takes a side's colour
-  const before = values([[1, 0, 60], [2, 0, -40]]), after = values([[1, 0, -20], [2, 0, 30]]);
-  const colour = (m: AreaMark | null) => (m && (m.kind === "rise" || m.kind === "fall") ? [m.kind, signInk(m.kind)] : null);
-  for (const [mover, good, bad] of [[0, 2, 1], [1, 1, 2]] as const) {
-    const map = differenceMap(before, after, mover, 0);
-    assert.deepEqual(colour(map[good]), ["rise", "var(--sign-green)"], `the chooser ${mover}'s gain`);
-    assert.deepEqual(colour(map[bad]), ["fall", "var(--sign-yellow)"], `the chooser ${mover}'s loss`);
-    assert.ok(map.every(m => !m || !("side" in m)), "no sign has a side");
-  }
-  // The names that the explanations say are the tokens' names
-  assert.deepEqual(SIGN_COLOUR, { rise: "green", fall: "yellow" });
+test("the difference's signs: a green plus for a rise and a yellow minus for a fall, whichever side chose", () => {
+  // A sign has no side, whichever player chose (the test above), so its colour is its kind's: the token that the
+  // explanation names
+  assert.equal(signInk("rise"), "var(--sign-green)");
+  assert.equal(signInk("fall"), "var(--sign-yellow)");
+  assert.match(DIFFERENCE_HELP, /A green plus shows a rise: .* A yellow minus shows a fall: /);
 });
 
 test("a point's numbers in the difference: before, after, and the change for the mover, with its sign", () => {

@@ -137,8 +137,8 @@
   import DifficultyChart from "./DifficultyChart.svelte";
   import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type BookJudgment, type Display, type LayerSetting,
            type LineMove, type NotePart, type ViewGame } from "./game.ts";
-  import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, signInk, valueText, type MapStyle, type SignKind }
-    from "./ownership.ts";
+  import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, signInk, valueText, type AreaMark,
+           type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import { SETTINGS_HEAD, SWITCH, SWITCH_THUMB, settingId } from "@abstractclass/site/settings.ts";
@@ -896,7 +896,7 @@
   });
   // The legend's lead, then each mark with its meaning: none for the forecast, whose shade says it all. A sign of the
   // difference style is in its own colour, as the board draws it (signInk): good or bad for the player who chose.
-  type LegendMark = { kind: "close" | "lose" | SignKind; text: string };
+  type LegendMark = { kind: Exclude<AreaMark["kind"], "hold">; text: string };
   const mapLegend = $derived.by((): { lead: string; marks: LegendMark[] } => {
     if (display.mapStyle === "ownership")
       return { lead: `${mapPlace ? `${mapPlace}: who` : "Shade: who"} the engine expects to hold each ${view.map?.point}`, marks: [] };

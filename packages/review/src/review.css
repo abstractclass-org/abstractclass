@@ -46,10 +46,10 @@
   --note-green: #359a3b;
   --note-grey: #86868c;
   /* The area map's signs in after vs before (ownership.ts, SIGN_COLOUR): a green plus good for the player who chose, a
-     yellow minus bad, for both sides, in the labels' green and yellow. Each is 3:1 against the board, whose colours the
-     two sites share: Excellent's green, 3.6:1 on the light board and 4.3:1 on the dark one, and Inaccuracy's yellow,
-     on the light board its hue darker to 3.5:1 (Inaccuracy's own ink is 2.5:1 there), on the dark one its fill, 5.4:1.
-     The sign's halo is the board's colour, so a sign on a region, an edge or a cell keeps these numbers. */
+     yellow minus bad, for both sides, in the labels' green and yellow. Each is at least 3:1 against the board, whose
+     colours the two sites share (design 30 gives the numbers): Excellent's green, and Inaccuracy's yellow, on the
+     light board its hue darker, because Inaccuracy's own ink is under 3:1 there. The sign's halo is the board's
+     colour, so a sign on a region, an edge or a cell keeps its contrast. */
   --sign-green: var(--excellent);
   --sign-yellow: #9e7706;
 }
