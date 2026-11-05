@@ -2,9 +2,8 @@
 
 **Status:** in force. Items 1 and 6 are built: Hedge School is in `apps/hedgeschool`, in one npm workspace. Item 4's
 first parts are built: the engine, the storage and the analysis are in `packages/`, for the jam game's site (design 29).
-Item 3 is built: the hub is in `apps/hub`, with its deploy job. The owner's step is left: the hub's Pages project
-`abstractclass` and its domain ([hosting.md](../hosting.md), section 8). Item 2's check on a preview
-deploy is still to do.
+Item 3 is built and live: the hub is in `apps/hub`, and its deploy job puts it on the Pages project `abstractclass`,
+at `abstractclass.org` ([hosting.md](../hosting.md), section 8). Item 2's check on a preview deploy is still to do.
 **Decided:** 2026-10-16.
 
 ## Context

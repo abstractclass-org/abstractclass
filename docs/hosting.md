@@ -333,8 +333,9 @@ The hub is the organization's front page at `abstractclass.org` ([design 26](des
 It is the folder `apps/hub/public`: static files, with no build, no script, no cookie and nothing kept in the browser.
 Its own Pages project, `abstractclass`, serves it, apart from Hedge School's. The job `hub` of the workflow **Deploy**
 uploads the folder to that project with Wrangler on each push: `main` to production, another branch to a preview at
-`<branch>.<project>.pages.dev`. It uses the secret `CLOUDFLARE_API_TOKEN`, as the site's job does: the token's
-permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account.
+`<branch>.abstractclass.pages.dev`. So a push to `dev` deploys a preview at `dev.abstractclass.pages.dev`, and a
+release (`git push origin dev:main`) deploys the live hub. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and
+variable `CLOUDFLARE_ACCOUNT_ID` (section 3). The token's permission covers every Pages project of the account.
 
 - **Its headers** (`apps/hub/public/_headers`): a Content Security Policy that lets the page load only its own style
   sheets and images (no script, no frame, no form), `nosniff`, no framing by other sites, only the origin as the
@@ -349,7 +350,7 @@ permission (Account, Cloudflare Pages, Edit) covers every Pages project of the a
   School's: the script reads `packages/site/src/site.css`, `packages/review/src/review.css` and
   `apps/hedgeschool/src/app.css`.
 
-**The owner's steps, once:**
+**The owner's steps, once.** Steps 1 to 3 are done: `https://abstractclass.org` serves the hub.
 
 1. **Make the Pages project, with `main` as its production branch.** Use Wrangler, not the dashboard. A project made
    by drag and drop in the dashboard has no setting for its production branch
