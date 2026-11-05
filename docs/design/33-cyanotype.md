@@ -284,17 +284,19 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    stores no ONNX Runtime for Cyanotype. The rules' worker starts the engine with `createCpuEngine` alone. The bot
    is the practice bot with one search thread, whose network runs in its own module, and its worker has no ONNX
    Runtime and no WebGPU code: Blueprints has no threaded bot. The GPU setting is Off whatever the browser kept
-   (`src/lib/analysis/engineSettings.ts`), so the shared engine session never starts the GPU worker. Without a GPU
-   module in the manifest, it would say that the build has none (`packages/analysis/src/gpu.svelte.ts`,
-   `GpuControl.apply`).
-5. **ONNX Runtime's files come from `static/engine`, as for Hedge School.** The shared engine session names the GPU
-   worker (`packages/engine/src/gpuWorker.ts`), so the build bundles that worker with ONNX Runtime Web, ready for a
-   GPU module. `vite.config.ts` takes ONNX Runtime Web's form that takes its WebAssembly from the page (the resolve
-   condition `onnxruntime-web-use-extern-wasm`), as Hedge School's does. When the lock has a GPU module, the fetch
-   script stores ONNX Runtime's two files in `static/engine`, with no change to the script. In its usual form, ONNX
-   Runtime makes the build copy its WebAssembly (25.5 MiB) into the site, over Cloudflare Pages' 25 MiB for one file,
-   and the deploy fails. The step `cyanotype-build-sizes` of `npm run check:all` fails on a file of the build over
-   25 MiB.
+   (`src/lib/analysis/engineSettings.ts`), so the shared engine session never starts the GPU worker. With the GPU on
+   and no GPU module in the manifest, `GpuControl.apply` (`packages/analysis/src/gpu.svelte.ts`) would give the
+   status that the build has no GPU module.
+5. **ONNX Runtime's files come from `static/engine`, as for Hedge School** ([hosting.md](../hosting.md), section 2).
+   The shared engine session starts the GPU worker through its GPU control (`packages/analysis/src/gpu.svelte.ts`,
+   then `packages/engine/src/gpuClient.ts`), so the build bundles that worker (`packages/engine/src/gpuWorker.ts`)
+   with ONNX Runtime Web, ready for a GPU module. `vite.config.ts` copies Hedge School's two settings for the
+   engine package ([design 29](29-shared-packages.md), "Consequences"): ONNX Runtime Web's form that takes its
+   WebAssembly from the page (the resolve condition `onnxruntime-web-use-extern-wasm`), and the workers as modules.
+   When the lock has a GPU module, the fetch script stores ONNX Runtime's two files in `static/engine`, with no change
+   to the script. Without the condition, the build copies ONNX Runtime's WebAssembly (25.5 MiB) into the site, and
+   Cloudflare Pages refuses the upload. The step `cyanotype-build-sizes` of `npm run check:all` fails on a file of the
+   build over 25 MiB.
 
 ## Practice against Stamp Duty
 
@@ -684,8 +686,8 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   `src/lib/review/recordCheck.ts`: a record's check by the engine's rules, for the import page and the Analysis
   board, with its test on the engine in Node (`recordCheck.engine.test.ts`).
   `src/routes/bookmarklet.js/`, `cyanotype.user.js/` and `cyanotype.meta.js/`: the tools' files, which
-  `static/_headers` serves with `no-cache`. `vite.config.ts`: the build's address for the userscript, and the
-  userscript's versions, as Hedge School's.
+  `static/_headers` serves with `no-cache`. `vite.config.ts`: the build's address for the userscript, the
+  userscript's versions, and the engine package's two settings ("The engine's files", item 5), as Hedge School's.
 - `packages/import/` (`@abstractclass/import`): the tools' frame, the hash after the `#`, the import's events and the
   import page's choice for a tool's game (`ToolChoice.svelte`, with `import.css` for its classes), which both sites
   share (design 29, item 10).
@@ -774,8 +776,8 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   `cyanotype-import.spec.ts`: the import page's choice, the Analysis board's question over a kept analysis, a
   record that the engine refuses and the notice of an out-of-date tool, and `layout.spec.ts` the page's layout. They
   run where the site has the engine's files, the Tests workflow too: without them they skip.
-- `scripts/check-all.mjs`: its engine's release files, its type check, its unit tests and its build, in the Tests
-  workflow's checks.
+- `scripts/check-all.mjs`: its engine's release files, its type check, its unit tests, its build and its build's
+  file sizes (`scripts/build-sizes.mjs`), in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.
 

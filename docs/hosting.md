@@ -76,9 +76,11 @@ What the repository holds for the deploy and for Pages:
   Runtime's WebAssembly compressed with gzip, and splits a compressed file over 24 MiB into parts. The page joins and
   decompresses them ([design 15](design/15-gpu.md)). The build bundles ONNX Runtime Web in its form that takes its
   WebAssembly from the page (the resolve condition `onnxruntime-web-use-extern-wasm`, `vite.config.ts`). In its usual
-  form, the build copies that file (25.5 MiB) into the site. The step `build-sizes` of `npm run check:all`
-  (`scripts/build-sizes.mjs`) fails when a file of a site's build is over 25 MiB, and names the file and its size.
-  It checks Hedge School's build and Cyanotype's. Cloudflare's limit:
+  form, the build copies that file (25.5 MiB) into the site. The steps `build-sizes` and `cyanotype-build-sizes` of
+  `npm run check:all` (`scripts/build-sizes.mjs`) fail when a file of Hedge School's build or Cyanotype's is over
+  25 MiB, and name the file and its size. So the Tests workflow fails on such a file, and a release does not take it.
+  The deploy does not wait for the Tests workflow: on a push with such a file, Wrangler refuses its upload.
+  Cloudflare's limit:
   [Limits, "File size"](https://developers.cloudflare.com/pages/platform/limits/).
 - **Node 24** (`.node-version`, at the root): the deploy and the tests take their Node from this file. Node 22 cannot
   run the tests' TypeScript without a flag.
@@ -403,12 +405,10 @@ nothing. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable `CLO
 - **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
   `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the
   engine repository's checkout on this machine. The build copies the files from `static/engine`.
-- **ONNX Runtime's files,** as for Hedge School (section 2): the shared engine session names the GPU worker, so the
-  build bundles it with ONNX Runtime Web. `vite.config.ts` takes ONNX Runtime Web's form that takes its WebAssembly
-  from the page. When the lock has a GPU module, the engine's step stores ONNX Runtime's two files in
-  `static/engine`. The lock has none until Blueprints has a GPU build, so `static/engine` holds no ONNX Runtime now.
-  Without the resolve condition, the build copies ONNX Runtime's WebAssembly (25.5 MiB) into the site, and Pages
-  refuses the upload. The step `cyanotype-build-sizes` of `npm run check:all` fails on such a file.
+- **ONNX Runtime's files,** as for Hedge School (section 2): the build bundles the GPU worker, which the shared engine
+  session can start, with ONNX Runtime Web in its form that takes its WebAssembly from the page. When the lock has a GPU
+  module, the engine's step stores ONNX Runtime's two files in `static/engine`. The lock has none until Blueprints
+  has a GPU build, so `static/engine` holds no ONNX Runtime now.
 - **The build's address** goes into the build: the userscript updates from it and opens its games there. For `main`,
   it is the live address. For another branch, it is the preview's address. The project's pages.dev address is not
   `cyanotype.pages.dev`, which belongs to another site. So, before the build, the job reads the address from the

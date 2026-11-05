@@ -8415,20 +8415,20 @@ both trees found it.
 Cyanotype's first deploy failed (abscls-8tl1.28): the Deploy workflow's run 42010773243, job `cyanotype`, on `dev`
 at b50abfe. Its checks, tests and build passed. Wrangler then refused the upload, because
 `_app/immutable/workers/assets/ort-wasm-simd-threaded.asyncify-D5D0fo7z.wasm` is 25.5 MiB (26,781,914 bytes), and
-Cloudflare Pages serves no file over 25 MiB. Nothing was deployed.
+Cloudflare Pages serves no file over 25 MiB. The job deployed nothing.
 
-- **The cause:** the shared engine session (`packages/analysis/src/session.svelte.ts`) names the GPU worker
-  (`packages/engine/src/gpuWorker.ts`), which imports ONNX Runtime Web. So Cyanotype's build bundles the worker, and
-  ONNX Runtime's usual form makes the build copy its WebAssembly into the site. Hedge School's `vite.config.ts` takes
-  the form that takes the WebAssembly from the page (the resolve condition `onnxruntime-web-use-extern-wasm`).
+- **The cause:** the shared engine session (`packages/analysis/src/session.svelte.ts`) imports the GPU control
+  (`packages/analysis/src/gpu.svelte.ts`), whose client (`packages/engine/src/gpuClient.ts`) names the GPU worker
+  (`packages/engine/src/gpuWorker.ts`). The worker imports ONNX Runtime Web. So Cyanotype's build bundles the worker,
+  and ONNX Runtime's usual form makes the build copy its WebAssembly into the site. Hedge School's `vite.config.ts`
+  takes the form that takes the WebAssembly from the page (the resolve condition `onnxruntime-web-use-extern-wasm`).
   Cyanotype's did not.
-- **The fix:** Cyanotype's `vite.config.ts` takes the same resolve condition, and the build keeps the GPU worker, for
-  Blueprints' GPU build to come. Until then, Cyanotype runs on the CPU only, because Blueprints' release has no GPU
-  module for the browser.
-  The lock has no GPU module, so `fetch-engine.mjs` stores no ONNX Runtime files in `static/engine`. The engine
-  settings keep the GPU Off whatever the browser kept (`apps/cyanotype/src/lib/analysis/engineSettings.ts`), so
-  `GpuControl.apply` (`packages/analysis/src/gpu.svelte.ts`) never makes the GPU worker. With the GPU on, it would
-  stop first at the missing GPU module ("no GPU module in this build of the site"). No GPU path ran in this check.
+- **The fix:** Cyanotype's `vite.config.ts` takes Hedge School's two settings for the engine package, as design 29
+  says that a second site does ("Consequences"): the same resolve condition, and the workers as modules
+  (`worker: { format: 'es' }`). The build keeps the GPU worker, for Blueprints' GPU build to come. Until then,
+  Cyanotype runs on the CPU only, because Blueprints' release has no GPU module for the browser. Blueprints is to get
+  one, as Enclosure has. Design 33 ("The engine's files", item 4) says why the GPU worker does not start now. No GPU
+  path ran in this check.
 - **Why the fetch script's rule stays:** `fetch-engine.mjs` stores ONNX Runtime's two files only for a lock with a
   GPU module. Cyanotype's page loads ONNX Runtime nowhere. The GPU worker needs a GPU module and a network's graph
   as well (`gpuFilesOf`, `packages/engine/src/client.ts`), and the lock has neither. `gpu_engine.mjs` takes ONNX
@@ -8436,14 +8436,18 @@ Cloudflare Pages serves no file over 25 MiB. Nothing was deployed.
   (`apps/cyanotype/src/lib/practice/botWorker.ts`), with no ONNX Runtime. So ONNX Runtime's files in `static/engine`
   would be 26 MB that no page loads. When a lock of Cyanotype gets a GPU module and a graph, the same rule gives it
   ONNX Runtime's files, as for Hedge School.
-- **The two builds, before and after the fix,** from the same files and the release's engine files: 78 files before
-  and 77 after. The 25.5 MiB file is gone. The GPU worker is 68,202 bytes, from 119,351, and names only ONNX Runtime's
-  glue script, not its WebAssembly. The other 63 text files are the same, after their hashed names and the build's
-  stamps (SvelteKit's version, the userscript's `@version`). The 13 binary files are the same. The largest files
-  after the fix: the network (2,228,327 bytes), the practice bot's module (1,787,252) and the engine's module
-  (1,518,637).
+- **The builds, before and after the fix,** from the same files and the release's engine files. With the resolve
+  condition alone: 78 files before and 77 after. The 25.5 MiB file is gone. The GPU worker is 68,202 bytes, from
+  119,351, and names only ONNX Runtime's glue script, not its WebAssembly. The other 63 text files are the same,
+  except for their hashed names and the build's stamps (SvelteKit's version and its global's name, the userscript's
+  `@version`). The 13 binary files are the same. The workers as modules then change the three workers (the CPU
+  worker, the GPU worker and the practice bot's worker) and no other file. The GPU worker is 68,096 bytes. The CPU
+  worker and the GPU worker are then the same files, byte for byte, as Hedge School's build of the same commit. So
+  the GPU worker that Cyanotype keeps is the one that Hedge School's GPU path runs. The largest files after the fix:
+  the network (2,228,327 bytes), the practice bot's module (1,787,252) and the engine's module (1,518,637).
 - **The check:** `scripts/build-sizes.mjs` fails when a file of a build is over 25 MiB, and names the file and its
   size. `npm run check:all` runs it after each site's build: the steps `build-sizes` (Hedge School) and
-  `cyanotype-build-sizes`. So the Tests workflow finds such a file before a deploy does. On the build before the fix,
-  it failed and named the WebAssembly file. Its tests (`scripts/build-sizes.test.mjs`) give it a file one byte over
-  25 MiB.
+  `cyanotype-build-sizes`. So the Tests workflow fails on such a file, and a release does not take it. The Deploy
+  workflow runs beside the Tests workflow, so a preview's upload still fails at Wrangler. On the build before the
+  fix, the check failed and named the WebAssembly file. Its tests (`scripts/build-sizes.test.mjs`) give it a file one
+  byte over 25 MiB.
