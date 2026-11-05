@@ -302,6 +302,9 @@ edit in the same commit), so their changes still apply.
 - **Paths in the documents:** a path that starts with `packages/` starts at the repository's root. A path to Hedge
   School's files starts at `apps/hedgeschool`, as before ([docs/README.md](../README.md)).
 - **A change to a package is a change to every site that uses it.** Its tests and each site's checks run for it.
+- **A new jam site's deploy job starts preview-only.** Its job in `.github/workflows/deploy.yml` has
+  `if: github.ref_name != 'main'`, so a release of another site does not launch it. Its launch is one commit, after
+  the owner's go, that removes the `if:` ([hosting.md](../hosting.md), "The launch switch").
 - **The engine's protocol:** each site's code is written for one protocol, and the engine package refuses a module of
   another minor version (`protocol.ts`, `speaksProtocol`). Hedge School's is 0.6.1, the package's `PROTOCOL`. A site
   whose engine speaks another names its protocol in its `engine.lock.json`, and the manifest carries it: Cyanotype's

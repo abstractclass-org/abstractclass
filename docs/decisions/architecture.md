@@ -247,6 +247,7 @@ public repository and the history rewrites.
 
 ### Each site's live deploy waits for the owner's approval (2026-11-05)
 
+- **Replaced** by the next entry, "A launch switch in code replaces the approvals": no job names an environment now.
 - **What:** on `main`, each job of the workflow **Deploy** runs in its own GitHub Environment: `hedgeschool` (the job
   `deploy`), `hub` and `cyanotype`. Each environment has the owner as its required reviewer, and `main` as its only
   deployment branch. GitHub holds each site's live deploy until the owner approves it in the run (**Review
@@ -297,3 +298,24 @@ public repository and the history rewrites.
   check command in `docs/hosting.md` ran in PowerShell 7, Windows PowerShell 5.1 and Git Bash. actionlint is not on
   this computer. `npm run check:all` passed, all 14 steps. The first push to `dev` with this change will show the
   previews deploying with no approval, and the first push to `main` the held jobs.
+
+### A launch switch in code replaces the approvals (2026-11-06)
+
+- **What:** no job of the workflow **Deploy** names a GitHub Environment, and the step "The live deploy has a required
+  reviewer" is gone (abscls-gczb). The jobs `deploy` (Hedge School) and `hub` deploy live on `main` again, with no
+  approval, as before the previous entry. The job `cyanotype` deploys previews only: its `if: github.ref_name !=
+  'main'` skips it on `main`. Cyanotype's launch is one commit, after the owner's go, that removes the `if:`. It goes
+  to `main` in that release. A new site's job starts with the same `if:`. `docs/hosting.md`, "The launch switch",
+  gives the commit.
+- **Why:** the need was only that a site that is not launched yet does not go live with another site's release. The
+  approvals asked the owner for a click on each site on every release. That click repeats the go that the owner
+  already gives before any push to `main`. Every session pushes with the owner's GitHub login, so neither the
+  approvals nor the switch stop a session that breaks the rules. Both stop accidents. The switch stops the accident
+  that matters, Cyanotype's live deploy before its launch, with no work for the owner.
+- **The environments:** the owner deleted `hedgeschool`, `hub` and `cyanotype` from the repository's settings
+  (2026-11-06), before this change merged. Until it merged, a push to `main` would have made them again with no
+  rules, and the check step would then have stopped each live deploy. So no push to `main` came between the two.
+- **Kept from the previous entry:** nothing of its workflow. Its evidence on an empty environment name stays there,
+  for a later use of environments.
+- **Checked:** by reading `deploy.yml`, a push to `main` runs `deploy` and `hub` and skips `cyanotype`. A push to
+  another branch runs all three, as previews. No job names an environment. actionlint is not on this computer.
