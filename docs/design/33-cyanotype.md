@@ -645,10 +645,10 @@ and the terms.
 Both sites have the home page, About, Notation, Notices, Privacy, Tools, Practice, the review, the Analysis board,
 the import page, the site map, the bookmarklet and the userscript. Cyanotype lacks these pages of Hedge School:
 
-- **How reviews work** (`/how-reviews-work`): where the labels, the accuracy, the hard positions and the meter come
-  from (designs 05, 10, 14 and 16). No issue yet.
+- **How reviews work** (`/how-reviews-work`): where the labels, the accuracy, the hard positions and the meter come from
+  (designs 05, 10, 14 and 16). abscls-8tl1.37.
 - **The board editor** (`/editor`): a position set up for the Analysis board (design 21). A position's notation waits
-  for it ("Decision", item 10). No issue yet.
+  for it ("Decision", item 10). abscls-8tl1.39.
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
   18). No issue yet.
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
@@ -669,38 +669,38 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The player's games, kept in this browser** (`game/store.ts`, `game/import.ts`, `review/ReviewHome.svelte`,
   `ui/ConfirmDialog.svelte`, designs 11 and 22): the Review tab's list of games, a pasted record, the last review
   continued, a game's delete, a game's own network and depth (design 09), and the request to the browser to keep the
-  stored games (`@abstractclass/storage/persist.ts`). Cyanotype's review keeps one game. No issue yet.
-- **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). No issue yet.
+  stored games (`@abstractclass/storage/persist.ts`). Cyanotype's review keeps one game. abscls-8tl1.38.
+- **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). abscls-8tl1.38.
 - **The Export menus and the links** (`ExportMenu.svelte`, designs 13 and 21). The review's menu: its review file
-  (abscls-8tl1.34), its annotated record (abscls-8tl1.35) and its link (`game/share.ts`, no issue yet). The Analysis
-  board's menu: its analysis file (`game/analysisFile.ts`), its annotated record and its link (`game/board.ts`), no
-  issue yet.
-- **The Analysis board's New menu** (`analysis/NewMenu.svelte`, `game/paste.ts`, design 21): a set-up position, a
-  pasted position or moves, and an analysis file loaded. No issue yet.
-- **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24). No issue
-  yet.
+  (abscls-8tl1.34), its annotated record (abscls-8tl1.35) and its link (`game/share.ts`, abscls-8tl1.41). The Analysis
+  board's menu: its analysis file (`game/analysisFile.ts`), its annotated record and its link (`game/board.ts`),
+  abscls-8tl1.41.
+- **The Analysis board's New menu** (`analysis/NewMenu.svelte`, `game/paste.ts`, design 21): a set-up position, a pasted
+  position or moves, and an analysis file loaded. abscls-8tl1.39.
+- **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24).
+  abscls-8tl1.40.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
   `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
   ("Practice against Stamp Duty", item 2). No issue yet.
-- **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`, design 08), on the review and on Practice. No issue yet.
+- **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`, design 08), on the review and on Practice. abscls-8tl1.42.
 - **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`, design 07, item 17).
-  No issue yet.
+  abscls-8tl1.43.
 - **The opening book** in the review and on the Analysis board (`book/`, design 32). No issue yet.
 - **The analytics and the consent** (`analytics.svelte.ts`, `ConsentBanner.svelte`, `AnalyticsAsk.svelte`,
   `ui/CornerCard.svelte`, `measure.ts`, `internalTraffic.ts`, `analysis/settingChanges.ts`, `game/sources.ts`,
   `hooks.client.ts`, designs 17, 25 and 27). No issue yet.
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). No issue yet.
-- **The site's menu on a narrow screen** (`SiteMenu.svelte`, design 22). On a phone, Cyanotype's header and footer
-  have no link to Practice, the review or the Analysis board, and the home page has none either: no page links to
-  Practice or the review there. No issue yet.
-- **The logo** (`Collie.svelte`, `collie.ts`, design 12), with the favicon, the icon for a phone's home screen and
-  the link previews' picture (`static/favicon.ico`, `static/apple-touch-icon.png`, `static/brand/card.png`).
-  Cyanotype has a wordmark, no icon and no preview picture ("Consequences"). No issue yet.
-- **The home page** (`home/HomeReplay.svelte`, design 22): its board with scenes from reviewed games, and its links
-  to Practice, to the review and to the other ways to start (a game played elsewhere, a line, a position).
-  Cyanotype's home page has none of them, and its text still says that the review is on the way and that Practice
-  comes later. No issue yet.
-- **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). No issue yet.
+- **The site's menu on a narrow screen** (`SiteMenu.svelte`, design 22). On a phone, Cyanotype's header and footer have
+  no link to Practice, the review or the Analysis board, and the home page has none either: no page links to Practice or
+  the review there. abscls-8tl1.36.
+- **The logo** (`Collie.svelte`, `collie.ts`, design 12), with the favicon, the icon for a phone's home screen and the
+  link previews' picture (`static/favicon.ico`, `static/apple-touch-icon.png`, `static/brand/card.png`). Cyanotype has a
+  wordmark, no icon and no preview picture ("Consequences"). abscls-8tl1.44.
+- **The home page** (`home/HomeReplay.svelte`, design 22): its board with scenes from reviewed games, and its links to
+  Practice, to the review and to the other ways to start (a game played elsewhere, a line, a position). Cyanotype's home
+  page has none of them, and its text still says that the review is on the way and that Practice comes later.
+  abscls-8tl1.36.
+- **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
 - **The edition** (`edition.ts`, design 11): the early access, its mark in the header, and the full edition's pages.
   No issue yet.
 - **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
@@ -719,9 +719,9 @@ Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). Th
 
 - **The engine's pool** (design 09): Hedge School starts half the processor's threads as workers, at most 8
   (`defaultPoolSize`), and ends the idle workers after a minute, or 15 seconds in a hidden tab (`releaseWhenIdle`).
-  Cyanotype starts 2 workers (`engineSettings.ts`) and keeps them while the page is open (`releaseIdle: false` on
-  the review and the Analysis board), for a worker's start of 7 seconds and 331 MB in Blueprints' early build
-  (abscls-qyms). That issue is closed, and the release in Cyanotype's lock has its fix. No issue yet.
+  Cyanotype starts 2 workers (`engineSettings.ts`) and keeps them while the page is open (`releaseIdle: false` on the
+  review and the Analysis board), for a worker's start of 7 seconds and 331 MB in Blueprints' early build (abscls-qyms).
+  That issue is closed, and the release in Cyanotype's lock has its fix. abscls-8tl1.46.
 - **The networks** (design 09): Hedge School's settings and Practice offer two networks, HedgeFund 0.2 Lite and
   HedgeFund 0.2, and its lock keeps the earlier ones for the games that name them. Cyanotype offers the one network
   of Blueprints' release, Stamp Duty 0.1. No issue yet.
@@ -733,10 +733,10 @@ Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). Th
 ### By the site's other files
 
 - **The engine's files kept for a year** (`static/_headers`): Hedge School's lets a browser keep each file under
-  `/engine/:id/:file`, whose folder names the build and the network, without asking again. Cyanotype's has no such
-  rule. No issue yet.
+  `/engine/:id/:file`, whose folder names the build and the network, without asking again. Cyanotype's has no such rule.
+  abscls-8tl1.47.
 - **The check of a deployed site** (`scripts/release-check.mjs`, `docs/hosting.md`, "Deploy, check and roll back").
-  Cyanotype's launch gives its checks as steps by hand. No issue yet.
+  Cyanotype's launch gives its checks as steps by hand. abscls-8tl1.47.
 
 ## Why
 
