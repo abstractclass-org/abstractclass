@@ -150,9 +150,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **The GPU in Playwright's Chromium:** by default, a run uses the four flags of "Off the GPU" below, which
   `playwright.config.ts` gives Chromium on Windows. The engine is then off, or on the CPU only. A run with any WebGPU
   flag is a check of the site's GPU path, with the software adapter's flags too. Such a run starts only after
-  jam-coord and eng-coord have both said yes. A worker asks site-coord, never the others (abscls-gwi0, 2026-11-04).
-  The run then goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`): that job pauses
-  the engines' training on the GPU and guards it.
+  jam-coord and eng-coord have both said yes. A worker asks its own coordinator, never the others (abscls-gwi0,
+  2026-11-04). The run then goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`):
+  that job pauses the engines' training on the GPU and guards it.
   - **The WebGPU flags:** headless Chromium gets WebGPU on the real GPU with `--enable-unsafe-webgpu
     --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
     added, WebGPU gets Chrome's software adapter. The software adapter runs the GPU worker and the practice bot's GPU
