@@ -244,3 +244,38 @@ public repository and the history rewrites.
 - **Why:** `engines` is the organization's repository for every game, not the name of the Enclosure engine. So the
   site names what a visitor meets: the engine and its release repository.
 - **It closes** the "Left" note of the entry "The repositories get new names".
+
+### Each site's live deploy waits for the owner's approval (2026-11-05)
+
+- **What:** on `main`, each job of the workflow **Deploy** runs in its own GitHub Environment: `hedgeschool` (the job
+  `deploy`), `hub` and `cyanotype`. Each environment has the owner as its required reviewer, and `main` as its only
+  deployment branch. GitHub holds each site's live deploy until the owner approves it in the run (**Review
+  deployments**). A site that is rejected or not approved is not deployed. A push to another branch names no
+  environment, so its previews deploy with no approval (abscls-suuu). `docs/hosting.md`, "The live deploys wait for
+  approval", gives the owner's steps and how to approve.
+- **Why:** each job once had a repository variable that kept it off until its Pages project existed
+  (`HUB_PAGES_PROJECT`, `CYANOTYPE_PAGES_PROJECT`). With the variable unset, a release did not deploy that site.
+  That variable was the only gate on Cyanotype's live deploy. abscls-t0sv (the hub) and abscls-8tl1.24 (Cyanotype)
+  removed the variables, because the projects exist. Since then, every push to `main` deploys all three sites live.
+  So one release of Hedge School (`git push origin dev:main`) also launched Cyanotype, whose release was withdrawn
+  on 2026-11-05. Only a message between the sessions kept a release from launching it. An approval for each site
+  gives that gate back to the owner, for each site and each release, with no repository variable to set and unset.
+- **How:** each job's `environment:` is an expression: the environment's name on `main`, an empty string elsewhere.
+  GitHub's workflow syntax allows an expression in the environment's name. Its documents do not say what an empty name
+  does. The workflow parser in GitHub's runner gives no environment for an empty name, so the job runs with no
+  environment (`.github/workflows/deploy.yml` cites both).
+- **The risk before the owner's step:** a workflow that names a missing environment makes it with no protection
+  rules, and GitHub runs the job with no approval. So on `main` each job reads its environment from GitHub's API
+  first, and fails before its build and its upload when the environment has no required reviewer. The job's token
+  (`contents: read`) is enough: the API's page says that "Get an environment" needs no permission for a public
+  repository's resources. The step's query, run with a token that is not an administrator's of the repository, read
+  the reviewers of another public repository's environment (`pypa/pip`, the environment `PyPI`: 1, a team), and 0 for
+  an environment with no reviewer. No run of this workflow has tested the step yet. If the API answers 403 there, the
+  token needs `actions: read`.
+- **Where it is available:** GitHub gives environments and required reviewers to public repositories on every
+  current plan. On the free plan, a private repository has no required reviewers. This repository is public.
+- **Checked:** by reading `deploy.yml`, a push to another branch gives each job an empty environment name, and the
+  check step runs on `main` only. PyYAML parses the file: each of the three jobs has its environment's expression,
+  and the check as its second step, after the checkout and before any build or upload. actionlint is not on this
+  computer. `npm run check:all` passed, all 14 steps. The first push to `dev` with this change will show the previews
+  deploying with no approval, and the first push to `main` the held jobs.

@@ -12,8 +12,8 @@ entries before it).
 |---|---|---|
 | The domain | `abstractclass.org`, registered at Porkbun | The site's address is `hedgeschool.abstractclass.org`. |
 | DNS | Cloudflare (the zone `abstractclass.org`, free plan), with DNSSEC | Answers for the domain. Porkbun keeps only the registration. |
-| The code | The public GitHub repository `abstractclass-org/abstractclass`: `dev` for the work, `main` for the live site | A push to `main` deploys the live site. A push to another branch deploys a preview. |
-| The deploy | GitHub Actions (`.github/workflows/deploy.yml`) | On each push: builds the site and uploads it to Pages with Wrangler. `main` goes to production, another branch to a preview (section 3). |
+| The code | The public GitHub repository `abstractclass-org/abstractclass`: `dev` for the work, `main` for the live site | A push to `main` deploys the live site when the owner approves it. A push to another branch deploys a preview. |
+| The deploy | GitHub Actions (`.github/workflows/deploy.yml`) | On each push: builds the site and uploads it to Pages with Wrangler. `main` goes to production, another branch to a preview (section 3). On `main`, each site's job waits for the owner's approval in its GitHub Environment ("The live deploys wait for approval"). |
 | The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
@@ -65,7 +65,8 @@ in `apps/hedgeschool`. A path here to the site's files starts there ([README.md]
   each push to `dev` on Pages as a preview deployment, at `dev.hedgeschool.pages.dev` (and at an address for each
   deployment), with the previews' variables.
 - **`main`:** the live site. A release brings `main` to `dev`'s commit: `git push origin dev:main` (a fast-forward).
-  The deploy then builds it and publishes it at `hedgeschool.abstractclass.org`.
+  The deploy then waits for the owner's approval, and builds it and publishes it at `hedgeschool.abstractclass.org`
+  when the owner approves it ("The live deploys wait for approval", below).
 
 What the repository holds for the deploy and for Pages:
 
@@ -149,11 +150,15 @@ from that file, not from the project's settings.
 
 **What the deploy does on each push:**
 
-1. It installs the dependencies (`npm ci`, at the root), with the Node of `.node-version`.
-2. It sets `CF_PAGES_BRANCH` and `CF_PAGES_URL` for the build (section 2, the site's address in the userscript).
-3. It runs `npm run build:cloudflare` in `apps/hedgeschool`, with the variables of the branch (below). A failed test or
+1. On `main` only, the job runs in the GitHub Environment `hedgeschool`. GitHub holds the job until the owner approves
+   it in the run. Then the job's first step makes sure that the environment has a required reviewer, and stops the
+   deploy if it has none ("The live deploys wait for approval", below). A push to another branch has no environment
+   and no approval.
+2. It installs the dependencies (`npm ci`, at the root), with the Node of `.node-version`.
+3. It sets `CF_PAGES_BRANCH` and `CF_PAGES_URL` for the build (section 2, the site's address in the userscript).
+4. It runs `npm run build:cloudflare` in `apps/hedgeschool`, with the variables of the branch (below). A failed test or
    type error stops the deploy, and the site stays as it was.
-4. It uploads `build/` and the Function in `functions/` with Wrangler, pinned to one version: `wrangler pages deploy
+5. It uploads `build/` and the Function in `functions/` with Wrangler, pinned to one version: `wrangler pages deploy
    build --project-name=hedgeschool --branch=<the branch>`. Wrangler runs in `apps/hedgeschool`, because it takes
    the Function from the `functions/` folder where it runs: from another folder, the deployment has no Function. The
    branch `main` goes to production. Another branch goes to a preview at `<branch>.hedgeschool.pages.dev`: Pages
@@ -341,7 +346,8 @@ It is the folder `apps/hub/public`: static files, with no build, no script, no c
 Its own Pages project, `abstractclass`, serves it, apart from Hedge School's. The job `hub` of the workflow **Deploy**
 uploads the folder to that project with Wrangler on each push: `main` to production, another branch to a preview at
 `<branch>.abstractclass.pages.dev`. So a push to `dev` deploys a preview at `dev.abstractclass.pages.dev`, and a
-release (`git push origin dev:main`) deploys the live hub. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and
+release (`git push origin dev:main`) deploys the live hub when the owner approves the environment `hub` in the run
+("The live deploys wait for approval", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and
 variable `CLOUDFLARE_ACCOUNT_ID` (section 3). The token's permission covers every Pages project of the account.
 
 - **Its headers** (`apps/hub/public/_headers`): a Content Security Policy that lets the page load only its own style
@@ -400,7 +406,9 @@ Cyanotype is Blueprints' site ([design 33](design/33-cyanotype.md)), in `apps/cy
 and builds it on each push, as the site's job does: the packages' checks and tests, then the engine's release files
 (`npm run engine -- --deploy`), the site's type check, unit tests and build. Then it uploads `build/` with Wrangler:
 `main` to production, another branch to a preview at `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys
-nothing. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable `CLOUDFLARE_ACCOUNT_ID` (section 3).
+nothing. On `main`, the job waits for the owner's approval of the environment `cyanotype` ("The live deploys wait for
+approval", below). That approval is the only thing that keeps a release of `main` from deploying Cyanotype live. The
+job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable `CLOUDFLARE_ACCOUNT_ID` (section 3).
 
 - **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
   `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the
@@ -427,7 +435,8 @@ nothing. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable `CLO
   page).
 
 **The owner's steps, once** (abscls-8tl1.3). Do not set a repository variable: the workflow names the project. Each
-push deploys Cyanotype. A push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
+push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`. A push to `main` deploys Cyanotype live only when the
+owner approves it.
 
 1. **Make the Pages project, with `main` as its production branch.** Done (2026-11-04), with Wrangler 4.144.0:
    `npx wrangler@4.144.0 pages project create cyanotype --production-branch=main --force`. The project's name is
@@ -443,10 +452,12 @@ push deploys Cyanotype. A push to `dev` deploys a preview at `dev.cyanotype-ztp.
    answers with status 522.
 3. **Deploy the live site from a release.** Do not deploy from a local build. A local build has no branch variables,
    so its userscript loads from `http://127.0.0.1:4173`. The job also runs the checks and the tests before it uploads.
-   A release also releases Hedge School and the hub: the push sends all of `dev` to `main`. Release `dev` as the
-   section "Deploy, check and roll back" below gives: `git push origin dev:main`. In GitHub, go to
-   **Actions → Deploy**. Open the run of this push. Its job `cyanotype` uploads the build to the production branch.
-   When the job shows a pass, open `https://cyanotype-ztp.pages.dev`. Make sure that it shows Cyanotype's home page.
+   The push sends all of `dev` to `main`, so the run also holds Hedge School's and the hub's live deploys. Approve
+   or reject each of them as "The live deploys wait for approval" below gives. Release `dev` as the section
+   "Deploy, check and roll back" below gives: `git push origin dev:main`. In GitHub, go to **Actions → Deploy**. Open
+   the run of this push. Approve the environment `cyanotype` (**Review deployments**). Its job `cyanotype` then
+   uploads the build to the production branch. When the job shows a pass, open `https://cyanotype-ztp.pages.dev`.
+   Make sure that it shows Cyanotype's home page.
 4. **Check:**
    - `https://cyanotype.abstractclass.org` shows Cyanotype's home page.
    - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
@@ -459,6 +470,72 @@ push deploys Cyanotype. A push to `dev` deploys a preview at `dev.cyanotype-ztp.
      `https://dev.cyanotype-ztp.pages.dev` shows the site.
 5. **End Wrangler's login** on the computer of step 1, if you do not use Wrangler there:
    `npx wrangler@4.144.0 logout`.
+
+## The live deploys wait for approval
+
+A push to `main` deploys three sites live: Hedge School (the job `deploy`), the hub (`hub`) and Cyanotype
+(`cyanotype`). On `main`, each job runs in its own GitHub Environment, with the same name as its Pages project:
+`hedgeschool`, `hub` and `cyanotype`. Each environment has the owner as its required reviewer. So GitHub holds each
+site's live deploy until the owner approves it in the run, and the owner releases each site separately. A push to
+another branch names no environment, so its previews deploy at once, with no approval.
+
+GitHub gives environments and required reviewers to public repositories on every current plan, the free plan too.
+On the free plan, a private repository has no required reviewers
+([Managing environments for deployment](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments),
+"Who can use this feature?"). This repository is public.
+
+**Before the first push to `main` with this setup, the owner makes the three environments.** When a job names an
+environment that does not exist, GitHub makes the environment with no protection rules, and runs the job with no
+approval. Each job then stops at its step "The live deploy has a required reviewer", before it builds or uploads
+anything: the step reads the environment from GitHub's API and fails when it has no required reviewer. So no site
+deploys live with no approval, but no site deploys at all until the environments are complete.
+
+**The owner's steps, once,** in the repository on GitHub, as an administrator:
+
+1. Go to `https://github.com/abstractclass-org/abstractclass/settings/environments` (the repository's **Settings**,
+   then **Environments** in the left sidebar).
+2. Select **New environment**. Enter the name `hedgeschool`, then select **Configure environment**.
+3. Select **Required reviewers**. In the box below it, enter your own GitHub account's name, and select your account
+   in the list. Do not select **Prevent self-review**: you push each release, and with that option you cannot approve
+   your own run. Select **Save protection rules**.
+4. Under **Deployment branches and tags**, select **Selected branches and tags** in the menu. Select
+   **Add deployment branch or tag rule**. In the menu **Ref type**, select **Branch**. Enter `main` as the name
+   pattern. Select **Add rule**. `main` is now the only branch that can deploy to the environment.
+5. Leave the other settings as they are: no wait timer and no environment secrets. The deploy's secret and variables
+   stay the repository's (section 3).
+6. Go back to **Environments**. Do steps 2 to 5 again for the name `hub`, then again for the name `cyanotype`.
+7. Make sure that the three environments have a reviewer. In a terminal with the GitHub CLI signed in, run:
+
+   ```sh
+   gh api repos/abstractclass-org/abstractclass/environments --jq '.environments[] | [.name, ([.protection_rules[] | select(.type == "required_reviewers") | .reviewers[].reviewer.login] | join(",")), (.deployment_branch_policy.custom_branch_policies | tostring)] | @tsv'
+   ```
+
+   It shows three lines, one for each environment. Each line shows the environment's name, your account's name,
+   and `true` (only the selected branches can deploy). Then open the environment's page (**Environments**, its
+   name), and make sure that **Deployment branches and tags** names only `main`.
+
+GitHub's pages for these steps:
+[Managing environments for deployment, "Creating an environment"](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments#creating-an-environment)
+and
+[Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
+
+**A held deploy.** After a push to `main`, go to **Actions → Deploy**, and open the run of the push. GitHub does not
+start a held job on a runner, so the job builds nothing until the owner approves it. The run shows the three jobs as
+waiting, and a notice that the deploys wait for review, with the button **Review deployments**.
+
+**Approve or reject each site:**
+
+1. Select **Review deployments**.
+2. Select the environments to approve, for example `hedgeschool` and `hub`. Select **Approve and deploy**. Each
+   approved job starts: it builds its site and deploys it live.
+3. To keep a site off the live site, select **Review deployments** again, select its environment, then select
+   **Reject**. A rejected job deploys nothing, and its live site stays as it was. The run then shows a failure, for
+   the rejected job only.
+
+A job that is not approved deploys nothing. While a run of `main` waits, the next push to `main` waits behind it: the
+workflow runs one deploy at a time for each branch. Approve or reject each held job, so that the next release can
+start. GitHub's page:
+[Reviewing deployments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments).
 
 ## Deploy, check and roll back
 
@@ -493,9 +570,12 @@ push deploys Cyanotype. A push to `dev` deploys a preview at `dev.cyanotype-ztp.
   start the preview (`npm run preview -- --host 127.0.0.1 --port 4173`), and run `HS_EDGE=1 npx playwright test
   --project=edge` (about 7 minutes). A worker does not run Edge, because its profile signs in to the owner's Windows
   account. Any run can use another site: `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.
-- **Deploy:** release `dev` to `main` (`git push origin dev:main`). The workflow **Deploy** builds and uploads it in a
-  few minutes (its build runs the unit tests and the type check again). A failed build leaves the live site as it was.
-  Try a change first on `dev`'s preview.
+- **Deploy:** release `dev` to `main` (`git push origin dev:main`). The push holds the live deploys of all three
+  sites. In the run of **Actions → Deploy**, the owner approves each site to release and rejects each site to keep as
+  it is ("The live deploys wait for approval", above). Before the first push to `main` with this setup, the owner
+  makes the three environments (the same section). Without them, no site deploys. Each approved job builds and uploads
+  its site in a few minutes (Hedge School's build runs the unit tests and the type check again). A failed build leaves
+  the live site as it was. Try a change first on `dev`'s preview.
 - **Check:** `node scripts/release-check.mjs <base URL> [<commit>]` in `apps/hedgeschool` does the checks below
   against the live site or a preview, when the workflow **Deploy** has finished. Without a commit, it takes
   `origin/main` for the live site and `origin/dev` for dev's preview: run `git fetch` first. Each line says PASS, FAIL
