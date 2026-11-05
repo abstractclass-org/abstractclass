@@ -3,10 +3,10 @@
 # consent across tabs). Beside them, the layout sweep in Chromium on Windows. On a production build with the practice
 # games' storage on, so that the consent banner shows on every page, and the practice games' test runs. Both jobs also
 # serve Cyanotype's build (CYANOTYPE_BASE_URL), with its engine's release files, for the tests that open a Cyanotype
-# page. A run with no CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only a commit whose run passed. The
-# deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in Edge stays an option
-# before a release. A newer push cancels a run still going for an older one. The repository is public, so the standard
-# runners cost no minutes.
+# page. A run with no CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only a commit
+# whose run passed. The deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in
+# Edge stays an option before a release. A newer push cancels a run still going for an older one. The repository is
+# public, so the standard runners cost no minutes.
 name: Tests
 
 on:
@@ -28,9 +28,12 @@ defaults:
     working-directory: apps/hedgeschool
 
 jobs:
+  # The time limits allow for Cyanotype's engine tests, which run here since its build has the engine's release files.
+  # Its review of the test game takes about 15 minutes, and runs twice on Linux (cyanotype-review.spec.ts and the
+  # layout test) and once on Windows. Before them the Linux job took about 16 minutes and the Windows job 12.
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -93,7 +96,7 @@ jobs:
   # runner's image.
   test-windows:
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -115,7 +118,7 @@ jobs:
           VITE_EDITION: early
           VITE_STORE_PRACTICE_GAMES: "on"
 
-      # Cyanotype's build with its engine's release files, for the layout sweep below: check:all, which makes it on
+      # Cyanotype's build with its engine's release files, for the layout test below: check:all, which makes it on
       # Linux, does not run on this job.
       - name: Cache Cyanotype's engine files
         uses: actions/cache@v6

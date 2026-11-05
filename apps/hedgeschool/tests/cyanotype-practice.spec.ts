@@ -4,12 +4,12 @@
 // when no blueprint has a legal placement. Each game goes to its end with no page error and no stop. The page checks
 // each of the bot's moves against the rules' legal moves, and stops the game when one is not legal. A reload in the
 // middle keeps the game: the same moves, and the game goes on. The bot's visits are 32, so that a game takes minutes:
-// the bot at 1 and 2 visits has its own test (apps/cyanotype/src/lib/practice/bot.engine.test.ts). The tests
-// skip, with a message, when the preview has no practice bot: run `npm run engine` in apps/cyanotype before its build.
-// The Tests workflow does (design 33, "The engine's files"). A last
-// test keeps a game whose network the site does not ship: the page drops it and shows the settings card. In a game,
-// the confirm button of Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility
-// itself (`btn-danger`), so that the Tests workflow runs it too. Run:
+// the bot at 1 and 2 visits has its own test (apps/cyanotype/src/lib/practice/bot.engine.test.ts). The tests skip,
+// with a message, when the preview has no practice bot: run `npm run engine` in apps/cyanotype before its build, as the
+// Tests workflow does (design 33, "The engine's files"). In CI, they fail instead. A last test keeps a game whose
+// network the site does not ship: the page drops it and shows the settings card. In a game, the confirm button of
+// Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility itself (`btn-danger`),
+// so that it runs without the engine's files too. Run:
 // npm run test:layout -- tests/cyanotype-practice.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type Page } from "@playwright/test";
 
@@ -49,12 +49,15 @@ const keptMoves = (page: Page) => page.evaluate(() =>
   (JSON.parse(localStorage.getItem("cyanotype:practice-game:1") ?? "null") as { moves: string[] } | null)?.moves ?? null);
 const listed = (page: Page) => page.locator(".movelist .mv").allTextContents();
 
-/** The preview's engine manifest. Skips the test when there is no preview, or when it has no practice bot. */
+/** The preview's engine manifest. Skips the test when there is no preview, or when it has no practice bot. In CI, a
+ *  preview with no practice bot is an error: the Tests workflow builds Cyanotype with its engine's files. */
 async function botManifest(page: Page) {
   test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json()).catch(() => null);
-  test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
-            "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build");
+  const why = "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build";
+  const bot = manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module");
+  if (!bot && process.env.CI) throw new Error(why);
+  test.skip(!bot, why);
   return manifest;
 }
 

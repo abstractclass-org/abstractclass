@@ -7,10 +7,10 @@ record, with the import of a strategyjam.org game as a record. The owner's step 
 The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
 strategyjam.org and the import page are built: the page opens the game that a tool sends in the review or the
 Analysis board ("How a game comes in from strategyjam.org"). Their test on strategyjam.org waits for the owner
-(abscls-8tl1.12). The site fetches Blueprints'
-first release, `engine-3ac5c2fc` (Stamp Duty 0.1, protocol 0.7.1, with its practice bot), as Hedge School fetches its
-own ("The engine's files"). Practice against Stamp Duty (`/practice`) is built ("Practice against Stamp Duty"). The
-review and the Analysis board are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet.
+(abscls-8tl1.12). The site fetches Blueprints' first release, `engine-3ac5c2fc` (Stamp Duty 0.1, protocol 0.7.1, with
+its practice bot), as Hedge School fetches its own ("The engine's files"). Practice against Stamp Duty (`/practice`)
+is built ("Practice against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and
+the Analysis board"), with no area map yet.
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04.
 
@@ -231,8 +231,7 @@ move did (describe_game: the footprint, the captured cells, the points and the h
 their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move. The 0.7
 builds (`engine-b64eea10`, `engine-217be61f`, `engine-70dfdc0f` with a new network, then the release
 `engine-3ac5c2fc`) give the five games the same data as the early build: only the file's header, which names the
-build, changed. The data is the rules' alone, which
-no network changes.
+build, changed. The data is the rules' alone, which no network changes.
 
 - **The build and the tests read the stored file.** `fixtures.engine.test.ts` runs the engine again and compares, in
   the Tests workflow too. It is skipped when the site has no engine (`npm run engine` was not run).
@@ -255,14 +254,16 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
 `static/engine/` with their manifest. The page loads them from there.
 
 1. **The release:** `engine-3ac5c2fc`, Blueprints' first release (Stamp Duty 0.1), in the public repository
-   `abstractclass-org/blueprints-engine`, with its manifest. Its files: the module (`blueprints-engine.wasm`, build and
-   search `3ac5c2fc`, protocol 0.7.1, with the search of the root's views of request 24), the practice bot
-   (`blueprints-bot.wasm`, interface 0.1.2, with `practice_bot.mjs`, request 25), `gpu_engine.mjs`, `NOTICES.txt`,
-   `LICENSE.txt` and bpj5's network `b6c96-s40806528-d2304635`, whose name in the release is Stamp Duty 0.1. Each
-   entry of the lock takes its file from the release (a source of kind `release`), with the SHA-256 and the size of
-   the release's manifest. The release's `settings.cfg` is the native engine's: the site does not read it, so the lock
-   does not take it. The engine repository's record of the release: its `docs/decisions/organization.md`, entry of
-   2026-11-05.
+   [abstractclass-org/blueprints-engine](https://github.com/abstractclass-org/blueprints-engine), with its manifest.
+   Its files: the module (`blueprints-engine.wasm`, build and search `3ac5c2fc`, protocol 0.7.1, with the search of
+   the root's views of request 24), the practice bot (`blueprints-bot.wasm`, interface 0.1.2, with `practice_bot.mjs`,
+   request 25), `gpu_engine.mjs`, `NOTICES.txt`, `LICENSE.txt` and bpj5's network `b6c96-s40806528-d2304635`, whose
+   name in the release is Stamp Duty 0.1. Each entry of the lock takes its file from the release (a source of kind
+   `release`), with the SHA-256 and the size of the release's manifest. The release's `settings.cfg` is the text of
+   the search's settings, which the module embeds: the site does not read it, so the lock does not take it. The engine
+   repository's record of the release: its
+   [docs/decisions/organization.md](https://github.com/abstractclass-org/engines/blob/main/docs/decisions/organization.md),
+   entry of 2026-11-05.
 2. **Protocol 0.7.** Blueprints' build speaks 0.7.1, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
    passes find no candidate gives its first pass's policy move. The lock's `protocol` names the protocol that
@@ -275,7 +276,9 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    each deployment has its engine. The Tests workflow takes them too (the step `cyanotype-engine` of
    `npm run check:all`, and a step of the Windows job), so the checks that need the engine run there: the fixtures'
    test, the bot's test at few visits, the review's tests and the browser tests that play against the bot. Without
-   `static/engine`, they skip with a message, and `/practice` says that the engine is not on the site.
+   `static/engine`, they skip with a message, and `/practice` says that the engine is not on the site. In CI, the
+   browser tests of the review and of Practice fail instead of skipping, so that a build without the files cannot pass
+   there.
 4. **The CPU only.** The lock has no GPU module, so the fetch script stores no ONNX Runtime for Cyanotype. The
    rules' worker starts the engine with `createCpuEngine` alone. The bot is the practice bot with one search thread,
    whose network runs in its own module, and its worker has no ONNX Runtime and no WebGPU code: Blueprints has no

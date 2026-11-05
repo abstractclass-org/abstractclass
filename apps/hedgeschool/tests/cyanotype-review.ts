@@ -1,8 +1,9 @@
 // Cyanotype's review (its design 33) for the browser tests, on its preview (CYANOTYPE_BASE_URL): the review's test game
 // (apps/cyanotype/src/lib/review/fixtures/stamp-duty.txt, Stamp Duty against itself) up to the end of turn TURNS,
 // reviewed in the browser from the engine's real replies on the CPU, at Lite (512 visits a move), the stored review's
-// depth: with the release engine-3ac5c2fc, its first note is a Mistake at turn 15. The review takes about ten minutes. The Tests workflow builds Cyanotype with the engine's files (design 33, "The engine's
-// files"). A test skips, with a message, when the preview has none.
+// depth: with the release engine-3ac5c2fc, its first note is a Mistake at turn 15. The review takes about ten minutes.
+// The Tests workflow builds Cyanotype with the engine's files (design 33, "The engine's files"). A test skips, with a
+// message, when the preview has none, and fails in CI.
 import { expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
@@ -40,12 +41,15 @@ export const SPREAD_BOARD = "/analysis#record=" + encodeURIComponent("1. 1@-13,-
   "1@-37,-1 10. 2@-12,-5 2@-12,2 11. 1@-40,-1 1@-43,-1 12. 2@-15,1 2@-19,2 13. 1@-46,-1 1@-49,-1 14. 1@-13,-2 2@-23,2 " +
   "15. 1@-52,-1 1@-55,-1 16. 2@-27,2 2@-30,1 17. 1@-58,-1 1@-61,-1 18. 1:-2,2>2:0,2 2@-35,2 19. 1@-64,-1 *") + "&at=36";
 
-/** Why the tests cannot run here, or "" when they can: no preview, or a preview with no engine files. */
+/** Why the tests cannot run here, or "" when they can: no preview, or a preview with no engine files. In CI, a preview
+ *  with no engine files is an error, not a reason to skip: the Tests workflow builds Cyanotype with them. */
 export async function noReview(page: Page): Promise<string> {
   if (!CYANOTYPE) return "CYANOTYPE_BASE_URL gives no Cyanotype preview";
   const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json()).catch(() => null);
-  return manifest?.artifacts?.some((a: { kind: string }) => a.kind === "model") ? ""
-    : "Cyanotype's preview has no engine files: run `npm run engine` in apps/cyanotype before its build";
+  if (manifest?.artifacts?.some((a: { kind: string }) => a.kind === "model")) return "";
+  const why = "Cyanotype's preview has no engine files: run `npm run engine` in apps/cyanotype before its build";
+  if (process.env.CI) throw new Error(why);
+  return why;
 }
 
 /** Reviews the test game in `page`, with the engine on at Lite and the display settings `display`, and waits for the

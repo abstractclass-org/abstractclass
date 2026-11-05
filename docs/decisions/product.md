@@ -8286,9 +8286,9 @@ engine repository's record of the release is its `docs/decisions/organization.md
   protocol 0.7.1, build and search `3ac5c2fc`), `gpu_engine.mjs`, `practice_bot.mjs`, the practice bot
   `blueprints-bot.wasm` (1,787,252 bytes, interface 0.1.2), `NOTICES.txt`, `LICENSE.txt`, and bpj5's network
   `b6c96-s40806528-d2304635` (2,228,327 bytes), whose name is Stamp Duty 0.1. The release's `settings.cfg` is the
-  native engine's settings: the site does not read it, and the lock does not take it. `npm run engine -- --deploy`
-  fetched the seven files, each with the lock's SHA-256, and the module answered protocol 0.7.1 and the search
-  `3ac5c2fc`, as the lock gives.
+  text of the search's settings, which the module embeds: the site does not read it, and the lock does not take it.
+  `npm run engine -- --deploy` fetched the seven files, each with the lock's SHA-256, and the module answered protocol
+  0.7.1 and the search `3ac5c2fc`, as the lock gives.
 - **The fixtures:** `npm run fixtures` wrote `src/lib/board/fixtures.json` again from the release. Only its header
   changed: the five games have the same positions, legal moves and effects.
 - **Two moves that give one position:** at position 83 of the review's test game, the release's network at 512 visits
@@ -8300,16 +8300,25 @@ engine repository's record of the release is its `docs/decisions/organization.md
   release name keeps "Stamp Duty (its id)".
 - **CI:** the step `cyanotype-engine` of `npm run check:all` fetches the files before Cyanotype's checks, and stops
   them when it fails. The Tests workflow keeps Cyanotype's downloads in a cache of their own, by the lock, and its
-  Windows job fetches them before Cyanotype's build. So the Cyanotype tests that need the engine run there.
+  Windows job fetches them before Cyanotype's build. So the Cyanotype tests that need the engine run there. In CI, a
+  Cyanotype preview with no engine files now fails the review's and Practice's browser tests, in place of a skip that
+  would pass with no sign.
+- **The Tests workflow's time limits:** 75 minutes for the Linux job and 60 for the Windows job, from 40. On this
+  computer at 2 threads, the browser tests (`npm run test:layout -- --project=chromium`, 153 tests: 148 passed and 5
+  skipped) took 53.5 minutes, about 35 of them in Cyanotype's engine tests: the review of the test game twice (about
+  14 minutes in `cyanotype-review.spec.ts` before its tests, and 16.9 in the layout test's review) and the two practice
+  games (4.1). The same tests without Cyanotype's engine took 14 minutes in the last CI run before this change. So the
+  Linux job would pass 40 minutes. No CI run has measured it yet.
 - **The deploy:** the job `cyanotype` names the Pages project `cyanotype`, as the site's job names `hedgeschool`, and
   has no `if:`. The repository variable `CYANOTYPE_PAGES_PROJECT` only kept the job off until the project existed. It
   fetches the release's files before its checks and its build. `docs/hosting.md` section 9 gives the owner's steps:
-  no variable, the first live deployment from the job at a release, then the domain. Cloudflare's guide to custom
-  domains names no deployment that must come before a domain. The domain serves the production deployment, so it
-  comes after the first one.
-- **The labels change with the network.** The review of the test game's turns 1 to 20 at Lite (512 visits), in
-  headless Chromium on the CPU, with the earlier build's files and with the release's: by move, 22 of 39 labels
-  changed. By turn, the display's default, 14 of 20 changed. One review of each, so search noise is part of the
+  no variable, and the first live deployment from the job at a release, not from a local build. Cloudflare's guide to
+  custom domains names no deployment that must come before a domain. The domain `cyanotype.abstractclass.org` was
+  added on 2026-11-05, before any deployment: it answers with status 522 until the first production deployment, and
+  then serves it.
+- **The quality labels change with the network.** The review of the test game's turns 1 to 20 at Lite (512 visits),
+  in headless Chromium on the CPU, with the earlier build's files and with the release's: by move, 22 of 39 quality
+  labels changed. By turn, the display's default, 14 of 20 changed. One review of each, so search noise is part of the
   difference. The first note by turn was a Mistake at turn 19, and is now a Mistake at turn 15.
 
   | Turn | Before | After |
@@ -8330,6 +8339,7 @@ engine repository's record of the release is its `docs/decisions/organization.md
   | 16 | Best | Inaccuracy |
   | 18 | Good | Inaccuracy |
   | 19 | Mistake | Inaccuracy |
+
 - **The rank chips' "+N":** the browser test of the chips needs a position whose candidates place one blueprint
   more often than its panel shows. At 390 pixels, a panel holds 4 chips. A scan of positions 0 to 38 at 512 visits
   counted the candidates that the board shows on each blueprint. The earlier network showed up to 6 (after moves 23,

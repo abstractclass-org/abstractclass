@@ -415,29 +415,31 @@ nothing. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable `CLO
 - **No Function and no storage at Cloudflare.** The browser keeps only the theme and the scroll places (its Privacy
   page).
 
-**The owner's steps, once** (abscls-8tl1.3). No repository variable is necessary: the workflow names the project.
-From the merge of the job onward, each push deploys Cyanotype. A push to `dev` deploys a preview at
-`dev.cyanotype-ztp.pages.dev`.
+**The owner's steps, once** (abscls-8tl1.3). Do not set a repository variable: the workflow names the project. Each
+push deploys Cyanotype. A push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
 
 1. **Make the Pages project, with `main` as its production branch.** Done (2026-11-04), with Wrangler 4.144.0:
    `npx wrangler@4.144.0 pages project create cyanotype --production-branch=main --force`. The project's name is
    `cyanotype`. Its address is `https://cyanotype-ztp.pages.dev/`, because `cyanotype.pages.dev` belongs to another
    site.
-2. **Deploy the live site from a release.** Do not deploy from a local build: it has no branch variables and no
-   engine files, so its userscript loads from `http://127.0.0.1:4173`, and its review and Practice have no engine.
-   Release `dev` as for Hedge School: `git push origin dev:main`. In GitHub's **Actions → Deploy**, the run's job
-   `cyanotype` uploads the build to the production branch. When the job passed, `https://cyanotype-ztp.pages.dev`
-   shows Cyanotype's home page.
-3. **Give it the domain.** Cloudflare's guide to custom domains
-   ([Custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/#add-a-custom-domain)) names
-   no deployment that must come first. But the domain serves the production deployment, so do this step after step
-   2: then the domain shows the site as soon as it is active. In the Cloudflare dashboard, go to **Workers & Pages**,
-   select the project `cyanotype`, then **Custom domains → Set up a domain**. Enter `cyanotype.abstractclass.org`,
-   then select **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record itself:
-   a CNAME from `cyanotype` to `cyanotype-ztp.pages.dev`. The domain shows **Active** when its certificate is ready,
-   in minutes.
+2. **Give it the domain.** Done (2026-11-05), before the first deployment: in the Cloudflare dashboard,
+   **Workers & Pages**, the project `cyanotype`, **Custom domains → Set up a domain**, `cyanotype.abstractclass.org`.
+   The zone is on Cloudflare, so Pages added the DNS record itself: a CNAME from `cyanotype` to
+   `cyanotype-ztp.pages.dev`.
+   Cloudflare's guide
+   ([Custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/#add-a-custom-domain)) asks
+   for no deployment before the domain. The domain serves the production deployment. Until the first one exists, it
+   answers with status 522.
+3. **Deploy the live site from a release.** Do not deploy from a local build. A local build has no branch variables,
+   so its userscript loads from `http://127.0.0.1:4173`. The job also runs the checks and the tests before it uploads.
+   A release also releases Hedge School and the hub: the push sends all of `dev` to `main`. Release `dev` as the
+   section "Deploy, check and roll back" below gives: `git push origin dev:main`. In GitHub, go to
+   **Actions → Deploy**. Open the run of this push. Its job `cyanotype` uploads the build to the production branch.
+   When the job shows a pass, open `https://cyanotype-ztp.pages.dev`. Make sure that it shows Cyanotype's home page.
 4. **Check:**
-   - `https://cyanotype.abstractclass.org` shows Cyanotype's home page, and its review of a game runs the engine.
+   - `https://cyanotype.abstractclass.org` shows Cyanotype's home page.
+   - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
+     the message "The engine is not on this site."
    - In the project's **Deployments**, the first production deployment is under **Production**, not under
      **Preview**.
    - `https://cyanotype-ztp.pages.dev` answers with `X-Robots-Tag: noindex` (the browser's developer tools,
@@ -452,10 +454,12 @@ From the merge of the job onward, each push deploys Cyanotype. A push to `dev` d
 - **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
   repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs two jobs at the same time
   (`.github/workflows/tests.yml`). Each one builds the site as production does, with the practice games' storage on:
-  - **`test`, on Linux,** about 10 minutes: `npm run check:all` at the root, then the browser tests in Chromium, every
-    spec file in tests/. Among them are the layout test, and a Decline in one tab while a practice game is open in
-    another (tests/practice-games.spec.ts). `check:all` holds the one list of the checks before the browser tests
-    (`scripts/check-all.mjs`). Run it before a push to get the same result.
+  - **`test`, on Linux:** `npm run check:all` at the root, then the browser tests in Chromium, every spec file in
+    tests/. Among them are the layout test, and a Decline in one tab while a practice game is open in another
+    (tests/practice-games.spec.ts). `check:all` holds the one list of the checks before the browser tests
+    (`scripts/check-all.mjs`). Run it before a push to get the same result. Cyanotype's engine tests take most of the
+    job's time: its review of the test game, about 15 minutes, runs twice (`cyanotype-review.spec.ts` and the layout
+    test).
   - **`test-windows`, on Windows:** the layout test in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.
