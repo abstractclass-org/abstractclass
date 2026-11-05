@@ -302,9 +302,8 @@ edit in the same commit), so their changes still apply.
 - **Paths in the documents:** a path that starts with `packages/` starts at the repository's root. A path to Hedge
   School's files starts at `apps/hedgeschool`, as before ([docs/README.md](../README.md)).
 - **A change to a package is a change to every site that uses it.** Its tests and each site's checks run for it.
-- **A new jam site's deploy job starts preview-only.** Its job in `.github/workflows/deploy.yml` has
-  `if: github.ref_name != 'main'`, so a release of another site does not launch it. Its launch is one commit, after
-  the owner's go, that removes the `if:` ([hosting.md](../hosting.md), "The launch switch").
+- **A new jam site's deploy job starts preview-only,** so that a release of another site does not launch it. Its
+  launch is one commit, when the owner says to launch the site ([hosting.md](../hosting.md), "The launch switch").
 - **The engine's protocol:** each site's code is written for one protocol, and the engine package refuses a module of
   another minor version (`protocol.ts`, `speaksProtocol`). Hedge School's is 0.6.1, the package's `PROTOCOL`. A site
   whose engine speaks another names its protocol in its `engine.lock.json`, and the manifest carries it: Cyanotype's
@@ -364,3 +363,5 @@ edit in the same commit), so their changes still apply.
 review's view in packages/review" (2026-10-25), "The review's styles in packages/review and packages/site"
 (2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), and "Cyanotype's
 review takes two moves that give one position as one move" (2026-11-05).
+[decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
+(2026-11-06).

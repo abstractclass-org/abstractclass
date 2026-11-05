@@ -10,8 +10,7 @@
 #
 # The launch switch (docs/hosting.md, "The launch switch"): a site that is not launched yet does not go live with
 # another site's release. Its job deploys previews only: an `if:` on the branch skips the job on main. The site's
-# launch is one commit, after the owner's go, that removes the `if:` and so turns on its live deploy. The jobs deploy
-# and hub are launched. The job cyanotype is not launched yet.
+# launch is one commit that removes the `if:` and so turns on its live deploy, when the owner says to launch it.
 name: Deploy
 
 on:
@@ -115,14 +114,14 @@ jobs:
 
   # Cyanotype, Blueprints' site (design 33; docs/hosting.md, "Cyanotype"): apps/cyanotype, built and checked as the
   # site's build is, with its engine's release files, to the Pages project cyanotype. A push to another branch deploys a
-  # preview, as for the site. Cyanotype is not launched yet, so a push to main does not run the job. Its pages are
-  # prerendered, and the canonical address is the live one in src/lib/site.ts. Its userscript holds the build's own
-  # address, as the site's does, so its build takes the branch variables too. Wrangler is the site job's version. It
-  # runs in apps/cyanotype, which has no functions/ folder: in the workflow's default folder, it would upload Hedge
-  # School's Function.
+  # preview, as for the site. A push to main deploys the live site only after Cyanotype's launch (the launch switch, at
+  # the top). Its pages are prerendered, and the canonical address is the live one in src/lib/site.ts. Its userscript
+  # holds the build's own address, as the site's does, so its build takes the branch variables too. Wrangler is the
+  # site job's version. It runs in apps/cyanotype, which has no functions/ folder: in the workflow's default folder, it
+  # would upload Hedge School's Function.
   cyanotype:
-    # The launch switch (the comment at the top): previews only, until Cyanotype's launch. After the owner's go, the
-    # launch commit removes this `if:` and this comment (docs/hosting.md, "The launch switch", gives the commit).
+    # The launch switch (the comment at the top): previews only, until Cyanotype's launch. When the owner says to
+    # launch Cyanotype, the launch commit removes this `if:` and this comment (docs/hosting.md, "The launch switch").
     if: github.ref_name != 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 15

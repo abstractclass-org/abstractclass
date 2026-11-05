@@ -400,9 +400,9 @@ Cyanotype is Blueprints' site ([design 33](design/33-cyanotype.md)), in `apps/cy
 and builds it on each push, as the site's job does: the packages' checks and tests, then the engine's release files
 (`npm run engine -- --deploy`), the site's type check, unit tests and build. Then it uploads `build/` with Wrangler:
 `main` to production, another branch to a preview at `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys
-nothing. Cyanotype is not launched yet, so its job deploys previews only: a push to `main` does not run it ("The
-launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable `CLOUDFLARE_ACCOUNT_ID`
-(section 3).
+nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only: a push to `main` does not run it
+("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable
+`CLOUDFLARE_ACCOUNT_ID` (section 3).
 
 - **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
   `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the
@@ -429,8 +429,7 @@ launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` an
   page).
 
 **The owner's steps, once** (abscls-8tl1.3). Do not set a repository variable: the workflow names the project. Each
-push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`. A push to `main` deploys nothing of Cyanotype until
-its launch commit (step 3).
+push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
 
 1. **Make the Pages project, with `main` as its production branch.** Done (2026-11-04), with Wrangler 4.144.0:
    `npx wrangler@4.144.0 pages project create cyanotype --production-branch=main --force`. The project's name is
@@ -444,13 +443,14 @@ its launch commit (step 3).
    ([Custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/#add-a-custom-domain)) asks
    for no deployment before the domain. The domain serves the production deployment. Until the first one exists, it
    answers with status 522.
-3. **Deploy the live site from a release, after the owner's go.** Do not deploy from a local build. A local build has
-   no branch variables, so its userscript loads from `http://127.0.0.1:4173`. The job also runs the checks and the
-   tests before it uploads. Commit Cyanotype's launch on `dev` ("The launch switch", below), and push `dev`. Then
-   release `dev` as the section "Deploy, check and roll back" below gives: `git push origin dev:main`. A release also
-   releases Hedge School and the hub: the push sends all of `dev` to `main`. In GitHub, go to **Actions → Deploy**,
-   and open the run of this push. Its job `cyanotype` uploads the build to the production branch. When the job shows
-   a pass, open `https://cyanotype-ztp.pages.dev`. Make sure that it shows Cyanotype's home page.
+3. **Deploy the live site from a release, when the owner says to launch it.** Do not deploy from a local build. A
+   local build has no branch variables, so its userscript loads from `http://127.0.0.1:4173`. The job also runs the
+   checks and the tests before it uploads. Just before this release, commit Cyanotype's launch on `dev` ("The launch
+   switch", below), and push `dev`. Then release `dev` as the section "Deploy, check and roll back" below gives:
+   `git push origin dev:main`. A release also releases Hedge School and the hub: the push sends all of `dev` to
+   `main`. In GitHub, go to **Actions → Deploy**, and open the run of this push. Its job `cyanotype` uploads the build
+   to the production branch. When the job shows a pass, open `https://cyanotype-ztp.pages.dev`. Make sure that it
+   shows Cyanotype's home page.
 4. **Check:**
    - `https://cyanotype.abstractclass.org` shows Cyanotype's home page.
    - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
@@ -466,33 +466,34 @@ its launch commit (step 3).
 
 ## The launch switch
 
-A push to `main` deploys each launched site live, and a push to another branch deploys a preview of each site. Hedge
-School (the job `deploy`) and the hub (`hub`) are launched. A site that is not launched yet must not go live with
-another site's release. So its job in `.github/workflows/deploy.yml` deploys previews only: on `main`, an `if:` on the
-branch skips the job. Cyanotype's job `cyanotype` has this switch now:
+A push to `main` deploys each launched site live, and a push to another branch deploys a preview of each site. A site
+that is not launched yet must not go live with another site's release. So its job in `.github/workflows/deploy.yml`
+deploys previews only: on `main`, an `if:` on the branch skips the job. The job `cyanotype` has this switch until
+Cyanotype's launch:
 
 ```yaml
   cyanotype:
     if: github.ref_name != 'main'
 ```
 
-A skipped job deploys nothing, and the site's live address stays as it was. The run of `main` still passes.
+A skipped job deploys nothing, and the site's live address stays as it was. The run of `main` still passes. The
+switch is enough because the production branch of each Pages project is `main` (section 3, and step 1 of sections 8
+and 9). Wrangler's `--branch` gets the same branch name that the `if:` tests, so a push to another branch makes only
+a preview.
 
-**A site's launch is one commit,** made on `dev` after the owner's go. It turns on the site's live deploy:
+**A new site's job starts with the switch.** The commit that adds the job to `deploy.yml` gives it the `if:` and the
+comment above it. So its previews deploy at once, and its live deploy waits for its launch.
 
-1. It removes the job's `if:` and the comment above it.
-2. It changes the workflow's comments that say that the site is not launched yet: the comment at the top and the
-   job's own comment.
-3. It changes this document: this section and the site's own section (for Cyanotype, section 9).
+**A site's launch is one commit,** made on `dev` when the owner says to launch the site. It removes the job's `if:` and
+the comment above it. The workflow's other comments and this document stay true after the launch, so the commit needs
+no other change to them. The commit reaches `main` with the next release (`git push origin dev:main`), and only when
+the owner says to release. Its run deploys the site live, with the other launched sites. Make the commit just before
+that release: when it is on `dev`, any release launches the site. After the deploy, mark the launch done in the
+site's own section, as its other steps are. Section 9, step 3, gives Cyanotype's release.
 
-The next release (`git push origin dev:main`) brings the commit to `main`. Its run deploys the site live, with the
-other launched sites. Section 9, step 3, gives Cyanotype's release.
-
-**A new site's job starts with the switch.** The commit that adds the job to `deploy.yml` gives it the `if:`. So its
-previews deploy at once, and its live deploy waits for its launch.
-
-The switch stops a mistake: a release of another site. It does not stop a push to `main` that breaks the rules. The
-owner's go before each push to `main` stays the gate on every release.
+The switch stops one mistake: a site that is not launched yet goes live with another site's release. It does not stop
+a push to `main` that the owner did not say to make. The owner's word to release stays the gate on every push to
+`main`.
 
 ## Deploy, check and roll back
 
