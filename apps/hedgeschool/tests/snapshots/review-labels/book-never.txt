@@ -1,46 +1,49 @@
-# Hedge School's labels on tests/fixtures/book-never-review.json, as the review page labels it (labels.snapshot.test.ts).
-# Update on purpose only: see the test's header. The commit says why a label moved.
-# edges 24, turns 13 (judged 13, of two edges 11: the engine's best turn in the same order 2, in the other order 2)
-# positions with a symmetric twin (by index): 0; played edges that are a twin: 1; turns of two edges that start at one: 0; Greats: 2 by edge, 1 by turn
-# "-": no label (the review lacks a result there).
+# Hedge School's quality labels on tests/fixtures/book-never-review.json (labels.snapshot.test.ts).
+# Update this file only as the test's header says. The commit message says why each label moved.
+# Each line: the label with no book (a deployed site), then with the test book (the dev and preview servers).
+# "(book)": the position before the move takes the book's values. "-": no label.
+# Turns of two edges in the other order than the engine's best turn: 2
+# Positions with a symmetric twin: 0. Turns of two edges that start at one: 0. Played edges that are a twin: 1
+# Greats: 2 by edge, 1 by turn
+# Positions that take the book's values: 0 7
 
-[by edge: the label of each edge]
-  1  turn  1  Blue  D10-G12   mistake
-  2  turn  2  Red   O9-Q10    best
-  3  turn  2  Red   L10-O9    mistake
-  4  turn  3  Blue  A10-D9    mistake
-  5  turn  3  Blue  D9-E11    mistake
-  6  turn  4  Red   H11-L10   excellent
-  7  turn  4  Red   G14-H11   mistake
-  8  turn  5  Blue  G12-J9    excellent
-  9  turn  5  Blue  J9-M10    inaccuracy
- 10  turn  6  Red   G14-J11   best
- 11  turn  6  Red   H12-L10   great
- 12  turn  7  Blue  M10-O9    best
- 13  turn  7  Blue  O9-Q10    best
- 14  turn  8  Red   E11-G14   best
- 15  turn  8  Red   L10-N9    best
- 16  turn  9  Blue  M10-P9    excellent
- 17  turn  9  Blue  D9-E12    mistake
- 18  turn 10  Red   L10-O12   best
- 19  turn 10  Red   O12-Q9    great
- 20  turn 11  Blue  F12-J9    inaccuracy
- 21  turn 11  Blue  D9-F12    excellent
- 22  turn 12  Red   D11-G14   best
- 23  turn 12  Red   B10-E11   best
- 24  turn 13  Blue  A9-D10    best
+[by edge]
+  1  turn  1  Blue  D10-G12   mistake     mistake     (book)
+  2  turn  2  Red   O9-Q10    best        best
+  3  turn  2  Red   L10-O9    mistake     mistake
+  4  turn  3  Blue  A10-D9    mistake     mistake
+  5  turn  3  Blue  D9-E11    mistake     mistake
+  6  turn  4  Red   H11-L10   excellent   excellent
+  7  turn  4  Red   G14-H11   mistake     inaccuracy
+  8  turn  5  Blue  G12-J9    excellent   best        (book)
+  9  turn  5  Blue  J9-M10    inaccuracy  inaccuracy
+ 10  turn  6  Red   G14-J11   best        best
+ 11  turn  6  Red   H12-L10   great       great
+ 12  turn  7  Blue  M10-O9    best        best
+ 13  turn  7  Blue  O9-Q10    best        best
+ 14  turn  8  Red   E11-G14   best        best
+ 15  turn  8  Red   L10-N9    best        best
+ 16  turn  9  Blue  M10-P9    excellent   excellent
+ 17  turn  9  Blue  D9-E12    mistake     mistake
+ 18  turn 10  Red   L10-O12   best        best
+ 19  turn 10  Red   O12-Q9    great       great
+ 20  turn 11  Blue  F12-J9    inaccuracy  inaccuracy
+ 21  turn 11  Blue  D9-F12    excellent   excellent
+ 22  turn 12  Red   D11-G14   best        best
+ 23  turn 12  Red   B10-E11   best        best
+ 24  turn 13  Blue  A9-D10    best        best
 
-[by turn: the label of each turn]
-turn  1  Blue  D10-G12            mistake
-turn  2  Red   O9-Q10 L10-O9      mistake
-turn  3  Blue  A10-D9 D9-E11      blunder
-turn  4  Red   H11-L10 G14-H11    mistake
-turn  5  Blue  G12-J9 J9-M10      inaccuracy
-turn  6  Red   G14-J11 H12-L10    great
-turn  7  Blue  M10-O9 O9-Q10      best
-turn  8  Red   E11-G14 L10-N9     best
-turn  9  Blue  M10-P9 D9-E12      mistake
-turn 10  Red   L10-O12 O12-Q9     best
-turn 11  Blue  F12-J9 D9-F12      good
-turn 12  Red   D11-G14 B10-E11    best
-turn 13  Blue  A9-D10             best
+[by turn]
+turn  1  Blue  D10-G12            mistake     mistake     (book)
+turn  2  Red   O9-Q10 L10-O9      mistake     mistake
+turn  3  Blue  A10-D9 D9-E11      blunder     blunder
+turn  4  Red   H11-L10 G14-H11    mistake     inaccuracy
+turn  5  Blue  G12-J9 J9-M10      inaccuracy  good        (book)
+turn  6  Red   G14-J11 H12-L10    great       great
+turn  7  Blue  M10-O9 O9-Q10      best        best
+turn  8  Red   E11-G14 L10-N9     best        best
+turn  9  Blue  M10-P9 D9-E12      mistake     mistake
+turn 10  Red   L10-O12 O12-Q9     best        best
+turn 11  Blue  F12-J9 D9-F12      good        good
+turn 12  Red   D11-G14 B10-E11    best        best
+turn 13  Blue  A9-D10             best        best

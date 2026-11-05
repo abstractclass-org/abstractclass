@@ -12,9 +12,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   tests, with the workflow's settings (the list is in `scripts/check-all.mjs`), and its last line gives each step's
   result. It takes minutes and builds the site: start it through `scripts/machine run` in the planning folder. Its
   engine step refuses a local engine file, as the deploy does.
-  Its step `site-test` includes the snapshot of Hedge School's labels on its stored reviews
-  (`src/lib/review/labels.snapshot.test.ts`). A change of the shared analysis or review that moves a label fails it.
-  To update the snapshot on purpose, see the test's header, and give the reason in the commit message.
+  Its step `site-test` includes the label snapshot of Hedge School's stored reviews
+  (`src/lib/review/labels.snapshot.test.ts`). A change of the shared analysis or review that moves a quality label
+  fails it. To update the label snapshot on purpose, see the test's header, and give the reason in the commit message.
 - **The Git settings of this repository's checkouts.** The worktrees share the main checkout's settings, so these run
   once, in the main checkout, and a worker does not run them:
   - `git config core.hooksPath .githooks` turns on the two hooks. The commit-msg hook refuses a subject or a body

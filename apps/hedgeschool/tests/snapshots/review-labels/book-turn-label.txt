@@ -1,20 +1,23 @@
-# Hedge School's labels on tests/fixtures/book-turn-label-review.json, as the review page labels it (labels.snapshot.test.ts).
-# Update on purpose only: see the test's header. The commit says why a label moved.
-# edges 7, turns 4 (judged 4, of two edges 3: the engine's best turn in the same order 0, in the other order 1)
-# positions with a symmetric twin (by index): 0; played edges that are a twin: 0; turns of two edges that start at one: 0; Greats: 1 by edge, 1 by turn
-# "-": no label (the review lacks a result there).
+# Hedge School's quality labels on tests/fixtures/book-turn-label-review.json (labels.snapshot.test.ts).
+# Update this file only as the test's header says. The commit message says why each label moved.
+# Each line: the label with no book (a deployed site), then with the test book (the dev and preview servers).
+# "(book)": the position before the move takes the book's values. "-": no label.
+# Turns of two edges in the other order than the engine's best turn: 1
+# Positions with a symmetric twin: 0. Turns of two edges that start at one: 0. Played edges that are a twin: 0
+# Greats: 1 by edge, 1 by turn
+# Positions that take the book's values: 0 1
 
-[by edge: the label of each edge]
-  1  turn  1  Blue  A10-D9    best
-  2  turn  2  Red   N8-Q10    good
-  3  turn  2  Red   N9-Q10    mistake
-  4  turn  3  Blue  D9-F12    best
-  5  turn  3  Blue  D10-G12   great
-  6  turn  4  Red   K11-N9    excellent
-  7  turn  4  Red   G13-K11   excellent
+[by edge]
+  1  turn  1  Blue  A10-D9    best        best        (book)
+  2  turn  2  Red   N8-Q10    good        inaccuracy  (book)
+  3  turn  2  Red   N9-Q10    mistake     mistake
+  4  turn  3  Blue  D9-F12    best        best
+  5  turn  3  Blue  D10-G12   great       great
+  6  turn  4  Red   K11-N9    excellent   excellent
+  7  turn  4  Red   G13-K11   excellent   excellent
 
-[by turn: the label of each turn]
-turn  1  Blue  A10-D9             best
-turn  2  Red   N8-Q10 N9-Q10      blunder
-turn  3  Blue  D9-F12 D10-G12     great
-turn  4  Red   K11-N9 G13-K11     excellent
+[by turn]
+turn  1  Blue  A10-D9             best        best        (book)
+turn  2  Red   N8-Q10 N9-Q10      blunder     blunder     (book)
+turn  3  Blue  D9-F12 D10-G12     great       great
+turn  4  Red   K11-N9 G13-K11     excellent   excellent

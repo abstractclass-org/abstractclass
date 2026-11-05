@@ -8346,22 +8346,43 @@ engine repository's record of the release is its `docs/decisions/organization.md
   24 and 26). The release's network shows at most 4 (blueprint 2, after move 8), so no position needs a "+N" at 390
   pixels. The test now runs at 320 pixels, WCAG 2.1's reflow width, where a panel holds 3 chips.
 
-### A snapshot test of Hedge School's labels on its stored reviews (2026-11-05)
+### A label snapshot of Hedge School's stored reviews (2026-11-05)
 
-A unit test labels six stored reviews with no engine and compares every label with a committed snapshot (abscls-6nxu).
-The first commit of abscls-8tl1.19 had changed the turn rule `sameTurn`, so that a two-edge turn became Best where dev
-labels it an Inaccuracy. No test failed. Only the reviewer's one-off script found it.
+A unit test labels six stored reviews with no engine search, and compares each quality label with a committed label
+snapshot (abscls-6nxu). The first commit of abscls-8tl1.19 had changed the turn rule `sameTurn`, so that a turn of two
+edges became Best where dev labels it an Inaccuracy. No test failed. Only a one-off script that compared the labels of
+both trees found it.
 
-- **What the test runs:** `apps/hedgeschool/src/lib/review/labels.snapshot.test.ts`, in the step `site-test` of
-  `npm run check:all`. It reads each review file, puts its results in a store in memory, and runs the code that the
-  review page runs: `GameAnalysis` (`fromStore`, then `data`) and `review` at the label budget. The rules of the
-  engine give only a position's mover, scores and end, so the test takes them from the notation. The page's
-  `enclosure` game gives the rest. The opening book is left out, because the book of the site's edition is not in the
-  repository. So a book move has its engine label here.
-- **The snapshot:** `apps/hedgeschool/tests/snapshots/review-labels/<review>.txt`. It has one line for each edge with
-  its label by edge, one line for each turn with its label by turn, and a header that counts what the review reaches.
-  A change that moves a label shows the move, the turn and the label in the failure and in the diff. A missing
-  snapshot fails the test. The test never writes a snapshot in CI.
+- **What the test runs:** `src/lib/review/labels.snapshot.test.ts`, in the step `site-test` of `npm run check:all`.
+  It reads each review file, puts its results in a store in memory, and runs the code that the review page runs:
+  `GameAnalysis` with the page's `enclosure` game and the engine's rules (`describe_game` from the CPU module in
+  Node, with no network), then `fromStore`, `data` and `review` at the label budget. It reads the engine from
+  `static/engine`, as the book's and the lessons' tests do. The step `engine` of `check:all` runs first. Without the
+  engine, the test skips.
+- **Two labels for each move:** no deployed site serves a book, so its review searches every position. The dev and
+  preview servers serve the test book (`tests/fixtures/test-book/prototype`). There the early edition's review takes
+  the book's values at the positions that the book holds. The test labels each review both ways. It gives the book's
+  values as `reviewBook.ts` (`giveBook`) does, with the book read from disk. The labels with no book are the same as
+  the labels of the test's first commit (d05b155), which took the rules from the notation. With the book, 13 labels
+  by edge and 10 by turn differ from them:
+
+  | Review | By edge | By turn |
+  |---|---|---|
+  | book-trap | 7 | 5 |
+  | book-never | 2 | 2 |
+  | book-left | 1 | 1 |
+  | hedgefund | 1 | 1 |
+  | twin-turn | 1 | 1 |
+  | book-turn-label | 1 | 0 |
+
+  One label of book-never that differs is after the book. The book's values change the earlier positions that a
+  later move's label reads.
+- **The label snapshot:** `tests/snapshots/review-labels/<review>.txt`. It has one line for each edge with its labels
+  by edge, and one line for each turn with its labels by turn. Its header names what the review reaches: the turns of
+  two edges in the other order than the engine's best turn, the symmetric twins, the Greats and the positions in the
+  book. The test compares the text with Node's `assert.fileSnapshot`. A change that moves a label shows the line in
+  the failure and in the diff. A missing file fails the test, and only the flag `--test-update-snapshots` writes one.
+  The last test fails when no review reaches one of these rules.
 - **What the reviews reach:**
 
   | Review | Edges | Reaches |
@@ -8371,16 +8392,20 @@ labels it an Inaccuracy. No test failed. Only the reviewer's one-off script foun
   | book-turn-label | 7 | a turn in the other order, a Blunder turn with a Good edge, 1 Great by edge and by turn |
   | twin-turn | 12 | a symmetric twin at the start of a turn of two edges |
 
+  The positions in the test book: 0 to 5 in hedgefund, 0 to 3 in book-left, 0 and 7 in book-never (it comes back to
+  the book by another move order), 0 to 7 in book-trap, 0 and 1 in book-turn-label, 0 in twin-turn.
+
 - **A new review, twin-turn-review.json:** the other five reviews have a symmetric twin at position 0 only. A turn
   of two edges that starts at a symmetric position shows a wrong turn rule, and none of them has one. The new game
   opens D10-G10, so position 1 is symmetric. Red then plays the first choice's mirror image (O11-Q10) and the next edge
   of the first choice's line (N9-Q10). It comes from `scripts/test-fixture.mjs 2 --opening D10-G10,O11-Q10,N9-Q10
-  --edges 12 --out twin-turn-review.json` with the release engine-d6786eba, network b10c128, 512 visits.
+  --edges 12 --out twin-turn-review.json` with the release engine-d6786eba, network b10c128, 512 visits. The run used
+  the CPU only, in Node: the engine's CPU module with the network analyzed the positions, and the practice bot's
+  module played the edges after the opening. The test book holds position 0 of this game only, so the twin at
+  position 1 has the engine's values in both labels.
 - **The check:** with the first commit's `sameTurn` of abscls-8tl1.19 (23a055f) in `packages/analysis/src/model.ts`
-  and nothing else changed, the test fails on `twin-turn-review.json`: turn 2 (O11-Q10 N9-Q10) is a Best turn in place
-  of a Blunder, and its second edge N9-Q10 is Best in place of a Blunder. The other five reviews pass with it. The test
-  passes with the current `sameTurn`.
-- **To update the snapshot on purpose:** run
-  `UPDATE_LABEL_SNAPSHOT=1 node --test src/lib/review/labels.snapshot.test.ts` in `apps/hedgeschool`. Read the diff
-  of the snapshot files, and commit it with the change. The commit message says why each label moved.
+  and nothing else changed, the test fails on `twin-turn-review.json`. Turn 2 (O11-Q10 N9-Q10) is a Best turn in place
+  of a Blunder, and its second edge N9-Q10 is Best in place of a Blunder, with no book and with the book. The other
+  five reviews pass with it. The test passes with the current `sameTurn`.
+- **To update the label snapshot on purpose:** see the test's header. The commit message says why each label moved.
 - **Not covered:** Cyanotype's labels. Its stored review comes with abscls-8tl1.27.
