@@ -9,8 +9,8 @@ import type { PracticeLibrary } from "@abstractclass/engine/library.ts";
 // The practice bot at 1 and 2 visits on a position of more views, where the bot before the engine's fix (abscls-csmy,
 // build engine-217be61f) answered "genmove returned null location or illegal move": its passes of one visit found no
 // candidate. Since protocol 0.7.1 (engine-70dfdc0f) the search gives its first pass's policy move, so the page offers 1
-// to 8,192 visits. The bot runs on the CPU in Node, as the page runs it, from the site's static/engine: CI has no
-// engine files, so this is skipped there.
+// to 8,192 visits. The bot runs on the CPU in Node, as the page runs it, from the site's static/engine: without
+// its files, this is skipped.
 //
 // The position: a game against the bot (engine-70dfdc0f, 32 visits), in which Blue placed each move the legal
 // placement farthest to the left, until Blue's legal placements needed two views. Blue moves next.

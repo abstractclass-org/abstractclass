@@ -22,5 +22,9 @@ const HALFLIFE = 19;
 /** The commands that give the bot a game's settings, after `blueprints-start`. */
 export const botCommands = (bot: BotSettings) => settingsCommands(bot, HALFLIFE);
 
-/** The bot's name on the page: "Stamp Duty (b6c96-s22323968-d845223), 64 visits, Low variety". */
-export const botName = (bot: BotSettings) => botLabel(`${ENGINE_NAME} (${networkName(bot.network)})`, bot);
+/** The bot's name on the page: its network's release name, "Stamp Duty 0.1, 64 visits, Low variety", as Hedge School
+ *  names HedgeFund's. A network with no release name: "Stamp Duty (b6c96-s22323968-d845223), 64 visits, Low variety". */
+export const botName = (bot: BotSettings) => {
+  const name = networkName(bot.network);
+  return botLabel(name.startsWith(ENGINE_NAME) ? name : `${ENGINE_NAME} (${name})`, bot);
+};

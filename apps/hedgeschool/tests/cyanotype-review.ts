@@ -1,9 +1,8 @@
 // Cyanotype's review (its design 33) for the browser tests, on its preview (CYANOTYPE_BASE_URL): the review's test game
 // (apps/cyanotype/src/lib/review/fixtures/stamp-duty.txt, Stamp Duty against itself) up to the end of turn TURNS,
 // reviewed in the browser from the engine's real replies on the CPU, at Lite (512 visits a move), the stored review's
-// depth: its first notes are a Mistake at turns 19 and 20. At 256 visits the same turns had no note. The review takes
-// about ten minutes. The site's build and the Tests workflow have no engine files (design 33, "The engine's files"): a
-// test skips, with a message, when the preview has none.
+// depth: with the release engine-3ac5c2fc, its first note is a Mistake at turn 15. The review takes about ten minutes. The Tests workflow builds Cyanotype with the engine's files (design 33, "The engine's
+// files"). A test skips, with a message, when the preview has none.
 import { expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";

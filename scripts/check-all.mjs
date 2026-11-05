@@ -1,8 +1,8 @@
 // The checks that the Tests workflow runs before its browser tests (.github/workflows/tests.yml), as one command that
 // the workflow and people both run: `npm run check:all` at the root, after `npm ci`. One list of steps, here.
-// Each step runs with the environment that the workflow gave it. The engine's step takes --deploy: it refuses a
+// Each step runs with the environment that the workflow gave it. Each site's engine step takes --deploy: it refuses a
 // local engine file, as the deploy does. The build is the production build of the browser tests, with the practice
-// games' storage on. A failed step does not stop the steps after it, except the engine's: the others need its files.
+// games' storage on. A failed step does not stop the steps after it, except an engine step: the others need its files.
 // The output ends with one line: `check:all: PASS` or `check:all: FAIL`, then each step with PASS, FAIL or SKIP.
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -28,7 +28,9 @@ const steps = [
     name: "build", cwd: site, command: "npm run build",
     env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on" },
   },
-  // Cyanotype, Blueprints' site (design 33): its type check, its unit tests and its build.
+  // Cyanotype, Blueprints' site (design 33): its engine's release files, its type check, its unit tests and its build.
+  // Cyanotype's steps come last, so that a failure of its engine step skips only Cyanotype's steps.
+  { name: "cyanotype-engine", cwd: cyanotype, command: "npm run engine -- --deploy", stopsOnFailure: true },
   { name: "cyanotype-check", cwd: cyanotype, command: "npm run check" },
   { name: "cyanotype-test", cwd: cyanotype, command: "npm test" },
   { name: "cyanotype-build", cwd: cyanotype, command: "npm run build" },

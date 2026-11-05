@@ -4,9 +4,9 @@
 // when no blueprint has a legal placement. Each game goes to its end with no page error and no stop. The page checks
 // each of the bot's moves against the rules' legal moves, and stops the game when one is not legal. A reload in the
 // middle keeps the game: the same moves, and the game goes on. The bot's visits are 32, so that a game takes minutes:
-// the bot at 1 and 2 visits has its own test (apps/cyanotype/src/lib/practice/bot.engine.test.ts). The site's
-// build and the Tests workflow have no engine files (design 33, "The engine's files"), so the tests skip, with a
-// message, when the preview has no practice bot: run `npm run engine` in apps/cyanotype before its build. A last
+// the bot at 1 and 2 visits has its own test (apps/cyanotype/src/lib/practice/bot.engine.test.ts). The tests
+// skip, with a message, when the preview has no practice bot: run `npm run engine` in apps/cyanotype before its build.
+// The Tests workflow does (design 33, "The engine's files"). A last
 // test keeps a game whose network the site does not ship: the page drops it and shows the settings card. In a game,
 // the confirm button of Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility
 // itself (`btn-danger`), so that the Tests workflow runs it too. Run:

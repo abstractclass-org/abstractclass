@@ -7,8 +7,8 @@
 //   npm run engine && node scripts/board-fixtures.mjs     writes src/lib/board/fixtures.json
 //
 // The build is the one that the site's engine.lock.json pins, which `npm run engine` puts in static/engine with its
-// SHA-256 checked (@abstractclass/engine's fetch-engine.mjs). Its files are not in this repository, and CI has none:
-// the build and the tests read the stored data file, and the test that runs the engine again and compares
+// SHA-256 checked (@abstractclass/engine's fetch-engine.mjs). Its files are not in this repository: the build and the
+// tests read the stored data file, and the test that runs the engine again and compares
 // (src/lib/board/fixtures.engine.test.ts) is skipped without them.
 //
 // The module runs on the CPU in Node, through the engine's own library, as both sites' checks run their modules

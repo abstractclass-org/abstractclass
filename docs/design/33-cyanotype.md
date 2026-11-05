@@ -7,10 +7,10 @@ record, with the import of a strategyjam.org game as a record. The owner's step 
 The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
 strategyjam.org and the import page are built: the page opens the game that a tool sends in the review or the
 Analysis board ("How a game comes in from strategyjam.org"). Their test on strategyjam.org waits for the owner
-(abscls-8tl1.12). The site fetches the engine's
-0.7.1 build with its practice bot (`engine-70dfdc0f`, on this machine only) as Hedge School fetches its own. Practice
-against Stamp Duty (`/practice`) is built and plays on this machine ("Practice against Stamp Duty"). The review and the
-Analysis board are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet.
+(abscls-8tl1.12). The site fetches Blueprints'
+first release, `engine-3ac5c2fc` (Stamp Duty 0.1, protocol 0.7.1, with its practice bot), as Hedge School fetches its
+own ("The engine's files"). Practice against Stamp Duty (`/practice`) is built ("Practice against Stamp Duty"). The
+review and the Analysis board are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet.
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04.
 
@@ -229,12 +229,13 @@ start, which Stamp Duty's early build (`engine-0d2a5416`) played. The script
 engine gives in `src/lib/board/fixtures.json`: each position, its mover, every legal move (describe), and what each
 move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates and
 their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move. The 0.7
-builds (`engine-b64eea10`, `engine-217be61f`, then `engine-70dfdc0f` with a new network) give the five games the same
-data as the early build: only the file's header, which names the build, changed. The data is the rules' alone, which
+builds (`engine-b64eea10`, `engine-217be61f`, `engine-70dfdc0f` with a new network, then the release
+`engine-3ac5c2fc`) give the five games the same data as the early build: only the file's header, which names the
+build, changed. The data is the rules' alone, which
 no network changes.
 
-- **The build and the tests read the stored file:** CI has no engine files. `fixtures.engine.test.ts` runs the engine
-  again and compares. It is skipped when the site has no engine (`npm run engine` was not run).
+- **The build and the tests read the stored file.** `fixtures.engine.test.ts` runs the engine again and compares, in
+  the Tests workflow too. It is skipped when the site has no engine (`npm run engine` was not run).
 - **The engine's own library starts the module,** through `@abstractclass/engine/node-engine.mjs`, which both sites'
   checks take. It loads the build's `gpu_engine.mjs` (the manifest's asset of kind `gpu-library`) and calls only its
   `createCpuEngine`, which drives the CPU module with the few WASI imports that it needs: the clocks, random bytes and
@@ -253,12 +254,15 @@ Cyanotype takes the engine's files as Hedge School does (design 03): `apps/cyano
 file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs`, which both sites run) puts them in
 `static/engine/` with their manifest. The page loads them from there.
 
-1. **The build:** `engine-70dfdc0f`, the engine repository's 0.7.1 build with the search of the root's views (request
-   24), its practice bot (`blueprints-bot.wasm`, interface 0.1.1, with `practice_bot.mjs`, request 25) and bpj4's
-   network `b6c96-s22323968-d845223`. Every file comes from the one build. It is not released: the lock takes its
-   files from the engine repository's checkout beside this one (a source of kind `engines`). So
-   `npm run engine -- --deploy` refuses it, as it refuses each file that is not from a release. A live page needs a
-   release with a trained network (the owner's yes) and Cyanotype's Pages project (abscls-8tl1.3).
+1. **The release:** `engine-3ac5c2fc`, Blueprints' first release (Stamp Duty 0.1), in the public repository
+   `abstractclass-org/blueprints-engine`, with its manifest. Its files: the module (`blueprints-engine.wasm`, build and
+   search `3ac5c2fc`, protocol 0.7.1, with the search of the root's views of request 24), the practice bot
+   (`blueprints-bot.wasm`, interface 0.1.2, with `practice_bot.mjs`, request 25), `gpu_engine.mjs`, `NOTICES.txt`,
+   `LICENSE.txt` and bpj5's network `b6c96-s40806528-d2304635`, whose name in the release is Stamp Duty 0.1. Each
+   entry of the lock takes its file from the release (a source of kind `release`), with the SHA-256 and the size of
+   the release's manifest. The release's `settings.cfg` is the native engine's: the site does not read it, so the lock
+   does not take it. The engine repository's record of the release: its `docs/decisions/organization.md`, entry of
+   2026-11-05.
 2. **Protocol 0.7.** Blueprints' build speaks 0.7.1, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
    passes find no candidate gives its first pass's policy move. The lock's `protocol` names the protocol that
@@ -266,10 +270,12 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    refuses a module of another minor version for each site: 0.6.x for Hedge School, 0.7.x from 0.7.1 for
    Cyanotype. The types take request 24's fields: the query's `rootViews`, a candidate's `checkVisits`,
    and `rootInfo`'s `views` and `searches`. The network's raw values are optional: a reply of more views has none.
-3. **No file only on this machine for the build or the tests.** The build and the Tests workflow run without
-   `static/engine`. The checks that need the engine skip without it, with a message: the fixtures' test, the bot's
-   test at few visits, and the browser tests that play against the bot. Without the files, `/practice` says that the
-   engine is not on the site.
+3. **Every file from the release, for the deploy and the tests.** `npm run engine -- --deploy` refuses a file that is
+   not from a release. The job `cyanotype` of the Deploy workflow takes the files before its checks and its build, so
+   each deployment has its engine. The Tests workflow takes them too (the step `cyanotype-engine` of
+   `npm run check:all`, and a step of the Windows job), so the checks that need the engine run there: the fixtures'
+   test, the bot's test at few visits, the review's tests and the browser tests that play against the bot. Without
+   `static/engine`, they skip with a message, and `/practice` says that the engine is not on the site.
 4. **The CPU only.** The lock has no GPU module, so the fetch script stores no ONNX Runtime for Cyanotype. The
    rules' worker starts the engine with `createCpuEngine` alone. The bot is the practice bot with one search thread,
    whose network runs in its own module, and its worker has no ONNX Runtime and no WebGPU code: Blueprints has no
@@ -700,8 +706,8 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
 - `apps/hedgeschool/tests/cyanotype-practice.spec.ts`: whole games against the bot, with each side to start, and a
   reload in the middle. `layout.spec.ts`: the layout of `/practice` and of a game in progress. Both run with
   `CYANOTYPE_BASE_URL`, and the games skip when the site has no bot.
-- `.github/workflows/deploy.yml`, the job `cyanotype`: the deploy, skipped while `CYANOTYPE_PAGES_PROJECT` is
-  empty ([hosting.md](../hosting.md), "Cyanotype").
+- `.github/workflows/deploy.yml`, the job `cyanotype`: the deploy, with the engine's release files, to the Pages
+  project `cyanotype` ([hosting.md](../hosting.md), "Cyanotype").
 - `apps/cyanotype/src/lib/board/`: the board, built on the lab's positions, which the engine's early build gave.
   - `Board.svelte`: the cells, the two hands, the last move (one outline round its footprint, its captured cells, an
     edit's arrow in the hand), the candidates, the line (numbered from the candidate), and the hex under the pointer
@@ -752,8 +758,9 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   its notes (`notes.spec.ts`) use too.
   `cyanotype-import.spec.ts`: the import page's choice, the Analysis board's question over a kept analysis, a
   record that the engine refuses and the notice of an out-of-date tool, and `layout.spec.ts` the page's layout. They
-  run on this machine, where the engine's files are: without them they skip.
-- `scripts/check-all.mjs`: its type check, its unit tests and its build, in the Tests workflow's checks.
+  run where the site has the engine's files, the Tests workflow too: without them they skip.
+- `scripts/check-all.mjs`: its engine's release files, its type check, its unit tests and its build, in the Tests
+  workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
   engine's browser build.
 
@@ -766,5 +773,6 @@ engine's legal moves" (2026-10-27), "The import's frame in packages/import, and 
 "Drawing Board's practice: the bot and the page" (2026-10-30), "Drawing Board's practice on protocol 0.7.1"
 (2026-10-30), "Drawing Board's review and Analysis board" (2026-11-01), "Drawing Board's import page opens the
 review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02), "Blueprints' site is
-Cyanotype" (2026-11-04), and "Cyanotype's review takes two moves that give one position as one move" (2026-11-05). The
-earlier entries name the site by its first name, Drawing Board.
+Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05), and
+"Cyanotype's engine from Blueprints' first release" (2026-11-05). The earlier entries name the site by its first name,
+Drawing Board.

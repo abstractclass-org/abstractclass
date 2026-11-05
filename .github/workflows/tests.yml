@@ -2,8 +2,8 @@
 # and the browser tests in Chromium on Linux (the spec files in tests/, such as the layout sweep and the practice games'
 # consent across tabs). Beside them, the layout sweep in Chromium on Windows. On a production build with the practice
 # games' storage on, so that the consent banner shows on every page, and the practice games' test runs. Both jobs also
-# serve Cyanotype's build (CYANOTYPE_BASE_URL), for the tests that open a Cyanotype page. A run with no
-# CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only a commit whose run passed. The
+# serve Cyanotype's build (CYANOTYPE_BASE_URL), with its engine's release files, for the tests that open a Cyanotype
+# page. A run with no CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only a commit whose run passed. The
 # deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in Edge stays an option
 # before a release. A newer push cancels a run still going for an older one. The repository is public, so the standard
 # runners cost no minutes.
@@ -48,6 +48,13 @@ jobs:
         with:
           path: apps/hedgeschool/node_modules/.cache/engine
           key: engine-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
+      # Cyanotype's engine files (apps/cyanotype/engine.lock.json), in Cyanotype's own download cache, for its step
+      # cyanotype-engine in check:all.
+      - name: Cache Cyanotype's engine files
+        uses: actions/cache@v6
+        with:
+          path: apps/cyanotype/node_modules/.cache/engine
+          key: cyanotype-engine-${{ hashFiles('apps/cyanotype/engine.lock.json') }}
 
       # The checks before the browser tests, in the one command that people run too. Its list of steps, each with its
       # flags and environment, is in scripts/check-all.mjs.
@@ -62,7 +69,7 @@ jobs:
       - run: npx playwright install --with-deps --only-shell chromium
       # Cyanotype's preview (port 4174) beside the site's, for the tests that open a Cyanotype page, which run only when
       # CYANOTYPE_BASE_URL gives the preview's address. Its build is the one that check:all made in this run (the step
-      # cyanotype-build), so a stale build cannot pass.
+      # cyanotype-build), with the engine's files of the step cyanotype-engine, so a stale build cannot pass.
       - name: The browser tests, in Chromium
         env:
           CYANOTYPE_BASE_URL: http://127.0.0.1:4174
@@ -108,7 +115,15 @@ jobs:
           VITE_EDITION: early
           VITE_STORE_PRACTICE_GAMES: "on"
 
-      # Cyanotype's build, for the layout sweep below: check:all, which makes it on Linux, does not run on this job.
+      # Cyanotype's build with its engine's release files, for the layout sweep below: check:all, which makes it on
+      # Linux, does not run on this job.
+      - name: Cache Cyanotype's engine files
+        uses: actions/cache@v6
+        with:
+          path: apps/cyanotype/node_modules/.cache/engine
+          key: cyanotype-engine-windows-${{ hashFiles('apps/cyanotype/engine.lock.json') }}
+      - run: npm run engine -- --deploy
+        working-directory: apps/cyanotype
       - run: npm run build
         working-directory: apps/cyanotype
 

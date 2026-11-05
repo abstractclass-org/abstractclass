@@ -13,7 +13,7 @@ import { indexOfHex, placeOf } from "./blueprintsMap.ts";
 // as the review reads a reply (toAnalysis with Blueprints' game): none is dropped, and each keeps its anchor. An edit
 // moves a cell within the hand, so it lies in no view. The position is the practice bot's test position (practice/bot.engine.test.ts):
 // Blue's placements spread to the left until its legal placements needed two views. The engine runs on the CPU in Node
-// from the site's static/engine: CI has no engine files, so this is skipped there.
+// from the site's static/engine: without its files, this is skipped.
 const SPREAD = ("1@-13,-1 1:0,0>2:-2,1 2@1,-3 1@-16,-1 1@-19,-1 1:0,1>2:2,-1 2@-1,-4 1@-22,-1 1@-25,-1 2@-5,-4 2@-7,0 " +
   "1@-28,-1 1@-31,-1 2@-3,0 2@-8,-5 1@-34,-1 1@-37,-1 2@-12,-5 2@-12,2 1@-40,-1 1@-43,-1 2@-15,1 2@-19,2 1@-46,-1 " +
   "1@-49,-1 1@-13,-2 2@-23,2 1@-52,-1 1@-55,-1 2@-27,2 2@-30,1 1@-58,-1 1@-61,-1 1:-2,2>2:0,2 2@-35,2 1@-64,-1").split(" ");

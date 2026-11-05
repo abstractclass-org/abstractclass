@@ -21,7 +21,7 @@ entries before it).
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
-| Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project that `CYANOTYPE_PAGES_PROJECT` names | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with no Function and no analytics (section 9). |
+| Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with no Function and no analytics (section 9). |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
 runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it keeps the practice games (section 7).
@@ -388,55 +388,64 @@ variable `CLOUDFLARE_ACCOUNT_ID` (section 3). The token's permission covers ever
 
 ## 9. Cyanotype (cyanotype.abstractclass.org)
 
-Cyanotype is Blueprints' site ([design 33](design/33-cyanotype.md)), in `apps/cyanotype`. Its own Pages project
-serves it, apart from Hedge School's and the hub's. The job `cyanotype` of the workflow **Deploy** checks and builds
-it on each push, as the site's job does: the packages' checks and tests, then the site's type check, unit tests and
-build. Then it uploads `build/` with Wrangler: `main` to production, another branch to a preview at
-`<branch>.cyanotype-ztp.pages.dev`. A failed step deploys nothing. The job is skipped while the repository variable
-`CYANOTYPE_PAGES_PROJECT` is empty, so the workflow passes without it.
+Cyanotype is Blueprints' site ([design 33](design/33-cyanotype.md)), in `apps/cyanotype`. Its own Pages project,
+`cyanotype`, serves it, apart from Hedge School's and the hub's. The job `cyanotype` of the workflow **Deploy** checks
+and builds it on each push, as the site's job does: the packages' checks and tests, then the engine's release files
+(`npm run engine -- --deploy`), the site's type check, unit tests and build. Then it uploads `build/` with Wrangler:
+`main` to production, another branch to a preview at `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys
+nothing. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable `CLOUDFLARE_ACCOUNT_ID` (section 3).
 
-- **The preview's address** goes into the build: a preview's userscript updates from it and opens its games there.
-  The project's pages.dev address is not `cyanotype.pages.dev`, which belongs to another site. So, before the build,
-  the job reads the address from the project in Cloudflare's API (its `subdomain`). When the API gives no address,
-  the job fails with a message and deploys nothing.
-- **Its pages** are prerendered. Each names its live address as canonical (`src/lib/site.ts`), wherever it is served,
-  so the build needs no variable of the branch.
-- **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, and a year's cache for
-  the build's hashed files, as for Hedge School (design 23). `static/robots.txt` names its sitemap.
+- **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
+  `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the
+  engine repository's checkout on this machine. The build copies the files from `static/engine`.
+- **The build's address** goes into the build: the userscript updates from it and opens its games there. For `main`,
+  it is the live address. For another branch, it is the preview's address. The project's pages.dev address is not
+  `cyanotype.pages.dev`, which belongs to another site. So, before the build, the job reads the address from the
+  project in Cloudflare's API (its `subdomain`). When the API gives no address, the job fails with a message and
+  deploys nothing.
+- **Its pages** are prerendered. Each names its live address as canonical (`src/lib/site.ts`), wherever it is served.
+  The build still needs the branch's variables (`CF_PAGES_BRANCH`, `CF_PAGES_URL`) for its userscript's address. A
+  build without them gives a userscript that loads from the local preview server (`vite.config.ts`).
+- **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, a year's cache for
+  the build's hashed files, and `no-cache` on the tools' files, whose paths stay when their content changes
+  (`bookmarklet.js`, `cyanotype.user.js` and `cyanotype.meta.js`), as for Hedge School (design 23).
+  `static/robots.txt` names its sitemap.
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
   have with it, and with status 404.
 - **No Function and no storage at Cloudflare.** The browser keeps only the theme and the scroll places (its Privacy
   page).
 
-**The owner's steps, once** (abscls-8tl1.3):
+**The owner's steps, once** (abscls-8tl1.3). No repository variable is necessary: the workflow names the project.
+From the merge of the job onward, each push deploys Cyanotype. A push to `dev` deploys a preview at
+`dev.cyanotype-ztp.pages.dev`.
 
 1. **Make the Pages project, with `main` as its production branch.** Done (2026-11-04), with Wrangler 4.144.0:
    `npx wrangler@4.144.0 pages project create cyanotype --production-branch=main --force`. The project's name is
    `cyanotype`. Its address is `https://cyanotype-ztp.pages.dev/`, because `cyanotype.pages.dev` belongs to another
    site.
-2. **Deploy its first files.** If Wrangler is not logged in on this computer, run `npx wrangler@4.144.0 login` first:
-   a browser tab opens on Cloudflare. Sign in, then select **Allow**. Run `npm ci` at the repository's root. Then, in
-   the folder `apps/cyanotype`, run `npm run build`, then
-   `npx wrangler@4.144.0 pages deploy build --project-name=cyanotype --branch=main`. The branch `main` is the
-   production branch, so this deployment is the live site. It stays live until a release puts Cyanotype on `main`.
-3. **Give it the domain.** In the Cloudflare dashboard, go to **Workers & Pages**, select the project
-   `cyanotype`, then **Custom domains → Set up a domain**. Enter `cyanotype.abstractclass.org`, then select
-   **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record itself: a CNAME from
-   `cyanotype` to `cyanotype-ztp.pages.dev`. The domain shows **Active** when its certificate is ready, in minutes.
-4. **Set the variable.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the tab
-   **Variables**, select **New repository variable**. Name: `CYANOTYPE_PAGES_PROJECT`. Value: the project's name,
-   `cyanotype`. A repository variable applies to every branch. The secret `CLOUDFLARE_API_TOKEN` needs no change: its
-   permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account, and lets the job read the
-   project's pages.dev address. From now on, each push deploys Cyanotype: a push to `dev` deploys a preview at
-   `dev.cyanotype-ztp.pages.dev`, and a release (`git push origin dev:main`) deploys the live site.
-5. **Check:**
-   - `https://cyanotype.abstractclass.org` shows Cyanotype's home page.
-   - In the project's **Deployments**, the first deployment is under **Production**, not under **Preview**.
+2. **Deploy the live site from a release.** Do not deploy from a local build: it has no branch variables and no
+   engine files, so its userscript loads from `http://127.0.0.1:4173`, and its review and Practice have no engine.
+   Release `dev` as for Hedge School: `git push origin dev:main`. In GitHub's **Actions → Deploy**, the run's job
+   `cyanotype` uploads the build to the production branch. When the job passed, `https://cyanotype-ztp.pages.dev`
+   shows Cyanotype's home page.
+3. **Give it the domain.** Cloudflare's guide to custom domains
+   ([Custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/#add-a-custom-domain)) names
+   no deployment that must come first. But the domain serves the production deployment, so do this step after step
+   2: then the domain shows the site as soon as it is active. In the Cloudflare dashboard, go to **Workers & Pages**,
+   select the project `cyanotype`, then **Custom domains → Set up a domain**. Enter `cyanotype.abstractclass.org`,
+   then select **Continue** and **Activate domain**. The zone is on Cloudflare, so Pages adds the DNS record itself:
+   a CNAME from `cyanotype` to `cyanotype-ztp.pages.dev`. The domain shows **Active** when its certificate is ready,
+   in minutes.
+4. **Check:**
+   - `https://cyanotype.abstractclass.org` shows Cyanotype's home page, and its review of a game runs the engine.
+   - In the project's **Deployments**, the first production deployment is under **Production**, not under
+     **Preview**.
    - `https://cyanotype-ztp.pages.dev` answers with `X-Robots-Tag: noindex` (the browser's developer tools,
      **Network**, the page's first request).
    - After the next push to `dev`, in GitHub's **Actions → Deploy**, the run's job `cyanotype` passed, and
      `https://dev.cyanotype-ztp.pages.dev` shows the site.
-6. **End Wrangler's login** on the computer, if you do not use Wrangler there: `npx wrangler@4.144.0 logout`.
+5. **End Wrangler's login** on the computer of step 1, if you do not use Wrangler there:
+   `npx wrangler@4.144.0 logout`.
 
 ## Deploy, check and roll back
 
@@ -456,12 +465,13 @@ build. Then it uploads `build/` with Wrangler: `main` to production, another bra
   `layout-sweep-windows` for Windows).
 
   Both jobs also serve Cyanotype's build (`apps/cyanotype`) on port 4174, beside the site's preview on port 4173, and
-  set `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The job `test` takes the build that `check:all` made. The job
-  `test-windows` builds it in a step of its own, because `check:all` does not run there. Each Cyanotype test that a
-  job runs uses this preview. In CI, `playwright.config.ts` stops the run with a message when `CYANOTYPE_BASE_URL`
-  is missing. Outside CI, the Cyanotype tests skip without it ([working-notes.md](working-notes.md), "The tests on
-  Cyanotype"). The workflow does not run `npm run engine` in `apps/cyanotype`, so its Cyanotype build has no engine
-  files. A test that needs them, such as the review of Cyanotype's test game, skips there with a message.
+  set `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The build has the engine's release files that
+  `apps/cyanotype/engine.lock.json` pins, so the tests that need them run, such as the review of Cyanotype's test
+  game. The job `test` takes the build and the files that `check:all` made (its steps `cyanotype-engine` and
+  `cyanotype-build`). The job `test-windows` gets the files and builds in steps of its own, because `check:all` does
+  not run there. Each job keeps Cyanotype's downloads in a cache, by the lock. Each Cyanotype test that a job runs
+  uses this preview. In CI, `playwright.config.ts` stops the run with a message when `CYANOTYPE_BASE_URL` is missing.
+  Outside CI, the Cyanotype tests skip without it ([working-notes.md](working-notes.md), "The tests on Cyanotype").
 - **The sweep in Edge, as an option,** on this computer, by the owner: it shows Edge's own drawing, with this
   computer's settings. A plain `npm run test:layout` runs Chromium alone. The project `edge` comes only when the
   environment has `HS_EDGE=1`. In `apps/hedgeschool`, build as production does (`VITE_EDITION=early npm run build`),

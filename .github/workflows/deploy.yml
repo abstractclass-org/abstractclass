@@ -109,14 +109,14 @@ jobs:
           npx --yes wrangler@4.144.0 pages deploy public "${args[@]}"
 
   # Cyanotype, Blueprints' site (design 33; docs/hosting.md, "Cyanotype"): apps/cyanotype, built and checked as the
-  # site's build is, to the Pages project that the repository variable CYANOTYPE_PAGES_PROJECT names. A push to main
-  # deploys the live site, and a push to another branch a preview, as for the site. While the variable is empty, the
-  # job is skipped, and the workflow passes without it. Its pages are prerendered, and the canonical address is the
-  # live one in src/lib/site.ts. Its userscript holds the build's own address, as the site's does, so its build takes
-  # the branch variables too. Wrangler is the site job's version. It runs in apps/cyanotype, which has no functions/
-  # folder: in the workflow's default folder, it would upload Hedge School's Function.
+  # site's build is, with its engine's release files, to the Pages project cyanotype. A push to main deploys the live
+  # site, and a push to another branch a preview, as for the site. The job has no switch: the project exists, and the
+  # build has its engine, so each push deploys, and the merge of this job deploys a preview at once. Its pages are
+  # prerendered, and the canonical address is the live one in src/lib/site.ts. Its userscript holds the build's own
+  # address, as the site's does, so its build takes the branch variables too. Wrangler is the site job's version. It
+  # runs in apps/cyanotype, which has no functions/ folder: in the workflow's default folder, it would upload Hedge
+  # School's Function.
   cyanotype:
-    if: vars.CYANOTYPE_PAGES_PROJECT != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -124,7 +124,6 @@ jobs:
         working-directory: apps/cyanotype
     env:
       BRANCH: ${{ github.ref_name }}
-      PROJECT: ${{ vars.CYANOTYPE_PAGES_PROJECT }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -147,21 +146,23 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT"
+          url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/cyanotype"
           host=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$url" | jq -r '.result.subdomain') || true
           if [[ "$host" != *.pages.dev ]]; then
-            echo "::error::Cloudflare's API gave no pages.dev address for the Pages project $PROJECT."
+            echo "::error::Cloudflare's API gave no pages.dev address for the Pages project cyanotype."
             exit 1
           fi
           alias=$(printf '%s' "$BRANCH" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g')
           echo "CF_PAGES_BRANCH=$BRANCH" >> "$GITHUB_ENV"
           echo "CF_PAGES_URL=https://$alias.$host" >> "$GITHUB_ENV"
 
-      # The shared packages' checks and tests (design 29), then the site's own: a failed step deploys nothing.
+      # The shared packages' checks and tests (design 29), then the site's own: a failed step deploys nothing. The
+      # engine's files come first, from the release that engine.lock.json pins, each with its SHA-256 checked. --deploy
+      # refuses a file from this machine. The engine's tests need the files, and the build copies them.
       - name: The packages' checks and tests
         run: npm run check --workspace=packages && npm test --workspace=packages
         working-directory: .
-      - run: npm run check && npm test && npm run build
+      - run: npm run engine -- --deploy && npm run check && npm test && npm run build
 
       - name: Upload to Cloudflare Pages
         env:
@@ -169,7 +170,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          args=(--project-name="$PROJECT" --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
+          args=(--project-name=cyanotype --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
           first=${MESSAGE%%$'\n'*}
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
           npx --yes wrangler@4.144.0 pages deploy build "${args[@]}"

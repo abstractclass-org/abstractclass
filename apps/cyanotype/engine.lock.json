@@ -3,65 +3,65 @@
   "protocol": "0.7.1",
   "artifacts": [
     {
-      "id": "engine-70dfdc0f",
+      "id": "engine-3ac5c2fc",
       "kind": "module",
       "interface": "engine-protocol-0.7.1",
       "file": "blueprints-engine.wasm",
-      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/blueprints-engine.wasm" },
-      "sha256": "56723513db41fdbaa91e79dc611c2535c8dbff6cde4ff8e2952c1bb6689259b1",
-      "bytes": 1491481,
-      "search": "70dfdc0f"
+      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "blueprints-engine.wasm" } },
+      "sha256": "7051135b0033b180b5b7d9db2793427f36751853ec278245340063186fc39ba4",
+      "bytes": 1518637,
+      "search": "3ac5c2fc"
     },
     {
-      "id": "engine-70dfdc0f-lib",
+      "id": "engine-3ac5c2fc-lib",
       "kind": "gpu-library",
       "file": "gpu_engine.mjs",
-      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/gpu_engine.mjs" },
+      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "gpu_engine.mjs" } },
       "sha256": "7976a5f48fe868b969a4964adcb9bf87d22be78b29595c4e2bcc8458fbd01227",
       "bytes": 16816
     },
     {
-      "id": "engine-70dfdc0f-practice",
+      "id": "engine-3ac5c2fc-practice",
       "kind": "practice-library",
-      "dir": "engine-70dfdc0f-lib",
+      "dir": "engine-3ac5c2fc-lib",
       "file": "practice_bot.mjs",
-      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/practice_bot.mjs" },
+      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "practice_bot.mjs" } },
       "sha256": "cfd579ae53a597139ec1bde823bc604d5a4eb08e588d7308e3808d304161e254",
       "bytes": 7314
     },
     {
-      "id": "engine-70dfdc0f-bot",
+      "id": "engine-3ac5c2fc-bot",
       "kind": "practice-module",
-      "interface": "practice-0.1.1",
+      "interface": "practice-0.1.2",
       "file": "blueprints-bot.wasm",
-      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/blueprints-bot.wasm" },
-      "sha256": "2d5df6e5531dc82e639142226db574d991514b86ace189f2814a0101065570df",
-      "bytes": 1743117
+      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "blueprints-bot.wasm" } },
+      "sha256": "59466c97f6f4a606c2ecaf82b7974b654808309b76c5bb9696f5563d25570096",
+      "bytes": 1787252
     },
     {
-      "id": "engine-70dfdc0f-notices",
+      "id": "engine-3ac5c2fc-notices",
       "kind": "notices",
       "file": "NOTICES.txt",
-      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/NOTICES.txt" },
+      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "NOTICES.txt" } },
       "sha256": "2967bab664d0aabe0336d59454cfccc1e8fc37ce04fee9c3274df23cc1f6adc6",
       "bytes": 10206
     },
     {
-      "id": "engine-70dfdc0f-terms",
+      "id": "engine-3ac5c2fc-terms",
       "kind": "terms",
       "file": "LICENSE.txt",
-      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/LICENSE.txt" },
-      "sha256": "6c0d45d2e196cdf50a34d8c50c967e2b2ad749a568cd94046fb789e225e632cd",
-      "bytes": 1994
+      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "LICENSE.txt" } },
+      "sha256": "df8ad5eca950494aff2c1866d9e8a04397cd5eb5cffe60610194de29abe7186a",
+      "bytes": 1986
     },
     {
-      "id": "b6c96-s22323968-d845223",
+      "id": "b6c96-s40806528-d2304635",
       "kind": "model",
-      "displayName": "b6c96-s22323968-d845223",
+      "displayName": "Stamp Duty 0.1",
       "file": "model-float16.bin",
-      "source": { "engines": "runs/wasm/blueprints/engine-70dfdc0f/b6c96-s22323968-d845223.model-float16.bin" },
-      "sha256": "4ca5b721a056ab1032051021cbed28d79562bb444c795d53c74e035b0dbda263",
-      "bytes": 2207862
+      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "b6c96-s40806528-d2304635.model-float16.bin" } },
+      "sha256": "4b084f7770ac76184c48c23d16c5bb8f5fc179523ac79de4e656743b56ecfa5a",
+      "bytes": 2228327
     }
   ]
 }

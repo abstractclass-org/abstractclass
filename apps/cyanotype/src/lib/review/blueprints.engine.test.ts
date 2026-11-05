@@ -11,7 +11,7 @@ import type { DescribeReply } from "../board/described.ts";
 // Blueprints' game (blueprints.ts) on the review's test game, a game of Stamp Duty against itself
 // (fixtures/stamp-duty.txt, scripts/selfplay.mjs), through the engine's describe_game, the request that the review's
 // analysis sends: each move with what it did, and the record's capture marks confirmed by it. The engine runs on the
-// CPU in Node from the site's static/engine: CI has no engine files, so this is skipped there.
+// CPU in Node from the site's static/engine: without its files, this is skipped.
 const app = join(import.meta.dirname, "..", "..", "..");
 const text = readFileSync(join(import.meta.dirname, "fixtures", "stamp-duty.txt"), "utf8");
 

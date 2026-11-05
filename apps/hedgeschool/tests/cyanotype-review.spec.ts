@@ -149,7 +149,10 @@ test("by turn and by move, the board marks the same moves: both moves of the tur
 });
 
 test("many candidates on one blueprint: the rank chips fit the hand's panel, with +N", async () => {
-  await open(390, 844, { judge: "turn" });
+  // At 320 pixels, WCAG 2.1's reflow width (success criterion 1.4.10), a panel holds 3 chips. With the release
+  // engine-3ac5c2fc, the review shows at most 4 candidates on one blueprint in turns 1 to 20 (blueprint 2, after move
+  // 8), and 4 chips fit a panel at 390 pixels. The older network showed 6, which needed a "+N" at 390 pixels too.
+  await open(320, 844, { judge: "turn" });
   /** Each chip in the hands, in its panel: whether it lies in the panel, clear of the panel's number, and the "+N". */
   const chips = () => page.evaluate(() => {
     const out: { inside: boolean; more: string | null }[] = [];

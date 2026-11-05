@@ -8274,3 +8274,64 @@ Hedge School and Cyanotype take one rule. Design 30 gives the result.
   share the style's whole explanation (`DIFFERENCE_HELP`). The legend's two signs take the same colours.
 - **Cyanotype offers no area map yet** (its design 33, "No area map yet"). Its board and its kept explanation
   (`AREA_MAP`) take the rule, for when it does.
+
+### Cyanotype's engine from Blueprints' first release (2026-11-05)
+
+Design 33, "The engine's files", changed (abscls-8tl1.24): Cyanotype takes every engine file from Blueprints' first
+release, `engine-3ac5c2fc` (Stamp Duty 0.1), in the public repository `abstractclass-org/blueprints-engine`. The
+engine repository's record of the release is its `docs/decisions/organization.md`, entry of 2026-11-05.
+
+- **The lock** (`apps/cyanotype/engine.lock.json`): seven files, each from the release (a source of kind `release`),
+  with the SHA-256 and the size of the release's manifest. The module `blueprints-engine.wasm` (1,518,637 bytes,
+  protocol 0.7.1, build and search `3ac5c2fc`), `gpu_engine.mjs`, `practice_bot.mjs`, the practice bot
+  `blueprints-bot.wasm` (1,787,252 bytes, interface 0.1.2), `NOTICES.txt`, `LICENSE.txt`, and bpj5's network
+  `b6c96-s40806528-d2304635` (2,228,327 bytes), whose name is Stamp Duty 0.1. The release's `settings.cfg` is the
+  native engine's settings: the site does not read it, and the lock does not take it. `npm run engine -- --deploy`
+  fetched the seven files, each with the lock's SHA-256, and the module answered protocol 0.7.1 and the search
+  `3ac5c2fc`, as the lock gives.
+- **The fixtures:** `npm run fixtures` wrote `src/lib/board/fixtures.json` again from the release. Only its header
+  changed: the five games have the same positions, legal moves and effects.
+- **Two moves that give one position:** at position 83 of the review's test game, the release's network at 512 visits
+  gives three candidates (`1@3,-3`, `2@-1,6`, `2@21,19`), and no two of them give one position. The earlier network's
+  pair (`1:0,0>1:2,-1` and `1:1,0>1:-1,1`) came again with the earlier build and the same script, with the recorded
+  values. `twins.test.ts` does not run the engine: it keeps that pair, a real reply of `engine-70dfdc0f`, as its case.
+- **The bot's name on Practice:** the network now has a release name that names Stamp Duty, so the name is the
+  network's alone, "Stamp Duty 0.1, 64 visits, Low variety", as Hedge School names HedgeFund's. A network without a
+  release name keeps "Stamp Duty (its id)".
+- **CI:** the step `cyanotype-engine` of `npm run check:all` fetches the files before Cyanotype's checks, and stops
+  them when it fails. The Tests workflow keeps Cyanotype's downloads in a cache of their own, by the lock, and its
+  Windows job fetches them before Cyanotype's build. So the Cyanotype tests that need the engine run there.
+- **The deploy:** the job `cyanotype` names the Pages project `cyanotype`, as the site's job names `hedgeschool`, and
+  has no `if:`. The repository variable `CYANOTYPE_PAGES_PROJECT` only kept the job off until the project existed. It
+  fetches the release's files before its checks and its build. `docs/hosting.md` section 9 gives the owner's steps:
+  no variable, the first live deployment from the job at a release, then the domain. Cloudflare's guide to custom
+  domains names no deployment that must come before a domain. The domain serves the production deployment, so it
+  comes after the first one.
+- **The labels change with the network.** The review of the test game's turns 1 to 20 at Lite (512 visits), in
+  headless Chromium on the CPU, with the earlier build's files and with the release's: by move, 22 of 39 labels
+  changed. By turn, the display's default, 14 of 20 changed. One review of each, so search noise is part of the
+  difference. The first note by turn was a Mistake at turn 19, and is now a Mistake at turn 15.
+
+  | Turn | Before | After |
+  |---|---|---|
+  | 1, 2, 20 | Excellent | Excellent |
+  | 3 | Good | Excellent |
+  | 4 | Best | Excellent |
+  | 5 | Excellent | Good |
+  | 6 | Best | Best |
+  | 7 | Best | Excellent |
+  | 8 | Best | Good |
+  | 9, 17 | Inaccuracy | Inaccuracy |
+  | 10 | Good | Excellent |
+  | 11, 13 | Excellent | Good |
+  | 12 | Best | Good |
+  | 14 | Excellent | Inaccuracy |
+  | 15 | Excellent | Mistake |
+  | 16 | Best | Inaccuracy |
+  | 18 | Good | Inaccuracy |
+  | 19 | Mistake | Inaccuracy |
+- **The rank chips' "+N":** the browser test of the chips needs a position whose candidates place one blueprint
+  more often than its panel shows. At 390 pixels, a panel holds 4 chips. A scan of positions 0 to 38 at 512 visits
+  counted the candidates that the board shows on each blueprint. The earlier network showed up to 6 (after moves 23,
+  24 and 26). The release's network shows at most 4 (blueprint 2, after move 8), so no position needs a "+N" at 390
+  pixels. The test now runs at 320 pixels, WCAG 2.1's reflow width, where a panel holds 3 chips.
