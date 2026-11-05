@@ -80,8 +80,9 @@ ask where it goes (design 21): with that choice, "import" again names what the p
    - **The site's menu below 1,024 pixels,** as on Lichess's phone pages: a ☰ at the header's left holds its links
      (the tabs, then the pages about the site, Tools again from a tablet's width), and the header keeps the site's
      name, "Support Us" and the theme menu, in one row. The links and "Support Us" need 860 pixels for one row:
-     narrower, they took a second row, and Tools a third (`src/lib/SiteMenu.svelte`). Below 640 pixels, "Support Us"
-     goes into the menu too, after the pages about the site: the name and the theme menu fill a phone's header.
+     narrower, they took a second row, and Tools a third (`packages/site/src/SiteMenu.svelte`). Below 640 pixels,
+     "Support Us" goes into the menu too, after the pages about the site: the name and the theme menu fill a phone's
+     header.
    - **"Support Us," for tips through Ko-fi,** in the accent's colour of each theme, as the site's other main buttons,
      with a heart. It opens Ko-fi's tip panel (Ko-fi's donation panel widget, a frame of its page) in the site's own
      dialog, so that a tip needs no other tab (`src/lib/SupportDialog.svelte`). The frame is made only when the dialog

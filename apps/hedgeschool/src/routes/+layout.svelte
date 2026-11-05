@@ -11,7 +11,7 @@
 	import ConsentBanner from '#lib/ConsentBanner.svelte';
 	import AnalyticsAsk from '#lib/AnalyticsAsk.svelte';
 	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
-	import SiteMenu from '#lib/SiteMenu.svelte';
+	import SiteMenu from '@abstractclass/site/SiteMenu.svelte';
 	import SupportDialog from '#lib/SupportDialog.svelte';
 	import Icon from '@abstractclass/site/Icon.svelte';
 	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';

@@ -692,16 +692,9 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   `ui/CornerCard.svelte`, `measure.ts`, `internalTraffic.ts`, `analysis/settingChanges.ts`, `game/sources.ts`,
   `hooks.client.ts`, designs 17, 25 and 27). abscls-8tl1.48.
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
-- **The site's menu on a narrow screen** (`SiteMenu.svelte`, design 22). On a phone, Cyanotype's header and footer have
-  no link to Practice, the review or the Analysis board, and the home page has none either: no page links to Practice or
-  the review there. abscls-8tl1.36.
 - **The logo** (`Collie.svelte`, `collie.ts`, design 12), with the favicon, the icon for a phone's home screen and the
   link previews' picture (`static/favicon.ico`, `static/apple-touch-icon.png`, `static/brand/card.png`). Cyanotype has a
   wordmark, no icon and no preview picture ("Consequences"). abscls-8tl1.44.
-- **The home page** (`home/HomeReplay.svelte`, design 22): its board with scenes from reviewed games, and its links to
-  Practice, to the review and to the other ways to start (a game played elsewhere, a line, a position). Cyanotype's home
-  page has none of them, and its text still says that the review is on the way and that Practice comes later.
-  abscls-8tl1.36.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
 - **The edition** (`edition.ts`, design 11): the early access, its mark in the header, and the full edition's pages.
   Left out with the prototypes that it serves (Puzzles, Learn and the engine lab, above).
@@ -797,9 +790,20 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
 
 - `apps/cyanotype/`: the app. `src/lib/site.ts`: the site's name, the engine's, the live address
   (`https://cyanotype.abstractclass.org`, the canonical address of each page) and the storage keys
-  (`cyanotype:…`). `src/routes/+layout.svelte`: the header, with the wordmark, Notation, About and the theme
-  menu. `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the accent (Hedge School's
-  lavender) and the board's colour tokens, after the shared style and the view's (`@abstractclass/review/review.css`).
+  (`cyanotype:…`). `src/routes/+layout.svelte`: the header, with the wordmark, the game's pages, the pages about the
+  site and the theme menu, and below a tablet's width the site's menu (`SiteMenu.svelte` of `packages/site`), which
+  holds the links in their place, as Hedge School's below 1,024 pixels. `src/lib/SiteFooter.svelte`: the footer, with
+  Privacy and Notices. `src/app.css`: the accent (Hedge School's lavender) and the board's colour tokens, after the
+  shared style and the view's (`@abstractclass/review/review.css`).
+- `apps/cyanotype/src/routes/+page.svelte`: the home page, as Hedge School's (design 22): what the site is, the calls to
+  Practice and the review, the ways in for a game of one's own (a game from strategyjam.org through the tools, and the
+  Analysis board), and a board that plays a scene from a reviewed game (`src/lib/home/HomeReplay.svelte`, on the
+  shared replay `Replay.svelte` of `packages/site`). The scene is in `src/lib/home/replay.json`, and its first frame
+  in `still.json`, which `scripts/home-replay.mjs` writes from the stored review of the review's test game (Hedge
+  School's `tests/fixtures/cyanotype-review.json`, a game of Stamp Duty against itself): the 9 turns before the game's
+  latest move with a bad label, and that move. That review gives one scene. More scenes need more reviewed games, and
+  the script takes one stored review. The board is a picture there (`Board.svelte`, its prop `still`): no pan, no
+  zoom and no zoom buttons, and the page scrolls over it.
 - `apps/cyanotype/src/routes/`: the pages. The Notation page describes the moves, the marks and the record of
   items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
   with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
@@ -840,10 +844,11 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   tokens of a site's style sheets in each theme, read in Node by Hedge School's `symbolShades.test.ts` and the hub's
   `scripts/enclosure-board.mjs`, for the checks that compare colours). Each site's root layout gives `SiteFrame`
   what its header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge
-  School's
-  site menu and Support Us dialog stay in Hedge School. The two footers (`src/lib/SiteFooter.svelte`) have the same
-  markup, with each site's links and the game's credit. They are still each site's own, and move into the package in a
-  later change (item 4).
+  School's Support Us dialog stays in Hedge School. `SiteMenu.svelte`: the site's menu on a narrow screen (design 22),
+  with each site's links, and Hedge School's "Support Us" on a phone. `Replay.svelte`: the home page's board as a
+  replay of scenes (design 22), with each site's frames and board. The two footers (`src/lib/SiteFooter.svelte`)
+  have the same markup, with each site's links and the game's credit. They are still each site's own, and move into
+  the package in a later change (item 4).
 - `apps/cyanotype/engine.lock.json`: the engine's files ("The engine's files"), which `npm run engine` fetches into
   `static/engine/` (not in Git). `engine.lock.exceptions.json` beside it: each kind of Hedge School's lock that it
   lacks, with its issue, for the check `engine-kinds` (`scripts/engine-kinds.mjs`, "The gaps from Hedge School").

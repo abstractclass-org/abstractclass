@@ -10,7 +10,8 @@
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
-// monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). Two check Cyanotype's
+// monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's home
+// page. Two check the site's menu open on a narrow window, on each site. Two check Cyanotype's
 // Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
@@ -154,6 +155,63 @@ for (const [site, urls] of Object.entries({
       expect(differing, `${url}: Fira Code with other ligature settings`).toEqual([]);
       expect(emPerCharacter, url).toBeCloseTo(0.6, 2);
     }
+  });
+}
+
+// Cyanotype's home page (its design 33), when CYANOTYPE_BASE_URL gives its preview: the invitation, the board's scene
+// from a reviewed game, and the ways in. The sweep checks the header in one row, with the site's menu closed below a
+// tablet's width.
+test("layout of Cyanotype's home page", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  await page.goto(new URL("/", CYANOTYPE).href);
+  await page.waitForLoadState("networkidle");
+  expect(await sweep(page, "Cyanotype's /")).toBe("");
+});
+
+// The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header
+// shows it, by steps of 10, at the lowest of the sweep's heights: Hedge School's below 1,024 pixels, Cyanotype's below
+// 640. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
+// pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. Hedge School's
+// visitor has answered the consent notice, which would cover the menu until they choose.
+for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 640]] as const) {
+  test(`layout of the site's menu on ${site}`, async ({ page }) => {
+    test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    await page.addInitScript(() =>
+      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
+    await page.goto(base ? new URL("/about", base).href : "/about");
+    await page.waitForLoadState("networkidle");
+    const header = await page.locator("header nav a").evaluateAll(as => as.map(a => a.getAttribute("href")!));
+    const found: { width: number; height: number; problem: string }[] = [];
+    const height = HEIGHTS[0];
+    for (const width of WIDTHS.filter(w => w < below)) {
+      await page.setViewportSize({ width, height });
+      await settle(page);
+      await page.getByRole("button", { name: "Menu" }).click();
+      const menu = page.getByRole("menu");
+      await expect(menu).toBeVisible();
+      await settle(page);
+      const expected = header.filter(href => width >= 640 || href !== "/tools");
+      const own = await menu.evaluate((box, expected) => {
+        const out: string[] = [], r = box.getBoundingClientRect();
+        if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight)
+          out.push(`the menu leaves the window (${Math.round(r.left)}, ${Math.round(r.top)}, ${Math.round(r.right)}, ${Math.round(r.bottom)})`);
+        const links = [...box.querySelectorAll("a")].filter(a => a.offsetWidth > 0);
+        const hrefs = links.map(a => a.getAttribute("href"));
+        if (hrefs.join(" ") !== expected.join(" ")) out.push(`the menu's links are ${hrefs.join(" ")}, not ${expected.join(" ")}`);
+        for (const a of links) {
+          const l = a.getBoundingClientRect(), hit = document.elementFromPoint(l.x + l.width / 2, l.y + l.height / 2);
+          if (l.left < r.left - 1 || l.right > r.right + 1 || l.top < r.top - 1 || l.bottom > r.bottom + 1)
+            out.push(`the menu's link ${a.getAttribute("href")} leaves the menu`);
+          else if (!a.contains(hit)) out.push(`something covers the menu's link ${a.getAttribute("href")}`);
+          if (a.scrollWidth > a.clientWidth + 1) out.push(`the menu's link ${a.getAttribute("href")} cuts its text`);
+        }
+        return out;
+      }, expected);
+      for (const problem of [...await problems(page), ...own]) found.push({ width, height, problem });
+      await page.keyboard.press("Escape");
+      await expect(menu).toBeHidden();
+    }
+    expect(report(`${site}'s menu`, found)).toBe("");
   });
 }
 

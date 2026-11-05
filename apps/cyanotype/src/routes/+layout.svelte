@@ -1,10 +1,11 @@
 <script lang="ts">
-  // The site's frame (design 33): Hedge School's header, page area, theme and page metadata (packages/site), with
-  // Cyanotype's name, links and keys.
+  // The site's frame (design 33): Hedge School's header, page area, theme, page metadata and site menu
+  // (packages/site), with Cyanotype's name, links and keys.
   import "../app.css";
   import { page } from "$app/state";
   import { PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
   import SiteFrame from "@abstractclass/site/SiteFrame.svelte";
+  import SiteMenu from "@abstractclass/site/SiteMenu.svelte";
   import ThemeMenu from "@abstractclass/site/ThemeMenu.svelte";
 
   let { children } = $props();
@@ -28,16 +29,18 @@
 
 <SiteFrame origin={SITE_ORIGIN} themeKey={THEME_KEY} placesKey={PLACES_KEY}>
   {#snippet header()}
-    <!-- The name is the site's wordmark until its logo is decided. On a phone, the two links and the theme menu fit in
-         its 360 pixels, so the header needs no menu of its own. -->
+    <!-- The name is the site's wordmark until its logo is decided. The links fit in one row from a tablet's width. On a
+         phone, they go into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels, and the header
+         keeps the name and the theme menu. -->
+    <span class="sm:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
     <a class="text-xl font-bold text-ink no-underline" href="/">{SITE_NAME}</a>
     <nav class="flex gap-4.5 max-sm:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
-    <nav class="flex gap-4.5 ml-auto text-sm">
-      {#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
+    <nav class="flex gap-4.5 ml-auto text-sm max-sm:hidden">
+      {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
-    <ThemeMenu />
+    <span class="flex items-center max-sm:ml-auto"><ThemeMenu /></span>
   {/snippet}
   {@render children()}
 </SiteFrame>

@@ -88,12 +88,15 @@
     controls?: Snippet;
     notes?: BoardNote[]; // the player's notes on this position, at hexes of the board
     onnotes?: (notes: BoardNote[]) => void; // a note drawn, changed or removed, or all cleared: notes work only with it
+    // A picture (the home page's): the field takes no pointer, no wheel and no touch, and has no zoom buttons, so that
+    // the page scrolls over it. It keeps the fit.
+    still?: boolean;
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
-    notes = [], onnotes,
+    notes = [], onnotes, still = false,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -350,7 +353,7 @@
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
   }
   function down(ev: PointerEvent) {
-    if ((ev.target as Element).closest("button")) return; // the field's buttons take their own clicks
+    if (still || (ev.target as Element).closest("button")) return; // the field's buttons take their own clicks
     if (ev.pointerType === "mouse" && ev.button === 2 && onnotes) {
       ev.preventDefault();
       try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
@@ -368,6 +371,7 @@
     else if (pointers.size === 2) gesture = { kind: "pinch", from: twoFingers(), start: view };
   }
   function move(ev: PointerEvent) {
+    if (still) return;
     const p = local(ev), at = toPlane(view, field, p.x, p.y), h = hexAt(...at);
     if (ev.pointerType === "mouse") pointAt(h);
     if (sketch?.id === ev.pointerId) {
@@ -416,6 +420,7 @@
   // The wheel zooms by d3-zoom's steps (its defaultWheelDelta, github.com/d3/d3-zoom): a pixel of the wheel is 0.002 of
   // a doubling, a line 0.05 and a page 1, and a touchpad's pinch (the wheel with Ctrl) ten times as much.
   $effect(() => {
+    if (still) return;
     const wheel = (ev: WheelEvent) => {
       ev.preventDefault();
       const doublings = -ev.deltaY * (ev.deltaMode === 1 ? 0.05 : ev.deltaMode ? 1 : 0.002) * (ev.ctrlKey ? 10 : 1);
@@ -501,7 +506,7 @@
   {/if}
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="field" class:aim={foot?.legal} bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
+  <div class="field" class:aim={foot?.legal} class:still bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
        onpointercancel={ev => up(ev, false)} onpointerleave={ev => { if (ev.pointerType === "mouse") pointAt(null); }}
        oncontextmenu={ev => { if (onnotes) ev.preventDefault(); }}>
     {#if field.width > 0 && field.height > 0}
@@ -714,16 +719,18 @@
           {@render controls()}
         </div>
       {/if}
-      <div class="absolute right-1.5 bottom-1.5 flex gap-1">
-        <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT2)} aria-label="Zoom in" title="Zoom in">+</button>
-        <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT1_2)} aria-label="Zoom out" title="Zoom out">−</button>
-        <button type="button" class={[TOOL, manual || placedByPlayer ? "text-ink" : "text-muted"]} onclick={fitAll}
-                aria-label="Show all the cells" title="Show all the cells">
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-            <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="1.6" />
-          </svg>
-        </button>
-      </div>
+      {#if !still}
+        <div class="absolute right-1.5 bottom-1.5 flex gap-1">
+          <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT2)} aria-label="Zoom in" title="Zoom in">+</button>
+          <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT1_2)} aria-label="Zoom out" title="Zoom out">−</button>
+          <button type="button" class={[TOOL, manual || placedByPlayer ? "text-ink" : "text-muted"]} onclick={fitAll}
+                  aria-label="Show all the cells" title="Show all the cells">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+              <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+          </button>
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
@@ -762,6 +769,7 @@
   }
   .field:active { cursor: grabbing; }
   .field.aim { cursor: pointer; }
+  .field.still { touch-action: auto; cursor: default; }
   .field > svg { display: block; }
   .bg { fill: var(--board-bg); }
   .grid { fill: none; stroke: var(--board-dot); stroke-width: 0.04; opacity: 0.7; }
