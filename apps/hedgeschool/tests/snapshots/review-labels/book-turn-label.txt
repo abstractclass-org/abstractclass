@@ -1,0 +1,20 @@
+# Hedge School's labels on tests/fixtures/book-turn-label-review.json, as the review page labels it (labels.snapshot.test.ts).
+# Update on purpose only: see the test's header. The commit says why a label moved.
+# edges 7, turns 4 (judged 4, of two edges 3: the engine's best turn in the same order 0, in the other order 1)
+# positions with a symmetric twin (by index): 0; played edges that are a twin: 0; turns of two edges that start at one: 0; Greats: 1 by edge, 1 by turn
+# "-": no label (the review lacks a result there).
+
+[by edge: the label of each edge]
+  1  turn  1  Blue  A10-D9    best
+  2  turn  2  Red   N8-Q10    good
+  3  turn  2  Red   N9-Q10    mistake
+  4  turn  3  Blue  D9-F12    best
+  5  turn  3  Blue  D10-G12   great
+  6  turn  4  Red   K11-N9    excellent
+  7  turn  4  Red   G13-K11   excellent
+
+[by turn: the label of each turn]
+turn  1  Blue  A10-D9             best
+turn  2  Red   N8-Q10 N9-Q10      blunder
+turn  3  Blue  D9-F12 D10-G12     great
+turn  4  Red   K11-N9 G13-K11     excellent

@@ -1,0 +1,190 @@
+# Hedge School's labels on tests/fixtures/hedgefund-review.json, as the review page labels it (labels.snapshot.test.ts).
+# Update on purpose only: see the test's header. The commit says why a label moved.
+# edges 120, turns 61 (judged 61, of two edges 59: the engine's best turn in the same order 20, in the other order 5)
+# positions with a symmetric twin (by index): 0; played edges that are a twin: 0; turns of two edges that start at one: 0; Greats: 3 by edge, 1 by turn
+# "-": no label (the review lacks a result there).
+
+[by edge: the label of each edge]
+  1  turn  1  Blue  A10-D9    best
+  2  turn  2  Red   N11-Q10   best
+  3  turn  2  Red   K9-N11    best
+  4  turn  3  Blue  D9-G10    best
+  5  turn  3  Blue  D10-G9    best
+  6  turn  4  Red   H6-K9     best
+  7  turn  4  Red   H12-K9    best
+  8  turn  5  Blue  G10-H13   excellent
+  9  turn  5  Blue  G9-G10    inaccuracy
+ 10  turn  6  Red   H6-L9     best
+ 11  turn  6  Red   L9-N12    great
+ 12  turn  7  Blue  G10-J13   excellent
+ 13  turn  7  Blue  H13-L14   blunder
+ 14  turn  8  Red   N12-Q11   great
+ 15  turn  8  Red   N11-Q11   great
+ 16  turn  9  Blue  H12-L14   excellent
+ 17  turn  9  Blue  L14-O13   good
+ 18  turn 10  Red   Q11-T10   best
+ 19  turn 10  Red   E4-H6     best
+ 20  turn 11  Blue  L14-N13   best
+ 21  turn 11  Blue  N13-Q12   best
+ 22  turn 12  Red   E4-H1     good
+ 23  turn 12  Red   E3-H6     best
+ 24  turn 13  Blue  O13-R13   good
+ 25  turn 13  Blue  Q12-T14   good
+ 26  turn 14  Red   H1-L1     best
+ 27  turn 14  Red   E3-H1     best
+ 28  turn 15  Blue  R13-T14   best
+ 29  turn 15  Blue  A10-A13   best
+ 30  turn 16  Red   T7-T10    best
+ 31  turn 16  Red   L1-O1     best
+ 32  turn 17  Blue  A13-A16   best
+ 33  turn 17  Blue  A16-D19   best
+ 34  turn 18  Red   O1-R4     best
+ 35  turn 18  Red   R4-T7     best
+ 36  turn 19  Blue  D19-G19   best
+ 37  turn 19  Blue  G19-K19   best
+ 38  turn 20  Red   F9-H6     best
+ 39  turn 20  Red   C8-F9     best
+ 40  turn 21  Blue  K19-N19   inaccuracy
+ 41  turn 21  Blue  N19-Q19   best
+ 42  turn 22  Red   E9-H6     best
+ 43  turn 22  Red   B8-E9     best
+ 44  turn 23  Blue  A10-B7    excellent
+ 45  turn 23  Blue  B7-C8     best
+ 46  turn 24  Red   C6-F9     excellent
+ 47  turn 24  Red   C6-E9     excellent
+ 48  turn 25  Blue  Q19-T17   best
+ 49  turn 25  Blue  T14-T17   best
+ 50  turn 26  Red   A5-B8     excellent
+ 51  turn 26  Red   B7-E9     best
+ 52  turn 27  Blue  L10-N13   excellent
+ 53  turn 27  Blue  H8-L10    excellent
+ 54  turn 28  Red   A5-C8     best
+ 55  turn 28  Red   A2-A5     best
+ 56  turn 29  Blue  K10-N13   excellent
+ 57  turn 29  Blue  H8-K10    best
+ 58  turn 30  Red   A2-D1     best
+ 59  turn 30  Red   D1-G3     best
+ 60  turn 31  Blue  E10-H8    best
+ 61  turn 31  Blue  G11-H8    excellent
+ 62  turn 32  Red   Q11-T13   best
+ 63  turn 32  Red   T10-T13   best
+ 64  turn 33  Blue  A19-D19   best
+ 65  turn 33  Blue  A16-A19   best
+ 66  turn 34  Red   Q10-T13   excellent
+ 67  turn 34  Red   T4-T7     excellent
+ 68  turn 35  Blue  A7-A10    best
+ 69  turn 35  Blue  A7-B9     best
+ 70  turn 36  Red   O1-R1     best
+ 71  turn 36  Red   T1-T4     best
+ 72  turn 37  Blue  B9-E10    best
+ 73  turn 37  Blue  H7-K10    best
+ 74  turn 38  Red   R1-T1     best
+ 75  turn 38  Red   D1-G1     best
+ 76  turn 39  Blue  F10-H7    excellent
+ 77  turn 39  Blue  Q19-T19   excellent
+ 78  turn 40  Red   N12-P12   excellent
+ 79  turn 40  Red   M11-P12   excellent
+ 80  turn 41  Blue  T17-T19   best
+ 81  turn 41  Blue  O13-R12   best
+ 82  turn 42  Red   P12-S11   best
+ 83  turn 42  Red   L9-M11    excellent
+ 84  turn 43  Blue  O12-R13   excellent
+ 85  turn 43  Blue  M13-O12   excellent
+ 86  turn 44  Red   Q11-S13   excellent
+ 87  turn 44  Red   S13-T13   excellent
+ 88  turn 45  Blue  C9-F10    excellent
+ 89  turn 45  Blue  B11-C9    excellent
+ 90  turn 46  Red   E9-G8     excellent
+ 91  turn 46  Red   G8-J5     excellent
+ 92  turn 47  Blue  O13-R12   best
+ 93  turn 47  Blue  R12-T14   best
+ 94  turn 48  Red   J8-K9     excellent
+ 95  turn 48  Red   G1-K2     best
+ 96  turn 49  Blue  R12-S15   best
+ 97  turn 49  Blue  H7-J10    excellent
+ 98  turn 50  Red   A1-D1     best
+ 99  turn 50  Red   H5-J8     excellent
+100  turn 51  Blue  A6-B9     best
+101  turn 51  Blue  A6-A7     best
+102  turn 52  Red   Q10-S13   excellent
+103  turn 52  Red   S13-T10   best
+104  turn 53  Blue  A13-D10   excellent
+105  turn 53  Blue  H13-L10   excellent
+106  turn 54  Red   J8-M10    excellent
+107  turn 54  Red   A1-B4     excellent
+108  turn 55  Blue  H9-L10    excellent
+109  turn 55  Blue  G9-K10    excellent
+110  turn 56  Red   R1-T4     excellent
+111  turn 56  Red   B4-B7     excellent
+112  turn 57  Blue  B9-E11    excellent
+113  turn 57  Blue  R16-T19   excellent
+114  turn 58  Red   Q10-T7    best
+115  turn 58  Red   R4-T1     best
+116  turn 59  Blue  J10-M13   excellent
+117  turn 59  Blue  E11-H9    excellent
+118  turn 60  Red   N12-Q10   excellent
+119  turn 60  Red   C8-F9     excellent
+120  turn 61  Blue  O13-R16   excellent
+
+[by turn: the label of each turn]
+turn  1  Blue  A10-D9             best
+turn  2  Red   N11-Q10 K9-N11     best
+turn  3  Blue  D9-G10 D10-G9      best
+turn  4  Red   H6-K9 H12-K9       best
+turn  5  Blue  G10-H13 G9-G10     inaccuracy
+turn  6  Red   H6-L9 L9-N12       best
+turn  7  Blue  G10-J13 H13-L14    blunder
+turn  8  Red   N12-Q11 N11-Q11    great
+turn  9  Blue  H12-L14 L14-O13    good
+turn 10  Red   Q11-T10 E4-H6      best
+turn 11  Blue  L14-N13 N13-Q12    best
+turn 12  Red   E4-H1 E3-H6        good
+turn 13  Blue  O13-R13 Q12-T14    inaccuracy
+turn 14  Red   H1-L1 E3-H1        best
+turn 15  Blue  R13-T14 A10-A13    best
+turn 16  Red   T7-T10 L1-O1       best
+turn 17  Blue  A13-A16 A16-D19    best
+turn 18  Red   O1-R4 R4-T7        best
+turn 19  Blue  D19-G19 G19-K19    best
+turn 20  Red   F9-H6 C8-F9        best
+turn 21  Blue  K19-N19 N19-Q19    inaccuracy
+turn 22  Red   E9-H6 B8-E9        best
+turn 23  Blue  A10-B7 B7-C8       excellent
+turn 24  Red   C6-F9 C6-E9        excellent
+turn 25  Blue  Q19-T17 T14-T17    best
+turn 26  Red   A5-B8 B7-E9        excellent
+turn 27  Blue  L10-N13 H8-L10     excellent
+turn 28  Red   A5-C8 A2-A5        best
+turn 29  Blue  K10-N13 H8-K10     excellent
+turn 30  Red   A2-D1 D1-G3        best
+turn 31  Blue  E10-H8 G11-H8      excellent
+turn 32  Red   Q11-T13 T10-T13    best
+turn 33  Blue  A19-D19 A16-A19    best
+turn 34  Red   Q10-T13 T4-T7      excellent
+turn 35  Blue  A7-A10 A7-B9       best
+turn 36  Red   O1-R1 T1-T4        best
+turn 37  Blue  B9-E10 H7-K10      best
+turn 38  Red   R1-T1 D1-G1        best
+turn 39  Blue  F10-H7 Q19-T19     excellent
+turn 40  Red   N12-P12 M11-P12    excellent
+turn 41  Blue  T17-T19 O13-R12    best
+turn 42  Red   P12-S11 L9-M11     excellent
+turn 43  Blue  O12-R13 M13-O12    excellent
+turn 44  Red   Q11-S13 S13-T13    excellent
+turn 45  Blue  C9-F10 B11-C9      excellent
+turn 46  Red   E9-G8 G8-J5        excellent
+turn 47  Blue  O13-R12 R12-T14    best
+turn 48  Red   J8-K9 G1-K2        excellent
+turn 49  Blue  R12-S15 H7-J10     excellent
+turn 50  Red   A1-D1 H5-J8        excellent
+turn 51  Blue  A6-B9 A6-A7        best
+turn 52  Red   Q10-S13 S13-T10    excellent
+turn 53  Blue  A13-D10 H13-L10    excellent
+turn 54  Red   J8-M10 A1-B4       excellent
+turn 55  Blue  H9-L10 G9-K10      excellent
+turn 56  Red   R1-T4 B4-B7        excellent
+turn 57  Blue  B9-E11 R16-T19     excellent
+turn 58  Red   Q10-T7 R4-T1       best
+turn 59  Blue  J10-M13 E11-H9     excellent
+turn 60  Red   N12-Q10 C8-F9      excellent
+turn 61  Blue  O13-R16            excellent

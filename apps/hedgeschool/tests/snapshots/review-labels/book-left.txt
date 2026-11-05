@@ -1,0 +1,46 @@
+# Hedge School's labels on tests/fixtures/book-left-review.json, as the review page labels it (labels.snapshot.test.ts).
+# Update on purpose only: see the test's header. The commit says why a label moved.
+# edges 24, turns 13 (judged 13, of two edges 11: the engine's best turn in the same order 5, in the other order 0)
+# positions with a symmetric twin (by index): 0; played edges that are a twin: 0; turns of two edges that start at one: 0; Greats: 1 by edge, 0 by turn
+# "-": no label (the review lacks a result there).
+
+[by edge: the label of each edge]
+  1  turn  1  Blue  A10-D9    best
+  2  turn  2  Red   N11-Q10   best
+  3  turn  2  Red   O11-Q10   good
+  4  turn  3  Blue  D9-G11    blunder
+  5  turn  3  Blue  D10-G9    mistake
+  6  turn  4  Red   K10-N11   best
+  7  turn  4  Red   L10-O11   great
+  8  turn  5  Blue  G9-H12    inaccuracy
+  9  turn  5  Blue  G11-K13   excellent
+ 10  turn  6  Red   H7-L10    best
+ 11  turn  6  Red   H7-K10    best
+ 12  turn  7  Blue  G9-H6     inaccuracy
+ 13  turn  7  Blue  G10-K13   good
+ 14  turn  8  Red   H7-K4     best
+ 15  turn  8  Red   H7-L4     best
+ 16  turn  9  Blue  H6-K3     best
+ 17  turn  9  Blue  K3-N5     best
+ 18  turn 10  Red   H11-L10   best
+ 19  turn 10  Red   H13-K10   best
+ 20  turn 11  Blue  L4-N5     excellent
+ 21  turn 11  Blue  E10-H12   excellent
+ 22  turn 12  Red   F10-H11   excellent
+ 23  turn 12  Red   G11-K10   best
+ 24  turn 13  Blue  H6-L4     best
+
+[by turn: the label of each turn]
+turn  1  Blue  A10-D9             best
+turn  2  Red   N11-Q10 O11-Q10    good
+turn  3  Blue  D9-G11 D10-G9      blunder
+turn  4  Red   K10-N11 L10-O11    best
+turn  5  Blue  G9-H12 G11-K13     good
+turn  6  Red   H7-L10 H7-K10      best
+turn  7  Blue  G9-H6 G10-K13      mistake
+turn  8  Red   H7-K4 H7-L4        best
+turn  9  Blue  H6-K3 K3-N5        best
+turn 10  Red   H11-L10 H13-K10    best
+turn 11  Blue  L4-N5 E10-H12      excellent
+turn 12  Red   F10-H11 G11-K10    excellent
+turn 13  Blue  H6-L4              best

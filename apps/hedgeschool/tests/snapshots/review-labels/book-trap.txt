@@ -1,0 +1,46 @@
+# Hedge School's labels on tests/fixtures/book-trap-review.json, as the review page labels it (labels.snapshot.test.ts).
+# Update on purpose only: see the test's header. The commit says why a label moved.
+# edges 24, turns 13 (judged 13, of two edges 11: the engine's best turn in the same order 1, in the other order 2)
+# positions with a symmetric twin (by index): 0; played edges that are a twin: 0; turns of two edges that start at one: 0; Greats: 1 by edge, 0 by turn
+# "-": no label (the review lacks a result there).
+
+[by edge: the label of each edge]
+  1  turn  1  Blue  D10-G9    good
+  2  turn  2  Red   N11-Q10   excellent
+  3  turn  2  Red   K9-N11    excellent
+  4  turn  3  Blue  G9-K10    good
+  5  turn  3  Blue  K10-N12   best
+  6  turn  4  Red   K9-M10    excellent
+  7  turn  4  Red   M10-P11   best
+  8  turn  5  Blue  N12-Q11   inaccuracy
+  9  turn  5  Blue  N9-Q11    inaccuracy
+ 10  turn  6  Red   N11-P11   best
+ 11  turn  6  Red   H12-K9    best
+ 12  turn  7  Blue  N8-Q11    inaccuracy
+ 13  turn  7  Blue  M6-N9     good
+ 14  turn  8  Red   H12-L9    best
+ 15  turn  8  Red   N11-Q12   best
+ 16  turn  9  Blue  Q11-T10   inaccuracy
+ 17  turn  9  Blue  M6-N8     excellent
+ 18  turn 10  Red   P11-R14   good
+ 19  turn 10  Red   Q12-R14   great
+ 20  turn 11  Blue  Q10-T10   excellent
+ 21  turn 11  Blue  N8-Q10    inaccuracy
+ 22  turn 12  Red   F9-H12    best
+ 23  turn 12  Red   D10-F9    best
+ 24  turn 13  Blue  L9-N8     excellent
+
+[by turn: the label of each turn]
+turn  1  Blue  D10-G9             good
+turn  2  Red   N11-Q10 K9-N11     good
+turn  3  Blue  G9-K10 K10-N12     inaccuracy
+turn  4  Red   K9-M10 M10-P11     inaccuracy
+turn  5  Blue  N12-Q11 N9-Q11     mistake
+turn  6  Red   N11-P11 H12-K9     best
+turn  7  Blue  N8-Q11 M6-N9       inaccuracy
+turn  8  Red   H12-L9 N11-Q12     best
+turn  9  Blue  Q11-T10 M6-N8      inaccuracy
+turn 10  Red   P11-R14 Q12-R14    excellent
+turn 11  Blue  Q10-T10 N8-Q10     mistake
+turn 12  Red   F9-H12 D10-F9      best
+turn 13  Blue  L9-N8              excellent
