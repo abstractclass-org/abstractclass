@@ -298,13 +298,14 @@ edit in the same commit), so their changes still apply.
   The engine package names `onnxruntime-web` as a peer dependency: the site's copy, whose WebAssembly the fetch script
   stores. Cyanotype's engine runs on the CPU until Blueprints has a GPU build for the browser (abscls-wqdl,
   abscls-8tl1.29): its lock has no GPU module yet, so the fetch script stores no ONNX Runtime for it.
-- **A jam game's site has everything that Hedge School has,** the GPU path too. A gap is never a choice of the
-  builder: each gap has an issue that holds its work or the decision about it. The site's design lists the whole
-  comparison with Hedge School (by the engine lock's kinds, by page, by the parts of `src/lib` and by setting), each
-  gap with its issue, as design 33 does ("The gaps from Hedge School"). Its engine lock passes the check
-  `engine-kinds` of `npm run check:all` (`scripts/engine-kinds.mjs`): each kind of Hedge School's lock is in the jam
-  site's lock, or in `engine.lock.exceptions.json` beside it with its issue (`abscls-…`). The check also fails on a
-  stale exception, a kind that the lock has now.
+- **A jam game's site has everything that Hedge School has,** the GPU path too. Each gap has an issue that holds the
+  decision about it: to build the feature, or to leave it out. The work on a site never leaves out a feature without
+  that decision. The site's design lists the whole comparison with Hedge School (by the engine lock's kinds, by page,
+  by the parts of `src/lib`, by setting and by the site's other files), each gap with its issue, as design 33 does
+  ("The gaps from Hedge School"). The check `engine-kinds` of `npm run check:all` (`scripts/engine-kinds.mjs`) takes
+  each folder of `apps/` with a `package.json`, but Hedge School's, as a jam site. Each kind of Hedge School's engine
+  lock is in the jam site's lock, or in `engine.lock.exceptions.json` beside it with its issue (`abscls-…`). A jam
+  site with no lock has none of the kinds. The check also fails on a stale exception, a kind that the lock has now.
 - **Paths in the documents:** a path that starts with `packages/` starts at the repository's root. A path to Hedge
   School's files starts at `apps/hedgeschool`, as before ([docs/README.md](../README.md)).
 - **A change to a package is a change to every site that uses it.** Its tests and each site's checks run for it.

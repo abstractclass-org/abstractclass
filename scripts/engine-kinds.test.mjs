@@ -10,19 +10,24 @@ const script = join(import.meta.dirname, "engine-kinds.mjs");
 
 const HEDGE_SCHOOL = ["module", "notices", "gpu-module", "graph", "model"];
 
-/** A repository in a folder of its own, removed after the test: Hedge School's lock with `HEDGE_SCHOOL`'s kinds, and
- *  each site of `sites` with its lock's kinds and its exceptions (none: no file). */
+/** A repository in a folder of its own, removed after the test: Hedge School's lock with `HEDGE_SCHOOL`'s kinds, the
+ *  hub's folder with no package.json, and each jam site of `sites` with its package.json, its lock's kinds (none: no
+ *  lock) and its exceptions (none: no file; a string: the file's text). */
 function repository(t, sites) {
   const root = mkdtempSync(join(tmpdir(), "engine-kinds-"));
   t.after(() => rmSync(root, { recursive: true }));
   const lock = kinds => JSON.stringify({ artifacts: kinds.map(kind => ({ id: kind, kind })) });
   mkdirSync(join(root, "apps/hedgeschool"), { recursive: true });
   writeFileSync(join(root, "apps/hedgeschool/engine.lock.json"), lock(HEDGE_SCHOOL));
-  mkdirSync(join(root, "apps/hub"), { recursive: true }); // a site with no engine: no lock, not compared
+  mkdirSync(join(root, "apps/hub"), { recursive: true });
   for (const [name, { kinds, exceptions }] of Object.entries(sites)) {
     mkdirSync(join(root, "apps", name), { recursive: true });
-    writeFileSync(join(root, "apps", name, "engine.lock.json"), lock(kinds));
-    if (exceptions) writeFileSync(join(root, "apps", name, "engine.lock.exceptions.json"), JSON.stringify(exceptions));
+    writeFileSync(join(root, "apps", name, "package.json"), "{}");
+    if (kinds) writeFileSync(join(root, "apps", name, "engine.lock.json"), lock(kinds));
+    if (exceptions) {
+      writeFileSync(join(root, "apps", name, "engine.lock.exceptions.json"),
+                    typeof exceptions === "string" ? exceptions : JSON.stringify(exceptions));
+    }
   }
   return root;
 }
@@ -53,7 +58,7 @@ test("an exception with no issue fails, also when another exception covers the r
   const result = compare("apps/x", HEDGE_SCHOOL, ["module", "notices", "model"],
                          { "gpu-module": "abscls-8tl1.29", graph: "later" });
   assert.equal(result.ok, false);
-  assert.deepEqual(result.lines.length, 1);
+  assert.equal(result.lines.length, 1);
   assert.match(result.lines[0], /^apps\/x: the exception for graph names no issue \(abscls-…\)/);
   for (const text of ["", "abscls-", "see abscls"]) {
     assert.equal(compare("apps/x", ["graph"], [], { graph: text }).ok, false, JSON.stringify(text));
@@ -78,7 +83,7 @@ test("an exceptions file that is not an object of kinds fails", () => {
   }
 });
 
-test("the check reads each jam site's lock and exceptions beside it, and skips a site with no lock", t => {
+test("the check reads each jam site's lock and exceptions beside it, and skips a folder with no package.json", t => {
   const root = repository(t, {
     a: { kinds: HEDGE_SCHOOL },
     b: { kinds: ["module", "notices", "model"], exceptions: { "gpu-module": "abscls-1", graph: "abscls-2" } },
@@ -88,35 +93,53 @@ test("the check reads each jam site's lock and exceptions beside it, and skips a
   assert.deepEqual(result.lines.map(l => l.split(":")[0]), ["apps/a", "apps/b"]);
 });
 
-test("the command fails with no exceptions file, passes with one, and fails on a stale one or one with no issue", t => {
+test("a jam site with no engine lock has none of the kinds", t => {
+  const result = check(repository(t, { c: {} }));
+  assert.equal(result.ok, false);
+  assert.match(result.lines[0], /^apps\/c: it has no engine\.lock\.json, so it has none of the kinds\.$/);
+  assert.equal(result.lines.length, 1 + HEDGE_SCHOOL.length);
+  assert.match(result.lines[1], /^apps\/c: its engine lock has no module, /);
+});
+
+test("a file that the check cannot read fails, by its name", t => {
+  const bad = check(repository(t, { c: { kinds: HEDGE_SCHOOL, exceptions: '{ "graph": "abscls-1", }' } }));
+  assert.equal(bad.ok, false);
+  assert.match(bad.lines[0], /^apps\/c\/engine\.lock\.exceptions\.json: not valid JSON: /);
+
+  const root = repository(t, { d: { kinds: HEDGE_SCHOOL } });
+  writeFileSync(join(root, "apps/d/engine.lock.json"), "{}");
+  const noList = check(root);
+  assert.equal(noList.ok, false);
+  assert.deepEqual(noList.lines, ['apps/d/engine.lock.json: it has no list "artifacts".']);
+});
+
+test("a kind twice in the exceptions file fails at its second line: JSON keeps only the last one", t => {
+  const text = '{\n  "graph": "abscls-8tl1.29",\n  "graph": "later"\n}';
+  const result = check(repository(t, { c: { kinds: ["module", "notices", "gpu-module", "model"], exceptions: text } }));
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.lines, ["apps/c/engine.lock.exceptions.json:3: the exception for graph is there twice: " +
+                                  "JSON keeps only the last one."]);
+});
+
+test("the command fails with no exceptions file, on stderr, and passes with one, on stdout", t => {
   const root = repository(t, { c: { kinds: ["module", "notices", "model"] } });
   const run = () => spawnSync(process.execPath, [script, root], { encoding: "utf8" });
-  const exceptions = value => writeFileSync(join(root, "apps/c/engine.lock.exceptions.json"), JSON.stringify(value));
 
   const none = run();
   assert.equal(none.status, 1);
   assert.match(none.stderr, /apps\/c: its engine lock has no gpu-module, .*\n.*apps\/c: [^\n]* no graph, /);
 
-  exceptions({ "gpu-module": "abscls-8tl1.29", graph: "abscls-8tl1.29" });
+  writeFileSync(join(root, "apps/c/engine.lock.exceptions.json"),
+                JSON.stringify({ "gpu-module": "abscls-8tl1.29", graph: "abscls-8tl1.29" }));
   const covered = run();
   assert.equal(covered.status, 0, covered.stderr);
   assert.match(covered.stdout, /apps\/c: every kind of Hedge School's engine lock, but 2 with an exception/);
-
-  exceptions({ "gpu-module": "abscls-8tl1.29", graph: "abscls-8tl1.29", module: "abscls-8tl1.29" });
-  const stale = run();
-  assert.equal(stale.status, 1);
-  assert.match(stale.stderr, /the exception for module is stale/);
-
-  exceptions({ "gpu-module": "abscls-8tl1.29", graph: "the owner's decision" });
-  const noIssue = run();
-  assert.equal(noIssue.status, 1);
-  assert.match(noIssue.stderr, /the exception for graph names no issue/);
 });
 
-test("the command fails when Hedge School's lock is missing", t => {
+test("the check fails when Hedge School's lock is missing", t => {
   const root = repository(t, {});
   rmSync(join(root, "apps/hedgeschool/engine.lock.json"));
-  const run = spawnSync(process.execPath, [script, root], { encoding: "utf8" });
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /apps\/hedgeschool\/engine\.lock\.json/);
+  const result = check(root);
+  assert.equal(result.ok, false);
+  assert.match(result.lines[0], /apps\/hedgeschool\/engine\.lock\.json/);
 });

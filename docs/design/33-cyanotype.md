@@ -11,12 +11,13 @@ Analysis board ("How a game comes in from strategyjam.org"). Their test on strat
 its practice bot), as Hedge School fetches its own ("The engine's files"). Practice against Stamp Duty (`/practice`)
 is built ("Practice against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and
 the Analysis board"), with no area map yet.
-**Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. A gap is never a
-choice of the builder: each gap is in "The gaps from Hedge School" with the issue that holds its work or the decision
-about it. The check `engine-kinds` of `npm run check:all` holds the engine lock to the same rule (design 29,
-"Consequences").
+**Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
+issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
+out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
+issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds the engine lock to the same rule
+(design 29, "Consequences").
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
-import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04.
+import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05.
 
 ## Context
 
@@ -332,14 +333,14 @@ game's last position (`scores`, and the margin of `outcome`). This browser keeps
 1. **A search of more views takes its best check, with no temperature,** and a move of another view keeps no tree for
    the next move (the engine's README, "The search"). The variety then does not act on that move. Request 25 accepts
    this.
-2. **No Your games, no stored game, no analytics and no review:** the site has no store of games, no backend (design
-   25) and no analytics (design 17) yet, and the review comes with abscls-8tl1.7. So a game that ends is no longer
-   kept: the next visit starts a new one. Abort ends the game, and it is gone. The site ships only its lock's
-   networks, so a new build can drop a kept game's network. Such a game cannot go on: the page drops it, and the
-   settings card says so.
+2. **No Your games, no stored game, no analytics and no review of a game played here:** the site has no store of
+   games, no backend (design 25) and no analytics (design 17) yet. These are gaps, each in "The gaps from Hedge
+   School". So a game that ends is no longer kept: the next visit starts a new one. Abort ends the game, and it is
+   gone. The site ships only its lock's networks, so a new build can drop a kept game's network. Such a game cannot
+   go on: the page drops it, and the settings card says so.
 3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
    page has no sounds. The player's notes are on the board ("The player's notes"). No game comes from a record or a
-   set-up start: the Analysis board's Play comes with it (abscls-8tl1.7).
+   set-up start. These are gaps too ("The gaps from Hedge School").
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
 
@@ -446,8 +447,9 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
 
 Cyanotype's review (`/review`) and Analysis board (`/analysis`) are Hedge School's (designs 05, 06, 07 and 10), in
 the shared view (design 29, item 9) with Blueprints' part (`src/lib/review/blueprintsView.ts`), on the practice page's
-layout. The engine is Stamp Duty's early build, on the CPU ("The engine's files"). Each part below was chosen from
-drawings of the real page, from the engine's replies. The decision log gives the measurements that led to each choice.
+layout. The engine is Stamp Duty's early build, on the CPU until Blueprints has a GPU build ("The engine's files",
+item 4). Each part below was chosen from drawings of the real page, from the engine's replies. The decision log
+gives the measurements that led to each choice.
 
 1. **The layout:** the practice page's board, with its hands' panel and its kept place ("Practice against Stamp
    Duty"), and the review's side columns, as Hedge School's. The board's box takes the window's height less the
@@ -497,10 +499,10 @@ drawings of the real page, from the engine's replies. The decision log gives the
     accepts replaces the board kept here. When that board has moves, the board first asks "Replace your analysis?":
     "Keep mine" keeps it. The question is Hedge School's (its design 21, item 6), in `packages/review`
     (`ReplaceAnalysis.svelte`), which both boards use.
-12. **Not built yet:** each feature of Hedge School that Cyanotype lacks, with its issue, is in "The gaps from Hedge
-    School": among them the sounds, the image of a line, the opening book, a list of games and a GPU setting. The review
-    keeps one game in this browser: `#record=` in a link brings one, and the import page sends one so ("How a game
-    comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page is open.
+12. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
+    issue. The review keeps one game in this browser: `#record=` in a link brings one, and the import page sends one
+    so ("How a game comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page is
+    open.
 
 ### The player's notes
 
@@ -620,11 +622,11 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
 ## The gaps from Hedge School
 
 The whole comparison of Cyanotype with Hedge School: by the engine lock's kinds, by page (`src/routes`), by the parts
-of `src/lib`, and by setting. Each gap names its issue, which holds the work or the decision about it. A gap marked
-**no issue yet** waits for one. The list also names Hedge School's parts that only Enclosure uses: only a decision
-leaves a feature out, not the builder's view of the game. Blueprints' own parts in the place of Enclosure's (the
-board and its input, the notation, the record, the page reader of strategyjam.org) are not gaps. When a gap closes,
-its line goes.
+of `src/lib`, by setting, and by the site's other files. Each gap names its issue, which holds the decision about it.
+A gap marked **no issue yet** waits for one. The list also names Hedge School's parts that only Enclosure uses: only
+a decision leaves a feature out, also one that Blueprints seems not to need. Blueprints' own parts in the place of
+Enclosure's (the board and its input, the notation, the record, the page reader of strategyjam.org) are not gaps.
+When a gap closes, its line goes.
 
 ### By the engine lock's kinds
 
@@ -646,7 +648,7 @@ the import page, the site map, the bookmarklet and the userscript. Cyanotype lac
 - **How reviews work** (`/how-reviews-work`): where the labels, the accuracy, the hard positions and the meter come
   from (designs 05, 10, 14 and 16). No issue yet.
 - **The board editor** (`/editor`): a position set up for the Analysis board (design 21). A position's notation waits
-  for it (item 10). No issue yet.
+  for it ("Decision", item 10). No issue yet.
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
   18). No issue yet.
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
@@ -665,53 +667,76 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The area map** (`review/enclosureMap.ts`, design 30). abscls-8tl1.17 decides whether Blueprints has one ("No
   area map yet").
 - **The player's games, kept in this browser** (`game/store.ts`, `game/import.ts`, `review/ReviewHome.svelte`,
-  `ui/ConfirmDialog.svelte`; designs 11 and 22): the Review tab's list of games, a pasted record, the last review
-  continued, a game's delete, and a game's own network and depth (design 09). Cyanotype's review keeps one game. No
-  issue yet.
+  `ui/ConfirmDialog.svelte`, designs 11 and 22): the Review tab's list of games, a pasted record, the last review
+  continued, a game's delete, a game's own network and depth (design 09), and the request to the browser to keep the
+  stored games (`@abstractclass/storage/persist.ts`). Cyanotype's review keeps one game. No issue yet.
 - **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). No issue yet.
-- **The Export menu and a review shared by link** (`ExportMenu.svelte`, `game/share.ts`, design 13). The menu's
-  review file is abscls-8tl1.34's, and its annotated record abscls-8tl1.35's. The link: no issue yet.
-- **The Analysis board's New menu and its files** (`analysis/NewMenu.svelte`, `game/analysisFile.ts`,
-  `game/paste.ts`; design 21): a set-up position, a pasted position or moves, and an analysis file loaded and
-  exported. No issue yet.
+- **The Export menus and the links** (`ExportMenu.svelte`, designs 13 and 21). The review's menu: its review file
+  (abscls-8tl1.34), its annotated record (abscls-8tl1.35) and its link (`game/share.ts`, no issue yet). The Analysis
+  board's menu: its analysis file (`game/analysisFile.ts`), its annotated record and its link (`game/board.ts`), no
+  issue yet.
+- **The Analysis board's New menu** (`analysis/NewMenu.svelte`, `game/paste.ts`, design 21): a set-up position, a
+  pasted position or moves, and an analysis file loaded. No issue yet.
 - **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24). No issue
   yet.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
-  `migrations/`; design 25), and an ended game in the player's games for its review. Cyanotype has no backend
+  `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
   ("Practice against Stamp Duty", item 2). No issue yet.
-- **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`; design 08), on the review and on Practice. No issue yet.
-- **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`; design 07, item 17).
+- **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`, design 08), on the review and on Practice. No issue yet.
+- **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`, design 07, item 17).
   No issue yet.
 - **The opening book** in the review and on the Analysis board (`book/`, design 32). No issue yet.
 - **The analytics and the consent** (`analytics.svelte.ts`, `ConsentBanner.svelte`, `AnalyticsAsk.svelte`,
   `ui/CornerCard.svelte`, `measure.ts`, `internalTraffic.ts`, `analysis/settingChanges.ts`, `game/sources.ts`,
-  `hooks.client.ts`; designs 17, 25 and 27). No issue yet.
-- **Support Us** (`SupportDialog.svelte`, Ko-fi's panel; design 22). No issue yet.
+  `hooks.client.ts`, designs 17, 25 and 27). No issue yet.
+- **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). No issue yet.
 - **The site's menu on a narrow screen** (`SiteMenu.svelte`, design 22). On a phone, Cyanotype's header and footer
-  have no link to Practice, the review or the Analysis board. No issue yet.
-- **The logo** (`Collie.svelte`, `collie.ts`; design 12). Cyanotype has a wordmark ("Consequences"). No issue yet.
-- **The home page's board** (`home/HomeReplay.svelte`, design 22): scenes from reviewed games. No issue yet.
+  have no link to Practice, the review or the Analysis board, and the home page has none either: no page links to
+  Practice or the review there. No issue yet.
+- **The logo** (`Collie.svelte`, `collie.ts`, design 12), with the favicon, the icon for a phone's home screen and
+  the link previews' picture (`static/favicon.ico`, `static/apple-touch-icon.png`, `static/brand/card.png`).
+  Cyanotype has a wordmark, no icon and no preview picture ("Consequences"). No issue yet.
+- **The home page** (`home/HomeReplay.svelte`, design 22): its board with scenes from reviewed games, and its links
+  to Practice, to the review and to the other ways to start (a game played elsewhere, a line, a position).
+  Cyanotype's home page has none of them, and its text still says that the review is on the way and that Practice
+  comes later. No issue yet.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). No issue yet.
 - **The edition** (`edition.ts`, design 11): the early access, its mark in the header, and the full edition's pages.
   No issue yet.
 - **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
   kept review sent to the import page (`from=`). No issue yet.
 - **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
-  tools. Both play Enclosure only (item 3). No issue yet.
+  tools. Both play Enclosure only ("Decision", item 3). No issue yet.
 
 ### By setting
 
-- **The engine's settings** (design 09): the GPU choice (On, Auto, Off) and the GPU's first-use test,
-  abscls-8tl1.29. A game's own network and depth comes with the player's games: no issue yet. The other settings are
-  Hedge School's. Cyanotype's pool starts with 2 workers (`engineSettings.ts`).
-- **The display settings** (design 06): the move sounds (on or off, the sound, the volume), no issue yet. The area
-  map's settings (where it shows, its style, its thresholds, and the chart's area line), abscls-8tl1.17. The mark of
-  a book move, with the opening book: no issue yet. The board's layers of Enclosure (its regions, its invincible
-  edges): Blueprints has neither, no issue yet. Cyanotype adds "Move notation" (item 4).
-- **The review's settings** (what the labels judge, for whom, the win chance's form): the same.
-- **Practice's settings** (design 24): the bot's forms by the engine's GPU choice and workers, abscls-8tl1.29. The
-  sounds, no issue yet. The points' bar's switch and its form (a bar or a gauge), no issue yet, and its area lane,
-  which Blueprints has no area for: no issue yet.
+A setting of a feature above comes with that feature: the GPU choice (On, Auto, Off), the GPU's first-use test and
+the bot's forms with the GPU module (abscls-8tl1.29), the sounds (on or off, the sound, the volume) with the move
+sounds, the area map's settings (where it shows, its style, its thresholds, the chart's area line) with the area map
+(abscls-8tl1.17), the mark of a book move with the opening book, and a game's own network and depth with the player's
+games. The review's settings (what the labels judge, for whom, the win chance's form) are Hedge School's, and
+Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). These settings are gaps of their own:
+
+- **The engine's pool** (design 09): Hedge School starts half the processor's threads as workers, at most 8
+  (`defaultPoolSize`), and ends the idle workers after a minute, or 15 seconds in a hidden tab (`releaseWhenIdle`).
+  Cyanotype starts 2 workers (`engineSettings.ts`) and keeps them while the page is open (`releaseIdle: false` on
+  the review and the Analysis board), for a worker's start of 7 seconds and 331 MB in Blueprints' early build
+  (abscls-qyms). That issue is closed, and the release in Cyanotype's lock has its fix. No issue yet.
+- **The networks** (design 09): Hedge School's settings and Practice offer two networks, HedgeFund 0.2 Lite and
+  HedgeFund 0.2, and its lock keeps the earlier ones for the games that name them. Cyanotype offers the one network
+  of Blueprints' release, Stamp Duty 0.1. No issue yet.
+- **The board's layers of Enclosure** (its regions, its invincible edges), in the display settings and on Practice:
+  Blueprints has neither. No issue yet.
+- **Practice's points' bar** (design 24): its switch, its direction (horizontal or vertical) and its area lane, which
+  Blueprints has no area for. No issue yet.
+
+### By the site's other files
+
+- **The engine's files kept for a year** (`static/_headers`): Hedge School's lets a browser keep each file under
+  `/engine/:id/:file`, whose folder names the build and the network, without asking again. Cyanotype's has no such
+  rule. No issue yet.
+- **The check of a deployed site** (`scripts/release-check.mjs`, `docs/hosting.md`, "Deploy, check and roll back").
+  Cyanotype's launch gives its checks as steps by hand. No issue yet.
 
 ## Why
 

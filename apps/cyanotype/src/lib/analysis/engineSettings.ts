@@ -1,9 +1,10 @@
 // The engine's settings on Cyanotype (Hedge School's design 09), kept in this browser: their general part is the
 // shared analysis's (@abstractclass/analysis/settings.ts). Cyanotype's own part: its networks, from its
 // engine.lock.json, and its defaults. The engine runs on the CPU until Blueprints has a GPU build for the browser
-// (abscls-wqdl, abscls-8tl1.29; design 33, "The engine's files"): until then the GPU stays off, and the settings do
-// not offer it. A worker of Stamp Duty's early build takes about 7 seconds and 331 MB to
-// start (the engine repository's abscls-qyms), so the pool starts with 2 workers and keeps them while the page is open.
+// (abscls-wqdl, abscls-8tl1.29, and design 33, "The engine's files"): until then the GPU stays off, and the settings
+// do not offer it. A worker of Stamp Duty's early build takes about 7 seconds and 331 MB to start (the engine
+// repository's abscls-qyms), so the pool starts with 2 workers and keeps them while the page is open (design 33, "The
+// gaps from Hedge School").
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 import { megabytes } from "@abstractclass/engine/client.ts";
