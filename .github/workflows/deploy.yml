@@ -8,25 +8,18 @@
 # The job hub deploys the hub at abstractclass.org (apps/hub) to its own Pages project, beside the site's job. The job
 # cyanotype deploys Cyanotype (apps/cyanotype) to its own Pages project too.
 #
-# The live deploys wait for the owner (docs/hosting.md, "Deploy, check and roll back"). On main, each job runs in its
-# own GitHub Environment: hedgeschool, hub and cyanotype. Each environment has the owner as its required reviewer, so
-# GitHub holds each job of a push to main until the owner approves it in the run, and a job not approved deploys
-# nothing. A push to another branch names no environment, so its previews deploy with no approval. Each job's
-# `environment:` is an expression that gives the name on main and an empty string elsewhere. GitHub's documents allow
-# an expression there ("The value of `name` can be an expression", with the contexts github, inputs, vars, needs,
-# strategy and matrix:
-# https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idenvironment). They do
-# not say what an empty name does. The workflow parser in GitHub's runner gives no environment for an empty name
-# (ConvertToActionEnvironmentReference: `String.IsNullOrEmpty(nameString.Value) ? null : ...`,
-# https://github.com/actions/runner/blob/cab9d1c3901e45c7705889c4f88284fdd93f4ae5/src/Sdk/WorkflowParser/Conversion/WorkflowTemplateConverter.cs#L705),
-# so the job runs as it did before, with no environment.
+# The live deploys wait for the owner (docs/hosting.md, "The live deploys wait for approval"). On main, each job runs
+# in its own GitHub Environment: hedgeschool, hub and cyanotype. Each environment has the owner as its required
+# reviewer, so GitHub holds each job of a push to main until the owner approves it in the run, and a job not approved
+# deploys nothing. Each job's `environment:` is an expression that gives the name on main and an empty string
+# elsewhere. GitHub gives a job with an empty name no environment, so a push to another branch deploys its previews
+# with no approval. GitHub's documents do not say this: the evidence is in docs/decisions/architecture.md, "Each
+# site's live deploy waits for the owner's approval".
 #
-# The owner creates the three environments, each with a required reviewer, before the first push to main that has
-# this change (docs/hosting.md, "The live deploys wait for approval"). A workflow that names a missing environment
-# makes it, with no protection rules
-# (https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments#creating-an-environment),
-# and GitHub then runs the job with no approval. So on main each job checks its environment first, and fails before
-# its upload when the environment has no required reviewer.
+# A workflow that names a missing environment makes it with no protection rules, and GitHub runs the job at once
+# (https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments#creating-an-environment).
+# So each job's step "The live deploy has a required reviewer" stops the live deploy when its environment has none.
+# The step's ENVIRONMENT must be the name in its job's `environment:`, and its test of $BRANCH the same test of main.
 name: Deploy
 
 on:
@@ -56,24 +49,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # On main: stop before the upload when the environment has no required reviewer (the comment at the top). The
-      # job's token reads the environment with its permission contents: read, because the repository is public: "This
-      # endpoint can be used without authentication or the aforementioned permissions if only public resources are
-      # requested" (https://docs.github.com/en/rest/deployments/environments#get-an-environment). A reader who is not an
-      # administrator sees the reviewers of a public repository's environment in the answer. When the API does not give
-      # the environment, the step fails too, and nothing deploys: run the job again. If it answers 403, the token needs
-      # the permission that the page names for other cases, `actions: read`.
+      # The job's environment must have a required reviewer (the comment at the top). The step reads it from GitHub's
+      # API on every push. On main, it stops the job before the build when the environment has no required reviewer,
+      # or when the API does not give the environment. On another branch, it only warns, so that a push to dev shows
+      # the answer before a release. The token keeps contents: read: the API gives a public repository's environment
+      # with no permission (https://docs.github.com/en/rest/deployments/environments#get-an-environment). A 403 means
+      # that the token needs `actions: read`. A count that is not a number fails the test `-ge 1`.
       - name: The live deploy has a required reviewer
-        if: github.ref_name == 'main'
         env:
           GH_TOKEN: ${{ github.token }}
           ENVIRONMENT: hedgeschool
         run: |
           query='[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length'
-          n=$(gh api "repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" --jq "$query") || n=
-          if [ -z "$n" ]; then echo "::error::GitHub's API did not give the environment $ENVIRONMENT."; exit 1; fi
-          if [ "$n" -lt 1 ]; then echo "::error::The environment $ENVIRONMENT has no required reviewer."; exit 1; fi
-          echo "The environment $ENVIRONMENT has $n required reviewer(s)."
+          if ! n=$(gh api "repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" --jq "$query"); then
+            problem="GitHub's API did not give the environment $ENVIRONMENT."
+          elif ! [ "$n" -ge 1 ] 2>/dev/null; then
+            problem="The environment $ENVIRONMENT has no required reviewer."
+          else
+            echo "The environment $ENVIRONMENT has $n required reviewer(s)."
+            exit 0
+          fi
+          if [ "$BRANCH" = main ]; then echo "::error::$problem"; exit 1; fi
+          echo "::warning::$problem On main, this stops the live deploy."
 
       - uses: actions/setup-node@v7
         with:
@@ -137,18 +134,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # On main: stop when the environment has no required reviewer, as in the job deploy.
+      # As in the job deploy: on main, stop when the environment has no required reviewer. Elsewhere, warn.
       - name: The live deploy has a required reviewer
-        if: github.ref_name == 'main'
         env:
           GH_TOKEN: ${{ github.token }}
           ENVIRONMENT: hub
         run: |
           query='[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length'
-          n=$(gh api "repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" --jq "$query") || n=
-          if [ -z "$n" ]; then echo "::error::GitHub's API did not give the environment $ENVIRONMENT."; exit 1; fi
-          if [ "$n" -lt 1 ]; then echo "::error::The environment $ENVIRONMENT has no required reviewer."; exit 1; fi
-          echo "The environment $ENVIRONMENT has $n required reviewer(s)."
+          if ! n=$(gh api "repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" --jq "$query"); then
+            problem="GitHub's API did not give the environment $ENVIRONMENT."
+          elif ! [ "$n" -ge 1 ] 2>/dev/null; then
+            problem="The environment $ENVIRONMENT has no required reviewer."
+          else
+            echo "The environment $ENVIRONMENT has $n required reviewer(s)."
+            exit 0
+          fi
+          if [ "$BRANCH" = main ]; then echo "::error::$problem"; exit 1; fi
+          echo "::warning::$problem On main, this stops the live deploy."
 
       - uses: actions/setup-node@v7
         with:
@@ -168,8 +170,7 @@ jobs:
   # Cyanotype, Blueprints' site (design 33; docs/hosting.md, "Cyanotype"): apps/cyanotype, built and checked as the
   # site's build is, with its engine's release files, to the Pages project cyanotype. A push to main deploys the live
   # site when the owner approves it, and a push to another branch a preview, as for the site. The job has no switch:
-  # the project exists, and the build has its engine, so each push deploys. Only the owner's approval of the
-  # environment cyanotype keeps a release of main from deploying Cyanotype live. Its pages are prerendered, and the
+  # the project exists, and the build has its engine, so each push deploys. Its pages are prerendered, and the
   # canonical address is the live one in src/lib/site.ts. Its userscript holds the build's own address, as the site's
   # does, so its build takes the branch variables too. Wrangler is the site job's version. It runs in apps/cyanotype,
   # which has no functions/ folder: in the workflow's default folder, it would upload Hedge School's Function.
@@ -185,18 +186,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # On main: stop when the environment has no required reviewer, as in the job deploy.
+      # As in the job deploy: on main, stop when the environment has no required reviewer. Elsewhere, warn.
       - name: The live deploy has a required reviewer
-        if: github.ref_name == 'main'
         env:
           GH_TOKEN: ${{ github.token }}
           ENVIRONMENT: cyanotype
         run: |
           query='[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length'
-          n=$(gh api "repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" --jq "$query") || n=
-          if [ -z "$n" ]; then echo "::error::GitHub's API did not give the environment $ENVIRONMENT."; exit 1; fi
-          if [ "$n" -lt 1 ]; then echo "::error::The environment $ENVIRONMENT has no required reviewer."; exit 1; fi
-          echo "The environment $ENVIRONMENT has $n required reviewer(s)."
+          if ! n=$(gh api "repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" --jq "$query"); then
+            problem="GitHub's API did not give the environment $ENVIRONMENT."
+          elif ! [ "$n" -ge 1 ] 2>/dev/null; then
+            problem="The environment $ENVIRONMENT has no required reviewer."
+          else
+            echo "The environment $ENVIRONMENT has $n required reviewer(s)."
+            exit 0
+          fi
+          if [ "$BRANCH" = main ]; then echo "::error::$problem"; exit 1; fi
+          echo "::warning::$problem On main, this stops the live deploy."
 
       - uses: actions/setup-node@v7
         with:

@@ -150,10 +150,11 @@ from that file, not from the project's settings.
 
 **What the deploy does on each push:**
 
-1. On `main` only, the job runs in the GitHub Environment `hedgeschool`. GitHub holds the job until the owner approves
-   it in the run. Then the job's first step makes sure that the environment has a required reviewer, and stops the
-   deploy if it has none ("The live deploys wait for approval", below). A push to another branch has no environment
-   and no approval.
+1. On `main` only, the job runs in the GitHub Environment `hedgeschool`, and GitHub holds it until the owner approves
+   it in the run ("The live deploys wait for approval", below). A push to another branch has no environment and no
+   approval. After the checkout, the job's step "The live deploy has a required reviewer" reads the environment from
+   GitHub's API. On `main`, it stops the deploy when the environment has no required reviewer, or when the API does
+   not give the environment.
 2. It installs the dependencies (`npm ci`, at the root), with the Node of `.node-version`.
 3. It sets `CF_PAGES_BRANCH` and `CF_PAGES_URL` for the build (section 2, the site's address in the userscript).
 4. It runs `npm run build:cloudflare` in `apps/hedgeschool`, with the variables of the branch (below). A failed test or
@@ -452,12 +453,12 @@ owner approves it.
    answers with status 522.
 3. **Deploy the live site from a release.** Do not deploy from a local build. A local build has no branch variables,
    so its userscript loads from `http://127.0.0.1:4173`. The job also runs the checks and the tests before it uploads.
-   The push sends all of `dev` to `main`, so the run also holds Hedge School's and the hub's live deploys. Approve
-   or reject each of them as "The live deploys wait for approval" below gives. Release `dev` as the section
-   "Deploy, check and roll back" below gives: `git push origin dev:main`. In GitHub, go to **Actions → Deploy**. Open
-   the run of this push. Approve the environment `cyanotype` (**Review deployments**). Its job `cyanotype` then
-   uploads the build to the production branch. When the job shows a pass, open `https://cyanotype-ztp.pages.dev`.
-   Make sure that it shows Cyanotype's home page.
+   Release `dev` as the section "Deploy, check and roll back" below gives: `git push origin dev:main`. In GitHub, go
+   to **Actions → Deploy**, and open the run of this push. The push sends all of `dev` to `main`, so the run also
+   holds Hedge School's and the hub's live deploys: approve or reject each of them ("The live deploys wait for
+   approval", below). Approve the environment `cyanotype` (**Review deployments**). Its job `cyanotype` then uploads
+   the build to the production branch. When the job shows a pass, open `https://cyanotype-ztp.pages.dev`. Make sure
+   that it shows Cyanotype's home page.
 4. **Check:**
    - `https://cyanotype.abstractclass.org` shows Cyanotype's home page.
    - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
@@ -474,45 +475,69 @@ owner approves it.
 ## The live deploys wait for approval
 
 A push to `main` deploys three sites live: Hedge School (the job `deploy`), the hub (`hub`) and Cyanotype
-(`cyanotype`). On `main`, each job runs in its own GitHub Environment, with the same name as its Pages project:
-`hedgeschool`, `hub` and `cyanotype`. Each environment has the owner as its required reviewer. So GitHub holds each
-site's live deploy until the owner approves it in the run, and the owner releases each site separately. A push to
-another branch names no environment, so its previews deploy at once, with no approval.
+(`cyanotype`). On `main`, each job runs in its own GitHub Environment, named after its site: `hedgeschool`, `hub` and
+`cyanotype`. Each environment has the owner as its required reviewer. So GitHub holds each site's live deploy until
+the owner approves it in the run, and the owner releases each site separately. A push to another branch names no
+environment, so its previews deploy at once, with no approval.
 
 GitHub gives environments and required reviewers to public repositories on every current plan, the free plan too.
-On the free plan, a private repository has no required reviewers
+On the free plan, a private repository has no required reviewers, and GitHub ignores the protection rules of a
+repository that becomes private
 ([Managing environments for deployment](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments),
-"Who can use this feature?"). This repository is public.
+"Who can use this feature?" and "Prerequisites"). This repository is public. If it becomes private, the live deploys
+no longer wait for approval.
 
 **Before the first push to `main` with this setup, the owner makes the three environments.** When a job names an
 environment that does not exist, GitHub makes the environment with no protection rules, and runs the job with no
-approval. Each job then stops at its step "The live deploy has a required reviewer", before it builds or uploads
-anything: the step reads the environment from GitHub's API and fails when it has no required reviewer. So no site
-deploys live with no approval, but no site deploys at all until the environments are complete.
+approval. So each job has the step "The live deploy has a required reviewer", before it builds or uploads anything.
+The step reads the job's environment from GitHub's API on each push. On `main`, it stops the job when the
+environment has no required reviewer, or when the API does not give the environment. So no site deploys live with no
+approval, but no site deploys live until the environments are complete. On another branch, the step only shows a
+warning.
+
+**The first push to `dev` after the owner's steps** shows that the jobs can read their environments. In its run of
+**Actions → Deploy**, open the step "The live deploy has a required reviewer" of each job. It must say that the
+environment has 1 required reviewer. A warning with `HTTP 403` means that the job's token cannot read the
+environment: give the jobs the permission `actions: read` in `deploy.yml` before the next release.
 
 **The owner's steps, once,** in the repository on GitHub, as an administrator:
 
 1. Go to `https://github.com/abstractclass-org/abstractclass/settings/environments` (the repository's **Settings**,
    then **Environments** in the left sidebar).
-2. Select **New environment**. Enter the name `hedgeschool`, then select **Configure environment**.
+2. Select **New environment**. Enter the name `hedgeschool`, then select **Configure environment**. If the list
+   already shows the name (a push to `main` made the environment with no rules), select the name instead.
 3. Select **Required reviewers**. In the box below it, enter your own GitHub account's name, and select your account
    in the list. Do not select **Prevent self-review**: you push each release, and with that option you cannot approve
    your own run. Select **Save protection rules**.
 4. Under **Deployment branches and tags**, select **Selected branches and tags** in the menu. Select
    **Add deployment branch or tag rule**. In the menu **Ref type**, select **Branch**. Enter `main` as the name
    pattern. Select **Add rule**. `main` is now the only branch that can deploy to the environment.
-5. Leave the other settings as they are: no wait timer and no environment secrets. The deploy's secret and variables
-   stay the repository's (section 3).
+5. Leave the other settings of the environment as GitHub sets them:
+   - **Wait timer:** not selected.
+   - **Allow administrators to bypass configured protection rules:** selected. It lets an administrator start a held
+     job with no review (**Start all waiting jobs**). Do not use it for a release.
+   - **Environment secrets** and **Environment variables:** none. The deploy's secret and variables stay the
+     repository's (section 3).
 6. Go back to **Environments**. Do steps 2 to 5 again for the name `hub`, then again for the name `cyanotype`.
-7. Make sure that the three environments have a reviewer. In a terminal with the GitHub CLI signed in, run:
+7. Make sure that each of the three environments has its reviewer, its **Prevent self-review** setting and its branch
+   rule. In a terminal with the GitHub CLI signed in (PowerShell or Git Bash), run:
 
    ```sh
-   gh api repos/abstractclass-org/abstractclass/environments --jq '.environments[] | [.name, ([.protection_rules[] | select(.type == "required_reviewers") | .reviewers[].reviewer.login] | join(",")), (.deployment_branch_policy.custom_branch_policies | tostring)] | @tsv'
+   gh api repos/abstractclass-org/abstractclass/environments --jq '.environments[] | [.name, ([.protection_rules[]? | select(.reviewers) | .reviewers[].reviewer.login] | tostring), ([.protection_rules[]? | select(.reviewers) | .prevent_self_review] | tostring), (.deployment_branch_policy.custom_branch_policies | tostring)] | @tsv'
    ```
 
-   It shows three lines, one for each environment. Each line shows the environment's name, your account's name,
-   and `true` (only the selected branches can deploy). Then open the environment's page (**Environments**, its
-   name), and make sure that **Deployment branches and tags** names only `main`.
+   It shows one line for each environment of the repository. The lines `hedgeschool`, `hub` and `cyanotype` must
+   each show three values after the name: your account's name in quotes and brackets (for the account `octocat`,
+   `["octocat"]`), then `[false]` (**Prevent self-review** is off), then `true` (only the selected branches can
+   deploy). Then make sure that the branch rule of each environment names only `main`. Run these three commands:
+
+   ```sh
+   gh api repos/abstractclass-org/abstractclass/environments/hedgeschool/deployment-branch-policies --jq '.branch_policies[] | [.name, .type] | @tsv'
+   gh api repos/abstractclass-org/abstractclass/environments/hub/deployment-branch-policies --jq '.branch_policies[] | [.name, .type] | @tsv'
+   gh api repos/abstractclass-org/abstractclass/environments/cyanotype/deployment-branch-policies --jq '.branch_policies[] | [.name, .type] | @tsv'
+   ```
+
+   Each command must show one line: `main` and `branch`.
 
 GitHub's pages for these steps:
 [Managing environments for deployment, "Creating an environment"](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments#creating-an-environment)
@@ -529,13 +554,19 @@ waiting, and a notice that the deploys wait for review, with the button **Review
 2. Select the environments to approve, for example `hedgeschool` and `hub`. Select **Approve and deploy**. Each
    approved job starts: it builds its site and deploys it live.
 3. To keep a site off the live site, select **Review deployments** again, select its environment, then select
-   **Reject**. A rejected job deploys nothing, and its live site stays as it was. The run then shows a failure, for
-   the rejected job only.
+   **Reject**. A rejected job deploys nothing, and its live site stays as it was. GitHub then marks the run as failed.
 
-A job that is not approved deploys nothing. While a run of `main` waits, the next push to `main` waits behind it: the
-workflow runs one deploy at a time for each branch. Approve or reject each held job, so that the next release can
-start. GitHub's page:
+GitHub's page:
 [Reviewing deployments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments).
+
+**An open run holds back the next release.** A job that is not approved deploys nothing, but it keeps its run open,
+for up to 30 days ([Actions limits](https://docs.github.com/en/actions/reference/limits), "Gate approval time"). The
+workflow runs one deploy at a time for each branch (its `concurrency`). So while a run of `main` is open, the next
+push to `main` waits behind it. A push after that cancels the waiting run, and its own run waits in its place: GitHub
+keeps one waiting run for each branch
+([Workflow syntax, `concurrency`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency)).
+A cancelled run deploys nothing, but the newest run holds all of `main`, so no release is lost. So approve or reject
+each held job of a run.
 
 ## Deploy, check and roll back
 
@@ -572,10 +603,9 @@ start. GitHub's page:
   account. Any run can use another site: `BASE_URL=https://dev.hedgeschool.pages.dev npm run test:layout`.
 - **Deploy:** release `dev` to `main` (`git push origin dev:main`). The push holds the live deploys of all three
   sites. In the run of **Actions → Deploy**, the owner approves each site to release and rejects each site to keep as
-  it is ("The live deploys wait for approval", above). Before the first push to `main` with this setup, the owner
-  makes the three environments (the same section). Without them, no site deploys. Each approved job builds and uploads
-  its site in a few minutes (Hedge School's build runs the unit tests and the type check again). A failed build leaves
-  the live site as it was. Try a change first on `dev`'s preview.
+  it is ("The live deploys wait for approval", above). Each approved job builds and uploads its site in a few minutes
+  (Hedge School's build runs the unit tests and the type check again). A failed build leaves the live site as it was.
+  Try a change first on `dev`'s preview.
 - **Check:** `node scripts/release-check.mjs <base URL> [<commit>]` in `apps/hedgeschool` does the checks below
   against the live site or a preview, when the workflow **Deploy** has finished. Without a commit, it takes
   `origin/main` for the live site and `origin/dev` for dev's preview: run `git fetch` first. Each line says PASS, FAIL

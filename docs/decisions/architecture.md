@@ -250,32 +250,50 @@ public repository and the history rewrites.
 - **What:** on `main`, each job of the workflow **Deploy** runs in its own GitHub Environment: `hedgeschool` (the job
   `deploy`), `hub` and `cyanotype`. Each environment has the owner as its required reviewer, and `main` as its only
   deployment branch. GitHub holds each site's live deploy until the owner approves it in the run (**Review
-  deployments**). A site that is rejected or not approved is not deployed. A push to another branch names no
+  deployments**). GitHub deploys no site that the owner rejects or does not approve. A push to another branch names no
   environment, so its previews deploy with no approval (abscls-suuu). `docs/hosting.md`, "The live deploys wait for
   approval", gives the owner's steps and how to approve.
 - **Why:** each job once had a repository variable that kept it off until its Pages project existed
   (`HUB_PAGES_PROJECT`, `CYANOTYPE_PAGES_PROJECT`). With the variable unset, a release did not deploy that site.
   That variable was the only gate on Cyanotype's live deploy. abscls-t0sv (the hub) and abscls-8tl1.24 (Cyanotype)
   removed the variables, because the projects exist. Since then, every push to `main` deploys all three sites live.
-  So one release of Hedge School (`git push origin dev:main`) also launched Cyanotype, whose release was withdrawn
-  on 2026-11-05. Only a message between the sessions kept a release from launching it. An approval for each site
-  gives that gate back to the owner, for each site and each release, with no repository variable to set and unset.
+  So one release of Hedge School (`git push origin dev:main`) would also launch Cyanotype, before Cyanotype's own
+  release. Nothing in the workflow could stop it. An approval for each site gives that gate back to the owner, for
+  each site and each release, with no repository variable to set and unset.
 - **How:** each job's `environment:` is an expression: the environment's name on `main`, an empty string elsewhere.
-  GitHub's workflow syntax allows an expression in the environment's name. Its documents do not say what an empty name
-  does. The workflow parser in GitHub's runner gives no environment for an empty name, so the job runs with no
-  environment (`.github/workflows/deploy.yml` cites both).
-- **The risk before the owner's step:** a workflow that names a missing environment makes it with no protection
-  rules, and GitHub runs the job with no approval. So on `main` each job reads its environment from GitHub's API
-  first, and fails before its build and its upload when the environment has no required reviewer. The job's token
-  (`contents: read`) is enough: the API's page says that "Get an environment" needs no permission for a public
-  repository's resources. The step's query, run with a token that is not an administrator's of the repository, read
-  the reviewers of another public repository's environment (`pypa/pip`, the environment `PyPI`: 1, a team), and 0 for
-  an environment with no reviewer. No run of this workflow has tested the step yet. If the API answers 403 there, the
-  token needs `actions: read`.
-- **Where it is available:** GitHub gives environments and required reviewers to public repositories on every
-  current plan. On the free plan, a private repository has no required reviewers. This repository is public.
-- **Checked:** by reading `deploy.yml`, a push to another branch gives each job an empty environment name, and the
-  check step runs on `main` only. PyYAML parses the file: each of the three jobs has its environment's expression,
-  and the check as its second step, after the checkout and before any build or upload. actionlint is not on this
-  computer. `npm run check:all` passed, all 14 steps. The first push to `dev` with this change will show the previews
-  deploying with no approval, and the first push to `main` the held jobs.
+  GitHub's workflow syntax allows an expression in the environment's name
+  ([`jobs.<job_id>.environment`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idenvironment)).
+  Its documents do not say what an empty name does. GitHub gives the job no environment. The evidence:
+  - **A public workflow's runs.** `getsentry/craft` (`.github/workflows/build.yml`, the job `Build`) has
+    `environment: ${{ github.ref == 'refs/heads/master' && 'production' || '' }}`. Its environment `production`
+    admits only the branches `master` and `release/*`. Its run of a pull request on 2026-11-03 (run 41725889372) ran
+    the job `Build` to a pass and made no deployment. Each run of `master` made a deployment to `production`. With
+    the name `production`, the pull request's job would have failed on the branch rule.
+  - **The runner's parser.** The workflow parser in GitHub's runner turns an empty name into no environment
+    ([`WorkflowTemplateConverter.cs`, line 705](https://github.com/actions/runner/blob/cab9d1c3901e45c7705889c4f88284fdd93f4ae5/src/Sdk/WorkflowParser/Conversion/WorkflowTemplateConverter.cs#L705)).
+    This agrees, but it is not proof alone: GitHub's service, not the runner, gives a job its environment.
+- **The risk before the owner's steps:** a workflow that names a missing environment makes it with no protection
+  rules, and GitHub runs the job with no approval. So each job reads its environment from GitHub's API on each push,
+  before its build. On `main`, it stops the job when the environment has no required reviewer, or when the API does
+  not give the environment. On another branch, it only warns. The job's token (`contents: read`) should be enough.
+  The API's page says that "Get an environment" needs no permission for a public repository's resources. A token of
+  an account that is not an administrator of `pypa/pip` read the reviewers of its environment `PyPI` with the step's
+  query: 1, a team. For an environment with no reviewer, the query gave 0. No run of this workflow has tested the
+  job's own token. The first push to `dev` after the owner's steps tests it, before any release: each job's step must
+  say that its environment has 1 required reviewer. A warning with `HTTP 403` means that the jobs need
+  `actions: read`.
+- **A held run:** a job that is not approved keeps its run open, for up to 30 days. The workflow's `concurrency` lets
+  one run of each branch run at a time, so the next push to `main` waits behind the open run, and a push after that
+  cancels the waiting run (GitHub keeps one waiting run for each group). A team saw the same with its own runs held at
+  an approval gate ([AudiusProject/apps#14546](https://github.com/AudiusProject/apps/pull/14546)). So the owner
+  approves or rejects every held job of a run.
+- **Where it is available:** on the free plan, only a public repository has required reviewers. This repository is
+  public.
+- **Checked:** by reading `deploy.yml`, a push to another branch gives each job an empty environment name. PyYAML
+  parses the file: each of the three jobs has its environment's expression, and the check as its second step, after
+  the checkout and before any build or upload. The three check steps have the same script. The script ran in bash
+  with a stand-in for `gh`, in each job and each case. On `main`, no reviewer, a count that is not a number, no
+  count, 404 and 403 each stop the job, and 1 reviewer passes. On `dev`, the same cases warn and pass. The owner's
+  check command in `docs/hosting.md` ran in PowerShell 7, Windows PowerShell 5.1 and Git Bash. actionlint is not on
+  this computer. `npm run check:all` passed, all 14 steps. The first push to `dev` with this change will show the
+  previews deploying with no approval, and the first push to `main` the held jobs.
