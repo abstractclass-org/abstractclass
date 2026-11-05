@@ -16,6 +16,7 @@
 // The engine settings: `workers` search workers (by default 2), the GPU off or on (on: the real GPU, with the flags of
 // docs/working-notes.md, "The GPU in Playwright's Chromium"), the rest the site's defaults. With OUT, every sweep's
 // numbers and the machine's load go to that file as JSON.
+// A run with `on` checks the site's GPU path: it starts only as that note's rule says, through `machine run --gpu`.
 //
 //   node scripts/measure/review-sweep.mjs <before> <after> [pairs] [workers] [off|on] [port]
 import { readFileSync, writeFileSync } from "node:fs";

@@ -147,15 +147,28 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   shows on the thread that calls it: the page's main thread or a worker's. `eventTime(trace, "DoDigest")` in
   `scripts/measure/speed.mjs` adds them up. A worker's console messages and requests reach Playwright's
   `page.on("console")` and `page.on("request")`.
-- **The GPU in Playwright's Chromium:** headless Chromium gets WebGPU on the real GPU with `--enable-unsafe-webgpu
-  --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
-  added, it gets Chrome's software adapter, which uses no GPU. The software adapter runs the GPU worker and the
-  practice bot's GPU form, slowly: it checks that a path works, not its speed. Use it by default. A run on the real
-  GPU goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`): that job pauses the
-  engines' training on the GPU and guards it. A GPU timeout of Windows (a TDR) on 2026-10-20 came from a client of
-  the GPU on Windows while no training ran. Check that the GPU worker started before a
-  measurement relies on it: in one review with the real GPU's flags, WebGPU gave an adapter, but the engine settings
-  said "The GPU did not start: 9943656". The cause is not known.
+- **The GPU in Playwright's Chromium:** by default, a run uses the four flags of "Off the GPU" below, which
+  `playwright.config.ts` gives Chromium on Windows. The engine is then off, or on the CPU only. A run with any WebGPU
+  flag is a check of the site's GPU path, with the software adapter's flags too. Such a run starts only after
+  jam-coord and eng-coord have both said yes. A worker asks site-coord, never the others (abscls-gwi0, 2026-11-04).
+  The run then goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`): that job pauses
+  the engines' training on the GPU and guards it.
+  - **The WebGPU flags:** headless Chromium gets WebGPU on the real GPU with `--enable-unsafe-webgpu
+    --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
+    added, WebGPU gets Chrome's software adapter. The software adapter runs the GPU worker and the practice bot's GPU
+    form, slowly: it checks that a path works, not its speed. These flags do not keep Chromium off the GPU. With
+    `--use-angle=d3d11`, Chromium asks for the default adapter. A measurement of 2026-11-05 read Windows' GPU counters
+    each 5 seconds during four runs with the software adapter's flags and the engine on. `chrome-headless-shell` held
+    dedicated GPU memory in 201 samples, up to 248 MB, and used a 3D engine in 2 samples (0.9% at most). It showed in
+    no sample outside the runs. So Chromium ran on a hardware adapter with dedicated memory, most likely the RTX 5080
+    (the default adapter: the logger does not split the counters by adapter). The runs did no harm that the
+    measurement saw: no driver reset. Windows' `nvidia-smi.exe`, called each second, answered in a median of 42 ms
+    and at most 120 ms over 1056 calls inside the runs, against a median of 46 ms and at most 955 ms over 13912 calls
+    outside them.
+  - **Faults with the WebGPU flags:** a GPU timeout of Windows (a TDR) on 2026-10-20 came from a client of the GPU on
+    Windows while no training ran. Check that the GPU worker started before a measurement relies on it: in one review
+    with the real GPU's flags, WebGPU gave an adapter, but the engine settings said "The GPU did not start: 9943656".
+    The cause is not known.
   - **Off the GPU, for a run that needs no WebGPU** (the layout test, Cyanotype's practice games): with
     `--disable-gpu` alone, Chromium's GPU process (`--type=gpu-process --use-angle=swiftshader-webgl`) still opens the
     RTX 5080's adapter. Windows' GPU Engine counters list it there, with 0 KB of GPU memory and 0% on every engine,
