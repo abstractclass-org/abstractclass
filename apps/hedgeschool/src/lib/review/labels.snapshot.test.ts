@@ -8,7 +8,8 @@
 // Each line holds two labels. The first is the label with no book: no deployed site serves a book, so its review
 // searches every position. The second is the label with the test book (tests/fixtures/test-book/prototype). The dev
 // and preview servers serve that book, and the early edition's review reads it (book/place.svelte.ts). The test gives
-// the review the book's values as reviewBook.ts's giveBook does, with the book read from disk.
+// the review the book's values with reviewBook.ts's giveBook, with the book read from disk. Both labels come from the
+// steps of storedReview.ts, which the review page's review snapshot and the annotated record of a stored game take too.
 //
 // The stored reviews: hedgefund-review.json (the layout test's game: the Greats, and turns of two edges that play the
 // engine's best turn in the other order), the book games, which meet the test book (scripts/test-fixture.mjs), and
@@ -22,11 +23,14 @@
 //   node --test --test-update-snapshots src/lib/review/labels.snapshot.test.ts
 // in apps/hedgeschool, read the diff of tests/snapshots/review-labels/, and commit it with the change. The commit
 // message says why each label moved. Without that flag, a missing snapshot file fails the test. The test reads the
-// engine from static/engine (`npm run engine` first), and skips without it. Run: npm test.
+// engine from static/engine (`npm run engine` first). Without it, the test skips, and in CI (the variable CI set) it
+// fails: there the step `engine` of check:all fetches it first, so a missing engine is a fault, not a skip.
+// Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { registerHooks } from "node:module";
 import { fileURLToPath } from "node:url";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { PositionQuery } from "@abstractclass/engine/protocol.ts";
@@ -35,29 +39,41 @@ import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { LABEL_VISITS, analysisKey, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbPutMany } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
-import { openBook } from "#lib/book/book.ts";
-import { bookValues } from "#lib/book/results.ts";
 import { parseRecord, playerNames } from "#lib/game/record.ts";
 import { readReviewFile } from "#lib/game/reviewFile.ts";
-import { enclosure, moveName, PLAYER_NAME, review, sameEdge, type Enclosure, type Review } from "./enclosure.ts";
+import { enclosure, moveName, PLAYER_NAME, review, sameEdge, type Review } from "./enclosure.ts";
 
+// storedReview.ts gives the book with reviewBook.ts, which reads the site's edition (edition.ts). Vite gives
+// edition.ts its values in a build (import.meta.env, `define`), and Node gives none. Here edition.ts has the values of
+// a build with no settings: the test gives the book itself.
+registerHooks({
+  load(url, context, next) {
+    const loaded = next(url, context);
+    if (!url.endsWith("/src/lib/edition.ts")) return loaded;
+    const source = String(loaded.source).replaceAll("import.meta.env", "({})").replace(/__[A-Z_]+__/g, '""');
+    return { ...loaded, source };
+  },
+});
 memoryDb(queueMicrotask); // the store that fromStore reads
 const { GameAnalysis } = await import("@abstractclass/analysis/analysis.svelte.ts");
+const { OpeningBook } = await import("#lib/book/lookup.svelte.ts");
+const { openStored } = await import("./storedReview.ts");
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const fixtures = join(root, "tests", "fixtures"), snapshots = join(root, "tests", "snapshots", "review-labels");
 /** The stored reviews, by file name. */
 const REVIEWS = ["hedgefund", "book-left", "book-never", "book-trap", "book-turn-label", "twin-turn"];
 
-const skip = hasEngine(root) ? false : "no engine: run `npm run engine` first";
-const engine = skip ? null : await nodeEngine(root);
+const missing = hasEngine(root) ? null : "no engine in static/engine: run `npm run engine` first";
+const skip = missing && !process.env.CI ? missing : false;
+const engine = missing ? null : await nodeEngine(root);
 /** The engine's rules, as the pool's rules worker answers them (@abstractclass/engine/client.ts, describeGame). */
 const rules = {
   describeGame: async (q: PositionQuery, from = 0) =>
     ({ reply: engine!.call({ id: "g", action: "describe_game", ...q, from }) }),
 };
 const readJson = async (url: string) => JSON.parse(readFileSync(join(fixtures, url), "utf8"));
-const book = bookValues(await openBook("/test-book/prototype/index.json", readJson));
+const testBook = new OpeningBook("/test-book/prototype/index.json", readJson);
 
 /** A stored review's quality labels, with no book (`plain`) and with the test book (`booked`). `inBook`: the positions
  *  that take the book's values. */
@@ -65,6 +81,7 @@ interface Labelled { plain: Review; booked: Review; inBook: boolean[] }
 
 /** A stored review as the review page labels it from the store alone. */
 async function labelled(name: string): Promise<Labelled> {
+  if (missing) throw new Error(`${missing}. In CI, the label snapshot needs the engine and does not skip`);
   const file = readReviewFile(readFileSync(join(fixtures, `${name}-review.json`), "utf8"));
   const record = parseRecord(file.record), { model, visits } = file.review!;
   // How the record says the game ended, as the page gives it
@@ -78,19 +95,18 @@ async function labelled(name: string): Promise<Labelled> {
     return [analysisKey(search, k.model, k.moves.split(" "), k.visits, k.shape), value];
   });
   assert.equal(await dbPutMany(STORES.analysis, entries), entries.length);
-  const g = new GameAnalysis(enclosure, { rules, cancel() {} } as unknown as EnginePool, record.moves, search);
-  g.setReview(visits);
-  await g.start();
-  await g.fromStore(search, model);
-  const data = () => {
+  const pool = { rules, cancel() {} } as unknown as EnginePool;
+  /** The review's labels with this book, or with none, and its positions in the book. */
+  const labels = async (book: typeof testBook | null) => {
+    const g = new GameAnalysis(enclosure, pool, record.moves, search);
+    const refused = () => `${name}: the rules refused the game: ${g.error}`;
+    assert.equal(await openStored(g, visits, model, search, book), search, refused());
     const d = g.data(playerNames(record.tags), ending);
-    assert.ok(d, `${name}: the rules refused the game: ${g.error}`);
-    return review(d, "lead", LABEL_VISITS);
+    assert.ok(d, refused());
+    return { R: review(d, "lead", LABEL_VISITS), inBook: g.positions.map((_, i) => !!g.bookResults[i]) };
   };
-  const plain = data();
-  const lookup = (p: Enclosure["position"]) => book(p.notation); // reviewBook.ts, giveBook
-  g.useBook(await Promise.all(g.positions.map(lookup)), lookup);
-  return { plain, booked: data(), inBook: g.positions.map((_, i) => !!g.bookResults[i]) };
+  const [plain, booked] = await Promise.all([labels(null), labels(testBook)]);
+  return { plain: plain.R, booked: booked.R, inBook: booked.inBook };
 }
 const reviews = new Map<string, Promise<Labelled>>();
 const labelledOnce = (name: string) => reviews.get(name) ?? reviews.set(name, labelled(name)).get(name)!;

@@ -8356,13 +8356,16 @@ both trees found it.
 - **What the test runs:** `src/lib/review/labels.snapshot.test.ts`, in the step `site-test` of `npm run check:all`.
   It reads each review file, puts its results in a store in memory, and runs the code that the review page runs:
   `GameAnalysis` with the page's `enclosure` game and the engine's rules (`describe_game` from the CPU module in
-  Node, with no network), then `fromStore`, `data` and `review` at the label budget. It reads the engine from
-  `static/engine`, as the book's and the lessons' tests do. The step `engine` of `check:all` runs first. Without the
-  engine, the test skips.
+  Node, with no network), then `data` and `review` at the label budget. The steps from the rules to the stored results
+  are `openStored` (`src/lib/review/storedReview.ts`): the rules, the book's values, then `fromStore`. The review
+  page's review snapshot and the annotated record of a stored game (`exportText.ts`) take the same steps. It reads the
+  engine from `static/engine`, as the book's and the lessons' tests do. The step `engine` of `check:all` runs first.
+  Without the engine, the test skips, and with the variable `CI` set it fails, with a message that names the missing
+  engine. So the label snapshot cannot stop running in CI without a sign.
 - **Two labels for each move:** no deployed site serves a book, so its review searches every position. The dev and
   preview servers serve the test book (`tests/fixtures/test-book/prototype`). There the early edition's review takes
   the book's values at the positions that the book holds. The test labels each review both ways. It gives the book's
-  values as `reviewBook.ts` (`giveBook`) does, with the book read from disk. The labels with no book are the same as
+  values with `giveBook` (`reviewBook.ts`), with the book read from disk. The labels with no book are the same as
   the labels of the test's first commit (d05b155), which took the rules from the notation. With the book, 13 labels
   by edge and 10 by turn differ from them:
 
@@ -8407,7 +8410,9 @@ both trees found it.
   and nothing else changed, the test fails on `twin-turn-review.json`. Turn 2 (O11-Q10 N9-Q10) is a Best turn in place
   of a Blunder, and its second edge N9-Q10 is Best in place of a Blunder, with no book and with the book. The other
   five reviews pass with it. The test passes with the current `sameTurn`.
-- **To update the label snapshot on purpose:** see the test's header. The commit message says why each label moved.
+- **To update the label snapshot on purpose:** in `apps/hedgeschool`, run
+  `node --test --test-update-snapshots src/lib/review/labels.snapshot.test.ts`, read the diff of
+  `tests/snapshots/review-labels/`, and commit it with the change. The commit message says why each label moved.
 - **Not covered:** Cyanotype's labels. Its stored review comes with abscls-8tl1.27.
 
 ### Cyanotype's build without ONNX Runtime's WebAssembly (2026-11-05)

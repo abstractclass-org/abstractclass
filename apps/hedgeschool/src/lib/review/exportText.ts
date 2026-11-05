@@ -9,9 +9,9 @@ import { modelOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { SITE_NAME } from "#lib/edition.ts";
 import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
-import { giveBook } from "#lib/book/reviewBook.ts";
 import { annotatedRecord } from "./annotate.ts";
 import { loadDisplay } from "./display.ts";
+import { openStored } from "./storedReview.ts";
 import { enclosure, review, type BranchNode, type Review, type Unit } from "./enclosure.ts";
 
 /** The annotated record of a review. Its note names the network and the least visits of the game's searches: the
@@ -39,11 +39,8 @@ export async function annotatedFromStore(id: string, manifest: Manifest | null):
   try {
     await pool.start(manifest, network);
     const game = new GameAnalysis(enclosure, pool, stored.record.moves, id);
-    game.setReview(visits);
-    await game.start();
-    if (game.error) throw new Error(game.error);
-    await game.fromStore(pool.search!, model.sha256);
-    await giveBook(game); // the book's values, as the review takes them: the stages did not search those positions
+    // The book's values, as the review takes them (the stages did not search those positions), and the stored results
+    if (!(await openStored(game, visits, model.sha256, pool.search!))) throw new Error(game.error);
     const data = game.data(playerNames(stored.record.tags));
     if (!data) throw new Error("the engine could not read this game");
     // A game this browser has not reviewed with the current engine and network, or only in part: a record without the

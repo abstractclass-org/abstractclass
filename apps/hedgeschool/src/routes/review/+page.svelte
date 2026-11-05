@@ -40,6 +40,7 @@
            type ReviewMark } from "#lib/game/store.ts";
   import { holdReview } from "#lib/game/reviewLock.ts";
   import { giveBook } from "#lib/book/reviewBook.ts";
+  import { openStored } from "#lib/review/storedReview.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "#lib/measure.ts";
@@ -308,17 +309,17 @@
       // that the test needs come once the rules give the game's positions and the book its values there.
       const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
       const g = new GameAnalysis(enclosure, rules, moves, kept!.id), line = snapshotPositions(moves);
-      // An older mark, which names no search, is older than the book: its review searched every position, and the
-      // removal of earlier results keeps them by that rule (earlierResults.ts)
-      const needed = started.then(async () => {
-        g.setReview(mark.visits);
-        await g.start();
-        await giveBook(g);
-        return mark.search === undefined ? line : line.filter((_, i) => !g.bookResults[i + 1]); // line[i]: after i + 1 moves
-      });
-      const search = await snapshotSearch(mark.search, mark.model, line, mark.visits, started, needed);
-      if (!search || !g.rulesReady) { rules.terminate(); return false; } // without the rules, the review shows why
-      await g.fromStore(search, mark.model);
+      let needed!: (positions: string[][]) => void;
+      const found = snapshotSearch(mark.search, mark.model, line, mark.visits, started, new Promise(r => (needed = r)));
+      found.catch(() => {}); // a rules worker that does not start fails the review snapshot below
+      // The positions that the search must hold, once the book has given its values. An older mark, which names no
+      // search, is older than the book: its review searched every position, and the removal of earlier results keeps
+      // them by that rule (earlierResults.ts)
+      const search = await started.then(() => openStored(g, mark.visits, mark.model, () => {
+        needed(mark.search === undefined ? line : line.filter((_, i) => !g.bookResults[i + 1])); // line[i]: after i + 1 moves
+        return found;
+      }));
+      if (!search) { rules.terminate(); return false; } // without the rules, the review shows why
       g.freeze(search, mark.model); // its maps from the store alone
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
