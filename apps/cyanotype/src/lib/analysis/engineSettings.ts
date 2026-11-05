@@ -1,7 +1,8 @@
 // The engine's settings on Cyanotype (Hedge School's design 09), kept in this browser: their general part is the
 // shared analysis's (@abstractclass/analysis/settings.ts). Cyanotype's own part: its networks, from its
-// engine.lock.json, and its defaults. The engine runs on the CPU only (design 33, "The engine's files"): the GPU stays
-// off, and the settings do not offer it. A worker of Stamp Duty's early build takes about 7 seconds and 331 MB to
+// engine.lock.json, and its defaults. The engine runs on the CPU until Blueprints has a GPU build for the browser
+// (abscls-wqdl, abscls-8tl1.29; design 33, "The engine's files"): until then the GPU stays off, and the settings do
+// not offer it. A worker of Stamp Duty's early build takes about 7 seconds and 331 MB to
 // start (the engine repository's abscls-qyms), so the pool starts with 2 workers and keeps them while the page is open.
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
@@ -32,7 +33,8 @@ export const defaultEngine = (): EngineSettings => ({
   workers: Math.min(FIRST_WORKERS, maxWorkers()), gpu: "off",
 });
 
-/** The kept settings, with the GPU off whatever was kept: Cyanotype runs the engine on the CPU only. */
+/** The kept settings, with the GPU off whatever was kept: Cyanotype runs the engine on the CPU until Blueprints has a
+ *  GPU build for the browser (abscls-wqdl, abscls-8tl1.29). */
 const store = settingsStore(ENGINE_KEY, defaultEngine, offersNetwork);
 export const loadEngine = (): EngineSettings => ({ ...store.load(), gpu: "off" });
 export const saveEngine = store.save;

@@ -7,7 +7,7 @@
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and it
-  // runs on the CPU only.
+  // runs on the CPU until Blueprints has a GPU build for the browser (abscls-wqdl, abscls-8tl1.29).
   import { onDestroy, onMount, untrack } from "svelte";
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";

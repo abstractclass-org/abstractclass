@@ -6,8 +6,9 @@
   // with the points' bar above the board, the hands in a panel over the board (under it on a phone), and a side column
   // with the bot's line, the move list, and the step bar with the status line. The player's notes on the board, by
   // position, for the visit, as on Hedge School's Practice (design 33, "The player's notes"). One game in progress,
-  // kept in this browser and resumed. The engine and its bot run on the CPU only: the rules in the engine's worker, the
-  // bot in its own, with one search thread.
+  // kept in this browser and resumed. The engine and its bot run on the CPU until Blueprints has a GPU build and a
+  // threaded bot for the browser (abscls-wqdl, abscls-8tl1.29): the rules in the engine's worker, the bot in its own,
+  // with one search thread.
   import { onDestroy, onMount } from "svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";

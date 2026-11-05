@@ -11,6 +11,10 @@ Analysis board ("How a game comes in from strategyjam.org"). Their test on strat
 its practice bot), as Hedge School fetches its own ("The engine's files"). Practice against Stamp Duty (`/practice`)
 is built ("Practice against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and
 the Analysis board"), with no area map yet.
+**Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. A gap is never a
+choice of the builder: each gap is in "The gaps from Hedge School" with the issue that holds its work or the decision
+about it. The check `engine-kinds` of `npm run check:all` holds the engine lock to the same rule (design 29,
+"Consequences").
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04.
 
@@ -279,11 +283,13 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    `static/engine`, they skip with a message, and `/practice` says that the engine is not on the site. In CI, the
    browser tests of the review and of Practice fail instead of skipping, so that a build without the files cannot pass
    there.
-4. **The CPU only, until Blueprints has a GPU build.** This is not a choice: Blueprints' release has no GPU module
-   for the browser, and Blueprints is to get one, as Enclosure has. The lock has no GPU module, so the fetch script
-   stores no ONNX Runtime for Cyanotype. The rules' worker starts the engine with `createCpuEngine` alone. The bot
-   is the practice bot with one search thread, whose network runs in its own module, and its worker has no ONNX
-   Runtime and no WebGPU code: Blueprints has no threaded bot. The GPU setting is Off whatever the browser kept
+4. **The CPU only, until Blueprints has a GPU build for the browser** (abscls-wqdl, abscls-8tl1.29). This is not a
+   choice: Blueprints' release has no GPU module for the browser yet, and Blueprints is to get one, as Enclosure has.
+   The lock has no GPU module, so the fetch script stores no ONNX Runtime for Cyanotype. The rules' worker starts the
+   engine with `createCpuEngine` alone. The bot is the practice bot with one search thread, whose network runs in its
+   own module, and its worker has no ONNX Runtime and no WebGPU code: Blueprints' release has no threaded bot yet.
+   The lock's exceptions file (`engine.lock.exceptions.json`) names these kinds, each with abscls-8tl1.29 ("The gaps
+   from Hedge School"). The GPU setting is Off whatever the browser kept
    (`src/lib/analysis/engineSettings.ts`), so the shared engine session never starts the GPU worker. With the GPU on
    and no GPU module in the manifest, `GpuControl.apply` (`packages/analysis/src/gpu.svelte.ts`) would give the
    status that the build has no GPU module.
@@ -378,8 +384,9 @@ six screenshots on a computer, a corner was always free at the plain fit's scale
 "fill"), the practice's part that is not Enclosure's (`practice.ts`: the visits, the variety and its help, the
 choices and the kept game under each site's key, the GTP helpers, the takeback, the results), and the bot's page side
 and its worker (`bot.ts`, `botWorker.ts`, `botMessages.ts`). Each site gives its worker module and the game's name in
-the bot's commands. Hedge School's threaded forms (the GPU, the CPU workers) stay in Hedge School (`botForms.ts`,
-`hedgefundWorker.ts`). Hedge School's stored games (design 25) stay in Hedge School until Cyanotype has a backend:
+the bot's commands. Hedge School's threaded forms (the GPU, the CPU workers) are in Hedge School only
+(`botForms.ts`, `hedgefundWorker.ts`) until Blueprints' release has a threaded bot (abscls-wqdl, abscls-8tl1.29).
+Hedge School's stored games (design 25) stay in Hedge School until Cyanotype has a backend:
 the server's check names Enclosure's edges, and the Pages Function bundles it alone.
 
 ## How a game comes in from strategyjam.org
@@ -490,7 +497,8 @@ drawings of the real page, from the engine's replies. The decision log gives the
     accepts replaces the board kept here. When that board has moves, the board first asks "Replace your analysis?":
     "Keep mine" keeps it. The question is Hedge School's (its design 21, item 6), in `packages/review`
     (`ReplaceAnalysis.svelte`), which both boards use.
-12. **Not built yet:** sounds, the image of a line, the opening book, a list of games and a GPU setting. The review
+12. **Not built yet:** each feature of Hedge School that Cyanotype lacks, with its issue, is in "The gaps from Hedge
+    School": among them the sounds, the image of a line, the opening book, a list of games and a GPU setting. The review
     keeps one game in this browser: `#record=` in a link brings one, and the import page sends one so ("How a game
     comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page is open.
 
@@ -609,6 +617,102 @@ position from move 10. Counts only: the archive's games are other people's, and 
 The Move header and the fade of a cut name are in the shared table, so Hedge School has them too (design 06, item
 12).
 
+## The gaps from Hedge School
+
+The whole comparison of Cyanotype with Hedge School: by the engine lock's kinds, by page (`src/routes`), by the parts
+of `src/lib`, and by setting. Each gap names its issue, which holds the work or the decision about it. A gap marked
+**no issue yet** waits for one. The list also names Hedge School's parts that only Enclosure uses: only a decision
+leaves a feature out, not the builder's view of the game. Blueprints' own parts in the place of Enclosure's (the
+board and its input, the notation, the record, the page reader of strategyjam.org) are not gaps. When a gap closes,
+its line goes.
+
+### By the engine lock's kinds
+
+The check `engine-kinds` of `npm run check:all` (`scripts/engine-kinds.mjs`) fails on a kind of Hedge School's lock
+that Cyanotype's lacks, unless `apps/cyanotype/engine.lock.exceptions.json` names its issue. Both locks have the
+module, `gpu-library`, the practice bot (`practice-module`, `practice-library`), the network (`model`), the notices
+and the terms.
+
+- **`gpu-module` and `graph`:** the analysis on the visitor's GPU, with the network as an ONNX graph (design 15).
+  abscls-8tl1.29, after Blueprints' release has them (abscls-wqdl).
+- **`practice-threaded-module`, `practice-evaluator` and `cpu-evaluator-library`:** the threaded practice bot, with
+  its network on the GPU or on CPU workers (design 24, `botForms.ts`). abscls-8tl1.29, after abscls-wqdl.
+
+### By page
+
+Both sites have the home page, About, Notation, Notices, Privacy, Tools, Practice, the review, the Analysis board,
+the import page, the site map, the bookmarklet and the userscript. Cyanotype lacks these pages of Hedge School:
+
+- **How reviews work** (`/how-reviews-work`): where the labels, the accuracy, the hard positions and the meter come
+  from (designs 05, 10, 14 and 16). No issue yet.
+- **The board editor** (`/editor`): a position set up for the Analysis board (design 21). A position's notation waits
+  for it (item 10). No issue yet.
+- **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
+  18). No issue yet.
+- **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
+  the builds that serve the test book. No issue yet.
+- **Puzzles, Learn and the engine lab** (`/puzzles`, `/learn`, `/lab/engine`): prototypes, only in the full edition
+  (design 11). No issue yet.
+
+### By the parts of `src/lib`
+
+The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as features:
+
+- **The removal of earlier engine results after a release** (`game/earlierResults.ts`, design 20). abscls-8tl1.30.
+- **Review files, loaded and exported** (`game/reviewFile.ts`, the review's file input). abscls-8tl1.34.
+- **The review snapshot and the annotated export** (`review/annotate.ts`, `review/exportText.ts`, design 13): a
+  saved review that reopens under an earlier engine, and the annotated record from the store. abscls-8tl1.35.
+- **The area map** (`review/enclosureMap.ts`, design 30). abscls-8tl1.17 decides whether Blueprints has one ("No
+  area map yet").
+- **The player's games, kept in this browser** (`game/store.ts`, `game/import.ts`, `review/ReviewHome.svelte`,
+  `ui/ConfirmDialog.svelte`; designs 11 and 22): the Review tab's list of games, a pasted record, the last review
+  continued, a game's delete, and a game's own network and depth (design 09). Cyanotype's review keeps one game. No
+  issue yet.
+- **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). No issue yet.
+- **The Export menu and a review shared by link** (`ExportMenu.svelte`, `game/share.ts`, design 13). The menu's
+  review file is abscls-8tl1.34's, and its annotated record abscls-8tl1.35's. The link: no issue yet.
+- **The Analysis board's New menu and its files** (`analysis/NewMenu.svelte`, `game/analysisFile.ts`,
+  `game/paste.ts`; design 21): a set-up position, a pasted position or moves, and an analysis file loaded and
+  exported. No issue yet.
+- **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24). No issue
+  yet.
+- **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
+  `migrations/`; design 25), and an ended game in the player's games for its review. Cyanotype has no backend
+  ("Practice against Stamp Duty", item 2). No issue yet.
+- **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`; design 08), on the review and on Practice. No issue yet.
+- **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`; design 07, item 17).
+  No issue yet.
+- **The opening book** in the review and on the Analysis board (`book/`, design 32). No issue yet.
+- **The analytics and the consent** (`analytics.svelte.ts`, `ConsentBanner.svelte`, `AnalyticsAsk.svelte`,
+  `ui/CornerCard.svelte`, `measure.ts`, `internalTraffic.ts`, `analysis/settingChanges.ts`, `game/sources.ts`,
+  `hooks.client.ts`; designs 17, 25 and 27). No issue yet.
+- **Support Us** (`SupportDialog.svelte`, Ko-fi's panel; design 22). No issue yet.
+- **The site's menu on a narrow screen** (`SiteMenu.svelte`, design 22). On a phone, Cyanotype's header and footer
+  have no link to Practice, the review or the Analysis board. No issue yet.
+- **The logo** (`Collie.svelte`, `collie.ts`; design 12). Cyanotype has a wordmark ("Consequences"). No issue yet.
+- **The home page's board** (`home/HomeReplay.svelte`, design 22): scenes from reviewed games. No issue yet.
+- **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). No issue yet.
+- **The edition** (`edition.ts`, design 11): the early access, its mark in the header, and the full edition's pages.
+  No issue yet.
+- **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
+  kept review sent to the import page (`from=`). No issue yet.
+- **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
+  tools. Both play Enclosure only (item 3). No issue yet.
+
+### By setting
+
+- **The engine's settings** (design 09): the GPU choice (On, Auto, Off) and the GPU's first-use test,
+  abscls-8tl1.29. A game's own network and depth comes with the player's games: no issue yet. The other settings are
+  Hedge School's. Cyanotype's pool starts with 2 workers (`engineSettings.ts`).
+- **The display settings** (design 06): the move sounds (on or off, the sound, the volume), no issue yet. The area
+  map's settings (where it shows, its style, its thresholds, and the chart's area line), abscls-8tl1.17. The mark of
+  a book move, with the opening book: no issue yet. The board's layers of Enclosure (its regions, its invincible
+  edges): Blueprints has neither, no issue yet. Cyanotype adds "Move notation" (item 4).
+- **The review's settings** (what the labels judge, for whom, the win chance's form): the same.
+- **Practice's settings** (design 24): the bot's forms by the engine's GPU choice and workers, abscls-8tl1.29. The
+  sounds, no issue yet. The points' bar's switch and its form (a bar or a gauge), no issue yet, and its area lane,
+  which Blueprints has no area for: no issue yet.
+
 ## Why
 
 - **Hedge School's design is built and checked.** Its layout, its review and its quality labels hold for any game whose
@@ -709,7 +813,8 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
   markup, with each site's links and the game's credit. They are still each site's own, and move into the package in a
   later change (item 4).
 - `apps/cyanotype/engine.lock.json`: the engine's files ("The engine's files"), which `npm run engine` fetches into
-  `static/engine/` (not in Git).
+  `static/engine/` (not in Git). `engine.lock.exceptions.json` beside it: each kind of Hedge School's lock that it
+  lacks, with its issue, for the check `engine-kinds` (`scripts/engine-kinds.mjs`, "The gaps from Hedge School").
 - `apps/cyanotype/src/lib/board/panel.ts`: the hands' panel: its place and size, its limits, the resize handle, and
   the fit's choice of corner (`fitWithPanel`). `view.ts`, `fitAround`: the fit that keeps the hexes out from under it.
   `Board.svelte`, its prop `hands`: the hands in the board's box ("box", the lab's), in the panel ("panel") or under
