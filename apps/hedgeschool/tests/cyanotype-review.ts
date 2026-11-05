@@ -1,18 +1,27 @@
 // Cyanotype's review (its design 33) for the browser tests, on its preview (CYANOTYPE_BASE_URL): the review's test game
 // (apps/cyanotype/src/lib/review/fixtures/stamp-duty.txt, Stamp Duty against itself) up to the end of turn TURNS,
 // reviewed in the browser from the engine's real replies on the CPU, at Lite (512 visits a move), the stored review's
-// depth: with the release engine-3ac5c2fc, its first note is a Mistake at turn 15. The review takes about ten minutes.
-// The Tests workflow builds Cyanotype with the engine's files (design 33, "The engine's files"). A test skips, with a
-// message, when the preview has none, and fails in CI.
+// depth: with the release engine-3ac5c2fc, its first note is a Mistake at turn 15. The review takes about ten minutes,
+// and only cyanotype-review.spec.ts runs it. The layout test loads the stored review instead (STORED), and searches
+// nothing. The Tests workflow builds Cyanotype with the engine's files (design 33, "The engine's files"). A test skips,
+// with a message, when the preview has none, and fails in CI.
 import { expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
+import { STORES } from "../../../packages/storage/src/db.ts";
 
 export const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 const TURNS = 20;
 export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each other turn two
 export const DISPLAY = "cyanotype:review-display:1";
-const ENGINE = "cyanotype:engine:1";
+export const ENGINE = "cyanotype:engine:1";
+const GAME = "cyanotype:review-game:2"; // the id of the game in review
+/** The browser's store of analyses: the site's database (packages/storage/src/db.ts, NAME) and its store. */
+export const STORE = ["learn-enclosure", STORES.analysis] as const;
+/** The stored review: the results of a real review of the test game, and of the Analysis board's SPREAD_BOARD, with
+ *  the engine that made them. scripts/cyanotype-review-fixture.mjs writes it: run it again when Cyanotype's
+ *  engine.lock.json takes a new release. */
+export const STORED = "tests/fixtures/cyanotype-review.json";
 
 /** The test game's record up to the end of turn TURNS: its tags, but not its result, and its moves. */
 export function testRecord(): string {
@@ -62,4 +71,49 @@ export async function reviewTestGame(page: Page, display: object = {}) {
   }, [ENGINE, DISPLAY, display] as const);
   await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord())}`, CYANOTYPE).href);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 20 * 60_000 });
+}
+
+/** Puts the stored review's results (STORED) in the browser's store of analyses, with the display settings `display`,
+ *  and leaves the test game in review. The engine is off while the results go in, and then on when `on` says so, at
+ *  the stored results' 512 visits: its search of a position takes a stored result as deep (analysis.svelte.ts, search)
+ *  and searches nothing. The Analysis board needs it on, since it reads only its start and its variations from the
+ *  store, not a record's moves (GameAnalysis.fromStore). Fails when the preview's engine is not the one that made the
+ *  results. */
+export async function storeReview(page: Page, display: object = {}, on = false) {
+  const stored = JSON.parse(readFileSync(STORED, "utf8"));
+  const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json());
+  const model = manifest.artifacts.find((a: { kind: string; id: string }) => a.kind === "model" && a.id === stored.network);
+  const search = manifest.artifacts.find((a: { kind: string }) => a.kind === "module")?.search;
+  if (model?.sha256 !== stored.model || search !== stored.search)
+    throw new Error(`${STORED} holds the results of the search ${stored.search} with the network ${stored.network}, and ` +
+      `Cyanotype's preview serves another engine: run scripts/cyanotype-review-fixture.mjs again (its header says how)`);
+  await page.goto(new URL("/about", CYANOTYPE).href);
+  await page.evaluate(([e, d, shown]) => {
+    localStorage.setItem(e, JSON.stringify({ on: false, review: "lite", visits: 512 }));
+    localStorage.setItem(d, JSON.stringify(shown));
+  }, [ENGINE, DISPLAY, display] as const);
+  // The site makes its store as it keeps the game in review: then the results go in, beside it.
+  await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord())}`, CYANOTYPE).href);
+  await expect.poll(() => page.evaluate(k => localStorage.getItem(k), GAME), { timeout: 60_000 }).not.toBeNull();
+  await page.evaluate(([[name, store], entries]) => new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open(name);
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const tx = open.result.transaction(store, "readwrite");
+      for (const [key, value] of entries) tx.objectStore(store).put(value, key);
+      tx.oncomplete = () => { open.result.close(); resolve(); };
+      tx.onerror = tx.onabort = () => reject(tx.error);
+    };
+  }), [STORE, stored.analyses as [string, unknown][]] as const);
+  if (!on) return;
+  await page.goto(new URL("/about", CYANOTYPE).href);
+  await page.evaluate(e => localStorage.setItem(e, JSON.stringify({ on: true, review: "lite", visits: 512, seconds: null })), ENGINE);
+}
+
+/** The test game's review from the stored review (storeReview), with the engine off and the display settings
+ *  `display`: done once the network loads, with no search. */
+export async function storedReview(page: Page, display: object = {}) {
+  await storeReview(page, display);
+  await page.goto(new URL("/review", CYANOTYPE).href);
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
 }

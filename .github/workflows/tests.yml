@@ -29,11 +29,13 @@ defaults:
 
 jobs:
   # The time limits allow for Cyanotype's engine tests, which run here since its build has the engine's release files.
-  # Its review of the test game takes about 15 minutes, and runs twice on Linux (cyanotype-review.spec.ts and the
-  # layout test) and once on Windows. Before them the Linux job took about 16 minutes and the Windows job 12.
+  # Only the Linux job reviews the test game with the engine, once (cyanotype-review.spec.ts): 10 to 19 minutes on the
+  # runners, and the practice games 3 to 7 more. The layout test loads a stored review, so the Windows job runs no
+  # review. Without the engine tests the Linux job took about 16 minutes and the Windows job 12, so the Linux job takes
+  # up to about 45 minutes, and the Windows job about 15. Each limit leaves a margin for a slow runner.
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -96,7 +98,7 @@ jobs:
   # runner's image.
   test-windows:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
