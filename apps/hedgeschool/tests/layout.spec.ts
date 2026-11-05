@@ -22,7 +22,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { loadReviewFile } from "./review-file.ts";
-import { REFUSED, SPREAD_BOARD, noReview, storeReview, storedReview, toolLink } from "./cyanotype-review.ts";
+import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewTestGame, storeReview, toolLink }
+  from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
@@ -158,8 +159,9 @@ for (const [site, urls] of Object.entries({
 
 // Cyanotype's Practice (its design 33, "Practice against Stamp Duty"), when CYANOTYPE_BASE_URL gives its preview. The
 // page as the site's build gives it: the settings card with the engine's files (the Tests workflow's build has them),
-// a notice without them (a build made before `npm run engine`). With the practice bot, a game in progress, the player to move: the lab's middle game, Stamp Duty's own moves
-// (apps/cyanotype/src/lib/board/fixtures.json). Besides the sweep, design 06's window sizes, 2,560 x 1,440 among them.
+// a notice without them (a build made before `npm run engine`). With the practice bot, a game in progress, the player
+// to move: the lab's middle game, Stamp Duty's own moves (apps/cyanotype/src/lib/board/fixtures.json). Besides the
+// sweep, design 06's window sizes, 2,560 x 1,440 among them.
 // The page's own rules: the status line shows its whole text, the hands' panel stays on the board, and in one column
 // (under 800 pixels) the field is at least as high as it is wide.
 const CYANOTYPE_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
@@ -210,19 +212,23 @@ test("layout of a practice game on Cyanotype", async ({ page }) => {
 
 // Cyanotype's review and Analysis board (its design 33), when CYANOTYPE_BASE_URL gives its preview with the engine's
 // files: the review's test game up to turn 20, and the Analysis board on the practice bot's position of more views,
-// with its candidates. Both from the stored review (cyanotype-review.ts, storeReview): the review with the engine off,
-// and the board with the engine on, whose search takes the stored result. Nothing searches here: only
-// cyanotype-review.spec.ts reviews the test game with the engine. Besides the sweep, design 06's window sizes.
+// with its candidates. Both cases load the stored review (cyanotype-review.ts, storeReview), and nothing searches
+// here: only cyanotype-review.spec.ts reviews the test game with the engine. The review has the engine off. The board
+// shows "Not analyzed yet." with the engine off, though the store holds the result of its position. So the board has
+// the engine on, and its search takes the stored result. Each case checks that the page asked the engine for no
+// search (expectNoSearch). Besides the sweep, design 06's window sizes.
 for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as const) {
   test(`layout of Cyanotype's ${name}`, async ({ page }) => {
     const skip = await noReview(page);
     test.skip(!!skip, skip);
     if (path) {
-      await storeReview(page, {}, true);
+      await storeReview(page, {}, { on: true });
       await page.goto(new URL(path, CYANOTYPE).href);
       await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
-      await expect(page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]").first()).toBeVisible({ timeout: 120_000 });
-    } else await storedReview(page);
+      const candidates = page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]");
+      await expect(candidates.first()).toBeVisible({ timeout: 120_000 });
+    } else await reviewTestGame(page, {}, { stored: true });
+    await expectNoSearch(page);
     const found = await problemsAtSizes(page);
     expect([await sweep(page, `Cyanotype's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
   });
