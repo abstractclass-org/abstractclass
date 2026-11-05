@@ -80,12 +80,10 @@ jobs:
           npx --yes wrangler@4.144.0 pages deploy build "${args[@]}"
 
   # The hub at abstractclass.org (design 26, item 3; docs/hosting.md, "The hub"): its files in apps/hub/public, as they
-  # are, with no build, to the Pages project that the repository variable HUB_PAGES_PROJECT names. A push to main
-  # deploys the live hub, and a push to another branch a preview, as for the site. While the variable is empty, the job
-  # is skipped, and the workflow passes without it. Wrangler is the site job's version. It runs in apps/hub, which has
-  # no functions/ folder: in the workflow's default folder, it would upload Hedge School's Function with the hub.
+  # are, with no build, to the Pages project abstractclass. A push to main deploys the live hub, and a push to another
+  # branch a preview, as for the site. Wrangler is the site job's version. It runs in apps/hub, which has no functions/
+  # folder: in the workflow's default folder, it would upload Hedge School's Function with the hub.
   hub:
-    if: vars.HUB_PAGES_PROJECT != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -103,10 +101,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT: ${{ vars.HUB_PAGES_PROJECT }}
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          args=(--project-name="$PROJECT" --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
+          args=(--project-name=abstractclass --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
           first=${MESSAGE%%$'\n'*}
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
           npx --yes wrangler@4.144.0 pages deploy public "${args[@]}"

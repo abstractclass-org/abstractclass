@@ -20,7 +20,7 @@ entries before it).
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout test on Windows ("Deploy, check and roll back"). |
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
-| The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project that `HUB_PAGES_PROJECT` names | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
+| The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
 | Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project that `CYANOTYPE_PAGES_PROJECT` names | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with no Function and no analytics (section 9). |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
@@ -331,9 +331,10 @@ the next visit).
 
 The hub is the organization's front page at `abstractclass.org` ([design 26](design/26-one-repository.md), item 3).
 It is the folder `apps/hub/public`: static files, with no build, no script, no cookie and nothing kept in the browser.
-Its own Pages project serves it, apart from Hedge School's. The job `hub` of the workflow **Deploy** uploads the folder
-with Wrangler on each push: `main` to production, another branch to a preview at `<branch>.<project>.pages.dev`. The
-job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so the workflow passes without it.
+Its own Pages project, `abstractclass`, serves it, apart from Hedge School's. The job `hub` of the workflow **Deploy**
+uploads the folder to that project with Wrangler on each push: `main` to production, another branch to a preview at
+`<branch>.<project>.pages.dev`. It uses the secret `CLOUDFLARE_API_TOKEN`, as the site's job does: the token's
+permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account.
 
 - **Its headers** (`apps/hub/public/_headers`): a Content Security Policy that lets the page load only its own style
   sheets and images (no script, no frame, no form), `nosniff`, no framing by other sites, only the origin as the
@@ -373,20 +374,14 @@ job is skipped while the repository variable `HUB_PAGES_PROJECT` is empty, so th
    CNAME to the project's `pages.dev` address, which Cloudflare flattens at the bare domain). The bare domain has no
    other record ("Not part of the site", below). The domain shows **Active** when its certificate is ready, in
    minutes.
-4. **Set the variable.** On GitHub, in the repository's **Settings → Secrets and variables → Actions**, on the tab
-   **Variables**, select **New repository variable**. Name: `HUB_PAGES_PROJECT`. Value: the project's name,
-   `abstractclass`. A repository variable applies to every branch. The secret `CLOUDFLARE_API_TOKEN` needs no change:
-   its permission (Account, Cloudflare Pages, Edit) covers every Pages project of the account. From now on, each push
-   deploys the hub: a push to `dev` deploys a preview at `dev.abstractclass.pages.dev`, and a release
-   (`git push origin dev:main`) deploys the live hub.
-5. **Check:**
+4. **Check:**
    - `https://abstractclass.org` shows the hub.
    - In the project's **Deployments**, the first deployment is under **Production**, not under **Preview**.
    - The page's response has the header `Content-Security-Policy`, and `https://abstractclass.pages.dev` answers with
      `X-Robots-Tag: noindex` (the browser's developer tools, **Network**, the page's first request).
    - After the next push to `dev`, in GitHub's **Actions → Deploy**, the run's job `hub` passed, and
      `https://dev.abstractclass.pages.dev` shows the hub.
-6. **End Wrangler's login** on the computer, if you do not use Wrangler there: `npx wrangler@4.144.0 logout`.
+5. **End Wrangler's login** on the computer, if you do not use Wrangler there: `npx wrangler@4.144.0 logout`.
 
 `www.abstractclass.org` has no record and is not part of the hub.
 
