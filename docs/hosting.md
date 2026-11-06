@@ -296,7 +296,8 @@ rows reached 7 in one interval of 5 minutes, so an alert on the edge status woul
 an origin status of 500 or more.
 
 A deployment that succeeds sends no email: each push to `dev` deploys a preview, and those emails would be noise. The
-weekly Web Analytics summary is not set ([decisions/open-items.md](decisions/open-items.md)).
+weekly Web Analytics summary stays off: Cloudflare's Web Analytics and Google Analytics show the same visits, pages and
+speed ([design 17](design/17-measurement.md)), so the email would only repeat them.
 
 **The dashboard "Error monitoring"** (**Observability → Dashboards**, from Cloudflare's template): the 4xx and 5xx
 answers over time, the origin's errors, the status codes, and the top paths of 4xx and 5xx answers. It reads
