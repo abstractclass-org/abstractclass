@@ -648,8 +648,8 @@ the import page, the site map, the bookmarklet and the userscript. Cyanotype lac
 
 - **How reviews work** (`/how-reviews-work`): where the labels, the accuracy, the hard positions and the meter come from
   (designs 05, 10, 14 and 16). abscls-8tl1.37.
-- **The board editor** (`/editor`): a position set up for the Analysis board (design 21). A position's notation waits
-  for it ("Decision", item 10). abscls-8tl1.39.
+- **The board editor** (`/editor`): a position set up for the Analysis board (design 21), and the home page's way in
+  to it ("Set up a position", design 22). A position's notation waits for it ("Decision", item 10). abscls-8tl1.39.
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
   18). abscls-8tl1.51. The page describes what Cyanotype takes today, since partner sites are left out (below).
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
@@ -670,7 +670,8 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The player's games, kept in this browser** (`game/store.ts`, `game/import.ts`, `review/ReviewHome.svelte`,
   `ui/ConfirmDialog.svelte`, designs 11 and 22): the Review tab's list of games, a pasted record, the last review
   continued, a game's delete, a game's own network and depth (design 09), and the request to the browser to keep the
-  stored games (`@abstractclass/storage/persist.ts`). Cyanotype's review keeps one game. abscls-8tl1.38.
+  stored games (`@abstractclass/storage/persist.ts`). Cyanotype's review keeps one game. With the pasted record, the
+  home page's way in to the review for a record ("Review a game you played", design 22). abscls-8tl1.38.
 - **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). abscls-8tl1.38.
 - **The Export menus and the links** (`ExportMenu.svelte`, designs 13 and 21). The review's menu: its review file
   (abscls-8tl1.34), its annotated record (abscls-8tl1.35) and its link (`game/share.ts`, abscls-8tl1.41). The Analysis

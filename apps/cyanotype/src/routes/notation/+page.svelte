@@ -45,7 +45,8 @@
   <p>This page describes how {SITE_NAME} writes the moves of Blueprints and a whole game. The moves are
     strategyjam.org's own: its game page and its move list show the same strings. A <strong>game record</strong> holds
     a whole game, as PGN records a chess game. The page is for anyone who writes a program that reads or writes them.
-    {SITE_NAME}'s review reads game records in this notation, and {ENGINE_NAME}, its engine, speaks its moves.</p>
+    {SITE_NAME}'s review reads game records in this notation. {ENGINE_NAME}, the site's engine, uses the same
+    moves.</p>
 
   <h2>The board</h2>
   <p>The board is a grid of hexes with no edge. A hex is two numbers, <code>q,r</code>, in axial coordinates:</p>

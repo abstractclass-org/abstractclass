@@ -9,7 +9,7 @@
   // A home page's board (Hedge School's design 22): scenes from reviewed games, played on the site's board as the review
   // shows a game judged by move: the engine's candidates before each move, and each move's label on it. Each site gives
   // its frames and draws them on its own board (`board`). A move every 1 to 2 seconds, at random, as players take their
-  // time; a longer hold before a scene's labelled move, with the engine's choices on the board, and on the label after
+  // time. A longer hold before a scene's labelled move, with the engine's choices on the board, and on the label after
   // it. The first frame is in the page (`still`), and the scenes load after it shows (`load`). The board stops while
   // the pointer is on it and while the page is hidden. With reduced motion, it shows the first scene's labelled move,
   // still.

@@ -17,8 +17,7 @@
     <li><strong><a href="/practice">Practice</a>:</strong> play {ENGINE_NAME}, the site's bot, at the strength that you
       choose.</li>
     <li><strong><a href="/review">The review</a>:</strong> bring a game from strategyjam.org with the
-      <a href="/tools">tools</a>. The engine shows where the game turned, which moves cost you points, and what was
-      better.</li>
+      <a href="/tools">tools</a>. The engine shows where the game turned, which moves cost you, and what was better.</li>
     <li><strong><a href="/analysis">The Analysis board</a>:</strong> play any line, and the engine searches the position
       on the screen.</li>
   </ul>

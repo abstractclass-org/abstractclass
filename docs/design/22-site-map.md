@@ -105,7 +105,8 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      scrolls.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
-     candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`). The board alone: no
+     candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`, on the shared replay
+     `packages/site/src/Replay.svelte`, which holds the timing below). The board alone: no
      caption, and no row of players, scores or win chance above it, which were more than the home page needs. An edge
      every 1 to 2 seconds, at random, as players take their time. Each scene is the 9 turns
      before a game's latest edge with a bad label, and that edge. It holds before that edge and on its label. The
