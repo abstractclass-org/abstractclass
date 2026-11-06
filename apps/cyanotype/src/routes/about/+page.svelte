@@ -1,5 +1,5 @@
 <script lang="ts">
-  // About Cyanotype (design 33): the game, the engine, the names, and the site's sister site.
+  // About Cyanotype (design 33): what the site does, the game and the engine.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
@@ -7,13 +7,21 @@
 </script>
 
 <PageMeta title="About · {SITE_NAME}"
-          description="What Cyanotype is: a site that helps you learn Blueprints, where an engine in your browser will review your games." />
+          description="What Cyanotype is: a site that helps you learn Blueprints, with practice games, reviews of your games and an Analysis board, by an engine that runs in your browser." />
 
 <main class={PROSE}>
   <h1>About {SITE_NAME}</h1>
   <p>{SITE_NAME} helps you learn Blueprints, the game of the Fall 2026 strategy jam on
-    <a href="https://strategyjam.org">strategyjam.org</a>. The site is new. For now it describes the game's
-    <a href="/notation">notation</a>. Reviews of your games and an Analysis board come next.</p>
+    <a href="https://strategyjam.org">strategyjam.org</a>.</p>
+  <ul>
+    <li><strong><a href="/practice">Practice</a>:</strong> play {ENGINE_NAME}, the site's bot, at the strength that you
+      choose.</li>
+    <li><strong><a href="/review">The review</a>:</strong> bring a game from strategyjam.org with the
+      <a href="/tools">tools</a>. The engine shows where the game turned, which moves cost you points, and what was
+      better.</li>
+    <li><strong><a href="/analysis">The Analysis board</a>:</strong> play any line, and the engine searches the position
+      on the screen.</li>
+  </ul>
 
   <h2>The game</h2>
   <p>Blueprints uses a grid of hexes with no edge. Each player holds three blueprints: shapes of cells that the
@@ -28,19 +36,9 @@
   <p>Blue makes one move, then each player makes two moves a turn. The game ends after 120 moves.</p>
 
   <h2>The engine</h2>
-  <p>{ENGINE_NAME} is the engine that will review your games, and later the bot that you can practice against. It is
-    a neural network trained for Blueprints, with a search from <a href="https://github.com/lightvector/KataGo">KataGo</a>.
-    It will run in your browser, on your computer, so a review needs no server.</p>
-
-  <h2>The names</h2>
-  <p>A cyanotype is a print in white lines on Prussian blue, made by sunlight. Architects and engineers used the
-    process to copy their drawings, and people called the copies blueprints. Stamp duty is a tax on property, and a
-    stamp is the game's main move.</p>
-
-  <h2>Hedge School</h2>
-  <p>{SITE_NAME} is the sister site of <a href="https://hedgeschool.abstractclass.org">Hedge School</a>, which helps
-    you learn Enclosure. The two sites share their design and their code. Only the parts of each game are
-    different.</p>
+  <p>{ENGINE_NAME} is the engine of the review and the Analysis board, and the bot in Practice. It is a neural network
+    trained for Blueprints, with a search from <a href="https://github.com/lightvector/KataGo">KataGo</a>. It runs in
+    your browser, on your computer, so it needs no server.</p>
 
   <h2>Changes</h2>
   <p>Everything here can change: the pages and their addresses, the notation, and what the site keeps in your

@@ -45,8 +45,7 @@
   <p>This page describes how {SITE_NAME} writes the moves of Blueprints and a whole game. The moves are
     strategyjam.org's own: its game page and its move list show the same strings. A <strong>game record</strong> holds
     a whole game, as PGN records a chess game. The page is for anyone who writes a program that reads or writes them.
-    {SITE_NAME}'s review will read game records in this notation, and {ENGINE_NAME}, its engine, will speak its
-    moves.</p>
+    {SITE_NAME}'s review reads game records in this notation, and {ENGINE_NAME}, its engine, speaks its moves.</p>
 
   <h2>The board</h2>
   <p>The board is a grid of hexes with no edge. A hex is two numbers, <code>q,r</code>, in axial coordinates:</p>
@@ -188,8 +187,8 @@
     <code>1@0,3x+8??</code>.</p>
   <pre>{MARKED}</pre>
   <p>A judgement of one move stays in a comment. A reader accepts a mark after any move, and can ignore it. The review
-    will mark its quality labels by turn, as Hedge School's does: Great <code>!</code>, Inaccuracy <code>?!</code>,
-    Mistake <code>?</code> and Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
+    will mark its quality labels by turn: Great <code>!</code>, Inaccuracy <code>?!</code>, Mistake <code>?</code> and
+    Blunder <code>??</code>. Best, Excellent and Good have no mark, as PGN has none for them.</p>
 
   <h3>Commands in comments</h3>
   <p>A comment after a move can hold commands, as Lichess writes the clock and the evaluation:</p>
