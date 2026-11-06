@@ -2,8 +2,10 @@
 # turn 20 (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts).
 # Update this file only as the test's header says. The commit message says why each label moved.
 # "-": no label.
-# Labels by move: excellent 14, good 6, best 12, inaccuracy 6, mistake 1
-# Labels by turn: excellent 7, good 5, best 1, inaccuracy 6, mistake 1
+# Labels by move: best 12, excellent 14, good 6, inaccuracy 6, mistake 1
+# Labels by turn: best 1, excellent 7, good 5, inaccuracy 6, mistake 1
+# Turns of two moves in the other order than the engine's best turn: 0
+# Positions with a twin: none. Played moves that are a twin: 0
 
 [by move]
   1  turn  1  Blue  1:-1,1>2:0,-1     excellent

@@ -29,7 +29,7 @@
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import { loadEngine, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import { openStored } from "#lib/review/storedReview.ts";
+  import { startChecked } from "#lib/review/storedReview.ts";
   import { gamePage, parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { REVIEW_GAME_KEY, SITE_NAME } from "#lib/site.ts";
 
@@ -91,10 +91,11 @@
         ? warmCache(search, model, Array.from({ length: moves.length + 1 }, (_, i) => moves.slice(0, i)), SWEEP_VISITS).catch(() => {})
         : Promise.resolve();
       const g = await session.start(pool => new GameAnalysis(blueprints, pool, moves, kept!.id), async (g, pool) => {
-        // The rules, the record's capture marks, then the stored results (storedReview.ts, which the label snapshot
-        // takes too)
-        const problem = await openStored(g, record, budget, pool.search && model ? { search: pool.search, model } : null, warm);
+        // The rules, then the record's capture marks (storedReview.ts, whose steps the label snapshot takes too)
+        const problem = await startChecked(g, record, budget);
         if (problem) { error = `${SITE_NAME} cannot review this game: ${problem}`; return; }
+        await warm;
+        if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
         preloaded = true;
         game = g;
       });
