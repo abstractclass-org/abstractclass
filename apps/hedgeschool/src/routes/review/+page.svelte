@@ -18,7 +18,7 @@
   import { ReviewBar } from "@abstractclass/review/progress.svelte.ts";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
-  import ExportMenu from "#lib/ExportMenu.svelte";
+  import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import { MediaQuery } from "svelte/reactivity";
   import Arrival from "#lib/review/Arrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
@@ -44,6 +44,7 @@
   import { startWithBook } from "#lib/review/storedReview.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { trackExport } from "#lib/game/sources.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "#lib/measure.ts";
   import { deliverExport, reviewExports, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
@@ -401,7 +402,7 @@
     {#snippet tools(unit)}
       <!-- Export (design 13): the review file, with the engine's results, or the annotated record, labelled by the
            view's unit. -->
-      <ExportMenu icon run={kind => exportAs(kind, unit)} ready={reviewDone} items={reviewExports(partnerName)}
+      <ExportMenu icon run={kind => exportAs(kind, unit)} ready={reviewDone} items={reviewExports(partnerName)} ontrack={trackExport}
                   why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />
     {/snippet}
   </ReviewView>

@@ -168,14 +168,18 @@ searching it again, and to share it as text that others can read.
 
 - `src/lib/game/reviewFile.ts` (the file: build, read, merge, export, import, `deliverExport`, the menu's entries
   `reviewExports`),
-  `src/lib/review/annotate.ts` (the annotated record), `packages/analysis/src/cache.ts` (`cacheGetAtLeast`,
+  `src/lib/review/annotate.ts` (the annotated record, Enclosure's part), `packages/analysis/src/annotate.ts` (the
+  annotated record's frame, which Cyanotype shares), `packages/analysis/src/files.ts` (a site's file read, the
+  results that belong in a file), `packages/analysis/src/cache.ts` (`cacheGetAtLeast`,
   `readAnalysisKey`), `packages/storage/src/db.ts` (`dbEntriesWhere`, `dbPutMany`), `src/lib/game/record.ts`
   (`writeTags`).
-- `src/lib/ExportMenu.svelte` (the menu), `src/lib/review/exportText.ts` (`annotatedText`, `annotatedFromStore`),
+- `packages/review/src/ExportMenu.svelte` (the menu, which Cyanotype shares, with each page's entries in
+  `packages/review/src/exports.ts`'s form), `src/lib/review/exportText.ts` (`annotatedText`, `annotatedFromStore`),
   `packages/analysis/src/analysis.svelte.ts` (`fromStore`: a review from the stored results only).
 - `src/routes/review/+page.svelte` (`exportAs`), `packages/review/src/ReviewView.svelte` (the menu's place),
   `src/lib/review/ReviewHome.svelte` (the menu beside each game, Load a review file, the drop).
-- The share link: `src/lib/game/share.ts` (the format), `shareLink` and `importShare` in `src/lib/game/reviewFile.ts`,
+- The share link: `packages/analysis/src/share.ts` (the format, with each site's moves as a parameter),
+  `src/lib/game/share.ts` (Enclosure's moves), `shareLink` and `importShare` in `src/lib/game/reviewFile.ts`,
   the recipient's page in `src/lib/review/Arrival.svelte`, `withOwn` in `src/lib/analysis/engineSettings.ts`.
 - The tests: `src/lib/game/reviewFile.test.ts`, `src/lib/review/annotate.test.ts`, `src/lib/game/share.test.ts`.
 

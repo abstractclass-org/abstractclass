@@ -1,12 +1,15 @@
 <script lang="ts">
-  // The Analysis board's New menu (design 21), beside its Export: every way to start the board again. The standard
-  // start, a position set up in the board editor, a position or moves imported, or an analysis file loaded (design
-  // 22's words). Each replaces the analysis kept here, after the board asks. Its button is an icon, as Export's beside
-  // it, so that the step bar's tools fit beside the steps on a phone (design 06, item 4).
+  // The Analysis board's New menu (Hedge School's design 21), beside its Export: every way to start the board again. The
+  // standard start, a position set up in the board editor, a position or moves imported, or an analysis file loaded
+  // (Hedge School's design 22's words). Each replaces the analysis kept here, after the board asks. A site leaves out
+  // the ways it does not have yet (`editor`, `onimport`, with the Import's hint `importHint`). `site` names the site
+  // whose files the board loads. Its button is an icon, as Export's beside it, so that the step bar's tools fit beside
+  // the steps on a phone (Hedge School's design 06, item 4).
   import { DropdownMenu } from "bits-ui";
   import Icon from "@abstractclass/site/Icon.svelte";
-  let { editor, onstart, onimport, onload }:
-    { editor: string; onstart: () => void; onimport: () => void; onload: (file: File) => void } = $props();
+  let { site, editor, onstart, onimport, importHint = "", onload }:
+    { site: string; editor?: string; onstart: () => void; onimport?: () => void; importHint?: string;
+      onload: (file: File) => void } = $props();
 
   let fileInput = $state<HTMLInputElement>();
 </script>
@@ -20,14 +23,18 @@
       <DropdownMenu.Item class="menu-item" onSelect={onstart}>
         Standard start<span class="block text-xs text-muted">A new analysis from the game's start.</span>
       </DropdownMenu.Item>
-      <DropdownMenu.Item class="menu-item" onSelect={() => location.assign(editor)}>
-        Board editor<span class="block text-xs text-muted">Set up a position, from the one on screen.</span>
-      </DropdownMenu.Item>
-      <DropdownMenu.Item class="menu-item" onSelect={onimport}>
-        Import a position or moves…<span class="block text-xs text-muted">A game record, finished or not, a list of edges, or a position.</span>
-      </DropdownMenu.Item>
+      {#if editor}
+        <DropdownMenu.Item class="menu-item" onSelect={() => location.assign(editor)}>
+          Board editor<span class="block text-xs text-muted">Set up a position, from the one on screen.</span>
+        </DropdownMenu.Item>
+      {/if}
+      {#if onimport}
+        <DropdownMenu.Item class="menu-item" onSelect={onimport}>
+          Import a position or moves…<span class="block text-xs text-muted">{importHint}</span>
+        </DropdownMenu.Item>
+      {/if}
       <DropdownMenu.Item class="menu-item" onSelect={() => fileInput?.click()}>
-        Load an analysis file…<span class="block text-xs text-muted">A file that Hedge School exported: it opens with its results.</span>
+        Load an analysis file…<span class="block text-xs text-muted">A file that {site} exported: it opens with its results.</span>
       </DropdownMenu.Item>
     </DropdownMenu.Content>
   </DropdownMenu.Portal>

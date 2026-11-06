@@ -499,7 +499,28 @@ gives the measurements that led to each choice.
     accepts replaces the board kept here. When that board has moves, the board first asks "Replace your analysis?":
     "Keep mine" keeps it. The question is Hedge School's (its design 21, item 6), in `packages/review`
     (`ReplaceAnalysis.svelte`), which both boards use.
-12. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
+12. **The Export menus and the links,** as Hedge School's (its designs 13 and 21), in the shared menu
+    (`packages/review/src/ExportMenu.svelte`):
+    - **The Analysis board's Export:** a link that shares the board (`/analysis#packed=…`, `src/lib/game/board.ts`),
+      the analysis file (`src/lib/game/analysisFile.ts`, format `cyanotype-analysis`), and the annotated record, copied
+      or as a file (`src/lib/review/annotate.ts`). The record writes each move with its capture mark, and the engine's
+      choice by its name ("Blunder. 3@4,-1 1@6,-3 was best."). Its New menu (`packages/review/src/NewMenu.svelte`) has
+      the standard start and "Load an analysis file". A file loads as Hedge School's does: its results go to the
+      browser's store, and its lines to the board's address, so that the board asks before it replaces its analysis.
+    - **The review's Export,** once the review is done: a link that shares the review (`/review#packed=…`,
+      `src/lib/game/share.ts`, `src/lib/review/reviewExports.ts`). The review file (abscls-8tl1.34) and the annotated
+      record (abscls-8tl1.35) add their entries after it. The link's page (`src/lib/review/SharedArrival.svelte`)
+      says what the link holds and what the sender's review ran with, before it keeps the game.
+    - **The recipient's review uses the recipient's engine settings.** Cyanotype keeps no network and depth for one
+      game yet (abscls-8tl1.38), so the page says when the sender's differ, and that some quality labels can differ
+      then. Hedge School's page keeps the sender's for that game.
+    - **Blueprints' moves in a link** (the shared format, `packages/analysis/src/share.ts`): a move's kind in 2 bits
+      (a placement, an edit or a pass), then each blueprint's number in 2 bits and each coordinate as a signed Elias
+      gamma (1 bit for 0, 3 bits for -1 and 1). The review's test game (`src/lib/review/fixtures/stamp-duty.txt`, 106
+      placements and 14 edits) takes 19.5 bits a move, as an Enclosure edge takes 18. With its 10 tags (184 bytes),
+      its link has 706 characters, within a Discord message's 2,000 (`src/lib/game/share.test.ts`).
+    - **A set-up start:** a link or a file that names one does not open, and says why ("Decision", item 10).
+13. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
     issue. The review keeps one game in this browser: `#record=` in a link brings one, and the import page sends one
     so ("How a game comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page is
     open.
@@ -699,23 +720,23 @@ the import page, the site map, the bookmarklet and the userscript. Cyanotype lac
 The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as features:
 
 - **The removal of earlier engine results after a release** (`game/earlierResults.ts`, design 20). abscls-8tl1.30.
-- **Review files, loaded and exported** (`game/reviewFile.ts`, the review's file input). abscls-8tl1.34.
-- **The review snapshot and the annotated export** (`review/annotate.ts`, `review/exportText.ts`, design 13): a
-  saved review that reopens under an earlier engine, and the annotated record from the store. abscls-8tl1.35.
+- **Review files, loaded and exported** (`game/reviewFile.ts`, the review's file input, and the review file in the
+  review's Export menu). abscls-8tl1.34.
+- **The review snapshot and the annotated export** (`review/exportText.ts`, design 13): a saved review that reopens
+  under an earlier engine, and the annotated record from the store and in the review's Export menu. The record's
+  writer is shared (`packages/analysis/src/annotate.ts`), and the Analysis board's Export uses it. abscls-8tl1.35.
 - **The area map** (`review/enclosureMap.ts`, design 30). abscls-8tl1.17 decides whether Blueprints has one ("No
   area map yet").
 - **The player's games, kept in this browser** (`game/store.ts`, `game/import.ts`, `review/ReviewHome.svelte`,
   `ui/ConfirmDialog.svelte`, designs 11 and 22): the Review tab's list of games, a pasted record, the last review
   continued, a game's delete, a game's own network and depth (design 09), and the request to the browser to keep the
   stored games (`@abstractclass/storage/persist.ts`). Cyanotype's review keeps one game. With the pasted record, the
-  home page's way in to the review for a record ("Review a game you played", design 22). abscls-8tl1.38.
+  home page's way in to the review for a record ("Review a game you played", design 22). Until then, a shared
+  review's game keeps no network and depth of its own: its review uses the recipient's ("The review and the Analysis
+  board", item 12). abscls-8tl1.38.
 - **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). abscls-8tl1.38.
-- **The Export menus and the links** (`ExportMenu.svelte`, designs 13 and 21). The review's menu: its review file
-  (abscls-8tl1.34), its annotated record (abscls-8tl1.35) and its link (`game/share.ts`, abscls-8tl1.41). The Analysis
-  board's menu: its analysis file (`game/analysisFile.ts`), its annotated record and its link (`game/board.ts`),
-  abscls-8tl1.41.
-- **The Analysis board's New menu** (`analysis/NewMenu.svelte`, `game/paste.ts`, design 21): a set-up position, a pasted
-  position or moves, and an analysis file loaded. abscls-8tl1.39.
+- **The Analysis board's New menu's other ways** (`game/paste.ts`, design 21): the board editor and a pasted position
+  or moves. Cyanotype's New menu has the standard start and an analysis file loaded. abscls-8tl1.39.
 - **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24).
   abscls-8tl1.40.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
@@ -948,6 +969,12 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `hexesAlong`).
   `packages/review/src/ReplaceAnalysis.svelte`: the board's question before a record replaces the analysis kept here,
   which both sites' boards use.
+- The Export menus and the links ("The review and the Analysis board", item 12): `src/lib/game/share.ts` (Blueprints'
+  moves in a link, the review's link and its record), `board.ts` (the board's link), `analysisFile.ts` (the analysis
+  file), `src/lib/review/annotate.ts` (the annotated record), `reviewExports.ts` (the review's entries),
+  `keptGame.ts` (the game in review, kept in this browser) and `SharedArrival.svelte` (a shared review's page), with
+  their tests. The shared parts: `packages/analysis/src/share.ts`, `boardLink.ts`, `files.ts` and `annotate.ts`, and
+  `packages/review/src/ExportMenu.svelte`, `exports.ts` and `NewMenu.svelte` (design 29, "Where it is").
 - `apps/hedgeschool/tests/cyanotype-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and
   `layout.spec.ts` its layout. `cyanotype-notes.spec.ts`: the notes on the Analysis board and on Practice, with
   `cyanotype-notes.ts`, which the review's test, the layout test of the board with notes and Hedge School's test of

@@ -6,25 +6,29 @@
   // the player looks (Hedge School's design 05). The engine's settings apply as they change.
   //
   // Cyanotype has no list of games yet: this browser keeps each game that it reviews (its record) in the browser's
-  // store of games (@abstractclass/storage/db.ts, STORES.games), under the game's id, and local storage names the game
-  // in review. The analysis keeps a game's variations only while its game is in that store. A record that comes after
-  // the `#` (`#record=`, from the import page or a link) becomes the game in review, and leaves the address at once, so
-  // that a reload keeps the review. The engine's results are kept by position (@abstractclass/analysis/cache.ts), so a
-  // review opened again shows them at once.
+  // store of games (keptGame.ts), under the game's id, and local storage names the game in review. The analysis keeps a
+  // game's variations only while its game is in that store. A record that comes after the `#` (`#record=`, from the
+  // import page or a link) becomes the game in review, and leaves the address at once, so that a reload keeps the
+  // review. A shared review (`#packed=`, game/share.ts) leaves the address too, and the page says what it holds before
+  // it keeps the game (SharedArrival.svelte). The engine's results are kept by position
+  // (@abstractclass/analysis/cache.ts), so a review opened again shows them at once. Once the review is done, its
+  // Export menu shares it by link (reviewExports.ts).
   import { onDestroy, onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { MediaQuery } from "svelte/reactivity";
   import ReviewView, { WIDE, reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
   import { ReviewBar } from "@abstractclass/review/progress.svelte.ts";
+  import type { ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
   import { LABEL_VISITS, SWEEP_VISITS, warmCache } from "@abstractclass/analysis/cache.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { review, type GameEnding } from "@abstractclass/analysis/model.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { modelOf, moduleOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
-  import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
+  import { readLocal } from "@abstractclass/storage/local.ts";
+  import { STORES, dbGet } from "@abstractclass/storage/db.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import { blueprints, type Blueprints, type ReviewData } from "#lib/review/blueprints.ts";
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
@@ -32,12 +36,16 @@
   import { startChecked } from "#lib/review/storedReview.ts";
   import { gamePage, parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { REVIEW_GAME_KEY, SITE_NAME } from "#lib/site.ts";
+  import { keepGame, type KeptGame } from "#lib/review/keptGame.ts";
+  import { REVIEW_EXPORTS, deliverExport } from "#lib/review/reviewExports.ts";
+  import SharedArrival from "#lib/review/SharedArrival.svelte";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
 
   let game = $state<GameAnalysis<Blueprints> | null>(null);
   let kept = $state.raw<{ id: string; record: GameRecord } | null>(null); // the game in review
   let none = $state(false); // this browser has no game to review
+  let packed = $state<string | null>(null); // a shared review's link, which the page shows first
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree
   const engine = $state(loadEngine());
@@ -59,27 +67,16 @@
   const bar = new ReviewBar({ game: () => game, moves: () => kept?.record.moves.length ?? 0, budget: () => budget });
   const wide = new MediaQuery(WIDE);
 
-  /** A game as this browser keeps it: its record, and when it came. */
-  interface KeptGame { record: string; added: string }
-  /** A short name of a game's moves, its key in this browser's store: two games with the same moves are one game, and
-   *  share their variations, as their positions share the engine's results. FNV-1a, 32 bits. */
-  function gameId(moves: string[]): string {
-    let h = 0x811c9dc5;
-    for (const c of moves.join(" ")) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
-    return `review-${moves.length}-${h.toString(16).padStart(8, "0")}`;
-  }
-
   onMount(async () => {
-    // A record after the `#` becomes the game in review, kept in this browser's store, and leaves the address.
-    const sent = new URLSearchParams(location.hash.slice(1)).get("record");
-    if (sent !== null) await replaceState("/review", {}); // async: the address changes only once it resolves
+    // A record after the `#` becomes the game in review, kept in this browser's store, and leaves the address. A
+    // shared review leaves the address, and the page shows what it holds.
+    const hash = new URLSearchParams(location.hash.slice(1)), sent = hash.get("record"), link = hash.get("packed");
+    if (sent !== null || link !== null) await replaceState("/review", {}); // async: the address changes only once it resolves
+    if (link !== null) { packed = link; return; }
     try {
       let text = sent, id = readLocal(REVIEW_GAME_KEY);
-      if (text !== null) {
-        id = gameId(parseRecord(text).moves);
-        await dbPut(STORES.games, id, { record: text, added: new Date().toISOString() } satisfies KeptGame);
-        writeLocal(REVIEW_GAME_KEY, id);
-      } else if (id) text = (await dbGet<KeptGame>(STORES.games, id))?.record ?? null;
+      if (text !== null) id = await keepGame(text);
+      else if (id) text = (await dbGet<KeptGame>(STORES.games, id))?.record ?? null;
       if (!text || !id) { none = true; return; }
       const record = parseRecord(text);
       const moves = record.moves;
@@ -106,12 +103,22 @@
     }
   });
   onDestroy(() => session.end());
+
+  /** The review exported (reviewExports.ts): its link, with what the finished review ran with. */
+  async function exportAs(kind: ExportKind): Promise<ExportResult | void> {
+    const k = kept, manifest = session.manifest;
+    const module = manifest && moduleOf(manifest)?.sha256, model = manifest && modelOf(manifest, engine.network)?.sha256;
+    if (!k || !module || !model) throw new Error("the engine is not ready");
+    return deliverExport(kind, k.id, k.record, { module, model, visits: budget });
+  }
 </script>
 
 <PageMeta title="{kept ? 'Game review' : 'Review a game'} · {SITE_NAME}" noindex={!!kept}
           description="Review your Blueprints game: Stamp Duty, the engine in your browser, judges each move, and shows where the game turned and what was better." />
 
-{#if none}
+{#if packed !== null}
+  <SharedArrival {packed} class={MESSAGE} />
+{:else if none}
   <!-- Text that a player follows: strict Simplified Technical English. -->
   <main class={MESSAGE}>
     <h1 class="mb-3 text-2xl font-bold">Review a game</h1>
@@ -127,7 +134,12 @@
   <ReviewView view={blueprintsView} {R} progress={bar.progress} {deeperPositions} {siteLink} game={game ?? undefined}
               deepVisits={engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={budget} labelVisits={LABEL_VISITS} {engine}
-              onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)} />
+              onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)}>
+    {#snippet tools()}
+      <!-- Export (Hedge School's design 13): once the review is done, a link that shares it. -->
+      <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={bar.done} why="Export once the review is done." />
+    {/snippet}
+  </ReviewView>
 {:else if kept}
   {@render reviewSkeleton(blueprintsView, wide.current, loadDisplay().win === "gauge", players, false)}
 {:else}

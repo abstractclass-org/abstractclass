@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@abstractclass/engine": "*",
+		"@abstractclass/record": "*",
 		"@abstractclass/storage": "*"
 	},
 	"peerDependencies": {

@@ -8768,3 +8768,31 @@ The logo, its files and how each is made are in design 33, "The logo". The site 
   against 71), against 15% here. The engine repository counted those rows at 64 visits only. Blueprints' rows pass
   its visits: a move there searches the root's views, and an edit's pick and drop, separately, and each search can
   pass its share (the same entry of `port.md`). So its rows do not compare one to one with Enclosure's.
+
+### Cyanotype's Export menus and links (2026-11-07)
+
+Cyanotype's Analysis board had no Export, and its review no link to share it (design 33, "The gaps from Hedge
+School"). Both now have Hedge School's Export menu (designs 13 and 21; design 33, "The review and the Analysis
+board", item 12). The review file (abscls-8tl1.34) and the review's annotated record (abscls-8tl1.35) stay their own
+issues, and add their entries to the review's menu.
+
+- **Moved, not copied** (design 29): the Export menu and the New menu went into `packages/review` by pure renames, and
+  each takes its site's parts as props: its entries, its analytics (`ontrack`, Hedge School's `trackExport`), the
+  site's name, and the New menu's ways that a site has. The link's format, the board's link, a site's file read, the
+  analysis file and the annotated record went into `packages/analysis` (`share.ts`, `boardLink.ts`, `files.ts`,
+  `annotate.ts`), each with the game's part as a parameter: the moves' code in a link, the file's format and the
+  site's name in its texts, and the notation of a move in a record. Hedge School's modules at their old paths give
+  Enclosure's parts, with the same exports, and its tests did not change. The analysis package now depends on the
+  record package, for the record's tags. The store in memory of the unit tests (`memoryDb.ts`) answers a key cursor
+  now, so that a test reads the results that belong in a file (`dbEntriesWhere`).
+- **Blueprints' moves in a link:** a move's kind in 2 bits, each blueprint's number in 2 bits, and each coordinate as
+  a signed Elias gamma. The review's test game (106 placements and 14 edits) takes 19.5 bits a move, and an Enclosure
+  edge 18. With its 10 tags (184 bytes), the review's link has 706 characters. Hedge School's whole game of 120 edges
+  with meaf.us's tags has 653 (design 13, item 8).
+- **The New menu comes with the analysis file:** the file is of no use without its load, which is in the New menu
+  (design 21). So the board's New button became the shared New menu, with the standard start and "Load an analysis
+  file". The board editor and the Import stay abscls-8tl1.39's.
+- **The recipient of a shared review uses its own engine settings:** Hedge School's game keeps the sender's network
+  and depth, but Cyanotype keeps no settings for one game yet (abscls-8tl1.38). The link's page says what the sender's
+  review ran with, and says that some quality labels can differ when the recipient's settings differ.
+- **No analytics:** Cyanotype has none yet (abscls-8tl1.48), so its menus and its loads send no events.

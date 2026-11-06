@@ -4,16 +4,21 @@
 // another network keeps the game and its variations, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { atShape, makeEarlierRemovalDue, isAnalysisKey, ofModels, readAnalysisKey, readable } from "@abstractclass/analysis/cache.ts";
+import { atShape, makeEarlierRemovalDue, ofModels } from "@abstractclass/analysis/cache.ts";
+import { belongs, readSiteFile, shippedModels } from "@abstractclass/analysis/files.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
-import { branchNodes, keptNode, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
-import { parentKey, prefixKeys } from "@abstractclass/analysis/tree.ts";
+import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
+import { prefixKeys } from "@abstractclass/analysis/tree.ts";
 import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
-import { DISCORD_LIMIT, encodeShare, sharedRecord, type SharedReview } from "./share.ts";
+import { encodeShare, sharedRecord, type SharedReview } from "./share.ts";
+import { shareNote } from "@abstractclass/analysis/share.ts";
 import { importRecord, variantProblem } from "./import.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
+import { mergeBranches } from "@abstractclass/analysis/kept.ts";
+import { download } from "@abstractclass/site/download.ts";
+import type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
 export const REVIEW_FILE_VERSION = 1;
@@ -50,13 +55,8 @@ export function positionKeys(moves: string[], branches: KeptBranches | null): Se
 export function gameAnalyses(entries: [string, unknown][], positions: Set<string>, models: Set<string> | null = null): [string, unknown][] {
   return entries.filter(([key]) => belongs(key, positions, models));
 }
-export const belongs = (key: string, positions: Set<string>, models: Set<string> | null) => {
-  const k = readAnalysisKey(key);
-  return readable(k.shape) && atPositions(k.moves, positions) && (!models || models.has(k.model));
-};
-/** Whether a result's position (its moves) is one of `positions`, or one move from one. */
-export const atPositions = (moves: string, positions: Set<string>) =>
-  positions.has(moves) || (!!moves && positions.has(parentKey(moves)));
+// Which results belong to a file, and the networks a manifest ships: the shared ones (@abstractclass/analysis/files.ts).
+export { atPositions, belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
 export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
                                 models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
@@ -69,27 +69,9 @@ export function buildReviewFile(record: string, branches: KeptBranches | null, e
 }
 
 /** Reads a Hedge School file of `format` (a review file or an analysis file: `noun`), its fields not yet checked but
- *  its results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
- *  meaning or goes: a new field keeps it, and a reader ignores the fields it does not know (design 13). The results
- *  carry their own shape in their keys (@abstractclass/analysis/cache.ts): it keeps the shapes that the readers read
- *  (readable), and drops the others. */
-export function readSchoolFile(text: string, format: string, version: number, noun: string): Record<string, unknown> & { analyses: [string, unknown][] } {
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`This is not a Hedge School ${noun}: it is not JSON.`);
-  }
-  const f = data as Record<string, unknown> | null;
-  if (!f || typeof f !== "object" || f.format !== format) throw new Error(`This is not a Hedge School ${noun}.`);
-  if (typeof f.version !== "number" || f.version > version)
-    throw new Error(`This ${noun} has version ${f.version}: a newer Hedge School wrote it. Reload the site and try again.`);
-  if (f.version < version) throw new Error(`This ${noun} has version ${f.version}, which this site no longer reads.`);
-  const analyses = (Array.isArray(f.analyses) ? f.analyses : []).filter((e): e is [string, unknown] =>
-    Array.isArray(e) && typeof e[0] === "string" && isAnalysisKey(e[0]) && readable(readAnalysisKey(e[0]).shape) &&
-    !!e[1] && typeof e[1] === "object");
-  return { ...f, analyses };
-}
+ *  its results (@abstractclass/analysis/files.ts, readSiteFile). Throws an Error that tells the player what is wrong. */
+export const readSchoolFile = (text: string, format: string, version: number, noun: string) =>
+  readSiteFile(text, "Hedge School", format, version, noun);
 
 /** Reads a review file. Throws an Error that tells the player what is wrong. */
 export function readReviewFile(text: string): ReviewFile {
@@ -117,17 +99,8 @@ export async function loadReviewFile(text: string, manifest: Manifest | null): P
   return { id, file };
 }
 
-/** The variations kept for a game after an import: the kept ones first, in their order, then the file's that are new, after
- *  them in the file's order. */
-export function mergeBranches(kept: KeptBranches | null, added: KeptBranches | null): KeptBranches | null {
-  const mine = branchNodes(kept), theirs = branchNodes(added);
-  if (!mine.length && !theirs.length) return kept ?? added;
-  const have = new Set(mine.map(n => n[0]));
-  const next = Math.max(-1, ...mine.map(n => n[1])) + 1;
-  const fresh = theirs.filter(n => !have.has(n[0])).sort((a, b) => a[1] - b[1])
-    .map((n, i) => keptNode(n[0], next + i, n[2]));
-  return { version: 2, nodes: [...mine, ...fresh] };
-}
+/** The variations kept for a game after an import: the shared rule (@abstractclass/analysis/kept.ts). */
+export { mergeBranches } from "@abstractclass/analysis/kept.ts";
 
 /** A file name for the game: its players, and its id so that two games of the same players differ. */
 export function reviewFileName(record: string, id: string): string {
@@ -146,20 +119,12 @@ async function exportReview(id: string, site: string, models: Set<string> | null
   return buildReviewFile(stored.game.record, branches, entries, site, models, stored.game.reviewed ?? null);
 }
 
-/** The networks a manifest ships, by their SHA-256. */
-export const shippedModels = (manifest: { artifacts: { kind: string; sha256: string }[] } | null) =>
-  manifest ? new Set(manifest.artifacts.filter(a => a.kind === "model").map(a => a.sha256)) : null;
-
 /** The engine modules of a manifest's search, by SHA-256: a file's review counts as done where it ran with one. */
 export const shippedModules = (manifest: Manifest | null) => (manifest ? searchModules(manifest) : null);
 
-/** The three exports of a game (design 13): the review file, or the annotated record copied or as a text file. */
-/** What an export makes, by name (design 17): a share link, a review file or an analysis file, the annotated record
- *  copied or as a file, or the review file saved to a partner site. */
-export type ExportKind = "share_link" | "review_file" | "analysis_file" | "record_copy" | "record_file" | "partner_save";
-
-/** An entry of the Export menu: what it makes, its label, a line on what the other end gets, and the note after it. */
-export type ExportItem = [ExportKind, string, string, string];
+/** What an export makes, an entry of the Export menu, and what an export tells the player: the shared menu's
+ *  (@abstractclass/review/exports.ts). */
+export type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
 
 /** The review's Export menu (design 13): a link that shares the review, the review file, with the engine's results, or
  *  the annotated record, copied or as a file. The link and the file differ most in what the other end gets: the link
@@ -172,9 +137,6 @@ export const reviewExports = (partner: string | null = null): ExportItem[] => [
   ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
   ["record_file", "Annotated record as a file", "", "Annotated record saved"],
 ];
-
-/** What an export tells the player beyond the menu's own note, and a share link's length (design 17 counts it). */
-export interface ExportResult { note?: string; linkLength?: number }
 
 /** The link that shares a game's review (share.ts): its record, its variations, and the engine, network and visits of its
  *  review (the game's mark: the deepest review that ran to its end). */
@@ -216,13 +178,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
   if (kind === "share_link") {
     const link = await shareLink(id, location.origin);
     await navigator.clipboard.writeText(link);
-    const n = link.length.toLocaleString("en");
-    return {
-      linkLength: link.length,
-      note: link.length > DISCORD_LIMIT
-        ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some variations, or send the review file.`
-        : `Link copied (${n} characters). The recipient's browser reviews the game again.`,
-    };
+    return { linkLength: link.length, note: shareNote(link.length) };
   }
   const name = reviewFileName(record, id);
   if (kind === "review_file") {
@@ -262,12 +218,5 @@ export async function importReview(file: ReviewFile, models: Set<string> | null,
   return { id, kept, other };
 }
 
-/** Gives the player a file to save: text, or an image's bytes (the move menu's Save static and Save animated). */
-export function download(name: string, data: BlobPart, type = "application/json") {
-  const url = URL.createObjectURL(new Blob([data], { type }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: name });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+/** Gives the player a file to save: the shared one (@abstractclass/site/download.ts). */
+export { download };

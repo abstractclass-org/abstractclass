@@ -528,10 +528,11 @@ shows few rows. Read it as section "Reading it" says.
   `src/routes/openings/+page.svelte` (`openings_open`, `openings_positions`, Openings' features),
   `src/lib/book/place.svelte.ts` (`book shown`), `src/routes/review/+page.svelte`
   (the review's events, settings, features, `game_missing`, the address), `packages/review/src/ReviewView.svelte`
-  (`onfeature`), `src/lib/ExportMenu.svelte` (`export`), `packages/analysis/src/gpu.svelte.ts` (`gpu_test`, the GPU's
-  failure), `workerSpeed` in `packages/engine/src/pool.ts`, `src/routes/practice/+page.svelte` (Practice's events and
-  features), with their parameters in `src/lib/practice/hedgefund.ts` (`practiceParams`, `practiceEndParams`, tested
-  in `practice.test.ts`).
+  (`onfeature`), `trackExport` in `src/lib/game/sources.ts` (`export`, from the Export menu),
+  `packages/analysis/src/gpu.svelte.ts` (`gpu_test`, the GPU's failure), `workerSpeed` in
+  `packages/engine/src/pool.ts`, `src/routes/practice/+page.svelte` (Practice's events and features), with their
+  parameters in `src/lib/practice/hedgefund.ts` (`practiceParams`, `practiceEndParams`, tested in
+  `practice.test.ts`).
 - The privacy page: `src/routes/privacy/+page.svelte`.
 
 ## Log entries

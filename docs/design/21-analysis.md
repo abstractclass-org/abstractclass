@@ -222,7 +222,9 @@ engine does by itself.
   its engine, the review's (`EngineSession`). `packages/review/src/ReviewView.svelte`: the view, in its board form
   (`BoardForm`). `packages/analysis/src/analysis.svelte.ts`: the board form of the analysis (`setMain`, `playLine`,
   `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line. `src/lib/game/analysisFile.ts`: the
-  analysis file. `packages/analysis/src/model.ts`: `onlyJudged`. `src/lib/game/paste.ts`: a pasted record.
+  analysis file. Their frames are shared with Cyanotype: `packages/analysis/src/boardLink.ts` (the link) and
+  `packages/analysis/src/files.ts` (the file). `packages/review/src/NewMenu.svelte` and `ExportMenu.svelte`: the
+  menus. `packages/analysis/src/model.ts`: `onlyJudged`. `src/lib/game/paste.ts`: a pasted record.
   `packages/import/src/importEvents.ts`: the imports' events, with Hedge School's sources in `src/lib/game/sources.ts`.
 
 ## Log entries

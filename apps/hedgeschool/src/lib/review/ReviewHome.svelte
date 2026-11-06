@@ -15,12 +15,12 @@
   import { keepStorage, storageKept } from "@abstractclass/storage/persist.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
-  import { deliverExport, loadReviewFile, type ExportKind } from "#lib/game/reviewFile.ts";
+  import { deliverExport, loadReviewFile, reviewExports, type ExportKind } from "#lib/game/reviewFile.ts";
   import { loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
-  import ExportMenu from "#lib/ExportMenu.svelte";
+  import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
-  import { trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
+  import { trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
   import { GAME_RANGES, range } from "#lib/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";
@@ -234,7 +234,7 @@
             {/if}
             <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
               added {new Date(game.added).toLocaleDateString()}</span>
-            <span class="ml-auto flex items-center gap-1.5"><ExportMenu side="bottom" run={kind => exportGame(game.id, game.record, kind)}
+            <span class="ml-auto flex items-center gap-1.5"><ExportMenu side="bottom" run={kind => exportGame(game.id, game.record, kind)} items={reviewExports()} ontrack={trackExport}
               ready={reviewCovers(game.reviewed, wanted(game))}
               why={setUpStart(record.tags.Position) ? "A game from a set-up start opens on the Analysis board: export it there."
                 : !game.reviewed ? "Open the game to review it, then export."

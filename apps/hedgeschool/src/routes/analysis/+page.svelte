@@ -13,8 +13,8 @@
   import ReplaceAnalysis, { ReplaceQuestion } from "@abstractclass/review/ReplaceAnalysis.svelte";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
-  import NewMenu from "#lib/analysis/NewMenu.svelte";
-  import ExportMenu from "#lib/ExportMenu.svelte";
+  import NewMenu from "@abstractclass/review/NewMenu.svelte";
+  import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
   import { enclosure, onlyJudged, review, type Enclosure, type ReviewData, type Unit } from "#lib/review/enclosure.ts";
@@ -37,7 +37,7 @@
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
-  import { isImportSource, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
+  import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
@@ -308,9 +308,10 @@
              Off on a set-up start, which the bot cannot take yet (request 20). -->
         <button class="btn-icon" disabled={!practiceHref} onclick={() => practiceHref && location.assign(practiceHref)}
                 aria-label="Play the bot from here" title="Play the bot from here"><Icon name="bot" /></button>
-        <NewMenu editor={editorHref} onstart={newBoard} onimport={() => (importing = true)} onload={loadFile} />
+        <NewMenu site="Hedge School" editor={editorHref} onstart={newBoard} onimport={() => (importing = true)}
+                 importHint="A game record, finished or not, a list of edges, or a position." onload={loadFile} />
         <!-- Export (design 13): the analysis file, or the annotated record, labelled by the view's unit. -->
-        <ExportMenu icon run={kind => exportAs(kind, unit)} items={EXPORT_ITEMS} />
+        <ExportMenu icon run={kind => exportAs(kind, unit)} items={EXPORT_ITEMS} ontrack={trackExport} />
       {/snippet}
     </ReviewView>
 {:else}

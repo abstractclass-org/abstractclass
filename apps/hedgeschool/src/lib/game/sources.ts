@@ -2,8 +2,10 @@
 // (@abstractclass/import's importEvents.ts) with Hedge School's analytics. Beside the ways in of every site, Hedge
 // School's sources name meaf.us's tools and Constellation's export.
 import { track } from "#lib/analytics.svelte.ts";
-import { EDGE_RANGES, range } from "#lib/measure.ts";
+import { EDGE_RANGES, LINK_RANGES, range } from "#lib/measure.ts";
 import { importEvents } from "@abstractclass/import/importEvents.ts";
+import { DISCORD_LIMIT } from "@abstractclass/analysis/share.ts";
+import type { ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
 
 export type { ImportFailure, ImportTo, LoadFailure, LoadSource } from "@abstractclass/import/importEvents.ts";
 
@@ -27,3 +29,10 @@ export const isImportSource = (s: string | null): s is ImportSource =>
 
 export const { trackImport, trackImportFailed, trackLoad, trackLoadFailed } =
   importEvents<ImportSource>({ track, range: n => range(n, EDGE_RANGES) });
+
+/** An export done in the Export menu (@abstractclass/review/ExportMenu.svelte), by its kind, and a link by its length
+ *  (design 17). */
+export function trackExport(kind: ExportKind, r: ExportResult | void) {
+  track("export", r?.linkLength ? { export_kind: kind, link_length: range(r.linkLength, LINK_RANGES), link_too_long: r.linkLength > DISCORD_LIMIT }
+                                : { export_kind: kind });
+}

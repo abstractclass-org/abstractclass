@@ -21,3 +21,15 @@ export const boardOfLine = (main: string[], start?: string): KeptBoard =>
 /** The kept variations as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
 export const branchNodes = (b: KeptBranches | null): KeptNode[] =>
   !b ? [] : b.version === 2 ? b.nodes : b.lines.map((l, i): KeptNode => [pathKey(l), i]);
+
+/** The variations kept for a game after an import (a review file, a shared review): the kept ones first, in their
+ *  order, then the added ones that are new, after them in their own order. */
+export function mergeBranches(kept: KeptBranches | null, added: KeptBranches | null): KeptBranches | null {
+  const mine = branchNodes(kept), theirs = branchNodes(added);
+  if (!mine.length && !theirs.length) return kept ?? added;
+  const have = new Set(mine.map(n => n[0]));
+  const next = Math.max(-1, ...mine.map(n => n[1])) + 1;
+  const fresh = theirs.filter(n => !have.has(n[0])).sort((a, b) => a[1] - b[1])
+    .map((n, i) => keptNode(n[0], next + i, n[2]));
+  return { version: 2, nodes: [...mine, ...fresh] };
+}
