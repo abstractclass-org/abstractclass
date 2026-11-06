@@ -17,6 +17,7 @@ import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { LABEL_VISITS, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { BAD_LABELS } from "@abstractclass/analysis/labels.ts";
 import { LABEL_TEXT, otherCandidate, review, secondChoice, shownCandidates, withTwins } from "@abstractclass/analysis/model.ts";
+import { sitePosition } from "../src/lib/board/described.ts";
 import { moveName } from "../src/lib/game/notation.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
 import { blueprints, moveBefore } from "../src/lib/review/blueprints.ts";
@@ -65,8 +66,6 @@ const end = positions.at(-1).scores;
 const R = review(blueprints, { players: { blue: "", red: "" }, result: { blue: end[0], red: end[1] }, moves: played, positions,
                                analysis, seconds, others }, "lead", LABEL_VISITS);
 
-/** A position as the board draws it, with only what the board reads (SitePosition). */
-const slim = p => ({ ply: p.ply, cells: p.cells, blueprints: p.blueprints, scores: p.scores });
 /** The moves of the turn so far before position i, the last first: the last move, and an earlier one of its turn. */
 const turnSoFar = i => {
   const out = [];
@@ -83,7 +82,7 @@ const frames = [];
 for (let i = first.start; i <= last; i++) {
   const mover = positions[i].player, so = i > 0 ? turnSoFar(i) : [];
   frames.push({
-    p: slim(positions[i]),
+    p: sitePosition(fields[i]), // the position as the board draws it
     // The last move, and an earlier one of its turn, as the review marks them (ReviewBoard)
     l: so.length ? played[so[0]].drawn : null,
     e: so.slice(1).map(j => played[j].drawn),

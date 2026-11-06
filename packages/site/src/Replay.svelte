@@ -13,7 +13,7 @@
   // it. The first frame is in the page (`still`), and the scenes load after it shows (`load`). The board stops while
   // the pointer is on it and while the page is hidden. With reduced motion, it shows the first scene's labelled move,
   // still.
-  import { onDestroy, onMount, type Snippet } from "svelte";
+  import { onMount, type Snippet } from "svelte";
   import type { ClassValue } from "svelte/elements";
 
   let { still, load, board, class: classes }: {
@@ -24,8 +24,7 @@
 
   // svelte-ignore state_referenced_locally
   let frame = $state.raw<F>(still);
-  let paused = $state(false);
-  let scenes: F[][] = [], scene = 0, at = 0, timer: ReturnType<typeof setTimeout> | undefined;
+  let paused = false, scenes: F[][] = [], scene = 0, at = 0, timer: ReturnType<typeof setTimeout> | undefined;
 
   function schedule() {
     clearTimeout(timer);
@@ -38,10 +37,12 @@
     frame = scenes[scene][at];
     schedule();
   }
-  const visibility = () => schedule();
 
+  // A page left before the scenes load starts no timer.
   onMount(() => {
+    let gone = false;
     void load().then(data => {
+      if (gone) return;
       scenes = data.scenes.map(s => s.frames);
       if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
         frame = scenes[0].find(f => f.hold === "moment") ?? scenes[0][0];
@@ -50,11 +51,12 @@
       }
       schedule();
     });
-    document.addEventListener("visibilitychange", visibility);
-  });
-  onDestroy(() => {
-    clearTimeout(timer);
-    if (typeof document !== "undefined") document.removeEventListener("visibilitychange", visibility);
+    document.addEventListener("visibilitychange", schedule);
+    return () => {
+      gone = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", schedule);
+    };
   });
 </script>
 

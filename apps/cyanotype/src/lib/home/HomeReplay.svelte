@@ -7,11 +7,11 @@
   // The first frame is in the page, and the scene loads after it shows.
   import Board, { type BoardCandidate, type BoardLabel } from "#lib/board/Board.svelte";
   import type { BoardMove, SitePosition } from "#lib/board/position.ts";
-  import Replay, { type ReplayScenes } from "@abstractclass/site/Replay.svelte";
+  import Replay, { type ReplayFrame, type ReplayScenes } from "@abstractclass/site/Replay.svelte";
   import STILL from "./still.json";
 
   /** A frame: the position, the last move and an earlier one of its turn, the candidates and the labels. */
-  interface Frame { p: SitePosition; l: BoardMove | null; e: BoardMove[]; c: BoardCandidate[]; m: BoardLabel[]; hold?: "before" | "moment" }
+  interface Frame extends ReplayFrame { p: SitePosition; l: BoardMove | null; e: BoardMove[]; c: BoardCandidate[]; m: BoardLabel[] }
   const load = () => import("./replay.json").then(m => m.default as unknown as ReplayScenes<Frame>);
 </script>
 

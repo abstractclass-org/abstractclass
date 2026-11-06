@@ -33,14 +33,14 @@
          phone, they go into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels, and the header
          keeps the name and the theme menu. -->
     <span class="sm:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
-    <a class="text-xl font-bold text-ink no-underline" href="/">{SITE_NAME}</a>
+    <a class="text-xl font-bold text-ink no-underline max-sm:mr-auto" href="/">{SITE_NAME}</a>
     <nav class="flex gap-4.5 max-sm:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
     <nav class="flex gap-4.5 ml-auto text-sm max-sm:hidden">
       {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
-    <span class="flex items-center max-sm:ml-auto"><ThemeMenu /></span>
+    <ThemeMenu />
   {/snippet}
   {@render children()}
 </SiteFrame>
