@@ -420,8 +420,10 @@ nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only:
   The build still needs the branch's variables (`CF_PAGES_BRANCH`, `CF_PAGES_URL`) for its userscript's address. A
   build without them gives a userscript that loads from the local preview server (`vite.config.ts`).
 - **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, a year's cache for
-  the build's hashed files, and `no-cache` on the tools' files, whose paths stay when their content changes
-  (`bookmarklet.js`, `cyanotype.user.js` and `cyanotype.meta.js`), as for Hedge School (design 23).
+  the build's hashed files and for the engine's files under `/engine/<id>/`, and `no-cache` on the tools' files, whose
+  paths stay when their content changes (`bookmarklet.js`, `cyanotype.user.js` and `cyanotype.meta.js`), as for Hedge
+  School (design 23). Each engine folder's name is an id of `engine.lock.json`: the engine's release (`engine-<commit>`)
+  or the network. So a new release or a new network gets a new path, and `/engine/manifest.json` stays out of the rule.
   `static/robots.txt` names its sitemap.
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
   have with it, and with status 404.
@@ -452,15 +454,18 @@ push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
    to the production branch. When the job shows a pass, open `https://cyanotype-ztp.pages.dev`. Make sure that it
    shows Cyanotype's home page.
 4. **Check:**
-   - `https://cyanotype.abstractclass.org` shows Cyanotype's home page.
+   - Run the check of a deployed site ("Deploy, check and roll back", below) in `apps/cyanotype`, against the live
+     address and against the project's address: `git fetch`, then
+     `node scripts/release-check.mjs https://cyanotype.abstractclass.org` and
+     `node scripts/release-check.mjs https://cyanotype-ztp.pages.dev`. Make sure that the last line of each run says
+     `release-check: PASS`.
    - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
      the message "The engine is not on this site."
    - In the project's **Deployments**, the first production deployment is under **Production**, not under
      **Preview**.
-   - `https://cyanotype-ztp.pages.dev` answers with `X-Robots-Tag: noindex` (the browser's developer tools,
-     **Network**, the page's first request).
-   - After the next push to `dev`, in GitHub's **Actions → Deploy**, the run's job `cyanotype` passed, and
-     `https://dev.cyanotype-ztp.pages.dev` shows the site.
+   - After the next push to `dev`, in GitHub's **Actions → Deploy**, the run's job `cyanotype` passed. Then, in
+     `apps/cyanotype`, `git fetch` and `node scripts/release-check.mjs https://dev.cyanotype-ztp.pages.dev` give
+     `release-check: PASS`.
 5. **End Wrangler's login** on the computer of step 1, if you do not use Wrangler there:
    `npx wrangler@4.144.0 logout`.
 
@@ -532,22 +537,26 @@ a push to `main` that the owner did not say to make. The owner's word to release
   launched site in a few minutes (Hedge School's build runs the unit tests and the type check again). A failed build
   leaves the live site as it was. A site that is not launched yet deploys nothing live ("The launch switch", above).
   Try a change first on `dev`'s preview.
-- **Check:** `node scripts/release-check.mjs <base URL> [<commit>]` in `apps/hedgeschool` does the checks below
-  against the live site or a preview, when the workflow **Deploy** has finished. Without a commit, it takes
-  `origin/main` for the live site and `origin/dev` for dev's preview: run `git fetch` first. Each line says PASS, FAIL
-  or INFO, and the last line says `release-check: PASS` or `release-check: FAIL`. The checks, all true on the live
-  site on 2026-10-18 at commit `b4f0472`, and on dev's preview on 2026-10-20 at commit `f50704c`:
+- **Check:** `node scripts/release-check.mjs <base URL> [<commit>]` in the site's folder (`apps/hedgeschool` or
+  `apps/cyanotype`) does the checks below against the live site or a preview, when the workflow **Deploy** has
+  finished. Without a commit, it takes `origin/main` for the live site and `origin/dev` for dev's preview: run
+  `git fetch` first. Each line says PASS, FAIL or INFO, and the last line says `release-check: PASS` or
+  `release-check: FAIL`. The checks that both sites share are in `packages/site/src/release-check.mjs`. Each site's
+  script gives its addresses and its header's links, and adds its own checks. The checks, all true on Hedge School's
+  live site on 2026-10-18 at commit `b4f0472`, and on its dev preview on 2026-10-20 at commit `f50704c`:
   - the footer's version is the commit that the deploy built.
-  - the live address answers with no `X-Robots-Tag`, `hedgeschool.pages.dev` and the previews with `noindex`
-    (design 23), and an unknown address answers 404.
+  - the live address answers with no `X-Robots-Tag`, the project's address (`hedgeschool.pages.dev`,
+    `cyanotype-ztp.pages.dev`) and the previews with `noindex` (design 23), and an unknown address answers 404.
   - `/_app/immutable/…` and `/engine/<id>/<file>` carry `Cache-Control: public, max-age=31536000, immutable`, and
     `/engine/manifest.json` does not.
   - the manifest names every file of `engine.lock.json`, with its SHA-256. The module is served as `application/wasm`.
-    The largest network (20.6 MB) and the terms download whole, as the page reads them (the manifest's parts, joined
-    and decompressed), with the lock's SHA-256.
-  - the header shows Practice, Review, Analysis, Tools, Notation and About, and `/puzzles`, `/learn` and `/lab/engine`
-    lead home.
-  - the Function on `/api/practice-games` answers 400 to a request that is not JSON.
+    The largest network (Hedge School's 20.6 MB, Cyanotype's 2.2 MB) and the terms download whole, as the page reads
+    them (the manifest's parts, joined and decompressed), with the lock's SHA-256.
+  - the header shows Practice, Review, Analysis, Tools, Notation and About.
+  - on Hedge School only: `/puzzles`, `/learn` and `/lab/engine` lead home (the early access). Cyanotype has no early
+    access, so it has none of these pages.
+  - on Hedge School only: the Function on `/api/practice-games` answers 400 to a request that is not JSON. Cyanotype
+    has no Function (section 9).
   - on the live site only: the domain's answers are signed (DNSSEC validated).
 
   A release's own changes need their own checks beside these.

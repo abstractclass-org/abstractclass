@@ -732,11 +732,8 @@ Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). Th
 
 ### By the site's other files
 
-- **The engine's files kept for a year** (`static/_headers`): Hedge School's lets a browser keep each file under
-  `/engine/:id/:file`, whose folder names the build and the network, without asking again. Cyanotype's has no such rule.
-  abscls-8tl1.47.
-- **The check of a deployed site** (`scripts/release-check.mjs`, `docs/hosting.md`, "Deploy, check and roll back").
-  Cyanotype's launch gives its checks as steps by hand. abscls-8tl1.47.
+No gap. `static/_headers` and the check of a deployed site (`scripts/release-check.mjs`) are as Hedge School's
+("Where it is").
 
 ## Why
 
@@ -803,7 +800,12 @@ Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). Th
 - `apps/cyanotype/src/routes/`: the pages. The Notation page describes the moves, the marks and the record of
   items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
   with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
-  design 23. The build's `404.html` answers each path that the site does not have.
+  design 23. The build's `404.html` answers each path that the site does not have. `static/_headers` also lets a
+  browser keep each engine's file under `/engine/:id/:file` for a year, as Hedge School's: each folder is an id of
+  `engine.lock.json`, which names the engine's release or the network.
+- `apps/cyanotype/scripts/release-check.mjs`: the check of a deployed site ([hosting.md](../hosting.md), "Deploy,
+  check and roll back"), with the checks that both sites share (`packages/site/src/release-check.mjs`) and none of
+  Hedge School's own two: Cyanotype has no early access and no Function.
 - `apps/cyanotype/src/lib/game/`: the game's notation and records, as Hedge School's `src/lib/game/` holds
   Enclosure's records. `notation.ts`: the moves (Blueprints' part of the game interface: `moves`), their capture
   marks, and the turns. `record.ts`: the record, on the shared frame. `check.ts`: the capture marks' check against

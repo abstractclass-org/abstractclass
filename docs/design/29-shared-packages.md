@@ -343,7 +343,9 @@ edit in the same commit), so their changes still apply.
   caption and file name. `src/lib/book/ReviewBookTable.svelte`: the book's table in the view.
 - `packages/site/src/`: the site's general controls that the view uses (`Icon.svelte`, `Toast.svelte`,
   `SettingChoice.svelte`, `SettingToggle.svelte`, `settings.ts`, `Swatch.svelte`, `side.ts`) and the page's scroll
-  (`pageScroll.ts`).
+  (`pageScroll.ts`). `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge
+  School's `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and
+  header, and adds its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back").
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review
