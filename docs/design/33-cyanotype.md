@@ -801,11 +801,13 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
   with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
   design 23. The build's `404.html` answers each path that the site does not have. `static/_headers` also lets a
-  browser keep each engine's file under `/engine/:id/:file` for a year, as Hedge School's: each folder is an id of
-  `engine.lock.json`, which names the engine's release or the network.
+  browser keep each of the engine's files under `/engine/:id/:file` for a year, as Hedge School's: each folder's name
+  comes from `engine.lock.json`, and names the engine's release or the network.
 - `apps/cyanotype/scripts/release-check.mjs`: the check of a deployed site ([hosting.md](../hosting.md), "Deploy,
-  check and roll back"), with the checks that both sites share (`packages/site/src/release-check.mjs`) and none of
-  Hedge School's own two: Cyanotype has no early access and no Function.
+  check and roll back"), with the checks that both sites share (`packages/site/src/release-check.mjs`). It gives them
+  no pages that lead home, because Cyanotype has no edition, and adds no check of a Function, because Cyanotype has
+  none ("The gaps from Hedge School": "The edition" and "Practice's stored games"). When one of these gaps closes, its
+  check comes into this script as in Hedge School's.
 - `apps/cyanotype/src/lib/game/`: the game's notation and records, as Hedge School's `src/lib/game/` holds
   Enclosure's records. `notation.ts`: the moves (Blueprints' part of the game interface: `moves`), their capture
   marks, and the turns. `record.ts`: the record, on the shared frame. `check.ts`: the capture marks' check against

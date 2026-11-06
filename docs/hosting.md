@@ -422,8 +422,10 @@ nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only:
 - **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, a year's cache for
   the build's hashed files and for the engine's files under `/engine/<id>/`, and `no-cache` on the tools' files, whose
   paths stay when their content changes (`bookmarklet.js`, `cyanotype.user.js` and `cyanotype.meta.js`), as for Hedge
-  School (design 23). Each engine folder's name is an id of `engine.lock.json`: the engine's release (`engine-<commit>`)
-  or the network. So a new release or a new network gets a new path, and `/engine/manifest.json` stays out of the rule.
+  School (design 23). Each engine folder's name comes from `engine.lock.json` (a file's `dir`, else its id), and names
+  the engine's release (`engine-<commit>`) or the network. ONNX Runtime's folder, which comes with a GPU module, names
+  its version (`ort-<version>`). So a new release or a new network gets a new path, and `/engine/manifest.json` stays
+  out of the rule.
   `static/robots.txt` names its sitemap.
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
   have with it, and with status 404.
@@ -451,8 +453,7 @@ push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
    switch", below), and push `dev`. Then release `dev` as the section "Deploy, check and roll back" below gives:
    `git push origin dev:main`. A release also releases Hedge School and the hub: the push sends all of `dev` to
    `main`. In GitHub, go to **Actions → Deploy**, and open the run of this push. Its job `cyanotype` uploads the build
-   to the production branch. When the job shows a pass, open `https://cyanotype-ztp.pages.dev`. Make sure that it
-   shows Cyanotype's home page.
+   to the production branch. When the job shows a pass, do the checks of step 4.
 4. **Check:**
    - Run the check of a deployed site ("Deploy, check and roll back", below) in `apps/cyanotype`, against the live
      address and against the project's address: `git fetch`, then
@@ -460,12 +461,14 @@ push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
      `node scripts/release-check.mjs https://cyanotype-ztp.pages.dev`. Make sure that the last line of each run says
      `release-check: PASS`.
    - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
-     the message "The engine is not on this site."
+     the message "The engine is not on this site." The script cannot do this check: it reads the site's files, but
+     it does not run the page's code, which starts the engine.
    - In the project's **Deployments**, the first production deployment is under **Production**, not under
-     **Preview**.
-   - After the next push to `dev`, in GitHub's **Actions → Deploy**, the run's job `cyanotype` passed. Then, in
-     `apps/cyanotype`, `git fetch` and `node scripts/release-check.mjs https://dev.cyanotype-ztp.pages.dev` give
-     `release-check: PASS`.
+     **Preview**. The script cannot do this check: it reads the site's public addresses only, not Cloudflare's
+     dashboard.
+   - After the next push to `dev`, when the run's job `cyanotype` in GitHub's **Actions → Deploy** has finished, run
+     `git fetch` and `node scripts/release-check.mjs https://dev.cyanotype-ztp.pages.dev` in `apps/cyanotype`. Make
+     sure that the last line says `release-check: PASS`. The footer's version shows that the job deployed the push.
 5. **End Wrangler's login** on the computer of step 1, if you do not use Wrangler there:
    `npx wrangler@4.144.0 logout`.
 
@@ -539,11 +542,12 @@ a push to `main` that the owner did not say to make. The owner's word to release
   Try a change first on `dev`'s preview.
 - **Check:** `node scripts/release-check.mjs <base URL> [<commit>]` in the site's folder (`apps/hedgeschool` or
   `apps/cyanotype`) does the checks below against the live site or a preview, when the workflow **Deploy** has
-  finished. Without a commit, it takes `origin/main` for the live site and `origin/dev` for dev's preview: run
-  `git fetch` first. Each line says PASS, FAIL or INFO, and the last line says `release-check: PASS` or
-  `release-check: FAIL`. The checks that both sites share are in `packages/site/src/release-check.mjs`. Each site's
-  script gives its addresses and its header's links, and adds its own checks. The checks, all true on Hedge School's
-  live site on 2026-10-18 at commit `b4f0472`, and on its dev preview on 2026-10-20 at commit `f50704c`:
+  finished. Without a commit, it takes `origin/main` for the live site and the project's address, and `origin/dev` for
+  dev's preview: run `git fetch` first. Each line says PASS, FAIL or INFO, and the last line says
+  `release-check: PASS` or `release-check: FAIL`. The checks that both sites share are in
+  `packages/site/src/release-check.mjs`. Each site's script gives its addresses, its header's links and its pages
+  that lead home, and adds its own checks. The checks, all true on Hedge School's live site on 2026-10-18 at commit
+  `b4f0472`, and on its dev preview on 2026-10-20 at commit `f50704c`:
   - the footer's version is the commit that the deploy built.
   - the live address answers with no `X-Robots-Tag`, the project's address (`hedgeschool.pages.dev`,
     `cyanotype-ztp.pages.dev`) and the previews with `noindex` (design 23), and an unknown address answers 404.
@@ -564,7 +568,9 @@ a push to `main` that the owner did not say to make. The owner's word to release
   deploys again.
 - **A new engine:** change `engine.lock.json` to the new release (its tag, each asset's name, SHA-256 and size), and
   push. The paths under `/engine/` name the build and the network, so browsers download the new files and keep no stale
-  ones.
+  ones. So a changed file needs a new path: a new id in the lock, and a new `dir` for a file that has one. Never give
+  a deployed path other bytes, for example an asset replaced in its release, or a network exported again under its
+  name. A browser keeps the old file for a year.
 
 ## What Cloudflare shows
 

@@ -50,7 +50,8 @@ edit in the same commit), so their changes still apply.
    the turns of one move, then two (`turnFromCount`), out of `review/enclosure.ts` into the analysis package
    (`turns.ts`). A fifth, `@abstractclass/site` (`packages/site`), holds the sites' frame: the colour tokens and base
    styles, the header's bar and the page's area, the theme, the page's metadata and the pages' text style. Design 33
-   moved it out of Hedge School (its item 4). A sixth, `@abstractclass/review` (`packages/review`), holds the review's
+   moved it out of Hedge School (its item 4). It also holds the checks of a deployed site that both sites share, a
+   script for Node that no page imports. A sixth, `@abstractclass/review` (`packages/review`), holds the review's
    and the Analysis board's view, with the view's game interface (item 9). The site's general controls that the view
    uses (the icons, the toast, the settings' parts, the players' colours and their swatch) and the page's scroll moved
    into `@abstractclass/site` with it. A seventh, `@abstractclass/import` (`packages/import`), holds the import's
@@ -267,6 +268,11 @@ edit in the same commit), so their changes still apply.
   site's pages. Its tools run on another site's page, as text that must stay self-contained, and its hash and events
   are plain TypeScript, which `tsc` and Node's tests check. The record has a package of its own for the same reason
   (item 1).
+- **The check of a deployed site in `@abstractclass/site`, not in the engine package:** most of its checks are of the
+  frame that each page shows (the footer's version, the header's links, the robots' header, the 404 page and the
+  build's cache), and the rest read the engine's files. Beside `fetch-engine.mjs`, the engine package would have to
+  know the sites' frame. In the site package, the check uses the engine package, as the review's and the practice's
+  packages do. It draws no page, but one script does not need a package of its own.
 - **The site's page code decides, and the frame acts:** the flows that differ by game site (meaf.us's watcher's view,
   the login that strategyjam.org asks for) are each site's knowledge. With `read` in the site's page code, the frame
   has one way to read a page, and a new game site changes only the site that reads it.
@@ -345,7 +351,10 @@ edit in the same commit), so their changes still apply.
   `SettingChoice.svelte`, `SettingToggle.svelte`, `settings.ts`, `Swatch.svelte`, `side.ts`) and the page's scroll
   (`pageScroll.ts`). `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge
   School's `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and
-  header, and adds its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back").
+  header, and adds its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node, and
+  it reads the engine's files with the engine package's `artifacts.ts`. It is the one file of the site package that
+  imports the engine package, and no page imports it. So the site package depends on the engine package, and the
+  frame's code in the browser still has none of the engine.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review

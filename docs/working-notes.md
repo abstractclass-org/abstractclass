@@ -28,8 +28,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **The documents wrap at 120 characters.** The workflow Documents refuses an added Markdown line over 120 characters
   in a push to `dev`. A table row, a line in a code block and the length of a URL do not count. The pre-commit hook
   runs the same check on each commit. To check a branch: `node scripts/doc-widths.mjs origin/dev` at the root.
-- **After a deploy, check the site:** `node scripts/release-check.mjs <base URL>` in the site's folder
-  (`apps/hedgeschool` or `apps/cyanotype`; docs/hosting.md, "Deploy, check and roll back").
+- **After a deploy, check the site:** `node scripts/release-check.mjs <base URL>` in the site's folder,
+  `apps/hedgeschool` or `apps/cyanotype` (docs/hosting.md, "Deploy, check and roll back").
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
   test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.

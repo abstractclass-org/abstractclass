@@ -8,24 +8,22 @@
 // answers are signed (DNSSEC). The check reads the engine's files as the page does, by the site's manifest, and checks
 // them against the site's engine.lock.json. It reads public pages only, and a site's own checks may send a request that
 // stores nothing. Each line says PASS, FAIL or INFO. The last line is `release-check: PASS` or `release-check: FAIL`.
+//
+// It runs in Node only, and no page imports it: it is why this package depends on @abstractclass/engine (design 29).
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fetchArtifact } from "@abstractclass/engine/artifacts.ts";
 
-/** Runs the checks, prints a line for each, and ends the process: exit code 0 when all pass, 1 when one fails, 2 for
- *  a wrong command line.
- *  @param {object} site
- *  @param {URL} site.lock  the site's engine.lock.json
- *  @param {Record<string, string>} site.branchOf  the commit of each pages.dev address: the project's, origin/main,
- *    and dev's preview, origin/dev
- *  @param {string[]} site.menu  the links that the header shows
- *  @param {string[]} [site.leadHome]  the pages that lead home: a redirect, or a page that refreshes to /
- *  @param {(base: string, check: (name: string, pass: boolean, detail?: string) => void) => Promise<void>}
- *    [site.ownChecks]  the site's own checks, after the engine's files
- *  @param {string[]} [args]  the command line's arguments */
-export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [], ownChecks },
-                                   args = process.argv.slice(2)) {
-  const [baseArg, commitArg] = args;
+/** Runs the checks on the command line's address, prints a line for each, and ends the process: exit code 0 when all
+ *  pass, 1 when one fails, 2 for a wrong command line. The site's parts:
+ *  - `lock`: the URL of the site's engine.lock.json.
+ *  - `branchOf`: the commit of each pages.dev address: the project's, origin/main, and dev's preview, origin/dev.
+ *  - `menu`: the links that the header shows.
+ *  - `leadHome`: the pages that lead home: a redirect, or a page that refreshes to /. None by default.
+ *  - `ownChecks(base, check)`: the site's own checks, after the engine's files. `check(name, pass, detail)` prints a
+ *    line and counts it. */
+export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [], ownChecks }) {
+  const [baseArg, commitArg] = process.argv.slice(2);
   if (!baseArg) {
     console.error("usage: node scripts/release-check.mjs <base URL> [<commit>]");
     process.exit(2);
@@ -43,14 +41,11 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     .trim().slice(0, 7);
   const lock = JSON.parse(readFileSync(lockUrl, "utf8"));
 
-  /** @type {boolean[]} */
   const results = [];
-  /** @param {string} name @param {boolean} pass @param {string} [detail] */
   const check = (name, pass, detail = "") => {
     results.push(pass);
     console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? `: ${detail}` : ""}`);
   };
-  /** @param {Response} r */
   const cacheOf = r => r.headers.get("cache-control") ?? "";
 
   console.log(`INFO  ${base}, ${live ? "the live site" : "not the live site"}, commit ${commit} (${ref})`);
@@ -90,16 +85,13 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   check("/engine/manifest.json is not immutable", manifestR.status === 200 && !/immutable/.test(cacheOf(manifestR)),
     `${manifestR.status} ${cacheOf(manifestR)}`);
   const manifest = await manifestR.json().catch(() => ({ artifacts: [] }));
-  /** @type {Map<string, any>} */
-  const stored = new Map(manifest.artifacts.map((/** @type {any} */ a) => [a.id, a]));
+  const stored = new Map(manifest.artifacts.map(a => [a.id, a]));
 
   // The engine's files: the manifest names each one of the lock, with the lock's SHA-256.
-  /** @type {any[]} */
-  const artifacts = lock.artifacts;
-  const missing = artifacts.filter(a => stored.get(a.id)?.sha256 !== a.sha256).map(a => a.id);
-  check(`the manifest names the ${artifacts.length} files of the lock`, missing.length === 0, missing.join(", "));
+  const missing = lock.artifacts.filter(a => stored.get(a.id)?.sha256 !== a.sha256).map(a => a.id);
+  check(`the manifest names the ${lock.artifacts.length} files of the lock`, missing.length === 0, missing.join(", "));
 
-  const engineModule = artifacts.find(a => a.kind === "module");
+  const engineModule = lock.artifacts.find(a => a.kind === "module");
   const moduleEntry = stored.get(engineModule.id);
   const moduleR = moduleEntry ? await fetch(base + moduleEntry.url, { method: "HEAD" }) : null;
   check(`the module ${engineModule.id} is application/wasm and immutable`,
@@ -108,7 +100,6 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
 
   // A file downloads whole as the page reads it (@abstractclass/engine/artifacts.ts): its parts joined and
   // decompressed, and its SHA-256 checked, here against the lock.
-  /** @param {any} artifact @param {string} name */
   const checkWhole = async (artifact, name) => {
     const label = `${name} ${artifact.id}/${artifact.file} downloads whole (${artifact.bytes.toLocaleString("en")} `
       + "bytes, the lock's SHA-256)";
@@ -116,17 +107,16 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     if (!entry) return check(label, false, "not in the manifest");
     try {
       const bytes = await fetchArtifact({
-        ...entry, sha256: artifact.sha256, url: base + entry.url,
-        parts: entry.parts?.map((/** @type {string} */ part) => base + part),
+        ...entry, sha256: artifact.sha256, url: base + entry.url, parts: entry.parts?.map(part => base + part),
       });
       check(label, bytes.length === artifact.bytes, `${bytes.length.toLocaleString("en")} bytes`);
     } catch (error) {
-      check(label, false, /** @type {Error} */ (error).message);
+      check(label, false, error.message);
     }
   };
-  const networks = artifacts.filter(a => a.kind === "model").sort((a, b) => b.bytes - a.bytes);
+  const networks = lock.artifacts.filter(a => a.kind === "model").sort((a, b) => b.bytes - a.bytes);
   await checkWhole(networks[0], "the largest network");
-  await checkWhole(artifacts.find(a => a.kind === "terms"), "the terms");
+  await checkWhole(lock.artifacts.find(a => a.kind === "terms"), "the terms");
 
   if (ownChecks) await ownChecks(base, check);
 
