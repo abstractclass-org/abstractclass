@@ -25,6 +25,13 @@ export interface PositionInfo {
   count?: number; // the moves played so far, as the notation counts them
 }
 
+/** A position with a komi (Hedge School's design 24): the komi is a starting score of the side that it favours, Red's
+ *  above 0 and Blue's below, as the engine counts it (its inputs and its result). Each score then counts it from the
+ *  first position, so the result and the game's end do too. The position itself at komi 0. */
+export function withKomi<P extends { scores: readonly [number, number] }>(p: P, komi: number): P {
+  return komi ? ({ ...p, scores: [p.scores[0] + Math.max(-komi, 0), p.scores[1] + Math.max(komi, 0)] } as P) : p;
+}
+
 /** A move played: who played it, and the move, or null for a pass. */
 export interface Played<M> { player: Player; edge: M | null }
 

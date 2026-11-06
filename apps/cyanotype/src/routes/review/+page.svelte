@@ -19,7 +19,7 @@
   import ReviewView, { WIDE, reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
   import { ReviewBar } from "@abstractclass/review/progress.svelte.ts";
   import type { ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
-  import { LABEL_VISITS, SWEEP_VISITS, warmCache } from "@abstractclass/analysis/cache.ts";
+  import { LABEL_VISITS, SWEEP_VISITS, lineKeyMoves, warmCache } from "@abstractclass/analysis/cache.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { review, type GameEnding } from "@abstractclass/analysis/model.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
@@ -34,7 +34,7 @@
   import { loadDisplay } from "#lib/review/display.ts";
   import { loadEngine, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { startChecked } from "#lib/review/storedReview.ts";
-  import { gamePage, parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
+  import { gamePage, parseRecord, playerNames, recordKomi, type GameRecord } from "#lib/game/record.ts";
   import { REVIEW_GAME_KEY, SITE_NAME } from "#lib/site.ts";
   import { keepGame, type KeptGame } from "#lib/review/keptGame.ts";
   import { REVIEW_EXPORTS, deliverExport } from "#lib/review/reviewExports.ts";
@@ -79,15 +79,15 @@
       else if (id) text = (await dbGet<KeptGame>(STORES.games, id))?.record ?? null;
       if (!text || !id) { none = true; return; }
       const record = parseRecord(text);
-      const moves = record.moves;
+      const moves = record.moves, komi = recordKomi(record.tags); // the record's komi: the searches ask at it
       kept = { id, record };
       const manifest = await session.load();
       // The stored results, read while the engine starts: the review shows them in its first frame.
       const model = modelOf(manifest, engine.network)?.sha256, search = moduleOf(manifest)?.search;
       const warm = search && model
-        ? warmCache(search, model, Array.from({ length: moves.length + 1 }, (_, i) => moves.slice(0, i)), SWEEP_VISITS).catch(() => {})
+        ? warmCache(search, model, lineKeyMoves(moves, komi), SWEEP_VISITS).catch(() => {})
         : Promise.resolve();
-      const g = await session.start(pool => new GameAnalysis(blueprints, pool, moves, kept!.id), async (g, pool) => {
+      const g = await session.start(pool => new GameAnalysis(blueprints, pool, moves, kept!.id, null, { komi }), async (g, pool) => {
         // The rules, then the record's capture marks (storedReview.ts, whose steps the label snapshot takes too)
         const problem = await startChecked(g, record, budget);
         if (problem) { error = `${SITE_NAME} cannot review this game: ${problem}`; return; }

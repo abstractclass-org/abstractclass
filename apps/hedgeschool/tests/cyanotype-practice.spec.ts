@@ -130,6 +130,29 @@ test("a kept game whose network the site does not ship gives way to the settings
   expect(errors).toEqual([]);
 });
 
+// The komi (Hedge School's design 24), from the shared card: a head start for the player or the bot, which the game's
+// points count from the first position, and which the kept game keeps as Red's komi.
+test("the komi on Cyanotype's card, and a game at it: the player's head start in the points from the start", async ({ page }) => {
+  const manifest = await botManifest(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.setViewportSize({ width: 1376, height: 952 });
+  await page.goto(new URL("/practice", CYANOTYPE).href);
+  await page.evaluate(network => localStorage.setItem("cyanotype:practice-choices:1",
+                        JSON.stringify({ bot: { network, visits: 32, variety: "low" }, komi: 300, side: "random", name: "" })),
+                      manifest.artifacts.find((a: { kind: string }) => a.kind === "model")!.id);
+  await page.reload();
+  await expect(page.locator("#komi")).toHaveValue("300");
+  await expect(page.locator("#komi-help")).toContainText("You start 300 points ahead.");
+  await expect(page.getByText("Stamp Duty ahead", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Play as Blue" }).click({ timeout: 60_000 });
+  expect(await turn(page)).toMatch(/^Your turn/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cyanotype:practice-game:1")!).komi)).toBe(-300);
+  await expect(page.getByText(/, on one thread\. You start 300 points ahead\./)).toBeVisible();
+  await expect(page.getByLabel("Players and scores").first()).toContainText(/You\s*300\s*points/);
+  expect(errors).toEqual([]);
+});
+
 // The blunder's fill (--blunder-fill, review.css) in each theme: the fill of Hedge School's confirm button.
 const DANGER_FILL = { light: "rgb(212, 58, 58)", dark: "rgb(226, 72, 69)" } as const;
 

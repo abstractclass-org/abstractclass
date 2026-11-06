@@ -6,7 +6,7 @@ import { STORES, dbAll, dbDelete, dbGet, dbPut } from "@abstractclass/storage/db
 import { makeEarlierRemovalDue } from "@abstractclass/analysis/cache.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
-import { parseRecord, type GameRecord } from "./record.ts";
+import { parseRecord, recordKomi, type GameRecord } from "./record.ts";
 import { sha256Hex } from "@abstractclass/engine/artifacts.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { modelOf, moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
@@ -95,15 +95,16 @@ export async function markReviewed(id: string, { modules, ...mark }: WantedRevie
   if (replacesAnother(before, mark)) makeEarlierRemovalDue();
 }
 
-export async function gameId(moves: string[], start?: string): Promise<string> {
-  // A set-up start comes before the moves, so that the same moves from two starts are two games. A game from the
-  // standard start keeps the id of its moves alone, as before.
-  return (await sha256Hex(new TextEncoder().encode((start ? `${start} | ` : "") + moves.join(" ")))).slice(0, 12);
+export async function gameId(moves: string[], start?: string, komi = 0): Promise<string> {
+  // A set-up start and a komi come before the moves, so that the same moves from two starts, or at two komis, are two
+  // games (design 24). A game from the standard start at komi 0 keeps the id of its moves alone, as before.
+  const before = (start ? `${start} | ` : "") + (komi ? `komi ${komi} | ` : "");
+  return (await sha256Hex(new TextEncoder().encode(before + moves.join(" ")))).slice(0, 12);
 }
 
 /** Saves a game. Returns its id, and whether the browser kept it (storage can be blocked). */
 export async function saveGame(text: string, record: GameRecord): Promise<{ id: string; kept: boolean }> {
-  const id = await gameId(record.moves, setUpStart(record.tags.Position));
+  const id = await gameId(record.moves, setUpStart(record.tags.Position), recordKomi(record.tags));
   const existing = await dbGet<StoredGame>(STORES.games, id);
   if (existing) return { id, kept: true };
   const game: StoredGame = { version: 1, id, record: text, added: new Date().toISOString() };

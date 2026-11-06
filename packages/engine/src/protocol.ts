@@ -86,6 +86,7 @@ export interface DescribeGameReply<F> { id: string; positions: F[] }
 
 export interface AnalysisQuery extends PositionQuery {
   maxVisits: number;
+  komi?: number; // KataGo's: the komi, points added to Red's final score (a starting score); none: 0
   slice?: { visits: number } | { ms: number };
   includePolicy?: boolean;
   includeOwnership?: boolean; // KataGo's: the reply gives `ownership`

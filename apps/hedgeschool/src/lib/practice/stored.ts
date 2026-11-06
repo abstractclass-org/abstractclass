@@ -19,6 +19,7 @@ export interface StoredPractice {
   site: string; // the site's version (its commit)
   // The bot's settings, where it ran (null: not known, for a game set aside from an earlier visit), and its builds.
   bot: { network: string; visits: number; variety: Variety; form: BotMode | null; builds: string[] };
+  komi?: number; // the game's komi, Red's starting score (below 0, Blue's), as its record's Komi tag; none: 0
   side: "blue" | "red"; // the player's
   outcome: StoredOutcome; // the player's
   result: string; // the record's result: `b+12.5`, `r+R`, `0` or `*`
@@ -35,6 +36,7 @@ const OUTCOMES: StoredOutcome[] = ["won", "lost", "draw", "resigned", "aborted",
 const VARIETIES: Variety[] = ["low", "medium", "high"];
 const FORMS: BotMode[] = ["gpu", "cpu", "single"];
 const EDGE = /^[A-T][0-9]{1,2}-[A-T][0-9]{1,2}$/;
+const MAX_KOMI = 3000; // the card's (@abstractclass/practice/practice.ts): this module imports types only
 export const RANDOM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/; // crypto.randomUUID's form
 
 /** Why a sent game is not one that the site keeps, or null when it is. */
@@ -51,6 +53,7 @@ export function storedProblem(x: unknown): string | null {
   if (!bot || !short(bot.network, 80) || !count(bot.visits, 1 << 20) || (bot.visits as number) < 1) return "bot";
   if (!VARIETIES.includes(bot.variety as Variety) || (bot.form !== null && !FORMS.includes(bot.form as BotMode))) return "bot";
   if (!Array.isArray(bot.builds) || bot.builds.length > 20 || !bot.builds.every(b => short(b, 40))) return "bot";
+  if (g.komi !== undefined && !(Number.isInteger(g.komi) && Math.abs(g.komi as number) <= MAX_KOMI && g.komi !== 0)) return "komi";
   if (g.side !== "blue" && g.side !== "red") return "side";
   if (!OUTCOMES.includes(g.outcome as StoredOutcome)) return "outcome";
   if (!short(g.result, 20)) return "result";

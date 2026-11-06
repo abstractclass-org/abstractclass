@@ -44,6 +44,9 @@ test("a game is valid as the browser sends it, and each field is checked", () =>
   assert.equal(storedProblem(game({ takebacks: [{ at: 3, undone: ["X1-Y2; DROP TABLE"] }] })), "takebacks");
   assert.equal(storedProblem({ ...game(), bot: { ...game().bot, visits: 0 } }), "bot");
   assert.equal(storedProblem(null), "not an object");
+  // A game with a komi (design 24): a whole number of points within the card's range, and none at 0
+  assert.equal(storedProblem(game({ komi: -300 })), null);
+  for (const komi of [0, 0.5, 3001, "300" as never]) assert.equal(storedProblem(game({ komi })), "komi", String(komi));
 });
 
 test("a record's edges are its main line's, passes included, and no variation's", () => {

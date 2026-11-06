@@ -3,12 +3,12 @@
 // the GTP helpers, the takeback's reach, the results) with Hedge School's keys and networks, and Enclosure's own: the
 // bot's half-life, the turns after a set-up start, the analytics' parameters and the game's record.
 import { NETWORKS, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
-import { writeRecord } from "#lib/game/record.ts";
+import { komiTag, writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
 import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
 import {
-  botLabel, choicesStore, keptStore, settingsCommands, VARIETY_NAME, type BotSettings, type KeptPractice as Kept,
-  type PracticeOutcome,
+  botLabel, choicesStore, keptStore, komiHelp, komiSide, settingsCommands, VARIETY_NAME, type BotSettings,
+  type KeptPractice as Kept, type PracticeOutcome,
 } from "@abstractclass/practice/practice.ts";
 import type { BotMode } from "@abstractclass/practice/botMessages.ts";
 
@@ -24,8 +24,13 @@ export const { load: loadKept, keep } = kept;
 
 /** Variety's half-life: KataGo's 19 moves of Go, as Enclosure's edges (design 24). */
 const HALFLIFE = 19;
-/** The commands that give the bot a game's settings, after `enclosure-start`. */
-export const botCommands = (bot: BotSettings) => settingsCommands(bot, HALFLIFE);
+/** The commands that give the bot a game's settings and its komi, after `enclosure-start`. */
+export const botCommands = (bot: BotSettings, komi = 0) => settingsCommands(bot, HALFLIFE, komi);
+
+/** The bot's name on the page, as the help of the komi says it. */
+export const BOT_NAME = "HedgeFund";
+/** A game's komi in words, from the player's side (design 24): "You start 300 points ahead." Empty at komi 0. */
+export const komiLine = (k: Pick<KeptPractice, "komi" | "human">) => (k.komi ? komiHelp(komiSide(k.komi, k.human), BOT_NAME) : "");
 
 /** The bot's name in the record and on the board: "HedgeFund 0.2 Lite, 64 visits, Low variety". */
 export const botName = (bot: BotSettings) => botLabel(networkName(bot.network), bot);
@@ -58,9 +63,10 @@ export function practiceEndParams(k: KeptPractice, form: string, cores: number, 
 /** The record's event for a practice game: the review knows a practice game by it (design 17, `practice_game`). */
 export const PRACTICE_EVENT = "Hedge School practice";
 
-/** A game's record: both sides named (design 24), the event, the date, the bot in full, and the turns, each move with
- *  its cut mark. `movers` is the player of each move: a turn is the moves of one player in a row. `result` is `*` for a
- *  game not finished, and the termination is the record tag's (`normal`, `resignation`) for a game that ended. */
+/** A game's record: both sides named (design 24), the event, the date, the bot in full, the komi when it is not 0 (the
+ *  engine's, Red's starting score), and the turns, each move with its cut mark. `movers` is the player of each move: a
+ *  turn is the moves of one player in a row. `result` is `*` for a game not finished, and the termination is the record
+ *  tag's (`normal`, `resignation`) for a game that ended. */
 export function practiceRecord(k: KeptPractice, movers: Player[], cuts: boolean[], result: string,
                                termination?: "normal" | "resignation"): string {
   const human = k.name.trim() || "You", bot = botName(k.bot);
@@ -71,6 +77,7 @@ export function practiceRecord(k: KeptPractice, movers: Player[], cuts: boolean[
     Bot: `${networkName(k.bot.network)} (${k.bot.network}), ${k.bot.visits} ${k.bot.visits === 1 ? "visit" : "visits"} a move, ` +
          `${VARIETY_NAME[k.bot.variety]} variety, ` +
          `engine ${k.builds.join(", then ")}`,
+    ...komiTag(k.komi ?? 0),
     ...(k.start ? { Position: k.start } : {}),
     ...(termination ? { Termination: termination } : {}),
   };

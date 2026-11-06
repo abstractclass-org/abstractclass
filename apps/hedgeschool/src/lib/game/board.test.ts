@@ -2,7 +2,7 @@
 // with the moves evaluated. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { boardLink, boardOfRecord, readBoardLink } from "./board.ts";
+import { boardLink, boardOfRecord, boardPositionKeys, readBoardLink } from "./board.ts";
 import { parseRecord } from "./record.ts";
 import type { KeptBoard } from "./store.ts";
 
@@ -30,6 +30,18 @@ test("a record's line becomes the board's main line", () => {
   // Through a link too: every node comes back.
   const hash = new URLSearchParams(new URL(boardLink("https://example.com", board, 0)).hash.slice(1));
   assert.deepEqual(readBoardLink(hash.get("packed")!, null).board.nodes.map(n => n[0]), board.nodes.map(n => n[0]));
+});
+
+test("a record's komi is the board's, and its link and keys keep it (design 24)", () => {
+  const board = boardOfRecord(parseRecord('[Komi "-300"]\n\n1. D10-G10 *'));
+  assert.equal(board.komi, -300);
+  const hash = new URLSearchParams(new URL(boardLink("https://example.com", board, 0)).hash.slice(1));
+  assert.equal(readBoardLink(hash.get("packed")!, null).board.komi, -300);
+  assert.deepEqual([...boardPositionKeys(board)], ["komi=-300", "komi=-300 D10-G10"]);
+  // A board at komi 0 has no komi, and its keys are the moves alone
+  const even = boardOfRecord(parseRecord("1. D10-G10 *"));
+  assert.equal(even.komi, undefined);
+  assert.deepEqual([...boardPositionKeys(even)], ["", "D10-G10"]);
 });
 
 test("a broken link says so", () => {

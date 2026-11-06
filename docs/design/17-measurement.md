@@ -110,10 +110,11 @@ The features, by their `feature_name` (`ReviewView.svelte`, `used`). Each counts
 | `review again` | Review again chosen on a review snapshot |
 | `display` and a setting | a display setting changed, by its name in `src/lib/review/display.ts`: `display judge`, `display reviewFor`, `display win`, `display layers`, `display scoreLine`, `display areaLine`, `display lineSteps`, `display branchForm`, `display marks`, `display bookMoves`, `display notes`, `display previewMoves`, `display previewBranches`, `display sound`, `display moveSound`, `display volume` |
 
-In Practice (design 24), each once in a game: `practice takeback` (a takeback), `practice look back` (a step back to an
-earlier position), `note drawn`, `practice bar`, `practice area` and `practice direction` (the points bar's display
-settings), and `display` and a setting for the review's display settings that Practice shares (`display layers`,
-`display sound`, `display moveSound`, `display volume`). The page's address tells Practice's from the review's.
+In Practice (design 24), each once in a game: `practice komi` (a game that starts with a komi), `practice takeback`
+(a takeback), `practice look back` (a step back to an earlier position), `note drawn`, `practice bar`, `practice area`
+and `practice direction` (the points bar's display settings), and `display` and a setting for the review's display
+settings that Practice shares (`display layers`, `display sound`, `display moveSound`, `display volume`). The page's
+address tells Practice's from the review's.
 
 A property of the visitor, `games_stored`, comes with every event after the home page sets it: how many games the
 browser keeps, as a range.

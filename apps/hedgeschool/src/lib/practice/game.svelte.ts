@@ -11,6 +11,7 @@ import { errorText } from "@abstractclass/engine/errors.ts";
 import { parseRecord } from "#lib/game/record.ts";
 import { saveGame } from "#lib/game/store.ts";
 import type { Move, Player, Position } from "#lib/review/enclosure.ts";
+import { withKomi } from "@abstractclass/analysis/game.ts";
 import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, takebackCount, type KeptPractice, type PracticeOutcome } from "./hedgefund.ts";
 import { sendPractice, storedGame, type StoredPractice } from "./send.ts";
 import { browserNumber } from "#lib/analytics.svelte.ts";
@@ -46,8 +47,14 @@ export class PracticeGame {
   get human(): Player { return this.kept.human; }
   get mode(): BotMode { return this.bot.mode; }
 
-  /** Gives the bot the game's settings and its start (a set-up start, interface 0.1.1), plays the game's moves into it
-   *  (a game kept from an earlier visit, or a record brought), notes a new build, and takes the turn up. */
+  /** A position from the rules, its scores with the game's komi as a starting score (design 24). */
+  private positionOf(fields: GamePosition): Position {
+    return withKomi(boardPosition(fields), this.kept.komi ?? 0);
+  }
+
+  /** Gives the bot the game's settings, its komi and its start (a set-up start, interface 0.1.1), plays the game's
+   *  moves into it (a game kept from an earlier visit, or a record brought), notes a new build, and takes the turn up.
+   *  */
   async start() {
     try {
       const info = JSON.parse(await this.bot.command("enclosure-bot-info")) as { build: string };
@@ -57,10 +64,10 @@ export class PracticeGame {
       this.kept.id ??= crypto.randomUUID();
       this.kept.form = this.mode;
       this.kept.ms = Array.from(this.kept.moves, (_, i) => this.kept.ms?.[i] ?? null);
-      for (const line of botCommands(this.kept.bot)) await this.bot.command(line);
+      for (const line of botCommands(this.kept.bot, this.kept.komi)) await this.bot.command(line);
       if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);
       const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
-      const positions = described.map(boardPosition);
+      const positions = described.map(f => this.positionOf(f));
       for (let i = 0; i < this.kept.moves.length; i++) await this.bot.command(`play ${gtpColor(positions[i].player as Player)} ${this.kept.moves[i]}`);
       this.positions = positions;
       this.played = this.kept.moves.map((m, i) => moveOf(positions[i], m, described[i + 1]));
@@ -179,7 +186,7 @@ export class PracticeGame {
     keep(this.kept);
     const [, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves), from)).reply.positions;
     this.played = [...this.played, moveOf(this.positions[from], name, after)];
-    this.positions = [...this.positions, boardPosition(after)];
+    this.positions = [...this.positions, this.positionOf(after)];
   }
 
   /** Takes the turn up: the bot plays its turn, timed, then the game ends or the player gets the rules of their move. */

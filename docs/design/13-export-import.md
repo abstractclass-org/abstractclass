@@ -20,7 +20,8 @@ searching it again, and to share it as text that others can read.
    - **The annotated record** (text, copied or as a `.txt` file): the game in the site's notation, with the engine's
      view after each edge (`[%eval W L S]`), each Inaccuracy, Mistake, Blunder and Great as a comment ("Mistake. D10-G9
      G9-H10 was best.", Lichess's words), "A hard position." where the review marks one (design 14), the record's
-     clocks, a note of the network (its name and id) and the depth, and the player's own lines as variations
+     clocks, its tags (a practice game's `Komi` tag among them, design 24), a note of the network (its name and id)
+     and the depth, and the player's own lines as variations
      (`src/lib/review/annotate.ts`). The note's depth is the least visits among the game's searches, read from the
      results: the review depth set in the browser may differ from the depth of the stored results' searches.
      Its labels follow the page's "Review by" (turns or edges). Lines are at most 80 characters, as PGN's export format

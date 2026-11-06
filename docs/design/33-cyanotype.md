@@ -315,7 +315,8 @@ Hedge School's form where Blueprints allows: KataGo's GTP engine with its play s
 **The bot** (the engine repository's games/blueprints/README.md, "The practice bot"): `blueprints-bot.wasm`, one
 search thread on the CPU, the native GTP engine's play settings, the root's views on. The page sends
 `blueprints-start SEED`, then the visits and the variety (`kata-set-param`, with GTP's half-life of 19 moves, as for
-Enclosure), then `play`, `genmove` and `undo` with the site's strings. Its visits are Hedge School's, 1 to 8,192: since
+Enclosure), then the game's komi (`komi K`, design 24: none at 0), then `play`, `genmove` and `undo` with the site's
+strings. Its visits are Hedge School's, 1 to 8,192: since
 protocol 0.7.1 (abscls-csmy) its genmove gives a legal move at every visit count, also on a position of more views,
 where the earlier build failed with 2n visits or fewer for a cover of n views. A reload sets the bot's game to the
 kept moves with `blueprints-set-game`: `undo` then takes them back as any others, so a takeback works after a reload.
@@ -324,9 +325,16 @@ kept moves with `blueprints-set-game`: `undo` then takes them back as any others
 (describe, describe_game), as on Hedge School's Practice. The page checks each of the bot's moves against the rules'
 legal moves, and stops the game with an error when one is not legal. An error of the engine stops the game too, with
 the engine's message ("The game stopped: ..."), as Hedge School shows it. The final score is the rules' score of the
-game's last position (`scores`, and the margin of `outcome`). This browser keeps the game in progress
-(`cyanotype:practice-game:1`), the choices (`cyanotype:practice-choices:1`) and the panel's place and size
-(`cyanotype:practice-panel:1`).
+game's last position (`scores`, and the margin of `outcome`). At a komi, each player's points include their starting
+points, as on Hedge School, and the result is the margin of those points: the rules' `outcome` leaves the komi out.
+This browser keeps the game in progress (`cyanotype:practice-game:1`), the choices (`cyanotype:practice-choices:1`)
+and the panel's place and size (`cyanotype:practice-panel:1`).
+
+**The komi** (design 24): the card's fourth setting, from the shared card, with Hedge School's range and step. Stamp
+Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the
+size of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does. The
+Analysis board refuses a record with a komi, with a notice: it builds its analysis before it knows which board it
+keeps, and nothing on Cyanotype writes the tag yet, as its practice games are not kept.
 
 **How it departs from Hedge School's Practice (design 24):**
 

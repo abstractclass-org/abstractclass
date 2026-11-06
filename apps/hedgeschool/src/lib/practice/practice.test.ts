@@ -5,8 +5,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { NETWORKS } from "#lib/analysis/engineSettings.ts";
 import { parseRecord } from "#lib/game/record.ts";
-import { botCommands, gtpAnswer, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceRecord, practiceTurn,
-         resignResult, saveChoices, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./hedgefund.ts";
+import { recordKomi } from "#lib/game/record.ts";
+import { botCommands, gtpAnswer, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceRecord,
+         practiceTurn, resignResult, saveChoices, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./hedgefund.ts";
 
 // The browser's local storage, in memory: Node has none.
 const stored = new Map<string, string>();
@@ -17,7 +18,7 @@ globalThis.localStorage = {
 
 test("the saved choices keep any whole number of visits from 1 to 8,192, and else the default", () => {
   const visits = (v: unknown) => {
-    saveChoices({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" }, side: "random", name: "" });
+    saveChoices({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" }, komi: 0, side: "random", name: "" });
     return loadChoices().bot.visits;
   };
   for (const v of [1, 3, 100, 1000, 1024, 5000, 8191, 8192]) assert.equal(visits(v), v);
@@ -93,6 +94,29 @@ test("the record names both sides and the bot, and reads back with its moves and
   assert.match(text, /\n1\. D10-G10 2\. N9-Q10 O9-Q10x 3\. G10-K9 \*\n$/);
 });
 
+test("a game at a komi: the bot gets it, its record keeps it as Red's starting score, and a game at 0 records as before", () => {
+  const bot = { network: NETWORKS[0].id, visits: 64, variety: "low" } as const;
+  assert.equal(botCommands(bot, -300).at(-1), "komi -300");
+  assert.deepEqual(botCommands(bot, 0), botCommands(bot));
+  // The player (Blue) started 300 points ahead: Red's komi is -300
+  const ahead = game({ komi: -300 });
+  const r = parseRecord(practiceRecord(ahead, [0, 1, 1, 0], [false, false, true, false], "b+120.5", "normal"));
+  assert.deepEqual([r.tags.Komi, recordKomi(r.tags), r.result], ["-300", -300, "b+120.5"]);
+  assert.equal(komiLine(ahead), "You start 300 points ahead.");
+  assert.equal(komiLine(game({ komi: -300, human: 1 })), "HedgeFund starts 300 points ahead.");
+  assert.equal(komiLine(game()), "");
+  // A game kept from an earlier visit goes on with its komi; a game at 0 has no tag, as before the komi
+  keep(ahead);
+  assert.equal(loadKept()?.komi, -300);
+  keep(null);
+  assert.equal(practiceRecord(game({ komi: 0 }), [0, 1, 1, 0], [false, false, true, false], "*"),
+               practiceRecord(game(), [0, 1, 1, 0], [false, false, true, false], "*"));
+  assert.doesNotMatch(practiceRecord(game(), [0, 1, 1, 0], [false, false, true, false], "*"), /Komi/);
+  // The player's head start is kept for the next game
+  saveChoices({ bot, komi: 250, side: "red", name: "" });
+  assert.equal(loadChoices().komi, 250);
+});
+
 test("a game kept with a network off the menu goes on with it, and names it: HedgeFund 0.1 Lite", () => {
   keep(game({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" } }));
   const k = loadKept()!;
@@ -104,7 +128,7 @@ test("a game kept with a network off the menu goes on with it, and names it: Hed
 });
 
 test("the saved choices of a network off the menu take the default", () => {
-  saveChoices({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, side: "random", name: "" });
+  saveChoices({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, komi: 0, side: "random", name: "" });
   assert.equal(loadChoices().bot.network, "b10c128-s89066368-d17827487"); // HedgeFund 0.2 Lite
 });
 

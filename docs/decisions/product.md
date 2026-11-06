@@ -8810,3 +8810,45 @@ issues, and add their entries to the review's menu.
   - Blueprints' link test takes every legal move of each position of the review's test game from the engine's rules
     (`describe`, 125,322 moves), and every cut of a link. A link has no checksum, as Hedge School's has none, so a
     changed letter can give another game in the notation. The engine's rules then check it.
+
+### Practice: the komi, a fourth setting (2026-11-06)
+
+A request for "komi adjustment in the Practice". Design 24 has the decision, item 2's "The komi" and item 15; this
+entry keeps the sources and the checks.
+
+- **What the engines give:** Enclosure's komi is a starting score: Red receiving K starts K points ahead, and a
+  negative K favours Blue (the engine repository's `games/enclosure/docs/design/09-komi-and-lead.md`). The practice
+  bot takes GTP's `komi K`, a whole or half number up to ±5,052 points (`Rules::MAX_USER_KOMI`), and keeps it through
+  `clear_board` and `enclosure-set-position` (both build the new game on KataGo's current rules). The analysis
+  protocol takes the query field `komi`, and the engine's cache keeps a nonzero komi apart. The protocol's `describe`
+  is the rules' alone: its scores and its outcome leave the komi out, so the site adds it to the scores.
+- **What the network reads** (`games/enclosure/docs/decisions/komi.md`, the readings to row 18.03M): the lead is the
+  even komi up to 500 points. Above 500 points, before the last 30 edges, the win chance reads a komi short: with a
+  lead of 1,000 to 5,000 points as komi, the side ahead still wins 95%. The expected margin reads 90 to 105% of
+  ±500, 95 to 99% of ±1,000 and 96 to 101% of ±2,500. Self-play draws komi out to ±3,000 points.
+- **Blueprints** (Cyanotype): Stamp Duty 0.1 is bpj5's b6c96-s40806528-d2304635. Every self-play game since bpj2 has
+  a komi (`games/blueprints/README.md`, "Komi": 75% at a spread of 20 points, 20% at 250, 5% at 1,000, cut at three
+  spreads). The sweep of bpj2's network (`games/blueprints/docs/decisions/port.md`, 2026-10-26) found the win chance
+  rising with the komi in 178 of 178 positions from −3,000 to +3,000. No sweep of bpj5's own network is recorded.
+  Blueprints' scores are whole, and a margin of 0 is a draw (12 of the site's 737 finished games).
+- **Whether Enclosure's game can end level:** yes. Equal scores are a draw (the engine's README, "Rules"). Its areas
+  are exact rationals: the engine counts the faces of a player's edges, whose corners include the points where edges
+  cross (`katagame/cpp/game/enclosure/engine.h`). So a half point does not keep a game at a komi from ending level, as
+  it does in Go.
+- **The choices:** one setting, the player's head start (below 0, the bot's), any whole number from −3,000 to 3,000,
+  a slider by 50. The record keeps the engine's K with its sign. The same range and step for both games. A question
+  of the owner's came during the work: whether the komi can favour Blue too. It can: the setting gives a head start to
+  the player or to the bot, whatever colour each plays.
+- **Published practice:** KataGo's GTP and analysis take whole and half points (`Rules::komiIsIntOrHalfInt`). KaTrain
+  and OGS give the komi to White, Go's second player, as Go does (6.5 or 7.5 points). Two web searches for OGS's custom
+  range and KaTrain's dialog found no first-hand statement of either, so design 24 names only the departures that the
+  sources support: the player's side in place of White's, and whole points in place of Go's half points.
+- **The review at a komi:** the record's `Komi` tag reaches `GameAnalysis` (its option `komi`): each search's query
+  has the field `komi`, the stored results' keys have the word `komi=K` before the moves, the positions' scores count
+  the komi, and the opening book gives no values (they are the engine's at 0). The game's id covers the komi. The
+  review file, the shared review and the annotated record keep the tag. The Analysis board keeps a record's komi with
+  the board and in its link. Cyanotype's Analysis board refuses a record with a komi: it builds its analysis before it
+  chooses its board.
+- **Not done:** the stored games' table has no column for the komi (its JSON and its record hold it). The `Komi` tag
+  waits for the engine repository's design 04 (request 27). A record brought to Practice brings its moves, not its
+  komi.

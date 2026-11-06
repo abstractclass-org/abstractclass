@@ -9,7 +9,8 @@ import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import type { PracticeBot } from "@abstractclass/practice/bot.ts";
-import { gtpColor, takebackCount } from "@abstractclass/practice/practice.ts";
+import { gtpColor, scoreResult, takebackCount } from "@abstractclass/practice/practice.ts";
+import { withKomi } from "@abstractclass/analysis/game.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type GamePosition } from "../board/described.ts";
 import type { InputRules } from "../board/input.ts";
 import type { BoardMove, Player, SitePosition } from "../board/position.ts";
@@ -58,17 +59,22 @@ export class PracticeGame {
   /** The moves left in the mover's turn, this one included. */
   get movesLeft(): number { return this.described.at(-1)?.movesLeft ?? 0; }
 
-  /** Gives the bot the game's settings, sets its game to the moves kept (a game from an earlier visit), notes a new
-   *  build, and takes the turn up. */
+  /** A position from the rules, its scores with the game's komi as a starting score (Hedge School's design 24). */
+  private positionOf(fields: Parameters<typeof sitePosition>[0]): SitePosition {
+    return withKomi(sitePosition(fields), this.kept.komi ?? 0);
+  }
+
+  /** Gives the bot the game's settings and its komi, sets its game to the moves kept (a game from an earlier visit),
+   *  notes a new build, and takes the turn up. */
   async start() {
     try {
       const info = JSON.parse(await this.bot.command("blueprints-bot-info")) as { build: string };
       if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build); // a new build continues the game
-      for (const line of botCommands(this.kept.bot)) await this.bot.command(line);
+      for (const line of botCommands(this.kept.bot, this.kept.komi)) await this.bot.command(line);
       if (this.kept.moves.length) await this.bot.command(`blueprints-set-game ${this.kept.moves.join(" ")}`);
       const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(null, this.kept.moves))).reply.positions;
       this.described = described;
-      this.positions = described.map(sitePosition);
+      this.positions = described.map(f => this.positionOf(f));
       this.played = this.kept.moves.map((m, i) => playedOf(m, described[i], described[i + 1]));
       keep(this.kept);
       await this.next();
@@ -151,7 +157,7 @@ export class PracticeGame {
     const [before, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(null, this.kept.moves), from)).reply.positions;
     this.described = [...this.described, after];
     this.played = [...this.played, playedOf(name, before, after)];
-    this.positions = [...this.positions, sitePosition(after)];
+    this.positions = [...this.positions, this.positionOf(after)];
   }
 
   /** The player's legal moves on the latest position. */
@@ -175,11 +181,12 @@ export class PracticeGame {
     }
     const outcome = this.described.at(-1)?.outcome;
     if (outcome) {
-      this.result = outcome.result;
+      // The result from the scores with the komi: the rules' own result leaves the komi out
+      this.result = this.kept.komi ? scoreResult(this.position!.scores as [number, number]) : outcome.result;
       return this.finish();
     }
     const reply = await this.describe();
-    this.rules = { position: sitePosition(reply), mover: playerOf(reply.mover), legal: reply.legal };
+    this.rules = { position: this.positionOf(reply), mover: playerOf(reply.mover), legal: reply.legal };
     this.status = "human";
   }
 

@@ -32,7 +32,7 @@
   import { BOARD_EXPORTS } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
-  import { parseRecord, withStart } from "#lib/game/record.ts";
+  import { komiTag, parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -168,7 +168,11 @@
       // The engine starts while the page chooses the board (an import may ask the player first): the analysis takes
       // the board's start once it is chosen.
       const opening = chooseBoard();
-      const g = await session.start(async pool => new GameAnalysis(enclosure, pool, [], BOARD_ID, (await opening).board?.start ?? null), async (g, pool) => {
+      // The board's start and komi (design 24) are the chosen board's.
+      const g = await session.start(async pool => {
+        const board = (await opening).board;
+        return new GameAnalysis(enclosure, pool, [], BOARD_ID, board?.start ?? null, { komi: board?.komi });
+      }, async (g, pool) => {
         const chosen = await opening;
         await g.start();
         if (chosen.board) await g.loadBoard(chosen.board);
@@ -273,7 +277,8 @@
       download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest))));
       return;
     }
-    const text = annotatedRecord({ R: r, unit, tags: g.startPosition ? { Position: g.startPosition } : {}, result: "*", branches: g.branches, annotator: SITE_NAME,
+    const tags = { ...(g.startPosition ? { Position: g.startPosition } : {}), ...komiTag(g.komi) };
+    const text = annotatedRecord({ R: r, unit, tags, result: "*", branches: g.branches, annotator: SITE_NAME,
                                    note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
     if (kind === "record_copy") await navigator.clipboard.writeText(text);
     else download("analysis.txt", text, "text/plain");

@@ -30,7 +30,7 @@ import { toAnalysis } from "./reply.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
-import type { Game, GameTypes, Player } from "./game.ts";
+import { withKomi, type Game, type GameTypes, type Player } from "./game.ts";
 import { deepEnough, earlierIndex, equalDepth, keepsGain, moverScore, moverWin, onlyMove, otherCandidate, sameMove, secondChoice, withTwins, type Analysis,
          type Candidate, type GameEnding, type ReviewData } from "./model.ts";
 import { ONLY_MOVE_GAP } from "./labels.ts";
@@ -86,6 +86,9 @@ export interface AnalysisOptions {
    *  (winAt). They give no label: the moves evaluated are searched. Hedge School's Openings gives the opening book's
    *  values of each position that the book holds (its design 32), where the engine waits. */
   viewValues?: (path: string[]) => { ownership: number[]; blueWin: number } | undefined;
+  /** The game's komi, Red's starting score (Hedge School's design 24): a record's `Komi` tag. Every search asks the
+   *  engine at it, the stored results' keys hold it, and the positions' scores count it. 0 by default. */
+  komi?: number;
 }
 
 export class GameAnalysis<G extends GameTypes> {
@@ -182,6 +185,7 @@ export class GameAnalysis<G extends GameTypes> {
   private readonly viewValues: AnalysisOptions["viewValues"] | null; // the board's own values for its view (AnalysisOptions)
   private readonly fixedMain: boolean; // the main line ends where the page sets it (AnalysisOptions)
   readonly startPosition: string | null; // the board's set-up start, in the notation: the standard start when null
+  readonly komi: number; // the game's komi, Red's starting score (AnalysisOptions)
   // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A variation node
   // keeps its own flag (judged).
   judgedMain = $state.raw<Record<string, true>>({});
@@ -204,6 +208,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.viewValues = options.viewValues ?? null;
     this.fixedMain = !!options.fixedMain;
     this.startPosition = startPosition;
+    this.komi = options.komi || 0;
     this.analysis = Array(moves.length + 1).fill(undefined);
   }
 
@@ -259,13 +264,14 @@ export class GameAnalysis<G extends GameTypes> {
    *  book's area maps (mapAt), and the stages do not search those positions (Hedge School's design 32). The engine
    *  still searches the position on screen there, for the analysis column (focus). The book loads in parts, so a call
    *  can come once the stages run: a position that they searched before keeps that result for the column. Not on the
-   *  board, whose analysis takes no book.
+   *  board, whose analysis takes no book, nor at a komi: the book's values are the engine's at komi 0 (Hedge School's
+   *  design 24).
    *  `lookup` gives the book's values of any position, or undefined where the book does not hold it or its part does
    *  not load. The variations' positions take their values from it (valuesAt): "Evaluate quality" does not search those
    *  positions (judge), and the labels read the book's values there, as on the game's line. */
   useBook(results: (Analysis<G["move"]> | undefined)[],
           lookup?: (position: G["position"]) => Promise<Analysis<G["move"]> | undefined>) {
-    if (this.board) return;
+    if (this.board || this.komi) return;
     this.bookResults = results;
     if (!lookup) return;
     this.bookLookup = lookup;
@@ -336,7 +342,7 @@ export class GameAnalysis<G extends GameTypes> {
     const kept = this.board ? null : dbGet<KeptBranches>(STORES.branches, this.id); // read while the rules answer
     try {
       const described = (await this.pool.rules.describeGame<G["fields"]>(this.query([], this.moves))).reply.positions;
-      const positions = described.map(d => this.game.position(d));
+      const positions = described.map(d => this.positionOf(d));
       this.played = this.moves.map((m, i) => this.game.played(m, described[i], described[i + 1]));
       this.positions = positions;
       this.mainNames = this.played.map(m => this.game.moveName(m.edge));
@@ -612,7 +618,7 @@ export class GameAnalysis<G extends GameTypes> {
       const m = path[k + j - 1], p = path.slice(0, k + j);
       if (pathKey(p) in next) continue; // added meanwhile
       next[pathKey(p)] = {
-        position: this.game.position(positions[j]), order: this.nextOrder++, move: this.game.played(m, positions[j - 1], positions[j]),
+        position: this.positionOf(positions[j]), order: this.nextOrder++, move: this.game.played(m, positions[j - 1], positions[j]),
       };
     }
     this.branches = next;
@@ -768,7 +774,8 @@ export class GameAnalysis<G extends GameTypes> {
   /** Board: the tree as the browser keeps it: every node, the main line's too, and the main line. */
   keptBoard(): KeptBoard {
     const nodes = Object.entries(this.treeNodes()).map(([k, n]) => keptNode(k, n.order, n.judged));
-    return { version: 2, nodes, main: [...this.mainNames], ...(this.startPosition ? { start: this.startPosition } : {}) };
+    return { version: 2, nodes, main: [...this.mainNames], ...(this.startPosition ? { start: this.startPosition } : {}),
+             ...(this.komi ? { komi: this.komi } : {}) };
   }
 
   /** Board: the engine is ready once the pool has a network (the board's sweep). No stage runs: the engine searches the
@@ -861,16 +868,26 @@ export class GameAnalysis<G extends GameTypes> {
   private query(path: string[], more: string[] = []) {
     return positionQuery(this.startPosition, [...this.engineMoves(path), ...more]);
   }
+  /** A search's position: the query's, at the game's komi. The rules' queries take none: the positions' scores count
+   *  the komi here (positionOf). */
+  private searchPosition(path: string[]) {
+    return { ...this.query(path), ...(this.komi ? { komi: this.komi } : {}) };
+  }
+  /** A position from the engine's fields, its scores with the game's komi as a starting score (game.ts, withKomi). */
+  private positionOf(fields: G["fields"]): G["position"] {
+    return withKomi(this.game.position(fields), this.komi);
+  }
   /** A search's query of the position at `path`, to `visits`, in slices of `slice` visits (null: none). Every search
    *  asks for the ownership of each point, so that a stored review has the area map whatever the display settings
    *  (Hedge School's design 30). A candidate's map comes from a short search when it is pointed at (askOwnership). */
   private searchQuery(path: string[], visits: number, slice: number | null) {
-    return { ...this.query(path), maxVisits: visits, includePVVisits: true, includeOwnership: true,
+    return { ...this.searchPosition(path), maxVisits: visits, includePVVisits: true, includeOwnership: true,
              ...(slice ? { slice: { visits: slice } } : {}) };
   }
-  /** The moves part of a path's stored results' key, which names the set-up start too (cache.ts, keyMoves). */
+  /** The moves part of a path's stored results' key, which names the set-up start and the komi too (cache.ts,
+   *  keyMoves). */
   private keyMovesOf(path: string[]): string[] {
-    return keyMoves(this.startPosition, this.engineMoves(path));
+    return keyMoves(this.startPosition, this.engineMoves(path), this.komi);
   }
 
   /** A position the engine can search: on the game's line before its end, or a variation node where the game goes on. */
@@ -1165,7 +1182,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  way; a stopped search keeps nothing, and the pool runs it again. `ended` runs when it ends, however it ends. */
   private addMap(path: string[], priority: number, tag: string, wanted: () => boolean, sliced: boolean, ended?: () => void) {
     const key = pathKey(path), inTree = this.known(path);
-    const era = this.era, pool = this.pool, query = this.query(path), keyed = this.keyMovesOf(path);
+    const era = this.era, pool = this.pool, query = this.searchPosition(path), keyed = this.keyMovesOf(path);
     // The map's state is this task's until another task takes it, the engine off takes it from the pass, or another
     // network drops it
     const task = { pass: tag === "mappass" }, holds = () => this.mapWork[key]?.task === task;
@@ -1264,7 +1281,7 @@ export class GameAnalysis<G extends GameTypes> {
     const key = pathKey(at);
     if (!this.passed[key]) {
       const fields = (await this.pool.rules.describeGame<G["fields"]>(this.query(at), at.length)).reply.positions[0];
-      this.passed = { ...this.passed, [key]: this.game.position(fields) };
+      this.passed = { ...this.passed, [key]: this.positionOf(fields) };
     }
     return this.passed[key];
   }

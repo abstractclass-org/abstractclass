@@ -1,32 +1,37 @@
 <script lang="ts">
-  // The settings card before a practice game (Hedge School's design 24), as Lichess's "Play with the computer": the bot's
-  // settings (the network, the visits for each move, the variety), the player's name, then the side, which starts the
-  // game. The site gives its text above the settings, its notes and its networks. The choices are the page's: the card
-  // changes them in place.
+  // The settings card before a practice game (Hedge School's design 24), as Lichess's "Play with the computer": the
+  // bot's settings (the network, the visits for each move, the variety, the komi), the player's name, then the side,
+  // which starts the game. The site gives its text above the settings, its notes and its networks. The choices are the
+  // page's: the card changes them in place.
   import type { Snippet } from "svelte";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import Swatch from "@abstractclass/site/Swatch.svelte";
-  import { MAX_VISITS, VARIETY_HELP, VARIETY_NAME, VISIT_STOPS, visitsStop, visitsTaken, type PracticeChoices,
-           type Variety } from "./practice.ts";
+  import { KOMI_STEP, MAX_KOMI, MAX_VISITS, VARIETY_HELP, VARIETY_NAME, VISIT_STOPS, komiHelp, komiTaken, visitsStop,
+           visitsTaken, type PracticeChoices, type Variety } from "./practice.ts";
 
   interface Props {
     choices: PracticeChoices;
     networks: [string, string][]; // each network the site offers: its id, and its name for the list
     networkHelp: string;
     nameHelp?: string; // what the player's name is for (Hedge School's: the game's record)
+    bot?: string; // the bot's name, at a sentence's start: "HedgeFund starts 300 points ahead"
     ready: boolean; // the rules are loaded: a game can start
     intro: Snippet; // what the game is, under the heading
     notes?: Snippet; // the site's notices: a record brought, a game aborted
     onside: (side: PracticeChoices["side"]) => void; // a side chosen: the game starts
   }
   let { choices = $bindable(), networks, networkHelp,
-        nameHelp = `For the game's record. Without one, the record says "You".`, ready, intro, notes, onside }: Props = $props();
+        nameHelp = `For the game's record. Without one, the record says "You".`, bot = "The bot", ready, intro, notes,
+        onside }: Props = $props();
 
   // The visits box's text while the player types in it (null: it shows the setting). The visits change when the box is
   // left or Enter is pressed, as in the engine settings. A number that the bot does not take stays in the box with the
-  // range, and no game starts until it changes.
+  // range, and no game starts until it changes. The komi's box works the same way.
   let visitsTyped = $state<string | null>(null);
   const visitsWrong = $derived(visitsTyped !== null && !visitsTaken(Number(visitsTyped)));
+  let komiTyped = $state<string | null>(null);
+  const komiWrong = $derived(komiTyped !== null && (komiTyped.trim() === "" || !komiTaken(Number(komiTyped))));
+  const range = (n: number) => n.toLocaleString("en");
 </script>
 
 <main class="flex justify-center my-6 px-4">
@@ -63,6 +68,34 @@
     </div>
     <SettingChoice label="Variety" help={VARIETY_HELP[choices.bot.variety]}
                    options={Object.entries(VARIETY_NAME)} get={() => choices.bot.variety} set={v => (choices.bot.variety = v as Variety)} />
+    <!-- The komi (design 24): the points that the player starts ahead, and below 0 the bot's. A slider by steps of 50,
+         and a box that takes any whole number in the range, as the visits' box does. The slider shows the stop nearest
+         to a typed number. -->
+    <div class="py-1.5">
+      <div class="flex items-center justify-between gap-3">
+        <label for="komi" class="text-sm font-medium">Komi</label>
+        <input id="komi" type="number" min={-MAX_KOMI} max={MAX_KOMI} step="1" value={komiTyped ?? choices.komi}
+               aria-invalid={komiWrong} aria-describedby={komiWrong ? "komi-message" : "komi-help"}
+               class="w-[4.5rem] text-right tabular-nums"
+               oninput={e => (komiTyped = e.currentTarget.value)}
+               onchange={e => {
+                 const v = e.currentTarget.valueAsNumber;
+                 if (komiTaken(v)) { choices.komi = v || 0; komiTyped = null; }
+               }} />
+      </div>
+      {#if komiWrong}
+        <p id="komi-message" class="text-xs text-blunder" role="alert">Type a whole number from {range(-MAX_KOMI)} to {range(MAX_KOMI)}.</p>
+      {/if}
+      <p id="komi-help" class="text-xs text-muted">Points that one side has before the first move. {komiHelp(choices.komi, bot)}</p>
+      <input type="range" min={-MAX_KOMI} max={MAX_KOMI} step={KOMI_STEP} value={choices.komi}
+             aria-label="Komi" aria-valuetext={komiHelp(choices.komi, bot)}
+             class="w-full mt-1 accent-(--accent)"
+             oninput={e => { komiTyped = null; choices.komi = e.currentTarget.valueAsNumber || 0; }} />
+      <!-- The slider's ends say whose head start each is, whatever colour each side plays. -->
+      <div class="flex justify-between text-xs text-muted tabular-nums">
+        <span>{bot} ahead</span><span>0</span><span>You ahead</span>
+      </div>
+    </div>
     <div class="py-1.5">
       <label for="name" class="text-sm font-medium">Your name</label>
       <p class="mb-1 text-xs text-muted">{nameHelp}</p>
@@ -73,7 +106,7 @@
       <p class="mb-3 text-sm font-medium text-center">{ready ? "Choose your side to start" : "Loading the rules…"}</p>
       <div class="flex justify-center items-end gap-4">
         {#each [["blue", 0, "Blue"], ["random", "either", "Random"], ["red", 1, "Red"]] as const as [side, dot, label] (side)}
-          <button type="button" disabled={!ready || visitsWrong} onclick={() => onside(side)}
+          <button type="button" disabled={!ready || visitsWrong || komiWrong} onclick={() => onside(side)}
                   class={["grid justify-items-center gap-1.5 rounded-lg", side === "random" ? "px-5 py-4" : "px-4 py-3",
                           choices.side === side && "border-accent"]}
                   aria-label="Play as {label}">

@@ -24,7 +24,7 @@
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { reviewArrives } from "@abstractclass/import/importHash.ts";
-  import { LABEL_VISITS, SWEEP_VISITS, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
+  import { LABEL_VISITS, SWEEP_VISITS, lineKeyMoves, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
   import { enclosure, review, type Enclosure, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
@@ -34,7 +34,7 @@
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { gamePage, playerNames } from "#lib/game/record.ts";
+  import { gamePage, playerNames, recordKomi } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
@@ -264,6 +264,9 @@
     }
   });
 
+  /** The game's komi, from its record's Komi tag (design 24): 0 without one. */
+  const gameKomi = () => (kept ? recordKomi(kept.record.tags) : 0);
+
   /** The book that the review takes values from (book/reviewBook.ts, giveBook): the site's, in the early edition. */
   const siteReviewBook = () => (EARLY_ACCESS ? siteBook() : null);
 
@@ -274,10 +277,11 @@
     // The stored results, read while the engine starts: the review shows them in its first frame, and does not wait for
     // them after the rules (cache.ts, warmCache). The search is the manifest's, which fetch-engine.mjs checks
     // against the module's.
-    const model = modelOf(manifest, settings.network)?.sha256, search = moduleOf(manifest)?.search;
-    const warm = search && model ? warmCache(search, model, Array.from({ length: moves.length + 1 }, (_, i) => moves.slice(0, i)), SWEEP_VISITS).catch(() => {})
+    // The record's komi (design 24): the searches ask at it, and its results' keys name it.
+    const model = modelOf(manifest, settings.network)?.sha256, search = moduleOf(manifest)?.search, komi = gameKomi();
+    const warm = search && model ? warmCache(search, model, lineKeyMoves(moves, komi), SWEEP_VISITS).catch(() => {})
       : Promise.resolve();
-    const g = await session.start(pool => new GameAnalysis(enclosure, pool, moves, kept!.id), async (g, pool) => {
+    const g = await session.start(pool => new GameAnalysis(enclosure, pool, moves, kept!.id, null, { komi }), async (g, pool) => {
       await g.start();
       performance.mark("review:rules"); // the start's steps, for measuring it (the browser's performance timeline)
       // The book's values of the game's book positions, which the stages then do not search: they come while the review
@@ -313,7 +317,8 @@
       // The store is read while the rules worker starts: an earlier engine's search is not the site's. The positions
       // that the test needs come once the rules give the game's positions and the book its values there.
       const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
-      const g = new GameAnalysis(enclosure, rules, moves, kept!.id), line = snapshotPositions(moves);
+      const komi = gameKomi(), g = new GameAnalysis(enclosure, rules, moves, kept!.id, null, { komi });
+      const line = snapshotPositions(moves, komi);
       // An older mark, which names no search, is older than the book: its review searched every position, and the
       // removal of earlier results keeps them by that rule (earlierResults.ts)
       const needed = started.then(async () => {

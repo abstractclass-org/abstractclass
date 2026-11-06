@@ -4,10 +4,10 @@
 // another network keeps the game and its variations, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { atShape, makeEarlierRemovalDue, ofModels } from "@abstractclass/analysis/cache.ts";
+import { atShape, keyMoves, makeEarlierRemovalDue, ofModels } from "@abstractclass/analysis/cache.ts";
 import { belongs, readSiteFile, shippedModels } from "@abstractclass/analysis/files.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
-import { parseRecord, playerNames } from "./record.ts";
+import { parseRecord, playerNames, recordKomi } from "./record.ts";
 import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
 import { prefixKeys } from "@abstractclass/analysis/tree.ts";
 import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
@@ -39,13 +39,14 @@ export interface ReviewFile {
 export interface FileReview extends ReviewMark { networkName: string }
 
 /** The moves of every position of a game and its variations, as the results' keys spell them: the record's own moves on
- *  the game's line, and a variation node's path key off it (@abstractclass/analysis/analysis.svelte.ts, engineMoves).
- *  Version 1 kept a variation as its line: each node of it. */
-export function positionKeys(moves: string[], branches: KeptBranches | null): Set<string> {
+ *  the game's line, and a variation node's path key off it (@abstractclass/analysis/analysis.svelte.ts, engineMoves),
+ *  each after the game's komi where it is not 0 (cache.ts, keyMoves). Version 1 kept a variation as its line: each node
+ *  of it. */
+export function positionKeys(moves: string[], branches: KeptBranches | null, komi = 0): Set<string> {
   const out = new Set(prefixKeys(moves));
   if (branches?.version === 1) for (const line of branches.lines) for (const k of prefixKeys(line)) out.add(k);
   else for (const [key] of branchNodes(branches)) out.add(key);
-  return out;
+  return komi ? new Set([...out].map(k => keyMoves(null, k ? k.split(" ") : [], komi).join(" "))) : out;
 }
 
 /** The results that belong to a game: of its positions, and of the positions one move from them, which confirm the
@@ -60,11 +61,11 @@ export { belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
 export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
                                 models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
-  const moves = parseRecord(record).moves;
+  const { moves, tags } = parseRecord(record);
   return {
     format: REVIEW_FORMAT, version: REVIEW_FILE_VERSION, exported: now.toISOString(), site,
     review: reviewed && { ...reviewed, networkName: networkName(reviewed.network) }, record, branches,
-    analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches), models)),
+    analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches, recordKomi(tags)), models)),
   };
 }
 
@@ -110,7 +111,7 @@ async function exportReview(id: string, site: string, models: Set<string> | null
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
   const branches = (await dbGet<KeptBranches>(STORES.branches, id)) ?? null;
-  const positions = positionKeys(stored.record.moves, branches);
+  const positions = positionKeys(stored.record.moves, branches, recordKomi(stored.record.tags));
   const entries = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
   return buildReviewFile(stored.game.record, branches, entries, site, models, stored.game.reviewed ?? null);
 }

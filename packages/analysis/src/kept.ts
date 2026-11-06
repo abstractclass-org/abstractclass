@@ -11,12 +11,19 @@ export type KeptNode = [string, number] | [string, number, 1];
 export const keptNode = (key: string, order: number, judged?: unknown): KeptNode => (judged ? [key, order, 1] : [key, order]);
 /** The Analysis board as kept in the browser (design 21): every node of its tree, the main line's too, and the main
  *  line. One board in each browser, under BOARD_ID in the `branches` store. */
-export interface KeptBoard { version: 2; nodes: KeptNode[]; main: string[]; start?: string } // start: a set-up position (design 21)
+export interface KeptBoard {
+  version: 2;
+  nodes: KeptNode[];
+  main: string[];
+  start?: string; // a set-up position (design 21)
+  komi?: number; // the komi, Red's starting score, of a record brought with one (Hedge School's design 24); none: 0
+}
 export const BOARD_ID = "board";
 /** A board of one line, its moves by the tree's names: a node for each of its positions, as a link packs every node
- *  with its parent, from the start or from a set-up start (design 21). */
-export const boardOfLine = (main: string[], start?: string): KeptBoard =>
-  ({ version: 2, main, nodes: prefixKeys(main).slice(1).map((k): KeptNode => [k, 0]), ...(start ? { start } : {}) });
+ *  with its parent, from the start or from a set-up start (design 21), at a komi. */
+export const boardOfLine = (main: string[], start?: string, komi = 0): KeptBoard =>
+  ({ version: 2, main, nodes: prefixKeys(main).slice(1).map((k): KeptNode => [k, 0]), ...(start ? { start } : {}),
+     ...(komi ? { komi } : {}) });
 
 /** The kept variations as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
 export const branchNodes = (b: KeptBranches | null): KeptNode[] =>

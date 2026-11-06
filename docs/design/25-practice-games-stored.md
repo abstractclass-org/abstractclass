@@ -27,10 +27,12 @@ Lichess and chess.com keep every game played on them:
 2. **What a stored game holds:** its moves, with their cuts; the bot (the network, the visits, the variety, the form:
    GPU, CPU or one thread, and the engine's build); the player's side; how it ended, and its result; each takeback
    (where it was, and the edges that it undid); each move's time (the player's thinking time, the bot's search time);
-   the day it ended; and the site's version. A game from a set-up start holds its start position too, and a game
-   from the Analysis board's Play holds the edges that came with its record, apart from the edges played against the
-   bot: the calibration can then take such games, or leave them out. Never the name typed for the record, and never
-   the visitor's IP address.
+   the day it ended; and the site's version. A game with a komi (design 24) holds it, the engine's komi (Red's
+   starting score), in the field `komi` and in its record's `Komi` tag: a game at 0 has neither, as before the komi.
+   The table's columns do not repeat it: the calibration reads it from the game. A game from a set-up start holds its
+   start position too, and a game from the Analysis board's Play holds the edges that came with its record, apart from
+   the edges played against the bot: the calibration can then take such games, or leave them out. Never the name
+   typed for the record, and never the visitor's IP address.
 3. **A random number in each browser that links its games, with the visitor's consent.** It lets the calibration tell
    a player's strength from a setting's. Without consent, a game goes with no number, and nothing links it to another
    game. Lichess's session cookie needs no consent because play needs it. The number serves the data only, so it

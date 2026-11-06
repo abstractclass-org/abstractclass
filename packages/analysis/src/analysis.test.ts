@@ -15,9 +15,9 @@ import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/poo
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
-import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, mapGet, mapPut,
+import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, keyMoves, mapGet, mapPut,
          readAnalysisKey } from "./cache.ts";
-import { judgeBranchMove, judgeTurn, valuesAfter, type Analysis } from "./model.ts";
+import { judgeBranchMove, judgeTurn, review, valuesAfter, type Analysis } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -1427,4 +1427,77 @@ test("a book that does not answer for a variation's position: Evaluate quality s
   await turns();
   assert.deepEqual(searched().sort(), ["a", "a x"]);
   assert.equal(game.valuesAt(["a", "x"])?.book, undefined);
+});
+
+// A game with a komi (Hedge School's design 24): the record's komi, Red's starting score, reaches every search's query,
+// the stored results' keys, the positions' scores and the game's end.
+test("a review at a komi searches at it, keeps its results apart, and reads none stored at komi 0", async () => {
+  const { pool, searches } = fakePool();
+  const deep = 16384, model = pool.model!.sha256;
+  // The game's every position at komi 0, deep: a review at 0 opens with them and searches nothing
+  for (let i = 0; i <= MOVES.length; i++)
+    await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep), toAnalysis(words, reply(deep)));
+  const even = new GameAnalysis(words, pool, MOVES, "even");
+  await even.start();
+  await even.fromStore(pool.search!, model);
+  assert.ok(even.analysis.slice(0, even.passCount).every(a => a?.visits === deep));
+  // The same moves at komi -300: none of those results, and every search asks at the komi
+  const game = new GameAnalysis(words, pool, MOVES, "komi", null, { komi: -300 });
+  await game.start();
+  await game.fromStore(pool.search!, model);
+  assert.ok(game.analysis.every(a => a === undefined));
+  void game.sweep();
+  await turns();
+  assert.ok(searches.length > 0);
+  assert.ok(searches.every(s => s.query.komi === -300 && s.query.includeOwnership));
+  // Its results go under keys of their own, which name the komi before the moves
+  const before = store.puts(STORES.analysis).length;
+  searches[0].end(SWEEP_VISITS);
+  await turns();
+  const put = store.puts(STORES.analysis).slice(before).map(k => readAnalysisKey(String(k)));
+  assert.deepEqual(put.map(k => [k.moves, k.visits]), [["komi=-300", SWEEP_VISITS]]);
+  assert.deepEqual(keyMoves(null, ["a"], -300), ["komi=-300", "a"]);
+  assert.deepEqual(keyMoves("start pos", ["a"], 7), ["@start_pos", "komi=7", "a"]);
+  assert.deepEqual(keyMoves(null, ["a"]), ["a"]); // komi 0: the keys as before the komi
+  // A review at 0 never reads the komi's results: its start keeps its own
+  const again = new GameAnalysis(words, pool, MOVES, "even2");
+  await again.start();
+  await again.fromStore(pool.search!, model);
+  assert.equal(again.analysis[0]?.visits, deep);
+  // The positions count the komi as Blue's starting score, from the start
+  assert.deepEqual(game.positions.map(p => p.scores), MOVES.map(() => [300, 0]).concat([[300, 0]]));
+  // The book's values are the engine's at komi 0: a review at a komi takes none
+  game.useBook([toAnalysis(words, reply(deep))]);
+  assert.deepEqual(game.bookResults, []);
+});
+
+test("a komi game's end and labels follow the komi", async () => {
+  // A game of one move, "a", which ends it with Blue 100 points ahead on the board. Before it, the engine gives Blue
+  // 90%.
+  const ends = {
+    describeGame: async (q: PositionQuery) => ({ reply: { positions: Array.from({ length: q.moves.length + 1 }, (_, k) =>
+      ({ ...wordFields(k, k === 1), scores: (k === 1 ? [100, 0] : [0, 0]) as [number, number] })) } }),
+  };
+  const deep = 16384;
+  const at = async (komi: number) => {
+    const { pool } = fakePool();
+    Object.assign(pool, { rules: ends });
+    const start = { ...reply(deep), rootInfo: { ...reply(deep).rootInfo, winrate: 0.9, scoreLead: 80 } } as AnalysisReply;
+    await cachePut(analysisKey(pool.search!, pool.model!.sha256, keyMoves(null, [], komi), deep), toAnalysis(words, start));
+    const game = new GameAnalysis(words, pool, ["a"], `ends${komi}`, null, { komi });
+    await game.start();
+    await game.fromStore(pool.search!, pool.model!.sha256);
+    const data = game.data({ blue: "B", red: "R" })!;
+    return { data, R: review(words, data, "lead", LABEL_VISITS) };
+  };
+  const even = await at(0), komi = await at(300);
+  // At 0, Blue wins by 100: the move keeps Blue's win, and is no mistake
+  assert.deepEqual(even.data.result, { blue: 100, red: 0 });
+  assert.equal(even.R.blueWin[1], 1);
+  assert.ok(!["inaccuracy", "mistake", "blunder"].includes(even.R.edges[0].label!));
+  // At Red's komi of 300, Red wins by 200: Blue's 90% falls to 0, a blunder, and its loss in the lead counts the komi
+  assert.deepEqual(komi.data.result, { blue: 100, red: 300 });
+  assert.deepEqual([komi.R.blueWin[1], komi.R.blueScore[1]], [0, -200]);
+  assert.equal(komi.R.edges[0].label, "blunder");
+  assert.equal(komi.R.edges[0].pointsLost, 280);
 });

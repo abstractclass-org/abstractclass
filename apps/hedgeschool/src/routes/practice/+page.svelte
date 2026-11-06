@@ -1,13 +1,13 @@
 <script lang="ts">
-  // Practice (docs/design/24-practice.md): a game against HedgeFund, the engine's practice bot, in the player's browser,
-  // with no server and no clock. Before the game, a card as Lichess's "Play with the computer": the bot's settings (the
-  // network, the visits for each move, the variety), the player's name, then a side, which starts the game. During
-  // the game, the review's layout and parts (design 06): the players' row above the board with the points' bar, the
-  // board as large as the window lets it be, with the player's notes, and a side column with the review's move list,
-  // the steps through the game's positions, Take back, Abort and Resign. One game in progress, kept in this browser and
-  // resumed. A game that ends goes into Your games. Its way in, which the Analysis board's Play gives (design 22):
-  // `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address at once, then the
-  // analytics start.
+  // Practice (docs/design/24-practice.md): a game against HedgeFund, the engine's practice bot, in the player's
+  // browser, with no server and no clock. Before the game, a card as Lichess's "Play with the computer": the bot's
+  // settings (the network, the visits for each move, the variety, the komi), the player's name, then a side, which
+  // starts the game. During the game, the review's layout and parts (design 06): the players' row above the board with
+  // the points' bar, the board as large as the window lets it be, with the player's notes, and a side column with the
+  // review's move list, the steps through the game's positions, Take back, Abort and Resign. One game in progress, kept
+  // in this browser and resumed. A game that ends goes into Your games. Its way in, which the Analysis board's Play
+  // gives (design 22): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address
+  // at once, then the analytics start.
   import { onDestroy, onMount, untrack } from "svelte";
   import { Dialog } from "bits-ui";
   import Board from "#lib/board/Board.svelte";
@@ -41,8 +41,8 @@
   import { startBot } from "#lib/practice/botForms.ts";
   import type { BotMode } from "@abstractclass/practice/botMessages.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
-  import { botName, keep, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceTurn, saveChoices,
-           type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
+  import { BOT_NAME, botName, keep, komiLine, komiSide, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
+           practiceTurn, saveChoices, type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const WHERE: Record<BotMode, string> = { gpu: "on the GPU", cpu: "on the CPU workers", single: "on one thread" };
@@ -142,19 +142,22 @@
       const g = (game = new PracticeGame(kept, rules, bot));
       await g.start();
       if (g.status !== "failed") track("practice_start", { ...gameParams(g), practice_from: from });
+      if (g.status !== "failed" && kept.komi) used("practice komi"); // design 17's feature: a game with a komi
     } catch (e) {
       failed = errorText(e);
       track("engine_error", { error_kind: "practice" });
     }
   }
 
-  /** A new game with the settings chosen and the side picked, from the standard start or the record brought. */
+  /** A new game with the settings chosen and the side picked, from the standard start or the record brought. The
+   *  card's komi, the player's head start, becomes the engine's, Red's starting score, by the side (design 24). */
   function newGame(side: "blue" | "red" | "random") {
     choices.side = side;
     saveChoices($state.snapshot(choices));
     const human: Player = side === "blue" ? 0 : side === "red" ? 1 : Math.random() < 0.5 ? 0 : 1;
     const kept: KeptPractice = {
       version: 1, bot: { ...choices.bot }, human, name: choices.name.trim(), seed: Math.floor(Math.random() * 2 ** 31),
+      ...(choices.komi ? { komi: komiSide(choices.komi, human) } : {}),
       moves: brought ? [...brought.moves] : [], builds: [], started: new Date().toISOString(),
       ...(brought?.start ? { start: brought.start } : {}), ...(brought?.moves.length ? { brought: brought.moves.length } : {}),
     };
@@ -270,7 +273,8 @@
   const seconds = (ms: number) => `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
 
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : networkName(k.bot.network));
-  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${WHERE[g.mode]}.`;
+  // The bot's settings and where it runs, then the komi from the player's side (design 24)
+  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${WHERE[g.mode]}.${g.kept.komi ? ` ${komiLine(g.kept)}` : ""}`;
   const statusText = $derived.by(() => {
     const g = game, p = g?.position;
     if (!g || g.status === "starting" || !p) return "Starting HedgeFund…";
@@ -326,7 +330,7 @@
 <svelte:window {onkeydown} />
 
 <PageMeta title="Practice · Hedge School"
-          description="Practise Enclosure against the engine's bot in your browser: choose its network, visits and variety, then review the game." />
+          description="Practise Enclosure against the engine's bot in your browser: choose its network, visits, variety and komi, then review the game." />
 
 {#if failed}
   <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{failed}</p></main>
@@ -342,7 +346,7 @@
      side, which starts the game. -->
 {#snippet settingsCard()}
   <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
-                networkHelp="The larger network plays stronger, and takes longer." {ready} onside={newGame}>
+                networkHelp="The larger network plays stronger, and takes longer." bot={BOT_NAME} {ready} onside={newGame}>
     {#snippet intro()}A game against the engine, in your browser, with no clock: the bot searches each move to the visits
       you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}

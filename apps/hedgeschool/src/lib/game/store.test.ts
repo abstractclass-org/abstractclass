@@ -34,6 +34,10 @@ test("a game's id: its moves alone from the standard start, as before, and its s
   assert.equal(await gameId(moves), await gameId(moves, undefined));
   assert.notEqual(await gameId(moves, "A10-D10 Q10-T10 b2 0/0 3"), await gameId(moves));
   assert.match(await gameId(moves), /^[0-9a-f]{12}$/);
+  // A komi (design 24): the same moves at another komi are another game; at 0, the id as before
+  assert.notEqual(await gameId(moves, undefined, 300), await gameId(moves));
+  assert.notEqual(await gameId(moves, undefined, 300), await gameId(moves, undefined, -300));
+  assert.equal(await gameId(moves, undefined, 0), await gameId(moves));
 });
 
 test("a new mark frees an earlier review's results when it replaces a mark of another module or network file", () => {

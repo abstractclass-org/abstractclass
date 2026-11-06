@@ -10,7 +10,8 @@
 // The game gives its moves' syntax and marks (Notation): the reader asks it for each word that is not a turn label, a
 // pass or a result. This reader keeps the main line and its tags. It skips comments and variations, but reads `[%clk]`
 // and `[%eval]` from the comments after the main line's moves. It checks the notation, not the rules: the engine checks
-// that every move is legal. It also accepts a bare list of moves, without turn labels.
+// that every move is legal. It also accepts a bare list of moves, without turn labels. It checks one tag's value, the
+// `Komi` tag's (recordKomi): the game's starting score, which the review searches at.
 
 /** A move as the game reads it from a record's word: its one spelling, its mark, and where in the word its mark
  *  starts (the word's length when it has none), so that a mark can be written there (markMoves). */
@@ -65,6 +66,24 @@ export function gamePage(tags: Record<string, string>): { href: string; host: st
     return null;
   }
 }
+
+/** A `Komi` tag's value: a number of whole or half points, with its sign. */
+const KOMI = /^[+-]?\d{1,5}(?:\.[05])?$/;
+
+/** The komi of a `Komi` tag's value (Hedge School's design 24): Red's starting score, as the engine counts it, and
+ *  below 0 Blue's. KataGo takes whole and half points. No value, and PGN's `?` and `-` for none, are komi 0. Null for a
+ *  value that is not a komi. */
+export function komiOf(value: string | undefined): number | null {
+  const v = value?.trim() ?? "";
+  if (v === "" || v === "?" || v === "-") return 0;
+  return KOMI.test(v) ? Number(v) || 0 : null;
+}
+
+/** A record's komi: its `Komi` tag, 0 without one. The reader refuses a tag that is not a komi. */
+export const recordKomi = (tags: Record<string, string>): number => komiOf(tags.Komi) ?? 0;
+
+/** The `Komi` tag of a game at `komi`: none at 0, so that such a game's record is as it was before the komi. */
+export const komiTag = (komi: number): Record<string, string> => (komi ? { Komi: String(komi) } : {});
 
 /** The players' names from the record's tags, or the side's name where a tag is missing or "?". */
 export function playerNames(tags: Record<string, string>): { blue: string; red: string } {
@@ -133,6 +152,9 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
       // "?" and "-" are PGN's values for none.
       if (t.name === "Position" && !notation.start && !["", "?", "-"].includes(t.value.trim()))
         throw new RecordError("this site reads a game from the standard start only: remove the Position tag", t.at);
+      // A komi that no reader can take: the game would be reviewed at a komi that the record does not give.
+      if (t.name === "Komi" && komiOf(t.value) === null)
+        throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
       record.tags[t.name] = t.value;
     } else if (t.kind === "comment") {
       if (record.moves.length) readCommands(t.text, record, record.moves.length - 1);

@@ -87,7 +87,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    other developers can follow it, as PGN's standard describes PGN. The notations are decided in the engine
    repository's design (its `docs/design/04-notation-and-protocol.md`). That repository is private, so this page is
    their public description. A change is decided there first, then the page follows
-   ([requests/11-notation-page.md](../requests/11-notation-page.md)).
+   ([requests/11-notation-page.md](../requests/11-notation-page.md)). The `Komi` tag came the other way: Practice's
+   komi (design 24) needed it first, the page gives it, and request 27 asks the engine repository to record it.
 9. **The labels:** as built (design 10), with no note that they may change. They are computed again from the stored
    analyses whenever the page opens, so a later change reaches every stored game without a new search.
 10. **The site's own terms:** its code, text and design are under copyright, all rights reserved (`SITE_COPYRIGHT` in

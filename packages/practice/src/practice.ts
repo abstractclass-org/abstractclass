@@ -1,8 +1,8 @@
-// Practice (Hedge School's design 24): a game against an engine's practice bot in the player's browser, for a game whose
-// bot speaks KataGo's GTP. What each site's practice shares: the bot's settings (the visits for each move and the
-// variety), the player's choices and the game in progress, kept in the browser, the GTP commands that set the bot, the
-// takeback's reach, the result and the player's outcome. Each site gives its own storage keys, its networks, its bot's
-// half-life and its record (Hedge School's src/lib/practice/hedgefund.ts).
+// Practice (Hedge School's design 24): a game against an engine's practice bot in the player's browser, for a game
+// whose bot speaks KataGo's GTP. What each site's practice shares: the bot's settings (the visits for each move, the
+// variety and the komi), the player's choices and the game in progress, kept in the browser, the GTP commands that set
+// the bot, the takeback's reach, the result and the player's outcome. Each site gives its own storage keys, its
+// networks, its bot's half-life and its record (Hedge School's src/lib/practice/hedgefund.ts).
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { inSteps } from "@abstractclass/analysis/settings.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
@@ -32,17 +32,34 @@ export const VARIETY_HELP: Record<Variety, string> = {
   high: "Often plays a move other than its best.",
 };
 
+/** The komi (Hedge School's design 24): a starting score, as the engine counts it. The card sets it from the player's
+ *  side, any whole number of points from −3,000 to 3,000, its slider by steps of 50. One range for both games: their
+ *  self-play trains komi out to ±3,000, and people's margins are of the same size in both. */
+export const MAX_KOMI = 3000;
+export const KOMI_STEP = 50;
+/** Whether the card takes this komi. */
+export const komiTaken = (komi: unknown): komi is number => Number.isInteger(komi) && Math.abs(komi as number) <= MAX_KOMI;
+/** A komi turned from the player's side to the engine's, or back: the engine's komi is Red's starting score, so the
+ *  player's head start is it for Red, and its negative for Blue. */
+export const komiSide = (komi: number, human: Player) => (human === 1 ? komi : -komi) || 0;
+/** What a komi does, from the player's side (`points` ahead: below 0, the bot's head start). */
+export function komiHelp(points: number, bot = "The bot"): string {
+  const ahead = (n: number) => `${Math.abs(n).toLocaleString("en")} ${Math.abs(n) === 1 ? "point" : "points"} ahead`;
+  return points > 0 ? `You start ${ahead(points)}.` : points < 0 ? `${bot} starts ${ahead(points)}.`
+    : "Neither side starts ahead, as in a game online.";
+}
+
 /** The bot's settings for a game, fixed for it. */
 export interface BotSettings { network: string; visits: number; variety: Variety }
 
-/** The player's choices on the Practice page, kept in this browser for the next game: the bot's settings, the side, and
- *  the player's name for the record. */
-export interface PracticeChoices { bot: BotSettings; side: "blue" | "red" | "random"; name: string }
+/** The player's choices on the Practice page, kept in this browser for the next game: the bot's settings, the komi from
+ *  the player's side (the points that the player starts ahead), the side, and the player's name for the record. */
+export interface PracticeChoices { bot: BotSettings; komi: number; side: "blue" | "red" | "random"; name: string }
 
 /** The player's choices, kept under a site's key. `network` is the site's first network, and `offers` says whether the
  *  site still offers a kept one: a choice of a network that it no longer offers takes the first. */
 export function choicesStore(key: string, network: string, offers: (id: string | undefined) => boolean) {
-  const defaults = (): PracticeChoices => ({ bot: { network, visits: DEFAULT_VISITS, variety: "low" }, side: "random", name: "" });
+  const defaults = (): PracticeChoices => ({ bot: { network, visits: DEFAULT_VISITS, variety: "low" }, komi: 0, side: "random", name: "" });
   function load(): PracticeChoices {
     const d = defaults(), kept = readLocalJson<Partial<PracticeChoices>>(key);
     const bot = kept?.bot;
@@ -52,6 +69,7 @@ export function choicesStore(key: string, network: string, offers: (id: string |
         visits: visitsTaken(bot?.visits) ? bot.visits : d.bot.visits,
         variety: bot?.variety && bot.variety in VARIETY ? bot.variety : d.bot.variety,
       },
+      komi: komiTaken(kept?.komi) ? kept.komi : d.komi,
       side: kept?.side === "blue" || kept?.side === "red" ? kept.side : d.side,
       name: typeof kept?.name === "string" ? kept.name.slice(0, 40) : d.name,
     };
@@ -77,6 +95,7 @@ export interface KeptPractice<Form extends string = string> {
   builds: string[];
   started: string; // ISO date and time
   start?: string; // a set-up start, in the game's position notation (Hedge School: the Analysis board's Play)
+  komi?: number; // the engine's komi, Red's starting score (below 0, Blue's): the record's Komi tag. None: 0
   brought?: number; // the moves that came with a record: the game's start, not played against the bot
   takebacks?: number;
   botTurns?: number;
@@ -93,7 +112,8 @@ export interface KeptPractice<Form extends string = string> {
 export function keptStore<Form extends string = string>(key: string) {
   function load(): KeptPractice<Form> | null {
     const k = readLocalJson<KeptPractice<Form>>(key);
-    return k && k.version === 1 && Array.isArray(k.moves) && (k.human === 0 || k.human === 1) && visitsTaken(k.bot?.visits) ? k : null;
+    return k && k.version === 1 && Array.isArray(k.moves) && (k.human === 0 || k.human === 1) && visitsTaken(k.bot?.visits) &&
+      (k.komi === undefined || komiTaken(k.komi)) ? k : null;
   }
   const keep = (k: KeptPractice<Form> | null) => writeLocal(key, k && JSON.stringify(k));
   return { load, keep };
@@ -102,12 +122,15 @@ export function keptStore<Form extends string = string>(key: string) {
 /** The bot's side in GTP's colours: `b` is Blue, the first player, and `w` is Red. */
 export const gtpColor = (p: Player) => (p === 0 ? "b" : "w");
 
-/** The GTP commands that give the bot a game's settings: the visits, and the variety's temperatures, halved every
- *  `halflife` moves. */
-export function settingsCommands(bot: BotSettings, halflife: number): string[] {
+/** The GTP commands that give the bot a game's settings: the visits, the variety's temperatures, halved every
+ *  `halflife` moves, and the game's komi (the engine's, Red's starting score). A game at komi 0 sends no `komi`: the
+ *  bot's own is 0, so the game plays as before the komi. The bot keeps the komi through `clear_board` and a new start.
+ *  */
+export function settingsCommands(bot: BotSettings, halflife: number, komi = 0): string[] {
   const v = VARIETY[bot.variety];
   return [`kata-set-param maxVisits ${bot.visits}`, `kata-set-param chosenMoveTemperatureEarly ${v.early}`,
-          `kata-set-param chosenMoveTemperature ${v.floor}`, `kata-set-param chosenMoveTemperatureHalflife ${halflife}`];
+          `kata-set-param chosenMoveTemperature ${v.floor}`, `kata-set-param chosenMoveTemperatureHalflife ${halflife}`,
+          ...(komi ? [`komi ${komi}`] : [])];
 }
 
 /** A GTP response's text: `= TEXT` gives TEXT. Throws on `? ERROR`, with the bot's message. */

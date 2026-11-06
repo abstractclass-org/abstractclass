@@ -1,6 +1,7 @@
 # Practice: a game against HedgeFund in the browser
 
-**Status:** in force, built. **Decided:** 2026-10-14. The visits to 8,192, and any number of them: 2026-10-17.
+**Status:** in force, built. **Decided:** 2026-10-14. The visits to 8,192, and any number of them: 2026-10-17. The
+komi: 2026-11-06.
 
 ## Context
 
@@ -28,8 +29,9 @@ How strong each setting plays against people is not measured yet.
    no clock: each bot move searches to its visits, so a setting plays at the same strength on every machine, and a
    slow machine only waits longer. This departs from Lichess, whose games against the computer run on its servers
    (request 15). The header names it first, and it is the home page's first call to action (design 22).
-2. **The bot's settings,** chosen before the game and fixed for it, as Lichess fixes the computer's level. Levels come
-   later, from the engine repository's visit ladder and from games by setting.
+2. **The bot's settings,** chosen before the game and fixed for it, as Lichess fixes the computer's level: the network,
+   the visits, the variety and the komi. Levels come later, from the engine repository's visit ladder and from games
+   by setting.
    - **The network:** HedgeFund 0.2 Lite (the default) or HedgeFund 0.2. A game kept from an earlier visit goes on
      with its own network, also an earlier one that the list no longer offers (HedgeFund 0.1 Lite, HedgeFund 0.1): the
      site still ships them (design 09). A saved choice of an earlier network takes the default.
@@ -56,6 +58,38 @@ How strong each setting plays against people is not measured yet.
      | High | 1.0 | 0.6 |
 
      Low is KataGo's own default. Medium and High are the site's, to check against games once levels are measured.
+   - **The komi,** a starting score: points that one side has before the first move. The engine counts it so (the
+     engine repository's `games/enclosure/docs/design/09-komi-and-lead.md`): Red receiving a komi K starts K points
+     ahead, and a negative K favours Blue. The default is 0, the game played online. One setting, with no handicap
+     presets and no levels (below, "Why").
+     - **From the player's side:** the card sets the points that the player starts ahead, and a number below 0 gives
+       them to the bot, whatever colour each side plays. The help line under the setting says it so: "You start 300
+       points ahead", "HedgeFund starts 300 points ahead", and at 0 "Neither side starts ahead, as in a game online".
+       The side can be Random, so the card cannot name Blue or Red. When the game starts, its side turns the choice
+       into the engine's komi: K = N when the player is Red, and K = −N when the player is Blue. The game, its record
+       and the stored game keep K, with its sign.
+     - **A slider and a box,** as the visits have: the slider steps by 50 points from −3,000 to 3,000 (121 stops, 0 in
+       the middle), and the box takes any whole number in that range. The slider's ends name whose head start each is:
+       "HedgeFund ahead" on the left, "You ahead" on the right. A typed number sets the komi when the player
+       leaves the box or presses Enter. The slider then shows the stop nearest to it. A number outside the range, or
+       not whole, stays in the box with the range, and no side starts a game until it changes, as for the visits.
+     - **Whole points:** Enclosure's areas are exact rationals (the engine counts the faces of the edges, whose corners
+       include the points where edges cross), so a margin can be any number, at any komi. A half point does not keep a
+       game from ending level here, as it does in Go, where every score is whole. A game with a komi can end level, as
+       a game at 0 can: its result is `0`.
+     - **During the game,** each player's points include their starting points, from the first position: the cards,
+       the points bar, the result and the player's outcome count the komi. The side column's first line, with the
+       bot's settings, says who started ahead and by how much.
+     - **The bot** gets GTP's `komi K` before its first move, after its other settings. It keeps the komi through
+       `clear_board` and a set-up start (`enclosure-set-position`): KataGo keeps its rules, the komi in them, across
+       both. A game at komi 0 sends no `komi` and its record has no `Komi` tag, so it plays and records as before the
+       setting.
+     - **A game kept from an earlier visit** goes on with its komi. A game kept before the setting has none: 0. A
+       stored game (design 25) keeps it.
+     - **A record brought to Practice** (item 4) brings its moves and its start, not its komi: the card's komi
+       applies, and the card shows it before the game starts.
+     - **Cyanotype's Practice** (design 33) has the same setting, through the shared card, with the same range and
+       step (below, "Why").
 3. **Before the game, one card,** "Practice against bot", as Lichess's "Play with the computer": the bot's settings,
    the player's name, then the side, which starts the game. The heading does not name the bot: the network's choice
    does. The sides are Blue, Random and Red, each with its dot (Random half Blue, half
@@ -83,7 +117,8 @@ How strong each setting plays against people is not measured yet.
    moves of a kept game, and the bar with its actions off. Before the page's code runs, the page shows nothing: it
    cannot know whether the card or a game comes. The game's own state only: no evaluation, no engine lines and no
    labels, as on Lichess. The display settings are the review's where they apply: the regions, the invincible edges and
-   the move sounds. The cards are the review's, two lines each. The bot's settings are in the side column's first line.
+   the move sounds. The cards are the review's, two lines each. The bot's settings are in the side column's first line,
+   and after them a komi from the player's side ("You start 300 points ahead.").
 6. **The bot's time, not its visits:** while the bot searches, the line says so, with the seconds so far, and then how
    long its last turn took. GTP's `genmove` answers only with the move, so the page cannot show the visits so far. The
    time tells the player whether the machine copes with the visits set.
@@ -112,7 +147,10 @@ How strong each setting plays against people is not measured yet.
 11. **The record names both sides.** The player's side has the name that the player sets on the card, kept in this
     browser, and "You" without one. The bot's side is "HedgeFund 0.2 Lite, 64 visits, Low variety", for example. The
     record also gives the event (Practice), and the bot in full: the network's id, the visits, the variety, and the
-    engine's build, from the bot's own report (`enclosure-bot-info`).
+    engine's build, from the bot's own report (`enclosure-bot-info`). A game with a komi has the tag `Komi`, the
+    engine's K: `[Komi "300"]` when Red started 300 points ahead, `[Komi "-300"]` when Blue did. Its result counts
+    the komi (`r+120` when Red won by 120 points with them). Every reader of records reads the tag (item 15, and the
+    notation page, design 11).
 12. **The points bar,** in Practice's display settings, as switches. The scores and the areas show as numbers in any
     case, as in the review. No chart: the bar is enough, and a chart under the board would change the board's size,
     and with it the side column's, each time it is turned on or off.
@@ -143,6 +181,25 @@ How strong each setting plays against people is not measured yet.
     - **Fewer visits when far ahead:** on every form, KataGo's play settings scale the setting down to as little as
       0.4 once the bot's last three searches each gave a win-loss value above 0.95 (`searchFactorWhenWinning`, the
       engine repository's v2 design 18).
+15. **A game with a komi, after Practice:** the record's `Komi` tag is the game's komi wherever a record goes. A
+    record with no tag has komi 0, so every record before the setting reads as it did.
+    - **The readers:** the review, the import (a pasted record, a partner's link, a review file, a shared review), Your
+      games and the Analysis board read the tag. A `Komi` tag that is not a number of whole or half points is an
+      error in the record, as a wrong turn number is: no reader takes the game at a komi that it did not read.
+    - **The game's id** in Your games covers its komi with its start and its moves: the same moves at another komi
+      are another game, with its own review.
+    - **The review searches at the record's komi,** as KataGo's analysis takes a query's komi: each search's query
+      has the field `komi` (the engine repository's design 04), so the win chance, the lead and the quality labels
+      are the engine's at that komi. The game's end counts the komi too: its value is the result with the komi, and
+      the players' points include their starting points, as in Practice.
+    - **The stored results' keys hold a nonzero komi** (`komi=300` before the moves, after a set-up start's mark), as
+      the engine's own cache keeps evaluations at another komi apart. A review at a komi never reads a result stored
+      at 0, nor the reverse. A game at komi 0 keeps the keys that it had.
+    - **No book values at a komi:** the opening book's values (design 32) are the engine's at komi 0, so a review at
+      another komi searches the book's positions as any other.
+    - **The exports keep the tag:** the review file holds the record, the shared review its tags, and the annotated
+      record writes them (design 13). The Analysis board keeps a board's komi with the board and in its link. Its
+      Play button opens Practice with the moves, and the card's komi applies (item 2).
 
 ## Why
 
@@ -169,6 +226,39 @@ How strong each setting plays against people is not measured yet.
   history, where nothing in Enclosure argues for another way. Abort at any time is the one departure (item 8).
 - **The review's layout and parts** (the players' row, the display settings): one look across the site, and less to
   keep.
+- **The komi as one setting:** the engine repository's handicap design (its `docs/design/05-handicap.md`) keeps komi as
+  the finest step of a handicap, and the engine reads it now. Its extra edges and starting structures wait for its
+  handicap lab, which measures what each is worth. Presets or levels now would be guesses of what a step is worth.
+- **The komi's range, ±3,000 points,** from what the network reads and what games need (the engine repository's
+  `games/enclosure/docs/decisions/komi.md`):
+  - Self-play trains komi out to ±3,000 points: 10% of its games draw a komi with a spread of 1,000 points.
+  - The lead is the even komi up to 500 points. Above 500 points the network reads a komi short before the game's last
+    30 edges: with a lead of 1,000 to 5,000 points given as komi, the side ahead still wins 95% (the reading at row
+    18.03M). Its expected margin reads 90 to 105% of a komi of ±500, 95 to 99% of ±1,000 and 96 to 101% of ±2,500.
+  - Games against the bots need more than 500 points: on meaf.us, the margins of our bots against people had a median
+    of 773 points and a 90th percentile of 2,546 ("Komi: our answers on the design").
+  - So the range keeps the larger komis that a player can need, and the bot plays them with a short reading: when it
+    gives a komi above 500 points, it takes itself to be further ahead than it is early in the game. The game's
+    result always counts the komi in full: the rules add it.
+- **Steps of 50 points on the slider,** the site's own: a unit square enclosed early is worth about 61 points over a
+  game (the handicap design), so a step is about the smallest gain a player can picture. The box takes any whole
+  number for a finer komi.
+- **The komi from the player's side,** a departure from KaTrain and OGS: they set the komi for White, Go's second
+  player, as Go's komi pays White for Black's first move. Enclosure's fair komi is about 0 (Blue's mean margin in
+  self-play is +2.6 ± 8.2 points), so a komi here is a head start for one side, and a player chooses whom it favours.
+  The record keeps the engine's form, Red's komi, as KataGo's GTP and analysis take it.
+- **Whole points,** against Go's half points (its usual komi is 6.5 or 7.5): KataGo takes a whole or a half
+  point (`Rules::komiIsIntOrHalfInt`, in its `komi` command and the rules it reads). A half point keeps Go's games from
+  ending level because Go's scores are whole. Enclosure's are not, so a half point would add a digit and change
+  nothing.
+- **The same range and step for Blueprints** (Cyanotype, design 33), from the engine repository's
+  `games/blueprints/README.md`, "Komi": Stamp Duty's run gives every self-play game a komi, out to ±3,000 points (5% of
+  games at a spread of 1,000), and the sweep of bpj2's network (`games/blueprints/docs/decisions/port.md`, 2026-10-26)
+  found its win chance rising with the komi in each of 178 positions from −3,000 to +3,000, its expected margin moving
+  0.8 to 1.25 times the komi. People's margins in Blueprints are of the same size as Enclosure's: a median of 409
+  points and a 90th percentile of 2,060. Blueprints' scores are whole points, so a half point there would rule out a
+  draw, which the real game has (12 of the site's 737 finished games). Whole points keep draws as at komi 0.
+  Stamp Duty 0.1 is bpj5's network: no sweep of its own is recorded.
 
 ## Alternatives
 
@@ -189,6 +279,12 @@ How strong each setting plays against people is not measured yet.
   that the levels' data cannot use.
 - **Several games in progress,** as Lichess's correspondence games: more to build, for a use nobody asked for.
 - **The analysis module's `chooseMove`:** no new download, but not HedgeFund's play.
+- **The komi in the engine's form on the card** (Red's points, as KataGo's and OGS's komi is White's): one number,
+  the record's. But the side can be Random, and a player thinks of a head start for themselves or for the bot.
+- **The komi apart from the points** ("+300" beside Red's points, the rules' points alone): the rules' own numbers.
+  But the engine counts the komi as a starting score, and the bar and the lead then read differently from the result.
+- **A range of ±500 points,** where the network reads a komi in full: too small a head start for most players against
+  HedgeFund.
 
 ## Consequences
 
@@ -201,6 +297,10 @@ How strong each setting plays against people is not measured yet.
   move than on the one-thread bot (item 14). The games by setting mix the two forms, unless the levels count them
   apart: the analytics give each game's form (`bot_form`, design 17).
 - **The site's own temperatures** (Medium and High) are a guess until games show what they do.
+- **A game with a komi is not an even game:** the levels must count its komi, or leave it out. The stored game holds
+  it (design 25).
+- **Results at a komi are their own:** a review at a komi searches every position again, though the same moves at 0
+  were reviewed, and uses no book values.
 
 ## Where it is
 
@@ -231,6 +331,19 @@ How strong each setting plays against people is not measured yet.
 - **The files:** the release's practice files in `engine.lock.json`, which `npm run engine`
   (`packages/engine/src/fetch-engine.mjs`) puts in `static/engine/engine-54486cd-lib/` and the bot's module folders.
 - **The ways in:** the header, the sitemap, and the Analysis board's Play button (`src/routes/analysis/+page.svelte`).
+- **The komi:** its range, the choice, the kept game's field, the turn between the player's side and Red's
+  (`komiSide`), its words (`komiHelp`) and the GTP command in `packages/practice/src/practice.ts`, its control in
+  `PracticeCard.svelte`. The scores with it: `withKomi` (`packages/analysis/src/game.ts`), in the practice game and in
+  `GameAnalysis`. The tag: `komiOf`, `recordKomi` and `komiTag` (`packages/record/src/record.ts`), which the reader
+  checks. The review: `GameAnalysis`'s option `komi` (`packages/analysis/src/analysis.svelte.ts`: the searches'
+  queries, the keys, the positions, no book), and the keys' word `komi=K` (`keyMoves`, `lineKeyMoves`,
+  `snapshotPositions` in `packages/analysis/src/cache.ts`). The game's id (`src/lib/game/store.ts`, `gameId`), the
+  review file's and the removal's keys (`reviewFile.ts`, `positionKeys`; `earlierResults.ts`), and the Analysis
+  board's (`src/lib/game/board.ts`). Tests: the packages' `record.test.ts`, `practice.test.ts` and
+  `analysis.test.ts` ("a review at a komi …", "a komi game's end and labels follow the komi"), here
+  `practice.test.ts`, `stored.test.ts`, `store.test.ts`, `reviewFile.test.ts` and `board.test.ts`, and in the browser
+  `tests/practice-komi.spec.ts` (the card, a game at a komi and its review) and Cyanotype's in
+  `tests/cyanotype-practice.spec.ts`.
 
 ## Log entries
 
@@ -241,3 +354,6 @@ How strong each setting plays against people is not measured yet.
   (2026-11-07).
 - [requests/15-practice-bot.md](../requests/15-practice-bot.md): the bot, as the engine repository delivered it.
 - [requests/20-practice-set-up-start.md](../requests/20-practice-set-up-start.md): the bot from a set-up start.
+- [decisions/product.md](../decisions/product.md): "Practice: the komi, a fourth setting" (2026-11-06).
+- [requests/27-komi-tag.md](../requests/27-komi-tag.md): the record's `Komi` tag, for the engine repository's design
+  04.

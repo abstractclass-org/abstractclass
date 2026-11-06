@@ -31,8 +31,9 @@
   import { PLAYER_NAMES, STARS, starsOf, type Player } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
-  import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
+  import { NETWORKS, botName, keep, komiLine, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
+  import { komiSide } from "@abstractclass/practice/practice.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
@@ -101,6 +102,7 @@
     const human: Player = side === "blue" ? 0 : side === "red" ? 1 : Math.random() < 0.5 ? 0 : 1;
     const kept: KeptPractice = {
       version: 1, bot: { ...choices.bot }, human, name: choices.name.trim(), seed: Math.floor(Math.random() * 2 ** 31),
+      ...(choices.komi ? { komi: komiSide(choices.komi, human) } : {}), // the player's head start, as Red's komi
       moves: [], builds: [], started: new Date().toISOString(),
     };
     keep(kept);
@@ -211,7 +213,7 @@
 <svelte:window {onkeydown} bind:innerWidth />
 
 <PageMeta title="Practice · {SITE_NAME}"
-          description="Practise Blueprints against {ENGINE_NAME} in your browser: choose its visits and variety, then play." />
+          description="Practise Blueprints against {ENGINE_NAME} in your browser: choose its visits, variety and komi, then play." />
 
 {#if failed}
   <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{failed}</p></main>
@@ -219,7 +221,7 @@
   <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${n.name} (${megabytes(n.bytes)} MB)`])}
                 networkHelp="The network that {ENGINE_NAME} plays with."
                 nameHelp={'The name above the board. Without a name, the page shows "You".'}
-                {ready} onside={newGame}>
+                bot={ENGINE_NAME} {ready} onside={newGame}>
     {#snippet intro()}A game against {ENGINE_NAME}, the engine, in your browser, with no clock: it searches each move to
       the visits you set. This browser keeps the game until it ends.{/snippet}
     {#snippet notes()}
@@ -268,7 +270,7 @@
     {/snippet}
     {#snippet side()}
       <h1 class="text-lg font-bold">Practice</h1>
-      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, on one thread.</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
+      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, on one thread.{g.kept.komi ? ` ${komiLine(g.kept)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
       <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
         {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
       </p>

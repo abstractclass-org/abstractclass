@@ -23,7 +23,8 @@ export function storedGame(kept: KeptPractice, record: string, result: string, o
   if (kept.moves.length <= brought) return null;
   return {
     version: 1, id: kept.id ?? crypto.randomUUID(), browser, ended: storedDay(new Date()), site: SITE_VERSION,
-    bot: { ...kept.bot, form: kept.form ?? null, builds: kept.builds }, side: kept.human === 0 ? "blue" : "red",
+    bot: { ...kept.bot, form: kept.form ?? null, builds: kept.builds }, ...(kept.komi ? { komi: kept.komi } : {}),
+    side: kept.human === 0 ? "blue" : "red",
     outcome, result, record, brought, takebacks: kept.undone ?? [],
     ms: Array.from(kept.moves, (_, i) => kept.ms?.[i] ?? null),
   };

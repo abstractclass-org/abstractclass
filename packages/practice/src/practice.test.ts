@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  botLabel, choicesStore, gtpAnswer, keptStore, practiceOutcome, resignResult, scoreResult, settingsCommands,
-  takebackCount, visitsStop, visitsTaken, type KeptPractice,
+  botLabel, choicesStore, gtpAnswer, keptStore, komiHelp, komiSide, komiTaken, practiceOutcome, resignResult, scoreResult,
+  settingsCommands, takebackCount, visitsStop, visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -24,10 +24,14 @@ test("the visits: any whole number from 1 to 8,192, and the slider's doubling at
 test("the choices are kept under the site's key, and a network that the site no longer offers takes its first", () => {
   const offered = ["new", "newer"], store = choicesStore("test:choices", "new", id => offered.includes(id ?? ""));
   assert.deepEqual(store.load(), store.defaults());
-  store.save({ bot: { network: "newer", visits: 300, variety: "high" }, side: "red", name: "Ada" });
-  assert.deepEqual(store.load(), { bot: { network: "newer", visits: 300, variety: "high" }, side: "red", name: "Ada" });
-  store.save({ bot: { network: "old", visits: 0, variety: "low" }, side: "blue", name: "Ada" });
+  store.save({ bot: { network: "newer", visits: 300, variety: "high" }, komi: -250, side: "red", name: "Ada" });
+  assert.deepEqual(store.load(), { bot: { network: "newer", visits: 300, variety: "high" }, komi: -250, side: "red", name: "Ada" });
+  store.save({ bot: { network: "old", visits: 0, variety: "low" }, komi: 5000, side: "blue", name: "Ada" });
   assert.deepEqual(store.load().bot, { network: "new", visits: 64, variety: "low" });
+  assert.equal(store.load().komi, 0); // a komi outside the range takes the default
+  // Choices kept before the komi: komi 0.
+  localStorage.setItem("test:choices", JSON.stringify({ bot: { network: "new", visits: 8, variety: "low" }, side: "red", name: "" }));
+  assert.equal(store.load().komi, 0);
 });
 
 test("the game in progress is kept under the site's key, and a game of another form is not", () => {
@@ -39,6 +43,11 @@ test("the game in progress is kept under the site's key, and a game of another f
   store.keep(game);
   assert.deepEqual(store.load(), game);
   store.keep({ ...game, human: 2 as 0 });
+  assert.equal(store.load(), null);
+  // A game with a komi keeps it, and a komi that the card does not take is not a game kept.
+  store.keep({ ...game, komi: -300 });
+  assert.equal(store.load()?.komi, -300);
+  store.keep({ ...game, komi: 0.5 });
   assert.equal(store.load(), null);
   store.keep(null);
   assert.equal(store.load(), null);
@@ -71,4 +80,21 @@ test("the bot's GTP: its answers, its settings with the site's half-life, and it
     "kata-set-param chosenMoveTemperatureHalflife 11.5",
   ]);
   assert.equal(botLabel("Test Bot 1", { network: "new", visits: 1, variety: "low" }), "Test Bot 1, 1 visit, Low variety");
+  // A komi after the settings, and none at komi 0: such a game plays as before the komi.
+  const bot = { network: "new", visits: 32, variety: "low" } as const;
+  assert.deepEqual(settingsCommands(bot, 19, -300).at(-1), "komi -300");
+  assert.deepEqual(settingsCommands(bot, 19, 0), settingsCommands(bot, 19));
+  assert.equal(settingsCommands(bot, 19).length, 4);
+});
+
+test("the komi: any whole number from -3,000 to 3,000 on the card, from the player's side, Red's in the game", () => {
+  for (const k of [0, 1, -1, 125, -3000, 3000]) assert.equal(komiTaken(k), true, String(k));
+  for (const k of [3001, -3050, 0.5, "300", null, NaN]) assert.equal(komiTaken(k), false, String(k));
+  // The player's head start of 300 points: Red's komi 300 when the player is Red, -300 when Blue, and back.
+  assert.deepEqual([komiSide(300, 1), komiSide(300, 0), komiSide(-300, 0), komiSide(0, 0)], [300, -300, 300, 0]);
+  assert.equal(Object.is(komiSide(0, 0), -0), false);
+  assert.equal(komiHelp(300), "You start 300 points ahead.");
+  assert.equal(komiHelp(-1500, "Stamp Duty"), "Stamp Duty starts 1,500 points ahead.");
+  assert.equal(komiHelp(1), "You start 1 point ahead.");
+  assert.equal(komiHelp(0), "Neither side starts ahead, as in a game online.");
 });
