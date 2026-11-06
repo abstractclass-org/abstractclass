@@ -3,6 +3,7 @@
 // site's name, what it is for and its address, in the site's dark theme. Drawn as SVG here, and to
 // static/brand/card.png by scripts/brand.mjs.
 import { center, hexPath, type Hex } from "#lib/board/hex.ts";
+import type { Kind, Player } from "#lib/board/position.ts";
 import { LOGO_LARGE, shapeMarkup, starPath } from "./logo.ts";
 
 // The dark theme's colours (packages/site/src/site.css, and the board's in src/app.css). The grey under the lead is
@@ -13,14 +14,17 @@ const BOARD = "#3a362e", GRID = "#6d6555", BLUE = "#5b8ff0", RED = "#e8635c", ON
 /** The card's size, Open Graph's. */
 export const CARD_WIDTH = 1200, CARD_HEIGHT = 630;
 
-/** A corner of a game, drawn by hand: each player's start blueprint, grown towards the other, a wall of each. */
-const CELLS: [Hex, 0 | 1, "plain" | "star" | "wall"][] = [
+/** A corner of a game, drawn by hand: each player's start blueprint, grown towards the other, a wall of each. Blue's
+ *  last placement, at (0, 0) and (0, 1), captured the two cells of Red's ring that touched it. As in a game, no
+ *  player's cell touches the opponent's, but for walls. logo.test.ts checks this. */
+export const CELLS: [Hex, Player, Kind][] = [
   [[-2, 1], 0, "star"], [[-1, 0], 0, "plain"], [[-1, 1], 0, "plain"], [[-2, 2], 0, "plain"], [[-3, 2], 0, "plain"],
   [[-3, 1], 0, "plain"], [[-2, 0], 0, "plain"], [[0, 0], 0, "plain"], [[0, 1], 0, "star"], [[-1, 2], 0, "wall"],
-  [[2, -1], 1, "star"], [[3, -2], 1, "plain"], [[3, -1], 1, "plain"], [[2, 0], 1, "plain"], [[1, -1], 1, "plain"],
+  [[2, -1], 1, "star"], [[3, -2], 1, "plain"], [[3, -1], 1, "plain"], [[2, 0], 1, "plain"],
   [[2, -2], 1, "plain"], [[1, -2], 1, "wall"], [[3, 0], 1, "plain"], [[2, 1], 1, "star"],
 ];
-const BRICKS = (x: number, y: number, k: number) =>
+/** A wall's bricks on the cell at (x, y), of radius `k`: the lines of Cell.svelte's BRICKS. */
+const bricks = (x: number, y: number, k: number) =>
   [[-0.45, -0.3, 0.45, -0.3], [0.45, -0.3, 0.45, 0.3], [0.45, 0.3, -0.45, 0.3], [-0.45, 0.3, -0.45, -0.3],
    [-0.45, -0.1, 0.45, -0.1], [-0.45, 0.1, 0.45, 0.1], [0, -0.3, 0, -0.1], [-0.22, -0.1, -0.22, 0.1],
    [0.22, -0.1, 0.22, 0.1], [0, 0.1, 0, 0.3]]
@@ -41,10 +45,10 @@ function board(x0: number, y0: number, side: number, k: number): string {
     const [x, y] = at(h);
     cells += `<path d="${hexPath(x, y, k * 0.93)}" fill="${owner ? RED : BLUE}"/>`;
     if (kind === "star") cells += `<path d="${starPath(x, y, k * 0.52)}" fill="${ON_CELL}"/>`;
-    if (kind === "wall") cells += `<path d="${BRICKS(x, y, k)}" fill="none" stroke="${ON_CELL}" stroke-width="${k * 0.07}"/>`;
+    if (kind === "wall") cells += `<path d="${bricks(x, y, k)}" fill="none" stroke="${ON_CELL}" stroke-width="${k * 0.07}"/>`;
   }
-  return `<clipPath id="board"><rect x="${x0}" y="${y0}" width="${side}" height="${side}" rx="18"/></clipPath>`
-    + `<rect x="${x0}" y="${y0}" width="${side}" height="${side}" rx="18" fill="${BOARD}"/>`
+  const square = `x="${x0}" y="${y0}" width="${side}" height="${side}" rx="18"`;
+  return `<clipPath id="board"><rect ${square}/></clipPath><rect ${square} fill="${BOARD}"/>`
     + `<g clip-path="url(#board)"><path d="${grid}" fill="none" stroke="${GRID}" stroke-width="1.6" opacity="0.7"/>`
     + `${cells}</g>`;
 }
@@ -62,7 +66,7 @@ export function card(): string {
     + `<g font-family="'Segoe UI', system-ui, sans-serif">`
     + text(x + 110, 190, 62, TEXT, 700, ["Cyanotype"])
     + text(x, 290, 46, LEAD, 600, ["Learn Blueprints"])
-    + text(x, 360, 30, ABOUT, 400, ["Review your games and analyze any", "position, with an engine that runs in",
-      "your browser."])
+    + text(x, 360, 30, ABOUT, 400, ["Review your games and analyze any line,",
+      "with an engine that runs in your browser."])
     + text(x, 508, 26, MUTED, 400, ["cyanotype.abstractclass.org"]) + "</g></svg>";
 }

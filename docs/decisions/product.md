@@ -8687,4 +8687,4 @@ The choice is the cyanotype:
   a light and a dark page. Both colours are cool, and they do not clash in either header. The site's accent stays the
   lavender.
 
-The logo, its files and how each is made are in design 33, "The logo". The lab page went with the choice.
+The logo, its files and how each is made are in design 33, "The logo". The site does not keep the lab page.

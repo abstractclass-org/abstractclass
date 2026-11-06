@@ -1,13 +1,13 @@
 // Draws Cyanotype's logo files (design 33, "The logo") from its drawings (src/lib/brand/logo.ts, card.ts):
-// - src/lib/assets/favicon.svg: the simple drawing, the favicon that the page names;
+// - src/lib/assets/favicon.svg: the simple drawing, the favicon that the page names.
 // - static/favicon.ico: the simple drawing at 16, 32 and 48 pixels, for browsers without SVG icons and for the clients
-//   that ask for /favicon.ico without reading the page, as Hedge School's (its scripts/favicon.mjs, design 12);
-// - static/apple-touch-icon.png: the full print on a full square of 180 pixels, for iOS's home screen;
+//   that ask for /favicon.ico without reading the page, as Hedge School's (its scripts/favicon.mjs, design 12).
+// - static/apple-touch-icon.png: the full print on a full square of 180 pixels, for iOS's home screen.
 // - static/brand/card.png: the link preview picture, 1,200 × 630 pixels.
 // Each picture is drawn by headless Chromium at its own size, with Hedge School's layout test's launch options (its
 // playwright.config.ts: off the GPU on Windows). Run it again after a change of the drawings:
 //   cd apps/cyanotype && node scripts/brand.mjs
-import { mkdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import config from "../../hedgeschool/playwright.config.ts";
 import { card, CARD_HEIGHT, CARD_WIDTH } from "../src/lib/brand/card.ts";
@@ -29,7 +29,6 @@ async function png(doc, width, height = width) {
 }
 
 try {
-  mkdirSync("src/lib/assets", { recursive: true });
   writeFileSync("src/lib/assets/favicon.svg", FAVICON_SVG);
 
   // The ICO file: a header, one entry for each image, then the images as PNG (Windows Vista's form, which every
@@ -53,7 +52,6 @@ try {
   writeFileSync("static/favicon.ico", Buffer.concat([header, ...images]));
 
   writeFileSync("static/apple-touch-icon.png", await png(svgDocument(TOUCH_ICON, 180), 180));
-  mkdirSync("static/brand", { recursive: true });
   writeFileSync("static/brand/card.png", await png(card(), CARD_WIDTH, CARD_HEIGHT));
   console.log(`src/lib/assets/favicon.svg, static/favicon.ico (${ICO_SIZES.join(", ")} pixels, ${offset} bytes), `
     + "static/apple-touch-icon.png, static/brand/card.png");

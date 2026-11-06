@@ -416,7 +416,7 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    window the column at the window's right holds the player's own hand, which a button fixed in the corner would
    cover. Before the game comes, the button is fixed in the window's lower right corner, as Hedge School's is.
 4. **The button's picture:** a blueprint as the game starts it, a star with a ring of six cells, white on the button's
-   dark ground, with the star marked. It is drawn before the logo ("The logo"), which is the same blueprint.
+   dark ground, with the star marked. The logo shows the same blueprint in a drawing of its own ("The logo").
 5. **The import page** (`/import`) offers the game that a tool sent in the review or on the Analysis board, as
    Hedge School's does (its designs 21 and 22), in the choice's frame that both sites share
    (`@abstractclass/import/ToolChoice.svelte`). It shows the players, the number of moves and the position that the
@@ -627,9 +627,9 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
 
 1. **Two drawings by size,** as Hedge School's collie has (design 12): the full print from 48 pixels up, and below
    that a simple drawing that reads at 16 pixels.
-   - **The full print:** the seven hexes in white lines, the star filled white in the middle one, and a thin border
+   - **The full print:** the seven cells in white lines, the star filled white in the middle one, and a thin border
      inside the tile, as a print's edge.
-   - **The simple drawing:** the seven hexes filled white, with gaps between them, and the star cut out of the middle
+   - **The simple drawing:** the seven cells filled white, with gaps between them, and the star cut out of the middle
      one in the tile's blue. The thin lines and the border of the full print blur at 16 pixels.
 2. **The same in both themes.** The tile carries its own colour, so the logo needs no dark form. The tile keeps a
    clear edge on a light page and on a dark one. Its blue sits beside the site's accent, Hedge School's lavender, in
@@ -638,9 +638,9 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
    full width.
 4. **The favicon** is the simple drawing, the same on light and dark tabs, with the files of Hedge School's (design 12,
    item 5):
-   - `src/lib/assets/favicon.svg`, which the page names;
+   - `src/lib/assets/favicon.svg`, which the page names.
    - `static/favicon.ico`: 16, 32 and 48 pixels, for browsers without SVG icons and for the clients that ask for
-     `/favicon.ico` without reading the page;
+     `/favicon.ico` without reading the page.
    - `static/apple-touch-icon.png`: 180 pixels, for iOS's home screen. It is the full print on a full square with
      square corners: iOS rounds the corners itself and fills transparent ones with black.
 5. **The link preview picture** (`static/brand/card.png`), as Hedge School's (design 23): 1,200 × 630 pixels, in the
