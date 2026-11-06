@@ -3,6 +3,7 @@
   // (packages/site), with Cyanotype's name, links and keys.
   import "../app.css";
   import { page } from "$app/state";
+  import { headerLogo } from "#lib/brand/headerLogo.svelte.ts";
   import { PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
   import SiteFrame from "@abstractclass/site/SiteFrame.svelte";
   import SiteMenu from "@abstractclass/site/SiteMenu.svelte";
@@ -31,9 +32,9 @@
   {#snippet header()}
     <!-- The name is the site's wordmark until its logo is decided. The links fit in one row from a tablet's width. On a
          phone, they go into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels, and the header
-         keeps the name and the theme menu. -->
+         keeps the name and the theme menu. The logo lab's frame puts a logo option before the name (headerLogo). -->
     <span class="sm:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
-    <a class="text-xl font-bold text-ink no-underline max-sm:mr-auto" href="/">{SITE_NAME}</a>
+    <a class={["text-xl font-bold text-ink no-underline max-sm:mr-auto", headerLogo.mark && "flex items-center gap-2"]} href="/">{@render headerLogo.mark?.()}{SITE_NAME}</a>
     <nav class="flex gap-4.5 max-sm:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
