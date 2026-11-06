@@ -3,7 +3,8 @@
 // +page.svelte), with no engine search: GameAnalysis with the page's `enclosure` game and the engine's rules
 // (describe_game, the CPU module with no network), the stored results (fromStore), data() and review(). So a change of
 // @abstractclass/analysis or @abstractclass/review that moves a label of a stored review fails here. The failure names
-// the move and the label. Cyanotype's shared code is the same, but this test does not cover its game.
+// the move and the label. Cyanotype's game has its own label snapshot
+// (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts).
 //
 // Each line holds two labels. The first is the label with no book: no deployed site serves a book, so its review
 // searches every position. The second is the label with the test book (tests/fixtures/test-book/prototype). The dev

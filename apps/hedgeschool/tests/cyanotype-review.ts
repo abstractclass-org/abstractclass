@@ -33,13 +33,15 @@ const STORE = [NAME, STORES.analysis] as const;
  *  the engine that made them. scripts/cyanotype-review-fixture.mjs writes it: run it again when Cyanotype's
  *  engine.lock.json takes a new release. */
 export const STORED = "tests/fixtures/cyanotype-review.json";
-/** The stored review's file: its engine (`search`, `network`, the network's SHA-256 `model`) and its results. */
-const readStored = (): { search: string; network: string; model: string; analyses: [string, unknown][] } =>
-  JSON.parse(readFileSync(STORED, "utf8"));
+/** The stored review's file: its engine (`search`, `network`, the network's SHA-256 `model`), the review's depth
+ *  (`visits`) and its results. Read by the file's place, so that Cyanotype's label snapshot
+ *  (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) reads it too. */
+export const readStored = (): { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] } =>
+  JSON.parse(readFileSync(new URL(`../${STORED}`, import.meta.url), "utf8"));
 
 /** The test game's record up to the end of turn `turns`: its tags, but not its result, and its moves. */
 export function testRecord(turns = TURNS): string {
-  const text = readFileSync("../cyanotype/src/lib/review/fixtures/stamp-duty.txt", "utf8");
+  const text = readFileSync(new URL("../../cyanotype/src/lib/review/fixtures/stamp-duty.txt", import.meta.url), "utf8");
   const [tags, moves] = text.split(/\r?\n\r?\n/);
   const words = moves.trim().split(/\s+/);
   return `${tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t)).join("\n")}\n\n${words.slice(0, words.indexOf(`${turns + 1}.`)).join(" ")}\n`;

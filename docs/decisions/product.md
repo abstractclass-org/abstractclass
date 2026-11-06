@@ -8617,3 +8617,37 @@ failed it.
   shows. They give the elements that pass the edge furthest (outside any box that clips them), with their edges and
   text, and the font list of their style. They also give the font faces that are not loaded yet. The browser does not
   tell which font draws an element, so the report cannot name a fallback font such as DejaVu Sans.
+
+### A label snapshot of Cyanotype's stored review (2026-11-06)
+
+The label snapshot of Hedge School's stored reviews (2026-11-05, above) covers Enclosure only. A unit test now does the
+same for Cyanotype's stored review (abscls-h2uq).
+
+- **What the test runs:** `apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`, in the step
+  `cyanotype-test` of `npm run check:all`. It reads `apps/hedgeschool/tests/fixtures/cyanotype-review.json` through
+  `tests/cyanotype-review.ts` (`readStored`), puts its results in a store in memory, and labels the game that
+  Cyanotype's browser tests review (`testRecord`: the test game to the end of turn 20). It runs the code of Cyanotype's
+  review page, with no search: `GameAnalysis` with Blueprints' game and the engine's rules (`describe_game` from the
+  CPU module in Node, with no network), then `openStored`, `data` and `review` at the label budget. It also checks
+  that each position before a move has its stored result at the review's depth, 512 visits.
+- **One place for the steps:** `apps/cyanotype/src/lib/review/storedReview.ts` (`openStored`) holds the steps that the
+  review page took inline before it shows a review: the review's depth, the rules, the record's capture marks against
+  what each move did, then the stored results. The page and the test both call it, so the test's labels are the ones
+  that a player sees. No label changed: the page takes the same steps in the same order. Cyanotype has no book, so
+  each move has one label.
+- **The label snapshot:** `apps/hedgeschool/tests/snapshots/review-labels/cyanotype.txt`, beside Hedge School's. Its
+  header counts the labels by move and by turn. Then it has one line for each move with its label by move, and one
+  line for each turn with its label by turn. The test compares the text with Node's `assert.fileSnapshot`. A changed
+  label fails the test, and the failure shows the move's line with both labels. A missing file fails the test, and
+  only the flag `--test-update-snapshots` writes one. The test's header says how to update the file.
+- **What the stored review reaches:** 39 moves in 20 turns. By move: Excellent 14, Best 12, Good 6, Inaccuracy 6,
+  Mistake 1. By turn: Excellent 7, Good 5, Inaccuracy 6, Best 1, Mistake 1. The Mistake is turn 15, the review's first
+  note. The last test fails when the stored review stops reaching one of these five kinds, by move or by turn.
+- **Not covered:** Great and Blunder, by move and by turn: the stored review reaches neither. Cyanotype's page shows
+  them with the shared review's code, and Hedge School's label snapshot covers both on Enclosure.
+- **No skip in CI:** without the engine in `apps/cyanotype/static/engine`, the test skips. With the variable `CI`
+  set, each of its tests fails, with a message that names the missing engine. The step `cyanotype-engine` of
+  `check:all` fetches the engine before `cyanotype-test`, so CI needed no new step.
+- **A new release:** when Cyanotype's `engine.lock.json` takes a new release, write the stored review again
+  (`scripts/cyanotype-review-fixture.mjs`), then update the label snapshot, with the reason for each moved label in
+  the commit message.
