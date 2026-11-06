@@ -2736,9 +2736,14 @@
              aria-label={threatOn ? "The threat's search" : "This position's search"} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(100 * (searched ?? 0))}>
           {#if searched !== null}<div class="h-full bg-accent transition-[width] duration-200" style="width: {100 * searched}%"></div>{/if}
         </div>
-        <!-- The words and the visits are two elements: the visits that replace the words are new, and move nothing. -->
-        {#if waitsForNetwork}<span class="text-xs text-muted whitespace-nowrap">{NETWORK_LOADS}</span>
-        {:else if shownSearch}<span class="text-xs text-muted tabular-nums whitespace-nowrap">{shownSearch.visits.toLocaleString("en")}{searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits{timedOut ? " · time limit" : ""}</span>{/if}
+        <!-- The words and the visits are two elements: the visits that replace the words are new, and move nothing. Each
+             stays on one line, and where the column is narrower than the line (360 pixels, a wide font), it ends with an
+             ellipsis, with its full text as its title: the buttons after it stay in the column. -->
+        {#if waitsForNetwork}<span class="min-w-0 text-xs text-muted truncate" title={NETWORK_LOADS}>{NETWORK_LOADS}</span>
+        {:else if shownSearch}
+          {@const visits = `${shownSearch.visits.toLocaleString("en")}${searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits${timedOut ? " · time limit" : ""}`}
+          <span class="min-w-0 text-xs text-muted tabular-nums truncate" title={visits}>{visits}</span>
+        {/if}
         <!-- The threat's switch (Lichess's "Show threat" in its engine box, the key x), before the gear. A review snapshot shows a
              threat only where the store has it: the switch's note says why. -->
         {#if game}

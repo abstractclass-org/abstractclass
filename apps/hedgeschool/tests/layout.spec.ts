@@ -31,14 +31,43 @@ const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 
 const HEIGHTS = [700, 860, 1000];
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 
-/** What breaks the rules at the page's current size, as text: empty when nothing does. */
-function problems(page: Page) {
+/** A rule broken, as text, and for a page or a page area that scrolls sideways, what passes its right edge (`detail`). */
+interface Problem { problem: string; detail?: string }
+
+/** What breaks the rules at the page's current size: empty when nothing does. Where the page or the page area scrolls
+ *  sideways, the detail names, from the same moment, the elements that pass its right edge furthest (outside any box
+ *  that clips them: their name, left and right edges, font and text), and the font faces not loaded yet. A failure
+ *  that comes now and then (a race) then names its element by itself. */
+function problems(page: Page): Promise<Problem[]> {
   return page.evaluate(() => {
-    const out: string[] = [];
+    const out: { problem: string; detail?: string }[] = [];
     const name = (e: Element) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ""}.${[...e.classList].slice(0, 4).join(".")}`;
+    /** The elements in `scroller` that pass its right edge furthest, and the font faces not loaded yet, as lines. */
+    const past = (scroller: HTMLElement, edge: number) => {
+      const clipped = (e: Element) => {
+        for (let a = e.parentElement; a && a !== scroller; a = a.parentElement) if (getComputedStyle(a).overflowX !== "visible") return true;
+        return false;
+      };
+      const elements = [...scroller.querySelectorAll("*")].map(e => ({ e, r: e.getBoundingClientRect() }))
+        .filter(({ e, r }) => r.width > 0 && r.right > edge + 0.5 && !clipped(e))
+        .sort((a, b) => b.r.right - a.r.right).slice(0, 5)
+        .map(({ e, r }) => `    ${name(e)}: left ${r.left.toFixed(1)}, right ${r.right.toFixed(1)}, ` +
+          `font "${getComputedStyle(e).fontFamily.replace(/"/g, "").slice(0, 40)}", ` +
+          `text "${(e.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40)}"`);
+      const faces = new Map<string, number>();
+      for (const f of document.fonts) if (f.status !== "loaded") {
+        const face = `${f.family} ${f.weight} ${f.style}: ${f.status}`;
+        faces.set(face, (faces.get(face) ?? 0) + 1);
+      }
+      return [`  at ${innerWidth} x ${innerHeight}, past its right edge (${edge.toFixed(1)}), furthest first:`, ...elements.length ? elements : ["    nothing"],
+              `  font faces not loaded: ${[...faces].map(([f, n]) => (n > 1 ? `${f} (${n} faces)` : f)).join("; ") || "none"}`].join("\n");
+    };
     const root = document.documentElement, area = document.getElementById("page");
-    if (root.scrollWidth > root.clientWidth + 1) out.push(`the page scrolls sideways: ${root.scrollWidth} in ${root.clientWidth}`);
-    if (area && area.scrollWidth > area.clientWidth + 1) out.push(`the page area scrolls sideways: ${area.scrollWidth} in ${area.clientWidth}`);
+    if (root.scrollWidth > root.clientWidth + 1)
+      out.push({ problem: `the page scrolls sideways: ${root.scrollWidth} in ${root.clientWidth}`, detail: past(root, root.clientWidth) });
+    if (area && area.scrollWidth > area.clientWidth + 1)
+      out.push({ problem: `the page area scrolls sideways: ${area.scrollWidth} in ${area.clientWidth}`,
+                 detail: past(area, area.getBoundingClientRect().left + area.clientLeft + area.clientWidth) });
     for (const e of document.querySelectorAll("body *")) {
       if (!(e instanceof HTMLElement) || !e.offsetParent && getComputedStyle(e).position !== "fixed") continue;
       const s = getComputedStyle(e);
@@ -46,31 +75,34 @@ function problems(page: Page) {
       if (s.textOverflow === "ellipsis" || s.maskImage !== "none" || e.classList.contains("sr-only") || s.visibility === "hidden") continue;
       if (["PRE", "INPUT", "TEXTAREA"].includes(e.tagName)) continue;
       if (["::before", "::after"].some(p => getComputedStyle(e, p).animationName !== "none")) continue;
-      if (e.scrollWidth > e.clientWidth + 1) out.push(`${name(e)} hides ${e.scrollWidth - e.clientWidth} pixels sideways (${e.scrollWidth} in ${e.clientWidth})`);
+      if (e.scrollWidth > e.clientWidth + 1) out.push({ problem: `${name(e)} hides ${e.scrollWidth - e.clientWidth} pixels sideways (${e.scrollWidth} in ${e.clientWidth})` });
     }
     const header = document.querySelector("header");
     if (header) {
       const tops = [...header.children].filter(c => (c as HTMLElement).offsetWidth > 0).map(c => Math.round(c.getBoundingClientRect().top));
-      if (Math.max(...tops) - Math.min(...tops) > 20) out.push("the header takes more than one row");
+      if (Math.max(...tops) - Math.min(...tops) > 20) out.push({ problem: "the header takes more than one row" });
     }
     return out;
   });
 }
 
 /** The problems found, one line for each kind (its text without its numbers), with the sizes where it shows: the
- *  widths in runs, at each height. */
-function report(label: string, found: { width: number; height: number; problem: string }[]): string {
-  const kinds = new Map<string, { example: string; at: Map<number, number[]> }>();
+ *  widths in runs, at each height. A kind's detail comes once, under its line, from the first size where it shows. */
+function report(label: string, found: (Problem & { width: number; height: number })[]): string {
+  type Kind = { example: string; detail?: string; at: Map<number, number[]> };
+  const kinds = new Map<string, Kind>();
   for (const f of found) {
     const kind = f.problem.replace(/\d+/g, "N");
-    const k = kinds.get(kind) ?? { example: f.problem, at: new Map() };
+    const k: Kind = kinds.get(kind) ?? { example: f.problem, at: new Map() };
+    k.detail ??= f.detail;
     k.at.set(f.height, [...(k.at.get(f.height) ?? []), f.width]);
     kinds.set(kind, k);
   }
   const runs = (ws: number[]) => [...new Set(ws)].sort((a, b) => a - b)
     .reduce<number[][]>((out, w) => (out.at(-1) && w - out.at(-1)!.at(-1)! <= 10 ? out.at(-1)!.push(w) : out.push([w]), out), [])
     .map(r => (r.length > 1 ? `${r[0]} to ${r.at(-1)}` : `${r[0]}`)).join(", ");
-  return [...kinds.values()].map(k => `${label}: ${k.example}, at widths ${[...k.at].map(([h, ws]) => `${runs(ws)} (height ${h})`).join("; ")}`).join("\n");
+  return [...kinds.values()].map(k => `${label}: ${k.example}, at widths ${[...k.at].map(([h, ws]) => `${runs(ws)} (height ${h})`).join("; ")}` +
+    (k.detail ? `\n${k.detail}` : "")).join("\n");
 }
 
 /** Two frames, for the layout and what the page measures after it (the review's side columns, ResizeObserver). */
@@ -89,12 +121,12 @@ async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promi
     return w;
   });
   expect(bar, "the browser shows scroll bars").toBeGreaterThan(0);
-  const found: { width: number; height: number; problem: string }[] = [];
+  const found: (Problem & { width: number; height: number })[] = [];
   for (const height of HEIGHTS) for (const width of WIDTHS) {
     await page.setViewportSize({ width, height });
     await settle(page);
-    for (const problem of [...await problems(page), ...await ownRules?.(page) ?? []]) {
-      found.push({ width, height, problem });
+    for (const p of [...await problems(page), ...(await ownRules?.(page) ?? []).map((problem): Problem => ({ problem }))]) {
+      found.push({ width, height, ...p });
     }
   }
   return found.length ? report(label, found) : "";
@@ -229,7 +261,8 @@ async function problemsAtSizes(page: Page, own: (p: Page) => Promise<string[]> =
   for (const [width, height] of CYANOTYPE_PRACTICE_SIZES) {
     await page.setViewportSize({ width, height });
     await settle(page);
-    found.push(...[...await problems(page), ...await own(page)].map(p => `${width} x ${height}: ${p}`));
+    found.push(...[...await problems(page), ...(await own(page)).map((problem): Problem => ({ problem }))]
+      .map(p => `${width} x ${height}: ${p.problem}${p.detail ? `\n${p.detail}` : ""}`));
   }
   return found;
 }

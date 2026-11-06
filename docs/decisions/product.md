@@ -8581,3 +8581,30 @@ After the stored review came in, `cyanotype-review.spec.ts` still reviewed the w
 - `packages/storage/src/db.ts` exports the database's name (`NAME`), and `tests/cyanotype-review.ts` imports it.
   `keptResults` there reads the browser's store of analyses, for the live test and for
   `scripts/cyanotype-review-fixture.mjs`.
+
+### The engine header's words fit a column of 360 pixels (2026-11-06)
+
+The layout test's case "layout of /openings" failed now and then on the Tests workflow's Linux job (3 of 9 runs from
+dev b27988c to b8c1ddd): "the page area scrolls sideways: 347 in 345", at the sweep's first size only (360 × 700).
+The Windows job never failed it.
+
+- **The cause:** the engine header's first line says "Loading the engine's network…" until the analysis is ready
+  (design 06, item 7). Openings shows its view before the board's sweep makes the engine ready, so the words can
+  still show when the test opens a fold and resizes the window to 360 pixels. The words stayed on one line
+  (`whitespace-nowrap`), and in one column 360 pixels wide the line has 155 pixels for them. They take 165.3 pixels in
+  Segoe UI (Windows) and 189.7 pixels in DejaVu Sans (Linux's `system-ui`). The line then pushed the threat's switch
+  and the gear out of the analysis column, by 10 or 34.7 pixels. The column's and the page's padding take 32 pixels:
+  so on Linux the gear's right edge was at 347.2, and the page area scrolled sideways. A player reaches this state:
+  any narrow window, while the network loads.
+- **How it was found:** on Windows, headless Chromium with DejaVu Sans (from WSL) put in the place of `system-ui`,
+  and a record of each frame from before the resize. The page area was 347 in 345 in 3 of 10 tries, for 2 to 19
+  frames after the resize, once at the test's own measurement. In Segoe UI, 0 of 11 tries (5 at full speed, 6 with the
+  CPU slowed 6 and 20 times).
+- **The fix (packages/review, `ReviewView.svelte`):** the words and the visits that take their place stay on one line,
+  but they can shrink: in a column too narrow for them, they end with an ellipsis, and their title gives them in full.
+  The switch, the threat's switch and the gear stay in the column, and the line does not change its height (no layout
+  shift). With the fix and DejaVu Sans, 3 of 8 tries showed the words at 360 pixels (190 pixels of text in 155), and no
+  frame was too wide.
+- **The sweep names the element:** when the page or the page area scrolls sideways, the sweep's report now gives,
+  once for each kind of problem, at the first size where it shows: the elements that pass the edge furthest (outside
+  any box that clips them), with their edges, font and text, and the font faces not loaded yet.
