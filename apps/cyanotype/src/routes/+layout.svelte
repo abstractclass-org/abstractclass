@@ -3,7 +3,8 @@
   // (packages/site), with Cyanotype's name, links and keys.
   import "../app.css";
   import { page } from "$app/state";
-  import { headerLogo } from "#lib/brand/headerLogo.svelte.ts";
+  import favicon from "#lib/assets/favicon.svg";
+  import Logo from "#lib/brand/Logo.svelte";
   import { PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
   import SiteFrame from "@abstractclass/site/SiteFrame.svelte";
   import SiteMenu from "@abstractclass/site/SiteMenu.svelte";
@@ -21,20 +22,31 @@
 </script>
 
 <svelte:head>
+  <!-- The logo (design 33, "The logo"): a PNG for browsers without SVG icons, the SVG for the rest, and a square tile for
+       iOS. -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href={favicon} type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <!-- Link previews (design 23): the tags that every page shares. Each page gives its title, description and address
-       (PageMeta). The site has no preview image until its logo is decided (design 33, "Consequences"). -->
+       (PageMeta). The image is drawn by scripts/brand.mjs from src/lib/brand/card.ts. -->
   <meta property="og:site_name" content={SITE_NAME} />
   <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="{SITE_ORIGIN}/brand/card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Cyanotype: learn Blueprints. The logo, and a corner of a board with Blue's and Red's cells." />
+  <meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <SiteFrame origin={SITE_ORIGIN} themeKey={THEME_KEY} placesKey={PLACES_KEY}>
   {#snippet header()}
-    <!-- The name is the site's wordmark until its logo is decided. The links fit in one row from a tablet's width. On a
-         phone, they go into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels, and the header
-         keeps the name and the theme menu. The logo lab's frame puts a logo option before the name (headerLogo). -->
+    <!-- The logo before the name, at 28 pixels, as Hedge School's collie. The links fit in one row from a tablet's
+         width. On a phone, they go into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels,
+         and the header keeps the logo, the name and the theme menu. -->
     <span class="sm:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
-    <a class={["text-xl font-bold text-ink no-underline max-sm:mr-auto", headerLogo.mark && "flex items-center gap-2"]} href="/">{@render headerLogo.mark?.()}{SITE_NAME}</a>
+    <a class="flex items-center gap-2 text-xl font-bold text-ink no-underline max-sm:mr-auto" href="/">
+      <Logo size={28} />{SITE_NAME}
+    </a>
     <nav class="flex gap-4.5 max-sm:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>

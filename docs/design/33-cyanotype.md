@@ -415,8 +415,8 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    School's button on Enclosure's page ends the move list's legend, which Blueprints' page does not have. In a wide
    window the column at the window's right holds the player's own hand, which a button fixed in the corner would
    cover. Before the game comes, the button is fixed in the window's lower right corner, as Hedge School's is.
-4. **The button's picture,** until the site has a logo ("Consequences"): a blueprint as the game starts it, a star with
-   a ring of six cells, white on the button's dark ground, with the star marked.
+4. **The button's picture:** a blueprint as the game starts it, a star with a ring of six cells, white on the button's
+   dark ground, with the star marked. It is drawn before the logo ("The logo"), which is the same blueprint.
 5. **The import page** (`/import`) offers the game that a tool sent in the review or on the Analysis board, as
    Hedge School's does (its designs 21 and 22), in the choice's frame that both sites share
    (`@abstractclass/import/ToolChoice.svelte`). It shows the players, the number of moves and the position that the
@@ -619,6 +619,43 @@ position from move 10. Counts only: the archive's games are other people's, and 
 The Move header and the fade of a cut name are in the shared table, so Hedge School has them too (design 06, item
 12).
 
+## The logo
+
+Cyanotype's logo is **the cyanotype:** the start's blueprint, a star in its ring of six cells, printed white on
+Prussian blue (`#163f6f`). A cyanotype is the print that made blueprints, so the logo ties the site's name to its game.
+The decision log has the four options and the reasons for this one ("Cyanotype's logo: the cyanotype").
+
+1. **Two drawings by size,** as Hedge School's collie has (design 12): the full print from 48 pixels up, and below
+   that a simple drawing that reads at 16 pixels.
+   - **The full print:** the seven hexes in white lines, the star filled white in the middle one, and a thin border
+     inside the tile, as a print's edge.
+   - **The simple drawing:** the seven hexes filled white, with gaps between them, and the star cut out of the middle
+     one in the tile's blue. The thin lines and the border of the full print blur at 16 pixels.
+2. **The same in both themes.** The tile carries its own colour, so the logo needs no dark form. The tile keeps a
+   clear edge on a light page and on a dark one. Its blue sits beside the site's accent, Hedge School's lavender, in
+   both themes: both are cool colours. The accent stays the lavender.
+3. **The header** shows the simple drawing at 28 pixels before the site's name, on every page, at a phone's width as at
+   full width.
+4. **The favicon** is the simple drawing, the same on light and dark tabs, with the files of Hedge School's (design 12,
+   item 5):
+   - `src/lib/assets/favicon.svg`, which the page names;
+   - `static/favicon.ico`: 16, 32 and 48 pixels, for browsers without SVG icons and for the clients that ask for
+     `/favicon.ico` without reading the page;
+   - `static/apple-touch-icon.png`: 180 pixels, for iOS's home screen. It is the full print on a full square with
+     square corners: iOS rounds the corners itself and fills transparent ones with black.
+5. **The link preview picture** (`static/brand/card.png`), as Hedge School's (design 23): 1,200 × 630 pixels, in the
+   site's dark theme. On the left, a corner of a board, drawn by hand: each player's start blueprint, grown towards the
+   other, with a wall of each. On the right, the full print, the site's name, "Learn Blueprints" in the accent, what
+   the site does, and its address. The root layout gives it to every page (`og:image`, with its size and alt text, and
+   `twitter:card` `summary_large_image`).
+6. **No button for partner sites.** Hedge School gives its head to partner sites at `/brand/hedge-school.svg` (design
+   18). Cyanotype has no partner sites, so it has no such file.
+7. **How each file is made.** The drawings are SVG in code (`src/lib/brand/logo.ts`, and the card in `card.ts`).
+   `scripts/brand.mjs` writes the favicon's SVG file from them, and draws the PNG files in headless Chromium, each at
+   its own size, with the launch options of the layout test (off the GPU on Windows). Run it again after a change of
+   the drawings: `node scripts/brand.mjs` in `apps/cyanotype`. A test (`logo.test.ts`) keeps the favicon's file equal
+   to the simple drawing.
+
 ## The gaps from Hedge School
 
 The whole comparison of Cyanotype with Hedge School: by the engine lock's kinds, by page (`src/routes`), by the parts
@@ -693,9 +730,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   `ui/CornerCard.svelte`, `measure.ts`, `internalTraffic.ts`, `analysis/settingChanges.ts`, `game/sources.ts`,
   `hooks.client.ts`, designs 17, 25 and 27). abscls-8tl1.48.
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
-- **The logo** (`Collie.svelte`, `collie.ts`, design 12), with the favicon, the icon for a phone's home screen and the
-  link previews' picture (`static/favicon.ico`, `static/apple-touch-icon.png`, `static/brand/card.png`). Cyanotype has a
-  wordmark, no icon and no preview picture ("Consequences"). abscls-8tl1.44.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
 - **The edition** (`edition.ts`, design 11): the early access, its mark in the header, and the full edition's pages.
   Left out with the prototypes that it serves (Puzzles, Learn and the engine lab, above).
@@ -782,20 +816,22 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
 - **The review's constants are Hedge School's** until Blueprints' games show other values: the search budgets, the
   threshold of a hard position, and how far below the first choice a candidate shows (design 29, "Consequences"). The
   score's scale is the engine's (`SCORE_SCALE` 12 in the port).
-- **The site's look:** a logo, a colour and the board's style are still to decide. The shell starts with Hedge
-  School's style and a wordmark. Its accent is Hedge School's lavender in both themes, until Cyanotype's own colour
-  comes with its logo. The userscript's button shows a blueprint until the logo comes ("How a game comes in from
-  strategyjam.org", item 4).
+- **The site's look:** the logo is the cyanotype ("The logo"). A colour of its own and the board's style are still
+  to decide. The accent is Hedge School's lavender in both themes, and the logo's blue sits beside it. The userscript's
+  button shows the start's blueprint, as the logo does ("How a game comes in from strategyjam.org", item 4).
 
 ## Where it is
 
 - `apps/cyanotype/`: the app. `src/lib/site.ts`: the site's name, the engine's, the live address
   (`https://cyanotype.abstractclass.org`, the canonical address of each page) and the storage keys
-  (`cyanotype:…`). `src/routes/+layout.svelte`: the header, with the wordmark, the game's pages, the pages about the
-  site and the theme menu, and below a tablet's width the site's menu (`SiteMenu.svelte` of `packages/site`), which
-  holds the links in their place, as Hedge School's below 1,024 pixels. `src/lib/SiteFooter.svelte`: the footer, with
-  Privacy and Notices. `src/app.css`: the accent (Hedge School's lavender) and the board's colour tokens, after the
-  shared style and the view's (`@abstractclass/review/review.css`).
+  (`cyanotype:…`). `src/routes/+layout.svelte`: the icons, the link previews' tags, and the header, with the logo and
+  the name, the game's pages, the pages about the site and the theme menu, and below a tablet's width the site's menu
+  (`SiteMenu.svelte` of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels.
+  `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the accent (Hedge School's
+  lavender) and the board's colour tokens, after the shared style and the view's (`@abstractclass/review/review.css`).
+- `apps/cyanotype/src/lib/brand/`: the logo ("The logo"). `logo.ts` (the drawings), `Logo.svelte` (the logo at a size),
+  `card.ts` (the link preview picture) and `logo.test.ts`. `scripts/brand.mjs` draws the files from them:
+  `src/lib/assets/favicon.svg`, `static/favicon.ico`, `static/apple-touch-icon.png` and `static/brand/card.png`.
 - `apps/cyanotype/src/routes/+page.svelte`: the home page, as Hedge School's (design 22): what the site is, the calls to
   Practice and the review, the ways in for a game of one's own (a game from strategyjam.org through the tools, and the
   Analysis board), and a board that plays a scene from a reviewed game (`src/lib/home/HomeReplay.svelte`, on the
@@ -939,6 +975,6 @@ engine's legal moves" (2026-10-27), "The import's frame in packages/import, and 
 (2026-10-30), "Drawing Board's review and Analysis board" (2026-11-01), "Drawing Board's import page opens the
 review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02), "Blueprints' site is
 Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05),
-"Cyanotype's engine from Blueprints' first release" (2026-11-05), and "Cyanotype's build without ONNX Runtime's
-WebAssembly" (2026-11-05). The earlier entries name the site by its first name,
-Drawing Board.
+"Cyanotype's engine from Blueprints' first release" (2026-11-05), "Cyanotype's build without ONNX Runtime's
+WebAssembly" (2026-11-05), and "Cyanotype's logo: the cyanotype" (2026-11-06). The earlier entries name the site
+by its first name, Drawing Board.

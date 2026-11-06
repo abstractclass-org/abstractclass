@@ -34,6 +34,8 @@ school's colour seen beyond the site.
    the page (`static/favicon.ico`: 16, 32 and 48 pixels, drawn by `scripts/favicon.mjs`), as Evil Martians' "How to
    Favicon" advises. A 180-pixel PNG for iOS's home screen (`static/apple-touch-icon.png`): the head on white. iOS rounds the corners itself and fills transparent ones with
    black, so its PNG is a full square.
+   These files and sizes hold for both sites: Cyanotype's logo has the same files at the same sizes, and its favicon
+   too is the same in both colour schemes (design 33, "The logo").
 6. **The head for partner sites' buttons** ([design 18](18-partner-links.md)): the favicon's drawing at a fixed
    address, `/brand/hedge-school.svg` (`static/brand/`), with a comment that gives its terms: unchanged but for its
    size, only in a button or a link to Hedge School. A test (`src/lib/collie.test.ts`) keeps it, and the favicon,

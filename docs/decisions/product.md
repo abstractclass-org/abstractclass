@@ -8662,3 +8662,29 @@ same for Cyanotype's stored review (abscls-h2uq).
 - **A new release:** when Cyanotype's `engine.lock.json` takes a new release, write the stored review again
   (`scripts/cyanotype-review-fixture.mjs`). Then update the label snapshot. The commit message gives the reason for
   each quality label that moved.
+
+### Cyanotype's logo: the cyanotype (2026-11-06)
+
+Cyanotype had a wordmark, no icon and no link preview picture (abscls-8tl1.44). A logo lab page showed four options
+in the site's real header at 360 pixels and at full width in both themes, as the favicon at 16, 32 and 48 pixels on
+light and dark tabs, as the 180-pixel iOS icon, and on the link preview picture:
+
+- **The cyanotype:** the start's blueprint, a star in its ring of six cells, printed white on Prussian blue
+  (`#163f6f`). Its small form reads at 16 pixels, and its tile has a clear edge on both tabs.
+- **The stamp:** a revenue stamp with the star cell on it, Stamp Duty's mark. At 16 pixels its perforations blur
+  into a grey edge.
+- **The bee:** a mascot, as Hedge School's collie, since a bee builds its comb in hex cells. It reads roughly at 16
+  pixels, and a finished drawing needs the image generator's pass that the collie had.
+- **The hex C:** the site's initial in nine hex cells, in the lavender. It reads at 16 pixels, but a letter tells
+  nothing of the game, and a change of the accent needs a new drawing.
+
+The choice is the cyanotype:
+
+- **It ties the site's name to its game.** A cyanotype is the print that made blueprints, and the drawing is the
+  blueprint that starts each game.
+- **It reads at 16 pixels,** better than the stamp and the bee.
+- **Its blue sits beside the lavender in both themes.** The tile carries its own colour, so the logo is the same on
+  a light and a dark page. Both colours are cool, and they do not clash in either header. The site's accent stays the
+  lavender.
+
+The logo, its files and how each is made are in design 33, "The logo". The lab page went with the choice.

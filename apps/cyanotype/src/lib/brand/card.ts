@@ -1,17 +1,19 @@
-// The link preview picture for each logo option (abscls-8tl1.44): 1,200 × 630 pixels, Open Graph's size, in the form
-// of Hedge School's (its scripts/social-card.html, design 23): a corner of a board on the left, and on the right the
-// logo, the site's name, what it is for and its address, in the site's dark theme. Here as SVG, so that the lab page
-// shows it at any width. The chosen option's picture would be drawn to static/brand/card.png, as Hedge School's.
+// The link preview picture (design 33, "The logo"): 1,200 × 630 pixels, Open Graph's size, in the form of Hedge
+// School's (its scripts/social-card.html, design 23): a corner of a board on the left, and on the right the logo, the
+// site's name, what it is for and its address, in the site's dark theme. Drawn as SVG here, and to
+// static/brand/card.png by scripts/brand.mjs.
 import { center, hexPath, type Hex } from "#lib/board/hex.ts";
-import { dataUrl, drawing, starPath, svg, type LogoOption } from "./logoOptions.ts";
+import { LOGO_LARGE, shapeMarkup, starPath } from "./logo.ts";
 
 // The dark theme's colours (packages/site/src/site.css, and the board's in src/app.css). The grey under the lead is
 // Hedge School's card's own.
 const BG = "#1d1e21", TEXT = "#e4e4e6", MUTED = "#9a9ca3", LEAD = "#b8a6e8", ABOUT = "#c9cace";
 const BOARD = "#3a362e", GRID = "#6d6555", BLUE = "#5b8ff0", RED = "#e8635c", ON_CELL = "#16181c";
 
-/** A corner of a game: each player's start blueprint, grown towards the other, a wall of each, and the last placement's
- *  outline. */
+/** The card's size, Open Graph's. */
+export const CARD_WIDTH = 1200, CARD_HEIGHT = 630;
+
+/** A corner of a game, drawn by hand: each player's start blueprint, grown towards the other, a wall of each. */
 const CELLS: [Hex, 0 | 1, "plain" | "star" | "wall"][] = [
   [[-2, 1], 0, "star"], [[-1, 0], 0, "plain"], [[-1, 1], 0, "plain"], [[-2, 2], 0, "plain"], [[-3, 2], 0, "plain"],
   [[-3, 1], 0, "plain"], [[-2, 0], 0, "plain"], [[0, 0], 0, "plain"], [[0, 1], 0, "star"], [[-1, 2], 0, "wall"],
@@ -51,16 +53,16 @@ const text = (x: number, y: number, size: number, fill: string, weight: number, 
   `<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" font-weight="${weight}">`
   + lines.map((l, i) => `<tspan x="${x}" dy="${i ? size * 1.35 : 0}">${l}</tspan>`).join("") + "</text>";
 
-/** The link preview picture with this option's logo. */
-export function card(option: LogoOption): string {
+/** The link preview picture, as an SVG document. */
+export function card(): string {
   const x = 600;
-  return svg(`<rect width="1200" height="630" fill="${BG}"/>${board(56, 80, 470, 31)}`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" `
+    + `height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${BG}"/>${board(56, 80, 470, 31)}`
+    + `<g transform="translate(${x} 122) scale(0.92)">${shapeMarkup(LOGO_LARGE)}</g>`
     + `<g font-family="'Segoe UI', system-ui, sans-serif">`
-    + `<image href="${dataUrl(drawing(option, 92, "dark"))}" x="${x}" y="122" width="92" height="92"/>`
     + text(x + 110, 190, 62, TEXT, 700, ["Cyanotype"])
     + text(x, 290, 46, LEAD, 600, ["Learn Blueprints"])
     + text(x, 360, 30, ABOUT, 400, ["Review your games and analyze any", "position, with an engine that runs in",
       "your browser."])
-    + text(x, 508, 26, MUTED, 400, ["cyanotype.abstractclass.org"]) + "</g>",
-  "0 0 1200 630");
+    + text(x, 508, 26, MUTED, 400, ["cyanotype.abstractclass.org"]) + "</g></svg>";
 }
