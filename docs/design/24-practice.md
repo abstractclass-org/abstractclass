@@ -35,8 +35,8 @@ How strong each setting plays against people is not measured yet.
      site still ships them (design 09). A saved choice of an earlier network takes the default.
    - **The visits for each move:** any whole number from 1 to 8,192 (2^13). The default is 64. As in KataGo, the
      visits count the tree that the bot keeps from its last search (the engine repository's v2 design 22): every move
-     ends with a tree of the same size, and the second edge of the bot's turn needs fewer new visits. The levels count
-     them so.
+     ends with a tree of about the same size (item 14: a few visits more on the threaded bot, fewer when the bot is
+     far ahead), and the second edge of the bot's turn needs fewer new visits. The levels count them so.
      - **A slider and a box:** the slider steps by doublings, 14 stops from 1 to 8,192, as the engine settings' depth
        does (design 09). The box beside it shows the visits and takes any whole number in the range. The slider sets a
        doubling. A typed number sets the visits when the player leaves the box or presses Enter, as in the engine
@@ -132,14 +132,17 @@ How strong each setting plays against people is not measured yet.
     rules worker, as on the Analysis board.
     - **The threads:** 16 search threads on the GPU, and two for each CPU worker. They are the most that a move
       uses. KataGo's play settings give each thread at least 8 of a move's new playouts (`minPlayoutsPerThread`,
-      KataGo's default for GTP). So a move with N new playouts searches with min(threads, N / 8) threads, rounded
-      down, and with one thread below 16.
+      KataGo's default for GTP). So a move with N new playouts searches with T threads: N / 8, rounded down, at least
+      one and at most the form's threads. A move with fewer than 16 new playouts searches with one thread.
     - **The visits that a move completes:** a thread checks the completed playouts against the setting before it
-      starts a playout, and the playouts in flight then finish. So from a new tree, a move completes from N to
-      N + min(threads, N / 8) - 1 visits. Below 16 visits it completes exactly N, as the one-thread bot does. Above,
-      it completes at most an eighth more: at most 71 at 64 visits with 8 threads or more. A move that keeps a tree
-      from the last search has fewer new playouts, and so fewer threads. The setting is KataGo's `maxVisits`, and the
-      record and the board name it so ("64 visits").
+      starts a playout, and the playouts in flight then finish. So from a new tree, a move at a setting of N
+      completes at most N + T - 1 visits. Below 16 visits it completes at most N, as the one-thread bot does. From 16
+      visits, it completes less than an eighth more: at most 71 at 64 visits. A move that keeps a tree from the last
+      search has fewer new playouts, and so fewer threads. The setting is KataGo's `maxVisits`, and the record and the
+      board name it so ("64 visits").
+    - **Fewer visits when far ahead:** on every form, KataGo's play settings scale the setting down to as little as
+      0.4 once the bot's last three searches each gave a win-loss value above 0.95 (`searchFactorWhenWinning`, the
+      engine repository's v2 design 18).
 
 ## Why
 
@@ -153,12 +156,10 @@ How strong each setting plays against people is not measured yet.
 - **Any number of visits, and the doubling at or below it on the slider:** a player can set a number between two
   doublings. The slider never shows more visits than the bot searches. It shows the doubling by which the levels can
   group the game.
-- **The threaded bot at every setting:** below 16 visits it searches as the one-thread bot does, with the same
-  network evaluations at each of 64 positions. Above, it completes at most an eighth more visits than its setting,
-  about a sixth of the slider's step (a doubling). The one-thread bot at every setting would keep exactly to the
-  setting, but a move at 64 visits took 1.7 times as long as with 16 threads on two CPU workers. A search that counts
-  its playouts in flight would depart from KataGo, which lets its threads pass `maxVisits` so (decisions/product.md,
-  "Practice: the threaded bot's visits at each setting").
+- **The threaded bot at every setting:** it keeps to its setting below 16 visits. From 16 visits it passes the
+  setting by less than an eighth (item 14). By ratio, that is about a sixth of the slider's step, a doubling. The cap
+  on its threads is KataGo's own (decisions/product.md, "Practice: the threaded bot's visits at each setting", with
+  the measurement).
 - **Settings named for what they are,** until levels rest on results. A level guessed now could be far off, and a
   player could not tell.
 - **Fixed settings make a record that one line describes,** and games by setting that the levels can later count.
@@ -178,6 +179,10 @@ How strong each setting plays against people is not measured yet.
   no grouping. But a player cannot set a number between two doublings, and the levels can group the typed numbers.
 - **A higher top,** such as 131,072 (2^17): about 7 minutes a move on 4 CPU workers and 6 hours a game, from the
   speeds above. Too slow for a game in one sitting, and not measured in a browser.
+- **The one-thread bot at every setting:** it never passes its setting. But it evaluates the network one position at
+  a time, so it is slower (the speeds above).
+- **A search that counts its playouts in flight against `maxVisits`:** no form would pass its setting. But it departs
+  from KataGo, which lets its threads pass `maxVisits` so, and it is the engine repository's work.
 - **The engine settings' box** (design 09): a number outside the range becomes the range's nearest end, with no
   message. But the bot then plays a whole game at visits that the player did not type.
 - **Settings that change during the game:** more freedom, but a record that needs a note at each change, and games
@@ -192,6 +197,9 @@ How strong each setting plays against people is not measured yet.
 - **The levels need data:** the engine repository's visit ladder on the module, then games by setting.
 - **The levels group typed numbers:** a game can have any number of visits from 1 to 8,192. The visit ladder and the
   games by setting must group them, by the doubling at or below them for example.
+- **A setting of 16 visits or more searches a little more on the threaded bot:** less than an eighth more visits a
+  move than on the one-thread bot (item 14). The games by setting mix the two forms, unless the levels count them
+  apart: the analytics give each game's form (`bot_form`, design 17).
 - **The site's own temperatures** (Medium and High) are a guess until games show what they do.
 
 ## Where it is

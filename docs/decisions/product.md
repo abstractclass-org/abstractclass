@@ -8693,26 +8693,32 @@ The logo, its files and how each is made are in design 33, "The logo". The site 
 
 - **The question:** the engine repository found that KataGo's search checks the completed playouts against
   `maxVisits` before each new playout, and does not count the playouts in flight. From a new tree, a threaded search
-  can thus complete up to N + threads - 1 visits at a setting of N (engines
+  can thus complete up to N + threads - 1 visits at a setting of N (the engine repository's
   `games/blueprints/docs/decisions/port.md`, "2026-11-06: the threaded practice bot against the one-thread bot at
-  equal maxVisits settings"). By that bound, HedgeFund with 16 threads could search 16 visits at a setting of 1, and
-  the settings for beginners could play stronger than their names.
+  equal maxVisits settings"). By that bound, HedgeFund with 16 threads could search 16 visits at a setting of 1. The
+  settings for beginners could then play stronger than their names.
 - **The cap on the threads:** KataGo's GTP setup gives `minPlayoutsPerThread` the value 8 when the config does not
-  set it (`katagame/cpp/program/setup.cpp`), and `gtp_enclosure.cfg` does not set it. The practice module of release
-  `engine-d6786eba` reports 8 (`kata-get-params`). The search then uses at most N / 8 threads, rounded down, for N new
-  playouts, and at least one (`Search::runWholeSearch`). So the bound is N + min(threads, N / 8) - 1, and a move
-  below 16 visits searches with one thread.
+  set it (the engine repository's `katagame/cpp/program/setup.cpp`). Enclosure's play settings
+  (`katagame/cpp/configs/gtp_enclosure.cfg`) do not set it. The practice module of release `engine-d6786eba` reports
+  8 (`kata-get-params`), and the measuring script prints it. For N new playouts, the search then uses T threads: N / 8,
+  rounded down, at least one and at most the bot's threads (`katagame/cpp/search/search.cpp`,
+  `Search::runWholeSearch`). Each thread ends at most one playout after the count reaches N. So from a new tree, a
+  move completes at most N + T - 1 visits, and a move below 16 visits searches with one thread.
 - **The measurement** (`apps/hedgeschool/scripts/measure/practice-visits.mjs`): the bot reports no root visits, so
   the script counts the network's rows that each move evaluates (`stats()` of the threaded bot). It searches each
-  position from a new tree (`clear_board`, then the game's moves), with a new bot for each setting, so that no move
-  takes an evaluation that the network's cache kept from another setting. The settings are the site's: `maxVisits`
-  and Low variety. The network is HedgeFund 0.2 Lite and the modules are release `engine-d6786eba`'s, in Node 26,
-  which has JSPI with no flag. The threaded bot ran on its CPU evaluator with 2 workers, in two jobs of 2 threads.
-  The search threads, not the evaluator, decide the rows, so 16 threads stand for the GPU form, and 4 and 8 for the
-  CPU form on 2 and 4 workers. The one-thread bot (`enclosure-bot.wasm`) cannot count its rows: the threaded module
-  with one search thread stands for it. The 64 positions are every 8th edge count of the stored reviews' games
-  (`tests/fixtures/*-review.json`, 6 games) and of 3 games that the one-thread bot played itself at 32 visits with
-  Medium variety: 20 positions before edge 32, 16 from 32, 16 from 64 and 12 from 96.
+  position from a new tree (`clear_board`, then the game's moves). Each setting gets a new bot, so that no move takes
+  an evaluation that the network's cache kept from another setting. The positions run in one order on each setting's
+  bot, so the session's random numbers and the network's cache carry from one position to the next. A position's
+  rows thus depend on the positions before it, and the forms with the same threads in use draw the same numbers. The
+  settings are the site's: `maxVisits` and Low variety. The network is HedgeFund 0.2 Lite and the modules are release
+  `engine-d6786eba`'s, in Node 26, which has JSPI with no flag. The threaded bot ran on its CPU evaluator with 2
+  workers, in two runs of the script, each held to 2 of the machine's threads. A later run of all four thread counts
+  gave the same rows at each position and setting. The search threads, not the evaluator, decide the rows. So 16
+  threads stand for the GPU form, and 4 and 8 for the CPU form on 2 and 4 workers. The one-thread bot
+  (`enclosure-bot.wasm`) cannot count its rows: the threaded module with one search thread stands for it. The 64
+  positions are every 8th edge count of the stored reviews' games (`tests/fixtures/*-review.json`: 6 games, of which
+  one adds no new position) and of 3 games that the one-thread bot played itself at 32 visits with Medium variety:
+  20 positions before edge 32, 16 from 32, 16 from 64 and 12 from 96.
 - **Rows a move,** mean (standard deviation, least to most), over the 64 positions:
 
   | Visits | One thread | 4 threads | 8 threads | 16 threads | Bound, 16 threads |
@@ -8726,26 +8732,39 @@ The logo, its files and how each is made are in design 33, "The logo". The site 
   | 64 | 59.72 (5.30, 41 to 64) | 63.70 (4.46, 46 to 67) | 68.78 (2.75, 59 to 71) | the same as 8 | 71 |
   | 128 | 113.23 (15.62, 70 to 128) | 117.59 (13.59, 79 to 131) | 126.25 (8.47, 98 to 136) | 139.20 (4.06, 123 to 144) | 143 |
 
-  "The same" means the same rows at each of the 64 positions: the forms with the same number of threads in use
-  (min(threads, N / 8)) searched alike. Below 16 visits every form searched as the one-thread bot did.
+  "The same" means the same rows at each of the 64 positions: the forms with the same number of threads in use (T)
+  searched alike. Below 16 visits every form searched as the one-thread bot did. The positions a batch show the
+  threads in use: 1 at 8 visits or less for every form, 1.88 at 16 visits and 3.48 at 32 for 4 threads or more, 6.94
+  at 64 for 8 threads or more, and 13.94 at 128 for 16 threads.
 - **What the rows say:** rows are not root visits. A playout that ends at a game's end, or at a position that the
   search has evaluated, takes no row. The one-thread bot completes exactly N visits, but at 128 visits it evaluated
   113 rows on average. With more threads the search spreads wider (virtual loss) and reaches a new position more
-  often, so its rows are nearer to its visits. The rows stayed within the bound N + min(threads, N / 8) - 1 at each
-  setting, except at one move of 64 at 128 visits with 8 threads (136 against 135) and with 16 threads (144 against
-  143). The threaded bot's rows over the one-thread bot's, at 16 threads: 1.05 a move at 16 visits, 4.11 at 32, 9.06
-  at 64 and 25.97 at 128.
-- **Milliseconds a move** in that job, one thread against 16 threads: 308 against 214 at 16 visits, 591 against 399
-  at 32, 1,289 against 776 at 64, and 2,518 against 1,603 at 128.
+  often, so its rows are nearer to its visits. The rows stayed within the bound N + T - 1 at each setting, except at
+  one move of 64 at 128 visits with 8 threads (136 against 135) and with 16 threads (144 against 143). A row over the
+  bound is an evaluation that no completed visit counts, or a visit past the bound. The rows cannot tell which. The
+  threaded bot's rows over the one-thread bot's, at 16 threads: 1.05 a move at 16 visits (7% more), 4.11 at 32 (14%),
+  9.06 at 64 (15%) and 25.97 at 128 (23%).
+- **Milliseconds a move** in the run that measured both, one thread against 16 threads: 308 against 214 at 16 visits,
+  591 against 399 at 32, 1,289 against 776 at 64, and 2,518 against 1,603 at 128.
 - **The choice: no change.** The threaded bot plays every setting, as before. Below 16 visits it already searches
-  with one thread, so the one-thread bot there would change nothing. Above, a move completes at most an eighth more
-  visits than its setting (7 at 64 visits), about a sixth of a doubling, the slider's step. The cap on the threads
-  by the visits is KataGo's own. The one-thread bot at every setting would keep exactly to the setting, but a move
-  at 64 visits took 1.7 times as long. A search that counts its playouts in flight against `maxVisits` would be the
-  engine repository's work, and a departure from KataGo. The measurement does not favour it, and no request goes
-  there. A move that keeps a tree from the last search has fewer new playouts, so it uses fewer threads and passes
-  its setting by less. Design 24, item 14, states the margin.
-- **Not measured:** the root visits themselves, the GPU form on a GPU (its threads are the same, and the search does
-  not depend on the evaluator), and Blueprints' bot. Its practice module also takes its config through KataGo's GTP
-  setup, and its native search at 8 threads took 67 to 71 visits at 64, which fits the cap. Whether its module has
-  the same cap was not checked.
+  with one thread, so the one-thread bot there would change nothing. From 16 visits, a move completes less than an
+  eighth more visits than its setting (at most 7 more at 64 visits). By ratio, that is about a sixth of a doubling,
+  the slider's step. The cap on the threads by the visits is KataGo's own. The one-thread bot at every setting would
+  never pass the setting, but it is slower: at 64 visits, the module with one thread took 1.7 times as long as
+  with 16 threads. A search that counts its playouts in flight against `maxVisits` would be the engine repository's
+  work, and a departure from KataGo. The measurement does not favour it, and no request goes there. A move that keeps
+  a tree from the last search has fewer new playouts, so it uses fewer threads and passes its setting by less. Design
+  24, item 14, states the margin.
+- **Not measured:** the root visits themselves, and the GPU form on a GPU (its threads are the same, and the search
+  does not depend on the evaluator). The script also runs `clear_board` before each move, so KataGo's search factor
+  when winning never applied. In a game, it scales the setting down to as little as 0.4 once the bot's last three
+  searches each gave a win-loss value above 0.95 (`searchFactorWhenWinning` and its threshold in
+  `gtp_enclosure.cfg`). Every form then searches fewer visits than its setting.
+- **Blueprints' bot** has the same cap, by the engine repository's source. Its practice module starts its session
+  through the same GTP setup (the engine repository's `games/blueprints/wasm/practice.cpp`). No game's config sets
+  `minPlayoutsPerThread` (the engine repository's design 08, the table of KataGo's defaults). So below 16 visits its
+  threaded bot also searches with one thread. Its native search at 8 threads took 67 to 71 visits at 64, within the
+  bound of 71. Its threaded module evaluated about 18% more rows than its one-thread control at 64 visits (83 to 84
+  against 71), against 15% here. The engine repository counted those rows at 64 visits only. Blueprints' rows pass
+  its visits: a move there searches the root's views, and an edit's pick and drop, separately, and each search can
+  pass its share (the same entry of `port.md`). So its rows do not compare one to one with Enclosure's.
