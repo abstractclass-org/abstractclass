@@ -8584,27 +8584,36 @@ After the stored review came in, `cyanotype-review.spec.ts` still reviewed the w
 
 ### The engine header's words fit a column of 360 pixels (2026-11-06)
 
-The layout test's case "layout of /openings" failed now and then on the Tests workflow's Linux job (3 of 9 runs from
-dev b27988c to b8c1ddd): "the page area scrolls sideways: 347 in 345", at the sweep's first size only (360 × 700).
-The Windows job never failed it.
+The layout test's case "layout of /openings" failed now and then on the Tests workflow's Linux job. It failed in 3 of
+9 Linux runs of the case from b27988c to b8c1ddd (dev's runs and the runs of two probe branches). The message was
+"the page area scrolls sideways: 347 in 345", only at the test's first window size (360 × 700). The Windows job never
+failed it.
 
-- **The cause:** the engine header's first line says "Loading the engine's network…" until the analysis is ready
-  (design 06, item 7). Openings shows its view before the board's sweep makes the engine ready, so the words can
-  still show when the test opens a fold and resizes the window to 360 pixels. The words stayed on one line
-  (`whitespace-nowrap`), and in one column 360 pixels wide the line has 155 pixels for them. They take 165.3 pixels in
-  Segoe UI (Windows) and 189.7 pixels in DejaVu Sans (Linux's `system-ui`). The line then pushed the threat's switch
-  and the gear out of the analysis column, by 10 or 34.7 pixels. The column's and the page's padding take 32 pixels:
-  so on Linux the gear's right edge was at 347.2, and the page area scrolled sideways. A player reaches this state:
-  any narrow window, while the network loads.
-- **How it was found:** on Windows, headless Chromium with DejaVu Sans (from WSL) put in the place of `system-ui`,
-  and a record of each frame from before the resize. The page area was 347 in 345 in 3 of 10 tries, for 2 to 19
-  frames after the resize, once at the test's own measurement. In Segoe UI, 0 of 11 tries (5 at full speed, 6 with the
-  CPU slowed 6 and 20 times).
-- **The fix (packages/review, `ReviewView.svelte`):** the words and the visits that take their place stay on one line,
-  but they can shrink: in a column too narrow for them, they end with an ellipsis, and their title gives them in full.
-  The switch, the threat's switch and the gear stay in the column, and the line does not change its height (no layout
-  shift). With the fix and DejaVu Sans, 3 of 8 tries showed the words at 360 pixels (190 pixels of text in 155), and no
-  frame was too wide.
-- **The sweep names the element:** when the page or the page area scrolls sideways, the sweep's report now gives,
-  once for each kind of problem, at the first size where it shows: the elements that pass the edge furthest (outside
-  any box that clips them), with their edges, font and text, and the font faces not loaded yet.
+- **The cause:** the engine header's first line says "Loading the engine's network…" until the engine is ready
+  (design 06, item 7). Openings shows its view before its engine is ready (`GameAnalysis.sweep` makes it ready on a
+  board). So the words can still show when the test opens a fold and makes the window 360 pixels wide. The words
+  stayed on one line (`whitespace-nowrap`). In a column 360 pixels wide, the line has 155 pixels for them. They take
+  165.3 pixels in Segoe UI (Windows) and 189.7 pixels in DejaVu Sans (Linux's `system-ui`). So the line pushed the
+  threat's switch and the gear out of the analysis column, by 10 or 34.7 pixels. The column's padding and the page's
+  padding take 32 pixels. On Linux, the gear's right edge was at 347.2, and the page area scrolled sideways. A player
+  sees this state in any narrow window while the network loads. The fault is the page's, so the layout test keeps its
+  wait.
+- **The reproduction:** headless Chromium on Windows, with DejaVu Sans (from WSL) in the place of `system-ui`,
+  recorded the page area at each frame from before the resize. At full speed, the page area was 347 in 345 in 3 of 10
+  tries, for 2 to 19 frames after the resize, and once at the test's own measurement. In Segoe UI, it was too wide in
+  0 of 11 tries (5 at full speed, 6 with the CPU slowed 6 and 20 times).
+- **The fix (packages/review, `ReviewView.svelte`):** the words, and the visits that take their place, stay on one
+  line, but they can shrink. In a column too narrow for them, they end with an ellipsis, and their title gives them in
+  full. The engine's switch, the threat's switch and the gear stay in the column. The line keeps its height, so nothing
+  moves (no layout shift).
+- **The fix's measurements:** with the fix and DejaVu Sans, 3 of 8 tries showed the words at 360 pixels (190 pixels of
+  text in 155), and no frame was too wide. With the network's download held at 360 × 700 and DejaVu Sans, the classes
+  before the fix gave 347 in 345, with the gear's right edge at 347.2. The fix gave 345 in 345, with the gear at 312.0.
+  In Segoe UI, in Verdana, and in Verdana at a text size of 125%, the gear ended at the column's inner edge and the
+  page area did not scroll. A long visits text ("123,456 of 1,000,000 visits · time limit") ended with an ellipsis in
+  each of these fonts. All of these ran on Windows, and none on the Linux runner.
+- **The layout test names the element:** when the page or the page area scrolls sideways, the test's report gives more
+  lines under that problem's line. They come once for each kind of problem, from the first window size where it
+  shows. They give the elements that pass the edge furthest (outside any box that clips them), with their edges and
+  text, and the font list of their style. They also give the font faces that are not loaded yet. The browser does not
+  tell which font draws an element, so the report cannot name a fallback font such as DejaVu Sans.

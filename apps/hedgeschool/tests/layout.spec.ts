@@ -33,19 +33,25 @@ const FIXTURE = "tests/fixtures/hedgefund-review.json";
 
 /** A rule broken, as text, and for a page or a page area that scrolls sideways, what passes its right edge (`detail`). */
 interface Problem { problem: string; detail?: string }
+/** A problem, with the window's size where it showed. */
+interface ProblemAt extends Problem { width: number; height: number }
+/** A page's own rules, checked at each size besides the rules of `problems()`: what breaks them, as text. */
+type OwnRules = (page: Page) => Promise<string[]>;
 
 /** What breaks the rules at the page's current size: empty when nothing does. Where the page or the page area scrolls
  *  sideways, the detail names, from the same moment, the elements that pass its right edge furthest (outside any box
- *  that clips them: their name, left and right edges, font and text), and the font faces not loaded yet. A failure
- *  that comes now and then (a race) then names its element by itself. */
+ *  that clips them: their name, left and right edges, text, and the font list of their style, which does not say which
+ *  font draws them), and the font faces not loaded yet. A failure that comes now and then (a race) then names its
+ *  element by itself. */
 function problems(page: Page): Promise<Problem[]> {
   return page.evaluate(() => {
-    const out: { problem: string; detail?: string }[] = [];
+    const out: Problem[] = [];
     const name = (e: Element) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ""}.${[...e.classList].slice(0, 4).join(".")}`;
     /** The elements in `scroller` that pass its right edge furthest, and the font faces not loaded yet, as lines. */
-    const past = (scroller: HTMLElement, edge: number) => {
+    const pastTheEdge = (scroller: HTMLElement, edge: number) => {
       const clipped = (e: Element) => {
-        for (let a = e.parentElement; a && a !== scroller; a = a.parentElement) if (getComputedStyle(a).overflowX !== "visible") return true;
+        for (let a = e.parentElement; a && a !== scroller; a = a.parentElement)
+          if (getComputedStyle(a).overflowX !== "visible") return true;
         return false;
       };
       const elements = [...scroller.querySelectorAll("*")].map(e => ({ e, r: e.getBoundingClientRect() }))
@@ -59,15 +65,17 @@ function problems(page: Page): Promise<Problem[]> {
         const face = `${f.family} ${f.weight} ${f.style}: ${f.status}`;
         faces.set(face, (faces.get(face) ?? 0) + 1);
       }
-      return [`  at ${innerWidth} x ${innerHeight}, past its right edge (${edge.toFixed(1)}), furthest first:`, ...elements.length ? elements : ["    nothing"],
-              `  font faces not loaded: ${[...faces].map(([f, n]) => (n > 1 ? `${f} (${n} faces)` : f)).join("; ") || "none"}`].join("\n");
+      const fonts = [...faces].map(([f, n]) => (n > 1 ? `${f} (${n} faces)` : f)).join("; ") || "none";
+      return [`  at ${innerWidth} x ${innerHeight}, past its right edge (${edge.toFixed(1)}), furthest first:`,
+              ...(elements.length ? elements : ["    nothing"]),
+              `  font faces not loaded: ${fonts}`].join("\n");
     };
     const root = document.documentElement, area = document.getElementById("page");
     if (root.scrollWidth > root.clientWidth + 1)
-      out.push({ problem: `the page scrolls sideways: ${root.scrollWidth} in ${root.clientWidth}`, detail: past(root, root.clientWidth) });
+      out.push({ problem: `the page scrolls sideways: ${root.scrollWidth} in ${root.clientWidth}`, detail: pastTheEdge(root, root.clientWidth) });
     if (area && area.scrollWidth > area.clientWidth + 1)
       out.push({ problem: `the page area scrolls sideways: ${area.scrollWidth} in ${area.clientWidth}`,
-                 detail: past(area, area.getBoundingClientRect().left + area.clientLeft + area.clientWidth) });
+                 detail: pastTheEdge(area, area.getBoundingClientRect().left + area.clientLeft + area.clientWidth) });
     for (const e of document.querySelectorAll("body *")) {
       if (!(e instanceof HTMLElement) || !e.offsetParent && getComputedStyle(e).position !== "fixed") continue;
       const s = getComputedStyle(e);
@@ -88,13 +96,11 @@ function problems(page: Page): Promise<Problem[]> {
 
 /** The problems found, one line for each kind (its text without its numbers), with the sizes where it shows: the
  *  widths in runs, at each height. A kind's detail comes once, under its line, from the first size where it shows. */
-function report(label: string, found: (Problem & { width: number; height: number })[]): string {
-  type Kind = { example: string; detail?: string; at: Map<number, number[]> };
-  const kinds = new Map<string, Kind>();
+function report(label: string, found: ProblemAt[]): string {
+  const kinds = new Map<string, { example: string; detail?: string; at: Map<number, number[]> }>();
   for (const f of found) {
     const kind = f.problem.replace(/\d+/g, "N");
-    const k: Kind = kinds.get(kind) ?? { example: f.problem, at: new Map() };
-    k.detail ??= f.detail;
+    const k = kinds.get(kind) ?? { example: f.problem, detail: f.detail, at: new Map<number, number[]>() };
     k.at.set(f.height, [...(k.at.get(f.height) ?? []), f.width]);
     kinds.set(kind, k);
   }
@@ -108,9 +114,14 @@ function report(label: string, found: (Problem & { width: number; height: number
 /** Two frames, for the layout and what the page measures after it (the review's side columns, ResizeObserver). */
 const settle = (page: Page) => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));
 
+/** The rules' problems and the page's own (`own`), at the page's current size. */
+async function allProblems(page: Page, own?: OwnRules): Promise<Problem[]> {
+  return [...await problems(page), ...(await own?.(page) ?? []).map(problem => ({ problem }))];
+}
+
 /** Sweeps the page at every size: the report of what broke the rules, empty when nothing did. `ownRules`: the page's
  *  own rules, checked at each size too. */
-async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promise<string[]>): Promise<string> {
+async function sweep(page: Page, label: string, ownRules?: OwnRules): Promise<string> {
   // The browser must show scroll bars: without them, the sweep misses the room that they take.
   const bar = await page.evaluate(() => {
     const d = document.createElement("div");
@@ -121,13 +132,11 @@ async function sweep(page: Page, label: string, ownRules?: (page: Page) => Promi
     return w;
   });
   expect(bar, "the browser shows scroll bars").toBeGreaterThan(0);
-  const found: (Problem & { width: number; height: number })[] = [];
+  const found: ProblemAt[] = [];
   for (const height of HEIGHTS) for (const width of WIDTHS) {
     await page.setViewportSize({ width, height });
     await settle(page);
-    for (const p of [...await problems(page), ...(await ownRules?.(page) ?? []).map((problem): Problem => ({ problem }))]) {
-      found.push({ width, height, ...p });
-    }
+    for (const p of await allProblems(page, ownRules)) found.push({ width, height, ...p });
   }
   return found.length ? report(label, found) : "";
 }
@@ -255,14 +264,14 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
 // The page's own rules: the status line shows its whole text, the hands' panel stays on the board, and in one column
 // (under 800 pixels) the field is at least as high as it is wide.
 const CYANOTYPE_PRACTICE_SIZES = [[1376, 952], [1920, 1080], [2560, 1440], [390, 844]];
-/** The problems at each of those sizes, with the page's own rules, one line each with its size. */
-async function problemsAtSizes(page: Page, own: (p: Page) => Promise<string[]> = async () => []): Promise<string[]> {
+/** The problems at each of those sizes, with the page's own rules, one entry each with its size. A detail comes on
+ *  lines of its own, under its problem's line. */
+async function problemsAtSizes(page: Page, own?: OwnRules): Promise<string[]> {
   const found: string[] = [];
   for (const [width, height] of CYANOTYPE_PRACTICE_SIZES) {
     await page.setViewportSize({ width, height });
     await settle(page);
-    found.push(...[...await problems(page), ...(await own(page)).map((problem): Problem => ({ problem }))]
-      .map(p => `${width} x ${height}: ${p.problem}${p.detail ? `\n${p.detail}` : ""}`));
+    for (const p of await allProblems(page, own)) found.push(`${width} x ${height}: ${p.problem}${p.detail ? `\n${p.detail}` : ""}`);
   }
   return found;
 }

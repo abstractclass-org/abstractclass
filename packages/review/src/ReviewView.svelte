@@ -2741,8 +2741,8 @@
              ellipsis, with its full text as its title: the buttons after it stay in the column. -->
         {#if waitsForNetwork}<span class="min-w-0 text-xs text-muted truncate" title={NETWORK_LOADS}>{NETWORK_LOADS}</span>
         {:else if shownSearch}
-          {@const visits = `${shownSearch.visits.toLocaleString("en")}${searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits${timedOut ? " · time limit" : ""}`}
-          <span class="min-w-0 text-xs text-muted tabular-nums truncate" title={visits}>{visits}</span>
+          {@const visitsText = `${shownSearch.visits.toLocaleString("en")}${searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits${timedOut ? " · time limit" : ""}`}
+          <span class="min-w-0 text-xs text-muted tabular-nums truncate" title={visitsText}>{visitsText}</span>
         {/if}
         <!-- The threat's switch (Lichess's "Show threat" in its engine box, the key x), before the gear. A review snapshot shows a
              threat only where the store has it: the switch's note says why. -->
