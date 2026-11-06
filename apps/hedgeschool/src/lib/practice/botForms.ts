@@ -35,7 +35,10 @@ async function gpuNotSlower(manifest: Manifest, network: string): Promise<boolea
 }
 
 /** The threaded bot's files for a form. The CPU form runs on `workers` workers, with two search threads for each (the
- *  engine repository's measurement used 8 threads on 4 workers). None for the form with one search thread. */
+ *  engine repository's measurement used 8 threads on 4 workers). None for the form with one search thread. The threads
+ *  are the most that a move uses: KataGo's play settings give a thread at least 8 of the move's new playouts
+ *  (`minPlayoutsPerThread`), so a move below 16 visits searches with one thread, and a move completes at most
+ *  min(threads, visits / 8) - 1 visits over its setting (design 24, item 14). */
 async function threadedFiles(manifest: Manifest, network: string, mode: BotMode, workers: number): Promise<ThreadedFiles | undefined> {
   const file = (kind: ArtifactKind, name?: string) => manifest.artifacts.find(a => a.kind === kind && (!name || a.url.endsWith(`/${name}`)));
   if (mode === "gpu") {

@@ -130,6 +130,16 @@ How strong each setting plays against people is not measured yet.
     GPU when the GPU setting allows it, else on the CPU workers, both through the threaded bot. A browser without JSPI
     plays the one-thread bot. The board's rules (the legal edges, the positions) come from the analysis module's
     rules worker, as on the Analysis board.
+    - **The threads:** 16 search threads on the GPU, and two for each CPU worker. They are the most that a move
+      uses. KataGo's play settings give each thread at least 8 of a move's new playouts (`minPlayoutsPerThread`,
+      KataGo's default for GTP). So a move with N new playouts searches with min(threads, N / 8) threads, rounded
+      down, and with one thread below 16.
+    - **The visits that a move completes:** a thread checks the completed playouts against the setting before it
+      starts a playout, and the playouts in flight then finish. So from a new tree, a move completes from N to
+      N + min(threads, N / 8) - 1 visits. Below 16 visits it completes exactly N, as the one-thread bot does. Above,
+      it completes at most an eighth more: at most 71 at 64 visits with 8 threads or more. A move that keeps a tree
+      from the last search has fewer new playouts, and so fewer threads. The setting is KataGo's `maxVisits`, and the
+      record and the board name it so ("64 visits").
 
 ## Why
 
@@ -143,6 +153,12 @@ How strong each setting plays against people is not measured yet.
 - **Any number of visits, and the doubling at or below it on the slider:** a player can set a number between two
   doublings. The slider never shows more visits than the bot searches. It shows the doubling by which the levels can
   group the game.
+- **The threaded bot at every setting:** below 16 visits it searches as the one-thread bot does, with the same
+  network evaluations at each of 64 positions. Above, it completes at most an eighth more visits than its setting,
+  about a sixth of the slider's step (a doubling). The one-thread bot at every setting would keep exactly to the
+  setting, but a move at 64 visits took 1.7 times as long as with 16 threads on two CPU workers. A search that counts
+  its playouts in flight would depart from KataGo, which lets its threads pass `maxVisits` so (decisions/product.md,
+  "Practice: the threaded bot's visits at each setting").
 - **Settings named for what they are,** until levels rest on results. A level guessed now could be far off, and a
   player could not tell.
 - **Fixed settings make a record that one line describes,** and games by setting that the levels can later count.
@@ -213,5 +229,7 @@ How strong each setting plays against people is not measured yet.
 - [decisions/product.md](../decisions/product.md): "Practice designed" (2026-10-14).
 - [decisions/product.md](../decisions/product.md): "Practice built" (2026-10-14).
 - [decisions/product.md](../decisions/product.md): "Practice: up to 8,192 visits, and any number" (2026-10-17).
+- [decisions/product.md](../decisions/product.md): "Practice: the threaded bot's visits at each setting"
+  (2026-11-07).
 - [requests/15-practice-bot.md](../requests/15-practice-bot.md): the bot, as the engine repository delivered it.
 - [requests/20-practice-set-up-start.md](../requests/20-practice-set-up-start.md): the bot from a set-up start.
