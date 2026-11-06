@@ -7,7 +7,7 @@
 // Versions: 1 had the analyses. 2 adds the games. 3 adds the variations (`branches`). An upgrade only adds stores, so data is never
 // lost.
 
-/** The database's name. The browser tests import it (apps/hedgeschool/tests/cyanotype-review.ts). */
+/** The database's name: the browser tests open the database by it. */
 export const NAME = "learn-enclosure";
 const VERSION = 3;
 export const STORES = { analysis: "analysis", games: "games", branches: "branches" } as const;

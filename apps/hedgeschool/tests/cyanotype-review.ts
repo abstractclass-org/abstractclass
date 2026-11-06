@@ -11,27 +11,31 @@ import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
 import { modelOf, moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
 import { analysisKey, readAnalysisKey, readable } from "../../../packages/analysis/src/cache.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
+import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 
 export const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 const TURNS = 20;
 export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each other turn two
-/** The turns that the engine reviews live (reviewTestGame with `live`), and how long the test waits for the review's
+/** The turns that the engine reviews live (reviewFirstTurns), and how long the test waits for the review's
  *  end. Turns 1 to 3 have 5 positions before a move, each searched at 32 and at 512 visits. On the owner's machine
- *  with 2 threads, their review took 96 to 109 s, and the whole game's 13.1 minutes. The whole game took 9.6 to 19.0
- *  minutes on the Linux runners, and over 20 in one run, so turns 1 to 3 take about 3 minutes on a slow runner. The
- *  wait leaves more than three times each. */
+ *  with 2 threads, their review took 90 to 118 s, 11 to 15 percent of the whole game's 13.1 minutes. The whole game
+ *  took 9.6 to 20.0 minutes on the Linux runners, and probably about 22 in one run, so turns 1 to 3 take about 3
+ *  minutes on a slow runner. The wait is more than three times that. */
 export const LIVE_TURNS = 3, LIVE_WAIT = 10 * 60_000;
 /** The key of the review's display settings in local storage (the site's DISPLAY_KEY). */
 export const DISPLAY = DISPLAY_KEY;
 /** The engine's settings of the review, other than `on`: Lite, and 512 visits for the position on screen. */
 export const LITE = { review: "lite", visits: 512 } as const;
 /** The site's database and its store of analyses. */
-export const STORE = [NAME, STORES.analysis] as const;
+const STORE = [NAME, STORES.analysis] as const;
 /** The stored review: the results of a real review of the test game, and of the Analysis board's SPREAD_BOARD, with
  *  the engine that made them. scripts/cyanotype-review-fixture.mjs writes it: run it again when Cyanotype's
  *  engine.lock.json takes a new release. */
 export const STORED = "tests/fixtures/cyanotype-review.json";
+/** The stored review's file: its engine (`search`, `network`, the network's SHA-256 `model`) and its results. */
+const readStored = (): { search: string; network: string; model: string; analyses: [string, unknown][] } =>
+  JSON.parse(readFileSync(STORED, "utf8"));
 
 /** The test game's record up to the end of turn `turns`: its tags, but not its result, and its moves. */
 export function testRecord(turns = TURNS): string {
@@ -71,8 +75,10 @@ export async function noReview(page: Page): Promise<string> {
   return why;
 }
 
-/** Keeps the engine's settings `engine` and the display settings `display` in the page's local storage, on /about. */
+/** Keeps the engine's settings `engine` and the display settings `display` in the page's local storage, on /about.
+ *  Each page that opens next in `page` counts what it asks of the engine's workers (engineWork). */
 async function keepSettings(page: Page, engine: object, display: object) {
+  await page.addInitScript(countEngineWork);
   await page.goto(new URL("/about", CYANOTYPE).href);
   await page.evaluate(([e, d, settings, shown]) => {
     localStorage.setItem(e, JSON.stringify(settings));
@@ -80,38 +86,52 @@ async function keepSettings(page: Page, engine: object, display: object) {
   }, [ENGINE_KEY, DISPLAY_KEY, engine, display] as const);
 }
 
-/** Reviews the test game in `page`, with the display settings `display`, and waits for the review's end: from the
- *  stored review with the engine off (storeReview), or, with `live`, its first LIVE_TURNS turns with the engine on at
- *  Lite. */
-export async function reviewTestGame(page: Page, display: object = {}, { live = false } = {}) {
-  if (live) await keepSettings(page, { on: true, ...LITE }, display);
-  else await storeReview(page, display);
-  await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(live ? LIVE_TURNS : TURNS))}`, CYANOTYPE).href);
-  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: live ? LIVE_WAIT : 120_000 });
+/** Reviews the test game in `page` from the stored review (storeReview), with the display settings `display` and the
+ *  engine off, or on at Lite with `on`, and waits for the review's end. */
+export async function reviewTestGame(page: Page, display: object = {}, { on = false } = {}) {
+  await storeReview(page, display, { on });
+  await openReview(page, TURNS, 120_000);
 }
 
-/** The keys of the stored review's results for the test game's first `turns` turns: each position before a move, at
- *  each depth of the review. */
-export function storedKeys(turns: number): string[] {
-  const played = testRecord(turns).split(/\r?\n\r?\n/)[1].trim().split(/\s+/).filter(w => !/^\d+\.$/.test(w));
-  const analyses: [string][] = JSON.parse(readFileSync(STORED, "utf8")).analyses;
-  return analyses.map(([key]) => key).filter(key => {
+/** Reviews the test game's first LIVE_TURNS turns in `page` with the engine on at Lite, from no stored result, and
+ *  waits for the review's end. */
+export async function reviewFirstTurns(page: Page) {
+  await keepSettings(page, { on: true, ...LITE }, {});
+  await openReview(page, LIVE_TURNS, LIVE_WAIT);
+}
+
+/** Opens the review of the test game up to the end of turn `turns`, and waits `timeout` ms for "Review done". */
+async function openReview(page: Page, turns: number, timeout: number) {
+  await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(turns))}`, CYANOTYPE).href);
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout });
+}
+
+/** The stored review's results for the test game's first `turns` turns, in the order of their keys: each position
+ *  before a move, at each depth of the review. */
+export function storedResults(turns: number): [string, unknown][] {
+  const played = parseRecord(testRecord(turns)).moves;
+  return readStored().analyses.filter(([key]) => {
     const moves = readAnalysisKey(key).moves.split(" ").filter(Boolean);
     return moves.length < played.length && moves.every((m, i) => m === played[i]);
-  }).sort();
+  }).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-/** The keys of the results in the browser's store of analyses, on the page's site. */
-export function keptKeys(page: Page): Promise<string[]> {
-  return page.evaluate(([name, store]) => new Promise<string[]>((resolve, reject) => {
+/** The entries of the browser's store of analyses on the page's site, in the order of their keys: each key, with its
+ *  result when `values`. */
+export function keptResults(page: Page, values = false): Promise<[string, unknown][]> {
+  return page.evaluate(([[name, store], values]) => new Promise<[string, unknown][]>((resolve, reject) => {
     const open = indexedDB.open(name);
     open.onerror = () => reject(open.error);
     open.onsuccess = () => {
-      const keys = open.result.transaction(store, "readonly").objectStore(store).getAllKeys();
-      keys.onsuccess = () => { open.result.close(); resolve(keys.result.map(String).sort()); };
-      keys.onerror = () => reject(keys.error);
+      const s = open.result.transaction(store, "readonly").objectStore(store);
+      const keys = s.getAllKeys(), all = values ? s.getAll() : null;
+      s.transaction.oncomplete = () => {
+        open.result.close();
+        resolve(keys.result.map((k, i) => [String(k), all?.result[i]]));
+      };
+      s.transaction.onerror = () => reject(s.transaction.error);
     };
-  }), STORE);
+  }), [STORE, values] as const);
 }
 
 /** Puts the stored review's results (STORED) in the browser's store of analyses, with the display settings `display`,
@@ -122,8 +142,7 @@ export function keptKeys(page: Page): Promise<string[]> {
  *  page asked the engine for no search. Fails when the preview's engine is not the one that made the results, or when
  *  the site no longer reads their keys (cache.ts, analysisKey and READ_SHAPES). */
 export async function storeReview(page: Page, display: object = {}, { on = false } = {}) {
-  const fixture = JSON.parse(readFileSync(STORED, "utf8"));
-  const analyses: [string, unknown][] = fixture.analyses;
+  const fixture = readStored(), analyses = fixture.analyses;
   const manifest: Manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href)
     .then(r => r.json());
   const rerun = "run scripts/cyanotype-review-fixture.mjs again (its header says how)";
@@ -137,7 +156,6 @@ export async function storeReview(page: Page, display: object = {}, { on = false
   if (unread.length)
     throw new Error(`${STORED} has ${unread.length} results whose keys the site no longer reads: ${rerun}`);
   await keepSettings(page, { on, ...LITE }, display);
-  await countSearches(page);
   await page.evaluate(([[name, store], stores, entries]) => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open(name);
     open.onupgradeneeded = () => { for (const s of stores) open.result.createObjectStore(s); };
@@ -153,13 +171,11 @@ export async function storeReview(page: Page, display: object = {}, { on = false
 
 /** What a page asks of the engine's workers since it opened: every message, and the searches among them. */
 type EngineWork = { messages: number; searches: number };
-/** Counts what `page` asks of the engine's workers, in each page that opens next in it (countEngineWork). */
-export const countSearches = (page: Page) => page.addInitScript(countEngineWork);
-/** What the page asked of the engine's workers since it opened, when countSearches counts it. */
+/** What the page asked of the engine's workers since it opened, when its settings came from keepSettings. */
 export const engineWork = (page: Page) =>
   page.evaluate(() => (window as unknown as { engineWork?: EngineWork }).engineWork);
-/** Counts what the page asks of the engine's workers (storeReview and countSearches add it). A search is a message
- *  `search`, or a `call` whose request is an analysis (packages/engine/src/client.ts, analyse). */
+/** Counts what the page asks of the engine's workers (keepSettings adds it). A search is a message `search`, or a
+ *  `call` whose request is an analysis (packages/engine/src/client.ts, analyse). */
 function countEngineWork() {
   const work: EngineWork = { messages: 0, searches: 0 };
   (window as unknown as { engineWork: EngineWork }).engineWork = work;
@@ -171,10 +187,10 @@ function countEngineWork() {
     post.apply(this, args);
   };
 }
-/** Fails when the page asked the engine for a search since it opened, or when storeReview's count saw no message to
- *  the engine's workers (then the count does not work). */
+/** Fails when the page asked the engine for a search since it opened, or when the count saw no message to the
+ *  engine's workers (then the count does not work). */
 export async function expectNoSearch(page: Page) {
   const work = await engineWork(page);
-  expect(work?.messages ?? 0, "the messages to the engine's workers that storeReview counted").toBeGreaterThan(0);
+  expect(work?.messages ?? 0, "the messages to the engine's workers that the count saw").toBeGreaterThan(0);
   expect(work?.searches, "the searches that the page asked of the engine").toBe(0);
 }

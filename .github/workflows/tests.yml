@@ -29,14 +29,15 @@ defaults:
 
 jobs:
   # The time limits allow for Cyanotype's engine tests, which run here since its build has the engine's release files.
-  # Only the Linux job reviews with the engine (cyanotype-review.spec.ts), the test game's first three turns: about 2
-  # minutes, and it waits 10 at most. The other review tests load a stored review. The practice games take 5 to 7
-  # minutes. Without its review of the whole game, which it ran before, the Linux job took 22 to 32 minutes, the
-  # longest with 9 minutes to install Playwright. So it takes up to about 35 minutes, and the Windows job about 15.
-  # Each limit leaves a margin for a slow runner.
+  # Only the Linux job reviews with the engine (cyanotype-live-review.spec.ts), the test game's first three turns:
+  # about 2 minutes, 3 on a slow runner, and its test stops after 12. The other review tests load a stored review.
+  # The practice games take 5 to 7 minutes. Without its review of the whole game, the Linux job took 22 to 32
+  # minutes: up to about 27 on a slow runner, and 9 more in the runs whose Playwright install was slow. So the Linux
+  # job takes up to about 40 minutes on a slow runner with a slow install, and 48 if the live review then stops at
+  # its limit. The Windows job takes about 15. Each limit leaves a margin.
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

@@ -916,8 +916,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   The tests of the review, and the layout test's review and Analysis board, load a stored review of the test game
   (`cyanotype-review.ts`, `storeReview`) and ask the engine for no search: `tests/fixtures/cyanotype-review.json`,
   which `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes again when Cyanotype's `engine.lock.json`
-  takes a new release. One test of `cyanotype-review.spec.ts` reviews the game's first three turns with the engine,
-  on the CPU, and checks that the browser's store then holds the stored review's keys for them.
+  takes a new release. `cyanotype-live-review.spec.ts` reviews the game's first three turns with the engine, on the
+  CPU, and checks that the browser's store then holds the stored review's results for them, value for value.
 - `scripts/check-all.mjs`: its engine's release files, its type check, its unit tests, its build and its build's
   file sizes (`scripts/build-sizes.mjs`), in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the

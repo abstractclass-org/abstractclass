@@ -1,28 +1,29 @@
 // Cyanotype's review (its design 33) on its preview (CYANOTYPE_BASE_URL): the review's test game up to turn 20, from
-// the stored review of the engine's real replies (cyanotype-review.ts), in one page that the tests share in turn. The
-// tests check the candidates' table's Move header (move-header.ts), the display setting "Move notation", the marks of a
-// turn's two moves by turn and by move, the hands' rank chips with "+N", that the page has no area map, and the
-// player's notes (cyanotype-notes.ts) by position and while a preview shows. The page asks the engine for no search.
-// One test reviews the game's first turns with the engine, in the browser on the CPU, as the stored review did. And
-// the Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message.
-// Run: npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
+// the stored review of the engine's real replies (cyanotype-review.ts), with the engine on at Lite as in a live review,
+// in one page that the tests share in turn. The tests check the candidates' table's Move header (move-header.ts), the
+// display setting "Move notation", the marks of a turn's two moves by turn and by move, the hands' rank chips with
+// "+N", that the page has no area map, and the player's notes (cyanotype-notes.ts) by position and while a preview
+// shows. The page asks the engine for no search: cyanotype-live-review.spec.ts reviews with the engine. And the
+// Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message. Run:
+// npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
-import { CYANOTYPE, DISPLAY, LIVE_TURNS, LIVE_WAIT, MOVES, countSearches, engineWork, expectNoSearch, keptKeys, noReview,
-         reviewTestGame, storedKeys } from "./cyanotype-review.ts";
+import { CYANOTYPE, DISPLAY, MOVES, expectNoSearch, noReview, reviewTestGame } from "./cyanotype-review.ts";
 import { notesOn, rightClick, rightDrag, spot } from "./cyanotype-notes.ts";
 
 test.describe.configure({ mode: "serial" });
 let context: BrowserContext | undefined, page: Page, skipped = "";
 const errors: string[] = [];
+/** The browser's size for the review. */
+const SIZE = { viewport: { width: 1376, height: 952 } };
 
 test.beforeAll(async ({ browser }, info) => {
   info.setTimeout(5 * 60_000);
-  context = await browser.newContext({ viewport: { width: 1376, height: 952 } });
+  context = await browser.newContext(SIZE);
   page = await context.newPage();
   page.on("pageerror", e => errors.push(String(e)));
   skipped = await noReview(page);
-  if (!skipped) await reviewTestGame(page, { notation: "glyphs", notes: true });
+  if (!skipped) await reviewTestGame(page, { notation: "glyphs", notes: true }, { on: true });
 });
 test.afterAll(async () => { await context?.close(); });
 test.beforeEach(() => { test.skip(!!skipped, skipped); });
@@ -229,7 +230,7 @@ test("the player's notes: on the review's board, by position, and hidden while a
 test("the Analysis board refuses a record whose capture mark the engine does not confirm", async ({ browser }) => {
   // The test game's first three turns, with an x on 2@1,-5, which captures nothing. In a browser of its own: the
   // board kept there, empty, opens instead, with a notice.
-  const own = await browser.newContext({ viewport: { width: 1376, height: 952 } });
+  const own = await browser.newContext(SIZE);
   try {
     const board = await own.newPage();
     const record = "1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *";
@@ -247,25 +248,4 @@ test("the Analysis board refuses a record whose capture mark the engine does not
 test("no page error in the review, and no search", async () => {
   expect(errors).toEqual([]);
   await expectNoSearch(page);
-});
-
-test("the engine reviews the game's first turns in the browser, as it made the stored review", async ({ browser }) => {
-  // On the CPU, at Lite, from the release's files: the review searches each position before a move of turns 1 to
-  // LIVE_TURNS at the stored review's depths, so the browser's store keeps the stored review's keys for them. In a
-  // browser of its own, whose store starts empty.
-  test.setTimeout(LIVE_WAIT + 5 * 60_000);
-  const own = await browser.newContext({ viewport: { width: 1376, height: 952 } });
-  try {
-    const live = await own.newPage(), failed: string[] = [];
-    live.on("pageerror", e => failed.push(String(e)));
-    await countSearches(live);
-    const t0 = Date.now();
-    await reviewTestGame(live, {}, { live: true });
-    console.log(`the live review of turns 1 to ${LIVE_TURNS}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
-    expect((await engineWork(live))?.searches, "the searches that the page asked of the engine").toBeGreaterThan(0);
-    expect(await keptKeys(live)).toEqual(storedKeys(LIVE_TURNS));
-    expect(failed, "page errors").toEqual([]);
-  } finally {
-    await own.close();
-  }
 });
