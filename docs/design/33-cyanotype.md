@@ -623,7 +623,8 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
 
 The whole comparison of Cyanotype with Hedge School: by the engine lock's kinds, by page (`src/routes`), by the parts
 of `src/lib`, by setting, and by the site's other files. Each gap names its issue, which holds the decision about it.
-A gap marked **no issue yet** waits for one. The list also names Hedge School's parts that only Enclosure uses: only
+A part that Cyanotype puts off or leaves out says why, and the decision log has the decision ("Cyanotype's gaps from
+Hedge School: built, put off and left out"). The list also names Hedge School's parts that only Enclosure uses: only
 a decision leaves a feature out, also one that Blueprints seems not to need. Blueprints' own parts in the place of
 Enclosure's (the board and its input, the notation, the record, the page reader of strategyjam.org) are not gaps.
 When a gap closes, its line goes.
@@ -650,11 +651,11 @@ the import page, the site map, the bookmarklet and the userscript. Cyanotype lac
 - **The board editor** (`/editor`): a position set up for the Analysis board (design 21). A position's notation waits
   for it ("Decision", item 10). abscls-8tl1.39.
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
-  18). No issue yet.
+  18). abscls-8tl1.51. The page describes what Cyanotype takes today, since partner sites are left out (below).
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
-  the builds that serve the test book. No issue yet.
+  the builds that serve the test book. Put off until Blueprints has an opening book: abscls-8tl1.53 (deferred).
 - **Puzzles, Learn and the engine lab** (`/puzzles`, `/learn`, `/lab/engine`): prototypes, only in the full edition
-  (design 11). No issue yet.
+  (design 11). Left out while they are prototypes: Cyanotype takes each one when Hedge School makes it public.
 
 ### By the parts of `src/lib`
 
@@ -681,15 +682,16 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   abscls-8tl1.40.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
   `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
-  ("Practice against Stamp Duty", item 2). No issue yet.
+  ("Practice against Stamp Duty", item 2). abscls-8tl1.50.
 - **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`, design 08), on the review and on Practice. abscls-8tl1.42.
 - **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`, design 07, item 17).
   abscls-8tl1.43.
-- **The opening book** in the review and on the Analysis board (`book/`, design 32). No issue yet.
+- **The opening book** in the review and on the Analysis board (`book/`, design 32). Put off with the Openings page:
+  abscls-8tl1.53 (deferred).
 - **The analytics and the consent** (`analytics.svelte.ts`, `ConsentBanner.svelte`, `AnalyticsAsk.svelte`,
   `ui/CornerCard.svelte`, `measure.ts`, `internalTraffic.ts`, `analysis/settingChanges.ts`, `game/sources.ts`,
-  `hooks.client.ts`, designs 17, 25 and 27). No issue yet.
-- **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). No issue yet.
+  `hooks.client.ts`, designs 17, 25 and 27). abscls-8tl1.48.
+- **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
 - **The site's menu on a narrow screen** (`SiteMenu.svelte`, design 22). On a phone, Cyanotype's header and footer have
   no link to Practice, the review or the Analysis board, and the home page has none either: no page links to Practice or
   the review there. abscls-8tl1.36.
@@ -702,11 +704,11 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   abscls-8tl1.36.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
 - **The edition** (`edition.ts`, design 11): the early access, its mark in the header, and the full edition's pages.
-  No issue yet.
+  Left out with the prototypes that it serves (Puzzles, Learn and the engine lab, above).
 - **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
-  kept review sent to the import page (`from=`). No issue yet.
+  kept review sent to the import page (`from=`). Left out until a Blueprints site wants to be a partner.
 - **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
-  tools. Both play Enclosure only ("Decision", item 3). No issue yet.
+  tools. Both play Enclosure only ("Decision", item 3), so they are left out.
 
 ### By setting
 
@@ -724,11 +726,12 @@ Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). Th
   That issue is closed, and the release in Cyanotype's lock has its fix. abscls-8tl1.46.
 - **The networks** (design 09): Hedge School's settings and Practice offer two networks, HedgeFund 0.2 Lite and
   HedgeFund 0.2, and its lock keeps the earlier ones for the games that name them. Cyanotype offers the one network
-  of Blueprints' release, Stamp Duty 0.1. No issue yet.
+  of Blueprints' release, Stamp Duty 0.1. Put off until Blueprints' release has a second network: abscls-8tl1.54
+  (deferred).
 - **The board's layers of Enclosure** (its regions, its invincible edges), in the display settings and on Practice:
-  Blueprints has neither. No issue yet.
-- **Practice's points' bar** (design 24): its switch, its direction (horizontal or vertical) and its area lane, which
-  Blueprints has no area for. No issue yet.
+  Blueprints has neither, so they are left out.
+- **Practice's points' bar** (design 24): its switch and its direction (horizontal or vertical), abscls-8tl1.52. Its
+  area lane is left out: Blueprints has no area.
 
 ### By the site's other files
 

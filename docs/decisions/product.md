@@ -8452,6 +8452,26 @@ Cloudflare Pages serves no file over 25 MiB. The job deployed nothing.
   fix, the check failed and named the WebAssembly file. Its tests (`scripts/build-sizes.test.mjs`) give it a file one
   byte over 25 MiB.
 
+### Cyanotype's gaps from Hedge School: built, put off and left out (2026-11-06)
+
+A jam game's site has everything that Hedge School has (design 33, "The gaps from Hedge School"). The comparison of
+abscls-to4f left 13 gaps with no issue. Each now has a decision:
+
+- **Built, with an issue each:** the analytics and the consent (abscls-8tl1.48), Support Us (abscls-8tl1.49),
+  Practice's games kept on the server (abscls-8tl1.50), the page for other sites, `/developers` (abscls-8tl1.51), and
+  the switch and the direction of Practice's points' bar (abscls-8tl1.52).
+- **Put off, as deferred issues:** the opening book with the Openings page and the book's table lab (abscls-8tl1.53),
+  and a second network with the earlier ones kept (abscls-8tl1.54). Each needs a part from the engines' side first:
+  a Blueprints opening book, and a second network in Blueprints' release.
+- **Left out while they are prototypes:** Puzzles, Learn, the engine lab and the edition that serves them. Cyanotype
+  takes each one when Hedge School makes it public.
+- **Left out until a Blueprints site wants to be a partner:** partner sites (`game/partners.ts`). The `/developers`
+  page describes what Cyanotype takes without them.
+- **Left out because they are Enclosure's only:** the meaf.us and Constellation tools, the board's regions and
+  invincible edges, and the area lane of Practice's points' bar. Blueprints has none of them.
+
+Cyanotype's release waits for the issues that it builds, and not for the deferred ones.
+
 ### Cyanotype's layout test loads a stored review (2026-11-06)
 
 The Tests workflow's Windows job failed on each push from b5de5d7 to 5bfb97e (runs 42048843987 and 42054680726). The
