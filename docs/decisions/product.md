@@ -8541,3 +8541,29 @@ These steps follow the label snapshot of Hedge School's stored reviews (2026-11-
 - **The fixtures' notes:** the header of `scripts/test-fixture.mjs` gives the command of `twin-turn-review.json`. It
   also says that the first edge of Red's turn 2 in `book-turn-label-review.json` (N8-Q10) is Good with no book and an
   Inaccuracy with the test book, in a turn that is a Blunder with both. No stored review was made again.
+
+### Cyanotype's review tests load the stored review, and review three turns live (2026-11-06)
+
+After the stored review came in, `cyanotype-review.spec.ts` still reviewed the whole test game with the engine, in its
+`beforeAll`. On the Linux runner that took 15.6 to 19.0 minutes in the runs from ebfcdcc to e5241e4. In run
+42140084362 (ac4f783) it passed its wait of 20 minutes, and the spec's 8 tests failed or did not run
+(abscls-8tl1.33).
+
+- **The stored review.** The spec's tests read the review only, and none needs a search. So its `beforeAll` loads
+  the stored review with the engine off, as the layout test does. The stored results are of the same game, at the
+  same depths and with the same engine, so each test checks what it checked before. Before each reload, and at the
+  end, the spec checks that the page asked the engine for no search (`expectNoSearch`).
+- **One live review, of three turns.** One test reviews the test game's first three turns with the engine on, at
+  Lite, on the CPU, in a browser of its own: the 5 positions before a move, at 32 and 512 visits. It checks that the
+  page asked the engine for searches, and that the browser's store then holds the stored review's 10 keys for these
+  positions, and no other key. It waits 10 minutes for "Review done".
+- **The times.** On this machine, with 2 threads, the live review of turns 1 to 3 took 95.6 to 108.8 s in three
+  runs, and the whole game's 13.1 minutes. The spec took 13.3 minutes before and 2.1 minutes after. On the Linux
+  runner, the whole game's review took 9.6 to 19.0 minutes, and over 20 in one run: probably about 22, from that
+  run's practice games, which took 1.37 times as long as in the run at ebfcdcc (16.2 minutes there). With the ratio
+  of this machine (0.12 to 0.14), turns 1 to 3 take about 3 minutes on a slow runner. The wait of 10 minutes is more
+  than three times this machine's time and twice the slow runner's.
+- **The time limit** of the Linux job in `.github/workflows/tests.yml`: 45 minutes (from 60). Without the review of
+  the whole game, the job took 21.8 to 31.7 minutes in the runs from ebfcdcc to ac4f783. The longest included 9.3
+  minutes to install Playwright.
+- `packages/storage/src/db.ts` exports the database's name (`NAME`), and `tests/cyanotype-review.ts` imports it.

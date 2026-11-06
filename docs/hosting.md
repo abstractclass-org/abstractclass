@@ -512,9 +512,9 @@ a push to `main` that the owner did not say to make. The owner's word to release
   - **`test`, on Linux:** `npm run check:all` at the root, then the browser tests in Chromium, every spec file in
     tests/. Among them are the layout test, and a Decline in one tab while a practice game is open in another
     (tests/practice-games.spec.ts). `check:all` holds the one list of the checks before the browser tests
-    (`scripts/check-all.mjs`). Run it before a push to get the same result. Cyanotype's engine tests take most of the
-    job's time: its review of the test game, about 15 minutes, runs twice (`cyanotype-review.spec.ts` and the layout
-    test).
+    (`scripts/check-all.mjs`). Run it before a push to get the same result. Cyanotype's engine tests take a large part
+    of the job's time: its practice games against the bot, and a review of the test game's first three turns with the
+    engine (`cyanotype-review.spec.ts`). The other tests of its review load a stored review.
   - **`test-windows`, on Windows:** the layout test in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.

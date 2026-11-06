@@ -913,10 +913,11 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `cyanotype-import.spec.ts`: the import page's choice, the Analysis board's question over a kept analysis, a
   record that the engine refuses and the notice of an out-of-date tool, and `layout.spec.ts` the page's layout. They
   run where the site has the engine's files, the Tests workflow too: without them they skip.
-  Only `cyanotype-review.spec.ts` reviews the test game with the engine. The layout test's review and Analysis board
-  load a stored review of it instead (`cyanotype-review.ts`, `storeReview`) and ask the engine for no search:
-  `tests/fixtures/cyanotype-review.json`, which `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes again
-  when Cyanotype's `engine.lock.json` takes a new release.
+  The tests of the review, and the layout test's review and Analysis board, load a stored review of the test game
+  (`cyanotype-review.ts`, `storeReview`) and ask the engine for no search: `tests/fixtures/cyanotype-review.json`,
+  which `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes again when Cyanotype's `engine.lock.json`
+  takes a new release. One test of `cyanotype-review.spec.ts` reviews the game's first three turns with the engine,
+  on the CPU, and checks that the browser's store then holds the stored review's keys for them.
 - `scripts/check-all.mjs`: its engine's release files, its type check, its unit tests, its build and its build's
   file sizes (`scripts/build-sizes.mjs`), in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the

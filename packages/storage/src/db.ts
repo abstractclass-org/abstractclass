@@ -7,7 +7,9 @@
 // Versions: 1 had the analyses. 2 adds the games. 3 adds the variations (`branches`). An upgrade only adds stores, so data is never
 // lost.
 
-const NAME = "learn-enclosure", VERSION = 3;
+/** The database's name. The browser tests import it (apps/hedgeschool/tests/cyanotype-review.ts). */
+export const NAME = "learn-enclosure";
+const VERSION = 3;
 export const STORES = { analysis: "analysis", games: "games", branches: "branches" } as const;
 let db: Promise<IDBDatabase | null> | null = null;
 

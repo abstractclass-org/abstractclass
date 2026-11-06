@@ -227,7 +227,7 @@ for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as
       await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
       const candidates = page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]");
       await expect(candidates.first()).toBeVisible({ timeout: 120_000 });
-    } else await reviewTestGame(page, {}, { stored: true });
+    } else await reviewTestGame(page);
     await expectNoSearch(page);
     const found = await problemsAtSizes(page);
     expect([await sweep(page, `Cyanotype's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
