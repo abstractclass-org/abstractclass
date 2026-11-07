@@ -3,13 +3,14 @@
 // (Cyanotype's: Ctrl, Alt or both).
 import { expect, type Page } from "@playwright/test";
 import { center, type Hex } from "../../cyanotype/src/lib/board/hex.ts";
+import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, testRecord } from "./cyanotype-review.ts";
 
 /** The board's field: the board without its hands. */
 export const field = (page: Page) => page.locator(".board .field");
 /** The Analysis board on the review's test game after move `at`, with the engine off: no candidates under a click. */
 export async function analysisAt(page: Page, at: number) {
-  await page.addInitScript(() => localStorage.setItem("cyanotype:engine:1", JSON.stringify({ on: false })));
+  await page.addInitScript(key => localStorage.setItem(key, JSON.stringify({ on: false })), ENGINE_KEY);
   await page.goto(new URL(`/analysis#record=${encodeURIComponent(testRecord())}&at=${at}`, CYANOTYPE).href);
   await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
   await expect(field(page)).toBeVisible();

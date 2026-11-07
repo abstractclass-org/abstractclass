@@ -9,6 +9,7 @@ import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import type { PracticeBot } from "@abstractclass/practice/bot.ts";
+import type { BotMode } from "@abstractclass/practice/botMessages.ts";
 import { gtpColor, takebackCount } from "@abstractclass/practice/practice.ts";
 import { withKomi } from "@abstractclass/analysis/game.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type GamePosition } from "../board/described.ts";
@@ -54,6 +55,8 @@ export class PracticeGame {
 
   get position(): SitePosition | undefined { return this.positions.at(-1); }
   get human(): Player { return this.kept.human; }
+  /** Where the bot runs (@abstractclass/practice/botForms.ts). */
+  get mode(): BotMode { return this.bot.mode; }
   /** The player to move on the latest position. */
   get mover(): Player | null { const p = this.described.at(-1); return p ? playerOf(p.mover) : null; }
   /** The moves left in the mover's turn, this one included. */

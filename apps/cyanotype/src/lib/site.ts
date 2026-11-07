@@ -17,7 +17,9 @@ export const PLACES_KEY = "cyanotype:scroll-places:1";
  *  of the hands' panel (the same on every page with the board), the id of the game in review (the game is in the
  *  browser's store of games), and the Analysis board's position on screen. */
 export const DISPLAY_KEY = "cyanotype:review-display:1";
-export const ENGINE_KEY = "cyanotype:engine:1";
+// Version 2: the GPU's setting is the visitor's. Version 1 kept Off, which the site set while its engine ran on the CPU
+// only, so that a kept Off was not the visitor's choice.
+export const ENGINE_KEY = "cyanotype:engine:2";
 export const PANEL_KEY = "cyanotype:panel:1";
 export const REVIEW_GAME_KEY = "cyanotype:review-game:2";
 export const BOARD_AT_KEY = "cyanotype:board-at:1";

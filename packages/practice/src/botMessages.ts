@@ -1,15 +1,18 @@
 // The messages between the page and the practice bot's worker (botWorker.ts, bot.ts). The worker's replies are every
 // engine worker's (channel.ts): a command's reply is the bot's GTP response.
 import type { StoredArtifact } from "@abstractclass/engine/artifacts.ts";
+import type { NetworkSizes } from "@abstractclass/engine/library.ts";
 export type { ChannelReply as BotReply } from "@abstractclass/engine/channel.ts";
 
 /** Where the bot's network runs (Hedge School's design 24): on the GPU or on CPU workers, through the threaded bot
  *  (JSPI), or in the bot's one search thread. An engine with no threaded bot runs in the last form only. */
 export type BotMode = "gpu" | "cpu" | "single";
 
-/** The threaded bot's files: its search threads (and its largest batch), and its evaluator's files for the form. */
+/** The threaded bot's files: its search threads (and its largest batch), the network's sizes where the manifest gives
+ *  them (library.ts, sizesOption), and its evaluator's files for the form. */
 export interface ThreadedFiles {
   threads: number;
+  sizes?: NetworkSizes;
   gpu?: { library: string; ortGlue: string; ortWasm: StoredArtifact; graph: StoredArtifact }; // gpu_engine.mjs, ONNX Runtime, the graph
   cpu?: { library: string; worker: string; module: WebAssembly.Module; workers: number }; // cpu_evaluator.mjs, its worker, the evaluator's module
 }

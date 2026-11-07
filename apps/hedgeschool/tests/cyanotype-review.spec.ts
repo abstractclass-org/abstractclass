@@ -8,7 +8,10 @@
 // npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
-import { CYANOTYPE, DISPLAY, MOVES, expectNoSearch, noReview, reviewTestGame } from "./cyanotype-review.ts";
+import { readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
+import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
+import { CYANOTYPE, DISPLAY, MOVES, expectNoSearch, noReview, putResults, readStored, reviewTestGame, testRecord }
+  from "./cyanotype-review.ts";
 import { notesOn, rightClick, rightDrag, spot } from "./cyanotype-notes.ts";
 
 test.describe.configure({ mode: "serial" });
@@ -156,10 +159,48 @@ test("by turn and by move, the board marks the same moves: both moves of the tur
   await page.mouse.move(2, 2);
 });
 
+/** A stored result's candidate, as far as this file reads it. */
+type StoredCandidate = { edge: { kind: string; blueprint?: number }; visits: number; blueWin: number; lead?: number; margin?: number };
+type StoredResult = { candidates: StoredCandidate[] };
+/** The stored result of the position after move `k` at the review's visits, and a copy of it in which CROWD of the
+ *  engine's other placements of one blueprint (the blueprint that they place most often) have the first choice's
+ *  visits and values, so that the board shows each of them. */
+const CROWD = 5;
+function crowdedResult(k: number): { key: string; stored: StoredResult; crowded: StoredResult } {
+  const fixture = readStored(), moves = parseRecord(testRecord()).moves.slice(0, k).join(" ");
+  const found = fixture.analyses.find(([key]) => {
+    const r = readAnalysisKey(key);
+    return !r.map && r.visits === fixture.visits && r.moves === moves;
+  });
+  if (!found) throw new Error(`the stored review has no result after move ${k} at ${fixture.visits} visits`);
+  const [key, stored] = found as [string, StoredResult];
+  const [first, ...others] = stored.candidates;
+  const byBlueprint = Map.groupBy(others.filter(c => c.edge.kind === "place"), c => c.edge.blueprint);
+  const many = [...byBlueprint.values()].sort((a, b) => b.length - a.length)[0] ?? [];
+  if (many.length < CROWD) throw new Error(`after move ${k}, the engine places one blueprint ${many.length} times at most`);
+  const chosen = many.slice(0, CROWD), most = Math.max(...stored.candidates.map(c => c.visits));
+  const raised = chosen.map(c => ({ ...c, visits: most, blueWin: first.blueWin, lead: first.lead, margin: first.margin }));
+  return { key, stored, crowded: { ...stored, candidates: [first, ...raised, ...others.filter(c => !chosen.includes(c))] } };
+}
+
 test("many candidates on one blueprint: the rank chips fit the hand's panel, with +N", async () => {
-  // With the release engine-3ac5c2fc, the review shows at most 4 candidates on one blueprint in turns 1 to 20
-  // (blueprint 2, after move 8). 4 chips fit a panel at 390 pixels, and 3 at 320 pixels, WCAG 2.1's reflow width
-  // (success criterion 1.4.10). This test checks the chips only: the layout test (layout.spec.ts) starts at 360.
+  // A position whose candidates place one blueprint more often than its panel shows. With the release engine-3ac5c2fc
+  // (Stamp Duty 0.1), the review showed 4 candidates on blueprint 2 after move 8. With engine-91ab0b7d (Stamp Duty
+  // 0.2), it shows at most 2 on one blueprint in turns 1 to 20, so the test makes such a position from the stored
+  // result after move 8 (crowdedResult), and puts the stored result back after it. 4 chips fit a panel at 390 pixels,
+  // and 3 at 320 pixels, WCAG 2.1's reflow width (success criterion 1.4.10). This test checks the chips only: the
+  // layout test (layout.spec.ts) starts at 360.
+  const { key, stored, crowded } = crowdedResult(8);
+  await putResults(page, [[key, crowded]]);
+  try {
+    await crowdedChips();
+  } finally {
+    await putResults(page, [[key, stored]]);
+  }
+});
+
+/** Each position's rank chips at 320 pixels: inside their panel, and at one position with "+N". */
+async function crowdedChips() {
   await open(320, 844, { judge: "turn" });
   /** Each chip in the hands, in its panel: whether it lies in the panel, clear of the panel's number, and the "+N". */
   const chips = () => page.evaluate(() => {
@@ -189,7 +230,7 @@ test("many candidates on one blueprint: the rank chips fit the hand's panel, wit
     }
   }
   expect(found, "a position whose candidates place one blueprint more often than its panel shows").toBeGreaterThanOrEqual(0);
-});
+}
 
 test("the review has no area map: no switch, no legend and no shading", async () => {
   for (const [w, h] of [[1376, 952], [390, 844]]) {

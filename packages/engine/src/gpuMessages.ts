@@ -1,6 +1,7 @@
 // The messages between the page and the GPU worker (gpuWorker.ts, gpuClient.ts). One worker holds several engines,
 // each a search at a time: a request names its engine. The worker's replies are every worker's (channel.ts).
 import type { StoredArtifact } from "./artifacts.ts";
+import type { NetworkSizes } from "./library.ts";
 export type { ChannelReply as GpuReply } from "./channel.ts";
 
 export interface GpuInit {
@@ -14,6 +15,7 @@ export interface GpuInit {
   model: Blob; // the network's file, checked by the page (client.ts, checked), which the engines read its shapes from
   name: string; // the network's id
   searches: number; // the engines
+  sizes?: NetworkSizes; // the network's sizes, from the manifest (library.ts, sizesOption): none for Enclosure's
 }
 
 export type GpuRequest =

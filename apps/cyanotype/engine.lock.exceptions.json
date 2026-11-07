@@ -1,7 +1,0 @@
-{
-  "gpu-module": "abscls-8tl1.29: the analysis module for the visitor's GPU (WebGPU), which Blueprints' release has not built yet (abscls-wqdl)",
-  "graph": "abscls-8tl1.29: the network as an ONNX graph, for the GPU module and the threaded bot's GPU form (abscls-wqdl)",
-  "practice-threaded-module": "abscls-8tl1.29: the threaded practice bot, whose network runs on the GPU or on CPU workers (abscls-wqdl)",
-  "practice-evaluator": "abscls-8tl1.29: the network's evaluator module for the threaded bot's CPU workers (abscls-wqdl)",
-  "cpu-evaluator-library": "abscls-8tl1.29: the pool and the worker script of the threaded bot's CPU workers (abscls-wqdl)"
-}

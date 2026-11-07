@@ -1,7 +1,17 @@
 // The engine's JavaScript library: `gpu_engine.mjs` in the engine's release (kind "gpu-library" in its manifest). It
 // drives both modules with the few WASI imports they need: the CPU module (createCpuEngine), and the GPU module with
 // its network on ONNX Runtime (createGpuEngines, createOrtEvaluator). The workers import it by URL, so that it comes
-// with the modules it drives (engine.lock.json), and the site keeps no copy of the engine's driver.
+// with the modules it drives (engine.lock.json), and the site keeps no copy of the engine's driver. Both evaluators
+// (createOrtEvaluator, and the CPU evaluator's createCpuEvaluator) take the network's sizes (`sizes`), Enclosure's by
+// default: a site gives them from its manifest (sizesOption). Enclosure's releases before Blueprints' have no such
+// option and give none in their manifests, so Hedge School passes none.
+
+/** A network's sizes, which both evaluators need: the board's side, and the policy's channels a point. Enclosure's are
+ *  19 and 48 (the library's default), Blueprints' 67 and 6. */
+export interface NetworkSizes { board: number; policyChannels: number }
+/** The evaluators' options for a manifest's networks (client.ts, Manifest): their sizes where the manifest gives them,
+ *  else none, so that the library takes its default, Enclosure's. */
+export const sizesOption = (manifest: { sizes?: NetworkSizes }) => (manifest.sizes ? { sizes: manifest.sizes } : {});
 
 /** The CPU module (enclosure-engine.wasm), instantiated. */
 export interface CpuEngine {
@@ -32,7 +42,7 @@ export interface GpuEngines {
 export interface EngineLibrary {
   createCpuEngine(module: WebAssembly.Module, options?: { log?: (line: string) => void }): Promise<CpuEngine>;
   gpuEngineSupport(): { ok: boolean; reason: string | null };
-  createOrtEvaluator(ortModule: unknown, graph: Uint8Array): Promise<unknown>;
+  createOrtEvaluator(ortModule: unknown, graph: Uint8Array, options?: { sizes?: NetworkSizes }): Promise<unknown>;
   createGpuEngines(module: WebAssembly.Module, evaluator: unknown, options: { searches: number; log?: (line: string) => void }):
     Promise<GpuEngines>;
 }
@@ -51,6 +61,7 @@ export interface PracticeLibrary {
 
 /** The CPU evaluator's pool (cpu_evaluator.mjs): workers that run the network for the threaded practice bot. */
 export interface CpuEvaluatorLibrary {
-  createCpuEvaluator(module: WebAssembly.Module, model: Uint8Array, options: { workers: number; maxRows: number; makeWorker: () => Worker }):
+  createCpuEvaluator(module: WebAssembly.Module, model: Uint8Array,
+                     options: { workers: number; maxRows: number; makeWorker: () => Worker; sizes?: NetworkSizes }):
     Promise<{ release(): void }>;
 }

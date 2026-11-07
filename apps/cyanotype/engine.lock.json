@@ -1,67 +1,124 @@
 {
   "repository": "abstractclass-org/blueprints-engine",
   "protocol": "0.7.1",
+  "sizes": { "board": 67, "policyChannels": 6 },
   "artifacts": [
     {
-      "id": "engine-3ac5c2fc",
+      "id": "engine-91ab0b7d",
       "kind": "module",
       "interface": "engine-protocol-0.7.1",
       "file": "blueprints-engine.wasm",
-      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "blueprints-engine.wasm" } },
-      "sha256": "7051135b0033b180b5b7d9db2793427f36751853ec278245340063186fc39ba4",
-      "bytes": 1518637,
-      "search": "3ac5c2fc"
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "blueprints-engine.wasm" } },
+      "sha256": "28775af7ce301e0a7d1423fc7d39b8c972f29d1db3e63ea3f219ccb071210803",
+      "bytes": 1519872,
+      "search": "91ab0b7d"
     },
     {
-      "id": "engine-3ac5c2fc-lib",
+      "id": "engine-91ab0b7d-gpu",
+      "kind": "gpu-module",
+      "interface": "engine-protocol-0.7.1",
+      "file": "blueprints-engine-gpu.wasm",
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "blueprints-engine-gpu.wasm" } },
+      "sha256": "39336fac7213458bc43ad897c53cb6a0cdd78c8418a04169285e1b51dc166e55",
+      "bytes": 1297956,
+      "search": "91ab0b7d"
+    },
+    {
+      "id": "engine-91ab0b7d-lib",
       "kind": "gpu-library",
       "file": "gpu_engine.mjs",
-      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "gpu_engine.mjs" } },
-      "sha256": "7976a5f48fe868b969a4964adcb9bf87d22be78b29595c4e2bcc8458fbd01227",
-      "bytes": 16816
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "gpu_engine.mjs" } },
+      "sha256": "3127e1554a28b0f18427dbb85f605b0fe66d35303355706319d7e073d30e81d5",
+      "bytes": 18527
     },
     {
-      "id": "engine-3ac5c2fc-practice",
+      "id": "engine-91ab0b7d-practice",
       "kind": "practice-library",
-      "dir": "engine-3ac5c2fc-lib",
+      "dir": "engine-91ab0b7d-lib",
       "file": "practice_bot.mjs",
-      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "practice_bot.mjs" } },
-      "sha256": "cfd579ae53a597139ec1bde823bc604d5a4eb08e588d7308e3808d304161e254",
-      "bytes": 7314
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "practice_bot.mjs" } },
+      "sha256": "1564fa41eabd315fe0bcdd6429144016ea0489307bf3b0356389532d881b1194",
+      "bytes": 7406
     },
     {
-      "id": "engine-3ac5c2fc-bot",
+      "id": "engine-91ab0b7d-cpu-evaluator",
+      "kind": "cpu-evaluator-library",
+      "dir": "engine-91ab0b7d-lib",
+      "file": "cpu_evaluator.mjs",
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "cpu_evaluator.mjs" } },
+      "sha256": "2c76b1869faf93e5eca13e1e4d6a137e42c9bc24ea03c76ecec442cb4f88b066",
+      "bytes": 3921
+    },
+    {
+      "id": "engine-91ab0b7d-cpu-eval-worker",
+      "kind": "cpu-evaluator-library",
+      "dir": "engine-91ab0b7d-lib",
+      "file": "cpu_eval_worker.mjs",
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "cpu_eval_worker.mjs" } },
+      "sha256": "f6c50a3eb0526f0bcee6dc6f96bb4242a66fdb37053b71e8fbbe35031a8e8d35",
+      "bytes": 2838
+    },
+    {
+      "id": "engine-91ab0b7d-bot",
       "kind": "practice-module",
       "interface": "practice-0.1.2",
       "file": "blueprints-bot.wasm",
-      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "blueprints-bot.wasm" } },
-      "sha256": "59466c97f6f4a606c2ecaf82b7974b654808309b76c5bb9696f5563d25570096",
-      "bytes": 1787252
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "blueprints-bot.wasm" } },
+      "sha256": "fa7814aaf966d91a6c464bd738babc97436d7f0693fc840a6094342854011f9c",
+      "bytes": 1787523
     },
     {
-      "id": "engine-3ac5c2fc-notices",
+      "id": "engine-91ab0b7d-bot-batched",
+      "kind": "practice-threaded-module",
+      "interface": "practice-0.1.2",
+      "file": "blueprints-bot-batched.wasm",
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "blueprints-bot-batched.wasm" } },
+      "sha256": "c70ed8e10601da46a461348b61e0e34fac5e1132882ca5a479a1d279ac55b68c",
+      "bytes": 1582065
+    },
+    {
+      "id": "engine-91ab0b7d-eval",
+      "kind": "practice-evaluator",
+      "file": "blueprints-eval.wasm",
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "blueprints-eval.wasm" } },
+      "sha256": "1a1556643626083f61358ba83c82e5e84306744aa89c945148076f9b9af77c50",
+      "bytes": 602998,
+      "maxThreads": 128
+    },
+    {
+      "id": "engine-91ab0b7d-notices",
       "kind": "notices",
       "file": "NOTICES.txt",
-      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "NOTICES.txt" } },
-      "sha256": "2967bab664d0aabe0336d59454cfccc1e8fc37ce04fee9c3274df23cc1f6adc6",
-      "bytes": 10206
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "NOTICES.txt" } },
+      "sha256": "0c7ce58d634fe4d46d07386e8c5b28c944cca1ed22acdd79f0af81c1eb8285a6",
+      "bytes": 10877
     },
     {
-      "id": "engine-3ac5c2fc-terms",
+      "id": "engine-91ab0b7d-terms",
       "kind": "terms",
       "file": "LICENSE.txt",
-      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "LICENSE.txt" } },
-      "sha256": "df8ad5eca950494aff2c1866d9e8a04397cd5eb5cffe60610194de29abe7186a",
-      "bytes": 1986
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "LICENSE.txt" } },
+      "sha256": "2090672ae3ca900b4ddc4900be37da3b040e6a1946e0a8dc5e9e7965310ffbcf",
+      "bytes": 2201
     },
     {
-      "id": "b6c96-s40806528-d2304635",
+      "id": "b6c96-s47076224-d3087660",
       "kind": "model",
-      "displayName": "Stamp Duty 0.1",
+      "displayName": "Stamp Duty 0.2",
       "file": "model-float16.bin",
-      "source": { "release": { "tag": "engine-3ac5c2fc", "asset": "b6c96-s40806528-d2304635.model-float16.bin" } },
-      "sha256": "4b084f7770ac76184c48c23d16c5bb8f5fc179523ac79de4e656743b56ecfa5a",
-      "bytes": 2228327
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "b6c96-s47076224-d3087660.model-float16.bin" } },
+      "sha256": "64c94b2260d6bb16796db8f9ea2f7a495d770a794e9788c8e2f7d69ab52f9a45",
+      "bytes": 2243879
+    },
+    {
+      "id": "b6c96-s47076224-d3087660-graph-91ab0b7d",
+      "kind": "graph",
+      "graphOf": "b6c96-s47076224-d3087660",
+      "displayName": "Stamp Duty 0.2",
+      "file": "model.onnx",
+      "source": { "release": { "tag": "engine-91ab0b7d", "asset": "b6c96-s47076224-d3087660.onnx" } },
+      "sha256": "5923d4bc496dfc269e7a3002e8d98308ccaabe05d9abaf22e18c814c8d087bd2",
+      "bytes": 2202324
     }
   ]
 }

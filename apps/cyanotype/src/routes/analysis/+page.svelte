@@ -10,11 +10,11 @@
   // School's board does ("Replace your analysis?").
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
-  // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and it
-  // runs on the CPU until Blueprints has a GPU build for the browser (abscls-wqdl, abscls-8tl1.29). The New menu starts
-  // the board again: from the standard start, the board editor, a position or moves imported, or an analysis file. The
-  // Export menu shares the board by link, or saves it as an analysis file or as an annotated record (Hedge School's
-  // design 21, item 7), with the board's set-up start.
+  // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and the
+  // GPU worker joins as it does there (Hedge School's design 15). The New menu starts the board again: from the
+  // standard start, the board editor, a position or moves imported, or an analysis file. The Export menu shares the
+  // board by link, or saves it as an analysis file or as an annotated record (Hedge School's design 21, item 7), with
+  // the board's set-up start.
   import { onDestroy, onMount, untrack } from "svelte";
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
@@ -240,7 +240,7 @@
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}
   <ReviewView view={blueprintsView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
               onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} {engine}
-              onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)}
+              onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)} gpu={session.gpuView}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
     {#snippet tools(unit)}
       <!-- New (Hedge School's design 21): the standard start, the board editor from the position on screen, a

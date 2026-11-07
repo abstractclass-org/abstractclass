@@ -1,6 +1,8 @@
 # Blueprints on the visitor's GPU, and the practice bot's threaded forms
 
-**Status:** open (the engine repository's abscls-wqdl). **Asked:** 2026-11-05.
+**Status:** done (release `engine-91ab0b7d` of `abstractclass-org/blueprints-engine`, the engine repository's
+abscls-wqdl), checked here on the CPU: Cyanotype takes it (abscls-8tl1.29, design 33, "The engine's files"). Its
+GPU paths wait for a check on the GPU. **Asked:** 2026-11-05.
 
 ## What
 

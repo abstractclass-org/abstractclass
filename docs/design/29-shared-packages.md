@@ -58,9 +58,10 @@ edit in the same commit), so their changes still apply.
    frame: the tools for a game site's pages, the hash that they send and the import's events, with each site's parts
    as parameters (item 10). An eighth, `@abstractclass/practice` (`packages/practice`), holds the practice's part that
    is not Enclosure's: the bot's settings, the kept game and the choices under each site's key, the GTP helpers, the
-   takeback, the results, the settings card, the game's frame, and the bot's page side and its worker. Design 33
-   moved it out of Hedge School's `src/lib/practice/`, whose Enclosure's part is now `hedgefund.ts`, `botForms.ts`
-   and `hedgefundWorker.ts`. The engine's two scripts for Node,
+   takeback, the results, the settings card, the game's frame, and the bot's page side, its forms and its worker.
+   Design 33 moved it out of Hedge School's `src/lib/practice/`, whose Enclosure's part is now `hedgefund.ts`. The
+   bot's forms (`botForms.ts`) and their worker (`botFormsWorker.ts`, Hedge School's `hedgefundWorker.ts`) moved last,
+   when Blueprints' release had the threaded bot (abscls-8tl1.29). The engine's two scripts for Node,
    `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
    `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
 
@@ -301,9 +302,16 @@ edit in the same commit), so their changes still apply.
   (the package's `fetch-engine.mjs`, from the site's `engine.lock.json`), ONNX Runtime Web in its form that takes its
   WebAssembly from the page (the Vite condition `onnxruntime-web-use-extern-wasm`), and the workers as modules. Each
   site's `vite.config.ts` sets the last two: Hedge School's, and Cyanotype's, which copies both since abscls-8tl1.28.
-  The engine package names `onnxruntime-web` as a peer dependency: the site's copy, whose WebAssembly the fetch script
-  stores. Cyanotype's engine runs on the CPU until Blueprints has a GPU build for the browser (abscls-wqdl,
-  abscls-8tl1.29): its lock has no GPU module yet, so the fetch script stores no ONNX Runtime for it.
+  The engine package and the practice package name `onnxruntime-web` as a peer dependency: the site's copy, whose
+  WebAssembly the fetch script stores. Both sites' locks have a GPU module, so the fetch script stores it for both.
+- **The networks' sizes come from the site's lock:** the evaluators of the GPU and of the threaded bot's CPU workers
+  need them (the engine library's `createOrtEvaluator` and `createCpuEvaluator`). The release's manifest gives them
+  (`engine.sizes`), and the site's `engine.lock.json` copies them (`sizes`), as it copies the protocol. The fetch
+  script puts them in the site's manifest, and the GPU worker and the bot's worker pass them on
+  (`packages/engine/src/library.ts`, `sizesOption`). A lock without them gets Enclosure's, the library's default:
+  Enclosure's releases give none, and their library takes no such option. So Hedge School's evaluators start as
+  before, and Cyanotype's take Blueprints' sizes (a board of 67 and 6 policy channels). The threaded bot's CPU form
+  also keeps to the evaluator's `maxThreads` where the lock gives it (Blueprints' 128).
 - **A jam game's site has everything that Hedge School has,** the GPU path too. Each gap has an issue that holds the
   decision about it: to build the feature, or to leave it out. The work on a site never leaves out a feature without
   that decision. The site's design lists the whole comparison with Hedge School (by the engine lock's kinds, by page,
@@ -379,7 +387,8 @@ edit in the same commit), so their changes still apply.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
   words), `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one
   that fills the room), `bot.ts`, `botWorker.ts` and `botMessages.ts` (the page's side of the practice bot and its
-  worker, with the site's worker module) and `practice.css` (the package's Tailwind source). `practice.css` also holds
+  worker), `botForms.ts` and `botFormsWorker.ts` (the bot's forms, and their worker module with the threaded bot's
+  evaluators), and `practice.css` (the package's Tailwind source). `practice.css` also holds
   the utility `btn-danger`, the style of a button that ends something for good. `btn-danger` reads the view's
   `--blunder-fill`. The site package must not read the view's tokens, so `btn-danger` is not in `site.css`. The
   package's check is `svelte-check`.
@@ -390,7 +399,8 @@ edit in the same commit), so their changes still apply.
 
 [decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19), "The
 review's view in packages/review" (2026-10-25), "The review's styles in packages/review and packages/site"
-(2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), and "Cyanotype's
-review takes two moves that give one position as one move" (2026-11-05).
+(2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), "Cyanotype's
+review takes two moves that give one position as one move" (2026-11-05), and "Cyanotype on Stamp Duty 0.2, with the
+GPU and the threaded bot" (2026-11-07).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06).

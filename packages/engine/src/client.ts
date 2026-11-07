@@ -3,6 +3,7 @@
 import { fetchArtifact, type StoredArtifact } from "./artifacts.ts";
 import { WorkerChannel, type Timed } from "./channel.ts";
 import type { WorkerRequest } from "./messages.ts";
+import type { NetworkSizes } from "./library.ts";
 import {
   PROTOCOL, speaksProtocol, type AnalysisQuery, type AnalysisReply, type DescribeGameReply, type LoadModelReply,
   type PositionQuery, type VersionReply,
@@ -12,7 +13,10 @@ export { EngineError, Stopped, type Timed } from "./channel.ts";
 
 /** The engine's artifacts that the site was built with (static/engine/manifest.json, fetch-engine.mjs), and the protocol
  *  that the site's code is written for when it is not PROTOCOL (its engine.lock.json's). */
-export interface Manifest { artifacts: Artifact[]; protocol?: string }
+/** `sizes`: the networks' sizes, from the release's manifest (its `engine.sizes`, which the site's engine.lock.json
+ *  copies). None: Enclosure's, the engine library's default, since Enclosure's releases give none (library.ts,
+ *  sizesOption). */
+export interface Manifest { artifacts: Artifact[]; protocol?: string; sizes?: NetworkSizes }
 export interface Artifact extends StoredArtifact {
   id: string; kind: ArtifactKind; interface: string | null; released: boolean;
   displayName?: string; // a network's name (the release's manifest): "HedgeFund 0.2 Lite"
@@ -22,7 +26,9 @@ export interface Artifact extends StoredArtifact {
   // module answers (cache.ts, warmCache).
   search?: string;
   sameSearchAs?: string[]; // the CPU module: the earlier CPU modules of its search, by SHA-256
+  maxThreads?: number; // the threaded bot's evaluator: the most search threads that its CPU workers take
 }
+
 /** The CPU module, the GPU module and its JavaScript half, a network, a network's ONNX graph, the notices (the licences
  *  of the works of others), the terms (the engine's own: LICENSE.txt), and ONNX Runtime Web's glue script and
  *  WebAssembly. The practice bot's (design 24): its module with one search thread, its module with several, the

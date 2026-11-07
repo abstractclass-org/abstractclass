@@ -24,7 +24,7 @@ const network = hasEngine(app)
   ? (JSON.parse(readFileSync(join(app, "static", "engine", "manifest.json"), "utf8")).artifacts as { kind: string; id: string }[]).find(a => a.kind === "model")?.id
   : undefined;
 
-test("on a position of more views, the best move lies outside the rule's view, and each placement reads as one", {
+test("on a position of more views, a candidate lies outside the rule's view, and each placement reads as one", {
   skip: network ? false : "no engine in static/engine (npm run engine)",
 }, async () => {
   const { call } = await nodeEngine(app, { network });
@@ -40,7 +40,9 @@ test("on a position of more views, the best move lies outside the rule's view, a
   assert.deepEqual(analysis.candidates.map(c => blueprints.moveName(c.edge)), names, "every candidate, as the engine names it");
   for (const c of analysis.candidates)
     assert.equal(c.edge.kind, /@/.test(blueprints.moveName(c.edge)) ? "place" : "edit");
-  // Each placement's cells, from Blue's hand: the best move lies outside the rule's view
+  // Each placement's cells, from Blue's hand: a candidate placement lies outside the rule's view. With Stamp Duty 0.1
+  // (engine-3ac5c2fc) it was the best move. With Stamp Duty 0.2 (engine-91ab0b7d) the first two candidates are edits,
+  // which lie in no view, and the third is a placement outside the rule's view (2@-3,2).
   const view = placeOf(analysis.ownership!);
   assert.ok(view, "the ownership names its view");
   const hands = blueprints.position(position).blueprints;
@@ -48,5 +50,5 @@ test("on a position of more views, the best move lies outside the rule's view, a
     const drawn = moveBefore(blueprints.parseMove(name), 0, hands); // as the board draws a candidate
     return drawn.type === "place" && drawn.footprint.some(cell => indexOfHex(view, cell.hex) < 0);
   };
-  assert.ok(outside(names[0]), `the best move ${names[0]} lies in the rule's view`);
+  assert.ok(names.some(outside), `no candidate placement lies outside the rule's view: ${names.join(" ")}`);
 });

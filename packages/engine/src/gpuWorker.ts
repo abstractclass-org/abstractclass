@@ -6,7 +6,7 @@ import * as ort from "onnxruntime-web/webgpu";
 import { bytesOf, fetchArtifact } from "./artifacts.ts";
 import { setUpOrt } from "./ort.ts";
 import { searchInSlices } from "./channel.ts";
-import { loadLibrary, type GpuEngine, type GpuEngines } from "./library.ts";
+import { loadLibrary, sizesOption, type GpuEngine, type GpuEngines } from "./library.ts";
 import type { GpuInit, GpuReply, GpuRequest } from "./gpuMessages.ts";
 import { isError } from "./protocol.ts";
 import { errorText } from "./errors.ts";
@@ -25,7 +25,7 @@ async function init(m: GpuInit) {
   if (!support.ok) throw new Error(`the GPU module cannot run here: ${support.reason}`);
   const [wasm, graph, model] = await Promise.all([fetchArtifact(m.ortWasm), fetchArtifact(m.graph), bytesOf(m.model)]);
   setUpOrt(ort, m.ortGlue, wasm);
-  const evaluator = await lib.createOrtEvaluator(ort, graph);
+  const evaluator = await lib.createOrtEvaluator(ort, graph, sizesOption(m));
   const made = await lib.createGpuEngines(m.module, evaluator, { searches: m.searches, log: line => console.debug(line) });
   const refused = (await made.loadModel(model, { name: m.name })).find(isError);
   if (refused) throw new Error(`the GPU module did not load the network: ${refused.error}`);

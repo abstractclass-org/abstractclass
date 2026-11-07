@@ -2,6 +2,7 @@
 // on the GPU. Each engine is a slot that the pool gives work to as it gives work to a CPU worker (pool.ts).
 import { WorkerChannel } from "./channel.ts";
 import { checked, checkVersion, compile, gpuFilesOf, libraryOf, type Manifest } from "./client.ts";
+import { sizesOption } from "./library.ts";
 import type { GpuRequest } from "./gpuMessages.ts";
 import type { AnalysisQuery, AnalysisReply, VersionReply } from "./protocol.ts";
 
@@ -28,7 +29,7 @@ export class GpuEngines {
     const [module, model] = await Promise.all([compile(files.module.url), checked(files.model)]);
     const { reply } = await this.channel.send<VersionReply>({
       type: "init", module, library: library.url, ortGlue: files.glue.url, ortWasm: files.wasm, graph: files.graph,
-      model, name: files.model.id, searches,
+      model, name: files.model.id, searches, ...sizesOption(manifest),
     }).done;
     this.version = checkVersion(reply, manifest.protocol);
     for (let k = 0; k < searches; k++) this.slots.push(new GpuSlot(this, k));

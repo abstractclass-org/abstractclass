@@ -1,6 +1,6 @@
 // Cyanotype's review (its design 33) for the browser tests, on its preview (CYANOTYPE_BASE_URL): the review's test game
 // (apps/cyanotype/src/lib/review/fixtures/stamp-duty.txt, Stamp Duty against itself) up to the end of turn TURNS, at
-// Lite (512 visits a move): with the release engine-3ac5c2fc, its first note is a Mistake at turn 15. The tests load
+// Lite (512 visits a move): with the release engine-91ab0b7d, its first note is a Mistake at turn 12. The tests load
 // the stored review of the game (STORED), the results of a real review in the browser, and search nothing. A review
 // of the whole game with the engine takes 10 to 20 minutes on the CI runners. So only one test reviews with the
 // engine, on the CPU: the game's first LIVE_TURNS turns. The Tests workflow builds Cyanotype with the engine's files
@@ -25,8 +25,9 @@ export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each o
 export const LIVE_TURNS = 3, LIVE_WAIT = 10 * 60_000;
 /** The key of the review's display settings in local storage (the site's DISPLAY_KEY). */
 export const DISPLAY = DISPLAY_KEY;
-/** The engine's settings of the review, other than `on`: Lite, and 512 visits for the position on screen. */
-export const LITE = { review: "lite", visits: 512 } as const;
+/** The engine's settings of the review, other than `on`: Lite, and 512 visits for the position on screen, on the CPU
+ *  (the GPU off, whatever the browser offers). */
+export const LITE = { review: "lite", visits: 512, gpu: "off" } as const;
 /** The site's database and its store of analyses. */
 const STORE = [NAME, STORES.analysis] as const;
 /** The stored review: the results of a real review of the test game, and of the Analysis board's SPREAD_BOARD, with
@@ -158,7 +159,13 @@ export async function storeReview(page: Page, display: object = {}, { on = false
   if (unread.length)
     throw new Error(`${STORED} has ${unread.length} results whose keys the site no longer reads: ${rerun}`);
   await keepSettings(page, { on, ...LITE }, display);
-  await page.evaluate(([[name, store], stores, entries]) => new Promise<void>((resolve, reject) => {
+  await putResults(page, analyses);
+}
+
+/** Puts the results `entries` (each key with its result) in the browser's store of analyses on the page's site, and
+ *  makes the database with the site's stores when the site has none yet. A page that opens next reads them. */
+export function putResults(page: Page, entries: readonly (readonly [string, unknown])[]) {
+  return page.evaluate(([[name, store], stores, entries]) => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open(name);
     open.onupgradeneeded = () => { for (const s of stores) open.result.createObjectStore(s); };
     open.onerror = () => reject(open.error);
@@ -168,7 +175,7 @@ export async function storeReview(page: Page, display: object = {}, { on = false
       tx.oncomplete = () => { open.result.close(); resolve(); };
       tx.onerror = tx.onabort = () => reject(tx.error);
     };
-  }), [STORE, Object.values(STORES), analyses] as const);
+  }), [STORE, Object.values(STORES), entries] as const);
 }
 
 /** What a page asks of the engine's workers since it opened: every message, and the searches among them. */

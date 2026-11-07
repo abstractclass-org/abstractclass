@@ -1,10 +1,9 @@
 // The engine's settings on Cyanotype (Hedge School's design 09), kept in this browser: their general part is the
 // shared analysis's (@abstractclass/analysis/settings.ts). Cyanotype's own part: its networks, from its
-// engine.lock.json, and its defaults. The engine runs on the CPU until Blueprints has a GPU build for the browser
-// (abscls-wqdl, abscls-8tl1.29, and design 33, "The engine's files"): until then the GPU stays off, and the settings
-// do not offer it. A worker of Stamp Duty's early build takes about 7 seconds and 331 MB to start (the engine
-// repository's abscls-qyms), so the pool starts with 2 workers and keeps them while the page is open (design 33, "The
-// gaps from Hedge School").
+// engine.lock.json, and its defaults. The GPU's setting is Hedge School's: Auto by default, which tests the GPU on its
+// first use (@abstractclass/analysis/gpu.svelte.ts, Hedge School's design 15), and On and Off. A worker of Stamp Duty's
+// early build took about 7 seconds and 331 MB to start (the engine repository's abscls-qyms), so the pool starts with 2
+// workers and keeps them while the page is open (design 33, "The gaps from Hedge School").
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 import { megabytes } from "@abstractclass/engine/client.ts";
@@ -31,11 +30,7 @@ const FIRST_WORKERS = 2;
 
 export const defaultEngine = (): EngineSettings => ({
   on: true, visits: DEEP_VISITS, seconds: 30, review: "lite", customReview: 512, network: NETWORKS[0].id,
-  workers: Math.min(FIRST_WORKERS, maxWorkers()), gpu: "off",
+  workers: Math.min(FIRST_WORKERS, maxWorkers()), gpu: "auto",
 });
 
-/** The kept settings, with the GPU off whatever was kept: Cyanotype runs the engine on the CPU until Blueprints has a
- *  GPU build for the browser (abscls-wqdl, abscls-8tl1.29). */
-const store = settingsStore(ENGINE_KEY, defaultEngine, offersNetwork);
-export const loadEngine = (): EngineSettings => ({ ...store.load(), gpu: "off" });
-export const saveEngine = store.save;
+export const { load: loadEngine, save: saveEngine } = settingsStore(ENGINE_KEY, defaultEngine, offersNetwork);

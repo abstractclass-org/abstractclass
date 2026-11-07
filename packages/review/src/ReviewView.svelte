@@ -182,8 +182,8 @@
     labelVisits?: number; // the label budget: a move is judged once both its positions have this many visits
     engine?: EngineSettings; // the engine's settings (design 09), shown in the settings panel
     onengine?: (change: Partial<EngineSettings>) => void; // a setting changed in the panel
-    // What the GPU does in this review, and its first download (design 15). None: the site offers no GPU (Cyanotype,
-    // until Blueprints has a GPU build for the browser), and the engine settings do not show it.
+    // What the GPU does in this review, and its first download (design 15). None: the page offers no GPU, and the
+    // engine settings do not show it.
     gpu?: { status: GpuStatus; downloadMB: string };
     fold?: MoveFold | null; // the move list's tree folded around the path (Openings)
     // Why the engine searches nothing while its switch is on: the page holds it (Openings: the engine waits at a book

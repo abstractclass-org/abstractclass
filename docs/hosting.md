@@ -408,10 +408,10 @@ nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only:
 - **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
   `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the
   engine repository's checkout on this machine. The build copies the files from `static/engine`.
-- **ONNX Runtime's files,** as for Hedge School (section 2): the build bundles the GPU worker, which the shared engine
-  session can start, with ONNX Runtime Web in its form that takes its WebAssembly from the page. When the lock has a GPU
-  module, the engine's step stores ONNX Runtime's two files in `static/engine`. The lock has none until Blueprints
-  has a GPU build, so `static/engine` holds no ONNX Runtime now.
+- **ONNX Runtime's files,** as for Hedge School (section 2): the build bundles the GPU worker and the practice bot's
+  worker with ONNX Runtime Web, in its form that takes its WebAssembly from the page. The lock has a GPU module, so the
+  engine's step stores ONNX Runtime's two files in `static/engine`, the WebAssembly compressed with gzip. The engine
+  runs on the visitor's GPU as Hedge School's does: the review, the Analysis board and the practice bot.
 - **The build's address** goes into the build: the userscript updates from it and opens its games there. For `main`,
   it is the live address. For another branch, it is the preview's address. The project's pages.dev address is not
   `cyanotype.pages.dev`, which belongs to another site. So, before the build, the job reads the address from the

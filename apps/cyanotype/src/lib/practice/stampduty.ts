@@ -10,7 +10,8 @@ import { ENGINE_NAME } from "../site.ts";
 /** The networks that the site ships, the first one first: the settings card offers them (engineSettings.ts). */
 export { NETWORKS, networkName, offersNetwork };
 
-/** The game in progress. The bot has one form (its one search thread), so the game names none. */
+/** The game in progress. It does not keep where the bot ran (Hedge School's `form`): only Hedge School's stored games
+ *  and analytics read it, and Cyanotype has neither yet (design 33, "The gaps from Hedge School"). */
 export type { KeptPractice } from "@abstractclass/practice/practice.ts";
 
 const choices = choicesStore("cyanotype:practice-choices:1", NETWORKS[0].id, offersNetwork);
@@ -31,7 +32,7 @@ export const botCommands = (bot: BotSettings, komi = 0) => settingsCommands(bot,
 export const endResult = (end: Pick<GamePosition, "scores" | "outcome">, komi: number): string =>
   komi ? scoreResult(withKomi(end, komi).scores) : end.outcome!.result;
 
-/** The bot's name on the page: its network's release name, "Stamp Duty 0.1, 64 visits, Low variety", as Hedge School
+/** The bot's name on the page: its network's release name, "Stamp Duty 0.2, 64 visits, Low variety", as Hedge School
  *  names HedgeFund's. A network with no release name has its id as its name: "Stamp Duty (b6c96-s22323968-d845223),
  *  64 visits, Low variety". */
 export const botName = (bot: BotSettings) => {

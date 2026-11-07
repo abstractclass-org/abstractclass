@@ -10,7 +10,7 @@
 //
 // The game is the one that Cyanotype's browser tests review (apps/hedgeschool/tests/cyanotype-review.ts, testRecord):
 // the review's test game, Stamp Duty against itself, to the end of turn 20, at Lite (512 visits a position). Its first
-// note is a Mistake at turn 15. The last test fails when the stored review stops reaching a kind of quality label that
+// note is a Mistake at turn 12. The last test fails when the stored review stops reaching a kind of quality label that
 // it has now (REACHED): Best, Excellent, Good, Inaccuracy and Mistake, by move and by turn. The stored review reaches
 // no Great and no Blunder, by move or by turn. It has no turn that plays the engine's best turn in the other order, and no
 // two moves that give one position (twins, design 33, item 9). The snapshot's header counts these too (reaches), so a

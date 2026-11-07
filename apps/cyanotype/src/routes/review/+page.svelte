@@ -1,9 +1,10 @@
 <script lang="ts">
   // The review page (Hedge School's designs 05 and 06, design 33): one game of Blueprints analysed in the browser by
-  // Stamp Duty, on the CPU (@abstractclass/analysis), in the review's view with Blueprints' parts (blueprintsView.ts).
+  // Stamp Duty (@abstractclass/analysis), in the review's view with Blueprints' parts (blueprintsView.ts).
   // The board works from the engine's rules at once (describe_game), and the record's capture marks are checked
   // against what each move did. Then the sweep, the label stage, the Greats' confirmations, and deeper searches where
-  // the player looks (Hedge School's design 05). The engine's settings apply as they change.
+  // the player looks (Hedge School's design 05). The engine's settings apply as they change: the workers, the GPU and the
+  // network. The GPU worker joins the pool once the network is loaded (Hedge School's design 15).
   //
   // Cyanotype has no list of games yet: this browser keeps each game that it reviews (its record) in the browser's
   // store of games (keptGame.ts), under the game's id, and local storage names the game in review. The analysis keeps a
@@ -134,7 +135,7 @@
   <ReviewView view={blueprintsView} {R} progress={bar.progress} {deeperPositions} {siteLink} game={game ?? undefined}
               deepVisits={engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={budget} labelVisits={LABEL_VISITS} {engine}
-              onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)}>
+              onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)} gpu={session.gpuView}>
     {#snippet tools()}
       <!-- Export (Hedge School's design 13): once the review is done, a link that shares it. -->
       <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={bar.done} why="Export once the review is done." />

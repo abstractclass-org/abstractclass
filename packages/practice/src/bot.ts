@@ -1,13 +1,13 @@
 // The page's side of the practice bot (botWorker.ts, Hedge School's design 24): the bot in its own worker, in one form,
-// sent GTP commands one at a time. The site chooses the form and gives its worker module, which calls serveBot (Hedge
-// School: src/lib/practice/botForms.ts).
+// sent GTP commands one at a time. botForms.ts chooses the form and gives the worker module (botFormsWorker.ts), which
+// calls serveBot.
 import { WorkerChannel } from "@abstractclass/engine/channel.ts";
 import { checked, compile, modelOf, type ArtifactKind, type Manifest } from "@abstractclass/engine/client.ts";
 import { gtpAnswer } from "./practice.ts";
 import type { BotMode, BotRequest, ThreadedFiles } from "./botMessages.ts";
 
 /** The practice bot in its own worker, in one form. `game` is the game's name in the bot's own commands
- *  (`enclosure`, `blueprints`), and `worker` the site's worker module. */
+ *  (`enclosure`, `blueprints`), and `worker` the bot's worker module (botForms.ts). */
 export class PracticeBot {
   private channel: WorkerChannel<BotRequest>;
   constructor(readonly game: string, readonly mode: BotMode, worker: Worker) {

@@ -38,14 +38,12 @@
   import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { sendPractice } from "#lib/practice/send.ts";
-  import { startBot } from "#lib/practice/botForms.ts";
-  import type { BotMode } from "@abstractclass/practice/botMessages.ts";
+  import { BOT_WHERE, startBot } from "@abstractclass/practice/botForms.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
   import { BOT_NAME, botName, keep, komiLine, komiSide, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
            practiceTurn, saveChoices, type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
-  const WHERE: Record<BotMode, string> = { gpu: "on the GPU", cpu: "on the CPU workers", single: "on one thread" };
   const DANGER = "hover:not-disabled:text-blunder hover:not-disabled:border-blunder"; // Abort and Resign, as Lichess's
 
   // Practice's own display settings (design 24): the points' bar between the players or beside the board, with each
@@ -138,7 +136,7 @@
     viewAt = null;
     notesAt = {};
     try {
-      const bot = await startBot(manifest, kept.bot.network, loadEngine(), kept.seed);
+      const bot = await startBot("enclosure", manifest, kept.bot.network, loadEngine(), kept.seed);
       const g = (game = new PracticeGame(kept, rules, bot));
       await g.start();
       if (g.status !== "failed") track("practice_start", { ...gameParams(g), practice_from: from });
@@ -274,7 +272,7 @@
 
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : networkName(k.bot.network));
   // The bot's settings and where it runs, then the komi from the player's side (design 24)
-  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${WHERE[g.mode]}.${g.kept.komi ? ` ${komiLine(g.kept, BOT_NAME)}` : ""}`;
+  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${BOT_WHERE[g.mode]}.${g.kept.komi ? ` ${komiLine(g.kept, BOT_NAME)}` : ""}`;
   const statusText = $derived.by(() => {
     const g = game, p = g?.position;
     if (!g || g.status === "starting" || !p) return "Starting HedgeFund…";

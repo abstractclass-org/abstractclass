@@ -7,11 +7,12 @@ record, with the import of a strategyjam.org game as a record. The owner's step 
 The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
 strategyjam.org and the import page are built: the page opens the game that a tool sends in the review or the
 Analysis board ("How a game comes in from strategyjam.org"). Their test on strategyjam.org waits for the owner
-(abscls-8tl1.12). The site fetches Blueprints' first release, `engine-3ac5c2fc` (Stamp Duty 0.1, protocol 0.7.1, with
-its practice bot), as Hedge School fetches its own ("The engine's files"). Practice against Stamp Duty (`/practice`)
-is built ("Practice against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and
-the Analysis board"), with no area map yet. A position's notation, the board editor and starts from a set-up position
-are built (abscls-8tl1.39, "Decision", item 10, and "The board editor").
+(abscls-8tl1.12). The site fetches Blueprints' release `engine-91ab0b7d` (Stamp Duty 0.2, protocol 0.7.1), as Hedge
+School fetches its own ("The engine's files"). It has the GPU module and the practice bot's three forms, so the engine
+runs on the visitor's GPU as Hedge School's does. Practice against Stamp Duty (`/practice`) is built ("Practice
+against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and the Analysis
+board"), with no area map yet. A position's notation, the board editor and starts from a set-up position are built
+(abscls-8tl1.39, "Decision", item 10, and "The board editor").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -301,9 +302,9 @@ start, which Stamp Duty's early build (`engine-0d2a5416`) played. The script
 engine gives in `src/lib/board/fixtures.json`: each position, its mover, every legal move (describe), and what each
 move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates and
 their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move. The 0.7
-builds (`engine-b64eea10`, `engine-217be61f`, `engine-70dfdc0f` with a new network, then the release
-`engine-3ac5c2fc`) give the five games the same data as the early build: only the file's header, which names the
-build, changed. The data is the rules' alone, which no network changes.
+builds (`engine-b64eea10`, `engine-217be61f`, `engine-70dfdc0f` with a new network, then the releases
+`engine-3ac5c2fc` and `engine-91ab0b7d`) give the five games the same data as the early build: only the file's header,
+which names the build, changed. The data is the rules' alone, which no network changes.
 
 - **The build and the tests read the stored file.** `fixtures.engine.test.ts` runs the engine again and compares, in
   the Tests workflow too. It is skipped when the site has no engine (`npm run engine` was not run).
@@ -325,17 +326,21 @@ Cyanotype takes the engine's files as Hedge School does (design 03): `apps/cyano
 file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs`, which both sites run) puts them in
 `static/engine/` with their manifest. The page loads them from there.
 
-1. **The release:** `engine-3ac5c2fc`, Blueprints' first release (Stamp Duty 0.1), in the public repository
+1. **The release:** `engine-91ab0b7d` (Stamp Duty 0.2), in the public repository
    [abstractclass-org/blueprints-engine](https://github.com/abstractclass-org/blueprints-engine), with its manifest.
-   Its files: the module (`blueprints-engine.wasm`, build and search `3ac5c2fc`, protocol 0.7.1, with the search of
-   the root's views of request 24), the practice bot (`blueprints-bot.wasm`, interface 0.1.2, with `practice_bot.mjs`,
-   request 25), `gpu_engine.mjs`, `NOTICES.txt`, `LICENSE.txt` and bpj5's network `b6c96-s40806528-d2304635`, whose
-   name in the release is Stamp Duty 0.1. Each entry of the lock takes its file from the release (a source of kind
-   `release`), with the SHA-256 and the size of the release's manifest. The release's `settings.cfg` is the text of
+   Its files: the module (`blueprints-engine.wasm`, build and search `91ab0b7d`, protocol 0.7.1, with the search of
+   the root's views of request 24), the GPU module (`blueprints-engine-gpu.wasm`, the same protocol and search) and the
+   network's graph (request 26), `gpu_engine.mjs`, the practice bot with one search thread (`blueprints-bot.wasm`,
+   interface 0.1.2, with `practice_bot.mjs`, request 25), the threaded practice bot (`blueprints-bot-batched.wasm`,
+   interface 0.1.2) with its CPU evaluator (`blueprints-eval.wasm`, `cpu_evaluator.mjs` and `cpu_eval_worker.mjs`),
+   `NOTICES.txt`, `LICENSE.txt` and bpj5's network `b6c96-s47076224-d3087660`, whose name in the release is Stamp
+   Duty 0.2. Each entry of the lock takes its file from the release (a source of kind `release`), with the SHA-256
+   and the size of the release's manifest. The lock also copies the manifest's networks' sizes (`sizes`: a board of 67
+   and 6 policy channels, item 4) and the evaluator's `maxThreads` (128). The release's `settings.cfg` is the text of
    the search's settings, which the module embeds: the site does not read it, so the lock does not take it. The engine
-   repository's record of the release: its
-   [docs/decisions/organization.md](https://github.com/abstractclass-org/engines/blob/main/docs/decisions/organization.md),
-   entry of 2026-11-05.
+   repository's record of the release: its `games/blueprints/docs/decisions/port.md`, entry of 2026-11-07. Blueprints'
+   first release, `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the threaded bot), keeps its files in
+   the same repository.
 2. **Protocol 0.7.** Blueprints' build speaks 0.7.1, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
    passes find no candidate gives its first pass's policy move. The lock's `protocol` names the protocol that
@@ -351,26 +356,33 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    `static/engine`, they skip with a message, and `/practice` says that the engine is not on the site. In CI, the
    browser tests of the review and of Practice fail instead of skipping, so that a build without the files cannot pass
    there.
-4. **The CPU only, until Blueprints has a GPU build for the browser** (abscls-wqdl, abscls-8tl1.29). This is not a
-   choice: Blueprints' release has no GPU module for the browser yet, and Blueprints is to get one, as Enclosure has.
-   The lock has no GPU module, so the fetch script stores no ONNX Runtime for Cyanotype. The rules' worker starts the
-   engine with `createCpuEngine` alone. The bot is the practice bot with one search thread, whose network runs in its
-   own module, and its worker has no ONNX Runtime and no WebGPU code: Blueprints' release has no threaded bot yet.
-   The lock's exceptions file (`engine.lock.exceptions.json`) names these kinds, each with abscls-8tl1.29 ("The gaps
-   from Hedge School"). The GPU setting is Off whatever the browser kept
-   (`src/lib/analysis/engineSettings.ts`), so the shared engine session never starts the GPU worker. With the GPU on
-   and no GPU module in the manifest, `GpuControl.apply` (`packages/analysis/src/gpu.svelte.ts`) would give the
-   status that the build has no GPU module.
+4. **The GPU and the threaded bot, as Hedge School's** (designs 09, 15 and 24). The engine settings offer the GPU
+   (Auto, On and Off, Auto by default, `src/lib/analysis/engineSettings.ts`). The shared engine session starts the GPU
+   worker for the review and the Analysis board, with Auto's first-use test (`packages/analysis/src/gpu.svelte.ts`).
+   Practice starts the bot in the first form that the browser runs: the threaded bot with its network on the GPU or on
+   the CPU workers, else the bot with one search thread (`packages/practice/src/botForms.ts`, "Practice against Stamp
+   Duty"). A setting kept before the GPU came does not hold: the settings' key is `cyanotype:engine:2`, since
+   version 1 kept the Off that the site set.
+   - **The networks' sizes:** both evaluators, the GPU's and the CPU workers', run a network of the size that they are
+     given, Enclosure's by default. Blueprints' network has a board of 67 and 6 policy channels, which the release's
+     manifest gives (`engine.sizes`) and the lock copies (`sizes`). The GPU worker and the bot's worker pass them on
+     (`packages/engine/src/library.ts`, `sizesOption`, design 29, "Consequences"). With Enclosure's sizes, the threaded
+     bot's first search trapped (`unreachable`) at the standard start, and at a position of more views it played
+     another move than the one-thread bot at 1 visit.
+   - **The threads on the CPU workers:** at most 128, the evaluator's `maxThreads` in the release's manifest, which
+     the bot's CPU form keeps to. The engine repository's evaluator ran 128 search threads and trapped at 256. Two
+     threads for each worker reach 128 at 64 workers.
 5. **ONNX Runtime's files come from `static/engine`, as for Hedge School** ([hosting.md](../hosting.md), section 2).
    The shared engine session starts the GPU worker through its GPU control (`packages/analysis/src/gpu.svelte.ts`,
    then `packages/engine/src/gpuClient.ts`), so the build bundles that worker (`packages/engine/src/gpuWorker.ts`)
-   with ONNX Runtime Web, ready for a GPU module. `vite.config.ts` copies Hedge School's two settings for the
+   with ONNX Runtime Web, and the practice bot's worker with it (`packages/practice/src/botFormsWorker.ts`).
+   `vite.config.ts` copies Hedge School's two settings for the
    engine package ([design 29](29-shared-packages.md), "Consequences"): ONNX Runtime Web's form that takes its
    WebAssembly from the page (the resolve condition `onnxruntime-web-use-extern-wasm`), and the workers as modules.
-   When the lock has a GPU module, the fetch script stores ONNX Runtime's two files in `static/engine`, with no change
-   to the script. Without the condition, the build copies ONNX Runtime's WebAssembly (25.5 MiB) into the site, and
-   Cloudflare Pages refuses the upload. The step `cyanotype-build-sizes` of `npm run check:all` fails on a file of the
-   build over 25 MiB.
+   The lock has a GPU module, so the fetch script stores ONNX Runtime's two files in `static/engine`, the WebAssembly
+   compressed with gzip. Without the condition, the build copies ONNX Runtime's WebAssembly (25.5 MiB) into the site,
+   and Cloudflare Pages refuses the upload. The step `cyanotype-build-sizes` of `npm run check:all` fails on a file of
+   the build over 25 MiB.
 
 ## Practice against Stamp Duty
 
@@ -379,14 +391,30 @@ the game in the review's layout. The bot is the engine repository's practice bot
 Hedge School's form where Blueprints allows: KataGo's GTP engine with its play settings, not the analysis module's
 `chooseMove`, for the reasons of request 15 (the analysis settings, and a new tree for each query).
 
-**The bot** (the engine repository's games/blueprints/README.md, "The practice bot"): `blueprints-bot.wasm`, one
-search thread on the CPU, the native GTP engine's play settings, the root's views on. The page sends
-`blueprints-start SEED`, then the visits and the variety (`kata-set-param`, with GTP's half-life of 19 moves, as for
-Enclosure), then the game's komi (`komi K`, design 24: none at 0), then `play`, `genmove` and `undo` with the site's
-strings. Its visits are Hedge School's, 1 to 8,192: since
+**The bot** (the engine repository's games/blueprints/README.md, "The practice bot"), in the first of its forms that
+the browser runs, as Hedge School's (design 24, item 14): the threaded bot (`blueprints-bot-batched.wasm`) with its
+network on the GPU (16 search threads) or on the CPU workers (`blueprints-eval.wasm`, two search threads for each
+worker, at most 128), else the bot with one search thread (`blueprints-bot.wasm`), which runs the network in its own
+module. A browser without JSPI plays the last. Each form has the native GTP engine's play settings, with the root's
+views on. The line under the bot's name says where it runs ("on the GPU", "on the CPU workers", "on one thread"). The
+page sends `blueprints-start SEED` (with its threads, for the threaded bot), then the visits and the variety
+(`kata-set-param`, with GTP's half-life of 19 moves, as for Enclosure), then the game's komi (`komi K`, design 24:
+none at 0), then `play`, `genmove` and `undo` with the site's strings. Its visits are Hedge School's, 1 to 8,192: since
 protocol 0.7.1 (abscls-csmy) its genmove gives a legal move at every visit count, also on a position of more views,
 where the earlier build failed with 2n visits or fewer for a cover of n views. A reload sets the bot's game to the
 kept moves with `blueprints-set-game`: `undo` then takes them back as any others, so a takeback works after a reload.
+
+**Below 16 visits,** Practice plays the threaded bot, as Hedge School's Practice does at every setting (design 24,
+item 14). KataGo's play settings give each search thread at least 8 of a move's new playouts, so a move below 16
+visits searches with one thread. A check on the CPU confirmed it for Blueprints (`scripts/practice-forms.mjs`, and the
+decision log's entry "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"). At 1, 4 and 8 visits, the
+threaded bot with 4 or 16 search threads evaluated as many of the network's rows as with one thread, at each of 43
+positions: it searched no more than its visits allow. With one search thread, the threaded module played the
+one-thread bot's moves in every game and at every position. With 4 or 16 threads, it played them at 1 visit, and at
+42 and 41 of the 43 positions at 4 and 8 visits. Whole games from one seed part at the first such move. The threads
+that the bot starts with make the difference, not its evaluator: at 8 visits, one search thread with the evaluator and
+the batch sized for 16 played the one-thread bot's moves at all 43 positions, and 16 threads with both sized for one
+did not. So the threads change which move the bot chooses at a few positions, not how far it searches.
 
 **The game:** the engine's rules worker gives each position, what each move did and the player's legal moves
 (describe, describe_game), as on Hedge School's Practice. The page checks each of the bot's moves against the rules'
@@ -462,11 +490,11 @@ six screenshots on a computer, a corner was always free at the plain fit's scale
 **What it shares with Hedge School** (design 29: move, do not copy): the settings card and the game's frame
 (`@abstractclass/practice`: `PracticeCard.svelte`, and `PracticeFrame.svelte` with its board's box in the form
 "fill"), the practice's part that is not Enclosure's (`practice.ts`: the visits, the variety and its help, the
-choices and the kept game under each site's key, the GTP helpers, the takeback, the results), and the bot's page side
-and its worker (`bot.ts`, `botWorker.ts`, `botMessages.ts`). Each site gives its worker module and the game's name in
-the bot's commands. Hedge School's threaded forms (the GPU, the CPU workers) are in Hedge School only
-(`botForms.ts`, `hedgefundWorker.ts`) until Blueprints' release has a threaded bot (abscls-wqdl, abscls-8tl1.29).
-Hedge School's stored games (design 25) stay in Hedge School until Cyanotype has a backend:
+choices and the kept game under each site's key, the GTP helpers, the takeback, the results), and the bot's page side,
+its forms and its worker (`bot.ts`, `botForms.ts`, `botWorker.ts`, `botFormsWorker.ts`, `botMessages.ts`). Each site
+gives the game's name in the bot's commands. The forms and their worker moved out of Hedge School when Blueprints'
+release had the threaded bot (abscls-8tl1.29). Hedge School's stored games (design 25) stay in Hedge School until
+Cyanotype has a backend:
 the server's check names Enclosure's edges, and the Pages Function bundles it alone.
 
 ## How a game comes in from strategyjam.org
@@ -526,9 +554,9 @@ the owner (abscls-8tl1.12). The tests use page states that they make, with moves
 
 Cyanotype's review (`/review`) and Analysis board (`/analysis`) are Hedge School's (designs 05, 06, 07 and 10), in
 the shared view (design 29, item 9) with Blueprints' part (`src/lib/review/blueprintsView.ts`), on the practice page's
-layout. The engine is Stamp Duty's early build, on the CPU until Blueprints has a GPU build ("The engine's files",
-item 4). Each part below was chosen from drawings of the real page, from the engine's replies. The decision log
-gives the measurements that led to each choice.
+layout. The engine is Stamp Duty's release, with the GPU worker as on Hedge School's review ("The engine's files",
+item 4). Each part below was chosen from drawings of the real page, from the engine's replies (Stamp Duty's early
+build). The decision log gives the measurements that led to each choice.
 
 1. **The layout:** the practice page's board, with its hands' panel and its kept place ("Practice against Stamp
    Duty"), and the review's side columns, as Hedge School's. The board's box takes the window's height less the
@@ -570,8 +598,8 @@ gives the measurements that led to each choice.
 10. **The root's views** (request 24): on a position whose legal placements need more than one of the engine's views,
     the engine searches each view, so a candidate can lie outside the rule's view. The board draws a candidate
     anywhere, and the site reads every candidate placement as a placement, with its anchor. A test checks it on a
-    position of two views, where the engine's best move lies outside the rule's view
-    (`src/lib/review/rootViews.engine.test.ts`).
+    position of two views, where a candidate placement of the engine lies outside the rule's view
+    (`src/lib/review/rootViews.engine.test.ts`: Stamp Duty 0.2's third candidate, after two edits).
 11. **A record's check:** the engine plays each move of a record and confirms each capture mark (item 6), on the
     review and on the Analysis board alike. The review then shows why it cannot review the game. The Analysis board
     keeps the board that this browser kept, and a notice says why it did not open the record. A record that the engine
@@ -827,14 +855,11 @@ When a gap closes, its line goes.
 ### By the engine lock's kinds
 
 The check `engine-kinds` of `npm run check:all` (`scripts/engine-kinds.mjs`) fails on a kind of Hedge School's lock
-that Cyanotype's lacks, unless `apps/cyanotype/engine.lock.exceptions.json` names its issue. Both locks have the
-module, `gpu-library`, the practice bot (`practice-module`, `practice-library`), the network (`model`), the notices
-and the terms.
-
-- **`gpu-module` and `graph`:** the analysis on the visitor's GPU, with the network as an ONNX graph (design 15).
-  abscls-8tl1.29, after Blueprints' release has them (abscls-wqdl).
-- **`practice-threaded-module`, `practice-evaluator` and `cpu-evaluator-library`:** the threaded practice bot, with
-  its network on the GPU or on CPU workers (design 24, `botForms.ts`). abscls-8tl1.29, after abscls-wqdl.
+that Cyanotype's lacks, unless `apps/cyanotype/engine.lock.exceptions.json` names its issue. No gap: since
+`engine-91ab0b7d`, Cyanotype's lock has every kind of Hedge School's, so it has no exceptions file. Both locks have
+the module, the GPU module and its library, the practice bot in its three forms (`practice-module`,
+`practice-threaded-module`, `practice-evaluator`, `practice-library` and `cpu-evaluator-library`), the network
+(`model`) and its graph, the notices and the terms.
 
 ### By page
 
@@ -903,8 +928,7 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 
 ### By setting
 
-A setting of a feature above comes with that feature: the GPU choice (On, Auto, Off), the GPU's first-use test and
-the bot's forms with the GPU module (abscls-8tl1.29), the sounds (on or off, the sound, the volume) with the move
+A setting of a feature above comes with that feature: the sounds (on or off, the sound, the volume) with the move
 sounds, the area map's settings (where it shows, its style, its thresholds, the chart's area line) with the area map
 (abscls-8tl1.17), the mark of a book move with the opening book, and a game's own network and depth with the player's
 games. The review's settings (what the labels judge, for whom, the win chance's form) are Hedge School's, and
@@ -917,7 +941,7 @@ Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). Th
   That issue is closed, and the release in Cyanotype's lock has its fix. abscls-8tl1.46.
 - **The networks** (design 09): Hedge School's settings and Practice offer two networks, HedgeFund 0.2 Lite and
   HedgeFund 0.2, and its lock keeps the earlier ones for the games that name them. Cyanotype offers the one network
-  of Blueprints' release, Stamp Duty 0.1. Put off until Blueprints' release has a second network: abscls-8tl1.54
+  of Blueprints' release, Stamp Duty 0.2. Put off until Blueprints' release has a second network: abscls-8tl1.54
   (deferred).
 - **The board's layers of Enclosure** (its regions, its invincible edges), in the display settings and on Practice:
   Blueprints has neither, so they are left out.
@@ -1049,17 +1073,20 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   replay of scenes (design 22), with each site's frames and board. The two footers (`src/lib/SiteFooter.svelte`)
   have the same markup, with each site's links and the game's credit. They are still each site's own, and move into
   the package in a later change (item 4).
-- `apps/cyanotype/engine.lock.json`: the engine's files ("The engine's files"), which `npm run engine` fetches into
-  `static/engine/` (not in Git). `engine.lock.exceptions.json` beside it: each kind of Hedge School's lock that it
-  lacks, with its issue, for the check `engine-kinds` (`scripts/engine-kinds.mjs`, "The gaps from Hedge School").
+- `apps/cyanotype/engine.lock.json`: the engine's files and the networks' sizes ("The engine's files"), which
+  `npm run engine` fetches into `static/engine/` (not in Git). It has every kind of Hedge School's lock, so it has no
+  exceptions file beside it for the check `engine-kinds` (`scripts/engine-kinds.mjs`, "The gaps from Hedge School").
 - `apps/cyanotype/src/lib/board/panel.ts`: the hands' panel: its place and size, its limits, the resize handle, and
   the fit's choice of corner (`fitWithPanel`). `view.ts`, `fitAround`: the fit that keeps the hexes out from under it.
   `Board.svelte`, its prop `hands`: the hands in the board's box ("box", the lab's), in the panel ("panel") or under
   the field ("under"), with the panel's `place` and `size`. Tests: `panel.test.ts` and `view.test.ts`.
 - `apps/cyanotype/src/routes/practice/+page.svelte`: Practice. `src/lib/practice/game.svelte.ts`: the game, with
   the rules' worker and the bot. `stampduty.ts`: the site's part of `@abstractclass/practice` (its keys, its networks,
-  the half-life, the bot's name). `botWorker.ts`: the bot's worker, in its one form. `bot.engine.test.ts`: the bot at
-  1 and 2 visits on a position of more views, in Node.
+  the half-life, the bot's name). The bot's forms and its worker are `@abstractclass/practice`'s (`botForms.ts`,
+  `botFormsWorker.ts`). `bot.engine.test.ts`, in Node: the one-thread bot at 1 and 2 visits on a position of more
+  views, and on that position the threaded bot on its CPU evaluator with the manifest's sizes, which plays the
+  one-thread bot's moves at 1, 4 and 8 visits. `scripts/practice-forms.mjs`: whole games of the threaded bot against
+  the one-thread bot's from one seed, below 16 visits ("Practice against Stamp Duty").
   `src/lib/board/described.ts`: the engine's describe and describe_game as the board draws them, for the lab and
   Practice.
 - `apps/hedgeschool/tests/cyanotype-practice.spec.ts`: whole games against the bot, with each side to start, and a
@@ -1138,7 +1165,14 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   (`cyanotype-review.ts`, `storeReview`) and ask the engine for no search: `tests/fixtures/cyanotype-review.json`,
   which `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes again when Cyanotype's `engine.lock.json`
   takes a new release. `cyanotype-live-review.spec.ts` reviews the game's first three turns with the engine, on the
-  CPU, and checks that the browser's store then holds the stored review's results for them, value for value.
+  CPU, and checks that the browser's store then holds the stored review's results for them, value for value. The
+  rank chips' test needs a position whose candidates place one blueprint more often than a panel shows. Stamp Duty
+  0.2's review of the test game has none, so the test makes one from the stored result after move 8, and puts the
+  stored result back after it.
+- `apps/hedgeschool/scripts/cyanotype-gpu-check.mjs`: the check of the GPU paths on Cyanotype's preview: the review
+  and Practice with the GPU On, or with `--auto` Auto's first-use test. It runs only as a GPU-path check
+  ([working-notes.md](../working-notes.md), "The GPU in Playwright's Chromium"). With `--cpu`, it checks the same
+  pages off the GPU, where the bot starts on the CPU workers.
 - `scripts/check-all.mjs`: its engine's release files, its type check, its unit tests, its build and its build's
   file sizes (`scripts/build-sizes.mjs`), in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
@@ -1155,5 +1189,6 @@ engine's legal moves" (2026-10-27), "The import's frame in packages/import, and 
 review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02), "Blueprints' site is
 Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05),
 "Cyanotype's engine from Blueprints' first release" (2026-11-05), "Cyanotype's build without ONNX Runtime's
-WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), and "Cyanotype's board editor and a
-Blueprints position's notation" (2026-11-07). The earlier entries name the site by its first name, Drawing Board.
+WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), "Cyanotype's board editor and a
+Blueprints position's notation" (2026-11-07), and "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"
+(2026-11-07). The earlier entries name the site by its first name, Drawing Board.

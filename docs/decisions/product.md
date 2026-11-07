@@ -8997,3 +8997,139 @@ and "The board editor").
   (`givenStartProblem` in `packages/record/src/record.ts`), which Hedge School's board calls too, with the same
   answers. `GameAnalysis.positionAt` is public, for the board editor's link on both boards. A cut position says what is
   wrong, unless a cut inside the moves played leaves a count with the same mover.
+
+### Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot (2026-11-07)
+
+Design 33 ("The engine's files", items 1 and 4, "Practice against Stamp Duty" and "The gaps from Hedge School") and
+design 29 ("Consequences") changed (abscls-8tl1.29). Cyanotype takes Blueprints' release `engine-91ab0b7d` (the
+engine repository's `games/blueprints/docs/decisions/port.md`, entry of 2026-11-07). The review, the Analysis board
+and Practice now run as Hedge School's do: on the visitor's GPU where the browser has one, and the practice bot in its
+three forms.
+
+- **The lock** (`apps/cyanotype/engine.lock.json`): 13 of the release's 15 files, each from the release with the
+  SHA-256 and the size of its manifest. They are the module and the GPU module (protocol 0.7.1, build and search
+  `91ab0b7d`), `gpu_engine.mjs`, the one-thread bot and the threaded bot (interface 0.1.2), `practice_bot.mjs`, the
+  CPU evaluator (`blueprints-eval.wasm`, `cpu_evaluator.mjs` and `cpu_eval_worker.mjs`), the notices, the terms, the
+  network and its graph. The lock leaves out `settings.cfg`, as before, and the manifest itself. `npm run engine --
+  --deploy` fetched the 13 files, each with the lock's SHA-256, and the module answered protocol 0.7.1 and the search
+  `91ab0b7d`. The fetch also stored ONNX Runtime's two files, since the lock has a GPU module. The lock now has every
+  kind of Hedge School's lock, so its exceptions file is gone, and the check `engine-kinds` passes without it.
+- **Stamp Duty 0.2,** bpj5's `b6c96-s47076224-d3087660`, is the release's one network. In bpj5's gauntlet it rated
+  1915 (1773 to 2056, 28 games), and Stamp Duty 0.1 rated 1624 (1520 to 1727, 38 games): the stronger network. Stamp
+  Duty 0.1 stays in `engine-3ac5c2fc`, and the lock no longer has it. So a Practice game kept with Stamp Duty 0.1
+  cannot go on, as design 33 says for a network that a build drops. The bot's name and the settings say "Stamp Duty
+  0.2". No page shows a strength measured on Stamp Duty 0.1: the pages name the network and the visits, and no
+  rating or level.
+- **The networks' sizes.** Both evaluators run a network of the sizes that they are given: `createOrtEvaluator` (the
+  GPU) and `createCpuEvaluator` (the threaded bot's CPU workers), Enclosure's sizes (a board of 19, 48 policy
+  channels) by default. Blueprints' network has a board of 67 and 6 policy channels. The release's manifest gives
+  them (`engine.sizes`), and the lock copies them (`sizes`), as it copies the protocol. `fetch-engine.mjs` puts them in
+  the site's manifest, and the GPU worker and the bot's worker pass them on (`packages/engine/src/library.ts`,
+  `sizesOption`). The lock also copies the evaluator's `maxThreads` (128), which the bot's CPU form keeps to.
+  - **Why from the manifest:** the evaluator module cannot report its board (its `eval_shape` gives the channels
+    only), and nothing in the library finds wrong sizes (`cpu_evaluator.mjs`). The release that makes the network
+    gives its sizes, so a new network or a new game needs no change of code.
+  - **Without them:** in Node, the threaded bot on its CPU evaluator with Enclosure's sizes trapped (`unreachable`) at
+    its first search from the standard start. At the practice bot's test position of two views, it played another
+    move than the one-thread bot at 1 visit. With the manifest's sizes, it played the one-thread bot's moves there at
+    1, 4 and 8 visits (`bot.engine.test.ts`, which fails without them).
+  - **Hedge School unchanged:** Enclosure's releases give no sizes, and their library takes no such option. Its lock
+    has none, so its manifest has none, and its workers get no `sizes` and no thread cap: the same messages as
+    before, and the library's default sizes.
+- **The GPU's setting:** Auto by default, with On and Off, as Hedge School's (design 09). The review and the Analysis
+  board pass the session's GPU to the view, which shows the choice and its status line. The settings' key is now
+  `cyanotype:engine:2`: version 1 kept the Off that the site set while it ran on the CPU only, so a kept Off was not
+  the visitor's choice.
+- **The bot's forms move into `@abstractclass/practice`** (design 29: move, do not copy): Hedge School's
+  `src/lib/practice/botForms.ts` and `hedgefundWorker.ts` became the package's `botForms.ts` and `botFormsWorker.ts`,
+  as pure renames first. `startBot` takes the game's name in the bot's commands, and the package gives the words for
+  where each form runs (`BOT_WHERE`). Cyanotype's worker module with one form is gone. The practice package names
+  `onnxruntime-web` as a peer dependency, as the engine package does, since its worker imports it.
+- **The threaded bot below 16 visits** (design 33, "Practice against Stamp Duty"). Hedge School plays its threaded bot
+  at every setting, since below 16 visits it searches with one thread ("Practice: the threaded bot's visits at each
+  setting"). Blueprints' practice module has the same cap by the engine repository's code. The check asked whether the
+  threaded bot and the one-thread bot play the same moves at 1, 4 and 8 visits from one seed, on the CPU.
+  `apps/cyanotype/scripts/practice-forms.mjs` ran in Node 26 through `scripts/machine run` at 2 threads, with Stamp
+  Duty 0.2, the seed 1, Low variety and the CPU evaluator on 2 workers with the manifest's sizes. Each form played 3
+  games against itself from the standard start, one after the other in one session. Then each form searched the 43
+  positions at every 8th move count of the one-thread bot's 3 games, each from a new tree. The threaded module with one
+  search thread is the control: it counts its rows, and the one-thread bot cannot.
+
+  | Visits | The control (1 thread) | 4 threads | 16 threads | Rows a move |
+  |---|---|---|---|---|
+  | 1 | the one-thread bot's moves: 3 games, 43 positions | the same | the same | 1.19 (0 to 3) |
+  | 4 | the same | the games part at move 3; 42 of 43 positions | the games part at move 2; 42 of 43 | 2.88 (0 to 7) |
+  | 8 | the same | the games part at move 1; 41 of 43 positions | the same as 4 threads | 7.95 (2 to 13) |
+
+  - **The same search:** at each setting, 4 and 16 threads evaluated the control's rows at each of the 43 positions,
+    so they searched no more than their visits allow. Blueprints' rows pass its visits, as the entry above says.
+  - **Not always the same move:** with 4 or 16 threads, 1 position of 43 at 4 visits and 2 at 8 visits got another
+    move than the control's. In a game, the first such move changes every position after it, and the session's
+    random numbers. So the games part early, and the second and third games of the session differ from their start.
+  - **The cause is the threads that the bot starts with,** not its evaluator. A second run at 8 visits on the same 43
+    positions varied the search threads and the evaluator's rows (with the bot's largest batch) apart. With one
+    search thread and 16 rows, the bot played the one-thread bot's moves at all 43 positions. With 16 threads and one
+    row, it differed at the same 2 positions as with 16 threads and 16 rows, the first two of the order. Each form
+    evaluated the control's rows at each position. So the threads started change which move the bot chooses at a few
+    positions, not how far it searches. The engine repository's code would tell how, most likely through the random
+    numbers that each search thread draws: the check did not look further.
+  - **The choice: Hedge School's path,** the threaded bot at every setting, with no rule for the visits below 16. The
+    reason for the one-thread bot at 1 to 8 visits was a search of several times its visits, which would play above
+    its name. The rows show no such search: the moves that differ come from searches of the same size. The one-thread
+    bot below 16 would add a second path to the forms' code for no change of the search. The question for this issue
+    (abscls-8tl1.29) asked for the same moves before it kept Hedge School's path, and the moves are not always the
+    same at 4 and 8 visits. So the issue's review holds whether this result is enough.
+- **The board's fixtures:** `npm run fixtures` wrote `src/lib/board/fixtures.json` again from the release, since its
+  test compares its header with the lock's module. Only the header changed: the five games have the same positions,
+  legal moves and effects. The home page's scene (`src/lib/home/replay.json` and `still.json`) stays: it records the
+  engine that made it (the search `3ac5c2fc` and Stamp Duty 0.1), and no check compares it with the lock.
+- **The root's views:** at the practice bot's test position of two views, Stamp Duty 0.2's first two candidates at 64
+  visits are edits, which lie in no view, and its third (`2@-3,2`) is a placement outside the rule's view. With Stamp
+  Duty 0.1 the best move lay outside the rule's view. So `rootViews.engine.test.ts` now checks that a candidate
+  placement lies outside the rule's view, which is what request 24 asked of the site.
+- **The stored review and the label snapshot.** `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` reviewed the
+  test game again on Cyanotype's preview, in headless Chromium with the layout test's launch options and the GPU off,
+  at Lite (512 visits a position), the same game and the same visits: 1,017 s for the review and 38 s for the
+  Analysis board's position, 79 results (`tests/fixtures/cyanotype-review.json`, the search `91ab0b7d` and Stamp
+  Duty 0.2). The test helpers' review settings now keep the GPU off (`LITE`), so that the review and the live review's
+  test stay on the CPU whatever the browser offers. The label snapshot (`tests/snapshots/review-labels/cyanotype.txt`)
+  was written again from it. By move, 21 of the 39 labels changed: Best 12 to 7, Excellent 14 to 12, Good 6 to 8,
+  Inaccuracy 6 to 8, Mistake 1 to 4. By turn, the display's default, 11 of the 20 changed: Excellent 7 to 5, Good 5 to
+  3, Inaccuracy 6 to 5, Mistake 1 to 6, Best 1 as before. The first note by turn is now a Mistake at turn 12, before
+  at turn 15. The review still reaches no Great and no Blunder (abscls-j7xf).
+
+  | Turn | Stamp Duty 0.1 | Stamp Duty 0.2 |
+  |---|---|---|
+  | 1, 2, 10, 20 | Excellent | Excellent |
+  | 3, 4 | Excellent | Good |
+  | 5 | Good | Inaccuracy |
+  | 6 | Best | Excellent |
+  | 7 | Excellent | Inaccuracy |
+  | 8 | Good | Good |
+  | 9, 16, 17 | Inaccuracy | Inaccuracy |
+  | 11 | Good | Best |
+  | 12, 13 | Good | Mistake |
+  | 14, 18, 19 | Inaccuracy | Mistake |
+  | 15 | Mistake | Mistake |
+
+  The test game is an early network's game against itself (`b6c96-s22323968-d845223`, Blue at 4 visits and Red at 64).
+  A stronger network finds more of its moves worse than its own choice: the labels move down more often than up (10
+  turns down, 1 up). One review of each, so search noise is part of the difference.
+- **The checks, on the CPU only:** every run of the engine used the CPU module and the threaded bot's CPU evaluator,
+  and every browser run headless Chromium with the layout test's launch options, which keep it off the GPU. `npm ci`;
+  `npm run check:all`, all 15 steps (Hedge School's 286 unit tests, the packages' tests, Cyanotype's 114 with the
+  threaded bot's engine test, both builds and their sizes); the layout test (`npm run test:layout --
+  --project=chromium`, with Hedge School's preview and Cyanotype's, and the release's files in Cyanotype's build):
+  151 passed and 5 skipped (the analytics' ask, which skips there). Its one failure was the rank chips' test, which
+  needs a position whose candidates place one blueprint more often than a panel shows: Stamp Duty 0.1's review had 4
+  candidates on blueprint 2 after move 8, and Stamp Duty 0.2's has at most 2 on one blueprint in turns 1 to 20. The
+  test now makes that position from the stored result after move 8 (five of the engine's placements of blueprint 2
+  there with the first choice's values), and puts the stored result back after it. Then `cyanotype-review.spec.ts`
+  passed, its 8 tests, the 4 that the failure had stopped among them. The whole games against the bot
+  (`cyanotype-practice.spec.ts`) passed with the GPU on Auto, which off the GPU starts the bot on the CPU workers (the
+  GPU check's `--cpu` run, below).
+- **The GPU paths wait for a check on the GPU** (docs/working-notes.md, "The GPU in Playwright's Chromium"): no run
+  here used WebGPU. `apps/hedgeschool/scripts/cyanotype-gpu-check.mjs` checks them on Cyanotype's preview: the review
+  of the test game's first 3 turns and Practice with the GPU On, and with `--auto` the GPU's first-use test. Its
+  `--cpu` form ran here, off the GPU, and passed: the engine settings said that the browser cannot use the GPU, and
+  the bot started on the CPU workers and played its first turn.

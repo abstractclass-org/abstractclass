@@ -6,9 +6,9 @@
   // with the points' bar above the board, the hands in a panel over the board (under it on a phone), and a side column
   // with the bot's line, the move list, and the step bar with the status line. The player's notes on the board, by
   // position, for the visit, as on Hedge School's Practice (design 33, "The player's notes"). One game in progress,
-  // kept in this browser and resumed. The engine and its bot run on the CPU until Blueprints has a GPU build and a
-  // threaded bot for the browser (abscls-wqdl, abscls-8tl1.29): the rules in the engine's worker, the bot in its own,
-  // with one search thread.
+  // kept in this browser and resumed. The rules run in the engine's worker, and the bot in its own, in the first of its
+  // forms that this browser runs, as on Hedge School's Practice: on the GPU or on the CPU workers through the threaded
+  // bot, else on one thread (@abstractclass/practice/botForms.ts), with the engine settings' GPU and workers.
   import { onDestroy, onMount } from "svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -20,7 +20,8 @@
   import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton } from "@abstractclass/review/moveList.ts";
   import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
-  import { PracticeBot } from "@abstractclass/practice/bot.ts";
+  import type { PracticeBot } from "@abstractclass/practice/bot.ts";
+  import { BOT_WHERE, startBot } from "@abstractclass/practice/botForms.ts";
   import { EngineWorker, loadManifest, megabytes, type Manifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import type { BoardNote } from "@abstractclass/review/notes.ts";
@@ -30,6 +31,7 @@
   import { handsAt, keptPanel, ONE_COLUMN_HEIGHT } from "#lib/board/keptPanel.svelte.ts";
   import { PLAYER_NAMES, STARS, starsOf, type Player } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
+  import { loadEngine } from "#lib/analysis/engineSettings.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
   import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
@@ -83,13 +85,13 @@
     starting = kept;
     viewAt = null;
     notesAt = {};
-    const bot = new PracticeBot("blueprints", "single", new Worker(new URL("../../lib/practice/botWorker.ts", import.meta.url), { type: "module" }));
+    let bot: PracticeBot | null = null;
     try {
-      await bot.start(manifest, kept.bot.network, kept.seed);
+      bot = await startBot("blueprints", manifest, kept.bot.network, loadEngine(), kept.seed);
       const g = (game = new PracticeGame(kept, rules, bot));
       await g.start();
     } catch (e) {
-      bot.terminate();
+      bot?.terminate();
       failed = errorText(e);
     }
   }
@@ -270,7 +272,7 @@
     {/snippet}
     {#snippet side()}
       <h1 class="text-lg font-bold">Practice</h1>
-      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, on one thread.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
+      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, {BOT_WHERE[g.mode]}.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
       <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
         {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
       </p>

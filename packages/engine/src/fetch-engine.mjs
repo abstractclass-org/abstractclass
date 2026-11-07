@@ -11,7 +11,11 @@
 // repository's checkout beside this repository's, for a build that is on this machine only), or
 // { "release": { "tag": TAG, "asset": NAME } } (a GitHub Release of the lock's repository). --deploy refuses the first
 // two: what ships must come from a release (docs/design/03-stack.md). The lock's `protocol` is the protocol that the
-// site's code is written for, when it is not the engine package's own PROTOCOL (protocol.ts).
+// site's code is written for, when it is not the engine package's own PROTOCOL (protocol.ts). The lock's `sizes` are
+// the networks' sizes, from the release's manifest (`engine.sizes`): the evaluators of the GPU and of the threaded
+// bot's CPU workers take them (library.ts, sizesOption). A lock without them has Enclosure's, the library's default.
+// The practice evaluator's `maxThreads`, from the release's manifest too, caps the threaded bot's search threads on
+// its CPU workers.
 //
 // Cloudflare Pages serves no file over 25 MiB (docs/hosting.md). A file over 24 MiB is stored compressed with gzip,
 // and the compressed bytes are split into parts of 24 MiB or less when they are larger still: `model.onnx.gz.0`,
@@ -81,7 +85,8 @@ function store(id, file, bytes, compress = false) {
 
 // The folder holds only what this run writes: it is generated (and ignored by Git), and the downloads stay in the cache.
 rmSync(outDir, { recursive: true, force: true });
-const manifest = { ...(lock.protocol ? { protocol: lock.protocol } : {}), artifacts: [] };
+const manifest = { ...(lock.protocol ? { protocol: lock.protocol } : {}), ...(lock.sizes ? { sizes: lock.sizes } : {}),
+                   artifacts: [] };
 for (const artifact of lock.artifacts) {
   if (deploy && !artifact.source.release)
     throw new Error(`${artifact.id}: a deploy needs a released build, not a file on this machine`);
@@ -109,6 +114,7 @@ for (const artifact of lock.artifacts) {
     ...(artifact.graphOf ? { graphOf: artifact.graphOf } : {}),
     ...(artifact.search ? { search: artifact.search } : {}),
     ...(artifact.sameSearchAs ? { sameSearchAs: artifact.sameSearchAs } : {}),
+    ...(artifact.maxThreads ? { maxThreads: artifact.maxThreads } : {}),
   });
 }
 

@@ -1,7 +1,7 @@
 // The practice bot in a Web Worker (Hedge School's design 24): the engine's practice bot (practice_bot.mjs), one GTP
-// command at a time, in order. A site's worker module calls serveBot, with an evaluator for each form of the threaded
-// bot that its engine has (Hedge School's: the network on the GPU, or on CPU workers). The bot with one search thread
-// needs none, and no JSPI: it runs the network in its own module, on the CPU.
+// command at a time, in order. The bot's worker module (botFormsWorker.ts) calls serveBot, with an evaluator for each
+// form of the threaded bot: the network on the GPU, or on CPU workers. The bot with one search thread needs none, and
+// no JSPI: it runs the network in its own module, on the CPU.
 import { bytesOf } from "@abstractclass/engine/artifacts.ts";
 import type { PracticeLibrary } from "@abstractclass/engine/library.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
