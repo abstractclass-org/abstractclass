@@ -9812,3 +9812,90 @@ an unfinished game searched the end.
 - **The browser tests:** `storedResults` (`cyanotype-review.ts`) takes the position after the last move too, as the
   live review of turns 1 to 3 now searches it. The label snapshot's test checks a stored result for each position that
   the review searches (`passCount`).
+
+### The candidates table's column widths, measured on Cyanotype (2026-11-08)
+
+How well do the widths of the candidates table's columns fit their content? The table (`engineTable` in
+`packages/review/src/ReviewView.svelte`) is fixed: its colgroup gives Rank (#) 1.75rem, Win chance (its header "Blue
+wins" or "Red wins") 4.5rem, Lead 4.75rem and Visits 3rem, and the Move column takes the rest. Each cell is cut at
+its end. Both sites share the colgroup. The measurement is `apps/hedgeschool/scripts/measure/table-widths.mjs`
+(abscls-8tl1.68).
+
+- **What ran:** headless Chromium on Windows, with `playwright.config.ts`'s launch options (off the GPU), on a
+  Cyanotype build of dev at 7760ccb (engine-91ab0b7d, `VITE_EDITION=early`). The page held the stored review of the
+  test game (Stamp Duty against itself, to turn 20) and searched nothing. The script read the table at each of the 39
+  positions, by move, at 360, 390, 768, 1,024, 1,280, 1,376 and 1,920 pixels, in each Move notation (Glyphs and
+  Text): 666 rows a width. Where the window has an Analysis tab (below 1,260 pixels), the script opened it.
+- **What did not run:** Hedge School's table, since this measurement had no preview of Hedge School. Fonts other
+  than Windows' Segoe UI. The table's font is `system-ui`, so macOS, iOS and Android draw it in other fonts, whose
+  widths this measurement did not see.
+- **The widest possible values,** measured in the first row's semibold: a lead from 1,000 on is written short ("Blue
+  +1.2k"), so a lead never has more than three digits before its letter. The position on screen takes up to 16,384
+  visits, so Visits can have five digits. Win chance runs to "100.0%".
+
+The fixed columns, the same at every width and in both notations (pixels; "Room" is the cell less its padding of
+4 pixels a side; "Fits all" is the widest of the header, the values seen and the values possible, with the padding):
+
+| Column | Column | Room | Header | Widest value seen | Cut | Left over: median / least | Widest possible | Fits all |
+|---|---:|---:|---|---|---:|---|---|---:|
+| Rank (#) | 28 | 20 | 8.3 (#) | 17.4 (10) | 0 of 666 | 5.5 / 2.6 | – | 25.4 |
+| Win chance | 72 | 64 | 60 (Blue wins) | 39.1 (49.4%) | 0 of 666 | 26.9 / 24.9 | 44.1 (100.0%) | 68 |
+| Lead | 76 | 68 | 30 (Lead) | 62.7 (Blue +104) | 0 of 666 | 16 / 5.3 | 65.4 (Blue +1.2k) | 73.4 |
+| Visits | 48 | 40 | 33.4 (Visits) | 23.7 (394) | 0 of 666 | 32.5 / 16.3 | 37.1 (16384) | 45.1 |
+
+The Move column (pixels; "Smaller" is a name drawn below its full size and not cut, down to the least size of 65%):
+
+| Notation | Width | Move | Room | Full size | Smaller | Least size | Median smaller size | Cut | Widest at full size |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Glyphs | 360 | 40 | 32 | 0 | 20 | 65% | 65% | 646 | 139.9 |
+| Glyphs | 390 | 70 | 62 | 273 | 107 | 65% | 65% | 286 | 139.9 |
+| Glyphs | 768 | 448 | 440 | 666 | 0 | 100% | – | 0 | 139.4 |
+| Glyphs | 1024 | 153 | 145 | 666 | 0 | 100% | – | 0 | 139.4 |
+| Glyphs | 1280 | 101 | 93 | 380 | 286 | 66% | 71% | 0 | 139.8 |
+| Glyphs | 1376 | 101 | 93 | 380 | 286 | 66% | 71% | 0 | 139.8 |
+| Glyphs | 1920 | 187 | 179 | 666 | 0 | 100% | – | 0 | 139.4 |
+| Text | 360 | 40 | 32 | 0 | 20 | 65% | 65% | 646 | 109.2 |
+| Text | 390 | 70 | 62 | 273 | 206 | 65% | 67% | 187 | 109.2 |
+| Text | 1280 | 101 | 93 | 480 | 186 | 85% | 92% | 0 | 109.2 |
+| Text | 1376 | 101 | 93 | 480 | 186 | 85% | 92% | 0 | 109.2 |
+
+At 768, 1,024 and 1,920 pixels every name in Text is at full size too.
+
+- **Rank (#): about right.** The widest rank seen, "10" in its badge, leaves 2.6 pixels. The table's rank has no
+  "+N": that chip is on the hands (glossary, "Rank chip"). A narrower column would leave less than a pixel.
+- **Win chance: too wide for its values.** No value is cut, but the values leave 24.9 pixels at least: the header
+  "Blue wins" (60 pixels) sets the width, not the values (44.1 pixels at most).
+- **Lead: about right.** No lead is cut. The widest lead seen, "Blue +104", leaves 5.3 pixels, and the widest
+  possible, "Blue +1.2k", leaves 2.6. A lead of four digits never shows, since the table writes it short.
+- **Visits: about right, with a little room.** No value is cut. The stored review has at most 394 visits a
+  candidate, but the column must hold five digits, which leave 2.9 pixels.
+- **Move: too narrow on phones and in a wide window's side column.** At 360 pixels 646 names of 666 are cut, and at
+  390 pixels 286 in Glyphs. At 1,280 and 1,376 pixels 286 names in Glyphs are smaller than full size, down to 66%.
+- **The margins are thin for other fonts.** Rank, Lead and Visits fit their widest value by 2.6 to 2.9 pixels in
+  Segoe UI. A font about 4% wider would cut "Blue +1.2k". No other font was measured.
+
+**The proposal (not decided):** only the Win chance column changes. It becomes 3.5rem (56 pixels), and its header
+becomes "Win %" (41 pixels), so that "100.0%" fits with 3.9 pixels left. The other columns keep their widths, since
+each fits its widest possible value with less than 3 pixels to spare. "Blue %" (43.3 pixels) also fits, and keeps the
+mover's name in the header. A title on the header, "Blue's win chance", would say whose chance it is. The script's
+`--lab` draws the proposal into the page, as a style sheet and the header's text, not in the site's code. With it:
+
+| Notation | Width | Move | Room | Full size | Smaller | Least size | Median smaller size | Cut |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Glyphs | 360 | 56 | 48 | 20 | 351 | 65% | 68% | 295 |
+| Glyphs | 390 | 86 | 78 | 373 | 7 | 65% | 65% | 286 |
+| Glyphs | 1376 | 117 | 109 | 380 | 286 | 78% | 83% | 0 |
+| Text | 360 | 56 | 48 | 20 | 351 | 65% | 71% | 295 |
+| Text | 390 | 86 | 78 | 380 | 280 | 71% | 77% | 6 |
+| Text | 1376 | 117 | 109 | 618 | 48 | 99% | 99% | 0 |
+
+The Move column gains 16 pixels at every width. At 360 pixels the names cut fall from 646 to 295, and at 390 pixels
+in Text from 187 to 6. At 1,376 pixels the smaller names in Glyphs go from 66% to 78% at least, and in Text the
+smaller names fall from 186 to 48. In Glyphs at 390 pixels the edits stay cut: an edit at 65% needs about 91
+pixels. 1,280 pixels reads as 1,376 does. No Lead, Win chance or Visits value is cut.
+
+**On Hedge School,** the table shares the colgroup and the header, so its Edge column gains the same 16 pixels and
+its header reads "Win %" too. Its leads are in points and much shorter than Blueprints', so the Lead column fits them.
+Its names are 5 to 7 characters in a slot of 4.1em, drawn down to 70% of their size. Not measured: by arithmetic, at
+360 pixels the cell's room grows from 32 to 48 pixels, which holds a name at 75% of its size (43.4 pixels), where now
+it is cut.
