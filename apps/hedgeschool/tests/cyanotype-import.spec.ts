@@ -8,7 +8,7 @@
 // Run: npx playwright test tests/cyanotype-import.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type Page } from "@playwright/test";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
-import { BOARD_AT_KEY, REVIEW_GAME_KEY } from "../../cyanotype/src/lib/site.ts";
+import { BOARD_AT_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, MOVES, REFUSED, noReview, testRecord, toolLink } from "./cyanotype-review.ts";
 
 const PLAYERS = "Stamp Duty, 4 visits against Stamp Duty, 64 visits";
@@ -43,7 +43,7 @@ test.describe("with the engine's files", () => {
     await page.getByRole("button", { name: "Review the game" }).click();
     // The review checks the record and keeps it in the player's games, then opens it at its own address
     await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith(`#game=review-${MOVES}-`), { timeout: 120_000 });
-    await expect.poll(() => local(page, REVIEW_GAME_KEY), { timeout: 60_000 }).toMatch(new RegExp(`^review-${MOVES}-`));
+    await expect.poll(() => local(page, LAST_REVIEW_KEY), { timeout: 60_000 }).toMatch(new RegExp(`^review-${MOVES}-`));
     await expect(page.getByRole("alert")).toHaveCount(0);
     // The game is in the Review tab's list of the player's games, as on Hedge School
     await page.goto(new URL("/review", CYANOTYPE).href);
@@ -97,7 +97,7 @@ test.describe("with the engine's files", () => {
                                                      + "but the move captures no opponent cells.", { timeout: 120_000 });
     for (const name of ["Review the game", "Analyze on the board"]) await expect(page.getByRole("button", { name })).toHaveCount(0);
     await expect(page).toHaveURL(url => url.pathname === "/import");
-    expect(await local(page, REVIEW_GAME_KEY)).toBeNull();
+    expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
     expect(await local(page, BOARD_AT_KEY)).toBeNull();
   });
 

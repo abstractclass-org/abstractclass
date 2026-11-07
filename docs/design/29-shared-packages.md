@@ -63,12 +63,12 @@ edit in the same commit), so their changes still apply.
    Design 33 moved it out of Hedge School's `src/lib/practice/`, whose Enclosure's part is now `hedgefund.ts`. The
    bot's forms (`botForms.ts`) and their worker (`botFormsWorker.ts`, Hedge School's `hedgefundWorker.ts`) moved last,
    when Blueprints' release had the threaded bot (abscls-8tl1.29). The player's games, kept in the browser (Hedge
-   School's designs 11 and 22), moved out of Hedge School with Cyanotype's list of games (design 33): the store and
+   School's designs 11 and 22), moved out of Hedge School with Cyanotype's list of games (design 33). The store and
    its review marks (`games.ts`), the lock that lets one tab review a game (`reviewLock.ts`) and a game's own network
-   and depth (`settings.ts`, `ownSettingsOf`) into the analysis package, the Review tab's list with its Delete
-   (`GameList.svelte`) into the review's, and the question before an action that the player cannot undo
-   (`ConfirmDialog.svelte`), one of the site's general controls, into the site's. The engine's two scripts for Node,
-   `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
+   and depth (`settings.ts`, `ownSettingsOf`) went into the analysis package. The Review tab's list with its Delete
+   (`GameList.svelte`) went into the review's. The question before an action that the player cannot undo
+   (`ConfirmDialog.svelte`), one of the site's general controls, went into the site's. The engine's two scripts for
+   Node, `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
    `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package

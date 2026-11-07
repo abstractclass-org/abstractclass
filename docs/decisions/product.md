@@ -9423,9 +9423,10 @@ abscls-8tl1.38. Cyanotype's review kept one game: each game that came to it went
 review opened the last one. Hedge School has a Review tab with the player's games (designs 11 and 22). Now Cyanotype
 has it too, from the code that both sites share (design 33, "The player's games", and design 29).
 
-- **What moved into the packages, and how** (design 29, items 7 and 8): first pure renames, Hedge School's
-  `ui/ConfirmDialog.svelte` into `packages/site`, with the site's general controls, and `game/reviewLock.ts` into
-  `packages/analysis`, then the edits.
+- **What moved into the packages, and how** (design 29, items 7 and 8): pure renames came first. Hedge School's
+  `ui/ConfirmDialog.svelte` went into `packages/review`, and the review of the branch moved it on into
+  `packages/site`, with the site's general controls. `game/reviewLock.ts` went into `packages/analysis`. The edits
+  came after.
   The store of games and its review marks are in `packages/analysis/src/games.ts`, with each site's record's reader, a
   game's id and the key of its last review as parameters (`gameStore`). A game's own network and depth is in
   `packages/analysis/src/settings.ts`, with each site's networks as a parameter (`ownSettingsOf`). The Review tab's

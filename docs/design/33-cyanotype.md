@@ -850,9 +850,9 @@ settings of its design 09 and the marks of its design 13), in the code that both
    link and "Continue your last review" open it. The address names no game, so the Review link in the header opens
    the tab, as Hedge School's does.
 2. **A record comes in four ways:** pasted in the Review tab, the import page's "Review the game", a link's
-   `/review#record=…`, and a shared review's "Review it". Each goes through one import (`src/lib/game/import.ts`). A
-   game from a set-up start is refused first: the review takes games from the standard start only, and says to open
-   it on the Analysis board. Then the engine's rules play the record and check its capture marks, in a rules worker
+   `/review#record=…`, and a shared review's "Review it". Each goes through one import (`src/lib/game/import.ts`). The
+   import first refuses a game from a set-up start: the review takes games from the standard start only, and says to
+   open it on the Analysis board. Then the engine's rules play the record and check its capture marks, in a rules worker
    of the page's own (`checkRecordMarks`, `src/lib/review/recordCheck.ts`). The list keeps no game that the review
    refuses: the page says why, in the import page's words ("Cyanotype cannot review this game: …"). The list keeps
    the record with a capture mark on every move that captures, as Hedge School's adds its cut marks. The review
@@ -862,8 +862,10 @@ settings of its design 09 and the marks of its design 13), in the code that both
    still refuses a komi, until abscls-8tl1.50.
 4. **A game's id** is the id that the review used before the list: FNV-1a of the komi and the moves
    (`src/lib/game/store.ts`, `gameId`). So the games that the review kept before the list, each with its record and
-   the time that it came, show in the list, and open with their variations. Hedge School's id is a SHA-256, which
-   also covers a set-up start: Cyanotype's review takes no set-up start.
+   the time that it came, show in the list, and open with their variations. The review kept them before the engine's
+   rules checked them, so the list can hold one that the review refuses: its review then says why, and its Delete
+   removes it. Hedge School's id is a SHA-256, which also covers a set-up start: Cyanotype's review takes no set-up
+   start.
 5. **A game's Delete** asks first, in Hedge School's dialog: "Delete this game?", with Cancel focused, and a Delete
    that waits for the double-click time. It deletes the game, its variations and the pointer of "Continue your last
    review" to it. The engine's results stay: they belong to positions.
@@ -1099,14 +1101,14 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `card.ts` (the link preview picture) and `logo.test.ts`. `scripts/brand.mjs` draws the files from them:
   `src/lib/assets/favicon.svg`, `static/favicon.ico`, `static/apple-touch-icon.png` and `static/brand/card.png`.
 - `apps/cyanotype/src/routes/+page.svelte`: the home page, as Hedge School's (design 22): what the site is, the calls to
-  Practice and the review, the ways in for a game of one's own (a game from strategyjam.org through the tools, and the
-  Analysis board), and a board that plays a scene from a reviewed game (`src/lib/home/HomeReplay.svelte`, on the
-  shared replay `Replay.svelte` of `packages/site`). The scene is in `src/lib/home/replay.json`, and its first frame
-  in `still.json`, which `scripts/home-replay.mjs` writes from the stored review of the review's test game (Hedge
-  School's `tests/fixtures/cyanotype-review.json`, a game of Stamp Duty against itself): the 9 turns before the game's
-  latest move with a bad label, and that move. That review gives one scene. More scenes need more reviewed games, and
-  the script takes one stored review. The board is a picture there (`Board.svelte`, its prop `still`): no pan, no
-  zoom and no zoom buttons, and the page scrolls over it.
+  Practice and the review, the ways in for a game of one's own (the Review tab for a record, a game from strategyjam.org
+  through the tools, the Analysis board and its board editor), and a board that plays a scene from a reviewed game
+  (`src/lib/home/HomeReplay.svelte`, on the shared replay `Replay.svelte` of `packages/site`). The scene is in
+  `src/lib/home/replay.json`, and its first frame in `still.json`, which `scripts/home-replay.mjs` writes from the
+  stored review of the review's test game (Hedge School's `tests/fixtures/cyanotype-review.json`, a game of Stamp Duty
+  against itself): the 9 turns before the game's latest move with a bad label, and that move. That review gives one
+  scene. More scenes need more reviewed games, and the script takes one stored review. The board is a picture there
+  (`Board.svelte`, its prop `still`): no pan, no zoom and no zoom buttons, and the page scrolls over it.
 - `apps/cyanotype/src/routes/`: the pages. The About page has the section on the early access (`#early-access`,
   "Decision", item 11). The Notation page describes the moves, the marks and the record of
   items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes

@@ -12,7 +12,7 @@ import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { reviewLink } from "../../cyanotype/src/lib/game/share.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { STANDARD_START } from "../../cyanotype/src/lib/game/position.ts";
-import { ENGINE_KEY, REVIEW_GAME_KEY } from "../../cyanotype/src/lib/site.ts";
+import { ENGINE_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, REFUSED, noReview, readStored, storeReview, testRecord } from "./cyanotype-review.ts";
 
 /** The test game up to the end of turn `turns`, with the players `blue` and `red`. */
@@ -89,14 +89,14 @@ test.describe("with the engine's files", () => {
     const last = page.getByRole("link", { name: /^Continue your last review/ });
     await expect(last).toContainText(`${GAMES[2].title}, ${GAMES[2].moves} moves`);
     // The record was kept with its capture marks, as the engine's rules give them
-    const id = (await local(page, REVIEW_GAME_KEY))!;
+    const id = (await local(page, LAST_REVIEW_KEY))!;
     expect(id).toMatch(/^review-23-/);
     expect(parseRecord(String((await keptGame(page, id)).record)).marked.filter(Boolean).length).toBeGreaterThan(0);
     // A game's link opens its review
     await rows(page).getByRole("link", { name: GAMES[0].title }).click();
     await page.waitForURL(url => url.hash.startsWith("#game=review-7-"));
     await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
-    expect(await local(page, REVIEW_GAME_KEY)).toMatch(/^review-7-/);
+    expect(await local(page, LAST_REVIEW_KEY)).toMatch(/^review-7-/);
   });
 
   test("the list keeps no game that the review refuses, and the page says why", async ({ page }) => {
@@ -124,7 +124,7 @@ test.describe("with the engine's files", () => {
     await expect.poll(() => new URL(page.url()).hash).toBe("");
     await expect(page.getByRole("link", { name: "Review tab" })).toBeVisible();
     expect(await keptIds(page)).toEqual([]);
-    expect(await local(page, REVIEW_GAME_KEY)).toBeNull();
+    expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
     await openTab(page);
     await expect(page.getByRole("heading", { name: "Your games" })).toHaveCount(0);
   });
@@ -150,7 +150,7 @@ test.describe("with the engine's files", () => {
     await expect(rows(page).getByRole("link")).toHaveText([GAMES[0].title]);
     await expect(page.getByText("Continue your last review")).toHaveCount(0);
     expect(await keptIds(page)).toEqual([expect.stringMatching(/^review-7-/)]);
-    expect(await local(page, REVIEW_GAME_KEY)).toBeNull();
+    expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
     await page.reload();
     await expect(rows(page).getByRole("link")).toHaveText([GAMES[0].title]);
   });

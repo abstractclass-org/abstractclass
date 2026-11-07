@@ -6,7 +6,7 @@
 import { gameStore } from "@abstractclass/analysis/games.ts";
 import { komiPrefix } from "@abstractclass/record/record.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
-import { REVIEW_GAME_KEY } from "../site.ts";
+import { LAST_REVIEW_KEY } from "../site.ts";
 // The marks of a game's review and its own settings: the shared store's.
 export { markReviewed, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type ReviewMark,
          type StoredGame } from "@abstractclass/analysis/games.ts";
@@ -27,5 +27,5 @@ export function gameId(moves: string[], komi = 0): string {
  *  School's design 11). `lastReview` and `rememberReview` read and keep the id of the last game reviewed in this
  *  browser. */
 export const { saveGame, loadGame, listGames, deleteGame, lastReview, rememberReview } = gameStore<GameRecord>({
-  parse: parseRecord, lastReviewKey: REVIEW_GAME_KEY, id: record => gameId(record.moves, record.komi),
+  parse: parseRecord, lastReviewKey: LAST_REVIEW_KEY, id: record => gameId(record.moves, record.komi),
 });
