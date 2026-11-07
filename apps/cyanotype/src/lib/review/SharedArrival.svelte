@@ -65,7 +65,8 @@
       ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's variations` : ""}.</p>
     <p>The link carries the game, not the engine's work. <strong>Your browser reviews the game again</strong>, as it does
       a game that you import. The review shows each result when the engine finds it. With the sender's engine, network
-      and depth, your review is the same as the sender's: the same quality labels, lines and accuracy.</p>
+      and depth, your review is the same as the sender's: the same quality labels, lines and accuracy. A GPU computes
+      the network a little differently, so on a GPU a close call can rarely give another result.</p>
     <p>The sender's review: {here.network ? networkName(here.network) : "a network that this site no longer has"}, at
       {reviewDepthText(shared.visits)}. Your review uses your engine settings: {networkName(here.own.network)}, at
       {reviewDepthText(here.own.visits)}.

@@ -182,9 +182,10 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       notation's text, the stored results' keys name it, and only the engine's queries take the engine's form.
     - **So the engine searches a start from its notation with another view** than the same position reached by its
       moves: the network sees the board round the middle of the cells, not round the last placements. The rules are
-      the same, and the candidates are not. On the CPU (`engine-3ac5c2fc`, the network `b6c96-s40806528-d2304635`, 400
-      visits), on 9 positions of Stamp Duty's games (the lab's four games with moves, and the review's test game after
-      9, 20, 40, 77 and 100 moves), the best move was the same in 2. The two top fives shared 0 to 3 moves, and the
+      the same, and the candidates are not. The measurement is of `engine-3ac5c2fc` (Stamp Duty 0.1, the network
+      `b6c96-s40806528-d2304635`), on the CPU at 400 visits, and was not made again at `engine-91ab0b7d`. On 9
+      positions of Stamp Duty's games (the lab's four games with moves, and the review's test game after 9, 20, 40, 77
+      and 100 moves), the best move was the same in 2. The two top fives shared 0 to 3 moves, and the
       root's Blue win differed by 0 to 8.3 points (the median 0.9). The same position searched twice from its moves
       gave the same best move and top five each time. The stored results keep the two apart: their keys name the start's
       notation, or the moves from the standard start. A line played from a set-up start gets its placements' boxes
@@ -194,7 +195,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       refuses a blueprint that is not in its frame. Blueprints' build has no check that a game can reach a position
       (protocol 0.5's check is Enclosure's alone), so the board editor says so, and Analyze needs only the engine's
       reading. Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
-      back from its notation as the same position, with the same legal moves (`position.engine.test.ts`).
+      back from its notation as the same position, with the same legal moves (`position.engine.test.ts`, at
+      `engine-3ac5c2fc` and at `engine-91ab0b7d`).
     - **A position cut or changed:** the reader refuses a position with a field missing or a field it cannot read, and
       a mover field that the moves played do not give. A cut inside the moves played can still give another position
       that reads, when the shorter count gives the same mover (`r1 0/0 22` cut to `r1 0/0 2`), as a cut FEN can. The
@@ -582,15 +584,17 @@ build). The decision log gives the measurements that led to each choice.
      move in glyphs has spaces of its own (its box, then its hex), so a space does not show where the first move
      ends. A comma would meet the hexes' commas. The Text form, the note's title and every export keep the record's
      notation, a space between the moves (`3. 1@1,-3x 1@0,3x+8`). The move list has one move a line, the table one
-     move a row, and the status line one move.
-   - **The same dot between a turn's two shapes in "Hexes"** (item 5): in a variation, in the engine's line under a
-     note and in the engine's line under the table. An edit's arrow ends at the next move's hex, so an edit and a
-     placement side by side could read as one move. The turn's number stays before its first move. Under the table,
-     where the line has no numbers, the space between two turns is wider than before (half a rem), so that a turn's two
-     shapes stay together. The view's game asks for the dot (`shape.turnDot`): Hedge School's pills stand as before.
-     "Dots" has no dot: a disc never reaches its neighbour, and a middle dot between discs would read as a smaller
-     disc. "Notation" has none either: each move is a button with its own padding after its turn's number, and the
-     space between two buttons is wider than the spaces inside a move's glyphs.
+     move a row, and the status line one move. The variations and the engine's lines in "Notation" have the same dot
+     (the next bullet).
+   - **The same dot in the variations and the engine's lines** (item 5): in a variation, in the engine's line under a
+     note and in the engine's line under the table, between a turn's two moves, in two forms. In "Hexes", an edit's
+     arrow ends at the next move's hex, so an edit and a placement side by side could read as one move. The view's game
+     asks for the dot there (`shape.turnDot`): Hedge School's pills stand as before. In "Notation" while Move notation
+     is Glyphs, a move has spaces of its own, as in a note, so a turn's two moves can read as one ("12. [cell] 1 1,1 > 2
+     2,0 2 -1,-21 13."). With Move notation Text, "Notation" keeps the record's space. The turn's number stays before
+     its first move. Under the table in "Hexes", where the line has no numbers, the space between two turns is wider
+     than before (half a rem), so that a turn's two shapes stay together. "Dots" has no dot: a disc never reaches its
+     neighbour, and a middle dot between discs would read as a smaller disc.
    - A candidate, a note's best move and a line's move before the rules play it have no capture mark, in both forms:
      what they capture is not known yet.
 5. **The small hexes** (the variations' form "Hexes", and the engine's line under the table): a placement is a
@@ -638,7 +642,8 @@ build). The decision log gives the measurements that led to each choice.
       refuse says why, and leaves the game in review as it was.
     - **The recipient's review uses the recipient's engine settings.** Cyanotype keeps no network and depth for one
       game yet (abscls-8tl1.38), so the page says when the sender's differ, and that some quality labels can differ
-      then. Hedge School's page keeps the sender's for that game.
+      then. Hedge School's page keeps the sender's for that game. As Hedge School's page, it says that a GPU computes
+      the network a little differently, so that on a GPU a close call can rarely give another result.
     - **Blueprints' moves in a link** (the shared format, `packages/analysis/src/share.ts`): a move's kind in 2 bits
       (a placement, an edit or a pass), then each blueprint's number in 2 bits and each coordinate as a signed Elias
       gamma (1 bit for 0, 3 bits for -1 and 1). The review's test game (`src/lib/review/fixtures/stamp-duty.txt`, 106

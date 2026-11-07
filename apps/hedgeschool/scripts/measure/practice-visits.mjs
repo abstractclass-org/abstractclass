@@ -3,7 +3,7 @@
 // a number of search threads. The bot reports no root visits, so its rows stand for them. Each move is searched from a
 // new tree (`clear_board`, then the game's moves), with a new bot for each setting. The threaded bot runs on its CPU
 // evaluator (cpu_evaluator.mjs, in worker_threads), set up as the site's worker sets it up
-// (packages/practice/src/botWorker.ts, src/lib/practice/hedgefundWorker.ts). Node runs it with no flag when it has
+// (packages/practice/src/botWorker.ts and botFormsWorker.ts). Node runs it with no flag when it has
 // JSPI (Node 25 and later).
 //
 //   node scripts/measure/practice-visits.mjs positions OUT.json [--games 3] [--network ID]

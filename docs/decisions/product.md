@@ -9166,7 +9166,9 @@ edit's glyphs stood about 3.4 pixels higher than the placement's beside them: at
 - **The separator:** in Glyphs, ` · ` stands between a turn's two moves in a note (`inGlyphs`), since a move in glyphs
   has spaces of its own and a comma would meet the hexes' commas. The Text form and the exports keep the space. In
   "Hexes" the same dot stands between a turn's two shapes in the variations and the engine's lines (`shape.turnDot`),
-  since an edit's arrow ends at the next move's hex. "Dots", "Notation" and Hedge School's pills are as before.
+  since an edit's arrow ends at the next move's hex. In "Notation" it stands between a turn's two moves while Move
+  notation is Glyphs, since a turn there reads as the note's did ("12. [cell] 1 1,1 > 2 2,0 2 -1,-21 13."). With
+  Move notation Text, "Notation" keeps the record's space. "Dots" and Hedge School's pills are as before.
 
 ### Cyanotype's variations in "Hexes" (2026-11-07)
 
