@@ -1,9 +1,9 @@
-// Practice's komi (design 24): the card's setting, a head start for the player or the bot; a game at a komi, whose
-// points count it from the first position and whose kept game and record keep it; its review, which reads the record's
-// Komi tag and takes nothing from the opening book but the Book tab; and the Analysis board's record and analysis file
-// at a komi, out and back in. The bot runs on the CPU (the engine settings' GPU off, and playwright.config's switches),
-// at 1 visit a move. The review's engine is off: the review shows the game's positions and its stored results, and
-// searches nothing. Run:
+// Practice's komi (design 24). The card's setting gives a head start to the player or to the bot. A game at a komi
+// counts it in the points from the first position, and its kept game and its record keep it. Its review reads the
+// record's Komi tag and takes nothing from the opening book but the Book tab. The Analysis board's record and analysis
+// file at a komi go out and come back in. The bot runs on the CPU (the engine settings' GPU off, and
+// playwright.config's switches), at 1 visit a move. The review's engine is off: the review shows the game's positions
+// and its stored results, and searches nothing. Run:
 // npm run test:layout -- tests/practice-komi.spec.ts --project=chromium, with BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "@playwright/test";
@@ -27,14 +27,13 @@ async function keepGame(page: Page, komi: number, moves: string[]) {
   await page.reload();
 }
 
-test.beforeEach(async ({ context }) => {
-  // The visitor has answered the consent notice, which covers the page's foot until they choose. The engine's GPU is
-  // off, and so is the review's engine.
-  await context.addInitScript(() => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
-    localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
-  });
-});
+/** A context's script before each page: the visitor has answered the consent notice, which covers the page's foot until
+ *  they choose. The engine's GPU is off, and so is the review's engine. */
+const answeredAndOff = () => {
+  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+  localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
+};
+test.beforeEach(({ context }) => context.addInitScript(answeredAndOff));
 
 /** The players' row's text: each card's name and numbers. */
 const row = (page: Page) => page.getByLabel(/^Players(,| and) scores/).first();
@@ -146,10 +145,7 @@ test("the Analysis board at a komi: its annotated record and its analysis file k
   // Back in, in another browser: the record, then the analysis file, each in a new store
   const another = async () => {
     const context = await browser.newContext({ baseURL: test.info().project.use.baseURL });
-    await context.addInitScript(() => {
-      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
-      localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
-    });
+    await context.addInitScript(answeredAndOff);
     return { context, page: await context.newPage() };
   };
   const first = await another();

@@ -216,9 +216,9 @@ How strong each setting plays against people is not measured yet.
       Practice with the moves, and the card's komi applies (item 2).
     - **Openings is the book at komi 0** (design 32). A record brought there with a komi opens its line, and one line
       says that the book is at komi 0 and that Openings does not use the record's komi.
-    - **Cyanotype's Analysis board takes no komi** (design 33). It starts its analysis at komi 0 before it chooses its
-      board, so a board at a komi would be searched at 0. It refuses a record, a link or an analysis file with a komi,
-      and says why. A record goes to the review instead, which searches at its komi.
+    - **Cyanotype's Analysis board takes no komi yet** (design 33, a gap from Hedge School). It starts its analysis at
+      komi 0 before it chooses its board, so it would search a board at a komi at komi 0. It refuses a record, a link
+      or an analysis file with a komi, and says why. A record goes to the review instead, which searches at its komi.
 
 ## Why
 
@@ -360,23 +360,24 @@ How strong each setting plays against people is not measured yet.
   `packages/analysis/src/cache.ts`). The opening book at a komi: the review's view gives the game's komi to the book's
   parts (`packages/review/src/ReviewView.svelte`, the game's `book.opening` and `book.place`), `reviewOpening`
   (`src/lib/book/game.ts`) gives no opening at a komi, `giveBook` (`src/lib/book/reviewBook.ts`) gives no values and
-  opens no part of the book at a komi, and the Book tab's line is in `src/lib/book/ReviewBookTable.svelte`
-  (`BookPlace`'s `komi`). Openings' line on a record's komi is in `src/routes/openings/+page.svelte`. The game's id
-  (`src/lib/game/store.ts`, `gameId`; Cyanotype's `src/lib/review/keptGame.ts`), the keys of the review file and of
-  the removal of earlier results (`reviewFile.ts`, `positionKeys`, `earlierResults.ts`, and the results that belong in
-  a file, `packages/analysis/src/files.ts`), and the Analysis board's link and file
+  opens no part of the book at a komi, the annotated record from Your games makes no book at a komi
+  (`src/lib/review/exportText.ts`), and the Book tab's line is in `src/lib/book/ReviewBookTable.svelte` (`BookPlace`'s
+  `komi`). Openings' line on a record's komi is in `src/routes/openings/+page.svelte`. The komi is in the game's id
+  (`src/lib/game/store.ts`, `gameId`, and Cyanotype's `apps/cyanotype/src/lib/review/keptGame.ts`), in the keys of the
+  review file and of the removal of earlier results (`reviewFile.ts`, `positionKeys`, `earlierResults.ts`, and the
+  results that belong in a file, `packages/analysis/src/files.ts`), and in the Analysis board's link and file
   (`packages/analysis/src/boardLink.ts`, `files.ts` and `kept.ts`). Cyanotype's board refuses a komi in
-  `src/lib/game/board.ts` (`refuseKomi`), and its practice game's result at a komi is `endResult`
-  (`src/lib/practice/stampduty.ts`). Tests: the packages' `record.test.ts`, `practice.test.ts`, `analysis.test.ts` ("a
-  review at a komi …", "a komi game's end and labels follow the komi"), `share.test.ts` ("a board's link keeps its
-  komi …") and `files.test.ts` ("a komi's start does not belong to a game at komi 0", the analysis file at a komi),
-  here `practice.test.ts`, `stored.test.ts`, `store.test.ts`, `reviewFile.test.ts`, `analysisFile.test.ts`,
-  `board.test.ts`, the book's `game.test.ts` ("the review of a game at a komi takes nothing from the book …") and
-  `reviewBook.test.ts`, Cyanotype's `keptGame.test.ts`, `board.test.ts`, `analysisFile.test.ts` and
-  `stampduty.engine.test.ts` (the result at a game's end), and in the browser `tests/practice-komi.spec.ts` (the card,
-  a game at a komi, its review, the opening book at a komi, also in a reviewed game whose moves have their labels, and
-  the Analysis board's record and analysis file out and back in), `tests/openings.spec.ts` (a record with a komi) and
-  Cyanotype's in `tests/cyanotype-practice.spec.ts`.
+  `apps/cyanotype/src/lib/game/board.ts` (`refuseKomi`), and its practice game's result at a komi is `endResult`
+  (`apps/cyanotype/src/lib/practice/stampduty.ts`). Tests: the packages' `record.test.ts`, `practice.test.ts`,
+  `analysis.test.ts` ("a review at a komi …", "a komi game's end and labels follow the komi"), `share.test.ts` ("a
+  board's link keeps its komi …") and `files.test.ts` ("a komi's start does not belong to a game at komi 0", the
+  analysis file at a komi). Here: `practice.test.ts`, `stored.test.ts`, `store.test.ts`, `reviewFile.test.ts`,
+  `analysisFile.test.ts`, `board.test.ts`, the book's `game.test.ts` ("the review of a game at a komi takes nothing
+  from the book …") and `reviewBook.test.ts`. Cyanotype's: `keptGame.test.ts`, `board.test.ts`, `analysisFile.test.ts`
+  and `stampduty.engine.test.ts` (the result at a game's end). In the browser: `tests/practice-komi.spec.ts` (the
+  card, a game at a komi, its review, the opening book at a komi, also in a reviewed game whose moves have their
+  labels, and the Analysis board's record and analysis file out and back in), `tests/openings.spec.ts` (a record with
+  a komi) and Cyanotype's in `tests/cyanotype-practice.spec.ts`.
 
 ## Log entries
 

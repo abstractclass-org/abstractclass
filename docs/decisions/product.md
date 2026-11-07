@@ -8875,8 +8875,8 @@ This entry keeps the sources and the checks.
   - The display setting "Book moves" shows only where the game has a book opening, by the rule that hides it where a
     site has no book.
 - **The exports in the shared packages (2026-11-07):** the Export menus' code moved into packages ("Cyanotype's Export
-  menus and links") while this work was open, so the komi went into the shared files. Each export is tested out and
-  back in at a komi:
+  menus and links") while this work was open, so the komi went into the shared files. A test takes each export out
+  and back in at a komi:
   - The board's link (`packages/analysis/src/boardLink.ts`) writes the `Komi` tag and reads it back. A link whose tag
     is not a komi cannot open. The keys of a board's positions name its komi, so its analysis file takes the results
     at that komi.
@@ -8886,13 +8886,14 @@ This entry keeps the sources and the checks.
     set-up position is no move from another position. A komi game's start result no longer goes into the file of the
     same moves at komi 0.
   - Cyanotype's game id covers the komi, from a record and from a shared review. Its Analysis board refuses a link or
-    an analysis file whose board has a komi, as it refuses such a record ("it has a komi. This board can analyze only
-    at komi 0."), and keeps none of the file's results.
+    an analysis file whose board has a komi, as it refuses such a record, and keeps none of the file's results. The
+    notice for a link or a file says: "it has a komi. The Analysis board can analyze only at komi 0."
   - Cyanotype's practice result at a komi (`endResult`), on the review's test game (`r+730`, the end from the engine's
     rules): komi 300 gives `r+1030`, komi −730 a draw, and komi −1000 `b+270`. So on that game the rules' margin is
     the scores' margin, and the komi adds to it.
-  - `giveBook` takes no values at a komi and opens no part of the book, so its callers give it the site's book as at
-    komi 0.
+  - `giveBook` takes no values at a komi and opens no part of the book. The review page gives it the site's book at
+    any komi, because the Book tab loads the book's index there anyway. The annotated record from Your games makes no
+    book at a komi: `siteBook()` starts to load the book's index and its start's part, and nothing there uses them.
   - Openings stays the book at komi 0. A record brought there with a komi opens its line, with one line: "The opening
     book is at komi 0. Openings does not use the komi of this record."
 - **Not done:** the stored games' table has no column for the komi (its JSON and its record hold it). The `Komi` tag

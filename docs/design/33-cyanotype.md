@@ -333,9 +333,11 @@ and the panel's place and size (`cyanotype:practice-panel:1`).
 **The komi** (design 24): the card's fourth setting, from the shared card, with Hedge School's range and step. Stamp
 Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the
 size of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does, and
-the game's id in this browser covers the komi, from a record and from a shared review. The Analysis board refuses a
-record, a link or an analysis file with a komi, with a notice: it builds its analysis at komi 0 before it knows which
-board it keeps, and nothing on Cyanotype writes the tag yet, as its practice games are not kept.
+the game's id in this browser covers the komi, from a record and from a shared review. The Analysis board does not
+take a komi yet. It refuses a record, a link or an analysis file with a komi, with a notice: it builds its analysis at
+komi 0 before it knows which board it keeps. Nothing on Cyanotype writes the tag yet, as its practice games are not
+kept. The board takes a komi as Hedge School's does when Cyanotype keeps its practice games ("The gaps from Hedge
+School").
 
 **How it departs from Hedge School's Practice (design 24):**
 
@@ -756,6 +758,9 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
   `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
   ("Practice against Stamp Duty", item 2). abscls-8tl1.50.
+- **The Analysis board at a komi** (design 24, item 15): a record, a link or an analysis file with a `Komi` tag opens
+  at its komi and keeps it in the board's link and file. The board refuses them until then (the komi, above).
+  abscls-8tl1.50.
 - **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`, design 08), on the review and on Practice. abscls-8tl1.42.
 - **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`, design 07, item 17).
   abscls-8tl1.43.

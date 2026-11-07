@@ -14,7 +14,7 @@ const NO_ENGINE = "00000000"; // a board's link names no engine: the recipient's
  *  board's komi. */
 export function boardPositionKeys(board: KeptBoard): Set<string> {
   const lines = ["", ...board.nodes.map(n => n[0])];
-  return new Set(lines.map(l => keyMoves(board.start ?? null, l ? l.split(" ") : [], board.komi ?? 0).join(" ")));
+  return new Set(lines.map(l => keyMoves(board.start ?? null, l ? l.split(" ") : [], board.komi).join(" ")));
 }
 
 /** The link to a board: its tree, and the position on screen as its place on the main line (`at`, 0 at the start).

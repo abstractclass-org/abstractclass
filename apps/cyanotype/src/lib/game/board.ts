@@ -18,7 +18,7 @@ export function refuseSetUpStart(position: string | undefined): null {
 /** Refuses a board's komi (Hedge School's design 24): the board's analysis searches at komi 0, so it cannot open a
  *  board at another komi. Throws an Error that says so. */
 export function refuseKomi(komi: number | undefined): void {
-  if (komi) throw new Error("it has a komi. This board can analyze only at komi 0");
+  if (komi) throw new Error("it has a komi. The Analysis board can analyze only at komi 0");
 }
 
 /** The link to a board: its tree, and the position on screen as its place on the main line (`at`, 0 at the start).

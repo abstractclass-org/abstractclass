@@ -3,8 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
-import { sharedRecord, type SharedReview } from "../game/share.ts";
-import { gameId, keepGame, keepShared } from "./keptGame.ts";
+import type { SharedReview } from "../game/share.ts";
+import { gameId, keepShared } from "./keptGame.ts";
 
 memoryDb(); // the browser's store of games
 
@@ -19,9 +19,7 @@ test("a game's id: its moves alone at komi 0, as before, and its komi with them"
   assert.notEqual(gameId(MOVES, 300), gameId(MOVES, -300));
 });
 
-test("a record or a shared review with a komi is kept as the game at its komi", async () => {
-  assert.equal(await keepGame(sharedRecord(shared({ Komi: "-300" }))), gameId(MOVES, -300));
+test("a shared review with a komi is kept as the game at its komi, through its record (keepGame)", async () => {
   assert.equal(await keepShared(shared({ Komi: "-300" })), gameId(MOVES, -300));
   assert.equal(await keepShared(shared({})), gameId(MOVES));
-  assert.notEqual(gameId(MOVES, -300), gameId(MOVES)); // two games
 });
