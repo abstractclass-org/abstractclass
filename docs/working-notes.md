@@ -159,8 +159,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   - **A run on the real GPU uses Playwright's full Chromium:** launch it with `channel: "chromium"` (the new headless
     mode, `ms-playwright/chromium-1243/chrome-win64/chrome.exe`). A headless launch without a channel runs
     `chrome-headless-shell`, which makes no WebGPU device on this machine (the note "Faults with the WebGPU flags").
-    `apps/hedgeschool/scripts/cyanotype-gpu-check.mjs` and `scripts/measure/review-sweep.mjs` launch the full
-    Chromium for their GPU runs. The check's run off the GPU (`--cpu`) keeps the layout test's launch options.
+    `scripts/cyanotype-gpu-check.mjs` and `scripts/measure/review-sweep.mjs` launch the full Chromium for their GPU
+    runs. The check's run off the GPU (`--cpu`) keeps the layout test's launch options.
   - **The WebGPU flags:** the full Chromium gets the real GPU's adapter and device with `--enable-unsafe-webgpu
     --use-angle=d3d11 --enable-features=Vulkan`. The engine repository's flags, `--enable-unsafe-webgpu
     --use-webgpu-power-preference=force-high-performance`, also work there. With `--use-webgpu-adapter=swiftshader
@@ -180,24 +180,32 @@ learn one, and remove a note when it stops being true. The work itself is in bea
       `chrome-headless-shell` (Chromium 153.0.8010.12) ships no `dxil.dll` or `dxcompiler.dll`, the DirectX shader
       compiler. With the WebGPU flags, its WebGPU gives the RTX 5080's adapter ("nvidia blackwell"), but
       `GPUAdapter.requestDevice` rejects with "OperationError: Failed to execute 'requestDevice' on 'GPUAdapter':
-      DynamicLib.Open: dxil.dll Windows Error: 87" (Dawn's D3D12 backend, at `EnsureDXCLibraries`). ONNX Runtime Web
-      then logs "WebGPU device lost (4): Device creation failed." and throws a C++ exception. Its build uses
+      DynamicLib.Open: dxil.dll Windows Error: 87" (Dawn's D3D12 backend, at `EnsureDXCLibraries`). The full Chromium
+      ships both files and makes the device. So the missing files fit as the cause, but no run has put them beside the
+      shell, and Windows' error 87 is "the parameter is incorrect", not "the module was not found" (126). ONNX Runtime
+      Web then logs "WebGPU device lost (4): Device creation failed." and throws a C++ exception. Its build uses
       Emscripten's JavaScript exceptions, so the exception reaches the GPU worker as a number, its pointer, and the
-      engine settings show that number. Hedge School's review got the same number on 2026-10-18, for the same cause.
-      With `--use-webgpu-power-preference=force-high-performance` added, the shell fails in the same way. With the
-      engine repository's flags alone, the shell gives no adapter ("Failed to query ID3D11Device from ANGLE").
-    - **The evidence** (abscls-8tl1.64, 2026-11-07): the start of the GPU worker passes on ONNX Runtime Web's CPU
-      backend in Node, with the files that the site serves, so the engine's release and the site's code are not the
-      cause. Two diagnostic jobs of `apps/hedgeschool/scripts/cyanotype-gpu-diagnose.mjs` ran on the GPU
+      engine settings show that number. Hedge School's review sweep got the same number on 2026-10-18, in the same
+      headless shell (Chromium 153) with the same flags. That fits the same cause. No run has checked it in the full
+      Chromium. With `--use-webgpu-power-preference=force-high-performance` added, the shell fails in the same way.
+      With the engine repository's flags alone, the shell gives no adapter ("Failed to query ID3D11Device from
+      ANGLE").
+    - **The evidence** (abscls-8tl1.64, 2026-11-07): the start of the GPU worker passes in Node, on ONNX Runtime
+      Web's CPU backend, with the files that the site serves. So the engine's release and the site's code are not
+      the cause. Two diagnostic jobs of `scripts/cyanotype-gpu-diagnose.mjs` ran on the GPU
       (`abscls-8tl1.64-gpu-diagnose` and `abscls-8tl1.64-gpu-diagnose2`). In the second, the shell refused the device
       as above. The full Chromium (channel `chromium`, the same 153.0.8010.12) with either set of flags, and the
       installed Chrome 156 with the engine repository's flags, made the device. In each of the three, the GPU
-      worker's start passed every step: 16 searches of 64 visits took 4.9 to 6.5 s. The review's line then said
-      "In use, nvidia blackwell."
-    - **The diagnostic script stays for a later fault:** `cyanotype-gpu-diagnose.mjs` logs each adapter's info,
-      features and limits, the device that ONNX Runtime asks for and how the request ends, each step of the GPU
-      worker's start, and the page's, the workers' and the browser's own messages. It is a GPU-path run, under the
-      same rule as the others. With `--cpu` it checks itself off the GPU.
+      worker's start passed every step: 16 searches of 64 visits took 4.9 to 6.5 s. In the full Chromium with the
+      note's flags, the review's line then said "In use, nvidia blackwell." The check of the GPU paths then passed
+      in the full Chromium (`abscls-8tl1.64-gpu3`): the review, the Analysis board and Practice, with the GPU On and
+      with Auto.
+    - **The diagnostic script stays for a later fault:** `scripts/cyanotype-gpu-diagnose.mjs` logs each adapter's
+      info, features and limits. It logs the device that ONNX Runtime asks for and how the request ends. It logs
+      each step of the GPU worker's start, and the page's, the workers' and the browser's own messages. It is a
+      GPU-path run: it starts only after both coordinators' yes, through `scripts/machine run --gpu`. It does not
+      keep to the full Chromium: it launches the headless shell as a control, and the installed Chrome in a new
+      temporary profile folder that it removes after the launch. With `--cpu` it checks itself off the GPU.
   - **Off the GPU, for a run that needs no WebGPU** (the layout test, Cyanotype's practice games): with
     `--disable-gpu` alone, Chromium's GPU process (`--type=gpu-process --use-angle=swiftshader-webgl`) still opens the
     RTX 5080's adapter. Windows' GPU Engine counters list it there, with 0 KB of GPU memory and 0% on every engine,

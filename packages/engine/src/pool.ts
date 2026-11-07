@@ -396,7 +396,7 @@ export class SpeedMeter {
   }
 
   /** A CPU worker's visits a second and the GPU worker's evaluations a second, once each has searched for `seconds`.
-   *  It never resolves when the work ends before that. */
+   *  It never resolves when the work ends before that, or after abandon(). */
   measured(seconds: number): Promise<{ cpu: number; gpu: number }> {
     return new Promise(resolve => {
       this.waiting.push({ seconds, resolve });

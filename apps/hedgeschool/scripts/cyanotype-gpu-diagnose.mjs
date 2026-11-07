@@ -1,25 +1,26 @@
-// A diagnosis of the GPU worker's start on Cyanotype's preview (abscls-8tl1.64: "The GPU did not start: 9943656"). A
-// GPU-path run: only through `scripts/machine run --gpu`, after the coordinators' yes. Not a check: it prints.
+// A diagnosis of the GPU worker's start on Cyanotype's preview, for a fault such as "The GPU did not start: 9943656"
+// (docs/working-notes.md, "Faults with the WebGPU flags"). A GPU-path run: only through `scripts/machine run --gpu`,
+// after the coordinators' yes. Not a check: it prints.
 //
-//   CYANOTYPE_BASE_URL=http://127.0.0.1:4187 node scripts/cyanotype-gpu-diagnose.mjs [--first] [--cpu]
+//   CYANOTYPE_BASE_URL=http://127.0.0.1:4187 node scripts/cyanotype-gpu-diagnose.mjs [--shell] [--cpu]
 //
-// The first diagnosis (--first) found the cause in Playwright's chrome-headless-shell, the browser of a headless
-// chromium.launch: WebGPU gives the RTX 5080's adapter, but Dawn's D3D12 device fails ("DynamicLib.Open: dxil.dll
-// Windows Error: 87", at EnsureDXCLibraries), since the shell ships no dxil.dll or dxcompiler.dll. ONNX Runtime then
-// logs "WebGPU device lost (4): Device creation failed." and throws a C++ exception, which reaches JavaScript as its
-// pointer. Its three launches of the shell, one after the other:
-// 1. With docs/working-notes.md's WebGPU flags (the check's): the control, which failed.
-// 2. The same flags and --use-webgpu-power-preference=force-high-performance.
-// 3. The flags of the engine repository's run in Chrome (games/enclosure/webgpu/serve.mjs, launchChrome):
-//    --enable-unsafe-webgpu --use-webgpu-power-preference=force-high-performance, no ANGLE or Vulkan flag.
-// The second diagnosis (the default) tries the browsers that ship the shader compiler, each launch whatever the
-// others give:
+// In Playwright's chrome-headless-shell, the browser of a headless chromium.launch, WebGPU gives the RTX 5080's
+// adapter, but Dawn's D3D12 device fails ("DynamicLib.Open: dxil.dll Windows Error: 87", at EnsureDXCLibraries). The
+// shell ships no dxil.dll or dxcompiler.dll, and the full Chromium, which ships both, makes the device. ONNX Runtime
+// then logs "WebGPU device lost (4): Device creation failed." and throws a C++ exception, which reaches JavaScript as
+// its pointer.
+// The default run tries the browsers, the shell first as the control, each launch whatever the others give:
 // 1. The headless shell with the note's flags: the control, which fails.
 // 2. Playwright's full Chromium (channel "chromium", the new headless mode), with the note's flags. It then opens the
 //    review with the GPU On and prints the engine settings' GPU line once it settles.
 // 3. Playwright's full Chromium, with the engine repository's flags.
 // 4. The installed Google Chrome (channel "chrome"), headless, with the engine repository's flags, in a new temporary
 //    profile folder that the run removes after it: never the owner's profile.
+// --shell runs three launches of the shell instead, one after the other:
+// 1. With docs/working-notes.md's WebGPU flags (the check's): the control.
+// 2. The same flags and --use-webgpu-power-preference=force-high-performance. It then opens the review.
+// 3. The flags of the engine repository's run in Chrome (games/enclosure/webgpu/serve.mjs, launchChrome):
+//    --enable-unsafe-webgpu --use-webgpu-power-preference=force-high-performance, no ANGLE or Vulkan flag.
 // Each launch prints its browser's product and revision (CDP Browser.getVersion). In every page, in the probe worker
 // and in the site's GPU worker, a wrapper of GPUAdapter.prototype.requestDevice logs the descriptor that ONNX Runtime
 // asks for (each required feature and limit beside the adapter's own), and the device's end: made, refused, lost or an
@@ -30,6 +31,9 @@
 // "verbose" with env.debug: createOrtEvaluator on WebGPU, createGpuEngines, loadModel, query_version, then 16 searches
 // of 64 visits. Each step prints its time, or what it threw, with the type of the value. The page's and the workers'
 // console messages print too, and the job's DEBUG=pw:browser prints the browser's own standard error.
+// The whole run has a limit (LIMIT), under the job's --expect of 5 minutes: each wait ends at it at the latest, and a
+// launch that would start after it does not run. A watchdog ends the run 30 s after the limit, and removes the
+// temporary profile folder first.
 // --cpu: a dry run of the script itself, the same launches with the layout test's flags (no WebGPU), which starts no
 // GPU code.
 import { chromium } from "@playwright/test";
@@ -41,23 +45,48 @@ import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, LITE, LIVE_TURNS, testRecord } from "../tests/cyanotype-review.ts";
 
 if (!CYANOTYPE) throw new Error("CYANOTYPE_BASE_URL gives no Cyanotype preview");
-const NOTE = ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"];
-const ENGINES = ["--enable-unsafe-webgpu", "--use-webgpu-power-preference=force-high-performance"];
+const NOTE = ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"]; // the working note's flags
+const ENGINE_REPO = ["--enable-unsafe-webgpu", "--use-webgpu-power-preference=force-high-performance"];
 const launchOptions = config.projects.find(p => p.name === "chromium").use.launchOptions;
 /** The launches: a label, the browser (channel: none for the headless shell), the flags, and whether the review follows. */
 const CONTROL = { label: "shell, the note's flags (control)", args: NOTE };
-const FIRST = [CONTROL,
-               { label: "shell, force-high-performance", args: [...NOTE, "--use-webgpu-power-preference=force-high-performance"], review: true },
-               { label: "shell, the engine repository's flags", args: ENGINES }];
-const SECOND = [CONTROL,
-                { label: "Chromium, the note's flags", channel: "chromium", args: NOTE, review: true },
-                { label: "Chromium, the engine repository's flags", channel: "chromium", args: ENGINES },
-                { label: "Chrome, the engine repository's flags", channel: "chrome", args: ENGINES }];
+const SHELL_RUNS = [CONTROL,
+                    { label: "shell, force-high-performance", args: [...NOTE, "--use-webgpu-power-preference=force-high-performance"], review: true },
+                    { label: "shell, the engine repository's flags", args: ENGINE_REPO }];
+const BROWSER_RUNS = [CONTROL,
+                      { label: "Chromium, the note's flags", channel: "chromium", args: NOTE, review: true },
+                      { label: "Chromium, the engine repository's flags", channel: "chromium", args: ENGINE_REPO },
+                      { label: "Chrome, the engine repository's flags", channel: "chrome", args: ENGINE_REPO }];
 const cpu = process.argv.includes("--cpu");
-const RUNS = (process.argv.includes("--first") ? FIRST : SECOND)
+const RUNS = (process.argv.includes("--shell") ? SHELL_RUNS : BROWSER_RUNS)
   .map(r => cpu ? { ...r, label: `${r.label} (off the GPU)`, args: launchOptions.args } : r);
 const ORT = readFileSync(new URL("../../../node_modules/onnxruntime-web/dist/ort.webgpu.bundle.min.mjs", import.meta.url));
 const PROBE_WAIT = 180_000;
+/** The whole run's limit. The two diagnostic jobs on the GPU took 3 s and 28 s. */
+const LIMIT = 4 * 60_000, deadline = Date.now() + LIMIT;
+/** A wait of at most `ms`, and at most to the run's limit. */
+const upTo = ms => Math.max(1, Math.min(ms, deadline - Date.now()));
+
+/** Removes the installed Chrome's temporary profile folder, or says that it is still there. */
+function removeProfile(profile, say) {
+  try {
+    rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+    say(`temporary profile folder removed: ${profile}`);
+  } catch (e) {
+    say(`temporary profile folder NOT removed, remove it by hand: ${profile} (${e instanceof Error ? e.message : e})`);
+  }
+}
+/** The launch that runs now, for the watchdog. */
+let current = null;
+// The watchdog: a step that has no limit of its own ends here, 30 s after the run's limit. It closes the browser (at
+// most 5 s), removes the temporary profile folder, and ends the process.
+setTimeout(async () => {
+  console.log(`DIAGNOSIS-STOPPED: the run passed its limit of ${LIMIT / 60_000} minutes by 30 s`);
+  const closed = Promise.all([current?.context?.close(), current?.browser?.close()]).catch(() => {});
+  await Promise.race([closed, new Promise(resolve => setTimeout(resolve, 5000))]);
+  if (current?.profile) removeProfile(current.profile, console.log);
+  process.exit(1);
+}, LIMIT + 30_000).unref();
 
 /** Wraps GPUAdapter.prototype.requestDevice in a page or a worker: it logs the descriptor that the caller (ONNX
  *  Runtime) asks for, each required feature and limit beside the adapter's own, and the device's end: made, refused
@@ -169,17 +198,19 @@ onmessage = async ({ data: manifest }) => {
 const manifest = await (await fetch(new URL("/engine/manifest.json", CYANOTYPE))).json();
 for (const { label, channel, args, review } of RUNS) {
   const say = line => console.log(`[${label}] ${line}`);
-  const options = { ...launchOptions, args, channel }; // headless, Playwright's default
+  if (Date.now() >= deadline) { say("not run: the run's limit has passed"); continue; }
+  const options = { ...launchOptions, args, channel, timeout: upTo(60_000) }; // headless, Playwright's default
   // The installed Chrome only in a new temporary profile folder, removed after the launch
   const profile = channel === "chrome" ? mkdtempSync(join(tmpdir(), "cyanotype-gpu-diagnose-")) : null;
   let browser = null, context = null;
+  current = { profile };
   try {
     if (profile) {
       say(`temporary profile folder: ${profile}`);
-      context = await chromium.launchPersistentContext(profile, options);
+      context = current.context = await chromium.launchPersistentContext(profile, options);
     } else {
-      browser = await chromium.launch(options);
-      context = await browser.newContext();
+      browser = current.browser = await chromium.launch(options);
+      context = current.context = await browser.newContext();
     }
     const page = context.pages()[0] ?? await context.newPage();
     const version = await (await context.newCDPSession(page)).send("Browser.getVersion");
@@ -197,39 +228,44 @@ for (const { label, channel, args, review } of RUNS) {
       await r.fulfill({ response, body: WRAP + await response.text() });
     });
     await page.exposeFunction("diagLog", line => say(line));
-    await page.goto(new URL("/about", CYANOTYPE).href);
+    await page.goto(new URL("/about", CYANOTYPE).href, { timeout: upTo(30_000) });
+    // A probe worker that does not load (an error before its first message) ends the wait at once
     const done = await page.evaluate(([m, wait]) => new Promise(resolve => {
       const w = new Worker("/__diag/probe.mjs", { type: "module" });
       const timer = setTimeout(() => resolve("PROBE-TIMEOUT"), wait);
+      let heard = false;
       w.onmessage = ({ data }) => {
+        heard = true;
         if (data.log) window.diagLog(data.log);
         if (data.done) { clearTimeout(timer); w.terminate(); resolve(data.done); }
       };
-      w.onerror = e => window.diagLog(`probe worker error: ${e.message}`);
+      w.onerror = e => {
+        window.diagLog(`probe worker error: ${e.message}`);
+        if (!heard) { clearTimeout(timer); resolve("PROBE-NOT-LOADED"); }
+      };
       w.postMessage(m);
-    }), [manifest, PROBE_WAIT]);
+    }), [manifest, upTo(PROBE_WAIT)]);
     say(done);
 
     if (review) {
       // The site's own start: the review with the GPU On, until the engine settings' GPU line settles
       await page.evaluate(([key, engine]) => localStorage.setItem(key, JSON.stringify(engine)),
                           [ENGINE_KEY, { on: true, ...LITE, gpu: "on" }]);
-      await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(LIVE_TURNS))}`, CYANOTYPE).href);
-      await page.getByRole("button", { name: "Engine settings" }).click();
+      await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(LIVE_TURNS))}`, CYANOTYPE).href,
+                      { timeout: upTo(30_000) });
+      await page.getByRole("button", { name: "Engine settings" }).click({ timeout: upTo(30_000) });
       const line = page.getByRole("region", { name: "Engine settings" }).locator("p[aria-live]");
       await line.filter({ hasText: /^(This browser cannot|In use|The GPU did not start)/ }).first()
-        .waitFor({ timeout: 120_000 }).catch(() => {});
-      say(`the review's GPU line: ${await line.first().innerText().catch(() => "(none)")}`);
+        .waitFor({ timeout: upTo(120_000) }).catch(() => {});
+      say(`the review's GPU line: ${await line.first().innerText({ timeout: 1000 }).catch(() => "(none)")}`);
     }
   } catch (e) {
     say(`LAUNCH-FAILED: ${e instanceof Error ? e.message.split("\n")[0] : e}`); // the next launch runs all the same
   } finally {
     await context?.close().catch(() => {});
     await browser?.close().catch(() => {});
-    if (profile) {
-      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
-      say(`temporary profile folder removed: ${profile}`);
-    }
+    if (profile) removeProfile(profile, say);
+    current = null;
   }
 }
 console.log("DIAGNOSIS-DONE");

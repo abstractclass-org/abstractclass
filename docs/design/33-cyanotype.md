@@ -1201,12 +1201,16 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   0.2's review of the test game has none, so the test makes one from the stored result after move 8, and puts the
   stored result back after it.
 - `apps/hedgeschool/scripts/cyanotype-gpu-check.mjs`: the check of the GPU paths on Cyanotype's preview: the review,
-  the Analysis board and Practice, with the GPU On and then with Auto (Auto's first-use test), each in a new browser
-  context of one run, or one setting with `--on` or `--auto`. The board has 1 worker and the threat on, so that its
+  the Analysis board and Practice. One run checks the GPU On and then Auto (Auto's first-use test), each in a new
+  browser context. `--on` or `--auto` checks one setting. The board has 1 worker and the threat on, so that its
   searches make the backlog at which the GPU joins (Hedge School's design 15, item 1). The check then counts the
   searches that go to the GPU worker. It runs only as a GPU-path check, in Playwright's full Chromium
   ([working-notes.md](../working-notes.md), "The GPU in Playwright's Chromium"). With `--cpu`, it checks the same
   pages off the GPU, where the board starts no GPU worker and the bot starts on the CPU workers.
+- `apps/hedgeschool/scripts/cyanotype-gpu-diagnose.mjs`: a diagnosis of the GPU worker's start on Cyanotype's preview,
+  for a GPU that does not start. It prints the adapters, the device that ONNX Runtime asks for, and each step of the
+  start, in several browsers. It is a GPU-path run too ([working-notes.md](../working-notes.md), "Faults with the
+  WebGPU flags").
 - `apps/hedgeschool/scripts/measure/pool-start.mjs`: the start of the engine's pool on the Analysis board of a build
   of either site, on the CPU: each worker's start and memory, the time of the search's answers and of a visit, and the
   memory of the browser's renderers ([decisions/engine.md](../decisions/engine.md), "Cyanotype's engine pool at Hedge

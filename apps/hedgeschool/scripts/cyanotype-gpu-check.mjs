@@ -18,10 +18,11 @@
 //   end, the position's with its candidates in the table. With Auto, the board takes the review's test result.
 // - Practice: a game in which the bot plays Blue. The bot starts on the GPU (its line "..., on the GPU.") and plays
 //   its first move, which the page checks against the rules' legal moves. The game does not stop. With Auto, the bot
-//   starts on the GPU only where the test found it faster.
-// Each wait has a limit (WAITS), and the whole run has one (BUDGET): a wait ends at the run's limit at the latest. A part
-// whose wait ends prints the page's state, and the next part runs. A part that starts after the run's limit does not
-// run. A watchdog ends the process soon after the run's limit, so that a run never outlasts its job.
+//   starts on the GPU only where the review's test found it faster ("In use, ...: N times a worker's speed.").
+// Each wait for the page's state has a limit (WAITS), and the whole run has one (BUDGET): such a wait ends at the run's
+// limit at the latest. A page's load and a click take at most 60 s. A part whose wait ends prints the page's state, and
+// the next part runs. A part that starts after the run's limit does not run. A watchdog ends the process 20 s after the
+// run's limit, so that a run never outlasts its job.
 // A run with WebGPU is a GPU-path check: it starts only as that note says (jam-coord's and eng-coord's yes), through
 // `scripts/machine run --gpu` in the planning folder. Run it in apps/hedgeschool:
 //
@@ -134,13 +135,14 @@ try {
       console.log(`${label}: ${s} s`);
     }
     await page.goto(new URL("/about", CYANOTYPE).href);
+    let tested = null; // the review's GPU line, which gives Auto's test
 
     // The review: the GPU joins the workers at the sweep's backlog. Auto's test needs the whole game's work.
     await part("the review", async report => {
       await keep();
       await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(auto ? undefined : LIVE_TURNS))}`, CYANOTYPE).href);
       await settingsButton.click();
-      await gpuLine(auto ? WAITS.autoTest : WAITS.gpuLine, report);
+      tested = await gpuLine(auto ? WAITS.autoTest : WAITS.gpuLine, report);
       if (auto) return; // the review of the whole game goes on: the board's page ends it
       await page.getByText(/^Review done/).waitFor({ timeout: upTo(WAITS.review) });
       report.say(`the review of ${LIVE_TURNS} turns done; the GPU then: ${await settingsLine.first().innerText()}`);
@@ -184,7 +186,11 @@ try {
       const bot = page.getByText(/^Stamp Duty .*, on (the GPU|the CPU workers|one thread)\.$/);
       const botLine = await bot.innerText({ timeout: upTo(WAITS.practice) });
       say(`the bot: ${botLine}`);
-      if (!expected.where.test(botLine)) fail(`the bot: "${botLine}", not ${expected.where}`);
+      // With Auto on the GPU, the bot's form follows the review's test (botForms.ts): the GPU where the test found it
+      // faster. The test is kept for each network, and the review and the bot play the lock's one network.
+      const where = auto && !cpu && tested ? (tested.startsWith("In use") ? /, on the GPU\.$/ : /, on the CPU workers\.$/)
+        : expected.where;
+      if (!where.test(botLine)) fail(`the bot: "${botLine}", not ${where}${where === expected.where ? "" : `, after "${tested}"`}`);
       await page.getByText(/^(Stamp Duty's last turn took|The game stopped)/).waitFor({ timeout: upTo(WAITS.practice) });
       const stopped = page.getByText(/^The game stopped/);
       if (await stopped.count()) fail(await stopped.innerText());
