@@ -45,7 +45,7 @@ export type GpuStatus =
   | { state: "unsupported"; reason: string }
   | { state: "waiting" }
   | { state: "loading" }
-  | { state: "testing" }
+  | { state: "testing"; searching: boolean } // searching: false while no search runs, so the test's seconds do not grow
   | { state: "on"; adapter: string; test: GpuTest | null }
   | { state: "slower"; adapter: string; test: GpuTest }
   | { state: "failed"; message: string };
@@ -59,7 +59,7 @@ export function gpuStatusText(s: GpuStatus): string {
     case "unsupported": return `This browser cannot use the GPU: it has ${s.reason}.`;
     case "waiting": return "Waiting: it starts when there is more work than the workers can take.";
     case "loading": return "Loading the GPU's files…";
-    case "testing": return "In use. Testing its speed against a worker…";
+    case "testing": return s.searching ? "In use. Testing its speed against a worker…" : "In use. The speed test continues with the next searches.";
     case "on": return s.test ? `In use, ${s.adapter}: ${gpuRatio(s.test)} times a worker's speed.` : `In use, ${s.adapter}.`;
     case "slower": return `Off: ${s.adapter} is slower than a worker (${gpuRatio(s.test)} times its speed).`;
     case "failed": return `The GPU did not start: ${s.message}`;
@@ -167,8 +167,11 @@ export class GpuControl {
     this.pool.addGpu(gpu);
     const adapter = testFor.adapter;
     if (!testing) { this.status = { state: "on", adapter, test: loadGpuTest(testFor) }; return; }
-    this.status = { state: "testing" };
+    // The test counts only the seconds of searches (SpeedMeter): while none runs, the line says that the test waits.
+    this.status = { state: "testing", searching: this.pool.searching };
+    this.pool.onSearching = searching => { if (!this.ended && this.status.state === "testing") this.status = { state: "testing", searching }; };
     const speed = await this.pool.measureGpu(TEST_SECONDS);
+    this.pool.onSearching = null;
     const test = { gpu: Math.round(speed.gpu), cpu: Math.round(speed.cpu), at: new Date().toISOString() };
     saveGpuTest(testFor, test);
     // The GPU against a worker, by the GPU's maker and kind (design 17): whether the GPU pays off on visitors'
@@ -186,5 +189,6 @@ export class GpuControl {
     this.pool.onBacklog = null;
     this.pool.onGpuLost = null;
     this.pool.onRelease = null;
+    this.pool.onSearching = null;
   }
 }

@@ -25,7 +25,10 @@ which Chrome and Edge have from version 137.
    evaluations a second with one CPU worker's visits a second. Where the GPU is slower, it leaves the review, and Auto
    keeps it off from then on. The browser keeps the result for each network, each GPU (by the vendor and
    architecture that WebGPU gives: "nvidia blackwell") and each build of the GPU module, which a new release can make
-   faster. The setting's line names the GPU and gives its speed as a multiple of a worker's.
+   faster. The setting's line names the GPU and gives its speed as a multiple of a worker's. The test counts only
+   the seconds in which searches run, and it has no time limit. While no search runs (a short review has ended, and
+   the next search has not started), the test waits, and the line says so: "In use. The speed test continues with the
+   next searches." While searches run, the line says "In use. Testing its speed against a worker…".
 5. **One cache for both modules.** The page keeps a result from the GPU under the CPU module's build, as it keeps a
    result from a CPU worker ([design 05](05-review-analysis.md)). A review can mix the two.
 6. **The deploy compresses the large files.** Cloudflare Pages serves no file over 25 MiB. The deploy stores each

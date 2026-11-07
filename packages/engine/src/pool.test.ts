@@ -81,3 +81,60 @@ test("the GPU's first-use test: a GPU that left the pool ends no test, and the n
     performance.now = clock;
   }
 });
+
+test("the GPU's first-use test waits while nothing searches, and the pool says so (onSearching)", async () => {
+  // A short review ends before the test has 20 s of searches on each side. The seconds then stop, and they go on with
+  // the next searches (@abstractclass/analysis/gpu.svelte.ts shows a line for each state).
+  const clock = performance.now;
+  let now = 0;
+  performance.now = () => now;
+  const pool = new EnginePool(0, new EngineWorker());
+  try {
+    type Run = { end: (ms: number) => void };
+    /** A search engine whose searches end when the test says: `end(ms)` ends the oldest with `ms` of search time. */
+    const engine = (kind: "cpu" | "gpu") => {
+      const runs: Run[] = [];
+      return { kind, runs, terminate() {}, analyse: () => {
+        let end!: (ms: number) => void;
+        const done = new Promise(resolve => { end = ms => resolve({ ms, reply: { rootInfo: { visits: ms / 10 } } }); });
+        runs.push({ end });
+        return { done, stop() {} };
+      } };
+    };
+    const cpu = engine("cpu"), gpuSlot = engine("gpu");
+    const internals = pool as unknown as { speed: SpeedMeter; free: unknown[] };
+    internals.free.push(cpu);
+    pool.addGpu({ slots: [gpuSlot], evaluations: async () => 0, terminate() {} } as unknown as GpuEngines);
+    const events: boolean[] = [];
+    pool.onSearching = s => events.push(s);
+    const settle = () => new Promise(r => setImmediate(r));
+    /** Two searches (the CPU worker takes the first, the GPU the second) that last `seconds`, the GPU sampled once a second. */
+    const searchFor = async (seconds: number) => {
+      const tasks = [0, 1].map(() => pool.run(0, "t", (e: { analyse: (q: never) => { done: Promise<unknown> } }) => e.analyse({} as never).done as never));
+      internals.speed.gpuSample(1); // the first sample only starts the GPU's count
+      for (let s = 1; s <= seconds; s++) { now += 1000; internals.speed.gpuSample(1 + 300 * s); }
+      cpu.runs.shift()!.end(seconds * 1000);
+      gpuSlot.runs.shift()!.end(seconds * 1000);
+      await Promise.all(tasks);
+      await settle();
+    };
+    let result: { cpu: number; gpu: number } | undefined;
+    void pool.measureGpu(20).then(r => { result = r; });
+
+    assert.equal(pool.searching, false);
+    await searchFor(12); // a short review: 12 of the 20 s
+    assert.deepEqual(events, [true, false]); // it searched, and it stopped
+    assert.equal(pool.searching, false);
+    for (let s = 0; s < 600; s++) { now += 1000; internals.speed.gpuSample(100_000 + s); } // 10 minutes with no search
+    await settle();
+    assert.equal(result, undefined); // the test waits: no timeout, and the idle minutes count for nothing
+    await searchFor(8); // the next searches: 8 s more
+    assert.deepEqual(events, [true, false, true, false]);
+    const ended = result as { cpu: number; gpu: number } | undefined; // assigned in a callback: TypeScript still narrows it
+    assert.ok(ended, "the test ends with the next searches");
+    assert.equal(Math.round(ended.cpu), 100);
+  } finally {
+    pool.dropGpu();
+    performance.now = clock;
+  }
+});

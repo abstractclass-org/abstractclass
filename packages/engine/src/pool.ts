@@ -67,6 +67,10 @@ export class EnginePool {
   onGpuLost: ((error: unknown) => void) | null = null;
   /** Called when tasks wait and no engine is free: the GPU starts then (design 15). */
   onBacklog: (() => void) | null = null;
+  /** Called when the searching starts (a task runs while none ran) or stops (the last running task ends): the engine
+   *  settings' line says that the GPU's first-use test waits while nothing searches (@abstractclass/analysis/gpu.svelte.ts). */
+  onSearching: ((searching: boolean) => void) | null = null;
+  private wasSearching = false;
   private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
   private loading = 0; // the search workers that load now: each takes a task once it has loaded
   // The release of idle engines (releaseWhenIdle): the search workers wanted, whether they are released now, and the
@@ -220,6 +224,16 @@ export class EnginePool {
   /** No task waits or runs. */
   private get idle(): boolean { return !this.queue.length && !this.running.size; }
 
+  /** A task runs now, on a CPU worker or on the GPU. While none does, the GPU's first-use test (measureGpu) waits: its
+   *  seconds count only the searches. */
+  get searching(): boolean { return this.running.size > 0; }
+
+  private syncSearching() {
+    if (this.wasSearching === this.searching) return;
+    this.wasSearching = this.searching;
+    this.onSearching?.(this.wasSearching);
+  }
+
   /** The tasks that wait in the queue for an engine. While one waits, no engine is free: each takes a task as it frees
    *  (dispatch). */
   get waiting(): number { return this.queue.length; }
@@ -272,6 +286,7 @@ export class EnginePool {
       const engine = this.free.splice(k, 1)[0], task = this.queue.shift()!;
       task.engine = engine;
       this.running.add(task);
+      this.syncSearching();
       task.work(this.speed.watch(engine), stop => { task.stop = stop; })
         .then(value => {
           if (task.stopped) this.requeue(task); else task.resolve(value);
@@ -287,6 +302,7 @@ export class EnginePool {
           if (this.retiring.delete(engine)) engine.terminate();
           else this.free.push(engine);
           this.dispatch();
+          this.syncSearching();
           this.scheduleRelease();
         });
     }
