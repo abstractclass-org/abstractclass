@@ -1,6 +1,6 @@
 # The documents wrap at 120 characters (docs/working-notes.md): on each push to dev, an added line over 120 in a
 # Markdown file of the pushed range fails the run. What counts is in scripts/doc-widths.mjs. Its own workflow, with no
-# cancel: the Tests workflow cancels a run for an older push, and the range of that push would then go unchecked.
+# cancel, so that the range of every push is checked: a run of Tests is about the commit, this one is about the range.
 # Beside it, the tests of the check and of the commit-msg and pre-push hooks (.githooks/).
 name: Documents
 
