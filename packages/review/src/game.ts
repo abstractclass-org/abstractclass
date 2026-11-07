@@ -135,6 +135,16 @@ export interface ShapeProps<M, B = unknown> { move: M | null; player: Player; ho
  *  (by the display setting `notation`). */
 export type NotePart<G extends ViewTypes> = string | G["played"];
 
+/** What stands between two moves side by side in glyphs: a turn's two moves in a note. A move in glyphs has spaces of
+ *  its own (Blueprints': its box, then its hex), so a space does not show where the first move ends. A comma would
+ *  meet the hexes' commas. */
+export const GLYPH_SEPARATOR = " · ";
+/** A note's parts as the lists write them in glyphs: a space between two moves becomes GLYPH_SEPARATOR, in the note's
+ *  own text colour. The note itself keeps the record's space: its text (its title), the text form and the exports. */
+export const inGlyphs = <G extends ViewTypes>(note: readonly NotePart<G>[]): NotePart<G>[] =>
+  note.map((p, k) => (typeof p === "string" && !p.trim() && typeof note[k - 1] === "object" && typeof note[k + 1] === "object"
+    ? GLYPH_SEPARATOR : p));
+
 /** A number of each player's beside the score, in the cards, on the Advantage chart and in an image's caption
  *  (Enclosure: the area each player encloses now, which each turn's end adds to the score). */
 export interface SecondNumber<G extends GameTypes> {

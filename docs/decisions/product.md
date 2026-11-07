@@ -9154,6 +9154,8 @@ edit's glyphs stood about 3.4 pixels higher than the placement's beside them: at
   The engine's line under a note was not at fault: its moves are flex items, centred in their row.
 - **The check:** `cyanotype-review.spec.ts` measures the boxes' tops in each Mistake's note by turn that names an edit
   and a placement, at 1,376 and at 390 pixels: they must differ by less than half a pixel.
+- **The separator:** in Glyphs, ` · ` stands between a turn's two moves in a note (`inGlyphs`), since a move in glyphs
+  has spaces of its own and a comma would meet the hexes' commas. The Text form and the exports keep the space.
 
 ### Cyanotype's variations in "Hexes" (2026-11-07)
 

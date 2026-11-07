@@ -578,6 +578,14 @@ build). The decision log gives the measurements that led to each choice.
    - In a line of text (a note, the status line, a name in the table), a move's glyphs sit on the middle of the line.
      An edit begins with its cell's picture, whose baseline is its lower edge: on the text's baseline, the edit
      would stand about 3 pixels higher than a placement beside it, as the two moves of a turn's note do.
+   - **A middle dot between a turn's two moves:** in Glyphs, where a turn's two moves stand side by side in one line
+     of text (a Mistake's, a Blunder's or an Inaccuracy's note by turn: "Mistake. … · … was best."), ` · ` stands
+     between them, in the note's text colour (`GLYPH_SEPARATOR`, `inGlyphs` in `packages/review/src/game.ts`). A
+     move in glyphs has spaces of its own (its box, then its hex), so a space does not show where the first move
+     ends. A comma would meet the hexes' commas. The Text form, the note's title and every export keep the record's
+     notation, a space between the moves (`3. 1@1,-3x 1@0,3x+8`). Elsewhere, a turn's two moves are apart already:
+     the move list has one move a line, the table one move a row, the status line one move, and in the form
+     "Notation" the variations and the engine's lines give each move a button of its own, after its turn's number.
    - A candidate, a note's best move and a line's move before the rules play it have no capture mark, in both forms:
      what they capture is not known yet.
 5. **The small hexes** (the variations' form "Hexes", and the engine's line under the table): a placement is a

@@ -160,26 +160,43 @@ test("by turn and by move, the board marks the same moves: both moves of the tur
   await page.mouse.move(2, 2);
 });
 
-test("by turn, a Mistake's note writes the engine's two moves in glyphs on one line: their boxes line up", async () => {
+test("by turn, a Mistake's note writes the engine's two moves in glyphs on one line, a middle dot between them", async () => {
   // The stored review's Mistakes by turn each name a better turn of an edit and a placement. An edit's glyphs begin
   // with its cell's picture, whose baseline is its lower edge: on the text's baseline it stood 3.4 pixels above the
-  // placement beside it. The view sets each note's move on the middle of the line, as the table does.
+  // placement beside it. The view sets each note's move on the middle of the line, as the table does. A move in glyphs
+  // has spaces of its own, so " · " stands between the two moves (GLYPH_SEPARATOR). The text form keeps the record's
+  // space, as the note's title does.
+  const notes = page.locator(".movelist div.truncate[title]").filter({ hasText: /^Mistake\. / });
   for (const [w, h] of [[1376, 952], [390, 844]]) {
     await open(w, h, { judge: "turn", notation: "glyphs", notes: true });
-    const notes = page.locator(".movelist div.truncate[title]").filter({ hasText: /^Mistake\. / });
     await expect(notes.first()).toBeVisible();
-    /** Each note's moves: the move's notation (its screen reader's text), and the tops of its blueprints' boxes. */
-    const moves = await notes.evaluateAll(all => all.map(n => [...n.children].map(m => ({
-      name: m.querySelector(".sr-only")?.textContent ?? "",
-      tops: [...m.querySelectorAll("span.bg-current")].map(b => b.getBoundingClientRect().top),
-    }))));
-    const turns = moves.filter(n => n.length === 2 && n.some(m => m.name.includes(">")) && n.some(m => m.name.includes("@")));
+    /** Each note: its moves (the move's notation, its screen reader's text, and the tops of its blueprints' boxes),
+     *  and the text between its first two moves. */
+    const read = await notes.evaluateAll(all => all.map(n => {
+      const [first, second] = [...n.children];
+      let between = "";
+      for (let x = first?.nextSibling; x && x !== second; x = x.nextSibling) if (x.nodeType === Node.TEXT_NODE) between += x.textContent;
+      return { between, moves: [...n.children].map(m => ({
+        name: m.querySelector(".sr-only")?.textContent ?? "",
+        tops: [...m.querySelectorAll("span.bg-current")].map(b => b.getBoundingClientRect().top),
+      })) };
+    }));
+    const turns = read.filter(({ moves: n }) => n.length === 2 && n.some(m => m.name.includes(">")) && n.some(m => m.name.includes("@")));
     expect(turns.length, `${w} px: a Mistake's note with an edit and a placement`).toBeGreaterThan(0);
-    for (const n of turns) {
-      const tops = n.flatMap(m => m.tops);
-      expect(Math.max(...tops) - Math.min(...tops), `${w} px: ${n.map(m => m.name).join(" ")}: its boxes' tops`).toBeLessThan(0.5);
+    for (const { between, moves: n } of turns) {
+      const tops = n.flatMap(m => m.tops), names = n.map(m => m.name).join(" ");
+      expect(Math.max(...tops) - Math.min(...tops), `${w} px: ${names}: its boxes' tops`).toBeLessThan(0.5);
+      expect(between, `${w} px: ${names}: between the moves`).toBe(" · ");
     }
   }
+  // The text form: the record's notation, a space between the moves, as the note's title
+  await open(1376, 952, { notation: "text" });
+  for (const n of await notes.all()) {
+    const [text, title] = [await n.textContent(), await n.getAttribute("title")];
+    expect(text, "a note in the text form").toBe(title);
+    expect(text).not.toContain("·");
+  }
+  await open(1376, 952, { notation: "glyphs" });
 });
 
 /** A stored result's candidate, as far as this file reads it. */

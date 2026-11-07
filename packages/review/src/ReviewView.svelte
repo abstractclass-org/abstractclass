@@ -136,8 +136,8 @@
   import { SIDE_BG, SIDE_BORDER, SIDE_TEXT } from "@abstractclass/site/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
-  import { DIGITS, fmtScore, type BoardCandidate, type BoardMark, type BookJudgment, type Display, type LayerSetting,
-           type LineMove, type NotePart, type ViewGame } from "./game.ts";
+  import { DIGITS, fmtScore, inGlyphs, type BoardCandidate, type BoardMark, type BookJudgment, type Display,
+           type LayerSetting, type LineMove, type NotePart, type ViewGame } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, signInk, valueText, type AreaMark,
            type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
@@ -1984,7 +1984,8 @@
            positions, the lines from one position under one rule, and under a Mistake's or a Blunder's note, the
            engine's best line among them (turnGroups). A note's moves in glyphs (`glyphs`) sit on the middle of its
            line, as a name's in the table: an edit's begins with its cell's picture, whose baseline is its lower edge,
-           so on the text's baseline it would stand higher than the move beside it (a turn's two moves). -->
+           so on the text's baseline it would stand higher than the move beside it (a turn's two moves). In glyphs, a
+           middle dot stands between a turn's two moves (inGlyphs): a move there has spaces of its own. -->
       {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player)
         ? [partsOf(view.turnShortNote(t, R.data.positions[t.start]))] : [])
         : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => partsOf(view.shortNote(e, R.data.positions[e.index]))))}
@@ -1996,7 +1997,7 @@
       {#if notes.length || groups.some(g => g.rows.length) || folds.some(Boolean)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (noteText(note))}
-            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class="{SIDE_TEXT[part.player]} [&>*]:align-middle">{@render written(part)}</span>{/if}{/each}</div>
+            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each glyphs ? inGlyphs(note) : note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class="{SIDE_TEXT[part.player]} [&>*]:align-middle">{@render written(part)}</span>{/if}{/each}</div>
           {/each}
           {#each groups as g, k (k)}
             {@const f = folds[k]}
