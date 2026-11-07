@@ -12,11 +12,9 @@
 // The engine is off, so that nothing searches. Run: npm run test:layout (the site running first).
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
-import { loadReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
-/** The earlier engine's search: not the site's, which a review snapshot of an earlier engine leaves out. */
-const EARLIER = "earlier-search";
 /** The positions of the game that the test book holds, by their number of edges: the label snapshot's record. */
 const BOOK_POSITIONS = (() => {
   const text = readFileSync("tests/snapshots/review-labels/hedgefund.txt", "utf8");
@@ -25,22 +23,10 @@ const BOOK_POSITIONS = (() => {
   return new Set(line[1].split(" ").map(Number));
 })();
 
-/** The review file with an earlier engine's review: its results under the search EARLIER. `named`: the review names
- *  that search. Else it names none, as an older file's does. `book`: the file holds no result of the book's
- *  positions. */
-function earlierFile(named: boolean, book: boolean): ReviewFileInput {
-  const file = JSON.parse(readFileSync(FIXTURE, "utf8"));
-  file.review = { ...file.review, module: "0".repeat(64), ...(named ? { search: EARLIER } : {}) };
-  // A result's key: shape|search|model|visits|moves, and an added map's has "map|" before it
-  // (@abstractclass/analysis/cache.ts, analysisKey and mapKey)
-  file.analyses = file.analyses.flatMap(([key, value]: [string, unknown]) => {
-    const parts = key.split("|"), at = key.startsWith("map|") ? 1 : 0, moves = parts[at + 4];
-    if (book && BOOK_POSITIONS.has(moves ? moves.split(" ").length : 0)) return [];
-    parts[at + 1] = EARLIER;
-    return [[parts.join("|"), value]];
-  });
-  return { name: "earlier-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
-}
+/** The review file as a review by an earlier engine (review-file.ts, earlierReview). `named`: the review names its
+ *  search. Else it names none, as an older file's does. `book`: the file holds no result of the book's positions. */
+const earlierFile = (named: boolean, book: boolean): ReviewFileInput =>
+  earlierReview(FIXTURE, { named, keep: edges => !book || !BOOK_POSITIONS.has(edges) });
 
 /** Opens the Review tab, with the engine off and the labels by `judge`. Whether the review takes the test book's
  *  values: the site serves the book, and the review shows it in the early edition only. */

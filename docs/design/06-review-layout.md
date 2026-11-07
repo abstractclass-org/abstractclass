@@ -187,10 +187,15 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
    deeper search waits for the network, also when the review's line says "Review done". The header reads the same state
    as the review's line (the analysis's `engineReady`), and says the same words. So they show at the first load, and
    again while another network loads. A review snapshot (design 20) searches nothing, so its header does not show them.
-   The words and the visits are two elements, and the search bar takes the line's free width. So the visits that replace
-   the words are new on the page, and the switch and the gear stay in place: no layout shift. A review with a result
-   missing says what loads, and then what runs. After Review again on a review snapshot (design 20), the review
-   snapshot's analysis stays on screen until the new review's analysis replaces it, and the line says what loads.
+   The words and the visits are two elements, and the search bar takes the line's free width. So the visits that
+   replace the words are new on the page, and the switch and the gear stay in place: no layout shift. In a column too
+   narrow for them (360 pixels, a wide font), the words and the visits end with an ellipsis, and their title gives
+   them in full. The buttons after them stay in the column. While a search of the position runs or waits to run, the
+   visits give the budget that the bar fills to ("1,234 of 4,096 visits"). Once no search goes on, they give the
+   visits alone, so that "time limit" after them fits at 360 pixels ("12,345 visits · time limit"). A phone shows no
+   title, so the line must fit there by itself. A review with a result missing says what loads, and then what runs.
+   After Review again on a review snapshot (design 20), the review snapshot's analysis stays on screen until the new
+   review's analysis replaces it, and the line says what loads.
    **While the review has work to run, the slot's second line says "A review in a hidden tab can be slower."** Its title
    says why: "When you cannot see this tab, the browser can give the review less processor time." Where the line is cut,
    as with a larger text size, its title gives the line in full before the reason, as the slot's other lines give their

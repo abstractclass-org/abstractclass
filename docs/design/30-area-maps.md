@@ -171,7 +171,8 @@ site asks for the root's alone (item 6).
      the legend alone means that the map is ready.
    - For a line or a preview: "Maps of the line: 3 of 7", the positions of the line whose maps are there.
    While work goes on, the note carries the site's sign of work in progress, the gleam of the review's progress bar
-   (bar-glider, Lichess's). **Every state that the note shows ends:**
+   (bar-glider, Lichess's). The note stays on one line. Where the board is narrower than the note (360 pixels), it
+   ends with an ellipsis, and its title gives it in full. **Every state that the note shows ends:**
    - The note reads the map as the board does: a map that shows is ready.
    - "Waiting" means asked for and not yet searched, or the position's own search to come (`pending`). The analysis
      keeps what the page asked for last (its maps and the map stage), and asks again once the engine is ready or on

@@ -23,7 +23,7 @@
 // running first).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { loadReviewFile } from "./review-file.ts";
+import { earlierReview, loadReviewFile } from "./review-file.ts";
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewTestGame, storeReview, toolLink }
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
@@ -121,8 +121,8 @@ async function allProblems(page: Page, own?: OwnRules): Promise<Problem[]> {
 }
 
 /** Sweeps the page at every size: the report of what broke the rules, empty when nothing did. `ownRules`: the page's
- *  own rules, checked at each size too. */
-async function sweep(page: Page, label: string, ownRules?: OwnRules): Promise<string> {
+ *  own rules, checked at each size too. `heights`: the heights of the sweep, HEIGHTS by default. */
+async function sweep(page: Page, label: string, ownRules?: OwnRules, heights = HEIGHTS): Promise<string> {
   // The browser must show scroll bars: without them, the sweep misses the room that they take.
   const bar = await page.evaluate(() => {
     const d = document.createElement("div");
@@ -134,7 +134,7 @@ async function sweep(page: Page, label: string, ownRules?: OwnRules): Promise<st
   });
   expect(bar, "the browser shows scroll bars").toBeGreaterThan(0);
   const found: ProblemAt[] = [];
-  for (const height of HEIGHTS) for (const width of WIDTHS) {
+  for (const height of heights) for (const width of WIDTHS) {
     await page.setViewportSize({ width, height });
     await settle(page);
     for (const p of await allProblems(page, ownRules)) found.push({ width, height, ...p });
@@ -479,6 +479,26 @@ test("layout of a review", async ({ page }) => {
   await expect(page.getByText("Continue your last review")).toBeVisible();
   reports.push(await sweep(page, "/review, the Review tab"));
   expect(reports.filter(Boolean).join("\n")).toBe("");
+});
+
+// The area map's note in a review snapshot (design 30, item 9). Where the store has no map of a position, the note says
+// "No map saved: review snapshots do no searches", wider than the board at 360 pixels. Where the board is narrower,
+// the note ends with an ellipsis, its title gives it in full, and the board hides nothing sideways. The review file is
+// the fixture's as an earlier engine's review, its results with no maps. The note does not depend on the height, so
+// the sweep takes one.
+test("layout of the area map's note in a review snapshot", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
+  await page.goto("/review");
+  await loadReviewFile(page, earlierReview(FIXTURE, { maps: false }));
+  await expect(page.getByText(/^Reviewed on .+ with an earlier version of the engine\.$/)).toBeVisible({ timeout: 60_000 });
+  // The map on, before the game's last move: the game's end has a note of its own, and the book, where the early
+  // edition has it, holds neither position
+  await page.keyboard.press("End");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("t");
+  const note = page.getByRole("status").filter({ hasText: /^No map saved/ });
+  await expect(note).toHaveAttribute("title", "No map saved: review snapshots do no searches");
+  expect(await sweep(page, "/review, a review snapshot with the area map's note", undefined, [700])).toBe("");
 });
 
 // The book's table in the review's analysis column (design 32, items 3 and 10), after the game's first edge, by edge

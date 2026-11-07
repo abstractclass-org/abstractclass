@@ -9301,3 +9301,40 @@ Both sites ship ONNX Runtime Web 1.30.0 for the engine on the GPU, and neither p
   `LICENSE.txt`'s. KataGo's notice, the versions of the works and Eigen's modules agree with the shipped
   `NOTICES.txt`. A build with no engine files skips that test, and fails it in CI. The layout test
   (`layout.spec.ts`) now covers both Notices pages.
+
+### The review's one-line texts at 360 pixels: the area map's note and a stopped search's line (2026-11-07)
+
+After the engine header's fix (2026-11-06, above), two more one-line texts of the review were measured in a column of
+360 pixels (abscls-wgh5). The widths come from headless Chromium on Windows, at 12 pixels (`text-xs`), in Segoe UI
+(the browser's `system-ui` there) and in DejaVu Sans (Linux's `system-ui`), loaded into the page from WSL. The
+calibration: "Loading the engine's network…" took 165.3 and 189.7 pixels, as in the earlier entry.
+
+- **The area map's note** "No map saved: review snapshots do no searches" shows in a review snapshot with the map on,
+  where the store has no map of the position. It needs 267.8 pixels in Segoe UI and 305.5 in DejaVu Sans, with its
+  padding. At 360 × 700 the board is 313 pixels wide, and the switch takes 66 of them. The note did not shrink
+  (`flex-none whitespace-nowrap`), so it ran to 350 in a board that ends at 329. The board's box hid 21 pixels (334 in
+  313), and cut the note in a word ("searchi"). **The fix:** the note can shrink. Where the board is narrower than
+  the note, it ends with an ellipsis, and its title gives it in full, as the engine header's line does. At 360 it now
+  shows in 243 pixels with its ellipsis, and the board hides nothing. Cyanotype has no review snapshots, so this note
+  does not show there. Its other notes are short.
+- **The layout test** reaches the note: "layout of the area map's note in a review snapshot" opens the layout
+  fixture as an earlier engine's review, with its results' maps taken out, and sweeps every width at a height of
+  700. The test's helper that makes such a file is now in `tests/review-file.ts` (`earlierReview`), with the review
+  snapshot's test.
+- **A stopped search's line drops the budget.** Before, the line gave the budget ("512 of 1,024 visits") whenever
+  the visits were short of it, also once no search went on (the engine off in the middle of a search). A search
+  stopped at its time limit already showed a full bar and no budget. Now the line gives the budget only while a search
+  of the position runs or waits to run (the focus, the review's stages, the threat's search). Once none goes on, it
+  gives the visits alone, and "time limit" after a search stopped there (`packages/review/src/searchLine.ts`, with
+  unit tests). "12,345 visits · time limit" takes 123.2 pixels in Segoe UI and 145.5 in DejaVu Sans, in the line's
+  155. With the budget, it would take 175.5 and 206.7, and lose "time limit" behind the ellipsis. A phone shows no
+  title, so the line must fit by itself.
+- **Checked in a real search** (the CPU, a time limit of 10 seconds and a depth of 16,384), at 360 × 700, on both
+  sites and by turn and by edge: while the search ran, "512 of 16,384 visits". At the time limit, "11,264 visits ·
+  time limit" on Hedge School (123 pixels, with 32 for the bar), and "512 visits · time limit" on Cyanotype. With the
+  engine off in the middle of a search, "512 visits".
+- **The search bar's width:** where the line's text fills the row, the bar has no width, and design 06 says that the
+  bar takes the line's free width. With the budget dropped, no visits line fills the row at 360 pixels and the
+  default text size: the longest, "16,383 of 16,384 visits" while a search runs, takes 138 pixels in DejaVu Sans. Only
+  "Loading the engine's network…" fills it, and the bar is empty then. A minimum width for the bar would cut the
+  words sooner, so the bar stays as it is.

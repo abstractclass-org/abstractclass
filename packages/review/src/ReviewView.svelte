@@ -147,6 +147,7 @@
   import LabelBadge from "./LabelBadge.svelte";
   import { nameSize } from "./nameSize.ts";
   import { NOT_ANALYZED, noSearchReason, unlabeledText } from "./searchWait.ts";
+  import { visitsText } from "./searchLine.ts";
   import { LINE_STEP_MS, LineDrawing } from "./lineDrawing.svelte.ts";
   import { imageLine, lineFrames } from "./lineImage.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -1611,6 +1612,9 @@
   const timedOut = $derived(!!game?.stoppedByTime(threatOn ? threatPath : path));
   // The position is searched for the player now, or its threat
   const searching = $derived(!!game && (threatOn ? threatState === "searching" : game.focusing === here));
+  // A search of it runs or waits to run (the review's stages, or the threat's search behind others): its visits can
+  // still grow. The visits line gives the budget only then (searchLine.ts).
+  const searchGoesOn = $derived(searching || (!!game && (threatOn ? threatState === "waiting" : game.pending(path))));
   const searched = $derived(shownSearch && deepVisits ? (timedOut ? 1 : Math.min(1, shownSearch.visits / deepVisits)) : null);
   // The threat's line in the header's third row, in the place of the position's difficulty: what the pass costs the
   // player, or why it shows nothing. Text that a player follows: strict Simplified Technical English. `busy`: work goes
@@ -2362,9 +2366,11 @@
       </button>
     {/each}
   </div>
+  <!-- The note stays on one line. Where the board is narrower than the note (360 pixels), it ends with an ellipsis, with
+       its full text as its title, as the engine header's line does. -->
   {#if mapWork && !mapReading}
-    <span class={["flex-none px-1.5 py-px rounded bg-panel-2 text-xs text-muted whitespace-nowrap", mapWork.busy && "bar-glider"]}
-          role="status">{mapWork.text}</span>
+    <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", mapWork.busy && "bar-glider"]}
+          role="status" title={mapWork.text}>{mapWork.text}</span>
   {/if}
   {#if shownMap}
     <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-3 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Area map">
@@ -2763,8 +2769,8 @@
              ellipsis, with its full text as its title: the buttons after it stay in the column. -->
         {#if waitsForNetwork}<span class="min-w-0 text-xs text-muted truncate" title={NETWORK_LOADS}>{NETWORK_LOADS}</span>
         {:else if shownSearch}
-          {@const visitsText = `${shownSearch.visits.toLocaleString("en")}${searched !== null && searched < 1 ? ` of ${deepVisits.toLocaleString("en")}` : ""} visits${timedOut ? " · time limit" : ""}`}
-          <span class="min-w-0 text-xs text-muted tabular-nums truncate" title={visitsText}>{visitsText}</span>
+          {@const line = visitsText({ visits: shownSearch.visits, budget: deepVisits, goesOn: searchGoesOn, timedOut })}
+          <span class="min-w-0 text-xs text-muted tabular-nums truncate" title={line}>{line}</span>
         {/if}
         <!-- The threat's switch (Lichess's "Show threat" in its engine box, the key x), before the gear. A review snapshot shows a
              threat only where the store has it: the switch's note says why. -->
