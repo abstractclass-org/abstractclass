@@ -1,10 +1,10 @@
 #!/bin/sh
-# A note, never a refusal, on a push to dev while the workflow Tests runs on dev (docs/working-notes.md). Tests has a
-# concurrency group for each commit (tests-<sha> in .github/workflows/tests.yml), so a push cancels no run, and each
-# commit keeps its result. For a push to dev, this hook asks GitHub for the runs of Tests on dev, in the repository of
-# the push's URL. For each run that is not completed (queued, in progress, waiting, requested or pending), it prints
-# the run's id, its commit and its start, with the command that watches it. The push always goes ahead (exit 0). A push
-# of any other ref passes at once, and prints nothing.
+# This hook never refuses a push. On a push to dev while the workflow Tests runs on dev, it prints a note
+# (docs/working-notes.md). Tests has a concurrency group for each commit (tests-<sha> in .github/workflows/tests.yml),
+# so a push cancels no run, and each commit keeps its result. For a push to dev, this hook asks GitHub for the runs of
+# Tests on dev, in the repository of the push's URL. For each run that is not completed (queued, in progress, waiting,
+# requested or pending), it prints the run's id, its commit and its start, with the command that watches it. The push
+# always goes ahead (exit 0). A push of any other ref passes at once, and prints nothing.
 # When gh fails, the hook prints a warning, and the push goes ahead: GitHub's API does not gate a push. gh fails when
 # it is missing or not signed in, when api.github.com does not answer, and when the URL is not a GitHub repository's.
 # Git runs this hook when core.hooksPath names this folder. It gives the remote's name and URL as $1 and $2, and one

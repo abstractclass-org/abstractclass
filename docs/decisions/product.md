@@ -9481,16 +9481,27 @@ it. A release takes only a commit whose run passed (docs/hosting.md, "Deploy, ch
 commit could not be released on its own result. The pre-push hook of abscls-fa50 refused such pushes, to protect the
 result.
 
-- **Decided:** the group is `tests-<sha>`, with no cancel. Each commit keeps its run, and no push waits.
-  `cancel-in-progress: false` alone is not enough: GitHub keeps one pending run for each group, so a third push would
-  drop the result of the middle commit.
-- **Deploy is unchanged.** Its group stays `deploy-<ref>` with no cancel (`deploy.yml`), so deploys run in order and an
-  older commit never deploys after a newer one. Only the Tests workflow changed.
-- **Why it is safe:** the repository is public, so the standard runners cost no minutes.
+- **Decided:** the group is `tests-<sha>`, with no cancel. Each commit keeps its run, and no push waits. GitHub's
+  rules ([workflow syntax, `concurrency`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency)):
+  a group runs one run at a time, and by default it keeps one pending run. A new pending run cancels the one that
+  waits. So `cancel-in-progress: false` on `tests-<ref>` is not enough: a third push would cancel the middle commit's
+  run. `queue: max` on `tests-<ref>` keeps up to 100 pending runs, but it runs them one at a time: with a Linux job of
+  up to 40 minutes, each push would wait for the results of the pushes before it.
+- **A re-run or a manual run of one commit** takes that commit's group. A re-run keeps its run's commit
+  ([re-running workflows](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)),
+  and a manual run (`workflow_dispatch`) takes the last commit of its branch
+  ([events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
+  While a run of that commit is in progress, the new run waits and cancels nothing. A second run that comes while one
+  waits cancels the one that waits. A manual run on `main` after a release takes the same group as `dev`'s run of
+  that commit.
+- **Deploy is unchanged.** Its group stays `deploy-<ref>` with no cancel (`deploy.yml`). Deploys run one at a time,
+  and an older commit never deploys after a newer one. A deploy that waits is cancelled by a newer push's deploy, as
+  before. Only the Tests workflow changed.
 - **The cost:** runs for older commits use runner time, and they count toward the limit of concurrent jobs (two jobs
-  for each run). A fast series of pushes can queue the jobs of later runs behind the earlier ones.
-- **The hook** (`.githooks/pre-push`) no longer refuses. It limited the work in three ways: it worked only in a clone
-  with `core.hooksPath` set, it did not see a push from the web interface or with `--no-verify`, and two pushes in the
-  seconds before GitHub made a run both passed. It now names each run still going on `dev` with the `scripts/ci-watch`
-  line, and lets the push go. `ALLOW_DEV_PUSH=1` is gone, as nothing is left to override. Its tests
-  (`scripts/pre-push.test.sh`) follow: 34 cases.
+  for each run). A fast series of pushes can queue the jobs of later runs behind the earlier ones. The repository is
+  public, so the standard runners cost no minutes.
+- **The hook** (`.githooks/pre-push`) no longer refuses. It could not guard each commit's result: it worked only in a
+  clone with `core.hooksPath` set, it did not see a push from the web interface or with `--no-verify`, and two pushes
+  in the seconds before GitHub made a run both passed. It now names each run still going on `dev` with the
+  `scripts/ci-watch` line, and lets the push go. `ALLOW_DEV_PUSH=1` is gone, as nothing is left to override. Its tests
+  (`scripts/pre-push.test.sh`) follow: 33 cases.
