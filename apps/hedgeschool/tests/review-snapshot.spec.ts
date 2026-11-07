@@ -12,7 +12,7 @@
 // The engine is off, so that nothing searches. Run: npm run test:layout (the site running first).
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
-import { earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 /** The positions of the game that the test book holds, by their number of edges: the label snapshot's record. */
@@ -82,7 +82,7 @@ for (const judge of ["edge", "turn"]) {
       expect(expected.length).toBeGreaterThan(0); // the list has loaded: two empty lists are the same
       const book = await openTab(page, judge);
       const shown = await open(page, earlierFile(named, named && book));
-      await expect(page.getByText(/^Reviewed on .+ with an earlier version of the engine\.$/)).toBeVisible();
+      await expect(page.getByText(EARLIER_REVIEWED)).toBeVisible();
       expect(shown).toEqual(expected);
     });
   }

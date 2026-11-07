@@ -1604,16 +1604,16 @@
   // chart draws the rest as a first estimate.
   const chartSettled = $derived(R.data.positions.map((_, i) => i === last || deepEnough(R.data.analysis[i], reviewVisits)));
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
-  // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends.
-  // A search stopped at its time limit has ended too: its bar is full (Lichess fills its bar by time).
-  // With the threat on, the header shows the threat's search, as Lichess's engine box shows its threat's.
+  // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends
+  // (searchLine.ts, searchFill). With the threat on, the header shows the threat's search, as Lichess's engine box shows
+  // its threat's.
   const shownSearch = $derived(threatOn ? threat : analysis);
   // The search stopped at its time limit
   const timedOut = $derived(!!game?.stoppedByTime(threatOn ? threatPath : path));
   // The position is searched for the player now, or its threat
   const searching = $derived(!!game && (threatOn ? threatState === "searching" : game.focusing === here));
-  // A search of it runs or waits to run (the review's stages, or the threat's search behind others): its visits can
-  // still grow. The visits line gives the budget only then (searchLine.ts).
+  // A search of the position, or of its threat, runs or waits to run (the review's stages, or the threat's search
+  // behind others): its visits can still grow. The visits line gives the budget only then (searchLine.ts).
   const searchGoesOn = $derived(searching || (threatOn ? threatState === "waiting" : !!game?.pending(path)));
   const searched = $derived(shownSearch ? searchFill({ visits: shownSearch.visits, budget: deepVisits, timedOut }) : null);
   // The threat's line in the header's third row, in the place of the position's difficulty: what the pass costs the
@@ -2366,8 +2366,8 @@
       </button>
     {/each}
   </div>
-  <!-- The note stays on one line. Where the board is narrower than the note (360 pixels), it ends with an ellipsis, with
-       its full text as its title, as the engine header's line does. -->
+  <!-- The note stays on one line (design 30, item 9). Where the board is narrower than the note, as in a window 360 pixels
+       wide, the note ends with an ellipsis, with its full text as its title, as the engine header's line does. -->
   {#if mapWork && !mapReading}
     <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", mapWork.busy && "bar-glider"]}
           role="status" title={mapWork.text}>{mapWork.text}</span>

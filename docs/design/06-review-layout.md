@@ -188,11 +188,11 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
    as the review's line (the analysis's `engineReady`), and says the same words. So they show at the first load, and
    again while another network loads. A review snapshot (design 20) searches nothing, so its header does not show them.
    The words and the visits are two elements, and the search bar takes the line's free width. So the visits that
-   replace the words are new on the page, and the switch and the gear stay in place: no layout shift. In a column too
-   narrow for them (360 pixels, a wide font), the words and the visits end with an ellipsis, and their title gives
-   them in full. The buttons after them stay in the column. While a search of the position runs or waits to run, the
-   visits give the budget that the bar fills to ("1,234 of 4,096 visits"). Once no search goes on, they give the
-   visits alone, so that "time limit" after them fits at 360 pixels ("12,345 visits · time limit"). A phone shows no
+   replace the words are new on the page, and the switch and the gear stay in place: no layout shift. The column can
+   be too narrow for them (360 pixels, a wide font). Then the words and the visits end with an ellipsis, and their
+   title gives them in full. The buttons after them stay in the column. While a search of the position runs or waits to
+   run, the visits give the budget that the bar fills to ("1,234 of 4,096 visits"). Once no search goes on, they give
+   the visits alone, so that "time limit" after them fits at 360 pixels ("12,345 visits · time limit"). A phone shows no
    title, so the line must fit there by itself. A review with a result missing says what loads, and then what runs.
    After Review again on a review snapshot (design 20), the review snapshot's analysis stays on screen until the new
    review's analysis replaces it, and the line says what loads.

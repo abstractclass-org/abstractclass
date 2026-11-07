@@ -23,7 +23,7 @@
 // running first).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewTestGame, storeReview, toolLink }
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
@@ -489,14 +489,18 @@ test("layout of a review", async ({ page }) => {
 test("layout of the area map's note in a review snapshot", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
   await reviewedGame(page, earlierReview(FIXTURE, { maps: false }));
-  await expect(page.getByText(/^Reviewed on .+ with an earlier version of the engine\.$/)).toBeVisible({ timeout: 60_000 });
-  // The map on, before the game's last move: the game's end has a note of its own, and the book, where the early
-  // edition has it, holds neither position
+  await expect(page.getByText(EARLIER_REVIEWED)).toBeVisible({ timeout: 60_000 });
+  // The map on, at the position before the game's last move. The game's end has a note of its own. The early
+  // edition's test book does not hold this position.
   await page.keyboard.press("End");
   await page.keyboard.press("ArrowLeft");
   await page.keyboard.press("t");
   const note = page.getByRole("status").filter({ hasText: /^No map saved/ });
   await expect(note).toHaveAttribute("title", "No map saved: review snapshots do no searches");
+  // At 360 × 700 the note shows, and it is cut: the sweep then checks a note that ends with an ellipsis
+  await page.setViewportSize({ width: 360, height: 700 });
+  await expect(note).toBeVisible();
+  expect(await note.evaluate(e => e.scrollWidth > e.clientWidth), "the note is cut at 360 pixels").toBe(true);
   expect(await sweep(page, "/review, a review snapshot with the area map's note", undefined, [700])).toBe("");
 });
 

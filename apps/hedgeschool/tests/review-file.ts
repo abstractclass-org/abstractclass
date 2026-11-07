@@ -29,10 +29,14 @@ export function earlierReview(path: string, { named = true, keep = () => true, m
   const file = JSON.parse(readFileSync(path, "utf8"));
   file.review = { ...file.review, module: "0".repeat(64), ...(named ? { search: EARLIER_SEARCH } : {}) };
   file.analyses = file.analyses.flatMap(([key, value]: [string, Record<string, unknown>]) => {
-    const k = readAnalysisKey(key), moves = k.moves ? k.moves.split(" ") : [];
+    const result = readAnalysisKey(key), moves = result.moves ? result.moves.split(" ") : [];
     if (!keep(moves.length)) return [];
-    const earlier = (k.map ? MAP_PREFIX : "") + analysisKey(EARLIER_SEARCH, k.model, moves, k.visits, k.shape);
-    return [[earlier, maps ? value : { ...value, ownership: undefined }]]; // JSON leaves out undefined
+    const earlier = analysisKey(EARLIER_SEARCH, result.model, moves, result.visits, result.shape);
+    // JSON leaves out undefined
+    return [[(result.map ? MAP_PREFIX : "") + earlier, maps ? value : { ...value, ownership: undefined }]];
   });
   return { name: "earlier-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
 }
+
+/** The review snapshot's line for such a review (design 20). */
+export const EARLIER_REVIEWED = /^Reviewed on .+ with an earlier version of the engine\.$/;
