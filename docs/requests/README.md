@@ -37,3 +37,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 25 | [Practice games against Stamp Duty: Blueprints' GTP bot in the browser](25-blueprints-practice-bot.md) | done (engine repository commits `217be61f` and `70dfdc0f`), checked here with Drawing Board's practice page |
 | 26 | [Blueprints on the visitor's GPU, and the practice bot's threaded forms](26-blueprints-gpu-and-threaded.md) | open |
 | 27 | [The record's `Komi` tag](27-komi-tag.md) | open |
+| 28 | [Blueprints: the practice bot from a set-up start, and a position's check](28-blueprints-set-up-start.md) | open |
