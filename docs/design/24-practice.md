@@ -204,6 +204,8 @@ How strong each setting plays against people is not measured yet.
       - No Opening section in the Report. It does not say where the game left the book, nor give the book's verdict.
         It has no trap row.
       - No book marks in the move list. A book move is a move that the book's search at komi 0 lists.
+      - No display setting "Book moves". The setting shows only where the game has a book opening, so that it never
+        shows where no book mark can show: a site with no book, a book that did not load, the board, a komi.
       The Book tab stays, for the player who wants the book's moves. Under its title row, one line says that the book
       moves and their values are the engine's at komi 0. At komi 0 the review takes the book as before.
     - **The exports keep the tag:** the review file holds the record, the shared review its tags, and the annotated
@@ -266,8 +268,8 @@ How strong each setting plays against people is not measured yet.
   found its win chance rising with the komi in each of 178 positions from −3,000 to +3,000, its expected margin moving
   0.8 to 1.25 times the komi. People's margins in Blueprints are of the same size as Enclosure's: a median of 409
   points and a 90th percentile of 2,060. Blueprints' scores are whole points, so a half point there would rule out a
-  draw, which the real game has (12 of the site's 737 finished games). Whole points keep draws as at komi 0.
-  Stamp Duty 0.1 is bpj5's network: no sweep of its own is recorded.
+  draw, which the real game has (12 of the site's 737 finished games). Whole points keep draws as at komi 0. The
+  network that Cyanotype ships has no komi sweep of its own yet (abscls-49tz, put off with Blueprints' engine work).
 
 ## Alternatives
 
@@ -341,22 +343,24 @@ How strong each setting plays against people is not measured yet.
   (`packages/engine/src/fetch-engine.mjs`) puts in `static/engine/engine-54486cd-lib/` and the bot's module folders.
 - **The ways in:** the header, the sitemap, and the Analysis board's Play button (`src/routes/analysis/+page.svelte`).
 - **The komi:** its range, the choice, the kept game's field, the turn between the player's side and Red's
-  (`komiSide`), its words (`komiHelp`) and the GTP command in `packages/practice/src/practice.ts`, its control in
-  `PracticeCard.svelte`. The scores with it: `withKomi` (`packages/analysis/src/game.ts`), in the practice game and in
-  `GameAnalysis`. The tag: `komiOf`, `recordKomi` and `komiTag` (`packages/record/src/record.ts`), which the reader
-  checks. The review: `GameAnalysis`'s option `komi` (`packages/analysis/src/analysis.svelte.ts`: the searches'
-  queries, the keys, the positions, no book), and the keys' word `komi=K` (`keyMoves`, `lineKeyMoves`,
-  `snapshotPositions` in `packages/analysis/src/cache.ts`). The opening book at a komi: the review's view gives the
-  game's komi to the book's parts (`packages/review/src/ReviewView.svelte`, the game's `book.opening` and
-  `book.place`), `reviewOpening` (`src/lib/book/game.ts`) gives no opening at a komi, and the Book tab's line is in
-  `src/lib/book/ReviewBookTable.svelte` (`BookPlace`'s `komi`). The game's id (`src/lib/game/store.ts`, `gameId`), the
-  review file's and the removal's keys (`reviewFile.ts`, `positionKeys`; `earlierResults.ts`), and the Analysis
-  board's (`src/lib/game/board.ts`). Tests: the packages' `record.test.ts`, `practice.test.ts` and
-  `analysis.test.ts` ("a review at a komi …", "a komi game's end and labels follow the komi"), here
-  `practice.test.ts`, `stored.test.ts`, `store.test.ts`, `reviewFile.test.ts`, `board.test.ts` and the book's
-  `game.test.ts` ("the review of a game at a komi takes nothing from the book …"), and in the browser
-  `tests/practice-komi.spec.ts` (the card, a game at a komi, its review and the opening book at a komi) and
-  Cyanotype's in `tests/cyanotype-practice.spec.ts`.
+  (`komiSide`), its words (`komiHelp`, `komiLine`) and the GTP command in `packages/practice/src/practice.ts`, its
+  control in `PracticeCard.svelte`. The scores with it: `withKomi` (`packages/analysis/src/game.ts`), in the practice
+  game and in `GameAnalysis`. The tag: `komiOf` and `komiTag` (`packages/record/src/record.ts`). The reader checks the
+  tag and gives the record's `komi`. The review: `GameAnalysis`'s option `komi`
+  (`packages/analysis/src/analysis.svelte.ts`: the searches' queries, the keys, the positions, no book), and the keys'
+  word `komi=K` (`keyMoves`, `lineKeyMoves`, `snapshotPositions` and `parentKeyMoves` in
+  `packages/analysis/src/cache.ts`). The opening book at a komi: the review's view gives the game's komi to the book's
+  parts (`packages/review/src/ReviewView.svelte`, the game's `book.opening` and `book.place`), `reviewOpening`
+  (`src/lib/book/game.ts`) gives no opening at a komi, the review page and the annotated record give the review no
+  book (`siteReviewBook`, `exportText.ts`), and the Book tab's line is in `src/lib/book/ReviewBookTable.svelte`
+  (`BookPlace`'s `komi`). The game's id (`src/lib/game/store.ts`, `gameId`), the keys of the review file and of the
+  removal of earlier results (`reviewFile.ts`, `positionKeys`, and `earlierResults.ts`), and the Analysis board's
+  (`src/lib/game/board.ts`). Tests: the packages' `record.test.ts`, `practice.test.ts` and `analysis.test.ts` ("a
+  review at a komi …", "a komi game's end and labels follow the komi"), here `practice.test.ts`, `stored.test.ts`,
+  `store.test.ts`, `reviewFile.test.ts`, `board.test.ts` and the book's `game.test.ts` ("the review of a game at a komi
+  takes nothing from the book …"), and in the browser `tests/practice-komi.spec.ts` (the card, a game at a komi, its
+  review, and the opening book at a komi, also in a reviewed game whose moves have their labels) and Cyanotype's in
+  `tests/cyanotype-practice.spec.ts`.
 
 ## Log entries
 

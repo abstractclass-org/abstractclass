@@ -31,9 +31,9 @@
   import { PLAYER_NAMES, STARS, starsOf, type Player } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
-  import { NETWORKS, botName, keep, komiLine, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
+  import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
-  import { komiSide } from "@abstractclass/practice/practice.ts";
+  import { komiLine, komiSide } from "@abstractclass/practice/practice.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
@@ -270,7 +270,7 @@
     {/snippet}
     {#snippet side()}
       <h1 class="text-lg font-bold">Practice</h1>
-      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, on one thread.{g.kept.komi ? ` ${komiLine(g.kept)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
+      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, on one thread.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
       <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
         {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
       </p>

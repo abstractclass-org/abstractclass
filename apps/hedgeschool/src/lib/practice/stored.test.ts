@@ -6,7 +6,8 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { onRequestDelete, onRequestPost, type D1 } from "../../../functions/api/practice-games.ts";
-import { recordEdges, storedProblem, type StoredPractice } from "./stored.ts";
+import { MAX_KOMI, recordEdges, storedProblem, type StoredPractice } from "./stored.ts";
+import { MAX_KOMI as CARD_MAX_KOMI } from "@abstractclass/practice/practice.ts";
 
 const game = (over: Partial<StoredPractice> = {}): StoredPractice => ({
   version: 1, id: "0b6a2c1e-5f3d-4a8b-9c7d-1e2f3a4b5c6d", browser: null, ended: "2026-10-15", site: "01b29d8",
@@ -47,6 +48,7 @@ test("a game is valid as the browser sends it, and each field is checked", () =>
   // A game with a komi (design 24): a whole number of points within the card's range, and none at 0
   assert.equal(storedProblem(game({ komi: -300 })), null);
   for (const komi of [0, 0.5, 3001, "300" as never]) assert.equal(storedProblem(game({ komi })), "komi", String(komi));
+  assert.equal(MAX_KOMI, CARD_MAX_KOMI, "the server takes every komi that the card gives");
 });
 
 test("a record's edges are its main line's, passes included, and no variation's", () => {

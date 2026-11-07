@@ -5,8 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { NETWORKS } from "#lib/analysis/engineSettings.ts";
 import { parseRecord } from "#lib/game/record.ts";
-import { recordKomi } from "#lib/game/record.ts";
-import { botCommands, gtpAnswer, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceRecord,
+import { BOT_NAME, botCommands, gtpAnswer, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceRecord,
          practiceTurn, resignResult, saveChoices, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./hedgefund.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -101,9 +100,9 @@ test("a game at a komi: the bot gets it, its record keeps it as Red's starting s
   // The player (Blue) started 300 points ahead: Red's komi is -300
   const ahead = game({ komi: -300 });
   const r = parseRecord(practiceRecord(ahead, [0, 1, 1, 0], [false, false, true, false], "b+120.5", "normal"));
-  assert.deepEqual([r.tags.Komi, recordKomi(r.tags), r.result], ["-300", -300, "b+120.5"]);
-  assert.equal(komiLine(ahead), "You start 300 points ahead.");
-  assert.equal(komiLine(game({ komi: -300, human: 1 })), "HedgeFund starts 300 points ahead.");
+  assert.deepEqual([r.tags.Komi, r.komi, r.result], ["-300", -300, "b+120.5"]);
+  assert.equal(komiLine(ahead, BOT_NAME), "You start 300 points ahead.");
+  assert.equal(komiLine(game({ komi: -300, human: 1 }), BOT_NAME), "HedgeFund starts 300 points ahead.");
   assert.equal(komiLine(game()), "");
   // A game kept from an earlier visit goes on with its komi; a game at 0 has no tag, as before the komi
   keep(ahead);

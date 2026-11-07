@@ -2,7 +2,7 @@
 // lower case, and its mark `#N` counts what a move takes (`apple#2`), never `#0`. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { komiOf, komiTag, markMoves, readRecord, recordKomi, RecordError, writeRecord, type Notation } from "./record.ts";
+import { komiOf, komiTag, markMoves, readRecord, RecordError, writeRecord, type Notation } from "./record.ts";
 
 /** The test game: its mark is what a move takes, or null for none. A set-up start gives its first turn's label in a
  *  `Start` tag: `3.`, or `2...` for a turn's second move. */
@@ -87,11 +87,11 @@ test("errors name what is wrong and where", () => {
 });
 
 test("the Komi tag: Red's starting score, 0 without it, and an error where it is not a komi", () => {
-  assert.equal(recordKomi(read("1. apple *").tags), 0);
-  assert.equal(recordKomi(read('[Komi "300"]\n\n1. apple *').tags), 300);
-  assert.equal(recordKomi(read('[Komi "-120.5"]\n\n1. apple *').tags), -120.5);
-  assert.equal(recordKomi(read('[Komi "+7"]\n\n1. apple *').tags), 7);
-  for (const none of ["", "?", "-", "0", "-0"]) assert.equal(recordKomi(read(`[Komi "${none}"]\n\n1. apple *`).tags), 0);
+  assert.equal(read("1. apple *").komi, 0);
+  assert.equal(read('[Komi "300"]\n\n1. apple *').komi, 300);
+  assert.equal(read('[Komi "-120.5"]\n\n1. apple *').komi, -120.5);
+  assert.equal(read('[Komi "+7"]\n\n1. apple *').komi, 7);
+  for (const none of ["", "?", "-", "0", "-0"]) assert.equal(read(`[Komi "${none}"]\n\n1. apple *`).komi, 0);
   for (const bad of ["6.25", "abc", "1e3", "300 points", "123456"]) {
     assert.throws(() => read(`[Event "x"]\n[Komi "${bad}"]\n\n1. apple *`),
                   (e: unknown) => e instanceof RecordError && e.offset === 12 && e.message.includes("Komi"));

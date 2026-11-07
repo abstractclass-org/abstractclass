@@ -36,7 +36,7 @@
   import { loadDisplay } from "#lib/review/display.ts";
   import { describeBy, recordProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import { parseRecord, recordKomi, type GameRecord } from "#lib/game/record.ts";
+  import { parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { boardLink, readBoardLink } from "#lib/game/board.ts";
   import { analysisFileName, exportAnalysis, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
@@ -94,7 +94,7 @@
       const record = parseRecord(text);
       // The board searches at komi 0: a record with a komi (Hedge School's design 24) opens in the review, which
       // searches at it, and is not analyzed here at another komi.
-      if (recordKomi(record.tags)) throw new Error("this record has a komi, and the Analysis board takes games without one: open it in the review");
+      if (record.komi) throw new Error("the record has a komi. Open the record in the review");
       const atMain = Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0);
       return { kept, at: keptAt, brought: { board: boardOfLine(record.moves), at: atMain, record } };
     } catch (e) {

@@ -15,7 +15,7 @@ import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/poo
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
-import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, keyMoves, mapGet, mapPut,
+import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, keyMoves, parentKeyMoves, mapGet, mapPut,
          readAnalysisKey } from "./cache.ts";
 import { judgeBranchMove, judgeTurn, review, valuesAfter, type Analysis } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
@@ -1459,6 +1459,9 @@ test("a review at a komi searches at it, keeps its results apart, and reads none
   assert.deepEqual(keyMoves(null, ["a"], -300), ["komi=-300", "a"]);
   assert.deepEqual(keyMoves("start pos", ["a"], 7), ["@start_pos", "komi=7", "a"]);
   assert.deepEqual(keyMoves(null, ["a"]), ["a"]); // komi 0: the keys as before the komi
+  // A key's parent: none at a start, at komi 0 or at a komi, nor at a set-up start
+  assert.deepEqual(["", "a", "a b", "komi=-300", "komi=-300 a", "@s_1 komi=7", "@s_1 a"].map(parentKeyMoves),
+                   [null, "", "a", null, "komi=-300", null, "@s_1"]);
   // A review at 0 never reads the komi's results: its start keeps its own
   const again = new GameAnalysis(words, pool, MOVES, "even2");
   await again.start();

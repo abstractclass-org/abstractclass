@@ -34,7 +34,7 @@
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { gamePage, playerNames, recordKomi } from "#lib/game/record.ts";
+  import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
@@ -265,10 +265,11 @@
   });
 
   /** The game's komi, from its record's Komi tag (design 24): 0 without one. */
-  const gameKomi = () => (kept ? recordKomi(kept.record.tags) : 0);
+  const gameKomi = () => kept?.record.komi ?? 0;
 
-  /** The book that the review takes values from (book/reviewBook.ts, giveBook): the site's, in the early edition. */
-  const siteReviewBook = () => (EARLY_ACCESS ? siteBook() : null);
+  /** The book that the review takes values from (book/reviewBook.ts, giveBook): the site's, in the early edition. None
+   *  at a komi (design 24): its values are the engine's at komi 0, so none of its parts loads for them. */
+  const siteReviewBook = () => (EARLY_ACCESS && !gameKomi() ? siteBook() : null);
 
   /** Reviews the game with the site's engine: the rules first, then the sweep. `chosen`: the player chose Review again
    *  on a review snapshot, whose pool ends once the new one has the rules, so that the board keeps working meanwhile. */

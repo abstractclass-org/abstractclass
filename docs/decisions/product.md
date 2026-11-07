@@ -8813,8 +8813,8 @@ issues, and add their entries to the review's menu.
 
 ### Practice: the komi, a fourth setting (2026-11-06)
 
-A request for "komi adjustment in the Practice". Design 24 has the decision, item 2's "The komi" and item 15; this
-entry keeps the sources and the checks.
+A request for "komi adjustment in the Practice". Design 24 has the decision, in item 2's "The komi" and in item 15.
+This entry keeps the sources and the checks.
 
 - **What the engines give:** Enclosure's komi is a starting score: Red receiving K starts K points ahead, and a
   negative K favours Blue (the engine repository's `games/enclosure/docs/design/09-komi-and-lead.md`). The practice
@@ -8826,19 +8826,19 @@ entry keeps the sources and the checks.
   even komi up to 500 points. Above 500 points, before the last 30 edges, the win chance reads a komi short: with a
   lead of 1,000 to 5,000 points as komi, the side ahead still wins 95%. The expected margin reads 90 to 105% of
   ±500, 95 to 99% of ±1,000 and 96 to 101% of ±2,500. Self-play draws komi out to ±3,000 points.
-- **Blueprints** (Cyanotype): Stamp Duty 0.1 is bpj5's b6c96-s40806528-d2304635. Every self-play game since bpj2 has
-  a komi (`games/blueprints/README.md`, "Komi": 75% at a spread of 20 points, 20% at 250, 5% at 1,000, cut at three
-  spreads). The sweep of bpj2's network (`games/blueprints/docs/decisions/port.md`, 2026-10-26) found the win chance
-  rising with the komi in 178 of 178 positions from −3,000 to +3,000. No sweep of bpj5's own network is recorded.
-  Blueprints' scores are whole, and a margin of 0 is a draw (12 of the site's 737 finished games).
+- **Blueprints** (Cyanotype): every self-play game since bpj2 has a komi (`games/blueprints/README.md`, "Komi": 75% at
+  a spread of 20 points, 20% at 250, 5% at 1,000, cut at three spreads). The sweep of bpj2's network
+  (`games/blueprints/docs/decisions/port.md`, 2026-10-26) found the win chance rising with the komi in 178 of 178
+  positions from −3,000 to +3,000. The network that Cyanotype ships has no komi sweep of its own yet (abscls-49tz, put
+  off with Blueprints' engine work). Blueprints' scores are whole, and a margin of 0 is a draw (12 of the site's 737
+  finished games).
 - **Whether Enclosure's game can end level:** yes. Equal scores are a draw (the engine's README, "Rules"). Its areas
   are exact rationals: the engine counts the faces of a player's edges, whose corners include the points where edges
   cross (`katagame/cpp/game/enclosure/engine.h`). So a half point does not keep a game at a komi from ending level, as
   it does in Go.
 - **The choices:** one setting, the player's head start (below 0, the bot's), any whole number from −3,000 to 3,000,
-  a slider by 50. The record keeps the engine's K with its sign. The same range and step for both games. A question
-  of the owner's came during the work: whether the komi can favour Blue too. It can: the setting gives a head start to
-  the player or to the bot, whatever colour each plays.
+  a slider by 50. The record keeps the engine's K with its sign. The same range and step for both games. The komi can
+  favour either side: the setting gives a head start to the player or to the bot, whatever colour each plays.
 - **Published practice:** KataGo's GTP and analysis take whole and half points (`Rules::komiIsIntOrHalfInt`). KaTrain
   and OGS give the komi to White, Go's second player, as Go does (6.5 or 7.5 points). Two web searches for OGS's custom
   range and KaTrain's dialog found no first-hand statement of either, so design 24 names only the departures that the
@@ -8858,12 +8858,22 @@ entry keeps the sources and the checks.
   a lead of Blue +390 (at komi 0: 50.4%, +4 ± 194, +3). One finding: the Report's Opening section still said "The game
   followed the book to its end, at turn 3. Blue is slightly better.", word for word the text at komi 0. The first
   build kept the book's values out of the analysis at a komi, but not the book's verdict. The fix proposed to keep
-  where the game left the book and to drop the verdict. The decision went further: "Your fix for book in komi is good.
-  I think we can even drop 'the Opening section still says where the game left the book'". So at a komi the review
-  takes nothing from the book but the Book tab, which says in one line that the book moves and their values are the
-  engine's at komi 0 (design 24, item 15). The review's view gives the game's komi to the book's parts, and the game's
-  opening (`reviewOpening`) is none at a komi: no Opening section, no trap row and no book mark. The annotated record
-  and the review file hold no text from the book, so they did not change.
+  where the game left the book and to drop the verdict. The decision went further, and dropped where the game left
+  the book too. So at a komi the review takes nothing from the book but the Book tab, which says in one line that the
+  book moves and their values are the engine's at komi 0 (design 24, item 15). The review's view gives the game's komi
+  to the book's parts, and the game's opening (`reviewOpening`) is none at a komi: no Opening section, no trap row and
+  no book mark. The annotated record and the review file hold no text from the book, so they did not change.
+- **The review of the branch:**
+  - A komi game's start key (`komi=300`) read as one move from the start at komi 0 (tree.ts's `parentKey` gives ""). So
+    a komi-0 game's review file took the komi games' start results, and the removal of earlier results kept them for
+    it. `parentKeyMoves` (`cache.ts`) gives a key's parent, and none for a key of a start's and the komi's words alone.
+    The removal reads it. The review file's reader of keys (`atPositions`) moved into the shared export files
+    (`packages/analysis/src/files.ts`), and takes it when the komi moves there.
+  - The review page and the annotated record from the store loaded the book's parts at a komi, then dropped the
+    values. They now give a review at a komi no book.
+  - The record's reader gives the komi (`GameRecord`'s `komi`), as it checks the tag, so the readers take it there.
+  - The display setting "Book moves" shows only where the game has a book opening, by the rule that hides it where a
+    site has no book.
 - **Not done:** the stored games' table has no column for the komi (its JSON and its record hold it). The `Komi` tag
   waits for the engine repository's design 04 (request 27). A record brought to Practice brings its moves, not its
   komi.

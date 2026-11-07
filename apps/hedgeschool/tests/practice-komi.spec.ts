@@ -2,14 +2,29 @@
 // points count it from the first position and whose kept game and record keep it; and its review, which reads the
 // record's Komi tag and takes nothing from the opening book but the Book tab. The bot runs on the CPU (the engine
 // settings' GPU off, and playwright.config's switches), at 1 visit a move. The review's engine is off: the review shows
-// the game's positions, and searches nothing. Run:
+// the game's positions and its stored results, and searches nothing. Run:
 // npm run test:layout -- tests/practice-komi.spec.ts --project=chromium, with BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "@playwright/test";
+import { loadReviewFile } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
-const CHOICES = "hedge-school:practice-choices:1", GAME = "hedge-school:practice-game:1";
+const GAME = "hedge-school:practice-game:1";
 const NETWORK = "b10c128-s89066368-d17827487"; // HedgeFund 0.2 Lite, the card's first network
+
+/** The fixture game's edges: its first `count`, or all 120. */
+const fixtureMoves = (count?: number) => (JSON.parse(readFileSync(FIXTURE, "utf8")).record as string)
+  .replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, count);
+
+/** Keeps a game of `moves` in Practice, as from an earlier visit, then reloads the page, which goes on with it: the
+ *  player Blue, the bot at 1 visit a move, and Red's komi `komi`. */
+async function keepGame(page: Page, komi: number, moves: string[]) {
+  await page.evaluate(([key, kept]) => localStorage.setItem(key, JSON.stringify(kept)), [GAME, {
+    version: 1, bot: { network: NETWORK, visits: 1, variety: "low" }, human: 0, name: "", seed: 1, komi,
+    moves, builds: [], started: new Date().toISOString(),
+  }] as const);
+  await page.reload();
+}
 
 test.beforeEach(async ({ context }) => {
   // The visitor has answered the consent notice, which covers the page's foot until they choose. The engine's GPU is
@@ -68,14 +83,8 @@ test("the card's komi: a head start for the player or the bot, and a number that
 test("a game at a komi: the points count it from the start, the kept game and the record keep it, and its review reads it", async ({ page }) => {
   // A game kept from an earlier visit, the player Blue with a head start of 300 points: Red's komi is -300. Its 20
   // edges end at Blue's turn, so the page waits for the player.
-  const moves = (JSON.parse(readFileSync(FIXTURE, "utf8")).record as string).replace(/\[[^\]]*\]/g, "").split(/\s+/)
-    .filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
   await page.goto("/practice");
-  await page.evaluate(([key, kept]) => localStorage.setItem(key, JSON.stringify(kept)), [GAME, {
-    version: 1, bot: { network: NETWORK, visits: 1, variety: "low" }, human: 0, name: "", seed: 1, komi: -300,
-    moves, builds: [], started: new Date().toISOString(),
-  }] as const);
-  await page.reload();
+  await keepGame(page, -300, fixtureMoves(20));
   await expect(page.getByRole("status").filter({ hasText: /^Your turn/ })).toBeVisible({ timeout: 120_000 });
   // The bot's line says who started ahead, and the start shows Blue's 300 points
   await expect(page.getByText(/HedgeFund 0\.2 Lite, 1 visit, Low variety, on .*\. You start 300 points ahead\./)).toBeVisible();
@@ -115,8 +124,9 @@ test("a game at a komi: the points count it from the start, the kept game and th
 
 // The review of a game at a komi takes nothing from the opening book but the Book tab (design 24): the book is the
 // engine's at komi 0. The fixture's whole game (120 edges, over by the rules), kept with the player Blue at `komi`, and
-// its review. The test book is served by the dev and preview servers only, and the review shows the book in the early
-// edition only: elsewhere these tests are skipped.
+// its review; and the fixture's review file at a komi, whose moves have their labels. The test book is served by the
+// dev and preview servers only, and the review shows the book in the early edition only: elsewhere these tests are
+// skipped.
 test.describe("the opening book at a komi", () => {
   test.use({ viewport: { width: 1366, height: 900 } }); // three columns: the Report beside the board
 
@@ -125,24 +135,20 @@ test.describe("the opening book at a komi", () => {
   const bookMarks = (page: Page) => page.getByRole("img", { name: /^Book move · / });
   const OPENING = "The game followed the book to its end, at turn 3. Blue is slightly better. Show the position";
   const KOMI_LINE = "The book moves and their values are the engine's at komi 0, not at this game's komi.";
+  /** A quality label's badge, whose name is its word. */
+  const LABEL_WORDS = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
 
-  /** Keeps the fixture's whole game in Practice at `komi`, then opens its review from the game's end. It gives a function
-   *  that is true once no load of the test book is open and none started or ended for half a second. */
-  async function reviewKept(page: Page, komi: number): Promise<() => boolean> {
+  /** Opens `path`, and skips the test where the site serves no test book or the page is not the early edition's. */
+  async function openWithBook(page: Page, path: string) {
     test.setTimeout(240_000);
     const served = await page.request.get("/test-book/prototype/index.json");
     test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
-    const moves = (JSON.parse(readFileSync(FIXTURE, "utf8")).record as string).replace(/\[[^\]]*\]/g, "").split(/\s+/)
-      .filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t));
-    await page.goto("/practice");
+    await page.goto(path);
     test.skip(!(await page.getByRole("link", { name: "Early Access" }).count()), "not the early edition");
-    await page.evaluate(([key, kept]) => localStorage.setItem(key, JSON.stringify(kept)), [GAME, {
-      version: 1, bot: { network: NETWORK, visits: 1, variety: "low" }, human: 0, name: "", seed: 1, komi,
-      moves, builds: [], started: new Date().toISOString(),
-    }] as const);
-    await page.reload();
-    const review = page.getByRole("link", { name: "Review the game" });
-    await expect(review).toBeVisible({ timeout: 120_000 });
+  }
+  /** Watches the test book's loads from now on: the function that it gives is true once no load is open and none
+   *  started or ended for half a second. */
+  function bookLoads(page: Page): () => boolean {
     let open = 0, last = Date.now();
     const count = (step: number) => (r: Request) => {
       if (r.url().includes("/test-book/")) { open += step; last = Date.now(); }
@@ -150,9 +156,26 @@ test.describe("the opening book at a komi", () => {
     page.on("request", count(1));
     page.on("requestfinished", count(-1));
     page.on("requestfailed", count(-1));
+    return () => open === 0 && Date.now() - last >= 500;
+  }
+  /** Keeps the fixture's whole game in Practice at `komi`, then opens its review from the game's end. It gives
+   *  bookLoads' function. */
+  async function reviewKept(page: Page, komi: number): Promise<() => boolean> {
+    await openWithBook(page, "/practice");
+    await keepGame(page, komi, fixtureMoves());
+    const review = page.getByRole("link", { name: "Review the game" });
+    await expect(review).toBeVisible({ timeout: 120_000 });
+    const idle = bookLoads(page);
     await review.click();
     await expect(row(page)).toBeVisible({ timeout: 60_000 });
-    return () => open === 0 && Date.now() - last >= 500;
+    return idle;
+  }
+  /** The display setting "Book moves", with the display settings open. */
+  async function bookMovesSetting(page: Page) {
+    await page.getByRole("button", { name: "Display settings" }).click();
+    const settings = page.getByRole("region", { name: "Display settings" });
+    await expect(settings.getByRole("radiogroup", { name: "Quality labels" })).toBeVisible();
+    return settings.getByRole("radiogroup", { name: "Book moves" });
   }
   /** The Book tab at the start, a book position. */
   async function bookAtStart(page: Page) {
@@ -183,5 +206,35 @@ test.describe("the opening book at a komi", () => {
     const table = await bookAtStart(page);
     await expect(table.locator("tbody tr").first()).toBeVisible();
     await expect(table.getByText(KOMI_LINE)).toHaveCount(0);
+    await expect(await bookMovesSetting(page)).toBeVisible();
+  });
+
+  test("a reviewed game at a komi: its moves have their labels, none a book mark, and no setting Book moves", async ({ page }) => {
+    // The fixture's review file with its game at Red's komi -400: the record's Komi tag, and each stored result's key
+    // with the komi's word before the moves (cache.ts, keyMoves). Its values are the file's at komi 0, so each move has
+    // its label, and a book move would have its mark there, as the same file shows at komi 0 (book-review.spec.ts).
+    const file = JSON.parse(readFileSync(FIXTURE, "utf8"));
+    file.record = (file.record as string).replace("\n\n", '\n[Komi "-400"]\n\n');
+    file.analyses = (file.analyses as [string, unknown][]).map(([key, value]) => {
+      const at = key.lastIndexOf("|") + 1, moves = key.slice(at);
+      return [`${key.slice(0, at)}komi=-400${moves ? ` ${moves}` : ""}`, value];
+    });
+    // "Review by" edge: each edge has its label in its own button in the move list
+    await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: "edge" })));
+    await openWithBook(page, "/review");
+    const idle = bookLoads(page);
+    await loadReviewFile(page, { name: "komi-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+    await page.getByText("Accuracy").first().waitFor({ timeout: 60_000 });
+    await page.keyboard.press("Home");
+    await expect(row(page)).toContainText(/Blue\s*400\s*points/); // the review is at the komi
+    // The moves are judged: the badges show (G9-G10's Inaccuracy, for one), and the first edge, A10-D9, a book move at
+    // komi 0, has its loss, where a judged book move has its book mark at komi 0. None has a mark once each load of the
+    // book has ended.
+    await expect(page.locator(".mv").getByRole("img", { name: LABEL_WORDS }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator(".mv", { hasText: "A10-D9" }).first()).toHaveText(/^A10-D9\s*0$/);
+    await expect.poll(idle, { timeout: 30_000 }).toBe(true);
+    await expect(bookMarks(page)).toHaveCount(0);
+    await expect(page.getByText("Opening", { exact: true })).toHaveCount(0);
+    await expect(await bookMovesSetting(page)).toHaveCount(0);
   });
 });

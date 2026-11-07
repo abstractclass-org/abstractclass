@@ -34,7 +34,7 @@
   import { loadDisplay } from "#lib/review/display.ts";
   import { loadEngine, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { startChecked } from "#lib/review/storedReview.ts";
-  import { gamePage, parseRecord, playerNames, recordKomi, type GameRecord } from "#lib/game/record.ts";
+  import { gamePage, parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { REVIEW_GAME_KEY, SITE_NAME } from "#lib/site.ts";
   import { keepGame, type KeptGame } from "#lib/review/keptGame.ts";
   import { REVIEW_EXPORTS, deliverExport } from "#lib/review/reviewExports.ts";
@@ -79,7 +79,7 @@
       else if (id) text = (await dbGet<KeptGame>(STORES.games, id))?.record ?? null;
       if (!text || !id) { none = true; return; }
       const record = parseRecord(text);
-      const moves = record.moves, komi = recordKomi(record.tags); // the record's komi: the searches ask at it
+      const moves = record.moves, komi = record.komi; // the record's komi: the searches ask at it
       kept = { id, record };
       const manifest = await session.load();
       // The stored results, read while the engine starts: the review shows them in its first frame.

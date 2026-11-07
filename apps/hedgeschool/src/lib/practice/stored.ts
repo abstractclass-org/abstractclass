@@ -36,7 +36,8 @@ const OUTCOMES: StoredOutcome[] = ["won", "lost", "draw", "resigned", "aborted",
 const VARIETIES: Variety[] = ["low", "medium", "high"];
 const FORMS: BotMode[] = ["gpu", "cpu", "single"];
 const EDGE = /^[A-T][0-9]{1,2}-[A-T][0-9]{1,2}$/;
-const MAX_KOMI = 3000; // the card's (@abstractclass/practice/practice.ts): this module imports types only
+// The card's (@abstractclass/practice/practice.ts), which this module cannot import: stored.test.ts checks that they agree
+export const MAX_KOMI = 3000;
 export const RANDOM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/; // crypto.randomUUID's form
 
 /** Why a sent game is not one that the site keeps, or null when it is. */

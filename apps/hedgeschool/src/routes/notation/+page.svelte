@@ -129,9 +129,9 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
       <tr><td><code>GameId</code></td><td>The game's identifier on its site.</td></tr>
       <tr><td><code>Position</code></td><td>The start, in the position notation, when it is not the standard
         start (PGN's <code>FEN</code> tag).</td></tr>
-      <tr><td><code>Komi</code></td><td>Points that Red has before the first move, and below 0 points that Blue has: a
-        whole or half number, such as <code>300</code> or <code>-300</code>. Without the tag, 0. The result and the
-        engine's analysis count them. {SITE_NAME}'s practice games write it.</td></tr>
+      <tr><td><code>Komi</code></td><td>The points that Red has before the first move. A number below 0 gives them to
+        Blue. A whole or half number, such as <code>300</code> or <code>-300</code>. Without the tag, 0. The result and
+        the engine's analysis count them. {SITE_NAME}'s practice games write it.</td></tr>
       <tr><td><code>Rules</code></td><td>The variant, when the game does not follow the online rules (PGN's
         <code>Variant</code>).</td></tr>
       <tr><td><code>Annotator</code></td><td>Who annotated the game (PGN's tag): a person, or a program such as

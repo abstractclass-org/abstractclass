@@ -5,7 +5,7 @@ import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
 import * as shared from "@abstractclass/analysis/boardLink.ts";
 import { boardOfLine } from "@abstractclass/analysis/kept.ts";
 import { ENCLOSURE_CODE } from "./share.ts";
-import { recordKomi, type GameRecord } from "./record.ts";
+import type { GameRecord } from "./record.ts";
 import type { KeptBoard } from "./store.ts";
 export { boardPositionKeys } from "@abstractclass/analysis/boardLink.ts";
 
@@ -16,7 +16,7 @@ const treeName = (m: string) => (m === "pass" ? m : edgeName(parseEdge(m)));
  *  record's reader keeps the line only, so its variations stay behind. The record's `Position` tag is the board's
  *  start (design 21), and its `Komi` tag the board's komi (design 24). */
 export function boardOfRecord(record: GameRecord): KeptBoard {
-  return boardOfLine(record.moves.map(treeName), setUpStart(record.tags.Position), recordKomi(record.tags));
+  return boardOfLine(record.moves.map(treeName), setUpStart(record.tags.Position), record.komi);
 }
 
 /** The link to a board: its tree, and the position on screen as its place on the main line (`at`, 0 at the start).

@@ -11,7 +11,7 @@
 // pass or a result. This reader keeps the main line and its tags. It skips comments and variations, but reads `[%clk]`
 // and `[%eval]` from the comments after the main line's moves. It checks the notation, not the rules: the engine checks
 // that every move is legal. It also accepts a bare list of moves, without turn labels. It checks one tag's value, the
-// `Komi` tag's (recordKomi): the game's starting score, which the review searches at.
+// `Komi` tag's: the game's starting score (GameRecord `komi`), which the review searches at.
 
 /** A move as the game reads it from a record's word: its one spelling, its mark, and where in the word its mark
  *  starts (the word's length when it has none), so that a mark can be written there (markMoves). */
@@ -40,6 +40,7 @@ export interface GameRecord<Mark> {
   result: string | null;
   evals: (Eval | null)[]; // by move: the evaluation after it, when the record has one
   clocks: (string | null)[]; // by move: the clock after it, when the record has one
+  komi: number; // the `Komi` tag's (komiOf): Red's starting score (Hedge School's design 24), 0 without the tag
 }
 export interface Eval { blueWin: number; margin: number; spread: number }
 
@@ -78,9 +79,6 @@ export function komiOf(value: string | undefined): number | null {
   if (v === "" || v === "?" || v === "-") return 0;
   return KOMI.test(v) ? Number(v) || 0 : null;
 }
-
-/** A record's komi: its `Komi` tag, 0 without one. The reader refuses a tag that is not a komi. */
-export const recordKomi = (tags: Record<string, string>): number => komiOf(tags.Komi) ?? 0;
 
 /** The `Komi` tag of a game at `komi`: none at 0, so that such a game's record is as it was before the komi. */
 export const komiTag = (komi: number): Record<string, string> => (komi ? { Komi: String(komi) } : {});
@@ -137,7 +135,7 @@ function readCommands<Mark>(comment: string, record: GameRecord<Mark>, move: num
 
 /** Reads a game record, with the game's moves and marks. Throws a RecordError with the offset of the first problem. */
 export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRecord<Mark> {
-  const record: GameRecord<Mark> = { tags: {}, moves: [], marked: [], ends: [], result: null, evals: [], clocks: [] };
+  const record: GameRecord<Mark> = { tags: {}, moves: [], marked: [], ends: [], result: null, evals: [], clocks: [], komi: 0 };
   let depth = 0, expectedTurn: number | null = null; // the next turn's number, once the first turn sets it
   for (const t of tokenize(text)) {
     if (t.kind === "open") { depth++; continue; }
@@ -153,8 +151,12 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
       if (t.name === "Position" && !notation.start && !["", "?", "-"].includes(t.value.trim()))
         throw new RecordError("this site reads a game from the standard start only: remove the Position tag", t.at);
       // A komi that no reader can take: the game would be reviewed at a komi that the record does not give.
-      if (t.name === "Komi" && komiOf(t.value) === null)
-        throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
+      if (t.name === "Komi") {
+        const komi = komiOf(t.value);
+        if (komi === null)
+          throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
+        record.komi = komi;
+      }
       record.tags[t.name] = t.value;
     } else if (t.kind === "comment") {
       if (record.moves.length) readCommands(t.text, record, record.moves.length - 1);

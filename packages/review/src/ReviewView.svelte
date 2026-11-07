@@ -2428,7 +2428,9 @@
         {@render choice("Move notation", view.glyphs.help, [["glyphs", "Glyphs"], ["text", "Text"]],
           () => (display.notation === "text" ? "text" : "glyphs"), v => (display.notation = v as "glyphs" | "text"))}
       {/if}
-      {#if book?.ready && !board}
+      <!-- Only where the move list can show a book move: the game has a book opening, so none where the site has no
+           book, where it did not load, on the board, or at a komi (the site's `opening`) -->
+      {#if opening}
         {@render choice("Book moves", "Each book move's quality label in brown, or an open book in the quality label's colour.",
           [["label", "Brown"], ["book", "Book"]], () => display.bookMoves, v => (display.bookMoves = v as Display["bookMoves"]))}
       {/if}

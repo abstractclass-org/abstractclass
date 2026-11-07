@@ -30,7 +30,7 @@
   let visitsTyped = $state<string | null>(null);
   const visitsWrong = $derived(visitsTyped !== null && !visitsTaken(Number(visitsTyped)));
   let komiTyped = $state<string | null>(null);
-  const komiWrong = $derived(komiTyped !== null && (komiTyped.trim() === "" || !komiTaken(Number(komiTyped))));
+  const komiWrong = $derived(komiTyped !== null && (komiTyped === "" || !komiTaken(Number(komiTyped)))); // "": Number gives 0
   const range = (n: number) => n.toLocaleString("en");
 </script>
 

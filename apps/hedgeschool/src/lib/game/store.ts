@@ -6,7 +6,7 @@ import { STORES, dbAll, dbDelete, dbGet, dbPut } from "@abstractclass/storage/db
 import { makeEarlierRemovalDue } from "@abstractclass/analysis/cache.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
-import { parseRecord, recordKomi, type GameRecord } from "./record.ts";
+import { parseRecord, type GameRecord } from "./record.ts";
 import { sha256Hex } from "@abstractclass/engine/artifacts.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { modelOf, moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
@@ -104,7 +104,7 @@ export async function gameId(moves: string[], start?: string, komi = 0): Promise
 
 /** Saves a game. Returns its id, and whether the browser kept it (storage can be blocked). */
 export async function saveGame(text: string, record: GameRecord): Promise<{ id: string; kept: boolean }> {
-  const id = await gameId(record.moves, setUpStart(record.tags.Position), recordKomi(record.tags));
+  const id = await gameId(record.moves, setUpStart(record.tags.Position), record.komi);
   const existing = await dbGet<StoredGame>(STORES.games, id);
   if (existing) return { id, kept: true };
   const game: StoredGame = { version: 1, id, record: text, added: new Date().toISOString() };

@@ -158,9 +158,9 @@
       <tr><td><code>Termination</code></td><td>How the game ended: <code>normal</code>, <code>resignation</code> or
         <code>forfeit</code>.</td></tr>
       <tr><td><code>GameId</code></td><td>The game's identifier on its site.</td></tr>
-      <tr><td><code>Komi</code></td><td>Points that Red has before the first move, and below 0 points that Blue has: a
-        whole or half number, such as <code>300</code> or <code>-300</code>. Without the tag, 0. The result and the
-        engine's analysis count them.</td></tr>
+      <tr><td><code>Komi</code></td><td>The points that Red has before the first move. A number below 0 gives them to
+        Blue. A whole or half number, such as <code>300</code> or <code>-300</code>. Without the tag, 0. The result and
+        the engine's analysis count them.</td></tr>
       <tr><td><code>Annotator</code></td><td>Who annotated the game (PGN's tag): a person, or a program such as
         {SITE_NAME}.</td></tr>
     </tbody>

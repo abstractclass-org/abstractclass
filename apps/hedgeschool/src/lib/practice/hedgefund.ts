@@ -7,8 +7,8 @@ import { komiTag, writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
 import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
 import {
-  botLabel, choicesStore, keptStore, komiHelp, komiSide, settingsCommands, VARIETY_NAME, type BotSettings,
-  type KeptPractice as Kept, type PracticeOutcome,
+  botLabel, choicesStore, keptStore, settingsCommands, VARIETY_NAME, type BotSettings, type KeptPractice as Kept,
+  type PracticeOutcome,
 } from "@abstractclass/practice/practice.ts";
 import type { BotMode } from "@abstractclass/practice/botMessages.ts";
 
@@ -27,10 +27,8 @@ const HALFLIFE = 19;
 /** The commands that give the bot a game's settings and its komi, after `enclosure-start`. */
 export const botCommands = (bot: BotSettings, komi = 0) => settingsCommands(bot, HALFLIFE, komi);
 
-/** The bot's name on the page, as the help of the komi says it. */
+/** The bot's name on the page, as the komi's words say it (komiHelp, komiLine). */
 export const BOT_NAME = "HedgeFund";
-/** A game's komi in words, from the player's side (design 24): "You start 300 points ahead." Empty at komi 0. */
-export const komiLine = (k: Pick<KeptPractice, "komi" | "human">) => (k.komi ? komiHelp(komiSide(k.komi, k.human), BOT_NAME) : "");
 
 /** The bot's name in the record and on the board: "HedgeFund 0.2 Lite, 64 visits, Low variety". */
 export const botName = (bot: BotSettings) => botLabel(networkName(bot.network), bot);

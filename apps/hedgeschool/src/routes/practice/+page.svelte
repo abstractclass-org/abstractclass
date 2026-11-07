@@ -274,7 +274,7 @@
 
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : networkName(k.bot.network));
   // The bot's settings and where it runs, then the komi from the player's side (design 24)
-  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${WHERE[g.mode]}.${g.kept.komi ? ` ${komiLine(g.kept)}` : ""}`;
+  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${WHERE[g.mode]}.${g.kept.komi ? ` ${komiLine(g.kept, BOT_NAME)}` : ""}`;
   const statusText = $derived.by(() => {
     const g = game, p = g?.position;
     if (!g || g.status === "starting" || !p) return "Starting HedgeFund…";

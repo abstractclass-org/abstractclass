@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  botLabel, choicesStore, gtpAnswer, keptStore, komiHelp, komiSide, komiTaken, practiceOutcome, resignResult, scoreResult,
+  botLabel, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, practiceOutcome, resignResult, scoreResult,
   settingsCommands, takebackCount, visitsStop, visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
@@ -97,4 +97,8 @@ test("the komi: any whole number from -3,000 to 3,000 on the card, from the play
   assert.equal(komiHelp(-1500, "Stamp Duty"), "Stamp Duty starts 1,500 points ahead.");
   assert.equal(komiHelp(1), "You start 1 point ahead.");
   assert.equal(komiHelp(0), "Neither side starts ahead, as in a game online.");
+  // A game's line: Red's komi -300 is Blue's head start, the player's when Blue, the bot's when Red; none at 0
+  assert.equal(komiLine({ komi: -300, human: 0 }, "Stamp Duty"), "You start 300 points ahead.");
+  assert.equal(komiLine({ komi: -300, human: 1 }, "Stamp Duty"), "Stamp Duty starts 300 points ahead.");
+  assert.equal(komiLine({ human: 1 }), "");
 });

@@ -3,13 +3,11 @@
 // (@abstractclass/analysis/cache.ts). The site's engine reads its own results only. An earlier engine's are read by the
 // review snapshot of a game whose last review used it, and by nothing else.
 import lock from "../../../engine.lock.json" with { type: "json" };
-import { BUDGETS, MAP_PREFIX, READ_SHAPES, SWEEP_VISITS, earlierRemoval, isAnalysisKey, readAnalysisKey, readable, searchHolding,
-         snapshotExcept, snapshotPositions } from "@abstractclass/analysis/cache.ts";
-import { recordKomi } from "./record.ts";
+import { BUDGETS, MAP_PREFIX, READ_SHAPES, SWEEP_VISITS, earlierRemoval, isAnalysisKey, parentKeyMoves, readAnalysisKey, readable,
+         searchHolding, snapshotExcept, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import { STORES, dbReadThenDelete } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { positionKeys, shippedModels } from "./reviewFile.ts";
-import { parentKey } from "@abstractclass/analysis/tree.ts";
 import { readGames, reviewAgainWhy, reviewMark, type KeptBranches, type ReviewMark, type StoredGame } from "./store.ts";
 
 /** Removes the stored results that no game needs (unneededResults), in one transaction with the read of the games, their
@@ -25,7 +23,7 @@ function keptGames(games: [string, unknown][], branches: [string, unknown][]): K
   const branchesOf = new Map(branches);
   return readGames(games.map(([, game]) => game as StoredGame)).map(({ game, record }) =>
     ({ moves: record.moves, branches: (branchesOf.get(game.id) as KeptBranches | undefined) ?? null, mark: game.reviewed,
-       komi: recordKomi(record.tags) }));
+       komi: record.komi }));
 }
 
 /** A stored game as the removal reads it: its moves, its variations, the mark of its last review, and its komi (its
@@ -75,10 +73,10 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
     snapshotReads.set(at, positions);
   }
   // The review depths that read a stored key's position (search, network file and moves): a review snapshot reads the
-  // position, or the position before it.
+  // position, or the position before it (none before a start, at 0 or at a komi: cache.ts, parentKeyMoves).
   const depthsAt = ({ search, model, moves }: { search: string; model: string; moves: string }) => {
-    const positions = snapshotReads.get(`${search}|${model}`);
-    return positions ? [...(positions.get(moves) ?? []), ...((moves && positions.get(parentKey(moves))) || [])] : [];
+    const positions = snapshotReads.get(`${search}|${model}`), parent = parentKeyMoves(moves);
+    return positions ? [...(positions.get(moves) ?? []), ...((parent !== null && positions.get(parent)) || [])] : [];
   };
   // The results that a review snapshot reads, by their position and the review depths that read them, and the deepest visits
   // that each depth reads at each position. An added map is not one of them: it stays while a review snapshot reads its
@@ -91,7 +89,7 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
   // A threat that a review snapshot reads, the result after a pass (design 31): its size compares it with the result of the
   // position before the pass at the same visits, which stays too, though the position has a deeper one.
   const sizes = new Set(earlier.flatMap((k, i) => k && k.moves.split(" ").at(-1) === "pass" && kept(i)
-    ? [`${k.search}|${k.model}|${parentKey(k.moves)}|${k.visits}`] : []));
+    ? [`${k.search}|${k.model}|${parentKeyMoves(k.moves)}|${k.visits}`] : []));
   return keys.filter((_, i) => {
     const k = earlier[i];
     return !!k && !(k.map ? depthsAt(k).length : kept(i) || sizes.has(`${k.search}|${k.model}|${k.moves}|${k.visits}`));

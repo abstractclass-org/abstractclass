@@ -53,8 +53,8 @@ export class PracticeGame {
   }
 
   /** Gives the bot the game's settings, its komi and its start (a set-up start, interface 0.1.1), plays the game's
-   *  moves into it (a game kept from an earlier visit, or a record brought), notes a new build, and takes the turn up.
-   *  */
+   *  moves into it (a game kept from an earlier visit, or a record brought), notes a new build, and takes the turn
+   *  up. */
   async start() {
     try {
       const info = JSON.parse(await this.bot.command("enclosure-bot-info")) as { build: string };

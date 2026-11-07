@@ -48,6 +48,9 @@ export function komiHelp(points: number, bot = "The bot"): string {
   return points > 0 ? `You start ${ahead(points)}.` : points < 0 ? `${bot} starts ${ahead(points)}.`
     : "Neither side starts ahead, as in a game online.";
 }
+/** A game's komi in words, from the player's side: "You start 300 points ahead." Empty at komi 0. */
+export const komiLine = (k: Pick<KeptPractice, "komi" | "human">, bot = "The bot") =>
+  (k.komi ? komiHelp(komiSide(k.komi, k.human), bot) : "");
 
 /** The bot's settings for a game, fixed for it. */
 export interface BotSettings { network: string; visits: number; variety: Variety }
@@ -124,8 +127,7 @@ export const gtpColor = (p: Player) => (p === 0 ? "b" : "w");
 
 /** The GTP commands that give the bot a game's settings: the visits, the variety's temperatures, halved every
  *  `halflife` moves, and the game's komi (the engine's, Red's starting score). A game at komi 0 sends no `komi`: the
- *  bot's own is 0, so the game plays as before the komi. The bot keeps the komi through `clear_board` and a new start.
- *  */
+ *  bot's own is 0, so the game plays as before the komi. The bot keeps it through `clear_board` and a new start. */
 export function settingsCommands(bot: BotSettings, halflife: number, komi = 0): string[] {
   const v = VARIETY[bot.variety];
   return [`kata-set-param maxVisits ${bot.visits}`, `kata-set-param chosenMoveTemperatureEarly ${v.early}`,

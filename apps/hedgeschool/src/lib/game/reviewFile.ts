@@ -7,7 +7,7 @@
 import { atShape, keyMoves, makeEarlierRemovalDue, ofModels } from "@abstractclass/analysis/cache.ts";
 import { belongs, readSiteFile, shippedModels } from "@abstractclass/analysis/files.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
-import { parseRecord, playerNames, recordKomi } from "./record.ts";
+import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
 import { prefixKeys } from "@abstractclass/analysis/tree.ts";
 import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
@@ -61,11 +61,11 @@ export { belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
 export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
                                 models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
-  const { moves, tags } = parseRecord(record);
+  const { moves, komi } = parseRecord(record);
   return {
     format: REVIEW_FORMAT, version: REVIEW_FILE_VERSION, exported: now.toISOString(), site,
     review: reviewed && { ...reviewed, networkName: networkName(reviewed.network) }, record, branches,
-    analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches, recordKomi(tags)), models)),
+    analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches, komi), models)),
   };
 }
 
@@ -111,7 +111,7 @@ async function exportReview(id: string, site: string, models: Set<string> | null
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
   const branches = (await dbGet<KeptBranches>(STORES.branches, id)) ?? null;
-  const positions = positionKeys(stored.record.moves, branches, recordKomi(stored.record.tags));
+  const positions = positionKeys(stored.record.moves, branches, stored.record.komi);
   const entries = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
   return buildReviewFile(stored.game.record, branches, entries, site, models, stored.game.reviewed ?? null);
 }
