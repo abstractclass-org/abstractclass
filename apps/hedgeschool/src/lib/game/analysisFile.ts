@@ -7,7 +7,7 @@ import type { Manifest } from "@abstractclass/engine/client.ts";
 import { REVIEW_FORMAT } from "./reviewFile.ts";
 import { boardLink } from "./board.ts";
 import type { KeptBoard } from "./store.ts";
-export { ANALYSIS_FILE_VERSION, type AnalysisFile } from "@abstractclass/analysis/files.ts";
+export { ANALYSIS_FILE_VERSION } from "@abstractclass/analysis/files.ts";
 
 export const ANALYSIS_FORMAT = "hedge-school-analysis";
 
@@ -26,7 +26,7 @@ export const exportAnalysis = (board: KeptBoard, site: string, models: Set<strin
   shared.exportAnalysis(ANALYSIS_FORMAT, board, site, models, now);
 
 /** A file name for an analysis: the date and time it was saved, the player's own. */
-export const analysisFileName = (now = new Date()): string => shared.analysisFileName("hedge-school", now);
+export const analysisFileName = (now = new Date()): string => shared.analysisFileName(ANALYSIS_FORMAT, now);
 
 /** Reads an analysis file. Throws an Error that tells the player what is wrong. Its version rule is the review file's
  *  (design 13). */

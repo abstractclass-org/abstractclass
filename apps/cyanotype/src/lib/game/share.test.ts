@@ -1,11 +1,16 @@
-// Checks the shared review's link with Blueprints' moves (share.ts): each kind of move comes back as it was, the
-// variations come back with their order and their marks, the record is written with the game's turns, and a broken
-// link says so. Run: npm test.
+// Checks the shared review's link with Blueprints' moves (share.ts): each kind of move comes back as it was, every legal
+// move of every position of a game by the engine's rules, the variations with their order and their marks, the record
+// with the game's turns, and a cut or broken link says so. Run: npm test. The engine's rules come from the site's
+// static/engine (CPU, no network): without its files (npm run engine), that test skips.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import type { KeptNode } from "@abstractclass/analysis/kept.ts";
+import type { DescribeReply } from "../board/described.ts";
 import { decodeShare, encodeShare, reviewLink, sharedRecord, type SharedReview } from "./share.ts";
+import { parseMove } from "./notation.ts";
 import { parseRecord } from "./record.ts";
 
 // A game of the archive: 120 moves of placements, edits and their capture marks.
@@ -59,4 +64,49 @@ test("a broken or cut link says so", () => {
   const code = encodeShare(base(GAME.moves));
   assert.throws(() => decodeShare(code.slice(0, 40)), /not complete|broken/);
   assert.throws(() => decodeShare(`B${code.slice(1)}`), /another version/);
+  // Cut anywhere: every byte holds bits that the reader needs.
+  for (let cut = 0; cut < code.length; cut++)
+    assert.throws(() => decodeShare(code.slice(0, cut)), /broken|not complete|another version/, `cut at ${cut}`);
+});
+
+test("a changed letter gives an Error that says what is wrong, or a game whose moves are in the notation", () => {
+  const code = encodeShare(base(GAME.moves, [[[...GAME.moves.slice(0, 40), "1@0,2"].join(" "), 0, 1]]));
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  for (let at = 0; at < code.length; at++) for (const shift of [1, 17, 40]) {
+    const changed = code.slice(0, at) + letters[(letters.indexOf(code[at]) + shift) % 64] + code.slice(at + 1);
+    let back: SharedReview;
+    try {
+      back = decodeShare(changed);
+    } catch (e) {
+      assert.ok(e instanceof Error && e.message, `changed at ${at}: ${String(e)}`);
+      continue;
+    }
+    // The link has no checksum, as Hedge School's: a changed letter can give another game, which the review's rules
+    // then check. Its moves are always in the notation.
+    for (const m of [...back.moves, ...back.branches.map(b => b[0].split(" ").at(-1)!)])
+      if (m !== "pass") assert.doesNotThrow(() => parseMove(m), `changed at ${at}: ${m}`);
+  }
+});
+
+const app = join(import.meta.dirname, "..", "..", "..");
+test("every legal move of every position of a game, by the engine's rules, comes back from a link as it was", {
+  skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",
+}, async () => {
+  const { call } = await nodeEngine(app);
+  const kinds = new Set<string>();
+  let legal = 0;
+  for (let n = 0; n <= GAME.moves.length; n++) {
+    // The game so far, and each legal move of its position as a variation from it.
+    const before = GAME.moves.slice(0, n), d: DescribeReply = call({ id: "d", action: "describe", moves: before });
+    const branches = d.legal.map((m, i): KeptNode => [[...before, m].join(" "), i]);
+    const back = decodeShare(encodeShare(base(before, branches)));
+    assert.deepEqual(back.moves, before, `${n} moves`);
+    assert.deepEqual(back.branches.map(b => b[0]), branches.map(b => b[0]), `${n} moves: its legal moves`);
+    for (const m of d.legal) kinds.add(m === "pass" ? "pass" : parseMove(m).kind);
+    legal += d.legal.length;
+  }
+  // Placements, with the farthest anchors that the rules allow, and edits. No position of this game has a legal pass:
+  // the first test covers the pass.
+  assert.ok(kinds.has("place") && kinds.has("edit"), [...kinds].join(", "));
+  assert.ok(legal > 100_000, `${legal} legal moves`);
 });

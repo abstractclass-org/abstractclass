@@ -43,7 +43,7 @@ export const belongs = (key: string, positions: Set<string>, models: Set<string>
   return readable(k.shape) && atPositions(k.moves, positions) && (!models || models.has(k.model));
 };
 /** Whether a result's position (its moves) is one of `positions`, or one move from one. */
-export const atPositions = (moves: string, positions: Set<string>) =>
+const atPositions = (moves: string, positions: Set<string>) =>
   positions.has(moves) || (!!moves && positions.has(parentKey(moves)));
 
 /** The networks a manifest ships, by their SHA-256. */
@@ -70,11 +70,10 @@ export async function exportAnalysis(format: string, board: KeptBoard, site: str
   return { format, version: ANALYSIS_FILE_VERSION, exported: now.toISOString(), site, board, analyses };
 }
 
-/** A file name for an analysis of `site` (its name in the file's format): the date and time it was saved, the player's
- *  own. */
-export function analysisFileName(site: string, now = new Date()): string {
+/** A file name for an analysis in `format`: the format, then the date and time it was saved, the player's own. */
+export function analysisFileName(format: string, now = new Date()): string {
   const two = (n: number) => String(n).padStart(2, "0");
-  return `${site}-analysis-${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}-${two(now.getHours())}${two(now.getMinutes())}.json`;
+  return `${format}-${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}-${two(now.getHours())}${two(now.getMinutes())}.json`;
 }
 
 /** Reads an analysis file of `site` in `format`. Throws an Error that tells the player what is wrong. Its version rule

@@ -8,12 +8,9 @@
 // reviews it again: the engine's full results stay in the review file (game/reviewFile.ts).
 import * as shared from "@abstractclass/analysis/annotate.ts";
 import { enclosure, moveNotation, type Enclosure } from "./enclosure.ts";
-import { edgeName } from "#lib/engine/notation.ts";
-export { QUALITY_MARK, evalCommand } from "@abstractclass/analysis/annotate.ts";
+export { evalCommand } from "@abstractclass/analysis/annotate.ts";
 
 export type AnnotateInput = shared.AnnotateInput<Enclosure>;
 
-/** Enclosure's moves in the record: an edge with its cut mark, and the engine's choice by its edge. */
-const ENCLOSURE_NOTATION: shared.AnnotateNotation<Enclosure> = { played: moveNotation, best: edgeName };
-
-export const annotatedRecord = (input: AnnotateInput): string => shared.annotatedRecord(enclosure, ENCLOSURE_NOTATION, input);
+/** The annotated record, each edge played with its cut mark (moveNotation). */
+export const annotatedRecord = (input: AnnotateInput): string => shared.annotatedRecord(enclosure, moveNotation, input);

@@ -24,7 +24,8 @@
   import { modelOf } from "@abstractclass/engine/client.ts";
   import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import NewMenu from "@abstractclass/review/NewMenu.svelte";
-  import type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
+  import { BOARD_EXPORTS, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+  import { shippedModels } from "@abstractclass/analysis/files.ts";
   import { download } from "@abstractclass/site/download.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -37,20 +38,12 @@
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, type GameRecord } from "#lib/game/record.ts";
   import { boardLink, readBoardLink } from "#lib/game/board.ts";
-  import { analysisFileName, exportAnalysis, openAnalysisFile, shippedModels } from "#lib/game/analysisFile.ts";
+  import { analysisFileName, exportAnalysis, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
   const PLAYERS: ReviewData["players"] = { blue: "Blue", red: "Red" };
-  // The Export menu's entries on the board, as Hedge School's (its design 21): the analysis by link, as a file with the
-  // engine's results, or as the annotated record.
-  const EXPORT_ITEMS: ExportItem[] = [
-    ["share_link", "Copy a link to share the analysis", "Its lines and the moves evaluated. The recipient's browser searches what it shows.", "Link copied"],
-    ["analysis_file", "Analysis file, to load later or elsewhere", "With the engine's results: the analysis opens at once.", "Analysis file saved"],
-    ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
-    ["record_file", "Annotated record as a file", "", "Annotated record saved"],
-  ];
 
   let game = $state<GameAnalysis<Blueprints> | null>(null);
   let error = $state("");
@@ -79,11 +72,11 @@
     untrack(() => { if (game?.rulesReady) writeLocal(BOARD_AT_KEY, key); });
   });
 
-  /** The board kept here, at its kept place, and a line brought after the `#`, which leaves the address. A record
-   *  replaces the kept board once the engine has checked it (recordCheck.ts), and a link's or a file's lines (`linked`)
-   *  once they are read, when the player agrees where the kept board has moves. */
-  async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: { record: GameRecord; at: number };
-                                          linked?: { board: KeptBoard; at: number } }> {
+  /** The board kept here, at its kept place, and a board brought after the `#`, which leaves the address: a record's
+   *  line (`record`), which replaces the kept board once the engine has checked it (recordCheck.ts), or a link's or a
+   *  file's lines, once they are read. Each asks first where the kept board has moves. */
+  async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[];
+                                          brought?: { board: KeptBoard; at: number; record?: GameRecord } }> {
     const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
     const p = new URLSearchParams(location.hash.slice(1)), text = p.get("record"), packed = p.get("packed");
@@ -91,7 +84,7 @@
     await replaceState("/analysis", {}); // async: the address changes only once it resolves
     if (text === null) {
       try {
-        return { kept, at: keptAt, linked: readBoardLink(packed ?? "", p.get("at")) };
+        return { kept, at: keptAt, brought: readBoardLink(packed ?? "", p.get("at")) };
       } catch (e) {
         notice = `The Analysis board cannot load this ${p.get("via") === "analysis_file" ? "file" : "link"}: ${sentence(errorText(e))} Your own analysis is here instead.`;
         return { kept, at: keptAt };
@@ -99,7 +92,8 @@
     }
     try {
       const record = parseRecord(text);
-      return { kept, at: keptAt, brought: { record, at: Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0) } };
+      const atMain = Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0);
+      return { kept, at: keptAt, brought: { board: boardOfLine(record.moves), at: atMain, record } };
     } catch (e) {
       refuse(errorText(e));
       return { kept, at: keptAt };
@@ -117,21 +111,19 @@
       await session.load();
       const opening = chooseBoard();
       const g = await session.start(pool => new GameAnalysis(blueprints, pool, [], BOARD_ID), async (g, pool) => {
-        const chosen = await opening;
+        const chosen = await opening, b = chosen.brought;
         await g.start();
-        const problem = chosen.brought && g.rulesReady ? await recordProblem(describeBy(pool.rules), chosen.brought.record) : null;
+        const problem = b?.record && g.rulesReady ? await recordProblem(describeBy(pool.rules), b.record) : null;
         if (problem) refuse(problem);
         // Only a record that the engine accepted replaces the board kept here: without the rules, the page shows why
-        const offered = chosen.brought ? g.rulesReady && !problem : !!chosen.linked;
-        const replace = offered && (!chosen.kept?.nodes.length || await question.ask());
-        const brought = replace ? chosen.brought : undefined, linked = replace ? chosen.linked : undefined;
-        const board = brought ? boardOfLine(brought.record.moves) : linked ? linked.board : chosen.kept;
+        const offered = !!b && (!b.record || (g.rulesReady && !problem));
+        const brought = offered && (!chosen.kept?.nodes.length || await question.ask()) ? b : undefined;
+        const board = brought?.board ?? chosen.kept;
         if (board) await g.loadBoard(board);
         const model = modelOf(session.manifest!, session.network)?.sha256;
         if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
-        const atMain = brought?.at ?? linked?.at;
-        if (atMain !== undefined) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a link's board is now this browser's
-        const at = atMain !== undefined ? g.mainNames.slice(0, atMain)
+        if (brought) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a brought board is now this browser's
+        const at = brought ? g.mainNames.slice(0, brought.at)
           : mainIndex(chosen.at, g.mainNames) !== null || pathKey(chosen.at) in g.branches ? chosen.at : [];
         start = at;
         current = at;
@@ -157,8 +149,7 @@
   async function loadFile(file: File) {
     notice = "";
     try {
-      const link = await openAnalysisFile(await file.text(), session.manifest);
-      history.replaceState(null, "", `/analysis#${link.split("#")[1]}`);
+      history.replaceState(null, "", await openAnalysisFile(await file.text(), session.manifest)); // `/analysis#packed=…`
       location.reload();
     } catch (e) {
       notice = `The Analysis board cannot load this file: ${sentence(errorText(e))}`;
@@ -205,7 +196,7 @@
            for a position's notation (abscls-8tl1.39). -->
       <NewMenu site={SITE_NAME} onstart={newBoard} onload={loadFile} />
       <!-- Export: the link, the analysis file, or the annotated record, labelled by the view's unit. -->
-      <ExportMenu icon run={kind => exportAs(kind, unit)} items={EXPORT_ITEMS} />
+      <ExportMenu icon run={kind => exportAs(kind, unit)} items={BOARD_EXPORTS} />
     {/snippet}
   </ReviewView>
 {:else}

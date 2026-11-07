@@ -4,15 +4,12 @@
 import { STORES, dbGet } from "@abstractclass/storage/db.ts";
 import { branchNodes, type KeptBranches } from "@abstractclass/analysis/kept.ts";
 import { shareNote } from "@abstractclass/analysis/share.ts";
-import type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
+import { REVIEW_LINK, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 import type { GameRecord } from "../game/record.ts";
 import { reviewLink, type ReviewRun } from "../game/share.ts";
 
-/** The review's entries: a link that shares the review. The link holds no results: the recipient's browser reviews the
- *  game again. */
-export const REVIEW_EXPORTS: ExportItem[] = [
-  ["share_link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"],
-];
+/** The review's entries: a link that shares the review. */
+export const REVIEW_EXPORTS: ExportItem[] = [REVIEW_LINK];
 
 /** Delivers an export of the game `id` in review, whose finished review ran with `run`: the link, copied. Answers what
  *  to tell the player. */

@@ -4,9 +4,9 @@
 // position." where the review marks one, the record's clocks, and the player's own lines as variations. By turn, each
 // turn's label is also a quality mark after its last move: `!` Great, `?!` Inaccuracy, `?` Mistake, `??` Blunder
 // (Best, Excellent and Good have none, as in PGN and Lichess). By move, the labels stay in comments: the notation's
-// marks judge turns. The record's frame is the shared one (@abstractclass/record/record.ts). Each game writes its own
-// moves (`AnnotateNotation`): Hedge School's edges with their cut marks, Cyanotype's placements with their capture
-// marks.
+// marks judge turns. The record's frame is the shared one (@abstractclass/record/record.ts). Each game writes the moves
+// played (`played`): Hedge School's edges with their cut marks, Cyanotype's placements with their capture marks. The
+// engine's choice in a comment is the move's name (Game.moveName).
 //
 // Where a variation goes, as the notation decides: after the turn it changes, after that turn's last move, its mark and
 // its comments. `N.` starts at the turn's start and replaces the whole turn: `3. D10-G9 G9-H10 (3. D10-F13 F13-G10)`.
@@ -18,14 +18,6 @@ import { LABEL_TEXT, type Analysis, type Review, type Unit } from "./model.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
 import { mainIndex, pathKey as key } from "./tree.ts";
 import { writeTags } from "@abstractclass/record/record.ts";
-
-/** How a game writes its moves in an annotated record. */
-export interface AnnotateNotation<G extends GameTypes> {
-  /** A move played, as the record writes it: its name, then the game's mark (Enclosure's cut, Blueprints' capture). */
-  played(move: G["played"]): string;
-  /** The engine's choice, as a comment names it: "… was best." */
-  best(move: G["move"]): string;
-}
 
 export interface AnnotateInput<G extends GameTypes> {
   R: Review<G>;
@@ -41,7 +33,7 @@ export interface AnnotateInput<G extends GameTypes> {
 /** The labels that a comment names: Great, and the bad ones. Best, Excellent and Good stay unsaid. */
 const COMMENTED = new Set<Label>(["great", ...BAD_LABELS]);
 /** A turn's quality mark (the notation's, PGN's suffixes): Great `!`, Inaccuracy `?!`, Mistake `?`, Blunder `??`. */
-export const QUALITY_MARK: Partial<Record<Label, string>> = { great: "!", inaccuracy: "?!", mistake: "?", blunder: "??" };
+const QUALITY_MARK: Partial<Record<Label, string>> = { great: "!", inaccuracy: "?!", mistake: "?", blunder: "??" };
 
 /** The engine's view after a move, Blue's: `[%eval W L S]`, the lead with its sign. */
 export function evalCommand(a: Analysis<unknown> | undefined): string {
@@ -52,11 +44,13 @@ export function evalCommand(a: Analysis<unknown> | undefined): string {
 
 interface Node { path: string[]; text: string; player: Player; comment: string; mark?: string }
 
-/** The annotated record of `input`'s review, its moves written by `notation`. */
-export function annotatedRecord<G extends GameTypes>(game: Game<G>, notation: AnnotateNotation<G>,
+/** The annotated record of `input`'s review, each move played written by `played`: its name, then the game's mark
+ *  (Enclosure's cut, Blueprints' capture). */
+export function annotatedRecord<G extends GameTypes>(game: Game<G>, played: (move: G["played"]) => string,
                                                     { R, unit, tags, result, clocks = [], branches = {}, note, annotator }: AnnotateInput<G>): string {
   const n = R.edges.length;
-  const mainNames = R.edges.map(e => game.moveName(e.edge));
+  const name = (m: G["move"]) => game.moveName(m);
+  const mainNames = R.edges.map(e => name(e.edge));
 
   // The game's line, with its labels and evaluations.
   const main: Node[] = R.edges.map((e, i) => {
@@ -64,25 +58,25 @@ export function annotatedRecord<G extends GameTypes>(game: Game<G>, notation: An
     let label: Label | null = null, best: string | undefined, hard = false, mark: string | undefined;
     if (unit === "edge") {
       label = e.label;
-      best = e.best ? notation.best(e.best.edge) : undefined;
+      best = e.best ? name(e.best.edge) : undefined;
       hard = e.hard;
     } else {
       const t = R.turnOf[i];
-      if (t && t.end - 1 === i) { label = t.label; best = t.best?.map(notation.best).join(" "); hard = t.hard; mark = label ? QUALITY_MARK[label] : undefined; }
+      if (t && t.end - 1 === i) { label = t.label; best = t.best?.map(name).join(" "); hard = t.hard; mark = label ? QUALITY_MARK[label] : undefined; }
     }
     if (label && COMMENTED.has(label)) parts.push(`${LABEL_TEXT[label]}.`);
     if (label && BAD_LABELS.includes(label) && best) parts.push(`${best} was best.`);
     if (hard) parts.push("A hard position.");
     if (clocks[i]) parts.push(`[%clk ${clocks[i]}]`);
     if (i + 1 < n || !R.data.positions[n]?.over) parts.push(evalCommand(R.data.analysis[i + 1])); // not at a game's end
-    return { path: mainNames.slice(0, i + 1), text: notation.played(R.data.moves[i]), player: e.player, comment: parts.filter(Boolean).join(" "), mark };
+    return { path: mainNames.slice(0, i + 1), text: played(R.data.moves[i]), player: e.player, comment: parts.filter(Boolean).join(" "), mark };
   });
 
   // The player's lines: each node under its parent's key, in the order the player added them.
   const byParent = new Map<string, Node[]>();
   for (const [k, b] of Object.entries(branches).sort((a, b) => a[1].order - b[1].order)) {
     const path = k.split(" ");
-    const node: Node = { path, text: notation.played(b.move), player: b.move.player, comment: evalCommand(b.analysis) };
+    const node: Node = { path, text: played(b.move), player: b.move.player, comment: evalCommand(b.analysis) };
     const parent = key(path.slice(0, -1));
     byParent.set(parent, [...(byParent.get(parent) ?? []), node]);
   }

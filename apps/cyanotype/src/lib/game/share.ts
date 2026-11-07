@@ -9,12 +9,12 @@
 // Elias gamma: 1 bit for 0, 3 bits for -1 and 1, 5 bits for -3 to 2. So a placement near the board's middle costs
 // about 20 bits, and a pass 2.
 import * as shared from "@abstractclass/analysis/share.ts";
-import type { BitReader, BitWriter, MoveCode, SharedReview } from "@abstractclass/analysis/share.ts";
+import type { BitReader, BitWriter, MoveCode, ReviewRun, SharedReview } from "@abstractclass/analysis/share.ts";
 import type { KeptNode } from "@abstractclass/analysis/kept.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import { moveName, parseMove, type BlueprintNumber, type HandCell } from "./notation.ts";
 import { writeRecord, type GameRecord } from "./record.ts";
-export { DISCORD_LIMIT, type SharedReview } from "@abstractclass/analysis/share.ts";
+export type { ReviewRun, SharedReview } from "@abstractclass/analysis/share.ts";
 
 const PLACE = 0, EDIT = 1, PASS = 2;
 const broken = () => new Error("the link is broken");
@@ -58,13 +58,9 @@ export const encodeShare = (s: SharedReview): string => shared.encodeShare(s, BL
 /** A shared review from the text after `#packed=`. Throws an Error that says what is wrong with the link. */
 export const decodeShare = (text: string): SharedReview => shared.decodeShare(text, BLUEPRINTS_CODE);
 
-/** What a finished review ran with: the engine module's and the network's SHA-256, and the review's visits. */
-export interface ReviewRun { module: string; model: string; visits: number }
-
 /** The link that shares a review: its game's record, its variations, and what the review ran with. */
 export const reviewLink = (origin: string, record: GameRecord, branches: KeptNode[], run: ReviewRun): string =>
-  `${origin}/review#packed=${encodeShare({ module: run.module.slice(0, 8), model: run.model.slice(0, 8), visits: run.visits,
-                                           tags: record.tags, moves: record.moves, branches })}`;
+  shared.reviewLink(origin, run, record, branches, BLUEPRINTS_CODE);
 
 /** The game's record from a shared review: its tags, then its turns (Blue's first of one move, then two a turn: a
  *  pass is one move). The review checks the moves with the engine's rules, as for any record. */

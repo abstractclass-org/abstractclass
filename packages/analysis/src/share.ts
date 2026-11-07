@@ -162,6 +162,16 @@ export function decodeShare(text: string, code: MoveCode): SharedReview {
   return { module: hexOf(bytes.subarray(1, 5)), model: hexOf(bytes.subarray(5, 9)), visits, tags, moves, branches };
 }
 
+/** What a finished review ran with: the engine module's and the network's SHA-256, and the review's visits. */
+export interface ReviewRun { module: string; model: string; visits: number }
+
+/** The link that shares a review (`/review#packed=…`): its game's tags and moves, its variations, and what its finished
+ *  review ran with, each SHA-256 by its first 8 hex digits. */
+export const reviewLink = (origin: string, run: ReviewRun, game: { tags: Record<string, string>; moves: string[] },
+                           branches: KeptNode[], code: MoveCode): string =>
+  `${origin}/review#packed=${encodeShare({ module: run.module.slice(0, 8), model: run.model.slice(0, 8), visits: run.visits,
+                                           tags: game.tags, moves: game.moves, branches }, code)}`;
+
 /** The note after a review's link is copied: its length, and a warning past a Discord message's limit. `reviewFile`:
  *  whether the site exports review files, which the warning offers in the link's place. */
 export function shareNote(length: number, reviewFile = true): string {

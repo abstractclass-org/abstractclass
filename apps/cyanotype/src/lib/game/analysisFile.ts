@@ -6,9 +6,8 @@
 import * as shared from "@abstractclass/analysis/files.ts";
 import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
-import { boardLink } from "./board.ts";
+import { boardLink, standardStart } from "./board.ts";
 import { SITE_NAME } from "../site.ts";
-export { shippedModels, type AnalysisFile } from "@abstractclass/analysis/files.ts";
 
 export const ANALYSIS_FORMAT = "cyanotype-analysis";
 
@@ -18,7 +17,7 @@ export const exportAnalysis = (board: KeptBoard, site: string, models: Set<strin
   shared.exportAnalysis(ANALYSIS_FORMAT, board, site, models, now);
 
 /** A file name for an analysis: the date and time it was saved, the player's own. */
-export const analysisFileName = (now = new Date()): string => shared.analysisFileName("cyanotype", now);
+export const analysisFileName = (now = new Date()): string => shared.analysisFileName(ANALYSIS_FORMAT, now);
 
 /** Reads an analysis file. Throws an Error that tells the player what is wrong. */
 export const readAnalysisFile = (text: string): shared.AnalysisFile => shared.readAnalysisFile(text, SITE_NAME, ANALYSIS_FORMAT);
@@ -27,7 +26,7 @@ export const readAnalysisFile = (text: string): shared.AnalysisFile => shared.re
  *  Answers the board's address with the file's lines. Throws an Error that tells the player what is wrong. */
 export async function openAnalysisFile(text: string, manifest: Manifest | null): Promise<string> {
   const file = readAnalysisFile(text);
-  if (file.board.start) throw new Error(`the file starts from a set-up position, which ${SITE_NAME} cannot open yet`);
+  standardStart(file.board.start); // before its results go to the store
   await shared.keepAnalyses(file, manifest);
   return boardLink("", file.board, 0, "analysis_file");
 }

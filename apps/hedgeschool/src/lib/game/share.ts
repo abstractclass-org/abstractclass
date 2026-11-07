@@ -11,7 +11,7 @@ import { edgeName, parseEdge } from "#lib/engine/notation.ts";
 import { writeRecord } from "./record.ts";
 import * as shared from "@abstractclass/analysis/share.ts";
 import type { BitReader, BitWriter, MoveCode, SharedReview } from "@abstractclass/analysis/share.ts";
-export { DISCORD_LIMIT, type SharedReview } from "@abstractclass/analysis/share.ts";
+export type { SharedReview } from "@abstractclass/analysis/share.ts";
 
 const PASS = 511;
 const pointCode = (x: number, y: number) => x * 19 + y;

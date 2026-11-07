@@ -15,8 +15,8 @@ export function boardPositionKeys(board: KeptBoard): Set<string> {
 }
 
 /** The link to a board: its tree, and the position on screen as its place on the main line (`at`, 0 at the start).
- *  `via` names the import's source when the site's own page made the link (an analysis file), for the analytics only
- *  (Hedge School's design 17). */
+ *  `via` names the site's own page that made the link (an analysis file), for the board's notice when the link fails
+ *  and for a site's analytics (Hedge School's design 17). */
 export function boardLink(origin: string, board: KeptBoard, at: number, code: MoveCode, via?: string): string {
   const packed = encodeShare({ module: NO_ENGINE, model: NO_ENGINE, visits: 1, tags: board.start ? { Position: board.start } : {},
                                moves: [], branches: board.nodes }, code);

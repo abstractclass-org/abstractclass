@@ -12,13 +12,13 @@ import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type Ke
 import { prefixKeys } from "@abstractclass/analysis/tree.ts";
 import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
-import { encodeShare, sharedRecord, type SharedReview } from "./share.ts";
-import { shareNote } from "@abstractclass/analysis/share.ts";
+import { ENCLOSURE_CODE, sharedRecord, type SharedReview } from "./share.ts";
+import { reviewLink, shareNote } from "@abstractclass/analysis/share.ts";
 import { importRecord, variantProblem } from "./import.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
 import { mergeBranches } from "@abstractclass/analysis/kept.ts";
 import { download } from "@abstractclass/site/download.ts";
-import type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
+import { RECORD_EXPORTS, REVIEW_LINK, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
 export const REVIEW_FILE_VERSION = 1;
@@ -56,7 +56,7 @@ export function gameAnalyses(entries: [string, unknown][], positions: Set<string
   return entries.filter(([key]) => belongs(key, positions, models));
 }
 // Which results belong to a file, and the networks a manifest ships: the shared ones (@abstractclass/analysis/files.ts).
-export { atPositions, belongs, shippedModels } from "@abstractclass/analysis/files.ts";
+export { belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
 export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
                                 models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
@@ -68,14 +68,10 @@ export function buildReviewFile(record: string, branches: KeptBranches | null, e
   };
 }
 
-/** Reads a Hedge School file of `format` (a review file or an analysis file: `noun`), its fields not yet checked but
- *  its results (@abstractclass/analysis/files.ts, readSiteFile). Throws an Error that tells the player what is wrong. */
-export const readSchoolFile = (text: string, format: string, version: number, noun: string) =>
-  readSiteFile(text, "Hedge School", format, version, noun);
-
-/** Reads a review file. Throws an Error that tells the player what is wrong. */
+/** Reads a review file (@abstractclass/analysis/files.ts, readSiteFile, for its frame and its results). Throws an Error
+ *  that tells the player what is wrong. */
 export function readReviewFile(text: string): ReviewFile {
-  const f = readSchoolFile(text, REVIEW_FORMAT, REVIEW_FILE_VERSION, "review file") as Partial<ReviewFile> & { analyses: [string, unknown][] };
+  const f = readSiteFile(text, "Hedge School", REVIEW_FORMAT, REVIEW_FILE_VERSION, "review file") as Partial<ReviewFile> & { analyses: [string, unknown][] };
   if (typeof f.record !== "string") throw new Error("The review file has no game record.");
   parseRecord(f.record); // throws with the record's own problem
   const b = f.branches;
@@ -132,10 +128,9 @@ export type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review
  *  to the player's account there, first in the menu. */
 export const reviewExports = (partner: string | null = null): ExportItem[] => [
   ...(partner ? [["partner_save", `Save to ${partner}`, "The review file, to your account there.", `Saved to ${partner}`] as ExportItem] : []),
-  ["share_link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"],
+  REVIEW_LINK,
   ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],
-  ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
-  ["record_file", "Annotated record as a file", "", "Annotated record saved"],
+  ...RECORD_EXPORTS,
 ];
 
 /** The link that shares a game's review (share.ts): its record, its variations, and the engine, network and visits of its
@@ -144,8 +139,7 @@ async function shareLink(id: string, origin: string): Promise<string> {
   const stored = await loadGame(id), mark = stored?.game.reviewed;
   if (!stored || !mark) throw new Error("the game's review is not done");
   const branches = branchNodes((await dbGet<KeptBranches>(STORES.branches, id)) ?? null);
-  return `${origin}/review#packed=${encodeShare({ module: mark.module.slice(0, 8), model: mark.model.slice(0, 8), visits: mark.visits,
-                                            tags: stored.record.tags, moves: stored.record.moves, branches })}`;
+  return reviewLink(origin, mark, stored.record, branches, ENCLOSURE_CODE);
 }
 
 /** Keeps a shared review's game and variations in this browser, beside the variations it may have already, and the sender's

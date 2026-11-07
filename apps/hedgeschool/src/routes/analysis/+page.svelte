@@ -28,7 +28,8 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, readBoardLink } from "#lib/game/board.ts";
-  import { download, shippedModels, type ExportItem, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
+  import { download, shippedModels, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
+  import { BOARD_EXPORTS } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
@@ -50,14 +51,6 @@
   // The position on screen, kept in this browser for the next visit (a convenience: the board opens at the start
   // without it).
   const AT_KEY = "hedge-school:board-at";
-  // The Export menu's entries on the board (design 21), as the review's: the analysis by link, as a file with the
-  // engine's results, or as the annotated record.
-  const EXPORT_ITEMS: ExportItem[] = [
-    ["share_link", "Copy a link to share the analysis", "Its lines and the moves evaluated. The recipient's browser searches what it shows.", "Link copied"],
-    ["analysis_file", "Analysis file, to load later or elsewhere", "With the engine's results: the analysis opens at once.", "Analysis file saved"],
-    ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
-    ["record_file", "Annotated record as a file", "", "Annotated record saved"],
-  ];
 
   let game = $state<GameAnalysis<Enclosure> | null>(null);
   let error = $state("");
@@ -308,10 +301,11 @@
              Off on a set-up start, which the bot cannot take yet (request 20). -->
         <button class="btn-icon" disabled={!practiceHref} onclick={() => practiceHref && location.assign(practiceHref)}
                 aria-label="Play the bot from here" title="Play the bot from here"><Icon name="bot" /></button>
-        <NewMenu site="Hedge School" editor={editorHref} onstart={newBoard} onimport={() => (importing = true)}
-                 importHint="A game record, finished or not, a list of edges, or a position." onload={loadFile} />
-        <!-- Export (design 13): the analysis file, or the annotated record, labelled by the view's unit. -->
-        <ExportMenu icon run={kind => exportAs(kind, unit)} items={EXPORT_ITEMS} ontrack={trackExport} />
+        <NewMenu site={SITE_NAME} editor={editorHref} onstart={newBoard} onload={loadFile}
+                 importer={{ open: () => (importing = true), hint: "A game record, finished or not, a list of edges, or a position." }} />
+        <!-- Export (design 21): the analysis by link, as a file with the engine's results, or as the annotated record,
+             labelled by the view's unit (@abstractclass/review/exports.ts, BOARD_EXPORTS). -->
+        <ExportMenu icon run={kind => exportAs(kind, unit)} items={BOARD_EXPORTS} ontrack={trackExport} />
       {/snippet}
     </ReviewView>
 {:else}
