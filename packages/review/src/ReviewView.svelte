@@ -136,8 +136,8 @@
   import { SIDE_BG, SIDE_BORDER, SIDE_TEXT } from "@abstractclass/site/side.ts";
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
-  import { DIGITS, fmtScore, inGlyphs, type BoardCandidate, type BoardMark, type BookJudgment, type Display,
-           type LayerSetting, type LineMove, type NotePart, type ViewGame } from "./game.ts";
+  import { DIGITS, fmtScore, GLYPH_SEPARATOR, inGlyphs, type BoardCandidate, type BoardMark, type BookJudgment,
+           type Display, type LayerSetting, type LineMove, type NotePart, type ViewGame } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, signInk, valueText, type AreaMark,
            type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
@@ -2254,8 +2254,8 @@
   {:else if turnDots}{@render turnDot()}{/if}
 {/snippet}
 
-<!-- The middle dot between a turn's two shapes (turnDots), muted as the turn numbers. -->
-{#snippet turnDot()}<span class="text-muted text-[0.9em] leading-none" aria-hidden="true" data-turn-dot>·</span>{/snippet}
+<!-- The middle dot between a turn's two shapes (turnDots), the notes' (GLYPH_SEPARATOR), muted as the turn numbers. -->
+{#snippet turnDot()}<span class="text-muted text-[0.9em] leading-none" aria-hidden="true" data-turn-dot>{GLYPH_SEPARATOR.trim()}</span>{/snippet}
 
 <!-- A variation edge without its notation: a pill along its direction, or a dot, in its mover's colour (the display
      setting). -->
@@ -2316,7 +2316,7 @@
             {@const shade = listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100"}
             <!-- Between two turns a space, wider where a middle dot stands between a turn's two shapes (turnDots), so
                  that a turn's two shapes stay together. -->
-            {#if k > 0 && t.first}<span class={turnDots ? "w-2" : "w-1"}></span>{:else if k > 0 && turnDots}{@render turnDot()}{/if}
+            {#if k > 0}{#if t.first}<span class={turnDots ? "w-2" : "w-1"}></span>{:else if turnDots}{@render turnDot()}{/if}{/if}
             <button class="flex p-0 bg-transparent border-0 rounded-full" onmouseenter={() => (listHover = k)} onclick={() => play(k)}
                     tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
               {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} {before} />

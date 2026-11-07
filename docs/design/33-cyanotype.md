@@ -338,9 +338,10 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    and the size of the release's manifest. The lock also copies the manifest's networks' sizes (`sizes`: a board of 67
    and 6 policy channels, item 4) and the evaluator's `maxThreads` (128). The release's `settings.cfg` is the text of
    the search's settings, which the module embeds: the site does not read it, so the lock does not take it. The engine
-   repository's record of the release: its `games/blueprints/docs/decisions/port.md`, entry of 2026-11-07. Blueprints'
-   first release, `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the threaded bot), keeps its files in
-   the same repository.
+   repository's record of the release: its
+   [games/blueprints/docs/decisions/port.md](https://github.com/abstractclass-org/engines/blob/main/games/blueprints/docs/decisions/port.md),
+   entry of 2026-11-07. Blueprints' first release, `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the
+   threaded bot), stays in `abstractclass-org/blueprints-engine`.
 2. **Protocol 0.7.** Blueprints' build speaks 0.7.1, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
    passes find no candidate gives its first pass's policy move. The lock's `protocol` names the protocol that
@@ -408,13 +409,10 @@ kept moves with `blueprints-set-game`: `undo` then takes them back as any others
 item 14). KataGo's play settings give each search thread at least 8 of a move's new playouts, so a move below 16
 visits searches with one thread. A check on the CPU confirmed it for Blueprints (`scripts/practice-forms.mjs`, and the
 decision log's entry "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"). At 1, 4 and 8 visits, the
-threaded bot with 4 or 16 search threads evaluated as many of the network's rows as with one thread, at each of 43
-positions: it searched no more than its visits allow. With one search thread, the threaded module played the
-one-thread bot's moves in every game and at every position. With 4 or 16 threads, it played them at 1 visit, and at
-42 and 41 of the 43 positions at 4 and 8 visits. Whole games from one seed part at the first such move. The threads
-that the bot starts with make the difference, not its evaluator: at 8 visits, one search thread with the evaluator and
-the batch sized for 16 played the one-thread bot's moves at all 43 positions, and 16 threads with both sized for one
-did not. So the threads change which move the bot chooses at a few positions, not how far it searches.
+threaded bot with 4 or 16 search threads evaluated as many of the network's rows as with one thread. Its threads
+changed the chosen move at a few positions (1 or 2 of 43 at 4 and 8 visits), not how far it searched. That is the
+usual effect of a search on several threads, and Hedge School's bot has it too. A level is its visits, and those hold,
+so Cyanotype has no rule for the visits below 16.
 
 **The game:** the engine's rules worker gives each position, what each move did and the player's legal moves
 (describe, describe_game), as on Hedge School's Practice. The page checks each of the bot's moves against the rules'
@@ -893,6 +891,10 @@ Hedge School:
   the builds that serve the test book. Put off until Blueprints has an opening book: abscls-8tl1.53 (deferred).
 - **Puzzles, Learn and the engine lab** (`/puzzles`, `/learn`, `/lab/engine`): prototypes, only in the full edition
   (design 11). Left out while they are prototypes: Cyanotype takes each one when Hedge School makes it public.
+
+Cyanotype's Notices page lacks Hedge School's section on the engine's terms. It also does not name ONNX Runtime Web
+(MIT), which the build ships since `engine-91ab0b7d`. Hedge School's page lacks that line too (abscls-mpx0).
+abscls-8tl1.60.
 
 ### By the parts of `src/lib`
 

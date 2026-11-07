@@ -26,8 +26,9 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
-import { sizesOption } from "@abstractclass/engine/library.ts";
-import { gtpAnswer, gtpColor, settingsCommands } from "@abstractclass/practice/practice.ts";
+import { hasJspi, sizesOption } from "@abstractclass/engine/library.ts";
+import { gtpAnswer, gtpColor } from "@abstractclass/practice/practice.ts";
+import { botCommands } from "../src/lib/practice/stampduty.ts";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 /** The value of the option `--name VALUE`, or `fallback`. @param {string} name @param {string} fallback */
@@ -36,13 +37,11 @@ const list = (/** @type {string} */ s) => s.split(",");
 const VISITS = list(option("visits", "1,4,8")).map(Number), THREADS = list(option("threads", "1,4,16"));
 const VARIETIES = list(option("variety", "low")), GAMES = Number(option("games", "3")), SEED = Number(option("seed", "1"));
 const WORKERS = Number(option("workers", "2"));
-const HALFLIFE = 19; // the practice's (src/lib/practice/stampduty.ts)
 const POSITION_STEP = 8; // the move counts between two positions, as Hedge School's measurement took them
 
 if (!hasEngine(app)) throw new Error("no engine in static/engine: run `npm run engine` first");
-const wasm = /** @type {{ Suspending?: unknown }} */ (WebAssembly);
-if (typeof wasm.Suspending !== "function") throw new Error("this Node has no JSPI, which the threaded bot needs (Node 25 and later)");
-const manifest = JSON.parse(readFileSync(join(app, "static", "engine", "manifest.json"), "utf8"));
+if (!hasJspi()) throw new Error("this Node has no JSPI, which the threaded bot needs (Node 25 and later)");
+const { manifest, call } = await nodeEngine(app);
 /** @param {string} kind @param {string} [name] the file's name, where the kind has several */
 const artifact = (kind, name) => {
   const a = manifest.artifacts.find((/** @type {{ kind: string, url: string }} */ x) => x.kind === kind && (!name || x.url.endsWith(`/${name}`)));
@@ -54,20 +53,21 @@ const network = artifact("model");
 const model = readFileSync(path("model"));
 const library = await import(pathToFileURL(path("practice-library")).href);
 const compile = (/** @type {string} */ kind) => WebAssembly.compile(readFileSync(path(kind)));
-const { call } = await nodeEngine(app);
+/** The GTP colour of the engine's mover (`b` or `r`). @param {string} mover */
+const gtp = mover => gtpColor(mover === "b" ? 0 : 1);
 /** A form's search threads and rows: `0` is the one-thread bot, `T` T threads and T rows, `T:R` T threads and R rows. */
-const formOf = (/** @type {number | string} */ form) => {
-  const [threads, rows = threads] = String(form).split(":").map(Number);
+const formOf = (/** @type {string} */ form) => {
+  const [threads, rows = threads] = form.split(":").map(Number);
   return { threads, rows };
 };
-const formName = (/** @type {number | string} */ form) => {
+const formName = (/** @type {string} */ form) => {
   const { threads, rows } = formOf(form);
   return threads === 0 ? "the one-thread bot" : `${threads} thread${threads === 1 ? "" : "s"}${rows === threads ? "" : ` with ${rows} rows`}`;
 };
 
 /** A form's bot, started with the seed and the settings: `threads` 0 is the one-thread bot. `rows()`: the network's
  *  rows that the threaded bot has evaluated so far (null for the one-thread bot). */
-async function startBot(/** @type {number | string} */ form, /** @type {import("@abstractclass/practice/practice.ts").BotSettings} */ bot) {
+async function startBot(/** @type {string} */ form, /** @type {import("@abstractclass/practice/practice.ts").BotSettings} */ bot) {
   const { threads, rows } = formOf(form);
   /** @type {{ command(line: string): string | Promise<string>, stats?(): { positions: number } }} */
   let made;
@@ -93,7 +93,7 @@ async function startBot(/** @type {number | string} */ form, /** @type {import("
     catch (e) { throw new Error(`${line}: ${e instanceof Error ? e.message : e}`); }
   };
   await command(threads === 0 ? `blueprints-start ${SEED}` : `blueprints-start ${SEED} ${threads}`);
-  for (const line of settingsCommands(bot, HALFLIFE)) await command(line);
+  for (const line of botCommands(bot)) await command(line);
   return { command, rows: () => made.stats?.().positions ?? null, release: () => evaluator?.release() };
 }
 
@@ -101,13 +101,13 @@ async function startBot(/** @type {number | string} */ form, /** @type {import("
 async function genmove(/** @type {Awaited<ReturnType<typeof startBot>>} */ b, /** @type {string[]} */ moves, /** @type {string} */ where) {
   const now = call({ id: "d", action: "describe", moves });
   if (now.error) throw new Error(`describe: ${now.error}`);
-  const move = await b.command(`genmove ${gtpColor(now.mover === "b" ? 0 : 1)}`);
+  const move = await b.command(`genmove ${gtp(now.mover)}`);
   if (!now.legal.includes(move)) throw new Error(`${where}: ${move} is not legal`);
   return move;
 }
 
 /** GAMES games of the bot against itself, in one session: each game's moves. */
-async function games(/** @type {number | string} */ threads, /** @type {import("@abstractclass/practice/practice.ts").BotSettings} */ bot) {
+async function games(/** @type {string} */ threads, /** @type {import("@abstractclass/practice/practice.ts").BotSettings} */ bot) {
   const b = await startBot(threads, bot);
   /** @type {string[][]} */
   const all = [];
@@ -124,7 +124,7 @@ async function games(/** @type {number | string} */ threads, /** @type {import("
 }
 
 /** Each position searched from a new tree by a new bot of the form: its move and, for the threaded bot, its rows. */
-async function atPositions(/** @type {number | string} */ threads, /** @type {import("@abstractclass/practice/practice.ts").BotSettings} */ bot,
+async function atPositions(/** @type {string} */ threads, /** @type {import("@abstractclass/practice/practice.ts").BotSettings} */ bot,
                            /** @type {string[][]} */ positions) {
   const b = await startBot(threads, bot);
   /** @type {{ move: string, rows: number | null }[]} */
@@ -132,7 +132,7 @@ async function atPositions(/** @type {number | string} */ threads, /** @type {im
   for (const [k, moves] of positions.entries()) {
     await b.command("clear_board");
     const colors = call({ id: "g", action: "describe_game", moves }).positions.map((/** @type {{ mover: string }} */ p) => p.mover);
-    for (const [i, m] of moves.entries()) await b.command(`play ${colors[i] === "b" ? "b" : "w"} ${m}`);
+    for (const [i, m] of moves.entries()) await b.command(`play ${gtp(colors[i])} ${m}`);
     const before = b.rows();
     const move = await genmove(b, moves, `${formName(threads)}, position ${k + 1}`);
     const after = b.rows();
@@ -149,7 +149,7 @@ for (const variety of VARIETIES) {
   for (const visits of VISITS) {
     const bot = { network: network.id, visits, variety: /** @type {"low"} */ (variety) };
     let t0 = performance.now();
-    const one = await games(0, bot);
+    const one = await games("0", bot);
     console.log(`${visits} visits, ${variety} variety: the one-thread bot played ${one.reduce((n, g) => n + g.length, 0)} ` +
                 `moves in ${GAMES} games (${seconds(t0)})`);
     for (const threads of THREADS) {
@@ -170,7 +170,7 @@ for (const variety of VARIETIES) {
         if (!seen.has(key)) { seen.add(key); positions.push(g.slice(0, k)); }
       }
     t0 = performance.now();
-    const base = await atPositions(0, bot, positions);
+    const base = await atPositions("0", bot, positions);
     const forms = [];
     for (const threads of THREADS) forms.push({ threads, at: await atPositions(threads, bot, positions) });
     const control = forms.find(f => f.threads === "1");

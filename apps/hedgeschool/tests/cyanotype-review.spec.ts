@@ -257,44 +257,39 @@ test("many candidates on one blueprint: the rank chips fit the hand's panel, wit
   const { key, stored, crowded } = crowdedResult(8);
   await putResults(page, [[key, crowded]]);
   try {
-    await crowdedChips();
+    await open(320, 844, { judge: "turn" });
+    /** Each chip in the hands, in its panel: whether it lies in the panel, clear of the panel's number, and the "+N". */
+    const chips = () => page.evaluate(() => {
+      const out: { inside: boolean; more: string | null }[] = [];
+      for (const hand of document.querySelectorAll("svg.hand")) {
+        let panel: DOMRect | null = null, label: DOMRect | null = null;
+        for (const e of hand.querySelectorAll("rect.panel, rect.label, rect.rank-chip, rect.more-chip")) {
+          const r = e.getBoundingClientRect();
+          if (e.classList.contains("panel")) { panel = r; label = null; continue; }
+          if (e.classList.contains("label")) { label = r; continue; }
+          const inside = !!panel && r.left >= panel.left - 0.5 && r.right <= panel.right + 0.5 && r.top >= panel.top - 0.5 && r.bottom <= panel.bottom + 0.5
+            && !(label && r.left < label.right && r.right > label.left && r.top < label.bottom && r.bottom > label.top);
+          out.push({ inside, more: e.classList.contains("more-chip") ? e.nextElementSibling?.textContent ?? "" : null });
+        }
+      }
+      return out;
+    });
+    let found = -1;
+    for (let k = 0; k < MOVES && found < 0; k++) {
+      await (k ? next(k) : toMove(0));
+      await page.waitForTimeout(300);
+      const all = await chips();
+      expect(all.filter(c => !c.inside), `after move ${k}: chips outside their panel`).toEqual([]);
+      if (all.some(c => c.more)) {
+        found = k;
+        expect(all.find(c => c.more)!.more).toMatch(/^\+\d+$/);
+      }
+    }
+    expect(found, "a position whose candidates place one blueprint more often than its panel shows").toBeGreaterThanOrEqual(0);
   } finally {
     await putResults(page, [[key, stored]]);
   }
 });
-
-/** Each position's rank chips at 320 pixels: inside their panel, and at one position with "+N". */
-async function crowdedChips() {
-  await open(320, 844, { judge: "turn" });
-  /** Each chip in the hands, in its panel: whether it lies in the panel, clear of the panel's number, and the "+N". */
-  const chips = () => page.evaluate(() => {
-    const out: { inside: boolean; more: string | null }[] = [];
-    for (const hand of document.querySelectorAll("svg.hand")) {
-      let panel: DOMRect | null = null, label: DOMRect | null = null;
-      for (const e of hand.querySelectorAll("rect.panel, rect.label, rect.rank-chip, rect.more-chip")) {
-        const r = e.getBoundingClientRect();
-        if (e.classList.contains("panel")) { panel = r; label = null; continue; }
-        if (e.classList.contains("label")) { label = r; continue; }
-        const inside = !!panel && r.left >= panel.left - 0.5 && r.right <= panel.right + 0.5 && r.top >= panel.top - 0.5 && r.bottom <= panel.bottom + 0.5
-          && !(label && r.left < label.right && r.right > label.left && r.top < label.bottom && r.bottom > label.top);
-        out.push({ inside, more: e.classList.contains("more-chip") ? e.nextElementSibling?.textContent ?? "" : null });
-      }
-    }
-    return out;
-  });
-  let found = -1;
-  for (let k = 0; k < MOVES && found < 0; k++) {
-    await (k ? next(k) : toMove(0));
-    await page.waitForTimeout(300);
-    const all = await chips();
-    expect(all.filter(c => !c.inside), `after move ${k}: chips outside their panel`).toEqual([]);
-    if (all.some(c => c.more)) {
-      found = k;
-      expect(all.find(c => c.more)!.more).toMatch(/^\+\d+$/);
-    }
-  }
-  expect(found, "a position whose candidates place one blueprint more often than its panel shows").toBeGreaterThanOrEqual(0);
-}
 
 test("the review has no area map: no switch, no legend and no shading", async () => {
   for (const [w, h] of [[1376, 952], [390, 844]]) {

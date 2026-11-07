@@ -13,6 +13,13 @@ export interface NetworkSizes { board: number; policyChannels: number }
  *  else none, so that the library takes its default, Enclosure's. */
 export const sizesOption = (manifest: { sizes?: NetworkSizes }) => (manifest.sizes ? { sizes: manifest.sizes } : {});
 
+/** Whether this JavaScript has JSPI (WebAssembly.Suspending and WebAssembly.promising), which the threaded practice
+ *  bot needs: a browser, or Node from version 25. */
+export function hasJspi(): boolean {
+  const wasm = WebAssembly as unknown as { Suspending?: unknown; promising?: unknown };
+  return typeof wasm.Suspending === "function" && typeof wasm.promising === "function";
+}
+
 /** The CPU module (enclosure-engine.wasm), instantiated. */
 export interface CpuEngine {
   /** One request, one reply line. Blocks the calling thread while the engine works. */

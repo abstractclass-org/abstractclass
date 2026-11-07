@@ -8,11 +8,9 @@ export type { ChannelReply as BotReply } from "@abstractclass/engine/channel.ts"
  *  (JSPI), or in the bot's one search thread. An engine with no threaded bot runs in the last form only. */
 export type BotMode = "gpu" | "cpu" | "single";
 
-/** The threaded bot's files: its search threads (and its largest batch), the network's sizes where the manifest gives
- *  them (library.ts, sizesOption), and its evaluator's files for the form. */
+/** The threaded bot's files: its search threads (and its largest batch), and its evaluator's files for the form. */
 export interface ThreadedFiles {
   threads: number;
-  sizes?: NetworkSizes;
   gpu?: { library: string; ortGlue: string; ortWasm: StoredArtifact; graph: StoredArtifact }; // gpu_engine.mjs, ONNX Runtime, the graph
   cpu?: { library: string; worker: string; module: WebAssembly.Module; workers: number }; // cpu_evaluator.mjs, its worker, the evaluator's module
 }
@@ -26,6 +24,7 @@ export interface BotInit extends ThreadedFiles {
   library: string; // practice_bot.mjs
   module: WebAssembly.Module; // the bot's module for the mode, compiled by the page
   model: Blob; // the network's file, checked by the page (client.ts, checked), which the bot (and each CPU evaluator) reads
+  sizes?: NetworkSizes; // the network's sizes for the threaded bot's evaluators, where the manifest gives them (sizesOption)
 }
 
 export type BotRequest = BotInit | { type: "command"; id: number; line: string };

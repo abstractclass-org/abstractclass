@@ -3,6 +3,7 @@
 // calls serveBot.
 import { WorkerChannel } from "@abstractclass/engine/channel.ts";
 import { checked, compile, modelOf, type ArtifactKind, type Manifest } from "@abstractclass/engine/client.ts";
+import { sizesOption } from "@abstractclass/engine/library.ts";
 import { gtpAnswer } from "./practice.ts";
 import type { BotMode, BotRequest, ThreadedFiles } from "./botMessages.ts";
 
@@ -23,7 +24,8 @@ export class PracticeBot {
     if (this.mode !== "single" && !threaded) throw new Error(`the bot's ${this.mode} form lacks its files`);
     const [compiled, checkedModel] = await Promise.all([compile(module.url), checked(model)]);
     gtpAnswer((await this.channel.send<string>({ type: "init", game: this.game, mode: this.mode, seed, threads: 1, ...threaded,
-                                                 library: library.url, module: compiled, model: checkedModel }).done).reply);
+                                                 library: library.url, module: compiled, model: checkedModel,
+                                                 ...sizesOption(manifest) }).done).reply);
   }
 
   /** A GTP command's answer. Throws with the bot's message when it refuses the command. */

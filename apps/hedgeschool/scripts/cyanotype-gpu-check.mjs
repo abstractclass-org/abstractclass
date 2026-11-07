@@ -31,7 +31,7 @@ const expected = cpu ? { gpu: "auto", status: /^This browser cannot use the GPU/
   : auto ? { gpu: "auto", status: /^In use, .*times a worker's speed\.$|^Off: /, where: /, on (the GPU|the CPU workers)\.$/ }
   : { gpu: "on", status: /^In use/, where: /, on the GPU\.$/ };
 /** A line of the GPU that no later state replaces during the review (Auto's test first says "In use. Testing ..."). */
-const settled = auto ? /^(This browser cannot|In use, |Off:|The GPU did not start)/ : /^(This browser cannot|In use|Off:|The GPU did not start)/;
+const settled = new RegExp(`^(This browser cannot|In use${auto ? ", " : ""}|Off:|The GPU did not start)`);
 console.log(`${cpu ? "off the GPU" : "on the GPU"}: Chromium's flags ${JSON.stringify(options.args)}, the GPU setting ${expected.gpu}`);
 
 const browser = await chromium.launch(options);
@@ -58,7 +58,6 @@ try {
   // Practice: the bot plays Blue, so it moves first
   await page.goto(new URL("/practice", CYANOTYPE).href);
   const red = page.getByRole("button", { name: "Play as Red" });
-  await red.waitFor({ timeout: 120_000 });
   await page.waitForFunction(() => document.querySelector('button[aria-label="Play as Red"]')?.disabled === false, null,
                              { timeout: 120_000 }); // the rules' worker is ready
   await red.click();

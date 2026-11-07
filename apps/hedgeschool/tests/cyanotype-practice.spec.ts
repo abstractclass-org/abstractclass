@@ -148,7 +148,8 @@ test("the komi on Cyanotype's card, and a game at it: the player's head start in
   await page.getByRole("button", { name: "Play as Blue" }).click({ timeout: 60_000 });
   expect(await turn(page)).toMatch(/^Your turn/);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cyanotype:practice-game:1")!).komi)).toBe(-300);
-  await expect(page.getByText(/, on one thread\. You start 300 points ahead\./)).toBeVisible();
+  // The bot's line: where it runs (the first of its forms that this browser runs), then the komi
+  await expect(page.getByText(/, on (the GPU|the CPU workers|one thread)\. You start 300 points ahead\./)).toBeVisible();
   await expect(page.getByLabel("Players and scores").first()).toContainText(/You\s*300\s*points/);
   expect(errors).toEqual([]);
 });

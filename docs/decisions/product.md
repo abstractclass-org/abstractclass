@@ -9058,8 +9058,8 @@ three forms.
   | Visits | The control (1 thread) | 4 threads | 16 threads | Rows a move |
   |---|---|---|---|---|
   | 1 | the one-thread bot's moves: 3 games, 43 positions | the same | the same | 1.19 (0 to 3) |
-  | 4 | the same | the games part at move 3; 42 of 43 positions | the games part at move 2; 42 of 43 | 2.88 (0 to 7) |
-  | 8 | the same | the games part at move 1; 41 of 43 positions | the same as 4 threads | 7.95 (2 to 13) |
+  | 4 | the same | the games part at move 3, 42 of 43 positions | the games part at move 2, 42 of 43 | 2.88 (0 to 7) |
+  | 8 | the same | the games part at move 1, 41 of 43 positions | the same as 4 threads | 7.95 (2 to 13) |
 
   - **The same search:** at each setting, 4 and 16 threads evaluated the control's rows at each of the 43 positions,
     so they searched no more than their visits allow. Blueprints' rows pass its visits, as the entry above says.
@@ -9077,8 +9077,10 @@ three forms.
     reason for the one-thread bot at 1 to 8 visits was a search of several times its visits, which would play above
     its name. The rows show no such search: the moves that differ come from searches of the same size. The one-thread
     bot below 16 would add a second path to the forms' code for no change of the search. The question for this issue
-    (abscls-8tl1.29) asked for the same moves before it kept Hedge School's path, and the moves are not always the
-    same at 4 and 8 visits. So the issue's review holds whether this result is enough.
+    (abscls-8tl1.29) asked for the same moves, and they are not always the same at 4 and 8 visits. But the search
+    size is the same: the threads change the choice at a few positions, the usual effect of a search on several
+    threads, which Hedge School's bot has too since abscls-3ocl. A level is its visits, and those hold. So Cyanotype
+    has no rule for the visits below 16.
 - **The board's fixtures:** `npm run fixtures` wrote `src/lib/board/fixtures.json` again from the release, since its
   test compares its header with the lock's module. Only the header changed: the five games have the same positions,
   legal moves and effects. The home page's scene (`src/lib/home/replay.json` and `still.json`) stays: it records the
@@ -9116,9 +9118,9 @@ three forms.
   A stronger network finds more of its moves worse than its own choice: the labels move down more often than up (10
   turns down, 1 up). One review of each, so search noise is part of the difference.
 - **The checks, on the CPU only:** every run of the engine used the CPU module and the threaded bot's CPU evaluator,
-  and every browser run headless Chromium with the layout test's launch options, which keep it off the GPU. `npm ci`;
-  `npm run check:all`, all 15 steps (Hedge School's 286 unit tests, the packages' tests, Cyanotype's 114 with the
-  threaded bot's engine test, both builds and their sizes); the layout test (`npm run test:layout --
+  and every browser run headless Chromium with the layout test's launch options, which keep it off the GPU. The runs:
+  `npm ci`, `npm run check:all`, all 15 steps (Hedge School's 286 unit tests, the packages' tests, Cyanotype's 114 with
+  the threaded bot's engine test, both builds and their sizes), and the layout test (`npm run test:layout --
   --project=chromium`, with Hedge School's preview and Cyanotype's, and the release's files in Cyanotype's build):
   151 passed and 5 skipped (the analytics' ask, which skips there). Its one failure was the rank chips' test, which
   needs a position whose candidates place one blueprint more often than a panel shows: Stamp Duty 0.1's review had 4
@@ -9145,7 +9147,7 @@ edit's glyphs stood about 3.4 pixels higher than the placement's beside them: at
   baseline by its first part's baseline. A placement begins with its blueprint's box, whose digit has a text baseline.
   An edit begins with its cell's picture, an SVG, whose baseline is its lower edge. The candidates' table met the same
   cause, and sets each name's glyphs on the middle of its line (`[&>*]:align-middle`).
-- **Before this branch too:** dev at af6fdca, built apart with its own stored review (Stamp Duty 0.1), has one Mistake
+- **An older fault:** dev at af6fdca, built apart with its own stored review (Stamp Duty 0.1), has one Mistake
   by turn (turn 15, "3:0,0>2:3,2 2@-7,-14 was best."), with the edit's boxes 3.3 pixels higher. Stamp Duty 0.2's
   review has six Mistakes by turn, each with an edit and then a placement, so the fault shows more often.
 - **The fix,** in the shared view (`packages/review/src/ReviewView.svelte`): a note's moves and the status line's move
@@ -9157,7 +9159,7 @@ edit's glyphs stood about 3.4 pixels higher than the placement's beside them: at
 - **The separator:** in Glyphs, ` · ` stands between a turn's two moves in a note (`inGlyphs`), since a move in glyphs
   has spaces of its own and a comma would meet the hexes' commas. The Text form and the exports keep the space. In
   "Hexes" the same dot stands between a turn's two shapes in the variations and the engine's lines (`shape.turnDot`),
-  since an edit's arrow ends at the next move's hex; "Dots", "Notation" and Hedge School's pills are as before.
+  since an edit's arrow ends at the next move's hex. "Dots", "Notation" and Hedge School's pills are as before.
 
 ### Cyanotype's variations in "Hexes" (2026-11-07)
 
