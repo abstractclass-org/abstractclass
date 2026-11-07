@@ -200,24 +200,18 @@ for (const [site, urls] of Object.entries({
   });
 }
 
-// Cyanotype's home page (its design 33), when CYANOTYPE_BASE_URL gives its preview: the invitation, the board's scene
-// from a reviewed game, and the ways in. The sweep checks the header in one row, with the site's menu closed below a
-// tablet's width.
-test("layout of Cyanotype's home page", async ({ page }) => {
-  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
-  await page.goto(new URL("/", CYANOTYPE).href);
-  await page.waitForLoadState("networkidle");
-  expect(await sweep(page, "Cyanotype's /")).toBe("");
-});
-
-// Cyanotype's Notices page (its design 33, as Hedge School's), when CYANOTYPE_BASE_URL gives its preview: the engine's
-// terms and the licences, with their texts in code blocks, which scroll sideways on purpose.
-test("layout of Cyanotype's Notices page", async ({ page }) => {
-  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
-  await page.goto(new URL("/notices", CYANOTYPE).href);
-  await page.waitForLoadState("networkidle");
-  expect(await sweep(page, "Cyanotype's /notices")).toBe("");
-});
+// Cyanotype's home page and Notices page (its design 33), when CYANOTYPE_BASE_URL gives its preview. The home page: the
+// invitation, the board's scene from a reviewed game, and the ways in. The Notices page: the engine's terms and the
+// licences, with their texts in code blocks, which scroll sideways on purpose. Each sweep checks the header in one row,
+// with the site's menu closed below a tablet's width.
+for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"]]) {
+  test(`layout of Cyanotype's ${name}`, async ({ page }) => {
+    test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    await page.goto(new URL(path, CYANOTYPE).href);
+    await page.waitForLoadState("networkidle");
+    expect(await sweep(page, `Cyanotype's ${path}`)).toBe("");
+  });
+}
 
 // Cyanotype's board editor (its design 33, as Hedge School's design 21), when CYANOTYPE_BASE_URL gives its preview: the
 // board with both hands in its box, beside the panel on a computer and above it on a phone, with the engine's answer

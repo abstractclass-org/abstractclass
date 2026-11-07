@@ -1,15 +1,17 @@
-// Each site's Notices page names the works of others that the site ships (design 11), from the shared parts of
-// packages/site. Hedge School's tests run on the preview of BASE_URL. Cyanotype's tests run when CYANOTYPE_BASE_URL
-// gives its preview. The tests on each page:
+// Each site's Notices page names the works of others that the site ships (design 11), from packages/site's
+// NoticesPage.svelte. Hedge School's tests run on the preview of BASE_URL. Cyanotype's tests run when
+// CYANOTYPE_BASE_URL gives its preview. The tests on each page:
 //   - The font Fira Code, its copyright line and its licence, the SIL Open Font License 1.1 (design 11, item 10, and
 //     design 06, item 11). The licence asks that each copy of the font carries the copyright line and the licence. The
 //     page gives both as the package's own LICENSE file has them (LibraryNotices.svelte).
 //   - ONNX Runtime Web, which the engine on the GPU uses: its version and its copyright line, as the npm package has
 //     them (LibraryNotices.svelte).
-//   - The engine's section (EngineNotices.svelte): its links to the release's LICENSE.txt and NOTICES.txt open the
+//   - The engine's section (NoticesPage.svelte): its links to the release's LICENSE.txt and NOTICES.txt open the
 //     files that the site ships, the outputs paragraph is LICENSE.txt's section "The engine's outputs" word for word,
-//     and KataGo's copyright notice is NOTICES.txt's. The build's ONNX Runtime files are the version that the page
-//     names. A build with no engine files (before `npm run engine`) skips this test.
+//     KataGo's copyright notice is NOTICES.txt's, the list of works has each version of NOTICES.txt's contents, and
+//     Eigen is in the modules that evaluate on the CPU, as the list says. The build's ONNX Runtime files are the
+//     version that the page names. A build with no engine files (before `npm run engine`) skips this test, and fails
+//     it in CI, where the Tests workflow builds each site with them.
 // Run: npm run test:layout -- tests/notices.spec.ts
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -29,7 +31,7 @@ if (!ORT_COPYRIGHT) throw new Error("ONNX Runtime Web's ort.webgpu.min.mjs has n
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
 /** The words of a text, with a list's dashes and the lines' breaks gone. */
-const words = (text: string) => text.replace(/^- /gm, "").split(/\s+/).filter(Boolean).join(" ");
+const words = (text: string) => text.replace(/^- /gm, "").trim().replace(/\s+/g, " ");
 
 for (const [site, url] of Object.entries({
   "Hedge School": "/notices",
@@ -60,7 +62,9 @@ for (const [site, url] of Object.entries({
     test.skip(!url, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     await page.goto(url);
     const manifest = await page.request.get(new URL("/engine/manifest.json", page.url()).href);
-    test.skip(!manifest.ok(), "the build has no engine files (npm run engine)");
+    const noEngine = "the build has no engine files: run `npm run engine` before its build";
+    if (!manifest.ok() && process.env.CI) throw new Error(noEngine);
+    test.skip(!manifest.ok(), noEngine);
     const ids: string[] = (await manifest.json()).artifacts.map((a: { id: string }) => a.id);
     expect(ids, "the build's ONNX Runtime files").toContain(`ort-${ORT_VERSION}`);
     const file = async (name: string) => {
@@ -76,5 +80,12 @@ for (const [site, url] of Object.entries({
     const paragraph = await page.locator("main p", { hasText: "The engine's outputs." }).innerText();
     expect(words(paragraph)).toBe(`The engine's outputs. ${words(outputs!)}`);
     expect(notices).toContain((await page.locator("main pre", { hasText: "lightvector" }).innerText()).trim());
+    const contents = notices.match(/\nContents\n-+\n\n([\s\S]*?)\n\n\n/)?.[1];
+    expect(contents, "NOTICES.txt's contents").toBeTruthy();
+    const works = await page.locator("main ul", { hasText: "Aaron D. Gifford" }).innerText();
+    const versions = contents!.match(/\d+\.\d+\.\d+/g) ?? [];
+    expect(versions.length, "the versions in NOTICES.txt's contents").toBeGreaterThan(0);
+    for (const version of versions) expect(works, "NOTICES.txt's contents").toContain(version);
+    expect(notices).toMatch(/Eigen \(4\) is in [\w-]+-engine\.wasm,\s+[\w-]+-bot\.wasm and [\w-]+-eval\.wasm only\./);
   });
 }
