@@ -6,9 +6,9 @@ import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
 import { BLUEPRINTS_CODE } from "./share.ts";
 import { SITE_NAME } from "../site.ts";
 
-/** A board's start from a link's `Position` tag or a file's `start`: none, the standard start. Throws an Error for a
- *  set-up start, which Blueprints has no notation for yet. */
-export function standardStart(position: string | undefined): null {
+/** Refuses a set-up start in a link's `Position` tag or a file's `start`, which Blueprints has no notation for yet:
+ *  throws an Error that says so. Answers null, the standard start, for none. */
+export function refuseSetUpStart(position: string | undefined): null {
   if (position) throw new Error(`it starts from a set-up position, which ${SITE_NAME} cannot open yet`);
   return null;
 }
@@ -20,4 +20,4 @@ export const boardLink = (origin: string, board: KeptBoard, at: number, via?: st
 
 /** A board from a link's `packed` and `at`. Throws an Error that says what is wrong with the link. */
 export const readBoardLink = (packed: string, at: string | null): { board: KeptBoard; at: number } =>
-  shared.readBoardLink(packed, at, BLUEPRINTS_CODE, standardStart);
+  shared.readBoardLink(packed, at, BLUEPRINTS_CODE, refuseSetUpStart);

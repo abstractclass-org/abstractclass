@@ -139,6 +139,8 @@
 
   /** A new board from the standard start, in the place of the board kept here. */
   async function newBoard() {
+    // The New menu's ways each ask first where the board has moves, as Hedge School's (its design 21, item 5).
+    if (game?.keptBoard().nodes.length && !(await question.ask())) return;
     await dbPut(STORES.branches, BOARD_ID, boardOfLine([]));
     writeLocal(BOARD_AT_KEY, "");
     location.reload();

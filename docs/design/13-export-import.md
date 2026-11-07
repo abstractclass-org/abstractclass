@@ -169,7 +169,7 @@ searching it again, and to share it as text that others can read.
 - `src/lib/game/reviewFile.ts` (the file: build, read, merge, export, import, `deliverExport`, the menu's entries
   `reviewExports`),
   `src/lib/review/annotate.ts` (the annotated record, Enclosure's part), `packages/analysis/src/annotate.ts` (the
-  annotated record's frame, which Cyanotype shares), `packages/analysis/src/files.ts` (a site's file read, the
+  annotated record's frame, which Cyanotype shares), `packages/analysis/src/files.ts` (how a site reads its files, the
   results that belong in a file), `packages/analysis/src/cache.ts` (`cacheGetAtLeast`,
   `readAnalysisKey`), `packages/storage/src/db.ts` (`dbEntriesWhere`, `dbPutMany`), `src/lib/game/record.ts`
   (`writeTags`).

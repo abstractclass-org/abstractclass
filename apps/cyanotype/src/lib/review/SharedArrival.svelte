@@ -2,15 +2,18 @@
   // A review shared by link (`/review#packed=…`, Hedge School's design 13, item 8; design 33): the review page shows
   // this before anything runs. It says what the link holds, and that this browser reviews the game again. Its
   // review uses the recipient's engine settings: Cyanotype keeps no network and depth for one game yet (a game's own
-  // settings, abscls-8tl1.38), so the page says when they differ from the sender's. "Review it" keeps the game and the
-  // sender's variations (beside the recipient's own for that game), and opens its review.
+  // settings, abscls-8tl1.38), so the page says when they differ from the sender's. "Review it" checks the game by the
+  // engine's rules, as the import page checks a game and as Hedge School's import checks a shared review's, then keeps
+  // the game and the sender's variations (beside the recipient's own for that game), and opens its review. A game that
+  // the rules refuse leaves the game in review as it was.
   import { onMount } from "svelte";
   import { loadManifest, sameSearch } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { loadEngine, networkName, reviewDepthText, reviewVisits } from "#lib/analysis/engineSettings.ts";
-  import { playerNames } from "#lib/game/record.ts";
-  import { decodeShare, type SharedReview } from "#lib/game/share.ts";
+  import { parseRecord, playerNames } from "#lib/game/record.ts";
+  import { decodeShare, sharedRecord, type SharedReview } from "#lib/game/share.ts";
   import { keepShared } from "./keptGame.ts";
+  import { checkRecord } from "./recordCheck.ts";
   import { SITE_NAME } from "#lib/site.ts";
 
   let { packed, class: box }: { packed: string; class: string } = $props();
@@ -33,10 +36,12 @@
     }
   });
 
-  /** Keeps the shared game and its variations, and opens its review. */
+  /** Checks the shared game by the engine's rules, keeps it and its variations, and opens its review. */
   async function review(shared: SharedReview) {
     phase = { at: "keeping" };
     try {
+      const problem = await checkRecord(parseRecord(sharedRecord(shared)));
+      if (problem) throw new Error(problem);
       await keepShared(shared);
       location.replace("/review");
     } catch (e) {
@@ -64,9 +69,8 @@
     <p>The sender's review: {here.network ? networkName(here.network) : "a network that this site no longer has"}, at
       {reviewDepthText(shared.visits)}. Your review uses your engine settings: {networkName(here.own.network)}, at
       {reviewDepthText(here.own.visits)}.
-      {#if !same}So some quality labels can differ.{/if}
-      {#if !here.sameEngine}This site's engine changed after the sender made the link, so some quality labels can
-        differ.{/if}</p>
+      {#if !here.sameEngine}This site's engine changed after the sender made the link.{/if}
+      {#if !same || !here.sameEngine}So some quality labels can differ.{/if}</p>
     <div><button class="btn-primary" type="button" onclick={() => review(shared)}>Review it</button></div>
   {:else}
     <p class="text-blunder" role="alert">{SITE_NAME} could not load the review: {phase.problem}</p>

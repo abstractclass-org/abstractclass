@@ -332,10 +332,11 @@ edit in the same commit), so their changes still apply.
 - `packages/record/`: the game record's frame (design 33). `packages/analysis/src/turns.ts`: the turns of one move,
   then two, for a game's `turn`.
 - `packages/analysis/src/share.ts`: the format of a link that carries a game's tree (design 13, item 8), with each
-  site's moves as a parameter (`MoveCode`). `boardLink.ts`: the Analysis board's link (design 21). `files.ts`: a
-  site's file read, the results that belong in a file, and the analysis file, in each site's format. `annotate.ts`:
-  the annotated record (design 13), with each game's notation of its moves. Hedge School's `src/lib/game/share.ts`,
-  `board.ts`, `analysisFile.ts` and `src/lib/review/annotate.ts` give Enclosure's parts, with their exports as before.
+  site's moves as a parameter (`MoveCode`). `boardLink.ts`: the Analysis board's link (design 21). `files.ts`: how a
+  site reads its files, the results that belong in a file, and the analysis file, in each site's format.
+  `annotate.ts`: the annotated record (design 13), with how each game writes a move. Hedge School's
+  `src/lib/game/share.ts`, `board.ts`, `analysisFile.ts` and `src/lib/review/annotate.ts` give Enclosure's parts, with
+  the exports that its code and tests use.
 - `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with
   the rules and a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the
   engine session's tests.
@@ -362,8 +363,8 @@ edit in the same commit), so their changes still apply.
   `scripts/release-check.mjs` runs them with its addresses and header, and adds its own checks
   ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node, and it reads the engine's files with
   the engine package's `artifacts.ts`. It is the one file of the site package that imports the engine package, and no
-  page imports it. So the site package depends on the engine package, and the
-  frame's code in the browser still has none of the engine.
+  page imports it. So the site package depends on the engine package, and the frame's code in the browser still has
+  none of the engine.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review

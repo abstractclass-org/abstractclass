@@ -510,7 +510,9 @@ gives the measurements that led to each choice.
     - **The review's Export,** once the review is done: a link that shares the review (`/review#packed=…`,
       `src/lib/game/share.ts`, `src/lib/review/reviewExports.ts`). The review file (abscls-8tl1.34) and the annotated
       record (abscls-8tl1.35) add their entries after it. The link's page (`src/lib/review/SharedArrival.svelte`)
-      says what the link holds and what the sender's review ran with, before it keeps the game.
+      says what the link holds and what the sender's review ran with. "Review it" checks the game by the engine's
+      rules, as the import page does (`checkRecord`), and keeps it only when they accept it. So a link that the rules
+      refuse says why, and leaves the game in review as it was.
     - **The recipient's review uses the recipient's engine settings.** Cyanotype keeps no network and depth for one
       game yet (abscls-8tl1.38), so the page says when the sender's differ, and that some quality labels can differ
       then. Hedge School's page keeps the sender's for that game.
@@ -518,7 +520,10 @@ gives the measurements that led to each choice.
       (a placement, an edit or a pass), then each blueprint's number in 2 bits and each coordinate as a signed Elias
       gamma (1 bit for 0, 3 bits for -1 and 1). The review's test game (`src/lib/review/fixtures/stamp-duty.txt`, 106
       placements and 14 edits) takes 19.5 bits a move, as an Enclosure edge takes 18. With its 10 tags (184 bytes),
-      its link has 706 characters, within a Discord message's 2,000 (`src/lib/game/share.test.ts`).
+      its link has 706 characters, within a Discord message's 2,000. The test (`src/lib/game/share.test.ts`) also
+      sends every legal move of each of the game's positions through a link, from the engine's rules (125,322
+      moves): each comes back as it was. A cut link says what is wrong. A link has no checksum, as Hedge School's
+      has none, so a changed letter can give another game in the notation: the engine's rules then check it.
     - **A set-up start:** a link or a file that names one does not open, and says why ("Decision", item 10).
 13. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
     issue. The review keeps one game in this browser: `#record=` in a link brings one, and the import page sends one

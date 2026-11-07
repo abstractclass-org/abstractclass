@@ -3,8 +3,8 @@
   // standard start, a position set up in the board editor, a position or moves imported, or an analysis file loaded
   // (Hedge School's design 22's words). Each replaces the analysis kept here, after the board asks. A site leaves out
   // the ways it does not have yet: `editor`, the board editor's address, and `importer`, the Import's dialog and the
-  // line that says what it takes. `site` names the site whose files the board loads. Its button is an icon, as Export's beside it, so that the step bar's tools fit beside
-  // the steps on a phone (Hedge School's design 06, item 4).
+  // line that says what it takes. `site` names the site whose files the board loads. Its button is an icon, as
+  // Export's beside it, so that the step bar's tools fit beside the steps on a phone (Hedge School's design 06, item 4).
   import { DropdownMenu } from "bits-ui";
   import Icon from "@abstractclass/site/Icon.svelte";
   let { site, editor, onstart, importer, onload }:

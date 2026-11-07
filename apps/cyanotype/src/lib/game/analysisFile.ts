@@ -6,7 +6,7 @@
 import * as shared from "@abstractclass/analysis/files.ts";
 import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
-import { boardLink, standardStart } from "./board.ts";
+import { boardLink, refuseSetUpStart } from "./board.ts";
 import { SITE_NAME } from "../site.ts";
 
 export const ANALYSIS_FORMAT = "cyanotype-analysis";
@@ -26,7 +26,7 @@ export const readAnalysisFile = (text: string): shared.AnalysisFile => shared.re
  *  Answers the board's address with the file's lines. Throws an Error that tells the player what is wrong. */
 export async function openAnalysisFile(text: string, manifest: Manifest | null): Promise<string> {
   const file = readAnalysisFile(text);
-  standardStart(file.board.start); // before its results go to the store
+  refuseSetUpStart(file.board.start); // before its results go to the store
   await shared.keepAnalyses(file, manifest);
   return boardLink("", file.board, 0, "analysis_file");
 }
