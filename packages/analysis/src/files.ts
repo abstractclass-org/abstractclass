@@ -8,7 +8,7 @@
 import { atShape, isAnalysisKey, ofModels, parentKeyMoves, readAnalysisKey, readable } from "./cache.ts";
 import type { KeptBoard } from "./kept.ts";
 import { boardPositionKeys } from "./boardLink.ts";
-import { komiOf } from "@abstractclass/record/record.ts";
+import { isKomi } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 
@@ -88,7 +88,7 @@ export function readAnalysisFile(text: string, site: string, format: string): An
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
     b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number") &&
     (b.start === undefined || typeof b.start === "string") &&
-    (b.komi === undefined || (typeof b.komi === "number" && komiOf(String(b.komi)) === b.komi));
+    (b.komi === undefined || isKomi(b.komi));
   if (!boardOk) throw new Error(`${site} cannot read the analysis file's lines.`);
   return { ...f, board: b } as AnalysisFile;
 }

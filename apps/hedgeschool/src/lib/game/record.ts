@@ -8,7 +8,7 @@
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import * as shared from "@abstractclass/record/record.ts";
-export { gamePage, komiOf, komiTag, playerNames, RecordError, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
+export { gamePage, komiOf, komiTag, playerNames, startTags, RecordError, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
 
 /** A game record of Enclosure: `marked` gives, by move, whether the record marks it as a cut (`x`). */
 export type GameRecord = shared.GameRecord<boolean>;
@@ -30,6 +30,10 @@ function startTurn(position: string | undefined): { turn: number; first: boolean
   return Number.isInteger(count) && count >= 0 ? turnFromCount(count) : { turn: 1, first: true };
 }
 
+/** The largest komi, either way, that Enclosure's engine takes: its score target cap, (361 + 60) * 12 points (the
+ *  engine repository's katagame/cpp/game/rules.h, Rules::MAX_USER_KOMI). A record beyond it is an error (design 24). */
+export const MAX_RECORD_KOMI = 5052;
+
 /** Enclosure's moves and its cut mark, for the shared record. */
 const edges: shared.Notation<boolean> = {
   read(move) {
@@ -43,6 +47,7 @@ const edges: shared.Notation<boolean> = {
   mark: cut => (cut ? "x" : ""),
   none: false,
   start: tags => startTurn(tags.Position),
+  maxKomi: MAX_RECORD_KOMI,
 };
 
 /** A record's text with its start given apart (the Analysis board's Import, its address's `position`): the start as

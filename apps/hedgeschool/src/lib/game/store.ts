@@ -7,6 +7,7 @@ import { makeEarlierRemovalDue } from "@abstractclass/analysis/cache.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
+import { komiPrefix } from "@abstractclass/record/record.ts";
 import { sha256Hex } from "@abstractclass/engine/artifacts.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { modelOf, moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
@@ -98,7 +99,7 @@ export async function markReviewed(id: string, { modules, ...mark }: WantedRevie
 export async function gameId(moves: string[], start?: string, komi = 0): Promise<string> {
   // A set-up start and a komi come before the moves, so that the same moves from two starts, or at two komis, are two
   // games (design 24). A game from the standard start at komi 0 keeps the id of its moves alone, as before.
-  const before = (start ? `${start} | ` : "") + (komi ? `komi ${komi} | ` : "");
+  const before = (start ? `${start} | ` : "") + komiPrefix(komi);
   return (await sha256Hex(new TextEncoder().encode(before + moves.join(" ")))).slice(0, 12);
 }
 

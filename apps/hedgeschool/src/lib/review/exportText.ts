@@ -41,8 +41,9 @@ export async function annotatedFromStore(id: string, manifest: Manifest | null):
     await pool.start(manifest, network);
     const game = new GameAnalysis(enclosure, pool, stored.record.moves, id, null, { komi: stored.record.komi });
     // The book's values, as the review takes them (the stages did not search those positions), and the stored results.
-    // At a komi giveBook takes none (design 24), and the export makes no book: siteBook() starts to load its index.
-    const book = EARLY_ACCESS && !game.komi ? siteBook() : null;
+    // Where the review takes no book (at a komi, design 24), the export makes none: siteBook() starts to load its
+    // index.
+    const book = EARLY_ACCESS && game.takesBook ? siteBook() : null;
     if (!(await openStored(game, visits, pool.search!, model.sha256, book))) throw new Error(game.error);
     const data = game.data(playerNames(stored.record.tags));
     if (!data) throw new Error("the engine could not read this game");

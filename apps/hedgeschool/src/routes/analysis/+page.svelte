@@ -32,7 +32,7 @@
   import { BOARD_EXPORTS } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
-  import { komiTag, parseRecord, withStart } from "#lib/game/record.ts";
+  import { parseRecord, startTags, withStart } from "#lib/game/record.ts";
   import { givenStartProblem } from "@abstractclass/record/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
@@ -266,7 +266,7 @@
       download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest))));
       return;
     }
-    const tags = { ...(g.startPosition ? { Position: g.startPosition } : {}), ...komiTag(g.komi) };
+    const tags = startTags(g.startPosition, g.komi);
     const text = annotatedRecord({ R: r, unit, tags, result: "*", branches: g.branches, annotator: SITE_NAME,
                                    note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
     if (kind === "record_copy") await navigator.clipboard.writeText(text);

@@ -1,9 +1,9 @@
 // Practice's komi (design 24). The card's setting gives a head start to the player or to the bot. A game at a komi
 // counts it in the points from the first position, and its kept game and its record keep it. Its review reads the
-// record's Komi tag and takes nothing from the opening book but the Book tab. The Analysis board's record and analysis
-// file at a komi go out and come back in. The bot runs on the CPU (the engine settings' GPU off, and
-// playwright.config's switches), at 1 visit a move. The review's engine is off: the review shows the game's positions
-// and its stored results, and searches nothing. Run:
+// record's Komi tag and takes nothing from the opening book but the Book tab, whose "Study in Openings" carries the
+// komi to Openings' note. The Analysis board's record and analysis file at a komi go out and come back in. The bot
+// runs on the CPU (the engine settings' GPU off, and playwright.config's switches), at 1 visit a move. The review's
+// engine is off: the review shows the game's positions and its stored results, and searches nothing. Run:
 // npm run test:layout -- tests/practice-komi.spec.ts --project=chromium, with BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "@playwright/test";
@@ -174,6 +174,8 @@ test.describe("the opening book at a komi", () => {
   const bookMarks = (page: Page) => page.getByRole("img", { name: /^Book move · / });
   const OPENING = "The game followed the book to its end, at turn 3. Blue is slightly better. Show the position";
   const KOMI_LINE = "The book moves and their values are the engine's at komi 0, not at this game's komi.";
+  /** Openings' note on a record with a komi. */
+  const KOMI_NOTE = "The opening book is at komi 0. Openings does not use the komi of this record.";
   /** A quality label's badge, whose name is its word. */
   const LABEL_WORDS = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
 
@@ -216,6 +218,14 @@ test.describe("the opening book at a komi", () => {
     await expect(settings.getByRole("radiogroup", { name: "Quality labels" })).toBeVisible();
     return settings.getByRole("radiogroup", { name: "Book moves" });
   }
+  /** "Study in Openings" from the Book tab after the first edge, a book move, then Openings, open there. */
+  async function studyAfterFirst(page: Page) {
+    await bookAtStart(page);
+    await page.keyboard.press("ArrowRight");
+    await page.getByRole("link", { name: "Study in Openings" }).click();
+    await page.waitForURL(/\/openings$/);
+    await expect(page.getByRole("region", { name: "Opening book" }).locator("tbody tr").first()).toBeVisible({ timeout: 60_000 });
+  }
   /** The Book tab at the start, a book position. */
   async function bookAtStart(page: Page) {
     await page.keyboard.press("Home");
@@ -235,6 +245,9 @@ test.describe("the opening book at a komi", () => {
     await expect(page.getByText("Opening", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^The game followed the book/ })).toHaveCount(0);
     await expect(bookMarks(page)).toHaveCount(0);
+    // "Study in Openings" carries the komi, so Openings says that its book is at komi 0
+    await studyAfterFirst(page);
+    await expect(page.getByRole("status").filter({ hasText: KOMI_NOTE })).toBeVisible();
   });
 
   test("at komi 0: the Opening section and the book marks as before, and no line on the komi", async ({ page }) => {

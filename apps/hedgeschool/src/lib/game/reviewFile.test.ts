@@ -14,15 +14,9 @@ const MOVES = ["D10-G10", "N11-Q10", "L10-N11"];
 const BRANCHES: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 0], ["D10-G10 N11-Q11 L10-N11", 1, 1]] };
 const key = (moves: string, shape = SHAPE, model = "ab12") => `${shape}|85c2adb|${model}|512|${moves}`;
 
-test("a game's positions: each step of its line, and each variation node", () => {
-  const p = positionKeys(MOVES, BRANCHES);
-  assert.deepEqual([...p], ["", "D10-G10", "D10-G10 N11-Q10", "D10-G10 N11-Q10 L10-N11", "D10-G10 N11-Q11", "D10-G10 N11-Q11 L10-N11"]);
-  // Version 1 kept a variation as its line: each node of it
-  const v1 = positionKeys(MOVES, { version: 1, lines: [["D10-G10", "N11-Q11", "L10-N11", "Q11-T11"]] });
-  assert.deepEqual([...v1].slice(4), ["D10-G10 N11-Q11", "D10-G10 N11-Q11 L10-N11", "D10-G10 N11-Q11 L10-N11 Q11-T11"]);
-  // A game at a komi (design 24): its results' keys name the komi before the moves, and none at komi 0 belong to it
+test("a game at a komi: its results, and none at komi 0 (its positions: @abstractclass/analysis/kept.test.ts)", () => {
+  // Design 24: its results' keys name the komi before the moves
   const k = positionKeys(MOVES, BRANCHES, -300);
-  assert.deepEqual([...k].slice(0, 2), ["komi=-300", "komi=-300 D10-G10"]);
   assert.deepEqual(gameAnalyses([[key(""), { a: 1 }], [key("komi=-300 D10-G10"), { a: 2 }], [key("komi=-300 D10-G10 O11-R10"), { a: 3 }]], k)
     .map(e => e[1]), [{ a: 2 }, { a: 3 }]);
 });

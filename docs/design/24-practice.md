@@ -188,6 +188,11 @@ How strong each setting plays against people is not measured yet.
     - **The readers:** the review, the import (a pasted record, a partner's link, a review file, a shared review), Your
       games and the Analysis board read the tag. A `Komi` tag that is not a number of whole or half points is an
       error in the record, as a wrong turn number is: no reader takes the game at a komi that it did not read.
+    - **Each game's limit:** a komi beyond what the game's engine takes is an error in the record too, and its message
+      names the limit. Enclosure's engine takes up to 5,052 points either way, its score target cap (the engine
+      repository's `Rules::MAX_USER_KOMI`). Blueprints' engine takes up to 90,980 (its board's area and KataGo's
+      margin, at its score scale). The engine repository's design 04 gives the tag no limit. Without the site's check,
+      a larger komi fails at the engine, with the engine's own message. The card's range stays ±3,000 (item 2).
     - **The game's id** in Your games covers its komi with its start and its moves: the same moves at another komi
       are another game, with its own review.
     - **The review searches at the record's komi,** as KataGo's analysis takes a query's komi: each search's query
@@ -217,7 +222,9 @@ How strong each setting plays against people is not measured yet.
       a record has it) and in its analysis file (the board's `komi`, whole or half points). Its Play button opens
       Practice with the moves, and the card's komi applies (item 2).
     - **Openings is the book at komi 0** (design 32). A record brought there with a komi opens its line, and one line
-      says that the book is at komi 0 and that Openings does not use the record's komi.
+      says that the book is at komi 0 and that Openings does not use the record's komi. "Study in Openings" from a
+      game at a komi brings its komi with its moves, so the same line shows. From the start it brings no record, and no
+      komi. The book stays at komi 0 there.
     - **Cyanotype's Analysis board takes no komi yet** (design 33, a gap from Hedge School). It starts its analysis at
       komi 0 before it chooses its board, so it would search a board at a komi at komi 0. It refuses a record, a link
       or an analysis file with a komi, and says why. A record goes to the review instead, which searches at its komi.
@@ -365,12 +372,17 @@ How strong each setting plays against people is not measured yet.
   (`src/lib/book/game.ts`) gives no opening at a komi, `giveBook` (`src/lib/book/reviewBook.ts`) gives no values and
   opens no part of the book at a komi, the annotated record from Your games makes no book at a komi
   (`src/lib/review/exportText.ts`), and the Book tab's line is in `src/lib/book/ReviewBookTable.svelte` (`BookPlace`'s
-  `komi`). Openings' line on a record's komi is in `src/routes/openings/+page.svelte`. The komi is in the game's id
-  (`src/lib/game/store.ts`, `gameId`, and Cyanotype's `apps/cyanotype/src/lib/review/keptGame.ts`), in the keys of the
-  review file and of the removal of earlier results (`reviewFile.ts`, `positionKeys`, `earlierResults.ts`, and the
-  results that belong in a file, `packages/analysis/src/files.ts`), and in the Analysis board's link and file
-  (`packages/analysis/src/boardLink.ts`, `files.ts` and `kept.ts`). Cyanotype's board refuses a komi in
-  `apps/cyanotype/src/lib/game/board.ts` (`refuseKomi`), and its practice game's result at a komi is `endResult`
+  `komi`). Openings' line on a record's komi is in `src/routes/openings/+page.svelte`, and "Study in Openings" gives
+  the komi in `src/lib/book/place.svelte.ts` (`study`). Each game's limit is its record's `MAX_RECORD_KOMI`
+  (`src/lib/game/record.ts`, Cyanotype's `apps/cyanotype/src/lib/game/record.ts`), the shared reader's `maxKomi`.
+  The komi is in the game's id (`src/lib/game/store.ts`, `gameId`, and Cyanotype's
+  `apps/cyanotype/src/lib/review/keptGame.ts`, with `komiPrefix`), in the keys of the review file and of the removal
+  of earlier results (`reviewFile.ts` and `earlierResults.ts`, with `positionKeys` in
+  `packages/analysis/src/kept.ts`, and the results that belong in a file, `packages/analysis/src/files.ts`), and in
+  the Analysis board's link and file (`packages/analysis/src/boardLink.ts`, `files.ts` and `kept.ts`). Whether an
+  analysis takes the book is `GameAnalysis.takesBook`. Cyanotype's board refuses a komi in
+  `apps/cyanotype/src/lib/game/board.ts` (`refuseKomi`), also for a kept board (its
+  `apps/cyanotype/src/routes/analysis/+page.svelte`), and its practice game's result at a komi is `endResult`
   (`apps/cyanotype/src/lib/practice/stampduty.ts`). Tests: the packages' `record.test.ts`, `practice.test.ts`,
   `analysis.test.ts` ("a review at a komi …", "a komi game's end and labels follow the komi"), `share.test.ts` ("a
   board's link keeps its komi …") and `files.test.ts` ("a komi's start does not belong to a game at komi 0", the
@@ -394,3 +406,5 @@ How strong each setting plays against people is not measured yet.
 - [decisions/product.md](../decisions/product.md): "Practice: the komi, a fourth setting" (2026-11-06).
 - [requests/27-komi-tag.md](../requests/27-komi-tag.md): the record's `Komi` tag, for the engine repository's design
   04.
+- [decisions/product.md](../decisions/product.md): "The komi's follow-ups: shared helpers, Study in Openings, each
+  game's limit" (2026-11-07).

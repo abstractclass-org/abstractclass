@@ -3,7 +3,7 @@
 // the GTP helpers, the takeback's reach, the results) with Hedge School's keys and networks, and Enclosure's own: the
 // bot's half-life, the turns after a set-up start, the analytics' parameters and the game's record.
 import { NETWORKS, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
-import { komiTag, writeRecord } from "#lib/game/record.ts";
+import { startTags, writeRecord } from "#lib/game/record.ts";
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
 import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
 import {
@@ -75,8 +75,7 @@ export function practiceRecord(k: KeptPractice, movers: Player[], cuts: boolean[
     Bot: `${networkName(k.bot.network)} (${k.bot.network}), ${k.bot.visits} ${k.bot.visits === 1 ? "visit" : "visits"} a move, ` +
          `${VARIETY_NAME[k.bot.variety]} variety, ` +
          `engine ${k.builds.join(", then ")}`,
-    ...komiTag(k.komi ?? 0),
-    ...(k.start ? { Position: k.start } : {}),
+    ...startTags(k.start, k.komi),
     ...(termination ? { Termination: termination } : {}),
   };
   // The turns from the start's own number, and `N...` when it is at a turn's second edge (practiceTurn).

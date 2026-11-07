@@ -44,7 +44,7 @@
   import type { GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
-  import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem } from "#lib/game/board.ts";
+  import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem, refuseKomi } from "#lib/game/board.ts";
   import { analysisFileName, exportAnalysis, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
@@ -54,7 +54,7 @@
 
   let game = $state<GameAnalysis<Blueprints> | null>(null);
   let error = $state("");
-  let notice = $state(""); // a line brought that could not open: the board kept here opens
+  let notice = $state(""); // a line brought, or a kept board (refuseKomi), that could not open
   let start = $state<string[] | null>(null); // where the view opens
   let current = $state<string[]>([]); // the position on screen
   const engine = $state(loadEngine());
@@ -86,7 +86,15 @@
    *  line (`record`, from its `Position` tag or from `position`), a set-up start alone (`position`), or a link's or a
    *  file's lines, once they are read. The engine checks it before it replaces the kept board (recordCheck.ts). */
   async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: Brought }> {
-    const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
+    let kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
+    // A kept board with a komi (Hedge School's design 24), which the board cannot analyze, does not open: a defence, as
+    // only a board at komi 0 is kept here. The store keeps it, and a new board opens.
+    try {
+      refuseKomi(kept?.komi);
+    } catch (e) {
+      notice = `The Analysis board cannot open your own analysis: ${sentence(errorText(e))} A new board is here instead.`;
+      kept = null;
+    }
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
     const p = new URLSearchParams(location.hash.slice(1)), text = p.get("record"), packed = p.get("packed");
     const position = p.get("position");

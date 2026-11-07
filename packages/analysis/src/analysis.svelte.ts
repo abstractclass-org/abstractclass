@@ -263,20 +263,23 @@ export class GameAnalysis<G extends GameTypes> {
    *  index (undefined elsewhere): the review judges by them in place of the engine's results there (data), with the
    *  book's area maps (mapAt), and the stages do not search those positions (Hedge School's design 32). The engine
    *  still searches the position on screen there, for the analysis column (focus). The book loads in parts, so a call
-   *  can come once the stages run: a position that they searched before keeps that result for the column. Not on the
-   *  board, whose analysis takes no book, nor at a komi: the book's values are the engine's at komi 0 (Hedge School's
-   *  design 24).
+   *  can come once the stages run: a position that they searched before keeps that result for the column. Only where
+   *  the analysis takes the book (takesBook).
    *  `lookup` gives the book's values of any position, or undefined where the book does not hold it or its part does
    *  not load. The variations' positions take their values from it (valuesAt): "Evaluate quality" does not search those
    *  positions (judge), and the labels read the book's values there, as on the game's line. */
   useBook(results: (Analysis<G["move"]> | undefined)[],
           lookup?: (position: G["position"]) => Promise<Analysis<G["move"]> | undefined>) {
-    if (this.board || this.komi) return;
+    if (!this.takesBook) return;
     this.bookResults = results;
     if (!lookup) return;
     this.bookLookup = lookup;
     for (const key of Object.keys(this.branches)) void this.askBook(key);
   }
+
+  /** Whether the analysis takes the opening book's values (useBook). Not on the board, whose analysis takes no book,
+   *  nor at a komi: the book's values are the engine's at komi 0 (Hedge School's design 24). */
+  get takesBook(): boolean { return !this.board && !this.komi; }
 
   /** The book's values that the review takes at the position at `path` (useBook): a position of the game, or of a
    *  variation once the book has answered for it. */

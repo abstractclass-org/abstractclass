@@ -1469,9 +1469,12 @@ test("a review at a komi searches at it, keeps its results apart, and reads none
   assert.equal(again.analysis[0]?.visits, deep);
   // The positions count the komi as Blue's starting score, from the start
   assert.deepEqual(game.positions.map(p => p.scores), MOVES.map(() => [300, 0]).concat([[300, 0]]));
-  // The book's values are the engine's at komi 0: a review at a komi takes none
+  // The book's values are the engine's at komi 0: a review at a komi takes none, nor does a board (takesBook)
+  assert.equal(game.takesBook, false);
   game.useBook([toAnalysis(words, reply(deep))]);
   assert.deepEqual(game.bookResults, []);
+  assert.equal(again.takesBook, true);
+  assert.equal(new GameAnalysis(words, pool, [], "a board", null, { board: true }).takesBook, false);
 });
 
 test("a komi game's end and labels follow the komi", async () => {

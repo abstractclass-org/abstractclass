@@ -1,6 +1,7 @@
 // The tree of a game's analysis as the browser keeps it (analysis.svelte.ts): a game's variations under the game's id,
 // and the Analysis board's tree under BOARD_ID, both in the `branches` store (@abstractclass/storage/db.ts). A site's
 // store of games re-exports these (Hedge School's src/lib/game/store.ts).
+import { keyMoves } from "./cache.ts";
 import { pathKey, prefixKeys } from "./tree.ts";
 
 /** A game's variations as kept in the browser (analysis.svelte.ts): each node's path key (its moves, as the review's
@@ -28,6 +29,18 @@ export const boardOfLine = (main: string[], start?: string, komi = 0): KeptBoard
 /** The kept variations as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
 export const branchNodes = (b: KeptBranches | null): KeptNode[] =>
   !b ? [] : b.version === 2 ? b.nodes : b.lines.map((l, i): KeptNode => [pathKey(l), i]);
+
+/** The moves part of the keys (cache.ts, keyMoves) of every position of a game and its variations, or of a board: the
+ *  positions on the line of `moves`, and each kept node, by its path key. A key names the set-up `start` and the
+ *  `komi` (Hedge School's design 24) before the moves, where there are. Version 1 kept a variation as its line: each
+ *  node of it. */
+export function positionKeys(moves: string[], branches: KeptBranches | null, komi = 0,
+                             start: string | null = null): Set<string> {
+  const paths = new Set(prefixKeys(moves));
+  if (branches?.version === 1) for (const line of branches.lines) for (const k of prefixKeys(line)) paths.add(k);
+  else for (const [key] of branchNodes(branches)) paths.add(key);
+  return new Set([...paths].map(k => keyMoves(start, k ? k.split(" ") : [], komi).join(" ")));
+}
 
 /** The variations kept for a game after an import (a review file, a shared review): the kept ones first, in their
  *  order, then the added ones that are new, after them in their own order. */

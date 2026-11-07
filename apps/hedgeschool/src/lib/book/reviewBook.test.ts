@@ -7,8 +7,8 @@ import type { Enclosure } from "#lib/review/enclosure.ts";
 import type { OpeningBook } from "./lookup.svelte.ts";
 import { giveBook } from "./reviewBook.ts";
 
-/** A review at `komi`: giveBook reads its komi before anything else. */
-const review = (komi: number) => ({ komi }) as unknown as GameAnalysis<Enclosure>;
+/** A review at `komi`: giveBook reads whether it takes the book (GameAnalysis.takesBook) before anything else. */
+const review = (komi: number) => ({ takesBook: !komi }) as unknown as GameAnalysis<Enclosure>;
 
 test("a review at a komi does not open the book, and a review at komi 0 does", async () => {
   // A book with no index: a review that opens it takes no values from it.

@@ -11,7 +11,8 @@
 // pass or a result. This reader keeps the main line and its tags. It skips comments and variations, but reads `[%clk]`
 // and `[%eval]` from the comments after the main line's moves. It checks the notation, not the rules: the engine checks
 // that every move is legal. It also accepts a bare list of moves, without turn labels. It checks one tag's value, the
-// `Komi` tag's: the game's starting score (GameRecord `komi`), which the review searches at.
+// `Komi` tag's: the game's starting score (GameRecord `komi`), which the review searches at, within the game's limit
+// (Notation `maxKomi`).
 
 /** A move as the game reads it from a record's word: its one spelling, its mark, and where in the word its mark
  *  starts (the word's length when it has none), so that a mark can be written there (markMoves). */
@@ -30,6 +31,9 @@ export interface Notation<Mark> {
    *  turn. Without it, the game has no set-up start: the first move opens turn 1, and the reader refuses a `Position`
    *  tag. */
   start?(tags: Record<string, string>): { turn: number; first: boolean };
+  /** The largest komi, either way, that the game's engine takes. The reader refuses a `Komi` tag beyond it, which the
+   *  engine would refuse. Without it, the reader takes any komi that a tag can give (KOMI). */
+  maxKomi?: number;
 }
 
 export interface GameRecord<Mark> {
@@ -80,8 +84,20 @@ export function komiOf(value: string | undefined): number | null {
   return KOMI.test(v) ? Number(v) || 0 : null;
 }
 
+/** Whether `n` is a komi that a `Komi` tag can give (komiOf): a number of whole or half points. */
+export const isKomi = (n: unknown): n is number => typeof n === "number" && komiOf(String(n)) === n;
+
 /** The `Komi` tag of a game at `komi`: none at 0, so that such a game's record is as it was before the komi. */
 export const komiTag = (komi: number): Record<string, string> => (komi ? { Komi: String(komi) } : {});
+
+/** The tags of a game's start: its set-up start's `Position` tag, then its komi's `Komi` tag (komiTag), each only
+ *  where the game has one. */
+export const startTags = (start: string | null | undefined, komi = 0): Record<string, string> =>
+  ({ ...(start ? { Position: start } : {}), ...komiTag(komi) });
+
+/** The text before a game's moves that its id covers at a komi (Hedge School's design 24): `komi K | `, so that the
+ *  same moves at another komi are another game. None at komi 0, where a game keeps the id of its moves alone. */
+export const komiPrefix = (komi: number): string => (komi ? `komi ${komi} | ` : "");
 
 /** The players' names from the record's tags, or the side's name where a tag is missing or "?". */
 export function playerNames(tags: Record<string, string>): { blue: string; red: string } {
@@ -155,6 +171,10 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
         const komi = komiOf(t.value);
         if (komi === null)
           throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
+        // A komi beyond the game's limit: its engine would refuse it, with the engine's own words.
+        const max = notation.maxKomi;
+        if (max !== undefined && Math.abs(komi) > max)
+          throw new RecordError(`the Komi tag must be from -${max} to ${max} points: ${t.value}`, t.at);
         record.komi = komi;
       }
       record.tags[t.name] = t.value;

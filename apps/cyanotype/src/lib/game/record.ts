@@ -12,9 +12,15 @@ export { gamePage, playerNames, RecordError, writeRecord, writeTags, type Eval }
 /** A game record of Blueprints: `marked` gives, by move, the capture mark that the record gives it, or null. */
 export type GameRecord = shared.GameRecord<Capture | null>;
 
-/** Blueprints' moves and capture marks, and the turn of a set-up start, for the shared record. */
+/** The largest komi, either way, that Blueprints' engine takes: its score target cap, (67 * 67 + 60) * 20 points, its
+ *  view's area and KataGo's margin of 60 at its score scale (the engine repository's katagame/cpp/game/rules.h,
+ *  Rules::MAX_USER_KOMI, with katagame/cpp/game/blueprints/gamerules.h, MAX_BOARD_LEN, and gameencoding.h,
+ *  SCORE_SCALE). A record beyond it is an error (Hedge School's design 24). */
+export const MAX_RECORD_KOMI = 90_980;
+
+/** Blueprints' moves and capture marks, the turn of a set-up start, and the komi's limit, for the shared record. */
 const moveNotation: shared.Notation<Capture | null> = {
-  read: readMove, mark: captureText, none: null, start: tags => startTurn(tags.Position),
+  read: readMove, mark: captureText, none: null, start: tags => startTurn(tags.Position), maxKomi: MAX_RECORD_KOMI,
 };
 
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */

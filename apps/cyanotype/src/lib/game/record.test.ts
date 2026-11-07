@@ -2,7 +2,7 @@
 // effects given by hand where the engine will give them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { markCaptures, parseRecord, RecordError, setUpProblem, withStart, writeRecord } from "./record.ts";
+import { markCaptures, MAX_RECORD_KOMI, parseRecord, RecordError, setUpProblem, withStart, writeRecord } from "./record.ts";
 import { STANDARD_START } from "./position.ts";
 import { checkCaptures, type Effect } from "./check.ts";
 
@@ -34,6 +34,17 @@ test("a malformed move is refused with its place in the text", () => {
   assert.deepEqual(at("1. 2@-6,-2x+0?"), ["a placement that scores no points has the mark x, not x+0: 2@-6,-2x+0?", 3]);
   assert.deepEqual(at("1. 1:0,0>3:1,-1x"), ["only a placement has a capture mark: an edit captures no cells: 1:0,0>3:1,-1x", 3]);
   assert.deepEqual(at("1. 2@-6 *"), ["not a move, a turn label or a result: 2@-6", 3]);
+});
+
+test("the Komi tag: up to the engine's limit, 90,980 points either way, and beyond it an error that names it", () => {
+  assert.equal(MAX_RECORD_KOMI, 90_980);
+  assert.equal(parseRecord('[Komi "90980"]\n\n1. 2@-6,-2 *').komi, 90980);
+  assert.equal(parseRecord('[Komi "-6000"]\n\n1. 2@-6,-2 *').komi, -6000); // beyond Enclosure's limit
+  for (const beyond of ["90980.5", "-90981", "99999"]) {
+    assert.throws(() => parseRecord(`[Komi "${beyond}"]\n\n1. 2@-6,-2 *`),
+                  (e: unknown) => e instanceof RecordError && e.offset === 0 &&
+                    e.message === `the Komi tag must be from -90980 to 90980 points: ${beyond}`);
+  }
 });
 
 test("a record from a set-up start numbers its turns from the start's moves played", () => {

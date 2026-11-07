@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { BookReader } from "./book.ts";
+import { readPasted } from "../game/paste.ts";
 
 const { OpeningBook } = await import("./lookup.svelte.ts");
 const { BookPlace, keptChoice, keepChoice } = await import("./place.svelte.ts");
@@ -83,6 +84,23 @@ test("Openings starts on Book and keeps no choice; the review's table gives Stud
   board.show = "book";
   assert.deepEqual(used, ["book shown"]);
   assert.equal(board.study, "/openings#record=A10-D9&via=analysis");
+  // A game at a komi (design 24): the record carries its Komi tag, so that Openings says that its book is at komi 0
+  let komi = -300, edges = ["A10-D9"];
+  const atKomi = new BookPlace(new OpeningBook(CASES, read), "review", () => cell.get("path")!, () => "edge",
+                               { ...options, path: () => edges, openings: true, komi: () => komi });
+  await settle();
+  atKomi.show = "book";
+  const study = new URLSearchParams(atKomi.study!.split("#")[1]);
+  assert.equal(study.get("record"), '[Komi "-300"] A10-D9');
+  assert.equal(study.get("via"), "review");
+  assert.deepEqual(readPasted(study.get("record")!).record.moves, ["A10-D9"], "Openings reads it");
+  assert.equal(readPasted(study.get("record")!).record.komi, -300);
+  cell.set("path", [START]);
+  edges = [];
+  assert.equal(atKomi.study, "/openings#via=review", "at the start, no record: a record needs a move");
+  edges = ["A10-D9"];
+  komi = 0;
+  assert.equal(atKomi.study, "/openings#record=A10-D9&via=review", "at komi 0, the edges alone");
   cell.set("path", ["A10-D10 Q10-T10 r1 0/0 0", "A10-D9*,A10-D10 Q10-T10 r2 0/0 1"]);
   assert.equal(board.study, null, "a path from another start");
   const site = new BookPlace(new OpeningBook(CASES, read), "review", () => [START], () => "edge", options);

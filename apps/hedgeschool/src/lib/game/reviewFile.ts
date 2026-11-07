@@ -4,19 +4,18 @@
 // another network keeps the game and its variations, and its review searches again with its own engine. KaTrain keeps its
 // analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
 // record (review/annotate.ts).
-import { atShape, keyMoves, makeEarlierRemovalDue, ofModels } from "@abstractclass/analysis/cache.ts";
+import { atShape, makeEarlierRemovalDue, ofModels } from "@abstractclass/analysis/cache.ts";
 import { belongs, readSiteFile, shippedModels } from "@abstractclass/analysis/files.ts";
 import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
 import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
-import { prefixKeys } from "@abstractclass/analysis/tree.ts";
 import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { ENCLOSURE_CODE, sharedRecord, type SharedReview } from "./share.ts";
 import { reviewLink, shareNote } from "@abstractclass/analysis/share.ts";
 import { importRecord, variantProblem } from "./import.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
-import { mergeBranches } from "@abstractclass/analysis/kept.ts";
+import { mergeBranches, positionKeys } from "@abstractclass/analysis/kept.ts";
 import { download } from "@abstractclass/site/download.ts";
 import { RECORD_EXPORTS, REVIEW_LINK, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 
@@ -38,16 +37,9 @@ export interface ReviewFile {
  *  file), the network's id and name, the review's depth, and when it ended. */
 export interface FileReview extends ReviewMark { networkName: string }
 
-/** The moves of every position of a game and its variations, as the results' keys spell them: the record's own moves on
- *  the game's line, and a variation node's path key off it (@abstractclass/analysis/analysis.svelte.ts, engineMoves),
- *  each after the game's komi where it is not 0 (cache.ts, keyMoves). Version 1 kept a variation as its line: each node
- *  of it. */
-export function positionKeys(moves: string[], branches: KeptBranches | null, komi = 0): Set<string> {
-  const out = new Set(prefixKeys(moves));
-  if (branches?.version === 1) for (const line of branches.lines) for (const k of prefixKeys(line)) out.add(k);
-  else for (const [key] of branchNodes(branches)) out.add(key);
-  return komi ? new Set([...out].map(k => keyMoves(null, k ? k.split(" ") : [], komi).join(" "))) : out;
-}
+// The moves of every position of a game and its variations, as the results' keys spell them, at the game's komi: the
+// shared ones (@abstractclass/analysis/kept.ts).
+export { positionKeys };
 
 /** The results that belong to a game: of its positions, and of the positions one move from them, which confirm the
  *  Greats (@abstractclass/analysis/analysis.svelte.ts, confirmGreats), in a shape that the readers read, and of `models`

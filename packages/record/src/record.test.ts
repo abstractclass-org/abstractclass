@@ -2,7 +2,10 @@
 // lower case, and its mark `#N` counts what a move takes (`apple#2`), never `#0`. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { komiOf, komiTag, markMoves, pastedError, readRecord, RecordError, withStartTag, writeRecord, type Notation } from "./record.ts";
+import {
+  isKomi, komiOf, komiPrefix, komiTag, markMoves, pastedError, readRecord, RecordError, startTags, withStartTag,
+  writeRecord, type Notation,
+} from "./record.ts";
 
 /** The test game: its mark is what a move takes, or null for none. A set-up start gives its first turn's label in a
  *  `Start` tag: `3.`, or `2...` for a turn's second move. */
@@ -100,6 +103,39 @@ test("the Komi tag: Red's starting score, 0 without it, and an error where it is
   assert.deepEqual(komiTag(0), {});
   assert.deepEqual(komiTag(-300), { Komi: "-300" });
   assert.equal(komiOf("nonsense"), null);
+});
+
+test("a game's limit on the komi: a Komi tag beyond it is an error that names the limit", () => {
+  const limited = (text: string) => readRecord(text, { ...words, maxKomi: 500 });
+  assert.equal(limited('[Komi "500"]\n\n1. apple *').komi, 500);
+  assert.equal(limited('[Komi "-500"]\n\n1. apple *').komi, -500);
+  for (const beyond of ["500.5", "-501", "99999"]) {
+    assert.throws(() => limited(`[Event "x"]\n[Komi "${beyond}"]\n\n1. apple *`),
+                  (e: unknown) => e instanceof RecordError && e.offset === 12 &&
+                    e.message === `the Komi tag must be from -500 to 500 points: ${beyond}`);
+  }
+  // A value that is not a komi keeps its own error, and a game without a limit takes what the reader takes.
+  assert.throws(() => limited('[Komi "abc"]\n\n1. apple *'), /whole or half/);
+  assert.equal(read('[Komi "99999"]\n\n1. apple *').komi, 99999);
+});
+
+test("isKomi: a number that a Komi tag can give, whole or half points", () => {
+  for (const n of [0, 300, -300, 120.5, -0.5, 99999.5]) assert.equal(isKomi(n), true, String(n));
+  for (const n of [6.25, 1e6, NaN, Infinity, "300", null, undefined]) assert.equal(isKomi(n), false, String(n));
+});
+
+test("startTags: a set-up start's Position tag, then a komi's Komi tag, each only when there is one", () => {
+  assert.deepEqual(startTags(null, 0), {});
+  assert.deepEqual(startTags(undefined), {});
+  assert.deepEqual(startTags("a b c", 0), { Position: "a b c" });
+  assert.deepEqual(startTags(null, -300), { Komi: "-300" });
+  assert.deepEqual(Object.entries(startTags("a b c", 300)), [["Position", "a b c"], ["Komi", "300"]]);
+});
+
+test("komiPrefix: what a game's id covers before its moves at a komi, nothing at komi 0", () => {
+  assert.equal(komiPrefix(0), "");
+  assert.equal(komiPrefix(-300), "komi -300 | ");
+  assert.equal(komiPrefix(120.5), "komi 120.5 | ");
 });
 
 test("a record written and read back", () => {

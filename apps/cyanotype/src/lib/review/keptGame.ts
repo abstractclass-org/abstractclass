@@ -5,6 +5,7 @@
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { writeLocal } from "@abstractclass/storage/local.ts";
 import { mergeBranches, type KeptBranches } from "@abstractclass/analysis/kept.ts";
+import { komiPrefix } from "@abstractclass/record/record.ts";
 import { parseRecord, setUpProblem } from "../game/record.ts";
 import { sharedRecord, type SharedReview } from "../game/share.ts";
 import { REVIEW_GAME_KEY, SITE_NAME } from "../site.ts";
@@ -17,7 +18,7 @@ export interface KeptGame { record: string; added: string }
  *  School's design 24): the same moves at another komi are another game. FNV-1a, 32 bits. */
 export function gameId(moves: string[], komi = 0): string {
   let h = 0x811c9dc5;
-  for (const c of (komi ? `komi ${komi} | ` : "") + moves.join(" ")) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
+  for (const c of komiPrefix(komi) + moves.join(" ")) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
   return `review-${moves.length}-${h.toString(16).padStart(8, "0")}`;
 }
 

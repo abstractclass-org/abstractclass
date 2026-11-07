@@ -6,7 +6,8 @@
 // hands' rank chips with "+N", that the page has no area map, and the player's notes (cyanotype-notes.ts) by position
 // and while a preview shows.
 // The page asks the engine for no search: cyanotype-live-review.spec.ts reviews with the engine. And the
-// Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message. Run:
+// Analysis board's check of a record brought to it, and its refusal of a kept board with a komi. Without the engine's
+// files the tests skip, with a message. Run:
 // npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
@@ -15,6 +16,8 @@ import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { CYANOTYPE, DISPLAY, MOVES, expectNoSearch, noReview, putResults, readStored, reviewTestGame, testRecord }
   from "./cyanotype-review.ts";
 import { notesOn, rightClick, rightDrag, spot } from "./cyanotype-notes.ts";
+import { NAME, STORES } from "../../../packages/storage/src/db.ts";
+import { BOARD_ID } from "../../../packages/analysis/src/kept.ts";
 
 test.describe.configure({ mode: "serial" });
 let context: BrowserContext | undefined, page: Page, skipped = "";
@@ -352,6 +355,36 @@ test("the Analysis board refuses a record whose capture mark the engine does not
                                                          { timeout: 120_000 });
     await expect(board.getByRole("alert")).toContainText("Your own analysis is here instead.");
     expect(new URL(board.url()).hash, "the record left the address").toBe("");
+    await expect(board.locator(".movelist button[data-path]")).toHaveCount(0);
+  } finally {
+    await own.close();
+  }
+});
+
+test("the Analysis board does not open a kept board with a komi: a new board, with a notice", async ({ browser }) => {
+  // The board analyzes at komi 0 only (Hedge School's design 24). Only a board at komi 0 is kept, so this is a
+  // defence: a board kept with a komi, one move from the start, in a browser of its own.
+  const own = await browser.newContext(SIZE);
+  try {
+    const board = await own.newPage();
+    await board.goto(new URL("/about", CYANOTYPE).href);
+    const move = "1:-1,1>2:0,-1";
+    await board.evaluate(([name, stores, store, id, kept]) => new Promise<void>((resolve, reject) => {
+      const open = indexedDB.open(name);
+      open.onupgradeneeded = () => { for (const s of stores) open.result.createObjectStore(s); };
+      open.onerror = () => reject(open.error);
+      open.onsuccess = () => {
+        const tx = open.result.transaction(store, "readwrite");
+        tx.objectStore(store).put(kept, id);
+        tx.oncomplete = () => { open.result.close(); resolve(); };
+        tx.onerror = tx.onabort = () => reject(tx.error);
+      };
+    }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID,
+         { version: 2, main: [move], nodes: [[move, 0]], komi: -300 }] as const);
+    await board.goto(new URL("/analysis", CYANOTYPE).href);
+    await expect(board.getByRole("alert")).toHaveText("The Analysis board cannot open your own analysis: it has a komi. " +
+      "The Analysis board can analyze only at komi 0. A new board is here instead.", { timeout: 120_000 });
+    await expect(board.getByRole("button", { name: "New" })).toBeVisible({ timeout: 120_000 }); // the board is ready
     await expect(board.locator(".movelist button[data-path]")).toHaveCount(0);
   } finally {
     await own.close();

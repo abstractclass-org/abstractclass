@@ -9350,3 +9350,42 @@ WSL. The calibration: "Loading the engine's network…" takes 165.3 and 189.7 pi
   visits · time limit" at the end (108 pixels, with 48 for the bar). With the engine off in the middle of a search, it
   read "128 of 16,384 visits" for 0.3 seconds, then "160 visits". Cyanotype's line read "128 visits · time limit" at the
   end. With the engine off, it read "32 of 16,384 visits" for one second, then "64 visits".
+
+### The komi's follow-ups: shared helpers, Study in Openings, each game's limit (2026-11-07)
+
+The review of "Practice: the komi, a fourth setting" left these for later, as each needs a file outside that work.
+Design 24, item 15 and design 33 have the decision.
+
+- **Shared code in place of copies, with no change of behaviour:**
+  - `startTags` (`packages/record/src/record.ts`): a start's `Position` tag and the komi's `Komi` tag, for the
+    practice record, the Analysis board's annotated record and the board's link. The practice record from a set-up
+    start at a komi now writes `Position` before `Komi`, as the board's record and link do. A reader takes the tags
+    in any order.
+  - `komiPrefix` (`record.ts`): the text `komi K | ` before the moves of a game's id, for Hedge School's store and
+    Cyanotype's kept game. The ids stay as they were.
+  - `isKomi` (`record.ts`): whether a number is a komi that a tag can give, for the analysis file's reader.
+  - `positionKeys` (`packages/analysis/src/kept.ts`): the keys of a game's positions and of its variations, at its
+    komi and from its start. Hedge School's review file and its removal of earlier results take it, and the board's
+    `boardPositionKeys` is its form for a board.
+  - `GameAnalysis.takesBook`: false on the board and at a komi. `useBook`, `giveBook` and the annotated record from
+    Your games read it, in place of their own checks.
+- **"Study in Openings" carries the komi:** its record has the `Komi` tag before the edges. Openings then shows its
+  line on a record's komi, as for a pasted record. The book stays at komi 0 there. At the start the link has no
+  record, as before, so no komi: a record needs a move, and Openings refuses a record without one. A browser test
+  found this.
+- **Cyanotype's board and a kept board's komi:** only a board at komi 0 is kept, so a kept board never has a komi. As
+  a defence, the page refuses one with a notice and opens a new board. The store keeps the old board. The board that
+  takes a komi (abscls-8tl1.50) replaces this refusal.
+- **Each game's limit on the komi:** the engine repository's design 04 (its commit 612a8458, "The record's tags", the
+  komi) gives the tag no limit. So the limit is the site's own, from each engine:
+  - Enclosure: 5,052 points either way, `Rules::MAX_USER_KOMI` (`katagame/cpp/game/rules.h`), the score target cap,
+    (19 × 19 + 60) × 12. The engine that Hedge School locks (katagame eaf2dc89) has the literal 5,052.
+  - Blueprints: 90,980 points either way, the same formula with Blueprints' `MAX_BOARD_LEN` of 67, its view
+    (`katagame/cpp/game/blueprints/gamerules.h`, line 1389, with `VIEW` at line 54), and its `SCORE_SCALE` of 20
+    (`gameencoding.h`, line 1357): (67 × 67 + 60) × 20. The engine that Cyanotype locks (katagame 355a2e66) has the
+    same.
+  - The shared reader takes the game's limit (its `Notation`'s `maxKomi`) and refuses a tag beyond it where the
+    record is read: "the Komi tag must be from -5052 to 5052 points: 6000". Before, such a record failed at the
+    engine, with the engine's own message. The reader's own bound, five digits, stays for a game with no limit.
+  - The board's link and the analysis file keep their own komi checks, with no limit: they carry a komi apart from a
+    record.

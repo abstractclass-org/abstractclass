@@ -10,12 +10,12 @@ import { bookValues } from "./results.ts";
  *  game's parts load, the review judges the positions that the book holds by the book's values, and its stages do not
  *  search them. It gives the book's lookup too, for the variations' positions, which "Evaluate quality" then does not
  *  search where the book holds them. Where the index does not load, or the book's values fail, it gives none, and the
- *  review searches every position: it never fails. A review at a komi other than 0 takes none, and opens no part of the
- *  book: the book's values are the engine's at komi 0 (design 24). Call once the analysis has started
- *  (GameAnalysis.start): its positions give the notation. `book`: the site's book in the early edition
- *  (place.svelte.ts, siteBook), the test book in a test, or none. */
+ *  review searches every position: it never fails. A review that takes no book (GameAnalysis.takesBook: at a komi
+ *  other than 0, as the book's values are the engine's at komi 0, design 24) opens no part of it. Call once the
+ *  analysis has started (GameAnalysis.start): its positions give the notation. `book`: the site's book in the early
+ *  edition (place.svelte.ts, siteBook), the test book in a test, or none. */
 export async function giveBook(g: GameAnalysis<Enclosure>, book: OpeningBook | null): Promise<void> {
-  if (g.komi) return;
+  if (!g.takesBook) return;
   try {
     const opened = book && (await book.opened());
     if (!opened || !g.rulesReady) return;
