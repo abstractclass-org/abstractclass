@@ -9258,7 +9258,7 @@ change, and that holds for Cyanotype as it does for Hedge School.
   bot "on the GPU.", a turn of 1.2 s). With Auto, the review took 25 s ("In use, nvidia blackwell: 12 times a worker's
   speed."), the board 12 s (3 searches on the GPU), and Practice 3 s (the bot on the GPU, a turn of 1.2 s).
 - **Not covered:** after a review too short for the test, Auto's line stayed "Testing" until more work came (fixed:
-  "The GPU's first-use test while no search runs", abscls-11cl). The check's later changes ran only off the GPU
+  "The GPU's first-use test while it waits for searches", abscls-11cl). The check's later changes ran only off the GPU
   (`--cpu`): Auto's bot must follow the review's test, and the GPU's line is read once.
 
 ### The Notices pages: Cyanotype's engine section and ONNX Runtime Web (2026-11-07)
@@ -9506,7 +9506,7 @@ result.
   `scripts/ci-watch` line, and lets the push go. `ALLOW_DEV_PUSH=1` is gone, as nothing is left to override. Its tests
   (`scripts/pre-push.test.sh`) follow: 33 cases.
 
-### The GPU's first-use test while no search runs (2026-11-08)
+### The GPU's first-use test while it waits for searches (2026-11-08)
 
 - **The problem** (abscls-11cl, found by abscls-8tl1.64): the test ends when the CPU workers and the GPU each have 20 s
   of searches (`SpeedMeter.measured`, no timeout). After a short review, or a few searches on the Analysis board, the
@@ -9515,17 +9515,27 @@ result.
 - **The decision,** among three: the test keeps design 15's 20 s on each side, and the line says what happens
   while the test waits. The other two were ending the test early with what it measured (a change of the 20 s, which the
   engine repository measured) and leaving the line as it was.
-- **The change:** the pool knows when searching starts and stops. `EnginePool.searching` is true while a task runs, and
-  `onSearching` is called when it changes (`packages/engine/src/pool.ts`). `GpuControl` keeps it in the status
-  (`{ state: "testing", searching }`, `packages/analysis/src/gpu.svelte.ts`). The line shows "In use. Testing its speed
-  against a worker…" while searches run, and "In use. The speed test continues with the next searches." while none
-  runs. The 20 s, the result's storage, and On and Off did not change. Both sites show the line: it is the shared
-  code's.
-- **The text:** the owner's example said "goes on". The STE skill (strict mode) counts it as a phrasal verb (rule 9.3),
-  so the line says "continues". The skill's linter found nothing in either form.
-- **Checked,** on the CPU and with fakes only (no GPU run): `packages/engine/src/pool.test.ts`, "the GPU's first-use
-  test waits while nothing searches, and the pool says so". It drives the pool with a fake clock. A review of 12 s ends,
-  and `onSearching` gives `true` and `false`. Ten minutes with no search add nothing, and the test stays unresolved.
-  The next searches of 8 s end it, and `onSearching` gives `true` and `false` again. `packages/analysis/src/gpu.test.ts`
-  checks the two lines.
+- **The change:** the test's meter knows when the test's seconds grow. They grow only while a search runs on a side
+  that has less than its 20 s. `SpeedMeter.measured(seconds, onMeasuring)` calls `onMeasuring` at once and at each
+  change, until the test ends or the GPU leaves the pool (`packages/engine/src/pool.ts`, through
+  `EnginePool.measureGpu`). `GpuControl` keeps it in the status (`{ state: "testing", measuring }`,
+  `packages/analysis/src/gpu.svelte.ts`). The line shows "In use. Testing its speed against a worker…" while the test
+  measures, and "In use. The speed test continues with the next searches." while it waits. The 20 s, the result's
+  storage, and On and Off did not change. Both sites show the line: it is the shared code's.
+- **The code review's change:** the first build counted any task in the pool as a search for the test. A task takes a
+  free CPU worker first, and the GPU only when no worker is free. The workers' seconds add up across the workers, so
+  they pass 20 s early, and the GPU's seconds decide when the test ends. A search on a worker alone, such as one
+  position on the board after a short review, then set the line back to "Testing" while the test did not measure. The
+  signal moved from the pool's tasks to the meter's counts.
+- **The text:** the wording proposed with the decision said "goes on". The STE skill (strict mode) counts it as a
+  phrasal verb (rule 9.3), so the line says "continues". The skill's linter found nothing in either form.
+- **Checked,** on the CPU and with fakes only (no GPU run). `packages/engine/src/pool.test.ts`, "the GPU's first-use
+  test waits while no search that it needs runs", drives a real pool with a fake clock. A review of 12 s ends, and
+  `onMeasuring` gives `false`, `true` and `false`. Ten minutes with no search add nothing. A search on a worker alone
+  gives nothing, and the test stays unresolved. The next searches of 8 s end the test while they run, and the ended test
+  hears nothing more. `packages/analysis/src/gpu.test.ts` drives `GpuControl` with a fake GPU worker in a real pool. The
+  line follows the test through a short review, a worker's search that fails, a worker alone, and the test's end, which
+  stores the result once. A GPU search that the engine refuses keeps the GPU, and the line waits again. The line does
+  not change after the GPU is lost, after Off, or after the control ends. The idle release in a hidden page brings
+  "Waiting: it starts when there is more work than the workers can take."
 - **Not covered:** the line in a browser on a GPU. No GPU run was made.

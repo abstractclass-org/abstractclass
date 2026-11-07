@@ -67,10 +67,6 @@ export class EnginePool {
   onGpuLost: ((error: unknown) => void) | null = null;
   /** Called when tasks wait and no engine is free: the GPU starts then (design 15). */
   onBacklog: (() => void) | null = null;
-  /** Called when the searching starts (a task runs while none ran) or stops (the last running task ends): the engine
-   *  settings' line says that the GPU's first-use test waits while nothing searches (@abstractclass/analysis/gpu.svelte.ts). */
-  onSearching: ((searching: boolean) => void) | null = null;
-  private wasSearching = false;
   private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
   private loading = 0; // the search workers that load now: each takes a task once it has loaded
   // The release of idle engines (releaseWhenIdle): the search workers wanted, whether they are released now, and the
@@ -206,15 +202,16 @@ export class EnginePool {
 
   /** The GPU's first-use test (@abstractclass/analysis/gpu.svelte.ts): a CPU worker's visits a second and the GPU
    *  worker's evaluations a second, once each has searched for `seconds`. The GPU's count is sampled once a second,
-   *  only while the test runs. It never resolves when the GPU leaves the pool first. */
-  measureGpu(seconds: number): Promise<{ cpu: number; gpu: number }> {
+   *  only while the test runs. `onMeasuring` hears whether the test's seconds grow now (SpeedMeter.measured). It never
+   *  resolves when the GPU leaves the pool first, and `onMeasuring` then hears nothing more. */
+  measureGpu(seconds: number, onMeasuring?: (measuring: boolean) => void): Promise<{ cpu: number; gpu: number }> {
     const gpu = this.gpu;
     if (!gpu) return new Promise(() => {});
     clearInterval(this.sampler);
     this.sampler = setInterval(() => {
       gpu.evaluations().then(n => { if (this.gpu === gpu) this.speed.gpuSample(n); }, () => {});
     }, 1000);
-    return this.speed.measured(seconds).finally(() => clearInterval(this.sampler));
+    return this.speed.measured(seconds, onMeasuring).finally(() => clearInterval(this.sampler));
   }
 
   /** More tasks wait than the engines can take: none is free, and the workers that load now take one each. After an
@@ -223,16 +220,6 @@ export class EnginePool {
 
   /** No task waits or runs. */
   private get idle(): boolean { return !this.queue.length && !this.running.size; }
-
-  /** A task runs now, on a CPU worker or on the GPU. While none does, the GPU's first-use test (measureGpu) waits: its
-   *  seconds count only the searches. */
-  get searching(): boolean { return this.running.size > 0; }
-
-  private syncSearching() {
-    if (this.wasSearching === this.searching) return;
-    this.wasSearching = this.searching;
-    this.onSearching?.(this.wasSearching);
-  }
 
   /** The tasks that wait in the queue for an engine. While one waits, no engine is free: each takes a task as it frees
    *  (dispatch). */
@@ -286,7 +273,6 @@ export class EnginePool {
       const engine = this.free.splice(k, 1)[0], task = this.queue.shift()!;
       task.engine = engine;
       this.running.add(task);
-      this.syncSearching();
       task.work(this.speed.watch(engine), stop => { task.stop = stop; })
         .then(value => {
           if (task.stopped) this.requeue(task); else task.resolve(value);
@@ -302,7 +288,6 @@ export class EnginePool {
           if (this.retiring.delete(engine)) engine.terminate();
           else this.free.push(engine);
           this.dispatch();
-          this.syncSearching();
           this.scheduleRelease();
         });
     }
@@ -346,6 +331,14 @@ export class EnginePool {
   }
 }
 
+/** A wait of SpeedMeter.measured: whether its seconds grow now (null before its first check), and who hears it. */
+interface SpeedWait {
+  seconds: number;
+  resolve: (r: { cpu: number; gpu: number }) => void;
+  onMeasuring?: (measuring: boolean) => void;
+  measuring: boolean | null;
+}
+
 /** The searches' speed, for the GPU's first-use test (@abstractclass/analysis/gpu.svelte.ts): a CPU worker's visits a
  *  second (its searches' visits over their time in the worker), and the GPU worker's network evaluations a second, all
  *  its searches together. The GPU's count comes from samples of its library's own count, about once a second, so that
@@ -356,9 +349,9 @@ export class EnginePool {
 export class SpeedMeter {
   private cpu = { visits: 0, ms: 0 };
   private gpu = { evaluations: 0, ms: 0 };
-  private active = 0; // the GPU's searches running
+  private running = { cpu: 0, gpu: 0 }; // the searches that run now, of each kind
   private last: { at: number; evaluations: number } | null = null; // the GPU's last sample, once it has evaluated
-  private waiting: { seconds: number; resolve: (r: { cpu: number; gpu: number }) => void }[] = [];
+  private waiting: SpeedWait[] = [];
 
   /** The engine, its searches measured. */
   watch(engine: SearchEngine): SearchEngine {
@@ -366,8 +359,9 @@ export class SpeedMeter {
       kind: engine.kind,
       terminate: () => engine.terminate(),
       analyse: (q, onPartial, maxMs) => {
-        if (engine.kind === "gpu") this.active++;
         const run = engine.analyse(q, onPartial, maxMs);
+        this.running[engine.kind]++;
+        this.check();
         run.done.then(t => this.ended(engine.kind, t.ms, t.reply.rootInfo.visits), () => this.ended(engine.kind, 0, 0));
         return run;
       },
@@ -375,9 +369,8 @@ export class SpeedMeter {
   }
 
   private ended(kind: "cpu" | "gpu", ms: number, visits: number) {
-    if (kind === "gpu") { this.active--; return; }
-    this.cpu.visits += visits;
-    this.cpu.ms += ms;
+    this.running[kind]--;
+    if (kind === "cpu") { this.cpu.visits += visits; this.cpu.ms += ms; }
     this.check();
   }
 
@@ -395,7 +388,7 @@ export class SpeedMeter {
   gpuSample(evaluations: number) {
     if (evaluations === 0) return; // no batch yet: the first compiles the kernels
     const now = performance.now();
-    if (this.last && this.active > 0 && evaluations >= this.last.evaluations) {
+    if (this.last && this.running.gpu > 0 && evaluations >= this.last.evaluations) {
       this.gpu.evaluations += evaluations - this.last.evaluations;
       this.gpu.ms += now - this.last.at;
     }
@@ -403,19 +396,30 @@ export class SpeedMeter {
     this.check();
   }
 
+  /** Ends each wait whose two kinds have searched for its seconds, and tells each other wait whether its seconds grow
+   *  now. */
   private check() {
     for (const w of [...this.waiting]) {
-      if (this.cpu.ms < w.seconds * 1000 || this.gpu.ms < w.seconds * 1000) continue;
-      this.waiting.splice(this.waiting.indexOf(w), 1);
-      w.resolve({ cpu: (this.cpu.visits / this.cpu.ms) * 1000, gpu: (this.gpu.evaluations / this.gpu.ms) * 1000 });
+      const ms = w.seconds * 1000, cpuShort = this.cpu.ms < ms, gpuShort = this.gpu.ms < ms;
+      if (!cpuShort && !gpuShort) {
+        this.waiting.splice(this.waiting.indexOf(w), 1);
+        w.resolve({ cpu: (this.cpu.visits / this.cpu.ms) * 1000, gpu: (this.gpu.evaluations / this.gpu.ms) * 1000 });
+        continue;
+      }
+      const measuring = (cpuShort && this.running.cpu > 0) || (gpuShort && this.running.gpu > 0);
+      if (measuring !== w.measuring) { w.measuring = measuring; w.onMeasuring?.(measuring); }
     }
   }
 
   /** A CPU worker's visits a second and the GPU worker's evaluations a second, once each has searched for `seconds`.
-   *  It never resolves when the work ends before that, or after abandon(). */
-  measured(seconds: number): Promise<{ cpu: number; gpu: number }> {
+   *  It never resolves when the work ends before that. `onMeasuring` hears at once, and then at each change, whether
+   *  those seconds grow now: only while a search runs on a kind that has searched for less than `seconds`. The GPU
+   *  searches only when no CPU worker is free (EnginePool.dispatch): once the workers have their seconds, a search on a
+   *  worker alone adds none.
+   *  After abandon(), the wait never resolves, and `onMeasuring` hears nothing more. */
+  measured(seconds: number, onMeasuring?: (measuring: boolean) => void): Promise<{ cpu: number; gpu: number }> {
     return new Promise(resolve => {
-      this.waiting.push({ seconds, resolve });
+      this.waiting.push({ seconds, resolve, onMeasuring, measuring: null });
       this.check();
     });
   }
