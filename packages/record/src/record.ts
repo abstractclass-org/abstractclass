@@ -242,3 +242,13 @@ export function pastedError(e: RecordError, pasted: string, read: string): Error
   const before = pasted.slice(0, Math.max(0, e.offset - tag)).split("\n");
   return new Error(`${e.message} (line ${before.length}, column ${before.at(-1)!.length + 1}).`);
 }
+
+/** Why a record cannot take its start given apart (withStartTag: a board's Import, its address's `position`), or null:
+ *  its own `Position` tag must be that position or absent. `setUpStart` is the game's: a set-up start in its one
+ *  spelling, none for the standard start. */
+export function givenStartProblem(tags: Record<string, string>, position: string | null,
+                                  setUpStart: (p: string) => string | undefined): string | null {
+  const tagged = tags.Position?.trim();
+  return position && tagged && setUpStart(tagged) !== setUpStart(position)
+    ? "the record's Position tag is not the position that you gave" : null;
+}

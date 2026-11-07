@@ -5,11 +5,11 @@
   // fix the mover) and the scores. The left button puts the tool's player's cell and the right button the other
   // player's, as a drawing program's two colours, and X swaps the two players. A drag with Shift puts the cell on each
   // hex that it passes, or removes it, by what a click on its first hex does: Cyanotype's own, since a set-up position
-  // of Blueprints has many cells. The page writes the position's notation
-  // (#lib/game/position.ts) and draws it at once. The engine reads it at each change, in its own form, and says what is
-  // wrong with it: the rules' checks. Analyze opens the board from it. Its way in: `#position=`, from the Analysis
-  // board's New menu and Import (the position on screen) or another page. The position leaves the address at once. The
-  // position being made is kept in this browser, so that a reload keeps it.
+  // of Blueprints has many cells. The page writes the position's notation (#lib/game/position.ts) and draws it at once.
+  // The engine reads it at each change, as the Analysis board reads a start (startProblem), and says what is wrong with
+  // it: the rules' checks. Analyze opens the board from it. Its way in: `#position=`, from the Analysis board's New menu
+  // and Import (the position on screen) or another page. The position leaves the address at once. The position being
+  // made is kept in this browser, so that a reload keeps it.
   import { onDestroy, onMount } from "svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
@@ -20,10 +20,9 @@
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { hexKey, type Hex } from "#lib/board/hex.ts";
   import { PLAYER_NAMES, type HandHex, type Kind, type SitePosition } from "#lib/board/position.ts";
-  import type { DescribeReply } from "#lib/board/described.ts";
-  import { enginePosition, readPosition, STANDARD_START, writePosition } from "#lib/game/position.ts";
-  import { moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
-  import { engineProblem } from "#lib/review/recordCheck.ts";
+  import { readPosition, STANDARD_START, writePosition } from "#lib/game/position.ts";
+  import { hasCell, moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
+  import { describeBy, startProblem } from "#lib/review/recordCheck.ts";
   import { EDITOR_KEY, SITE_NAME } from "#lib/site.ts";
 
   let made = $state.raw<SitePosition>(readPosition(STANDARD_START)); // the position as the player made it
@@ -31,7 +30,6 @@
   let player = $state<Player>(0); // the tool's player
   let kind = $state<Kind>("plain"); // the tool's kind
   let chosen = $state.raw<({ player: Player } & HandHex) | null>(null); // a hand's cell, chosen to move
-  let painting = $state(false); // a drag with Shift is under way: the engine reads the position at its end
   let hint = $state(""); // why the last click did nothing
   let formError = $state(""); // the engine refused the position
   let checked = $state(false); // the engine has read the latest position
@@ -66,26 +64,23 @@
   });
   onDestroy(() => engine?.terminate());
 
-  // At each change: the field shows the position, the browser keeps it, and the engine reads it. Only the latest answer
-  // counts.
+  // At each change: the field shows the position, the browser keeps it, and the engine reads it, as the Analysis board
+  // reads a start (startProblem). Only the latest answer counts. A drag with Shift counts at its end.
   let asked = 0;
   $effect(() => {
+    if (stroke) return;
     const n = notation;
     field = n;
     fieldError = "";
     writeLocal(EDITOR_KEY, n);
     checked = false;
-    if (engine && !painting) void check(engine, n);
+    if (engine) void check(engine, n);
   });
   async function check(e: EngineWorker, n: string) {
-    const mine = ++asked;
-    try {
-      await e.describe<DescribeReply>({ position: enginePosition(n), moves: [] });
-      if (mine === asked) formError = "";
-    } catch (err) {
-      if (mine === asked) formError = engineProblem(err);
-    } finally {
-      if (mine === asked) checked = true;
+    const mine = ++asked, problem = await startProblem(describeBy(e), n);
+    if (mine === asked) {
+      formError = problem ?? "";
+      checked = true;
     }
   }
 
@@ -111,20 +106,20 @@
   // A drag with Shift: the player, whether it removes (its first hex has the player's cell of the chosen kind, which a
   // click there removes), and the hexes that it changed, so that a hex that it passes twice changes once. The editor
   // has no takeback: one drag is one change of the position, as one click is.
-  let stroke: { player: Player; remove: boolean; seen: Set<string> } | null = null;
+  let stroke = $state.raw<{ player: Player; remove: boolean; seen: Set<string> } | null>(null);
   function paint(hex: Hex, { right, first }: { right: boolean; first: boolean }) {
     const key = hexKey(hex);
     if (first || !stroke) {
-      const p = right ? other(player) : player, old = made.cells[key];
-      stroke = { player: p, remove: !!old && old[0] === p && old[1] === kind, seen: new Set() };
+      const p = right ? other(player) : player;
+      stroke = { player: p, remove: hasCell(made, hex, p, kind), seen: new Set() };
       hint = "";
-      painting = true;
+      checked = false;
     }
     if (stroke.seen.has(key)) return;
     stroke.seen.add(key);
     made = paintCell(made, hex, stroke.player, kind, stroke.remove);
   }
-  function paintEnd() { stroke = null; painting = false; }
+  function paintEnd() { stroke = null; }
 
   /** X swaps the two players, and Escape cancels a chosen cell, as long as no field has the keyboard. */
   function key(ev: KeyboardEvent) {

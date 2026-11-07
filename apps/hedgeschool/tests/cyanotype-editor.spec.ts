@@ -1,7 +1,9 @@
 // Cyanotype's board editor and the Analysis board's New menu (its design 33, as Hedge School's design 21) on its preview
 // (CYANOTYPE_BASE_URL). The editor sets up a position that the engine's rules read, and Analyze opens the board from
-// it. A drag with Shift puts cells along it, or removes them. The Import takes a position and the moves from it. A link and an analysis file with a set-up start open from it,
-// and a start that the rules refuse leaves the board kept here, with a notice. The board's engine is off, so nothing
+// it. A drag with Shift puts cells along it, or removes them. The Import takes a position and the moves from it. A link
+// and an analysis file with a set-up start open from it, and a start that the rules refuse leaves the board kept here,
+// with a notice. Each way in refuses a komi, which the board does not take yet (design 33, "The komi"), and the review
+// refuses a game from a set-up start. The board's engine is off, so nothing
 // searches: the engine's rules check what comes in. The positions are Stamp Duty's own (the lab's games,
 // apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves there. Each test opens a
 // fresh browser context, so its store starts empty. The tests skip, with a message, when the preview has no engine
@@ -132,6 +134,30 @@ test("the editor: a drag with Shift puts a cell on each hex that it passes, and 
   await expect(field).toHaveValue(red);
 });
 
+test("the editor: a right-button drag opens no menu, also when it ends off the board", async ({ page }) => {
+  await page.goto(at("/editor"));
+  await expect(page.getByRole("status").filter({ hasText: "engine" })).toHaveText(/The engine accepts this position/, { timeout: 120_000 });
+  // Each contextmenu event, and whether the page cancelled it, read once the event has gone to every listener
+  await page.evaluate(() => {
+    const w = window as unknown as { menus: boolean[] };
+    w.menus = [];
+    window.addEventListener("contextmenu", e => setTimeout(() => w.menus.push(e.defaultPrevented)));
+  });
+  const box = (await page.locator(".field").first().boundingBox())!;
+  const panel = (await page.getByRole("heading", { name: "Board editor" }).boundingBox())!;
+  for (const shift of [true, false]) {
+    if (shift) await page.keyboard.down("Shift");
+    await page.mouse.move(box.x + box.width * 0.1, box.y + box.height * 0.06);
+    await page.mouse.down({ button: "right" });
+    await page.mouse.move(panel.x + panel.width / 2, panel.y + panel.height / 2, { steps: 8 });
+    await page.mouse.up({ button: "right" });
+    if (shift) await page.keyboard.up("Shift");
+  }
+  const menus = await page.evaluate(() => (window as unknown as { menus: boolean[] }).menus);
+  expect(menus.length).toBeGreaterThan(0);
+  expect(menus.every(cancelled => cancelled), JSON.stringify(menus)).toBe(true);
+});
+
 test("the editor says what the engine's rules refuse, and Analyze waits", async ({ page }) => {
   await page.goto(at("/editor"));
   const field = page.getByLabel("Position, in the notation");
@@ -189,4 +215,43 @@ test("an analysis file with a set-up start loads from it", async ({ page }) => {
   await (await chooser).setFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
   await expectBoard(page, MIDDLE, [MOVE]);
   await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("the Import, a link and an analysis file with a komi: the board says that it analyzes only at komi 0", async ({ page }) => {
+  const komi0 = "The Analysis board can analyze only at komi 0.";
+  // The Import: a record from a set-up start, with a Komi tag. The dialog says why, and the board stays.
+  await page.goto(at("/analysis"));
+  await newMenu(page, /Import a position or moves/);
+  const dialog = page.getByRole("dialog", { name: "Import a position or moves" });
+  await dialog.getByLabel("Position").fill(MIDDLE);
+  await dialog.getByLabel("Moves").fill(`[Komi "300"]\n\n${MOVE} *`);
+  await dialog.getByRole("button", { name: "Import" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText(`Cyanotype cannot open these moves: the record has a komi. ${komi0}`,
+                                                     { timeout: 120_000 });
+  await page.keyboard.press("Escape");
+  // A link and an analysis file from a set-up start, at a komi
+  const board = { version: 2 as const, main: [MOVE], nodes: [[MOVE, -1]] as [string, number][], start: MIDDLE, komi: 300 };
+  await page.goto("about:blank"); // else the link changes only the address's hash, and the board does not read it
+  await page.goto(boardLink(CYANOTYPE!, board, 1));
+  await expect(page.getByRole("alert")).toHaveText(
+    `The Analysis board cannot load this link: it has a komi. ${komi0} Your own analysis is here instead.`, { timeout: 120_000 });
+  const file = { format: "cyanotype-analysis", version: 1, exported: "2026-11-07T00:00:00.000Z", site: "test", board, analyses: [] };
+  await page.getByRole("button", { name: "New", exact: true }).click({ timeout: 120_000 });
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: /Load an analysis file/ }).click();
+  await (await chooser).setFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  await expect(page.getByRole("alert")).toHaveText(`The Analysis board cannot load this file: it has a komi. ${komi0}`);
+  expect((await keptBoard(page))?.start).toBeUndefined();
+  // The editor's field takes a position, which has no komi: a record there is no position
+  await page.goto(at("/editor"));
+  const field = page.getByLabel("Position, in the notation");
+  await field.fill(`[Komi "300"] ${MIDDLE}`);
+  await field.press("Enter");
+  await expect(page.getByRole("alert")).toHaveText(/^a position has seven fields/);
+});
+
+test("the review refuses a game from a set-up start, and says where it opens", async ({ page }) => {
+  await page.goto(at(`/review#${new URLSearchParams({ record: `[Position "${MIDDLE}"]\n\n${MOVE} *` })}`));
+  await expect(page.getByRole("alert")).toHaveText("This game starts from another position. Cyanotype reviews games from the "
+    + "standard start only: open it on the Analysis board.", { timeout: 120_000 });
 });

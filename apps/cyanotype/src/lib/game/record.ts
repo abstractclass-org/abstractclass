@@ -6,7 +6,7 @@
 // numbers its turns from the start's moves played (design 33, item 10).
 import * as shared from "@abstractclass/record/record.ts";
 import { captureText, readMove, type Capture } from "./notation.ts";
-import { setUpStart, STANDARD_START, startTurn } from "./position.ts";
+import { setUpStart, startTurn } from "./position.ts";
 export { gamePage, playerNames, RecordError, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
 
 /** A game record of Blueprints: `marked` gives, by move, the capture mark that the record gives it, or null. */
@@ -23,16 +23,6 @@ export const parseRecord = (text: string): GameRecord => shared.readRecord(text,
 /** A record's text with its start given apart (the Analysis board's Import, its address's `position`): the start as
  *  the record's own `Position` tag, unless the record has one. The standard start adds nothing. */
 export const withStart = (text: string, position: string | null): string => shared.withStartTag(text, setUpStart(position));
-
-/** A record read with its start given apart (withStart: the Import's position field, an address's `position`): its own
- *  `Position` tag must be that position or absent, as Hedge School's board checks it. Answers the record with the
- *  position as its tag. Throws an Error when the two positions differ. */
-export function withGivenStart(record: GameRecord, position: string | null): GameRecord {
-  if (!position) return record;
-  const tagged = record.tags.Position?.trim(), given = setUpStart(position) ?? STANDARD_START;
-  if (tagged && (setUpStart(tagged) ?? STANDARD_START) !== given) throw new Error("the record's Position tag is not the position that you gave");
-  return { ...record, tags: { ...record.tags, Position: position } };
-}
 
 /** Why the review cannot take a record, or null: a review is of a game played from the standard start, so a record
  *  from a set-up start opens on the Analysis board only (Hedge School's design 21, item 9). */

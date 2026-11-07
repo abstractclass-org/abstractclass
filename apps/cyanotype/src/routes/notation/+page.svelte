@@ -50,7 +50,7 @@
 </script>
 
 <PageMeta title="The notation of Blueprints · {SITE_NAME}"
-          description="The notation of Blueprints: the board's coordinates, the moves, their marks, turns and game records, for anyone who reads or writes Blueprints games." />
+          description="The notation of Blueprints: the board's coordinates, the moves, their marks, turns, positions and game records, for anyone who reads or writes Blueprints games." />
 
 <main class={PROSE}>
   <h1>The notation of Blueprints</h1>

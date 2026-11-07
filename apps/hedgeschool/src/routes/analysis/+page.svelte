@@ -33,6 +33,7 @@
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { komiTag, parseRecord, withStart } from "#lib/game/record.ts";
+  import { givenStartProblem } from "@abstractclass/record/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -142,10 +143,8 @@
   async function recordBoard(text: string, at: string | null, position: string | null = null): Promise<{ board: KeptBoard; at: number }> {
     let record: ReturnType<typeof parseRecord>;
     try { record = parseRecord(withStart(text, position)); } catch (e) { throw new RecordProblem(errorText(e), "record"); }
-    const tagged = record.tags.Position?.trim();
-    const given = setUpStart(position) ?? (position ? STANDARD_START : undefined);
-    if (given && tagged && (setUpStart(tagged) ?? STANDARD_START) !== given)
-      throw new RecordProblem("the record's Position tag is not the position that you gave", "rejected");
+    const mismatch = givenStartProblem(record.tags, position, setUpStart);
+    if (mismatch) throw new RecordProblem(mismatch, "rejected");
     if (position) record = { ...record, tags: { ...record.tags, Position: position } };
     const variant = variantProblem(record, true);
     if (variant) throw new RecordProblem(variant, "rejected");
@@ -212,8 +211,7 @@
   const onScreen = $derived.by(() => {
     const g = game;
     if (!g) return null;
-    const i = mainIndex(current, g.mainNames);
-    return (i !== null ? g.positions[i] : g.branches[pathKey(current)]?.position)?.notation ?? null;
+    return g.positionAt(current)?.notation ?? null;
   });
   const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
   // Practice from the position on screen (design 24): the board's set-up start when it has one, and the moves from the

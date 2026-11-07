@@ -14,6 +14,14 @@ import { BLUEPRINTS_CODE } from "./share.ts";
 export const boardOfRecord = (record: GameRecord): KeptBoard =>
   boardOfLine(record.moves, setUpStart(record.tags.Position), record.komi);
 
+/** Why the Analysis board cannot open a record because of its komi (Hedge School's design 24), or null: the board
+ *  searches at komi 0. A record from the standard start opens in the review, which searches at its komi. */
+export function recordKomiProblem(record: GameRecord): string | null {
+  if (!record.komi) return null;
+  return setUpStart(record.tags.Position) ? "the record has a komi. The Analysis board can analyze only at komi 0"
+    : "the record has a komi. Open the record in the review";
+}
+
 /** Refuses a board's komi (Hedge School's design 24): the board's analysis searches at komi 0, so it cannot open a
  *  board at another komi. Throws an Error that says so. */
 export function refuseKomi(komi: number | undefined): void {

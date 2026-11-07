@@ -864,10 +864,13 @@ export class GameAnalysis<G extends GameTypes> {
     const i = mainIndex(path, this.mainNames);
     return i !== null ? this.moves.slice(0, i) : [...path];
   }
+  /** The board's set-up start in the engine's form (Game, enginePosition), made at the first query that needs it. */
+  private engineStart?: string;
   /** A query's position: the moves for a path, then `more`, from the board's set-up start when it has one, in the
-   *  engine's form (Game, enginePosition). */
+   *  engine's form. */
   private query(path: string[], more: string[] = []) {
-    const start = this.startPosition && (this.game.enginePosition?.(this.startPosition) ?? this.startPosition);
+    const s = this.startPosition;
+    const start = s && (this.engineStart ??= this.game.enginePosition?.(s) ?? s);
     return positionQuery(start, [...this.engineMoves(path), ...more]);
   }
   /** A search's position: the query's, at the game's komi. The rules' queries take none: the positions' scores count
@@ -1347,7 +1350,7 @@ export class GameAnalysis<G extends GameTypes> {
              points: base.lead !== undefined && threat.lead !== undefined ? moverScore(base.lead, p) - moverScore(threat.lead, p) : undefined };
   }
   /** A position of the tree: the game's, or a variation's. */
-  private positionAt(path: string[]): G["position"] | undefined {
+  positionAt(path: string[]): G["position"] | undefined {
     const i = mainIndex(path, this.mainNames);
     return i !== null ? this.positions[i] : this.branches[pathKey(path)]?.position;
   }

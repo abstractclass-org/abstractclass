@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { boardOfLine, type KeptBoard } from "@abstractclass/analysis/kept.ts";
 import { FIXTURE_DATA } from "../board/fixtures.ts";
 import { encodeShare } from "./share.ts";
-import { boardLink, boardOfRecord, readBoardLink } from "./board.ts";
+import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem } from "./board.ts";
 import { STANDARD_START, writePosition } from "./position.ts";
 import { parseRecord } from "./record.ts";
 
@@ -54,6 +54,14 @@ test("a record's board: its line, from its Position tag", () => {
   assert.deepEqual(boardOfRecord(record), boardOfLine(["2@5,-2"], MIDDLE));
   assert.equal(boardOfRecord(record).start, MIDDLE);
   assert.equal(boardOfRecord(parseRecord("1. 2@-6,-2 *")).start, undefined);
+});
+
+test("a record with a komi: the board cannot open it, and says where it can (Hedge School's design 24)", () => {
+  assert.equal(recordKomiProblem(parseRecord("1. 2@-6,-2 *")), null);
+  assert.match(recordKomiProblem(parseRecord('[Komi "300"]\n\n1. 2@-6,-2 *')) ?? "", /a komi\. Open the record in the review$/);
+  // From a set-up start, the review does not take it either (setUpProblem)
+  assert.match(recordKomiProblem(parseRecord(`[Position "${MIDDLE}"]\n[Komi "300"]\n\n2@5,-2 *`)) ?? "",
+               /a komi\. The Analysis board can analyze only at komi 0$/);
 });
 
 test("a broken link says so", () => {

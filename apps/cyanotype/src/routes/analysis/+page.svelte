@@ -41,10 +41,10 @@
   import { loadDisplay } from "#lib/review/display.ts";
   import { checkRecord, checkStart, describeBy, recordProblem, startProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import { parseRecord, withGivenStart, withStart, type GameRecord } from "#lib/game/record.ts";
+  import type { GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
-  import { boardLink, boardOfRecord, readBoardLink } from "#lib/game/board.ts";
+  import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem } from "#lib/game/board.ts";
   import { analysisFileName, exportAnalysis, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
@@ -103,10 +103,8 @@
     }
     if (text === null) return { kept, at: keptAt, brought: { board: boardOfLine([], setUpStart(position)), at: 0, kind: "position" } };
     try {
-      const record = withGivenStart(parseRecord(withStart(text, position)), position);
-      // The board searches at komi 0: a record with a komi (Hedge School's design 24) opens in the review, which
-      // searches at it, and is not analyzed here at another komi.
-      if (record.komi) throw new Error("the record has a komi. Open the record in the review");
+      const record = readPasted(text, position).record, komi = recordKomiProblem(record);
+      if (komi) throw new Error(komi);
       const atMain = Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0);
       return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: atMain, kind: "record", record } };
     } catch (e) {
@@ -170,10 +168,7 @@
 
   // The position on screen in the notation, which the board editor starts from (Lichess's editor starts from its board).
   const onScreen = $derived.by(() => {
-    const g = game;
-    if (!g) return null;
-    const i = mainIndex(current, g.mainNames);
-    const p = i !== null ? g.positions[i] : g.branches[pathKey(current)]?.position;
+    const p = game?.positionAt(current);
     return p ? writePosition(p) : null;
   });
   const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
@@ -189,7 +184,8 @@
       importAddress(new URLSearchParams({ position: start ?? STANDARD_START }));
       return;
     }
-    const read = readPasted(pasted, position || null), problem = await checkRecord(read.record);
+    const read = readPasted(pasted, position || null);
+    const problem = recordKomiProblem(read.record) ?? await checkRecord(read.record);
     if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${sentence(problem)}`);
     importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}) }));
   }

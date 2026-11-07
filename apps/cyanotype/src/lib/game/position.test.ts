@@ -1,6 +1,6 @@
 // Checks a position's notation (position.ts): written and read back for the standard start and the lab's positions,
 // which are Stamp Duty's own games (board/fixtures.json, from the engine), its one spelling, the edge cases of its form,
-// the turn of a record's first move after a start, and the engine's one-line form. Run: npm test. The engine's own
+// a cut position, the turn of a record's first move after a start, and the engine's one-line form. Run: npm test. The engine's own
 // check of the notation is position.engine.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -51,7 +51,7 @@ test("the reader says what is wrong with a position's form", () => {
   const wrong = (text: string, why: RegExp) => assert.throws(() => readPosition(text), why);
   wrong("- - b1 0/0 0", /seven fields/);
   wrong("0,0x - -|-|- -|-|- b1 0/0 0", /not a cell of Blue's cells: "0,0x"/);
-  wrong("0,0;0,0s - -|-|- -|-|- b1 0/0 0", /Blue's cells has two cells at 0,0/);
+  wrong("0,0;0,0s - -|-|- -|-|- b1 0/0 0", /two cells are at 0,0 in Blue's cells/);
   wrong("0,0 0,0 -|-|- -|-|- b1 0/0 0", /Blue and Red both have a cell at 0,0/);
   wrong("- - 1,0;2,0|-|- -|-|- b1 0/0 0", /Blue's blueprint 1 is not in its frame: its anchor cell, the first in reading order, is at 1,0/);
   wrong("- - -|- -|-|- b1 0/0 0", /Blue's hand is three blueprints/);
@@ -59,6 +59,21 @@ test("the reader says what is wrong with a position's form", () => {
   wrong("- - -|-|- -|-|- r1 0/0 121", /not a count of moves played from 0 to 120/);
   wrong("- - -|-|- -|-|- b1 0/-1 0", /not two scores/);
   wrong("- - -|-|- -|-|- x1 0/0 0", /not a mover/);
+});
+
+test("a cut position says what is wrong, unless a cut inside its moves played leaves a count with the same mover", () => {
+  // Each of the lab's positions, cut at each length: a field left out, or one that the reader refuses
+  for (const f of FIXTURE_DATA.fixtures) {
+    const text = writePosition(f.position), count = text.lastIndexOf(" ") + 1;
+    for (let n = 0; n < text.length; n++) {
+      let read = false;
+      try { readPosition(text.slice(0, n)); read = true; } catch (e) { assert.ok(!(e instanceof TypeError), `${f.name}, cut at ${n}: ${e}`); }
+      assert.ok(!read || n > count, `${f.name}, cut at ${n}: "${text.slice(n - 12, n)}" reads`);
+    }
+  }
+  // 22 moves played cut to 2: Red's second move of its turn both times, so the cut reads as another position
+  assert.equal(writePosition(readPosition("- - -|-|- -|-|- r1 0/0 2")), "- - -|-|- -|-|- r1 0/0 2");
+  assert.throws(() => readPosition("- - -|-|- -|-|- r1 0/0 1"), /after 1 moves played it is r2/);
 });
 
 test("the standard start, written out, is no set-up start", () => {
@@ -85,5 +100,5 @@ test("the engine's one-line form: the cells from the middle of their box, the ha
   // A wide board: the middle is the middle of the box, so each cell is within 255 of it.
   assert.equal(enginePosition("-300,0;210,4 - -|-|- -|-|- b1 0/0 0"), "0 0 0 -255,-2,p;255,2,p -|-|- -|-|- - -45,2 -|-");
   assert.throws(() => enginePosition("-300,0;211,4 - -|-|- -|-|- b1 0/0 0"),
-                /the cells span 512 hexes, and the engine's rules board holds 511 x 511/);
+                /the cells are 512 hexes from end to end, and the engine takes at most 511/);
 });

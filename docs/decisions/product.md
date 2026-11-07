@@ -8926,12 +8926,12 @@ and "The board editor").
   last two placements' boxes. The engine checks the form, each hand's 21 cells and each blueprint's connection. It has
   no check that a game can reach a position: protocol 0.5's check is Enclosure's alone. Nothing in the engine
   repository changed. Its practice bot still starts only from the standard start (`blueprints-set-game`), which is
-  abscls-8tl1.40's concern.
+  abscls-8tl1.40's concern. Request 28 asks for both (the engine repository's abscls-0dh7).
 - **The notation:** seven fields, in Hedge School's form: Blue's cells, Red's cells, Blue's hand, Red's hand, the mover
   with the moves left in the turn, the scores and the moves played. A cell is `q,r` and its kind's letter (`s`, `w`, or
   none for a Normal cell), the cells in reading order, joined by `;`. A hand is three blueprints joined by `|`, each in
-  its own frame. Practice gave the form: FEN's fields for the board, the mover and the counts, SGF's lists of each
-  colour's stones (`AB`, `AW`), and Hedge School's lists of each player's edges.
+  its own frame. The form follows published practice: FEN's fields for the board, the mover and the counts, SGF's
+  lists of each colour's stones (`AB`, `AW`), and Hedge School's lists of each player's edges.
 - **Each departure, with its reason:**
   - From Hedge School's form: cells, joined by `;` (a hex has a comma), a letter for the kind with none for the
     commonest kind (as an unmarked edge), the hands as fields (as SFEN's pieces in hand: a move uses them), no marks
@@ -8949,7 +8949,7 @@ and "The board editor").
   The game's describe_game from its positions after 9, 40 and 77 moves gave the same positions as from its moves. A
   board's link with the longest position as its start has 6,760 characters, at the live address: too long for a
   Discord message of 2,000, where a link of Hedge School's whole game fits.
-- **The game interface's new member `enginePosition`** (design 29, item 9): the board keeps the notation's text, the
+- **The game interface's new member `enginePosition`** (design 29, item 2): the board keeps the notation's text, the
   stored results' keys name it, and only the engine's queries take the engine's form. Enclosure gives none: its
   notation is its engine's.
 - **The editor, as Hedge School's, with Blueprints' pieces:** a click puts the chosen player's cell of the chosen kind,
@@ -8970,3 +8970,30 @@ and "The board editor").
   Import's markup and its messages are the same.
 - **The review takes games from the standard start only,** as Hedge School's: a record from a set-up start opens on
   the Analysis board, and the review says so. The import of a strategyjam.org game still refuses another start.
+- **A start from its notation is searched with another view** (design 33, "Decision", item 10): the notation leaves
+  out the last placements' boxes, which set the network's view, so the engine puts the view at the middle of the
+  cells. Measured on the CPU (`engine-3ac5c2fc`, the network `b6c96-s40806528-d2304635`, 400 visits) on 9 positions
+  of Stamp Duty's games, each searched from its notation and from its moves:
+
+  | Position | Moves | Cells | Best the same | Top five shared | Blue win, moves / notation |
+  |---|---|---|---|---|---|
+  | The lab's middle game | 9 | 75 | no | 0 | 36.5% / 37.5% |
+  | The lab's capture | 10 | 95 | yes | 1 | 42.1% / 40.1% |
+  | The lab's edit | 1 | 42 | no | 1 | 38.5% / 38.5% |
+  | The lab's empty blueprint | 14 | 80 | no | 0 | 75.5% / 67.2% |
+  | The review's test game | 9 | 74 | no | 2 | 45.4% / 44.9% |
+  | The review's test game | 20 | 137 | yes | 3 | 37.2% / 37.2% |
+  | The review's test game | 40 | 312 | no | 3 | 26.8% / 28.1% |
+  | The review's test game | 77 | 609 | no | 3 | 12.5% / 12.3% |
+  | The review's test game | 100 | 706 | no | 1 | 1.4% / 0.5% |
+
+  Each position searched twice from its moves gave the same best move and top five. The rules are the same: only the
+  network's view differs. The stored results' keys keep the two apart. The site has no way to give the engine boxes
+  for a position that has no moves, as FEN gives an engine no history.
+- **The review of the branch** changed these: the board editor reads a position as the Analysis board reads a start
+  (`startProblem`, the engine's `describe_game`), where it asked for every legal move. The Import refuses a record
+  with a komi in its dialog, and a record from a set-up start with a komi no longer says to open it in the review,
+  which refuses it. The check of a record's `Position` tag against a start given apart is one shared function
+  (`givenStartProblem` in `packages/record/src/record.ts`), which Hedge School's board calls too, with the same
+  answers. `GameAnalysis.positionAt` is public, for the board editor's link on both boards. A cut position says what is
+  wrong, unless a cut inside the moves played leaves a count with the same mover.

@@ -9,24 +9,25 @@ import { hexKey, type Hex } from "../board/hex.ts";
 import type { Hand, HandHex, Kind, SitePosition } from "../board/position.ts";
 import { handAfter } from "../review/blueprints.ts";
 
+/** Whether a hex of the board has a player's cell of a kind. */
+export function hasCell(p: SitePosition, hex: Hex, player: Player, kind: Kind): boolean {
+  const old = p.cells[hexKey(hex)];
+  return !!old && old[0] === player && old[1] === kind;
+}
+
 /** The position after a click on a hex of the board with a player's cell of a kind: a new cell on an empty hex, the
  *  same cell again removes it, and another cell there changes to this one, as Hedge School's editor gives an edge to
  *  the other player. */
-export function placeCell(p: SitePosition, hex: Hex, player: Player, kind: Kind): SitePosition {
-  const key = hexKey(hex), old = p.cells[key], cells = { ...p.cells };
-  if (old && old[0] === player && old[1] === kind) delete cells[key];
-  else cells[key] = [player, kind];
-  return { ...p, cells };
-}
+export const placeCell = (p: SitePosition, hex: Hex, player: Player, kind: Kind): SitePosition =>
+  paintCell(p, hex, player, kind, hasCell(p, hex, player, kind));
 
 /** The position after a drag with Shift passes a hex (design 33, "The board editor"). The drag's first hex sets what it
  *  does, as a click there would: it removes the player's cell of the kind (`remove`) or puts it. So a hex keeps any
  *  other cell when the drag removes, and a put changes another cell to this one, as a click does. The same position,
  *  the same object, when the hex does not change. */
 export function paintCell(p: SitePosition, hex: Hex, player: Player, kind: Kind, remove: boolean): SitePosition {
-  const key = hexKey(hex), old = p.cells[key], same = !!old && old[0] === player && old[1] === kind;
-  if (remove !== same) return p;
-  const cells = { ...p.cells };
+  if (remove !== hasCell(p, hex, player, kind)) return p;
+  const key = hexKey(hex), cells = { ...p.cells };
   if (remove) delete cells[key];
   else cells[key] = [player, kind];
   return { ...p, cells };

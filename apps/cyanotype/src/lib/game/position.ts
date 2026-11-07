@@ -60,7 +60,7 @@ function readCells(field: string, what: string): [Hex, Kind][] {
     const m = CELL.exec(item);
     if (!m) throw new Error(`not a cell of ${what}: "${item}" (a cell is q,r, then s for a star or w for a wall)`);
     const h: Hex = [Number(m[1]), Number(m[2])], key = hexKey(h);
-    if (seen.has(key)) throw new Error(`${what} has two cells at ${key}`);
+    if (seen.has(key)) throw new Error(`two cells are at ${key} in ${what}`);
     seen.add(key);
     out.push([h, KIND[m[3]]]);
   }
@@ -138,7 +138,7 @@ export function enginePosition(position: string): string {
   const span = (i: 0 | 1) => {
     const values = entries.map(([h]) => h[i]), lo = Math.min(...values), hi = Math.max(...values);
     if (hi - lo + 1 > RULES_LEN)
-      throw new Error(`the cells span ${hi - lo + 1} hexes, and the engine's rules board holds ${RULES_LEN} x ${RULES_LEN}`);
+      throw new Error(`the cells are ${hi - lo + 1} hexes from end to end, and the engine takes at most ${RULES_LEN}`);
     return Math.floor((lo + hi) / 2);
   };
   const [oq, or] = entries.length ? [span(0), span(1)] : [0, 0];

@@ -383,8 +383,23 @@
       s.first = false;
     }
   }
+  /** The editor's click on the board at the field's point `p`: the view stays as it is (a click is no pan). */
+  function editAt(p: { x: number; y: number }, right: boolean) {
+    if (!onBoard(p)) return;
+    manual ??= view;
+    onedit?.({ hand: null, hex: hexUnder(p) }, { right });
+  }
+  // A right press that the field takes (the editor's, the notes'): the browser's menu after it opens nothing, also
+  // when the button comes up off the field, where Windows sends the menu's event at the release. A press clears it.
+  let menuGuard = false;
+  function guardMenu(ev: MouseEvent) {
+    if (!menuGuard) return;
+    menuGuard = false;
+    ev.preventDefault();
+  }
   function down(ev: PointerEvent) {
     if (still || (ev.target as Element).closest("button")) return; // the field's buttons take their own clicks
+    menuGuard = ev.pointerType === "mouse" && ev.button === 2 && !!(onedit || onnotes);
     if (ev.pointerType === "mouse" && ev.shiftKey && (ev.button === 0 || ev.button === 2) && onpaint) {
       ev.preventDefault();
       try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
@@ -450,7 +465,7 @@
     if (rightPress?.id === ev.pointerId) {
       const p = local(ev), moved = Math.hypot(p.x - rightPress.x, p.y - rightPress.y) > DRAG_PX;
       rightPress = null;
-      if (click && !moved && onBoard(p)) { manual ??= view; onedit?.({ hand: null, hex: hexUnder(p) }, { right: true }); }
+      if (click && !moved) editAt(p, true);
       return;
     }
     if (sketch?.id === ev.pointerId) {
@@ -463,7 +478,7 @@
     if (gesture?.kind === "press" && !gesture.moved && click) {
       const p = local(ev), h = hexUnder(p), c = placementAt(h), touch = ev.pointerType !== "mouse";
       if (notes.length) onnotes?.([]);
-      if (onedit) { if (onBoard(p)) { manual ??= view; onedit({ hand: null, hex: h }, { right: false }); } }
+      if (onedit) editAt(p, false);
       else if (c) oncandidateclick?.(c.name);
       else if (takes) {
         const shown = begun?.shown?.type === "place" && foot ? { at: foot.at, hexes: foot.cells.map(s => s.hex) } : null;
@@ -532,6 +547,8 @@
           else takes?.clickHand(p, at, touch);
         }} />
 {/snippet}
+
+<svelte:window onpointerdowncapture={() => (menuGuard = false)} oncontextmenu={guardMenu} />
 
 <div class="board {handsForm}" class:sides bind:clientWidth={width} bind:clientHeight={height}
      style:--hand="{handSize}px" style:--gap="{GAP}px">

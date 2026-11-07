@@ -144,8 +144,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     6. The scores, Blue's, then Red's: `8/0`.
     7. The moves played, 0 to 120. A pass is one move.
 
-    So a position has one spelling. The standard start has 435 characters, and the review's test game's longest
-    position 5,009 (729 cells). A record from a set-up start numbers its turns from the start's moves played, as
+    So a position has one spelling. The standard start has 435 characters, and the longest position of the review's
+    test game has 5,009 (729 cells). A record from a set-up start numbers its turns from the start's moves played, as
     Hedge School's does: a start at a turn's second move opens with `N...`. The standard start written out is no set-up
     start (`setUpStart`), so a board from it keeps the standard start's stored results. The review takes games from the
     standard start only, and says to open another on the Analysis board (`setUpProblem` in `src/lib/game/record.ts`).
@@ -164,6 +164,11 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       - **Whole scores:** a Blueprints score counts stars, so it has no fraction.
     - **SGF's setup properties** list the stones by colour (`AB`, `AW`), and `PL` names the player to move. The
       notation lists each player's cells, as SGF lists each colour's stones and Hedge School each player's edges.
+    - **Where it departs from FEN and SGF:** the cells in reading order, where SGF's lists have no order, so that a
+      position has one spelling and keys its stored results. The moves left in the turn beside the mover, where FEN
+      and `PL` name the player only: a Blueprints turn has two moves. The moves played in place of FEN's move
+      number and halfmove clock: they give the turn and the mover, and Blueprints has no draw by a count of moves. No
+      castling or en passant field: Blueprints has nothing of the kind. The hands, as SFEN has the pieces in hand.
     - **Where it departs from the engine's one-line position** (the engine repository's games/blueprints/README.md,
       "The port"): the engine's form has nine fields. Its cells are from the middle of its rules board, with that
       middle's site coordinates (the offset), and it has the pick of an edit in progress and each player's last two
@@ -172,14 +177,28 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       has no pick, and the boxes are history. The site writes the engine's form for each query (`enginePosition`):
       the middle of the cells' box as the offset, no pick and no boxes. The engine then puts the view at the middle of
       the cells, and the search of the root's views (item 10 of "The review and the Analysis board") reaches every
-      legal placement. The game interface takes it as `enginePosition` (design 29, item 9): the board keeps the
+      legal placement. The game interface takes it as `enginePosition` (design 29, item 2): the board keeps the
       notation's text, the stored results' keys name it, and only the engine's queries take the engine's form.
+    - **So the engine searches a start from its notation with another view** than the same position reached by its
+      moves: the network sees the board round the middle of the cells, not round the last placements. The rules are
+      the same, and the candidates are not. On the CPU (`engine-3ac5c2fc`, the network `b6c96-s40806528-d2304635`, 400
+      visits), on 9 positions of Stamp Duty's games (the lab's four games with moves, and the review's test game after
+      9, 20, 40, 77 and 100 moves), the best move was the same in 2. The two top fives shared 0 to 3 moves, and the
+      root's Blue win differed by 0 to 8.3 points (the median 0.9). The same position searched twice from its moves
+      gave the same best move and top five each time. The stored results keep the two apart: their keys name the start's
+      notation, or the moves from the standard start. A line played from a set-up start gets its placements' boxes
+      from its own moves.
     - **The rules' checks:** the engine reads a position, and refuses a hand that does not hold 21 cells, a blueprint
       that is not connected, and cells that span more than its rules board holds (511 × 511). The notation's reader
       refuses a blueprint that is not in its frame. Blueprints' build has no check that a game can reach a position
       (protocol 0.5's check is Enclosure's alone), so the board editor says so, and Analyze needs only the engine's
       reading. Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
       back from its notation as the same position, with the same legal moves (`position.engine.test.ts`).
+    - **A position cut or changed:** the reader refuses a position with a field missing or a field it cannot read, and
+      a mover field that the moves played do not give. A cut inside the moves played can still give another position
+      that reads, when the shorter count gives the same mover (`r1 0/0 22` cut to `r1 0/0 2`), as a cut FEN can. The
+      notation has no checksum, as a link has none, and the engine's reading checks the hands and the frames, not the
+      history. Every cut of the lab's positions says what is wrong (`position.test.ts`).
 
 ## How the board takes a move
 
@@ -382,8 +401,9 @@ and the panel's place and size (`cyanotype:practice-panel:1`).
 Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the
 size of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does, and
 the game's id in this browser covers the komi, from a record and from a shared review. The Analysis board does not
-take a komi yet. It refuses a record, a link or an analysis file with a komi, with a notice: it builds its analysis at
-komi 0 before it knows which board it keeps. Nothing on Cyanotype writes the tag yet, as its practice games are not
+take a komi yet. It refuses a record, a link or an analysis file with a komi, with a notice, and its Import refuses a
+record with a komi in its dialog: it builds its analysis at komi 0 before it knows which board it keeps. A position's
+notation has no komi. Nothing on Cyanotype writes the tag yet, as its practice games are not
 kept. The board takes a komi as Hedge School's does when Cyanotype keeps its practice games ("The gaps from Hedge
 School").
 
@@ -748,7 +768,8 @@ in "Set up a position".
    changes once. The drag takes the hexes between two of the pointer's moves, as the notes' drag of marks does ("The
    player's notes", item 2), so a fast drag misses no hex. Off the board on screen, it takes no hex. A drag without
    Shift pans, as before, and the hands keep their clicks. The engine reads the position once, at the drag's end. The
-   editor has no takeback, so one drag is one change of the position, as one click is.
+   editor has no takeback, so one drag is one change of the position, as one click is. The browser's menu does not
+   open after a press of the right button on the board, also where the button comes up off the board.
 
 **Where it departs from Hedge School's editor:** the pieces (cells of three kinds, and the hands), the count that does
 not follow the board (item 5), the click that keeps the view (item 4: Hedge School's board does not pan), the drag with
@@ -850,8 +871,13 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   review's game keeps no network and depth of its own: its review uses the recipient's ("The review and the Analysis
   board", item 12). abscls-8tl1.38.
 - **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). abscls-8tl1.38.
-- **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24).
-  abscls-8tl1.40.
+- **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24). The
+  practice bot starts only from the standard start: abscls-8tl1.40 waits for request 28
+  (`docs/requests/28-blueprints-set-up-start.md`, the engine repository's abscls-0dh7).
+- **The board editor's check that a game can reach the position** (design 21, item 10: Hedge School's engine checks
+  it, protocol 0.5). Blueprints' engine reads a position and checks its hands and its frames, not its history. Until
+  then the editor says that the engine does not check it, and Analyze needs only the engine's reading. abscls-8tl1.59,
+  which waits for request 28 too.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
   `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
   ("Practice against Stamp Duty", item 2). abscls-8tl1.50.
