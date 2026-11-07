@@ -10,22 +10,26 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Artifact, Manifest } from "./client.ts";
+import type { Artifact, ArtifactKind, Manifest } from "./client.ts";
+import { errorText } from "./errors.ts";
 import type { PracticeLibrary } from "./library.ts";
 
-export const MIN_PLAYOUTS_PER_THREAD = 8;
+const MIN_PLAYOUTS_PER_THREAD = 8;
 
-/** The value of minPlayoutsPerThread in a practice module's reply to kata-get-params (`reply`, "= {JSON}" or
- *  "? ERROR"), when it is 8. Else an error that names the module (its id in the lock), the value and design 24,
- *  item 14. */
-export function checkMinPlayouts(id: string, reply: string): number {
-  if (!reply.startsWith("=")) throw new Error(`${id}: kata-get-params gave ${reply.trim()}`);
-  const value = JSON.parse(reply.slice(1)).minPlayoutsPerThread;
+/** A GTP reply's text: `= TEXT` gives TEXT. Else an error that names the command and gives the reply. */
+function answer(command: string, reply: string): string {
+  if (!reply.startsWith("=")) throw new Error(`${command} gave ${reply.trim()}`);
+  return reply.slice(1).trim();
+}
+
+/** Checks a practice module's reply to kata-get-params. An error when the reply is a refusal, and an error with the
+ *  value and design 24, item 14 when its minPlayoutsPerThread is not 8. */
+export function checkMinPlayoutsPerThread(reply: string): void {
+  const value = JSON.parse(answer("kata-get-params", reply)).minPlayoutsPerThread;
   if (value !== MIN_PLAYOUTS_PER_THREAD)
-    throw new Error(`${id}: the practice bot has minPlayoutsPerThread ${value}, not ${MIN_PLAYOUTS_PER_THREAD}. ` +
+    throw new Error(`the practice bot has minPlayoutsPerThread ${value}, not ${MIN_PLAYOUTS_PER_THREAD}. ` +
                     `Hedge School's design 24, item 14 (docs/design/24-practice.md) rests on 8: the threaded bot's ` +
                     `threads at a move and its visits past the setting. Check the item before this release goes in.`);
-  return value;
 }
 
 /** An evaluator that refuses any use: the threaded module's start and kata-get-params evaluate no position. */
@@ -35,32 +39,36 @@ const noEvaluator = new Proxy({}, {
   },
 });
 
-/** Checks each practice module of a site's static/engine (the one-thread and the threaded bot) with checkMinPlayouts,
- *  from the site's folder (`root`) and its manifest. Returns a line for each module that passed. The threaded module
- *  needs JSPI (Node 24.21 and later have it with no flag). */
-export async function checkPracticeModules(root: string, manifest: Manifest): Promise<string[]> {
-  const files = (kind: string) => manifest.artifacts.filter(a => a.kind === kind);
-  const bytes = (a: Artifact) => readFileSync(join(root, "static", a.url));
-  const modules = [...files("practice-module"), ...files("practice-threaded-module")];
-  if (modules.length === 0) return [];
-  const [library] = files("practice-library"), [model] = files("model");
+/** Checks each practice module of a site's static/engine (the one-thread and the threaded bot) with
+ *  checkMinPlayoutsPerThread, from the site's folder (`root`) and its manifest, and logs a line for each. An error
+ *  names the module. The threaded module needs JSPI (Node 24.21 has it with no flag). */
+export async function checkPracticeModules(root: string, manifest: Manifest): Promise<void> {
+  const ofKind = (kind: ArtifactKind) => manifest.artifacts.filter(a => a.kind === kind);
+  const read = (a: Artifact) => readFileSync(join(root, "static", a.url));
+  const modules = [...ofKind("practice-module"), ...ofKind("practice-threaded-module")];
+  if (modules.length === 0) return;
+  // The smallest network, since the setting does not depend on the network.
+  const [library] = ofKind("practice-library"), [model] = ofKind("model").sort((a, b) => a.bytes - b.bytes);
   if (!library || !model) throw new Error("static/engine has practice modules but no practice library or network");
   const lib = await import(pathToFileURL(join(root, "static", library.url)).href) as PracticeLibrary;
-  const network = bytes(model);
-  const lines = [];
+  const network = read(model);
   for (const m of modules) {
-    const module = await WebAssembly.compile(bytes(m));
-    const threaded = m.kind === "practice-threaded-module";
-    const bot = threaded ? await lib.createBatchedPracticeBot(module, noEvaluator, { maxBatch: 2 })
-      : await lib.createPracticeBot(module);
-    // The game's start command, from the module's own list: enclosure-start, blueprints-start.
-    const start = (await bot.command("list_commands")).split(/\s+/).find(c => c.endsWith("-start"));
-    if (!start) throw new Error(`${m.id}: list_commands names no start command`);
-    await bot.setModel(network);
-    const started = await bot.command(threaded ? `${start} 1 2` : `${start} 1`);
-    if (!started.startsWith("=")) throw new Error(`${m.id}: ${start} gave ${started.trim()}`);
-    const value = checkMinPlayouts(m.id, await bot.command("kata-get-params"));
-    lines.push(`${m.id}: minPlayoutsPerThread ${value}, as design 24, item 14 needs`);
+    try {
+      const module = await WebAssembly.compile(read(m));
+      // The threaded bot with two threads, the fewest of its form. The setting does not depend on them.
+      const threads = m.kind === "practice-threaded-module" ? 2 : 1;
+      const bot = threads > 1 ? await lib.createBatchedPracticeBot(module, noEvaluator, { maxBatch: threads })
+        : await lib.createPracticeBot(module);
+      // The game's start command, from the module's own list: enclosure-start, blueprints-start.
+      const commands = answer("list_commands", await bot.command("list_commands")).split(/\s+/);
+      const start = commands.find(c => c.endsWith("-start"));
+      if (!start) throw new Error("list_commands names no start command");
+      await bot.setModel(network);
+      answer(start, await bot.command(`${start} 1 ${threads}`)); // SEED THREADS
+      checkMinPlayoutsPerThread(await bot.command("kata-get-params"));
+    } catch (e) {
+      throw new Error(`${m.id}: ${errorText(e)}`, { cause: e });
+    }
+    console.log(`${m.id}: minPlayoutsPerThread ${MIN_PLAYOUTS_PER_THREAD}, as design 24, item 14 needs`);
   }
-  return lines;
 }

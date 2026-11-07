@@ -142,9 +142,8 @@ for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gp
 }
 console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
 
-// Each practice module, run once in Node: its minPlayoutsPerThread must be 8, which Hedge School's design 24, item 14
-// rests on (practice-check.ts).
-for (const line of await checkPracticeModules(root, manifest)) console.log(line);
+// Each practice module, run once in Node: its minPlayoutsPerThread must be 8 (practice-check.ts).
+await checkPracticeModules(root, manifest);
 
 function source(artifact) {
   return artifact.source.local ?? (artifact.source.engines ? `engines/${artifact.source.engines}` : `release ${artifact.source.release.tag}`);

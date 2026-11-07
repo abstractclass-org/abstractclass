@@ -8769,14 +8769,17 @@ The logo, its files and how each is made are in design 33, "The logo". The site 
   its visits: a move there searches the root's views, and an edit's pick and drop, separately, and each search can
   pass its share (the same entry of `port.md`). So its rows do not compare one to one with Enclosure's.
 - **The check at each engine update** (abscls-r0oe): a new release or config could change `minPlayoutsPerThread`
-  with no test failing. So `npm run engine` (`packages/engine/src/fetch-engine.mjs`, which the Tests workflow's
-  check:all and each deploy run) now starts each practice module of the site's lock in Node, with the lock's first
-  network, and reads `kata-get-params` (`packages/engine/src/practice-check.ts`). A value other than 8 stops the step
-  with the module, the value and design 24, item 14. The threaded module's start evaluates no position, so the check
-  gives it an evaluator that refuses any use, and needs no CPU workers. Release `engine-d6786eba` reports 8 in
+  with no test failing. So `npm run engine` (`packages/engine/src/fetch-engine.mjs`) now checks it. The Tests
+  workflow's check:all and each deploy run that step. It starts each practice module of the site's lock in Node, with
+  the lock's smallest network, and reads `kata-get-params` (`packages/engine/src/practice-check.ts`). A value other
+  than 8 stops the step with the module, the value and design 24, item 14. Any other failure of a module's start also
+  stops the step and names the module. The threaded module's start evaluates no position: in the engine's source,
+  the module calls its evaluator only for a position's network outputs. So the check gives this module an evaluator
+  that refuses any use, and the check needs no CPU workers. Release `engine-d6786eba` reports 8 in
   `enclosure-bot.wasm` and `enclosure-bot-batched.wasm`, and Cyanotype's release `engine-3ac5c2fc` reports 8 in
-  `blueprints-bot.wasm`. The step took about 4 s in all on Hedge School's files, in Node 26 and in Node 24.21. The
-  Tests and Deploy workflows run Node 24 (`.node-version`), and Node 24.21 has JSPI with no flag.
+  `blueprints-bot.wasm`. With the downloads cached, the whole step took about 4 s on Hedge School's files. The check
+  took 0.4 s of it, in Node 26 and in Node 24.21, and 0.2 s on Cyanotype's files. The Tests and Deploy workflows run
+  Node 24 (`.node-version`), and Node 24.21 has JSPI with no flag.
 
 ### Cyanotype's Export menus and links (2026-11-07)
 
