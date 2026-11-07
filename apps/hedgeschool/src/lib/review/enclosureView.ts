@@ -13,8 +13,7 @@ import SoundSettings from "#lib/ui/SoundSettings.svelte";
 import { download } from "#lib/game/reviewFile.ts";
 import { EARLY_ACCESS, OPENINGS } from "#lib/edition.ts";
 import { BookPlace, siteBook } from "#lib/book/place.svelte.ts";
-import { OUT, type BookAt } from "#lib/book/lookup.svelte.ts";
-import { gameOpening, openingRow, trapRows } from "#lib/book/game.ts";
+import { openingRow, reviewOpening, trapRows } from "#lib/book/game.ts";
 import ReviewBookTable from "#lib/book/ReviewBookTable.svelte";
 import { NETWORKS, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
 import { DIFFERENCE_HELP } from "@abstractclass/review/ownership.ts";
@@ -134,12 +133,10 @@ export const enclosureView: ViewGame<Enclosure> = {
       return book && new BookPlace(book, page, notations, unit, { ...more, openings: OPENINGS });
     },
     notation: p => p.notation,
-    opening: (notations, edges) => {
+    // None at a komi other than 0 (design 24): the book is the engine's at komi 0
+    opening: (notations, edges, komi) => {
       const book = siteBook();
-      if (!book) return null;
-      const at = notations.map((n): BookAt => (n ? book.at(n) : OUT));
-      if (at.some(a => a.state === "loading" || a.state === "failed")) return null;
-      return gameOpening(at.map(a => (a.state === "in" ? a.position : null)), edges);
+      return book && reviewOpening(n => book.at(n), notations, edges, komi);
     },
     openingRow,
     trapRows,

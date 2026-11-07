@@ -13,6 +13,7 @@ import type { BookJudgment, BookMoveMark } from "@abstractclass/review/game.ts";
 import { moverOf } from "#lib/editor/position.ts";
 import { bookMove } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
+import type { BookAt } from "./lookup.svelte.ts";
 import { NOT_IN_BOOK_SENTENCE, bookEndSentence, edgeCount, lastBookMoveSentence, leftBookSentence, trapPlayedSentence,
   weakBookMoveSentence } from "./sentences.ts";
 import { SYMBOL_NAME, positionSymbol } from "./symbols.ts";
@@ -82,6 +83,19 @@ export function gameOpening(positions: (BookPosition | null)[], edges: string[])
     traps: played.filter(b => b.move.trap).map(b => ({ ...b, refuted: refuted(b, edges) })),
     bookMoves,
   };
+}
+
+/** The game's opening as the review takes it (the review's view, `book.opening`): from the book at the notation of each
+ *  of the game's positions (`at`, the site's book: lookup.svelte.ts, OpeningBook), once every part that they need has
+ *  loaded. Null while one loads or when one failed. Null at a komi other than 0 (design 24): the book is the engine's
+ *  at komi 0, so the review of a game at a komi takes no opening row, no trap row and no book move from it, and loads
+ *  none of its parts. */
+export function reviewOpening(at: (notation: string) => BookAt, notations: (string | undefined)[], edges: string[],
+                              komi: number): GameOpening | null {
+  if (komi) return null;
+  const found = notations.map((n): BookAt => (n ? at(n) : { state: "out" }));
+  if (found.some(a => a.state === "loading" || a.state === "failed")) return null;
+  return gameOpening(found.map(a => (a.state === "in" ? a.position : null)), edges);
 }
 
 /** Whether the other side played a trap's refutation: its edges of the refutation, which come after the rest of the

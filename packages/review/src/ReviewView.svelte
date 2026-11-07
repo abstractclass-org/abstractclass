@@ -44,6 +44,7 @@
    *  the rules and the results the view asks for, and the changes of the tree. */
   export interface ReviewGame<G extends GameTypes> {
     error: string;
+    readonly komi: number; // the game's komi, Red's starting score (Hedge School's design 24): 0 for most games
     branches: Record<string, BranchNode<G>>; // the variations' positions, by path key (tree.ts), in the order added
     focusing: string | null; // the path key of the position searched for the player, while it runs
     engineReady: boolean; // the engine's network is loaded: the searches can start
@@ -426,9 +427,11 @@
     return [...gamePositions.slice(0, start.length + 1), ...keys.map(k => branches[k]?.position)]
       .map(p => (p ? view.book?.notation(p) : undefined));
   });
+  // The game's komi (Hedge School's design 24): the book's values are the engine's at komi 0
+  const komi = $derived(game?.komi ?? 0);
   // The site's book (the game's `book`), on this page: none where the site has none
   const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations, () => unit,
-                                              { path: () => path, used })) ?? null;
+                                              { path: () => path, used, komi: () => komi })) ?? null;
   /** The book's place on this page, which the view made from the game's `book.place`: Openings reads its own. */
   export function bookPlace() { return book; }
 
@@ -1351,12 +1354,13 @@
   // The opening book in the review (design 32, item 4): the Report's rows on the game's opening, and the move list's
   // mark on each book move, from the site's one book (`openingBook`). In the early edition only, and only
   // where the book loads: a site that serves no book shows neither, and the Report has no opening row while the book
-  // loads or when it did not load. The Analysis board has none.
+  // loads or when it did not load. The Analysis board has none. A game at a komi has none either (the site's
+  // `opening`, Hedge School's design 24), and so no variation's mark.
   // The game's opening, once every part of the book that the game's positions need has loaded
   const opening = $derived.by(() => {
     const parts = view.book;
     if (board || !book || !parts) return null;
-    return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames);
+    return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames, komi);
   });
   // The row follows "Review by" (design 32, item 4): by turn, the turn that left the book and the turn's quality label,
   // and the row goes to the turn's start. By edge, the edge and its label. Its earlier book move has the review's label
@@ -1374,7 +1378,7 @@
     if (i !== null) return i > 0 ? bookMoves.get(i - 1) : undefined;
     const parts = view.book, node = branches[pathKey(p)], before = positionOf(p.slice(0, -1));
     if (!opening || !parts || !node || !before) return undefined;
-    return parts.opening([parts.notation(before), parts.notation(node.position)], [p.at(-1)!])?.bookMoves[0]?.after;
+    return parts.opening([parts.notation(before), parts.notation(node.position)], [p.at(-1)!], komi)?.bookMoves[0]?.after;
   }
   /** The same for the last of the moves into `paths` (by turn, a turn's), where each of them is a book move. It asks no
    *  further after a move outside the book. */

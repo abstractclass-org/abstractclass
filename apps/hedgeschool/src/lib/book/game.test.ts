@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 import { bookMove, openBook, type Book } from "./book.ts";
 import type { BookPosition } from "./form.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
-import { gameOpening, openingRow, openingSentence, trapRows, worstBookPlay } from "./game.ts";
+import type { BookAt } from "./lookup.svelte.ts";
+import { gameOpening, openingRow, openingSentence, reviewOpening, trapRows, worstBookPlay } from "./game.ts";
 import { mirrorEdge } from "#lib/engine/notation.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -169,6 +170,38 @@ test("a game that ends in the book, as a game imported while it is played: no op
 
 test("no opening row for a game whose start the book does not hold", () => {
   assert.equal(gameOpening([null, null], ["A10-D9"]), null);
+});
+
+/** The review's lookup in the book (lookup.svelte.ts, OpeningBook `at`) over the positions of a game that `walk` read:
+ *  each in the book or out of it, or `loading` for the notations given. `asked` keeps each lookup: each can load a
+ *  part of the book. */
+function lookupOf(positions: (BookPosition | null)[], loading: string[] = []) {
+  const asked: string[] = [], known = new Map(positions.flatMap(p => (p ? [[p.position, p] as const] : [])));
+  const at = (n: string): BookAt => {
+    asked.push(n);
+    const p = known.get(n);
+    return loading.includes(n) ? { state: "loading" } : p ? { state: "in", position: p } : { state: "out" };
+  };
+  return { at, asked };
+}
+
+test("the review of a game at a komi takes nothing from the book: no opening row, no trap row, no book move", async () => {
+  // The book is the engine's at komi 0 (design 24). WHOLE is the game of hedgefund-review.json, which Practice kept
+  // with the player Blue 400 points ahead (Komi -400): the engine has Blue at 99.3% at the start, the book 50%.
+  const positions = await walk(book, WHOLE), notations = positions.map(p => p?.position);
+  const { at, asked } = lookupOf(positions);
+  assert.equal(reviewOpening(at, notations, WHOLE, -400), null);
+  const trap = await walk(book, TRAP);
+  assert.equal(reviewOpening(lookupOf(trap).at, trap.map(p => p?.position), TRAP, 400), null, "no trap row either");
+  assert.deepEqual(asked, [], "no lookup, so no part of the book loads");
+  // At komi 0 the review takes the game's opening from the book as before
+  const o = reviewOpening(at, notations, WHOLE, 0)!;
+  assert.deepEqual(o, gameOpening(positions, WHOLE));
+  assert.equal(openingSentence(o, WHOLE, "best", "edge", unjudged),
+    "The game followed the book to its end, at turn 3. Blue is slightly better.");
+  assert.deepEqual(o.bookMoves.map(m => m.index), [0, 1, 2, 3, 4]);
+  // It waits while a part that the game needs loads
+  assert.equal(reviewOpening(lookupOf(positions, [notations[2]!]).at, notations, WHOLE, 0), null);
 });
 
 test("by turn: the opening row names the whole turn that left the book, and goes to the turn's start", async () => {

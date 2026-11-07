@@ -229,13 +229,14 @@ export interface BookOpening { at: number; bookMoves: BookMoveMark[]; traps: unk
 export interface BookJudgment { label: Label; loss: number }
 export interface BookParts<G extends ViewTypes> {
   /** The book's place on a page, from the notation of each position on the path, and "Review by" (`unit`), which its
-   *  rows follow. `more`: the path's moves by their names, and the page's count of a feature's first use (design 17).
-   *  Null where the site has no book. */
+   *  rows follow. `more`: the path's moves by their names, the page's count of a feature's first use (design 17), and
+   *  the game's komi (Hedge School's design 24). Null where the site has no book. */
   place(page: "review" | "board", notations: () => (string | undefined)[], unit: () => Unit,
-        more?: { path: () => string[]; used: (name: string) => void }): G["book"] | null;
+        more?: { path: () => string[]; used: (name: string) => void; komi: () => number }): G["book"] | null;
   notation(position: G["position"]): string | undefined; // the position's notation, by which the book finds it
-  /** The game's opening, once every part of the book that the game's positions need has loaded. */
-  opening(notations: (string | undefined)[], moves: string[]): BookOpening | null;
+  /** The game's opening, once every part of the book that the game's positions need has loaded. `komi`: the game's,
+   *  Red's starting score (Hedge School's design 24: none at a komi other than 0). */
+  opening(notations: (string | undefined)[], moves: string[], komi: number): BookOpening | null;
   /** The Report's row, with the position that it goes to. By turn it names the turn that left the book. `label`: the
    *  review's label of the move or turn that left the book. `judged`: the review's judgment of the move that starts at
    *  an edge's index, or by turn of the turn that starts there; null where the review has none. */

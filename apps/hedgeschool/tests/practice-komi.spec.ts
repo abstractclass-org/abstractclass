@@ -1,10 +1,11 @@
 // Practice's komi (design 24): the card's setting, a head start for the player or the bot; a game at a komi, whose
 // points count it from the first position and whose kept game and record keep it; and its review, which reads the
-// record's Komi tag. The bot runs on the CPU (the engine settings' GPU off, and playwright.config's switches), at 1
-// visit a move. The review's engine is off: the review shows the game's positions, and searches nothing. Run:
+// record's Komi tag and takes nothing from the opening book but the Book tab. The bot runs on the CPU (the engine
+// settings' GPU off, and playwright.config's switches), at 1 visit a move. The review's engine is off: the review shows
+// the game's positions, and searches nothing. Run:
 // npm run test:layout -- tests/practice-komi.spec.ts --project=chromium, with BASE_URL.
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request } from "@playwright/test";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 const CHOICES = "hedge-school:practice-choices:1", GAME = "hedge-school:practice-game:1";
@@ -110,4 +111,77 @@ test("a game at a komi: the points count it from the start, the kept game and th
   await expect(row(page)).toBeVisible({ timeout: 60_000 });
   await page.keyboard.press("Home");
   await expect(row(page)).toContainText(/You\s*Blue\s*300\s*points/);
+});
+
+// The review of a game at a komi takes nothing from the opening book but the Book tab (design 24): the book is the
+// engine's at komi 0. The fixture's whole game (120 edges, over by the rules), kept with the player Blue at `komi`, and
+// its review. The test book is served by the dev and preview servers only, and the review shows the book in the early
+// edition only: elsewhere these tests are skipped.
+test.describe("the opening book at a komi", () => {
+  test.use({ viewport: { width: 1366, height: 900 } }); // three columns: the Report beside the board
+
+  /** The move list's book marks (their names: "Book move · … after it"), the Report's opening row, and the Book tab's
+   *  line at a komi. */
+  const bookMarks = (page: Page) => page.getByRole("img", { name: /^Book move · / });
+  const OPENING = "The game followed the book to its end, at turn 3. Blue is slightly better. Show the position";
+  const KOMI_LINE = "The book moves and their values are the engine's at komi 0, not at this game's komi.";
+
+  /** Keeps the fixture's whole game in Practice at `komi`, then opens its review from the game's end. It gives a function
+   *  that is true once no load of the test book is open and none started or ended for half a second. */
+  async function reviewKept(page: Page, komi: number): Promise<() => boolean> {
+    test.setTimeout(240_000);
+    const served = await page.request.get("/test-book/prototype/index.json");
+    test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
+    const moves = (JSON.parse(readFileSync(FIXTURE, "utf8")).record as string).replace(/\[[^\]]*\]/g, "").split(/\s+/)
+      .filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t));
+    await page.goto("/practice");
+    test.skip(!(await page.getByRole("link", { name: "Early Access" }).count()), "not the early edition");
+    await page.evaluate(([key, kept]) => localStorage.setItem(key, JSON.stringify(kept)), [GAME, {
+      version: 1, bot: { network: NETWORK, visits: 1, variety: "low" }, human: 0, name: "", seed: 1, komi,
+      moves, builds: [], started: new Date().toISOString(),
+    }] as const);
+    await page.reload();
+    const review = page.getByRole("link", { name: "Review the game" });
+    await expect(review).toBeVisible({ timeout: 120_000 });
+    let open = 0, last = Date.now();
+    const count = (step: number) => (r: Request) => {
+      if (r.url().includes("/test-book/")) { open += step; last = Date.now(); }
+    };
+    page.on("request", count(1));
+    page.on("requestfinished", count(-1));
+    page.on("requestfailed", count(-1));
+    await review.click();
+    await expect(row(page)).toBeVisible({ timeout: 60_000 });
+    return () => open === 0 && Date.now() - last >= 500;
+  }
+  /** The Book tab at the start, a book position. */
+  async function bookAtStart(page: Page) {
+    await page.keyboard.press("Home");
+    await page.getByRole("group", { name: "The table shows" }).getByRole("button", { name: "Book" }).click({ timeout: 30_000 });
+    return page.getByRole("region", { name: "Opening book" });
+  }
+
+  test("at komi -400: no Opening section and no book mark, and the Book tab says its values are at komi 0", async ({ page }) => {
+    const idle = await reviewKept(page, -400);
+    const table = await bookAtStart(page);
+    await expect(row(page)).toContainText(/You\s*Blue\s*400\s*points/); // the review is at the komi
+    await expect(table.getByText(KOMI_LINE)).toBeVisible();
+    await expect(table.locator("tbody tr").first()).toBeVisible(); // the book's rows: the book has loaded
+    // Each load of the book has ended: a row or a mark from it would show by now
+    await page.keyboard.press("End");
+    await expect.poll(idle, { timeout: 30_000 }).toBe(true);
+    await expect(page.getByText("Opening", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^The game followed the book/ })).toHaveCount(0);
+    await expect(bookMarks(page)).toHaveCount(0);
+  });
+
+  test("at komi 0: the Opening section and the book marks as before, and no line on the komi", async ({ page }) => {
+    await reviewKept(page, 0);
+    await expect(page.getByRole("button", { name: OPENING })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Opening", { exact: true })).toBeVisible();
+    await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
+    const table = await bookAtStart(page);
+    await expect(table.locator("tbody tr").first()).toBeVisible();
+    await expect(table.getByText(KOMI_LINE)).toHaveCount(0);
+  });
 });

@@ -30,9 +30,11 @@ export function siteBook(): OpeningBook | null {
 
 /** The pages that show the book in their analysis column, each with its own choice. */
 export type BookPage = "review" | "board" | "openings";
-/** What a page gives its place besides the positions: the path's edges from the start, for "Study in Openings", and
- *  the page's count of a feature's first use (design 17). */
-export interface PlaceOptions { path?: () => string[]; used?: (name: string) => void; openings?: boolean }
+/** What a page gives its place besides the positions: the path's edges from the start, for "Study in Openings", the
+ *  page's count of a feature's first use (design 17), and the game's komi (design 24). */
+export interface PlaceOptions {
+  path?: () => string[]; used?: (name: string) => void; openings?: boolean; komi?: () => number;
+}
 export interface BookChoice { show: "book" | "candidates" }
 const keyOf = (page: BookPage) => `hedge-school:book-table:${page}:1`;
 
@@ -56,6 +58,7 @@ export class BookPlace {
   #edges: () => string[] = () => [];
   #used: (name: string) => void = () => {};
   #openings = false; // the site has Openings: the table gives "Study in Openings"
+  #komi: () => number = () => 0;
   #show = $state<BookChoice["show"]>("candidates");
   /** The row pointed at, by its name (rows.ts, BookRow `move`), in the table or by its number on the board: its row is
    *  lit, and the board draws its line. */
@@ -73,11 +76,15 @@ export class BookPlace {
     this.#edges = options.path ?? this.#edges;
     this.#used = options.used ?? this.#used;
     this.#openings = !!options.openings;
+    this.#komi = options.komi ?? this.#komi;
     this.#show = keptChoice(page).show;
   }
 
   /** The book's index has loaded: the table and its switch show. */
   get ready(): boolean { return !!this.book.book; }
+  /** The game's komi, Red's starting score (design 24). The book's values are the engine's at komi 0: at another komi
+   *  the table says so, and the review takes nothing else from the book. */
+  get komi(): number { return this.#komi(); }
 
   /** The player's choice, which the browser keeps. Outside the book, the table shows the candidates whatever it is. */
   get show() { return this.#show; }

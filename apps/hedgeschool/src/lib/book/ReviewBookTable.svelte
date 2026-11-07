@@ -2,22 +2,30 @@
   // The book's table in the review's view (@abstractclass/review/game.ts, the game's `book.Table`): the table
   // (BookTable.svelte) on the page's book place (place.svelte.ts), with the sentence of the book move pointed at or of
   // the best move under it, or by turn of the turn, and "Study in Openings" under the sentence where the site has
-  // Openings. The view gives the engine's table (`candidates`), which shows alone outside the book. A page can add its
-  // own lines under the title row (`lead`), as Openings does (OpeningsBookTable.svelte).
+  // Openings. The view gives the engine's table (`candidates`), which shows alone outside the book. In a game at a komi
+  // (design 24), a line under the title row says that the book's values are the engine's at komi 0. A page can add its
+  // own lines under it (`lead`), as Openings does (OpeningsBookTable.svelte).
   import type { Snippet } from "svelte";
   import BookTable from "./BookTable.svelte";
   import type { BookPosition } from "./form.ts";
   import type { BookPlace } from "./place.svelte.ts";
   import { bestMoveSentence, bestTurnSentence, moveSentence, turnSentence } from "./sentences.ts";
 
-  let { place, onplay, candidates, lead }: {
+  let { place, onplay, candidates, lead: pageLead }: {
     place: BookPlace; onplay: (edges: string[], refutation: boolean) => void; candidates: Snippet;
     lead?: Snippet<[BookPosition]>;
   } = $props();
 </script>
 
 <BookTable at={place.at} source={place.book.source} rows={place.rows} byTurn={place.byTurn} bind:more={place.more}
-           bind:show={place.show} bind:pointed={place.pointed} {onplay} onretry={() => place.book.retry()} {candidates} {lead}>
+           bind:show={place.show} bind:pointed={place.pointed} {onplay} onretry={() => place.book.retry()} {candidates}>
+  <!-- At a komi: the book's values are the engine's at komi 0 (design 24). Then the page's own lines. -->
+  {#snippet lead(p)}
+    {#if place.komi}
+      <p class="flex-none mb-1.5 text-xs">The book moves and their values are the engine's at komi 0, not at this game's komi.</p>
+    {/if}
+    {@render pageLead?.(p)}
+  {/snippet}
   {#snippet sentence(row, p)}
     <p class="text-sm">{place.byTurn ? (row ? turnSentence(p, place.rows, row) : bestTurnSentence(p, place.rows))
       : row?.book ? moveSentence(p, row.book) : bestMoveSentence(p)}</p>

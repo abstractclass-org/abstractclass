@@ -8849,6 +8849,21 @@ entry keeps the sources and the checks.
   review file, the shared review and the annotated record keep the tag. The Analysis board keeps a record's komi with
   the board and in its link. Cyanotype's Analysis board refuses a record with a komi: it builds its analysis before it
   chooses its board.
+- **The look, and the opening book at a komi (2026-11-07):** a look at the built branch (headless Chromium, the
+  engines on the CPU) approved the setting as shown: the box, the slider by 50 from −3,000 to 3,000, the help line,
+  the game's start, the end's result with the komi, and the review's searches at the komi. The fixture game
+  (`tests/fixtures/hedgefund-review.json`, 120 edges, `r+377.651497`) kept with the player Blue 400 points ahead ends
+  "Game over: Blue wins by 22.3.", and its record has `[Result "b+22.348503"]` and `[Komi "-400"]`. At komi 0 it ends
+  "Red wins by 377.7.", with no tag. Its review at the start: Blue 99.3%, an expected final margin of Blue +412 ± 227,
+  a lead of Blue +390 (at komi 0: 50.4%, +4 ± 194, +3). One finding: the Report's Opening section still said "The game
+  followed the book to its end, at turn 3. Blue is slightly better.", word for word the text at komi 0. The first
+  build kept the book's values out of the analysis at a komi, but not the book's verdict. The fix proposed to keep
+  where the game left the book and to drop the verdict. The decision went further: "Your fix for book in komi is good.
+  I think we can even drop 'the Opening section still says where the game left the book'". So at a komi the review
+  takes nothing from the book but the Book tab, which says in one line that the book moves and their values are the
+  engine's at komi 0 (design 24, item 15). The review's view gives the game's komi to the book's parts, and the game's
+  opening (`reviewOpening`) is none at a komi: no Opening section, no trap row and no book mark. The annotated record
+  and the review file hold no text from the book, so they did not change.
 - **Not done:** the stored games' table has no column for the komi (its JSON and its record hold it). The `Komi` tag
   waits for the engine repository's design 04 (request 27). A record brought to Practice brings its moves, not its
   komi.
