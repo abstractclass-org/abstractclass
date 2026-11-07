@@ -62,6 +62,8 @@ export const blueprintsView: ViewGame<Blueprints> = {
   Shape: MoveShape,
   shape: {
     name: "Hexes",
+    // An edit's arrow ends at the next move's hex, so a turn's edit and placement side by side could read as one move
+    turnDot: true,
     help: "Each move as a small hex, a dot, or its notation. A placement is a hex with the number of its blueprint. An edit is the cell that it moves, with an arrow. In the engine's line, the dots show the numbers of the board.",
   },
   // A move's text: as wide as its own (its glyphs: a box, the hex and +N). Moves run from 5 to 19 characters, so two do

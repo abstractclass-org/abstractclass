@@ -311,7 +311,11 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   lineNotation(move: G["move"], step: G["step"] | undefined): string;
   /** A move's shape in the variations and the line (Enclosure's pill along the edge). */
   Shape: Component<ShapeProps<G["move"], G["position"] | G["step"]>>;
-  shape: { name: string; help: string }; // its choice's name in the display settings, and the choice's help
+  /** Its choice in the display settings: the choice's name and its help. `turnDot`: in that choice, a middle dot
+   *  (GLYPH_SEPARATOR's) between a turn's two shapes in the variations and the engine's lines, where two shapes side by
+   *  side can read as one move (Blueprints': an edit's arrow ends at the placement's hex beside it). None: the shapes
+   *  stand as they are (Enclosure's pills). */
+  shape: { name: string; help: string; turnDot?: boolean };
   moveText: string; // the class of a move's text in the move list: as wide as the widest move
   // Each move on a line of its own in the move list, the turn's number at its first: moves too long for two to a row
   // (Blueprints', as on Cyanotype's Practice). None: two to a row, as Lichess's

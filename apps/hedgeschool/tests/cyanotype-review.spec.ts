@@ -2,12 +2,12 @@
 // the stored review of the engine's real replies (cyanotype-review.ts), with the engine on at Lite as in a live review,
 // in one page that the tests share in turn. The tests check the candidates' table's Move header (move-header.ts), the
 // display setting "Move notation", the marks of a turn's two moves by turn and by move, the two moves of a Mistake's
-// note on one line, the hands' rank chips with "+N", that the page has no area map, and the player's notes
-// (cyanotype-notes.ts) by position and while a preview shows. The page asks the engine for no search:
-// cyanotype-live-review.spec.ts reviews with the engine. And the
+// note on one line with a middle dot, the dot between a turn's shapes in Hexes, the hands' rank chips with "+N",
+// that the page has no area map, and the player's notes (cyanotype-notes.ts) by position and while a preview shows.
+// The page asks the engine for no search: cyanotype-live-review.spec.ts reviews with the engine. And the
 // Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message. Run:
 // npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
 import { readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
@@ -197,6 +197,30 @@ test("by turn, a Mistake's note writes the engine's two moves in glyphs on one l
     expect(text).not.toContain("·");
   }
   await open(1376, 952, { notation: "glyphs" });
+});
+
+test("in Hexes, a middle dot stands between a turn's two shapes in the engine's lines, and none between turns", async () => {
+  // An edit's arrow ends at the next move's hex, so a turn's two shapes side by side could read as one move. The turn
+  // numbers (under a note) and a wider space (under the table) stand between turns. Each row as a string: M a move, ·
+  // the dot, N a turn's number, _ the space between turns.
+  await open(1376, 952, { judge: "turn", branchForm: "pills", notes: true });
+  const tokens = (row: Locator) => row.evaluate(r => [...r.children].map(e =>
+    e.matches("[data-turn-dot]") ? "·" : e.tagName === "BUTTON" ? "M" : /^\d+\.(…)?$/.test(e.textContent?.trim() ?? "") ? "N"
+      : e.matches("span.w-2") ? "_" : "").join(""));
+  const check = (where: string, s: string) => {
+    expect(s, `${where}: a turn's two shapes with the dot between them`).toContain("M·M");
+    expect(s, `${where}: two shapes side by side with nothing between them`).not.toContain("MM");
+    expect(s, `${where}: a dot beside a turn's number or the space between turns`).not.toMatch(/·[N_]|[N_]·|^·|·$/);
+  };
+  // The engine's line under the first Mistake's note: the row with the rank badge of the engine's best line
+  const note = page.locator(".movelist div.relative.isolate").filter({ has: page.locator('[title="The engine\'s best line from here"]') }).first();
+  await note.scrollIntoViewIfNeeded();
+  check("under a note", await tokens(note));
+  // The engine's line under the table, from a turn's first move (after move 9: Red's first of turn 6)
+  await toMove(9);
+  const line = page.getByRole("group", { name: "The engine's line" }).locator(":scope > div").first();
+  await expect(line.locator("button").nth(1)).toBeVisible();
+  check("under the table", await tokens(line));
 });
 
 /** A stored result's candidate, as far as this file reads it. */

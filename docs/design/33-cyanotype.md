@@ -583,9 +583,16 @@ build). The decision log gives the measurements that led to each choice.
      between them, in the note's text colour (`GLYPH_SEPARATOR`, `inGlyphs` in `packages/review/src/game.ts`). A
      move in glyphs has spaces of its own (its box, then its hex), so a space does not show where the first move
      ends. A comma would meet the hexes' commas. The Text form, the note's title and every export keep the record's
-     notation, a space between the moves (`3. 1@1,-3x 1@0,3x+8`). Elsewhere, a turn's two moves are apart already:
-     the move list has one move a line, the table one move a row, the status line one move, and in the form
-     "Notation" the variations and the engine's lines give each move a button of its own, after its turn's number.
+     notation, a space between the moves (`3. 1@1,-3x 1@0,3x+8`). The move list has one move a line, the table one
+     move a row, and the status line one move.
+   - **The same dot between a turn's two shapes in "Hexes"** (item 5): in a variation, in the engine's line under a
+     note and in the engine's line under the table. An edit's arrow ends at the next move's hex, so an edit and a
+     placement side by side could read as one move. The turn's number stays before its first move. Under the table,
+     where the line has no numbers, the space between two turns is wider than before (half a rem), so that a turn's two
+     shapes stay together. The view's game asks for the dot (`shape.turnDot`): Hedge School's pills stand as before.
+     "Dots" has no dot: a disc never reaches its neighbour, and a middle dot between discs would read as a smaller
+     disc. "Notation" has none either: each move is a button with its own padding after its turn's number, and the
+     space between two buttons is wider than the spaces inside a move's glyphs.
    - A candidate, a note's best move and a line's move before the rules play it have no capture mark, in both forms:
      what they capture is not known yet.
 5. **The small hexes** (the variations' form "Hexes", and the engine's line under the table): a placement is a

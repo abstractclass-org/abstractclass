@@ -9155,7 +9155,9 @@ edit's glyphs stood about 3.4 pixels higher than the placement's beside them: at
 - **The check:** `cyanotype-review.spec.ts` measures the boxes' tops in each Mistake's note by turn that names an edit
   and a placement, at 1,376 and at 390 pixels: they must differ by less than half a pixel.
 - **The separator:** in Glyphs, ` · ` stands between a turn's two moves in a note (`inGlyphs`), since a move in glyphs
-  has spaces of its own and a comma would meet the hexes' commas. The Text form and the exports keep the space.
+  has spaces of its own and a comma would meet the hexes' commas. The Text form and the exports keep the space. In
+  "Hexes" the same dot stands between a turn's two shapes in the variations and the engine's lines (`shape.turnDot`),
+  since an edit's arrow ends at the next move's hex; "Dots", "Notation" and Hedge School's pills are as before.
 
 ### Cyanotype's variations in "Hexes" (2026-11-07)
 

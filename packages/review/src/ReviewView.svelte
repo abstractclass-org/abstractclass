@@ -786,6 +786,11 @@
   // How the lists write a move (the display setting `notation`): the game's glyphs while the setting asks for them,
   // else its notation. The candidates' table writes its moves so too, in the table's text colour.
   const glyphs = $derived(display.notation !== "text" ? view.glyphs : undefined);
+  // A middle dot between a turn's two shapes in the variations and the engine's lines, where the game asks for it
+  // (`shape.turnDot`: Blueprints' edit arrow ends at the next move's hex) and the moves are its shapes. Not with dots:
+  // a disc never reaches its neighbour, and a middle dot between discs would read as a smaller disc. Not in notation:
+  // each move is a button with its padding, after its turn's number.
+  const turnDots = $derived(display.branchForm === "pills" && !!view.shape.turnDot);
   /** A note's parts: its text, and the moves that it names (a note of text alone is one part). */
   const partsOf = (note: string | NotePart<G>[]): NotePart<G>[] => (typeof note === "string" ? [note] : note);
   /** A note as text, its moves in their notation: its title, and how a turn's notes say a note once. */
@@ -2242,10 +2247,15 @@
   {/if}
 {/snippet}
 
-<!-- A variation edge's turn number, before the row's first edge and each turn's first: every turn has its number. -->
+<!-- A variation edge's turn number, before the row's first edge and each turn's first: every turn has its number. Before
+     a turn's second edge, the middle dot where the shapes ask for it (turnDots). -->
 {#snippet turnMark(t: { turn: number; first: boolean }, k: number)}
-  {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>{/if}
+  {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>
+  {:else if turnDots}{@render turnDot()}{/if}
 {/snippet}
+
+<!-- The middle dot between a turn's two shapes (turnDots), muted as the turn numbers. -->
+{#snippet turnDot()}<span class="text-muted text-[0.9em] leading-none" aria-hidden="true" data-turn-dot>·</span>{/snippet}
 
 <!-- A variation edge without its notation: a pill along its direction, or a dot, in its mover's colour (the display
      setting). -->
@@ -2304,7 +2314,9 @@
                     title="{name}{where} · play the line to here">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, player, before, listSteps?.[k])} />{:else}{name}{/if}</button>
           {:else}
             {@const shade = listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100"}
-            {#if k > 0 && t.first}<span class="w-1"></span>{/if}
+            <!-- Between two turns a space, wider where a middle dot stands between a turn's two shapes (turnDots), so
+                 that a turn's two shapes stay together. -->
+            {#if k > 0 && t.first}<span class={turnDots ? "w-2" : "w-1"}></span>{:else if k > 0 && turnDots}{@render turnDot()}{/if}
             <button class="flex p-0 bg-transparent border-0 rounded-full" onmouseenter={() => (listHover = k)} onclick={() => play(k)}
                     tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
               {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} {before} />
