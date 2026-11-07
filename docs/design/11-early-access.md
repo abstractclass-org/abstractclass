@@ -323,7 +323,7 @@ read the game from the player's own page.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
 - Deleting a game: `deleteGame` in `src/lib/game/store.ts` (the shared store's, `packages/analysis/src/games.ts`),
   the rows in `packages/review/src/GameList.svelte`, which `src/lib/review/ReviewHome.svelte` gives its games, the
-  question in `packages/review/src/ConfirmDialog.svelte`.
+  question in `packages/site/src/ConfirmDialog.svelte`.
 - One tab for each game's review: `packages/analysis/src/reviewLock.ts`, used in `src/routes/review/+page.svelte`.
   The check for a deleted game: `keepBranches` in `packages/analysis/src/analysis.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,

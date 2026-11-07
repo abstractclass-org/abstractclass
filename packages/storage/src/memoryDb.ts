@@ -1,11 +1,11 @@
-// A store in memory in IndexedDB's place, for the unit tests of the code that reads and writes the site's store (db.ts):
-// Node has no IndexedDB. It answers the requests of db.ts's reads, writes and removals of values by their keys and of a
-// store's keys and values (get, put, delete, getAllKeys, getAll, openKeyCursor), in transactions that complete after their requests: in a timer, or in
-// `later` (a microtask, for a test that mocks the timers). It counts the reads of a store's keys, so that a test can
-// tell a read of some keys from a read of every key, and it lists the keys written. A test can hold the writes: their
-// transactions complete, or fail and keep nothing, when it releases them. Call it before the first read or write:
-// db.ts opens the store once. A cursor's steps answer in microtasks: a test of dbEntriesWhere takes the default timer,
-// so that its transaction completes after them.
+// A store in memory in IndexedDB's place, for the unit tests of the code that reads and writes the site's store
+// (db.ts): Node has no IndexedDB. It answers the requests of db.ts's reads, writes and removals of values by their keys
+// and of a store's keys and values (get, put, delete, getAllKeys, getAll, openKeyCursor), in transactions that complete
+// after their requests: in a timer, or in `later` (a microtask, for a test that mocks the timers). It counts the reads
+// of a store's keys, so that a test can tell a read of some keys from a read of every key, and it lists the keys
+// written. A test can hold the writes: their transactions complete, or fail and keep nothing, when it releases them.
+// Call it before the first read or write: db.ts opens the store once. A cursor's steps answer in microtasks: a test of
+// dbEntriesWhere takes the default timer, so that its transaction completes after them.
 
 export function memoryDb(later: (step: () => void) => void = step => setTimeout(step)) {
   const stores = new Map<string, Map<IDBValidKey, unknown>>(), written = new Map<string, IDBValidKey[]>();
@@ -26,7 +26,7 @@ export function memoryDb(later: (step: () => void) => void = step => setTimeout(
       return {
         get: (key: IDBValidKey) => answered({ result: structuredClone(r.get(key)) }),
         getAllKeys: () => (scans++, { result: [...r.keys()].sort() }),
-        // Every value, in the order of their keys, as getAllKeys gives the keys (dbAll, dbEntries).
+        // Every value, in the order of their keys, as getAllKeys gives the keys (dbEntries).
         getAll: () => ({ result: [...r.keys()].sort().map(k => structuredClone(r.get(k))) }),
         delete: (key: IDBValidKey) => {
           const had = r.has(key), old = r.get(key);

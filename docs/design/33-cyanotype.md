@@ -453,11 +453,11 @@ its practice games are not kept. The board takes a komi as Hedge School's does w
 1. **A search of more views takes its best check, with no temperature,** and a move of another view keeps no tree for
    the next move (the engine's README, "The search"). The variety then does not act on that move. Request 25 accepts
    this.
-2. **No Your games, no stored game, no analytics and no review of a game played here:** the site keeps no practice
-   game, and has no backend (design 25) and no analytics (design 17) yet. These are gaps, each in "The gaps from Hedge
-   School". So a game that ends is no longer kept: the next visit starts a new one. Abort ends the game, and it is
-   gone. The site ships only its lock's networks, so a new build can drop a kept game's network. Such a game cannot
-   go on: the page drops it, and the settings card says so.
+2. **No practice game in Your games, no stored game, no analytics and no review of a game played here:** the site
+   keeps no practice game, and has no backend (design 25) and no analytics (design 17) yet. These are gaps, each in
+   "The gaps from Hedge School". So a game that ends is no longer kept: the next visit starts a new one. Abort ends
+   the game, and it is gone. The site ships only its lock's networks, so a new build can drop a kept game's network.
+   Such a game cannot go on: the page drops it, and the settings card says so.
 3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
    page has no sounds. The player's notes are on the board ("The player's notes"). No game comes from a record or a
    set-up start. These are gaps too ("The gaps from Hedge School").
@@ -1243,11 +1243,11 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `src/lib/review/recordCheck.ts` (`checkRecordMarks`), with their tests (`store.test.ts`, `import.test.ts`).
   `src/lib/analysis/engineSettings.ts`: a game's own settings for Cyanotype's networks. The shared parts:
   `packages/analysis/src/games.ts` (the store and the marks), `reviewLock.ts` (the lock) and `settings.ts`
-  (`ownSettingsOf`), `packages/review/src/GameList.svelte` (the list, its Export and its Delete) and
-  `ConfirmDialog.svelte` (the question), and `packages/storage/src/persist.ts` (the request to keep the site's data),
-  with their tests (design 29, "Where it is"). `apps/hedgeschool/tests/cyanotype-games.spec.ts`: the browser tests of
-  the Review tab with kept games, the refusals, a game's Delete, the lock between two tabs and a shared review's own
-  settings, and `layout.spec.ts` the Review tab's layout.
+  (`ownSettingsOf`), `packages/review/src/GameList.svelte` (the list, its Export and its Delete),
+  `packages/site/src/ConfirmDialog.svelte` (the question) and `packages/storage/src/persist.ts` (the request to keep the
+  site's data), with their tests (design 29, "Where it is"). `apps/hedgeschool/tests/cyanotype-games.spec.ts`: the
+  browser tests of the Review tab with kept games, the refusals, a game's Delete, the lock between two tabs and a shared
+  review's own settings, and `layout.spec.ts` the Review tab's layout.
 - `apps/hedgeschool/tests/cyanotype-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and
   `layout.spec.ts` its layout. `cyanotype-notes.spec.ts`: the notes on the Analysis board and on Practice, with
   `cyanotype-notes.ts`, which the review's test, the layout test of the board with notes and Hedge School's test of

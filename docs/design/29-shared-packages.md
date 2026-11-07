@@ -65,9 +65,9 @@ edit in the same commit), so their changes still apply.
    when Blueprints' release had the threaded bot (abscls-8tl1.29). The player's games, kept in the browser (Hedge
    School's designs 11 and 22), moved out of Hedge School with Cyanotype's list of games (design 33): the store and
    its review marks (`games.ts`), the lock that lets one tab review a game (`reviewLock.ts`) and a game's own network
-   and depth (`settings.ts`, `ownSettingsOf`) into the analysis package, and the Review tab's list with its Delete
-   (`GameList.svelte`) and the question before an action that the player cannot undo (`ConfirmDialog.svelte`) into
-   the review's. The engine's two scripts for Node,
+   and depth (`settings.ts`, `ownSettingsOf`) into the analysis package, the Review tab's list with its Delete
+   (`GameList.svelte`) into the review's, and the question before an action that the player cannot undo
+   (`ConfirmDialog.svelte`), one of the site's general controls, into the site's. The engine's two scripts for Node,
    `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
    `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
 
@@ -369,9 +369,8 @@ edit in the same commit), so their changes still apply.
   marks. `src/lineImage.ts`: the line that an image draws, and its animation's frames. `src/ReplaceAnalysis.svelte`:
   the Analysis board's question before a line brought replaces the analysis kept in the browser. `src/GameList.svelte`:
   the Review tab's list of the player's games, with each game's Export and Delete and the line on what the browser
-  keeps, with each site's rows (Hedge School's and Cyanotype's `src/lib/review/ReviewHome.svelte`).
-  `src/ConfirmDialog.svelte`: the question before an action that the player cannot undo (design 11), whose action
-  takes `btn-danger` from `@abstractclass/practice`'s style, which both sites import. `src/ExportMenu.svelte`
+  keeps, with each site's rows (Hedge School's and Cyanotype's `src/lib/review/ReviewHome.svelte`), and the
+  question before a Delete (`@abstractclass/site`'s `ConfirmDialog.svelte`). `src/ExportMenu.svelte`
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages
   share: the Analysis board's, the review's link and the annotated record. `src/NewMenu.svelte`: the Analysis board's
   New menu, with the ways that a site has (design 21). `src/review.css`: the package's Tailwind source and the view's
@@ -383,13 +382,15 @@ edit in the same commit), so their changes still apply.
   caption and file name. `src/lib/book/ReviewBookTable.svelte`: the book's table in the view.
 - `packages/site/src/`: the site's general controls that the view uses (`Icon.svelte`, `Toast.svelte`,
   `SettingChoice.svelte`, `SettingToggle.svelte`, `settings.ts`, `Swatch.svelte`, `side.ts`) and the page's scroll
-  (`pageScroll.ts`). `download.ts`: a file that a page gives the player to save. `release-check.mjs`: the checks of a
-  deployed site that both sites share, moved from Hedge School's `scripts/release-check.mjs`. Each site's
-  `scripts/release-check.mjs` runs them with its addresses and header, and adds its own checks
-  ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node, and it reads the engine's files with
-  the engine package's `artifacts.ts`. It is the one file of the site package that imports the engine package, and no
-  page imports it. So the site package depends on the engine package, and the frame's code in the browser still has
-  none of the engine.
+  (`pageScroll.ts`). `ConfirmDialog.svelte`: the question before an action that the player cannot undo (design 11), for
+  a game's Delete in the Review tab's list and for the privacy page's delete. Its action takes `btn-danger` from
+  `@abstractclass/practice`'s style, which both sites import. `download.ts`: a file that a page gives the player to
+  save. `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge School's
+  `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and header, and adds
+  its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node, and it reads the
+  engine's files with the engine package's `artifacts.ts`. It is the one file of the site package that imports the
+  engine package, and no page imports it. So the site package depends on the engine package, and the frame's code in the
+  browser still has none of the engine.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review

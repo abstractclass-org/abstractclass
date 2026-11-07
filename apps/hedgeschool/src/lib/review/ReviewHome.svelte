@@ -18,7 +18,6 @@
   import { deliverExport, loadReviewFile, reviewExports, type ExportKind } from "#lib/game/reviewFile.ts";
   import { loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { annotatedFromStore } from "#lib/review/exportText.ts";
-  import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
   import { trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
   import { GAME_RANGES, range } from "#lib/measure.ts";
@@ -164,17 +163,17 @@
   // The list's rows (GameList): a game from a set-up start (a practice game from the Analysis board's Play) opens on the
   // Analysis board, since the Review tab reviews games from the standard start.
   const rows = $derived(games.map(({ game, record }): GameRow => {
-    const setUp = !!setUpStart(record.tags.Position);
+    const setUp = !!setUpStart(record.tags.Position), want = wanted(game);
     return {
       id: game.id, title: title(record),
       href: setUp ? `/analysis#${new URLSearchParams({ record: game.record, via: "your_games" })}` : `/review#game=${game.id}`,
       detail: `${record.moves.length} edges${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
         + `added ${new Date(game.added).toLocaleDateString()}`,
       exports: { run: kind => exportGame(game.id, game.record, kind), items: reviewExports(), ontrack: trackExport,
-        ready: reviewCovers(game.reviewed, wanted(game)),
+        ready: reviewCovers(game.reviewed, want),
         why: setUp ? "A game from a set-up start opens on the Analysis board: export it there."
           : !game.reviewed ? "Open the game to review it, then export."
-          : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine has a new version: open the game, choose Review again, then export."
+          : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game, choose Review again, then export."
           : "Open the game to finish its review with the engine settings now, then export." },
     };
   }));

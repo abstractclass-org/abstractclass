@@ -130,7 +130,7 @@ Lichess and chess.com keep every game played on them:
   random number (`hedge-school:browser-number:1`) is made on the first game sent with consent. After a Decline it
   is no longer sent, and stays in the browser only so that the privacy page can still delete its games. "Delete my
   practice games" deletes them, and the number with them. It asks first, in the same dialog as a game's delete
-  (`packages/review/src/ConfirmDialog.svelte`, design 11). The dialog's text on the privacy page says what goes and
+  (`packages/site/src/ConfirmDialog.svelte`, design 11). The dialog's text on the privacy page says what goes and
   where, and that the games in the Review tab stay. The waiting games with the number leave the queue unsent.
   The site keeps the deleted number alone, and keeps no game that arrives with it later: a game on its way from another
   tab, or sent again after a failed send, does not come back after the delete. The check is in the insert's own

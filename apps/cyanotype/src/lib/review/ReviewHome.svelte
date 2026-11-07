@@ -5,7 +5,7 @@
   // is no sample game (Hedge School's design 11). An analysis file dropped here goes to the Analysis board, as on Hedge
   // School. Cyanotype has no review files yet (abscls-8tl1.34), so the tab has no "Load a review file", and counts no
   // event: it has no analytics yet (design 33, "The gaps from Hedge School").
-  import { untrack } from "svelte";
+  import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
   import { keepStorage, storageKept } from "@abstractclass/storage/persist.ts";
@@ -43,7 +43,7 @@
   // (`read`), and the footer under the list waits for them, so that it does not move when they come. The request for
   // persistent storage comes after: Firefox asks the visitor, and the tab does not wait for the answer.
   let read = $state(false);
-  $effect(() => untrack(() => void open()));
+  onMount(() => void open());
   async function open() {
     manifestLoad = loadManifest();
     [games, kept] = await Promise.all([listGames(), storageKept().then(Boolean)]); // the list with its line on storage
@@ -106,16 +106,18 @@
   const CONTINUE = "flex-col sm:flex-row sm:items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg";
   // The list's rows (GameList). The Export's text when it does not open: text that a player follows, in strict
   // Simplified Technical English.
-  const rows = $derived(games.map(({ game, record }): GameRow => ({
-    id: game.id, title: title(record), href: `/review#game=${game.id}`,
-    detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
-      + `added ${new Date(game.added).toLocaleDateString()}`,
-    exports: { run: kind => deliverExport(kind, game.id), items: REVIEW_EXPORTS,
-      ready: reviewCovers(game.reviewed, wanted(game)),
-      why: !game.reviewed ? "Open the game to review it, then export."
-        : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine has a new version: open the game to review it again, then export."
-        : "Open the game to finish its review with the engine settings now, then export." },
-  })));
+  const rows = $derived(games.map(({ game, record }): GameRow => {
+    const want = wanted(game);
+    return {
+      id: game.id, title: title(record), href: `/review#game=${game.id}`,
+      detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
+        + `added ${new Date(game.added).toLocaleDateString()}`,
+      exports: { run: kind => deliverExport(kind, game.id), items: REVIEW_EXPORTS, ready: reviewCovers(game.reviewed, want),
+        why: !game.reviewed ? "Open the game to review it, then export."
+          : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game to review it again, then export."
+          : "Open the game to finish its review with the engine settings now, then export." },
+    };
+  }));
 </script>
 
 <main class={["box-content max-w-[1000px] mx-auto my-6 px-4 grid gap-5 rounded-lg", dragging && "outline-2 outline-dashed outline-accent"]}

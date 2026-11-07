@@ -59,7 +59,6 @@ const one = <T>(request: (s: IDBObjectStore) => IDBRequest) => (s: IDBObjectStor
 };
 
 export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", one(s => s.get(key)), undefined);
-export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", one(s => s.getAll()), []);
 /** A store's keys and values, in key order: its keys and its values read in one transaction, which both give in key
  *  order. None when storage fails. */
 export const dbEntries = <T>(store: string) => run<[string, T][]>(store, "readonly", s => {

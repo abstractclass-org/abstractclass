@@ -11,7 +11,7 @@
   import { SWITCH, SWITCH_THUMB } from "@abstractclass/site/settings.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-  import ConfirmDialog, { type Answer } from "@abstractclass/review/ConfirmDialog.svelte";
+  import ConfirmDialog, { type Answer } from "@abstractclass/site/ConfirmDialog.svelte";
 
   let mounted = $state(false), number = $state<string | null>(null), deleting = $state(false), deleted = $state("");
   onMount(() => { mounted = true; number = keptNumber(); });

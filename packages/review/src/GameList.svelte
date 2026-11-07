@@ -18,7 +18,7 @@
   // `ondecide` takes each answer, for a site's analytics: a "no" is a delete that the question stopped, and an
   // "undecided", the second click of a double click, is no decision.
   import ExportMenu from "./ExportMenu.svelte";
-  import ConfirmDialog, { type Answer } from "./ConfirmDialog.svelte";
+  import ConfirmDialog, { type Answer } from "@abstractclass/site/ConfirmDialog.svelte";
 
   let { games, kept, site, ondelete, ondecide }:
     { games: GameRow[]; kept: boolean; site: string; ondelete: (id: string) => Promise<void>;
@@ -40,8 +40,8 @@
     <h2 class="mb-2 text-lg font-bold">Your games</h2>
     <ul class="grid gap-1.25 mb-1.5">
       {#each games as game (game.id)}
-        <!-- A game's link loads the page again (data-sveltekit-reload): a change of the `#` alone would leave the page as
-             it is. -->
+        <!-- A game's link leaves its click to the browser, not to the router (data-sveltekit-reload): a change of the
+             `#` alone, which the review page answers with its review of that game (its hashchange). -->
         <li class="flex flex-wrap items-baseline gap-2.5">
           <a href={game.href} data-sveltekit-reload>{game.title}</a>
           <span class="text-sm text-muted">{game.detail}</span>

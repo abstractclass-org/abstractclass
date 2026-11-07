@@ -88,11 +88,11 @@
   const R = $derived(data && preloaded ? review(blueprints, data, "lead", LABEL_VISITS) : null);
   const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * budget).length : 0);
   const bar = new ReviewBar({ game: () => game, moves: () => kept?.record.moves.length ?? 0, budget: () => budget });
-  // The review is done: every step of the bar. The game keeps the mark of it (store.ts), so that the Review tab can
-  // offer its export, and the Export menu opens (Hedge School's design 13). The export reads the mark from the store.
-  const reviewDone = $derived(bar.done);
+  // The review is done (bar.done): every step of the bar. The game keeps the mark of it (store.ts), so that the Review
+  // tab can offer its export, and the Export menu opens (Hedge School's design 13). The export reads the mark from the
+  // store.
   $effect(() => {
-    if (!reviewDone) return;
+    if (!bar.done) return;
     untrack(() => {
       const mark = session.manifest && reviewMark(session.manifest, session.network, budget);
       if (kept && mark) void markReviewed(kept.id, mark);
@@ -124,13 +124,11 @@
   // review after the `#`, as a link pasted in the address bar over the Review tab brings it. A change of the `#` alone
   // is the browser's own navigation, with no router's: it fires `hashchange`. Only once the page has chosen what it
   // shows (`shown`): before, the address's game is the one it loads.
-  const gameInAddress = () => new URLSearchParams(location.hash.slice(1)).get("game");
-  const comesIn = () => {
-    const hash = new URLSearchParams(location.hash.slice(1));
-    return hash.has("record") || hash.has("packed");
-  };
+  const addressHash = () => new URLSearchParams(location.hash.slice(1));
   const otherGame = () => {
-    if (!arriving && shown !== undefined && (gameInAddress() !== shown || comesIn())) location.reload();
+    if (arriving || shown === undefined) return;
+    const hash = addressHash();
+    if (hash.get("game") !== shown || hash.has("record") || hash.has("packed")) location.reload();
   };
   afterNavigate(otherGame);
   onMount(() => {
@@ -150,7 +148,7 @@
   }
 
   onMount(async () => {
-    const hash = new URLSearchParams(location.hash.slice(1)), sent = hash.get("record"), link = hash.get("packed");
+    const hash = addressHash(), sent = hash.get("record"), link = hash.get("packed");
     if (link !== null) { await replaceState("/review", {}); packed = link; return; } // async: the address changes once it resolves
     if (sent !== null) {
       // A record: checked and kept first, then its review's address in place of this one
@@ -166,7 +164,7 @@
       }
     }
     // The game to review: the one named in the address. Without one, the Review tab.
-    const id = gameInAddress();
+    const id = addressHash().get("game");
     shown = id;
     if (!id) return;
     // The game, its lock and the engine's manifest are read at the same time. The rules worker needs only the
@@ -225,7 +223,7 @@
     });
     if (!g || error || !g.rulesReady) return; // another pool took over, or the rules refused the game: the page shows why
     const want = reviewMark(manifest, session.network, budget);
-    const why = reviewCovers(markBefore, want) || reviewDone ? null : reviewAgainWhy(markBefore, want);
+    const why = reviewCovers(markBefore, want) || bar.done ? null : reviewAgainWhy(markBefore, want);
     again = why && want ? againFor(why, want) : null;
     await g.sweep();
   }
@@ -274,7 +272,7 @@
               ownSettings={own?.from} gpu={session.gpuView}>
     {#snippet tools()}
       <!-- Export (Hedge School's design 13): once the review is done, a link that shares it. -->
-      <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={reviewDone} why="Export once the review is done." />
+      <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={bar.done} why="Export once the review is done." />
     {/snippet}
   </ReviewView>
 {:else if kept}

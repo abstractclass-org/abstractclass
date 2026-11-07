@@ -15,7 +15,7 @@ export const REVIEW_EXPORTS: ExportItem[] = [REVIEW_LINK];
 
 /** The link that shares the review of the game `id`, kept in this browser, with its mark and its variations. Throws
  *  when its review is not done. */
-export async function shareLink(id: string, origin: string): Promise<string> {
+async function shareLink(id: string, origin: string): Promise<string> {
   const stored = await loadGame(id), mark = stored?.game.reviewed;
   if (!stored || !mark) throw new Error("the game's review is not done");
   const branches = branchNodes((await dbGet<KeptBranches>(STORES.branches, id)) ?? null);

@@ -15,18 +15,17 @@ import { ENGINE_KEY } from "../site.ts";
 export * from "@abstractclass/analysis/settings.ts";
 
 type Locked = { id: string; kind: string; displayName?: string; bytes: number };
+const MODELS = (lock.artifacts as Locked[]).filter(a => a.kind === "model"); // the networks that the lock pins
 
 /** The networks that the site ships (engine.lock.json), the default first: the engine's settings and Practice's card
  *  offer them. Each by its release's name (its manifest's `displayName`), which is the network's own id until a release
  *  gives it a number of Stamp Duty, and with its download in bytes. */
-export const NETWORKS = (lock.artifacts as Locked[]).filter(a => a.kind === "model")
-  .map(a => ({ id: a.id, name: a.displayName ?? a.id, bytes: a.bytes }));
+export const NETWORKS = MODELS.map(a => ({ id: a.id, name: a.displayName ?? a.id, bytes: a.bytes }));
 /** Whether the settings offer the network `id`. */
 export const offersNetwork = (id: string | undefined): boolean => NETWORKS.some(n => n.id === id);
-/** Whether the site ships the network `id` (engine.lock.json pins it). The settings offer every network of the lock,
- *  so it is offersNetwork until the lock keeps earlier networks off the menus, as Hedge School's does (design 33,
- *  "The gaps from Hedge School": the networks). */
-export const shipsNetwork = (id: string): boolean => offersNetwork(id);
+/** Whether the site ships the network `id` (engine.lock.json pins it), as Hedge School's: on the menus, or off them
+ *  once the lock keeps earlier networks off the menus (design 33, "The gaps from Hedge School": the networks). */
+export const shipsNetwork = (id: string): boolean => MODELS.some(a => a.id === id);
 /** A game's own settings (@abstractclass/analysis/settings.ts, ownSettingsOf), as Hedge School's: `ownSettings`, the
  *  settings that a game came with (a shared review's), else those of its last review when that review's network has
  *  left the menus, and `settingsFor`, the network and the review's visits that a game reviews with. `withOwn` and

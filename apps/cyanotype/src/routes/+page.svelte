@@ -2,8 +2,8 @@
   // Home (design 33, as Hedge School's design 22): what Cyanotype is, and the way into each tab. Practice first, as
   // Lichess's front page leads with play: a game against the bot is the quickest way to begin. Then the review, and the
   // ways in for a game played elsewhere: the Review tab for a record, a game from strategyjam.org through the tools and
-  // the import page, the Analysis board and its board editor. The board plays a scene from a reviewed game, with the review's candidates and
-  // labels (HomeReplay), drawn with no engine. Plain web writing: the page invites.
+  // the import page, the Analysis board and its board editor. The board plays a scene from a reviewed game, with the
+  // review's candidates and labels (HomeReplay), drawn with no engine. Plain web writing: the page invites.
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import HomeReplay from "#lib/home/HomeReplay.svelte";
   import { ENGINE_NAME, SITE_NAME, SITE_ORIGIN } from "#lib/site.ts";
