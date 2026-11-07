@@ -23,7 +23,7 @@
   import { trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
   import { GAME_RANGES, range } from "#lib/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import ConfirmDialog, { type Answer } from "#lib/ui/ConfirmDialog.svelte";
+  import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
 
   // The page has chosen the Review tab (src/routes/review/+page.svelte). Before, its address may name a game, and the
   // tab only shows, as prerendered, where the address names none.
@@ -66,17 +66,10 @@
     manifest = await manifestLoad;
   }
 
-  // The game whose Delete was clicked, while its question shows (ConfirmDialog, design 11). A confirmed delete deletes
-  // the game, and its row goes at once: the dialog takes a double click's second click, so no other row moves under it.
+  // A game's Delete asks first (GameList, design 11). A confirmed delete deletes the game, and its row goes at once.
   // Each decision counts (design 17): a "no" is a delete that the question stopped, a slip or a change of mind. An
   // "undecided", the second click of a double click, is no decision.
-  let deleting = $state<{ id: string; name: string } | null>(null);
-  async function answerDelete(answer: Answer) {
-    const id = deleting?.id;
-    deleting = null;
-    if (!id) return;
-    if (answer === "no") track("game_delete_cancel");
-    if (answer !== "yes") return;
+  async function removeGame(id: string) {
     await deleteGame(id);
     games = games.filter(g => g.game.id !== id);
     track("game_delete");
@@ -168,6 +161,23 @@
   // "Continue your last review" and its room: two lines on a phone and one from 640 pixels, and the link cuts its game
   // to fit. So the page knows the link's height before it reads the games.
   const CONTINUE = "flex-col sm:flex-row sm:items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg";
+  // The list's rows (GameList): a game from a set-up start (a practice game from the Analysis board's Play) opens on the
+  // Analysis board, since the Review tab reviews games from the standard start.
+  const rows = $derived(games.map(({ game, record }): GameRow => {
+    const setUp = !!setUpStart(record.tags.Position);
+    return {
+      id: game.id, title: title(record),
+      href: setUp ? `/analysis#${new URLSearchParams({ record: game.record, via: "your_games" })}` : `/review#game=${game.id}`,
+      detail: `${record.moves.length} edges${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
+        + `added ${new Date(game.added).toLocaleDateString()}`,
+      exports: { run: kind => exportGame(game.id, game.record, kind), items: reviewExports(), ontrack: trackExport,
+        ready: reviewCovers(game.reviewed, wanted(game)),
+        why: setUp ? "A game from a set-up start opens on the Analysis board: export it there."
+          : !game.reviewed ? "Open the game to review it, then export."
+          : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine has a new version: open the game, choose Review again, then export."
+          : "Open the game to finish its review with the engine settings now, then export." },
+    };
+  }));
 </script>
 
 
@@ -219,43 +229,9 @@
     {#if fileProblem}<p class="mt-1.5 text-blunder" role="alert">{fileProblem}</p>{/if}
   </section>
 
-  {#if games.length}
-    <section class="bg-panel border border-line rounded-lg px-5 py-5">
-      <h2 class="mb-2 text-lg font-bold">Your games</h2>
-      <ul class="grid gap-1.25 mb-1.5">
-        {#each games as { game, record } (game.id)}
-          <li class="flex flex-wrap items-baseline gap-2.5">
-            <!-- A game from a set-up start (a practice game from the Analysis board's Play) opens on the Analysis board:
-                 the Review tab reviews games from the standard start. -->
-            {#if setUpStart(record.tags.Position)}
-              <a href="/analysis#{new URLSearchParams({ record: game.record, via: 'your_games' })}" data-sveltekit-reload>{title(record)}</a>
-            {:else}
-              <a href="/review#game={game.id}" data-sveltekit-reload>{title(record)}</a>
-            {/if}
-            <span class="text-sm text-muted">{record.moves.length} edges{record.result && record.result !== "*" ? ` · ${record.result}` : ""} ·
-              added {new Date(game.added).toLocaleDateString()}</span>
-            <span class="ml-auto flex items-center gap-1.5"><ExportMenu side="bottom" run={kind => exportGame(game.id, game.record, kind)} items={reviewExports()} ontrack={trackExport}
-              ready={reviewCovers(game.reviewed, wanted(game))}
-              why={setUpStart(record.tags.Position) ? "A game from a set-up start opens on the Analysis board: export it there."
-                : !game.reviewed ? "Open the game to review it, then export."
-                : reviewAgainWhy(game.reviewed, wanted(game)) ? "The engine has a new version: open the game, choose Review again, then export."
-                : "Open the game to finish its review with the engine settings now, then export."} />
-              <button type="button" class="px-2 py-0 text-xs" aria-label="Delete {title(record)}"
-                      onclick={() => (deleting = { id: game.id, name: title(record) })}>Delete</button></span>
-          </li>
-        {/each}
-      </ul>
-      <p class="text-sm text-muted">
-        {#if kept}Kept in this browser until you delete them.
-        {:else}Kept in this browser only, which may clear them when its disk is almost full, or Safari after seven days
-          without a visit. Export the games you want to keep.{/if}
-      </p>
-    </section>
-  {/if}
+  <GameList games={rows} {kept} site={SITE_NAME} ondelete={removeGame}
+            ondecide={answer => { if (answer === "no") track("game_delete_cancel"); }} />
 </main>
 
 <!-- With a script, the footer waits for the list of games, which comes above it. With no script, it shows. -->
 <div class={[!read && "invisible noscript:visible"]}><SiteFooter /></div>
-<ConfirmDialog open={!!deleting} title="Delete this game?" action="Delete" onanswer={answerDelete}>
-  {SITE_NAME} will delete the game <strong>{deleting?.name}</strong> from this browser. You cannot undo this action.
-</ConfirmDialog>

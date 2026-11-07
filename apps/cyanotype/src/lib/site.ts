@@ -14,8 +14,9 @@ export const THEME_KEY = "cyanotype:theme:1";
 /** The key under which this tab keeps each page's scroll place (SiteFrame). */
 export const PLACES_KEY = "cyanotype:scroll-places:1";
 /** The keys under which this browser keeps the review's display settings, the engine's settings, the place and size
- *  of the hands' panel (the same on every page with the board), the id of the game in review (the game is in the
- *  browser's store of games), and the Analysis board's position on screen. */
+ *  of the hands' panel (the same on every page with the board), the id of the last game reviewed (the Review tab's
+ *  "Continue your last review": the game is in the browser's store of games, game/store.ts), and the Analysis board's
+ *  position on screen. */
 export const DISPLAY_KEY = "cyanotype:review-display:1";
 // Version 2: the GPU's setting is the visitor's. Version 1 kept Off, which the site set while its engine ran on the CPU
 // only, so that a kept Off was not the visitor's choice.

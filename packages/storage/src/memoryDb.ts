@@ -1,6 +1,6 @@
 // A store in memory in IndexedDB's place, for the unit tests of the code that reads and writes the site's store (db.ts):
-// Node has no IndexedDB. It answers the requests of db.ts's reads and writes of values by their keys and of a store's
-// keys (get, put, getAllKeys, openKeyCursor), in transactions that complete after their requests: in a timer, or in
+// Node has no IndexedDB. It answers the requests of db.ts's reads, writes and removals of values by their keys and of a
+// store's keys and values (get, put, delete, getAllKeys, getAll, openKeyCursor), in transactions that complete after their requests: in a timer, or in
 // `later` (a microtask, for a test that mocks the timers). It counts the reads of a store's keys, so that a test can
 // tell a read of some keys from a read of every key, and it lists the keys written. A test can hold the writes: their
 // transactions complete, or fail and keep nothing, when it releases them. Call it before the first read or write:
@@ -26,6 +26,14 @@ export function memoryDb(later: (step: () => void) => void = step => setTimeout(
       return {
         get: (key: IDBValidKey) => answered({ result: structuredClone(r.get(key)) }),
         getAllKeys: () => (scans++, { result: [...r.keys()].sort() }),
+        // Every value, in the order of their keys, as getAllKeys gives the keys (dbAll, dbEntries).
+        getAll: () => ({ result: [...r.keys()].sort().map(k => structuredClone(r.get(k))) }),
+        delete: (key: IDBValidKey) => {
+          const had = r.has(key), old = r.get(key);
+          undo.push(() => { if (had) r.set(key, old); });
+          r.delete(key);
+          return { result: undefined };
+        },
         // A cursor over the keys in order (dbEntriesWhere): each step answers in a microtask, before the transaction
         // completes in its timer. It counts as a read of every key.
         openKeyCursor: () => {

@@ -321,10 +321,11 @@ read the game from the player's own page.
   The last game reviewed: `src/lib/game/store.ts`, read by `src/lib/review/ReviewHome.svelte`. The hidden pages:
   `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Search engines: design 23.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
-- Deleting a game: `deleteGame` in `src/lib/game/store.ts`, the rows in `src/lib/review/ReviewHome.svelte`, the
-  question in `src/lib/ui/ConfirmDialog.svelte`.
-- One tab for each game's review: `src/lib/game/reviewLock.ts`, used in `src/routes/review/+page.svelte`. The check
-  for a deleted game: `keepBranches` in `packages/analysis/src/analysis.svelte.ts`.
+- Deleting a game: `deleteGame` in `src/lib/game/store.ts` (the shared store's, `packages/analysis/src/games.ts`),
+  the rows in `packages/review/src/GameList.svelte`, which `src/lib/review/ReviewHome.svelte` gives its games, the
+  question in `packages/review/src/ConfirmDialog.svelte`.
+- One tab for each game's review: `packages/analysis/src/reviewLock.ts`, used in `src/routes/review/+page.svelte`.
+  The check for a deleted game: `keepBranches` in `packages/analysis/src/analysis.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
   `packages/site/src/prose.ts` (their text style). The notices page is `packages/site/src/NoticesPage.svelte`, which
   Cyanotype's page shows too. It holds the site's terms, the engine's terms, the works in the engine's modules and the

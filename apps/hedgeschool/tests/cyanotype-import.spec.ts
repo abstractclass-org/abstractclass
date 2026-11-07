@@ -41,10 +41,14 @@ test.describe("with the engine's files", () => {
     // The game's lines stay when the choice comes after the check
     await expect(page.getByText("Move 5 is the second move of turn 3 in the record.")).toBeVisible();
     await page.getByRole("button", { name: "Review the game" }).click();
-    await page.waitForURL(url => url.pathname === "/review" && !url.hash, { timeout: 60_000 });
+    // The review checks the record and keeps it in the player's games, then opens it at its own address
+    await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith(`#game=review-${MOVES}-`), { timeout: 120_000 });
     await expect.poll(() => local(page, REVIEW_GAME_KEY), { timeout: 60_000 }).toMatch(new RegExp(`^review-${MOVES}-`));
-    await expect(page.getByText("This browser has no game to review.")).toHaveCount(0);
     await expect(page.getByRole("alert")).toHaveCount(0);
+    // The game is in the Review tab's list of the player's games, as on Hedge School
+    await page.goto(new URL("/review", CYANOTYPE).href);
+    await expect(page.getByRole("region", { name: "Review a game" }).locator("li").getByRole("link", { name: PLAYERS }))
+      .toBeVisible({ timeout: 60_000 });
   });
 
   for (const [name, at, text] of [

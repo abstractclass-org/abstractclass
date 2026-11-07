@@ -1,9 +1,9 @@
 # The shared packages: the engine, the storage and the analysis, behind a game interface
 
-**Status:** in force. Built: the engine, the storage, the analysis, the review's view and the import's frame are in
-`packages/`. The view's game interface rests on Hedge School's board and on Blueprints' (item 9). Cyanotype gives
-Blueprints' part with its review (abscls-8tl1.7). The import's frame serves Hedge School's tools and Cyanotype's
-(item 10).
+**Status:** in force. Built: the engine, the storage, the analysis, the review's view, the import's frame and the
+player's games are in `packages/`. The view's game interface rests on Hedge School's board and on Blueprints' (item
+9). Cyanotype gives Blueprints' part with its review (abscls-8tl1.7). The import's frame serves Hedge School's tools and
+Cyanotype's (item 10).
 **Decided:** 2026-10-19.
 
 ## Context
@@ -62,7 +62,12 @@ edit in the same commit), so their changes still apply.
    takeback, the results, the settings card, the game's frame, and the bot's page side, its forms and its worker.
    Design 33 moved it out of Hedge School's `src/lib/practice/`, whose Enclosure's part is now `hedgefund.ts`. The
    bot's forms (`botForms.ts`) and their worker (`botFormsWorker.ts`, Hedge School's `hedgefundWorker.ts`) moved last,
-   when Blueprints' release had the threaded bot (abscls-8tl1.29). The engine's two scripts for Node,
+   when Blueprints' release had the threaded bot (abscls-8tl1.29). The player's games, kept in the browser (Hedge
+   School's designs 11 and 22), moved out of Hedge School with Cyanotype's list of games (design 33): the store and
+   its review marks (`games.ts`), the lock that lets one tab review a game (`reviewLock.ts`) and a game's own network
+   and depth (`settings.ts`, `ownSettingsOf`) into the analysis package, and the Review tab's list with its Delete
+   (`GameList.svelte`) and the question before an action that the player cannot undo (`ConfirmDialog.svelte`) into
+   the review's. The engine's two scripts for Node,
    `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
    `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
 
@@ -154,7 +159,8 @@ edit in the same commit), so their changes still apply.
 8. **No file comes back at a moved path.** A later branch rebased over the move must still see each moved file as a
    rename. So Hedge School's new files have new names (`review/enclosure.ts`). Two modules that stay in Hedge School
    export the general part that moved out of them, so that their importers do not change: `analysis/engineSettings.ts`
-   (the settings' general part) and `game/store.ts` (the kept tree's shape).
+   (the settings' general part, with a game's own settings for Hedge School's networks) and `game/store.ts` (the kept
+   tree's shape, and the store of games for Hedge School's records, ids and keys, with the review marks).
 9. **The views in a package, on two boards.** `@abstractclass/review` (`packages/review`) holds the review's and the
    Analysis board's view (`ReviewView.svelte`) and its parts: the charts, the labels' badges, the players' cards and
    their row, the move list's look, the step bar, the win bar, a line's drawing, the line that an image draws, and the
@@ -346,6 +352,12 @@ edit in the same commit), so their changes still apply.
   `annotate.ts`: the annotated record (design 13), with how each game writes a move. Hedge School's
   `src/lib/game/share.ts`, `board.ts`, `analysisFile.ts` and `src/lib/review/annotate.ts` give Enclosure's parts, with
   the exports that its code and tests use.
+- `packages/analysis/src/games.ts`: the store of the player's games (Hedge School's designs 11 and 22), with each
+  site's record's reader, a game's id and the key of its last review as parameters (`gameStore`), and the marks of a
+  finished review (design 13). `reviewLock.ts`: one tab reviews a game at a time (design 11). `settings.ts`: the
+  engine settings' general part, and a game's own network and depth, with each site's networks as a parameter
+  (`ownSettingsOf`, design 09). Hedge School's `src/lib/game/store.ts` and `src/lib/analysis/engineSettings.ts` and
+  Cyanotype's `src/lib/game/store.ts` and `src/lib/analysis/engineSettings.ts` give their parts.
 - `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with
   the rules and a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the
   engine session's tests.
@@ -355,7 +367,11 @@ edit in the same commit), so their changes still apply.
   check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names, the score's
   format, and the class of a number in a move's shape (`DIGITS`). `src/ownership.ts`: the area map's styles and
   marks. `src/lineImage.ts`: the line that an image draws, and its animation's frames. `src/ReplaceAnalysis.svelte`:
-  the Analysis board's question before a line brought replaces the analysis kept in the browser. `src/ExportMenu.svelte`
+  the Analysis board's question before a line brought replaces the analysis kept in the browser. `src/GameList.svelte`:
+  the Review tab's list of the player's games, with each game's Export and Delete and the line on what the browser
+  keeps, with each site's rows (Hedge School's and Cyanotype's `src/lib/review/ReviewHome.svelte`).
+  `src/ConfirmDialog.svelte`: the question before an action that the player cannot undo (design 11), whose action
+  takes `btn-danger` from `@abstractclass/practice`'s style, which both sites import. `src/ExportMenu.svelte`
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages
   share: the Analysis board's, the review's link and the annotated record. `src/NewMenu.svelte`: the Analysis board's
   New menu, with the ways that a site has (design 21). `src/review.css`: the package's Tailwind source and the view's

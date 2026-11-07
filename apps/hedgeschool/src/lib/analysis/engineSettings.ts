@@ -7,8 +7,7 @@ import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 import { defaultPoolSize } from "@abstractclass/engine/pool.ts";
 import { megabytes } from "@abstractclass/engine/client.ts";
-import type { GameSettings, StoredGame } from "#lib/game/store.ts";
-import { REVIEW_PRESETS, reviewVisits, settingsStore, type EngineSettings } from "@abstractclass/analysis/settings.ts";
+import { ownSettingsOf, settingsStore, type EngineSettings } from "@abstractclass/analysis/settings.ts";
 // The settings' general part (their shape, the steps, the review's depths) is the shared analysis's: this module gives
 // it to the site's code with the site's own part.
 export * from "@abstractclass/analysis/settings.ts";
@@ -34,58 +33,14 @@ export const NETWORKS = [
   { id: "b10c128-s89066368-d17827487", params: "3.2M" },
   { id: "b15c192-s90436608-d18027147", params: "10.3M" },
 ];
-/** The network and the review's visits of the settings, as a game keeps them (game/store.ts, `settings`). */
-const gameSettings = (s: EngineSettings): GameSettings => ({ network: s.network, visits: reviewVisits(s) });
-
-/** The settings with this network and this review's visits: a preset when one has them, else a custom depth. */
-function withReview(s: EngineSettings, network: string, visits: number): EngineSettings {
-  const preset = (Object.keys(REVIEW_PRESETS) as (keyof typeof REVIEW_PRESETS)[]).find(k => REVIEW_PRESETS[k] === visits);
-  return preset ? { ...s, network, review: preset } : { ...s, network, review: "custom", customReview: visits };
-}
-
 /** Whether the settings and Practice offer the network `id` (NETWORKS). */
 export const offersNetwork = (id: string | undefined): boolean => NETWORKS.some(n => n.id === id);
 
-/** A stored game as its settings read it (game/store.ts): the settings it came with, and the mark of its last review. */
-type GameWithSettings = Pick<StoredGame, "settings" | "reviewed">;
-/** A game's own settings, and where they come from: "stored", the settings it came with (game/store.ts, `settings`), or
- *  "mark", those of its last review (its mark), whose network has left the menus. The game stores no settings for the
- *  second kind (design 09). */
-export interface OwnSettings {
-  settings: GameSettings;
-  from: "stored" | "mark";
-  // The depth per move as the player chose it in the settings on the page (changeOwn), which the settings show. The
-  // game keeps only its visits, so the choice lasts while the page is open.
-  depthPerMove?: Pick<EngineSettings, "review" | "customReview">;
-}
-/** A game's own settings while the site still ships their network, on the menu or off it, else null: the settings it
- *  came with, else those of its last review when that review's network has left the menus, so that the game opens
- *  with that review's results, as a game from a review file does. */
-export function ownSettings(game: GameWithSettings | undefined): OwnSettings | null {
-  const mark = game?.reviewed;
-  const own: OwnSettings | null = game?.settings ? { settings: game.settings, from: "stored" }
-    : mark && !offersNetwork(mark.network) ? { settings: { network: mark.network, visits: mark.visits }, from: "mark" }
-    : null;
-  return own && shipsNetwork(own.settings.network) ? own : null;
-}
-/** The settings that a game with its own settings reviews with and the settings show: the browser's `s`, with the
- *  game's network and depth per move. The depth per move shows as the player chose it on the page, else as the game's
- *  visits give it: Custom at Lite's 512 visits stays Custom, and a game opened at 512 shows Lite. */
-export const withOwn = (s: EngineSettings, own: OwnSettings): EngineSettings =>
-  own.depthPerMove ? { ...s, ...own.depthPerMove, network: own.settings.network }
-    : withReview(s, own.settings.network, own.settings.visits);
-/** A game's own settings after a change of its network or its depth per move in the settings (`change`). The browser's
- *  settings `s` give the rest, as withOwn shows them: also the custom visits while the game's depth per move is a
- *  preset. */
-export function changeOwn(own: OwnSettings, s: EngineSettings, change: Partial<EngineSettings>): OwnSettings {
-  const next = { ...withOwn(s, own), ...change };
-  return { ...own, settings: gameSettings(next), depthPerMove: { review: next.review, customReview: next.customReview } };
-}
-/** The network and the review's visits that a game reviews with: its own (ownSettings), else the browser's. The review
- *  page, the Review tab's Export and the annotated record from the store take them from here, so that each reads the
- *  results of the same review. */
-export const settingsFor = (game: GameWithSettings | undefined, engine: EngineSettings): GameSettings =>
-  ownSettings(game)?.settings ?? gameSettings(engine);
+/** A game's own settings (@abstractclass/analysis/settings.ts, ownSettingsOf), from the networks that the menus offer
+ *  and the networks that the site ships: `ownSettings`, the settings that a game came with, else those of its last
+ *  review when that review's network has left the menus, and `settingsFor`, the network and the review's visits that a
+ *  game reviews with. `withOwn` and `changeOwn` come with the general part. */
+export const { ownSettings, settingsFor } = ownSettingsOf({ offers: offersNetwork, ships: shipsNetwork });
 
 // Version 2: the review's names changed (version 1's "standard" was 256 visits, now Lite's).
 const KEY = "learn-enclosure:engine:2";

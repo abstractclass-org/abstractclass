@@ -1,45 +1,31 @@
-// The game in review, as this browser keeps it (design 33): Cyanotype has no list of games yet (abscls-8tl1.38). The
-// browser's store of games (@abstractclass/storage/db.ts, STORES.games) keeps each game that comes to the review (its
-// record), under the game's id, and local storage names the game in review. The game's variations are in the
-// `branches` store under the same id (@abstractclass/analysis/kept.ts).
-import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
-import { writeLocal } from "@abstractclass/storage/local.ts";
-import { mergeBranches, type KeptBranches } from "@abstractclass/analysis/kept.ts";
+// The player's games, kept in this browser (design 33, as Hedge School's src/lib/game/store.ts): the shared store
+// (@abstractclass/analysis/games.ts), with Cyanotype's part: its record's reader, its game's id and the key that names
+// the last game reviewed. A game's variations are in the `branches` store under the same id
+// (@abstractclass/analysis/kept.ts). The review kept each game that it opened in the same store before the list
+// existed, under the same id: the list shows those games too.
+import { gameStore } from "@abstractclass/analysis/games.ts";
 import { komiPrefix } from "@abstractclass/record/record.ts";
-import { parseRecord, setUpProblem } from "../game/record.ts";
-import { sharedRecord, type SharedReview } from "../game/share.ts";
-import { REVIEW_GAME_KEY, SITE_NAME } from "../site.ts";
-
-/** A game as this browser keeps it: its record, and when it came. */
-export interface KeptGame { record: string; added: string }
+import { parseRecord, type GameRecord } from "./record.ts";
+import { REVIEW_GAME_KEY } from "../site.ts";
+// The marks of a game's review and its own settings: the shared store's.
+export { markReviewed, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type GameSettings, type ReviewMark,
+         type StoredGame } from "@abstractclass/analysis/games.ts";
 
 /** A short name of a game's moves, its key in this browser's store: two games with the same moves are one game, and
  *  share their variations, as their positions share the engine's results. A komi comes before the moves (Hedge
- *  School's design 24): the same moves at another komi are another game. FNV-1a, 32 bits. */
+ *  School's design 24): the same moves at another komi are another game. FNV-1a, 32 bits. The review takes games
+ *  from the standard start only (setUpProblem), so the id has no start. */
 export function gameId(moves: string[], komi = 0): string {
   let h = 0x811c9dc5;
   for (const c of komiPrefix(komi) + moves.join(" ")) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
   return `review-${moves.length}-${h.toString(16).padStart(8, "0")}`;
 }
 
-/** Keeps a game's record in this browser's store, and makes it the game in review. Answers its id, which covers the
- *  record's komi. Throws a RecordError when the record cannot be read, and an Error for a record from a set-up start,
- *  which the review does not take (setUpProblem). */
-export async function keepGame(text: string): Promise<string> {
-  const record = parseRecord(text), problem = setUpProblem(record, SITE_NAME);
-  if (problem) throw new Error(problem);
-  const id = gameId(record.moves, record.komi);
-  await dbPut(STORES.games, id, { record: text, added: new Date().toISOString() } satisfies KeptGame);
-  writeLocal(REVIEW_GAME_KEY, id);
-  return id;
-}
-
-/** Keeps a shared review's game as the game in review, with the sender's variations after the ones that this browser
- *  keeps for that game (Hedge School's design 13, item 8). Answers the game's id. */
-export async function keepShared(shared: SharedReview): Promise<string> {
-  const id = await keepGame(sharedRecord(shared));
-  if (shared.branches.length)
-    await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null,
-                                                   { version: 2, nodes: shared.branches }));
-  return id;
-}
+/** The store's calls (games.ts): `saveGame` keeps a game and answers its id and whether the browser kept it (storage
+ *  can be blocked), `loadGame` reads one, `listGames` reads them all, newest first, leaving out a game whose record
+ *  does not read. `deleteGame` deletes a game, its variations and the Review link's pointer to it, for good (Hedge
+ *  School's design 11). `lastReview` and `rememberReview` read and keep the id of the last game reviewed in this
+ *  browser. */
+export const { saveGame, loadGame, listGames, deleteGame, lastReview, rememberReview } = gameStore<GameRecord>({
+  parse: parseRecord, lastReviewKey: REVIEW_GAME_KEY, id: record => gameId(record.moves, record.komi),
+});

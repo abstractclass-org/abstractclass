@@ -376,7 +376,7 @@ How strong each setting plays against people is not measured yet.
   the komi in `src/lib/book/place.svelte.ts` (`study`). Each game's limit is its record's `MAX_RECORD_KOMI`
   (`src/lib/game/record.ts`, Cyanotype's `apps/cyanotype/src/lib/game/record.ts`), the shared reader's `maxKomi`.
   The komi is in the game's id (`src/lib/game/store.ts`, `gameId`, and Cyanotype's
-  `apps/cyanotype/src/lib/review/keptGame.ts`, with `komiPrefix`), in the keys of the review file and of the removal
+  `apps/cyanotype/src/lib/game/store.ts`, with `komiPrefix`), in the keys of the review file and of the removal
   of earlier results (`reviewFile.ts` and `earlierResults.ts`, with `positionKeys` in
   `packages/analysis/src/kept.ts`, and the results that belong in a file, `packages/analysis/src/files.ts`), and in
   the Analysis board's link and file (`packages/analysis/src/boardLink.ts`, `files.ts` and `kept.ts`). Whether an

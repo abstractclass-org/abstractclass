@@ -1,8 +1,8 @@
 <script lang="ts">
   // Home (design 33, as Hedge School's design 22): what Cyanotype is, and the way into each tab. Practice first, as
   // Lichess's front page leads with play: a game against the bot is the quickest way to begin. Then the review, and the
-  // ways in for a game played elsewhere: a game from strategyjam.org, through the tools and the import page, the
-  // Analysis board and its board editor. The board plays a scene from a reviewed game, with the review's candidates and
+  // ways in for a game played elsewhere: the Review tab for a record, a game from strategyjam.org through the tools and
+  // the import page, the Analysis board and its board editor. The board plays a scene from a reviewed game, with the review's candidates and
   // labels (HomeReplay), drawn with no engine. Plain web writing: the page invites.
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import HomeReplay from "#lib/home/HomeReplay.svelte";
@@ -19,8 +19,9 @@
       description: "Practice games against a Blueprints engine, reviews of your games, an Analysis board and a board editor, with the engine running in the browser." },
   ];
 
-  // The other ways in: a game played on strategyjam.org, any line, any position.
+  // The other ways in: a game's record, a game played on strategyjam.org, any line, any position.
   const WAYS = [
+    { href: "/review", title: "Review a game you played", text: "Bring its record, and the engine judges each move: where it turned, and what was better." },
     { href: "/tools", title: "Bring a game from strategyjam.org", text: "Add our bookmarklet or userscript to your browser. Then one click opens any game you played there in the review, or on the Analysis board." },
     { href: "/analysis", title: "The Analysis board", text: "Play any line, and the engine searches the position on screen." },
     { href: "/editor", title: "Set up a position", text: "Place each player's cells and shape their blueprints, then analyze the position on the board." },
@@ -50,10 +51,11 @@
     <HomeReplay />
   </section>
 
-  <!-- A game played on strategyjam.org, any line, any position: a quieter list, under a rule. -->
+  <!-- A game's record, a game played on strategyjam.org, any line, any position: a quieter list, under a rule. Four
+       ways: two columns on a tablet, and one row from a computer's width. -->
   <section class="grid gap-4 pt-8 border-t border-line" aria-labelledby="ways">
     <h2 id="ways" class="text-lg font-semibold">Or start from a game of your own</h2>
-    <ul class="grid gap-x-10 gap-y-5 md:grid-cols-3">
+    <ul class="grid gap-x-10 gap-y-5 md:grid-cols-2 lg:grid-cols-4">
       {#each WAYS as way (way.href)}
         <li class="grid gap-1">
           <a class="font-semibold text-ink no-underline hover:text-accent hover:underline underline-offset-4" href={way.href}>{way.title}</a>

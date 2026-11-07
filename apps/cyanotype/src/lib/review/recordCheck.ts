@@ -1,13 +1,13 @@
-// A record's check by the engine's rules (design 33, item 11), before the import page or the Analysis board opens it:
-// the engine plays each move of the record (describe_game) from its start (its `Position` tag, in the engine's form),
-// and each capture mark must be what its move did (checkCaptures). The review checks its game so too, from its
-// analysis's moves.
+// A record's check by the engine's rules (design 33, item 11), before the import page or the Analysis board opens it,
+// and before the player's games keep it (game/import.ts): the engine plays each move of the record (describe_game) from
+// its start (its `Position` tag, in the engine's form), and each capture mark must be what its move did
+// (checkCaptures). The review checks its game so too, from its analysis's moves.
 import { EngineError, EngineWorker, loadManifest } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import type { GamePosition } from "#lib/board/described.ts";
 import { PLAYER_NAMES } from "#lib/board/position.ts";
-import { checkCaptures } from "#lib/game/check.ts";
+import { checkCaptures, type Checked } from "#lib/game/check.ts";
 import { enginePosition, setUpStart } from "#lib/game/position.ts";
 import type { GameRecord } from "#lib/game/record.ts";
 import { blueprints } from "./blueprints.ts";
@@ -27,17 +27,22 @@ export function engineProblem(e: unknown): string {
   return text.replace(/\bplayer ([01])(?='s|\b)/g, (_, p: string) => PLAYER_NAMES[Number(p)]);
 }
 
-/** What is wrong with a record by the engine's rules, or null: a start or a move that the engine refuses, or a capture
- *  mark that the move does not confirm. */
-export async function recordProblem(describeGame: DescribeGame, record: GameRecord): Promise<string | null> {
+/** A record by the engine's rules: what is wrong with it, or null (a start or a move that the engine refuses, or a
+ *  capture mark that the move does not confirm), and each move's capture mark, from what the engine's rules say that
+ *  it did. No marks when the engine refuses a move. */
+export async function recordChecked(describeGame: DescribeGame, record: GameRecord): Promise<Checked> {
   try {
     const ps = await describeGame(record.moves, setUpStart(record.tags.Position));
     const did = record.moves.map((m, i) => blueprints.played(m, ps[i], ps[i + 1]).did);
-    return checkCaptures(record, did.map(d => ({ captured: Object.keys(d.captured).length, points: d.points }))).problem;
+    return checkCaptures(record, did.map(d => ({ captured: Object.keys(d.captured).length, points: d.points })));
   } catch (e) {
-    return engineProblem(e);
+    return { problem: engineProblem(e), captures: [] };
   }
 }
+
+/** What is wrong with a record by the engine's rules, or null (recordChecked). */
+export const recordProblem = async (describeGame: DescribeGame, record: GameRecord): Promise<string | null> =>
+  (await recordChecked(describeGame, record)).problem;
 
 /** What is wrong with a set-up start by the engine's rules, or null: the engine reads it (the hands, the frames, the
  *  board's size), as for a record's start. Blueprints' build has no check that a game can reach a position (the engine
@@ -52,24 +57,32 @@ export async function startProblem(describeGame: DescribeGame, start: string): P
 }
 
 /** A check in a rules worker of its own, which ends after it, for a page with no engine pool (the import page, the
- *  Analysis board's Import), as Hedge School's checkMoves starts one. A site with no engine files cannot check, so it
- *  refuses, where Hedge School's checkMoves lets its review check the game later. */
-async function inOwnWorker(check: (describeGame: DescribeGame) => Promise<string | null>): Promise<string | null> {
+ *  Analysis board's Import, the import of a game into the player's games), as Hedge School's checkMoves starts one.
+ *  `failed` gives the check's answer for what is wrong when the check cannot run. A site with no engine files cannot
+ *  check, so it refuses, where Hedge School's checkMoves lets its review check the game later. */
+async function inOwnWorker<T>(check: (describeGame: DescribeGame) => Promise<T>,
+                               failed: (problem: string) => T): Promise<T> {
   let rules: EngineWorker | null = null;
   try {
     const manifest = await loadManifest();
-    if (!manifest) return "this site has no engine files";
+    if (!manifest) return failed("this site has no engine files");
     rules = new EngineWorker();
     await rules.init(manifest);
     return await check(describeBy(rules));
   } catch (e) {
-    return errorText(e);
+    return failed(errorText(e));
   } finally {
     rules?.terminate();
   }
 }
 
 /** A record's check (recordProblem) in a rules worker of its own. */
-export const checkRecord = (record: GameRecord): Promise<string | null> => inOwnWorker(d => recordProblem(d, record));
+export const checkRecord = (record: GameRecord): Promise<string | null> =>
+  inOwnWorker(d => recordProblem(d, record), problem => problem);
+/** A record's check with each move's capture mark (recordChecked), in a rules worker of its own: the player's games
+ *  keep the record with its marks (game/import.ts). */
+export const checkRecordMarks = (record: GameRecord): Promise<Checked> =>
+  inOwnWorker(d => recordChecked(d, record), problem => ({ problem, captures: [] }));
 /** A set-up start's check (startProblem) in a rules worker of its own. */
-export const checkStart = (start: string): Promise<string | null> => inOwnWorker(d => startProblem(d, start));
+export const checkStart = (start: string): Promise<string | null> =>
+  inOwnWorker(d => startProblem(d, start), problem => problem);

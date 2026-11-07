@@ -9416,3 +9416,52 @@ run of a site change (Tests run 42345236518 on af6fdca).
   push of `dev` while a run was in progress was refused and the remote's `dev` did not change. The same push with
   `ALLOW_DEV_PUSH=1`, a push of another branch, a push with `gh` failing and a push with only completed runs went
   through. The workflow Documents runs the test on each push to `dev`.
+
+### Cyanotype keeps the player's games, as Hedge School's (2026-11-07)
+
+abscls-8tl1.38. Cyanotype's review kept one game: each game that came to it went into the browser's store, and the
+review opened the last one. Hedge School has a Review tab with the player's games (designs 11 and 22). Now Cyanotype
+has it too, from the code that both sites share (design 33, "The player's games", and design 29).
+
+- **What moved into the packages, and how** (design 29, items 7 and 8): first pure renames, Hedge School's
+  `ui/ConfirmDialog.svelte` into `packages/review` and `game/reviewLock.ts` into `packages/analysis`, then the edits.
+  The store of games and its review marks are in `packages/analysis/src/games.ts`, with each site's record's reader, a
+  game's id and the key of its last review as parameters (`gameStore`). A game's own network and depth is in
+  `packages/analysis/src/settings.ts`, with each site's networks as a parameter (`ownSettingsOf`). The Review tab's
+  list, with each game's Export and Delete and the line on what the browser keeps, is
+  `packages/review/src/GameList.svelte`. `packages/storage/src/db.ts` reads a store's keys with its values
+  (`dbEntries`).
+- **Hedge School does what it did.** Its `store.ts` and `engineSettings.ts` keep every export, bound to its records,
+  its SHA-256 ids, its key `learn-enclosure:last-review:1` and its networks. Its Review tab gives the shared list its
+  rows, with the same markup and the same events. The lock keeps its name, `learn-enclosure:review:<id>`: the
+  database's name, which each site's address has for itself. The stored games' form is the same, so a store written
+  by an earlier build reads in this one. Its tests did not change.
+- **Cyanotype's game id stays the review's,** FNV-1a of the komi and the moves. The review kept each game under it
+  before the list, with only its record and the time that it came. The list takes a game's id from its key, so those
+  games show in the list and open with their variations. Hedge School's id is a SHA-256 that covers a set-up start
+  too. A new id would have left the games kept before.
+- **The list keeps no game that the review refuses.** A record from the Review tab's paste, from the import page, from
+  a link's `#record=` and from a shared review goes through one import (`src/lib/game/import.ts`): a set-up start is
+  refused, then the engine's rules play the record and check its capture marks in a worker of their own, then the
+  list keeps the record with its capture marks, as Hedge School's import adds its cut marks. Before, the review kept a
+  record first and checked it after, so the list would have kept a game that the rules refused. A refusal reads as the
+  import page's: "Cyanotype cannot review this game: …". The review still takes a komi, and the Analysis board still
+  refuses one until abscls-8tl1.50 (abscls-ka5l).
+- **A shared review's game keeps the sender's network and depth,** when the site ships the sender's network, as
+  Hedge School's does. The link's page then says that the game keeps them, and its sentence that the recipient's
+  settings differ goes. The review's link names the game's mark, its deepest review that ran to its end, not the
+  depth set when Export is clicked, and each game in the list has its Export.
+- **A game reviewed by an earlier engine is reviewed again,** with Hedge School's notice: Cyanotype keeps no review
+  snapshot yet (abscls-8tl1.35). The Review tab has no review file (abscls-8tl1.34) and counts no event
+  (abscls-8tl1.48). Until its marks before the first paint (abscls-8tl1.45), `/review` shows the line "Reading the
+  game with the engine's rules…" until its code runs.
+- **The home page** has "Review a game you played" among its ways in, as Hedge School's: four ways, two columns on a
+  tablet and one row from a computer's width.
+- **Checked:** `npm run check:all` passed, all 15 steps. The browser tests on this branch's previews, in headless
+  Chromium: 181 passed, 5 skipped by their own conditions, and 1 failed, a notes test of Cyanotype's Analysis board
+  (a right-click read as a drag just after a move), which passed in a run of its file alone (4 of 4). Among them are
+  the new `cyanotype-games.spec.ts` (7 tests), Hedge School's layout of its Review tab with a kept game, and
+  Cyanotype's layout of its Review tab. A store that dev's Hedge School wrote (dev at `cdc75c7`, with a game reviewed
+  to its end on the CPU and a game only kept), served at one address in one browser profile, then read by this
+  branch's Hedge School: the list showed both games, the reviewed game's Export opened, its review opened done from
+  the store with no search, and the stored games did not change.

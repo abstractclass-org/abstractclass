@@ -71,15 +71,16 @@ kept in this browser, and each applies at once, without a reload.
      game again. The game keeps only the visits of its depth per move. While the page is open, the panel shows the
      depth per move as the player chose it, so Custom at Lite's 512 visits stays Custom with its row. When the page
      opens, the visits give it: 512 shows Lite, and the review is the same (`withOwn` and `changeOwn` in
-     `src/lib/analysis/engineSettings.ts`).
+     `packages/analysis/src/settings.ts`, which `src/lib/analysis/engineSettings.ts` exports).
    - **A game whose last review used an earlier network** with the browser's settings keeps that review's network and
      depth per move as its own, as a game from a review file does (`ownSettings` in
-     `src/lib/analysis/engineSettings.ts`). So it opens at once with that review's results, its variations and Evaluate
-     quality, and it exports. The game's review mark (design 13) holds the two, and the game stores no settings. A
-     change of its depth lasts while the page is open, and a deeper review that runs to its end moves the mark. The
-     panel's note names the earlier network. A network chosen in the Network setting gives the game the browser's
-     settings and reviews it again with that network. Until that review runs to its end, the mark names the earlier
-     network, so the game opens with the earlier review on the next visit.
+     `src/lib/analysis/engineSettings.ts`, from `ownSettingsOf` in `packages/analysis/src/settings.ts`). So it opens
+     at once with that review's results, its variations and Evaluate quality, and it exports. The game's review mark
+     (design 13) holds the two, and the game stores no settings. A change of its depth lasts while the page is open, and
+     a deeper review that runs to its end moves the mark. The panel's note names the earlier network. A network chosen
+     in the Network setting gives the game the browser's settings and reviews it again with that network. Until that
+     review runs to its end, the mark names the earlier network, so the game opens with the earlier review on the next
+     visit.
    - **Engine:** "Network", named by the engine's release and by its download: "HedgeFund 0.2 Lite (6.5 MB)"
      (b10c128, the default) or "HedgeFund 0.2 (20.6 MB)" (b15c192). The names come from the release's manifest
      (`displayName`, copied into `engine.lock.json`), as the sizes do. A name belongs to one network file for life (the

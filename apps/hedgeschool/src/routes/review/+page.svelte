@@ -7,8 +7,9 @@
   // deeper searches where the player looks (docs/design/05-review-analysis.md). The engine's settings
   // (docs/design/09-engine-settings.md) apply as they change: the workers, the GPU and the network without a reload.
   // The GPU worker joins the pool once the network is loaded (docs/design/15-gpu.md). One tab reviews a game at
-  // a time (src/lib/game/reviewLock.ts). A game that arrives after the `#` (a shared review, a partner's, a tool's from
-  // before the import page: the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival, then reviewed.
+  // a time (@abstractclass/analysis/reviewLock.ts). A game that arrives after the `#` (a shared review, a partner's, a
+  // tool's from before the import page: the review's ways in, docs/design/22-site-map.md) is kept first, by Arrival,
+  // then reviewed.
   // A record there, which only the import page takes, gets the Review tab. A game reviewed with an earlier engine opens
   // as that review, from the stored results with the engine's rules alone, until the player chooses Review again
   // (docs/design/20-snapshot.md).
@@ -38,7 +39,7 @@
   import type { GamePartner } from "#lib/game/partners.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
-  import { holdReview } from "#lib/game/reviewLock.ts";
+  import { holdReview } from "@abstractclass/analysis/reviewLock.ts";
   import { giveBook } from "#lib/book/reviewBook.ts";
   import { siteBook } from "#lib/book/place.svelte.ts";
   import { startWithBook } from "#lib/review/storedReview.ts";

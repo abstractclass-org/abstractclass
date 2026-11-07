@@ -1,5 +1,5 @@
-// The site's store in the browser (IndexedDB): analyses (@abstractclass/analysis/cache.ts), the player's games (Hedge
-// School's src/lib/game/store.ts), and the variations a player adds to a game's review
+// The site's store in the browser (IndexedDB): analyses (@abstractclass/analysis/cache.ts), the player's games
+// (@abstractclass/analysis/games.ts), and the variations a player adds to a game's review
 // (@abstractclass/analysis/analysis.svelte.ts). A player's data lives here until a server exists
 // (docs/design/04-product-shape.md). Storage can fail (a private window, blocked site data): then every call answers as
 // if the store were empty, and the site still works.
@@ -60,6 +60,12 @@ const one = <T>(request: (s: IDBObjectStore) => IDBRequest) => (s: IDBObjectStor
 
 export const dbGet = <T>(store: string, key: string) => run<T | undefined>(store, "readonly", one(s => s.get(key)), undefined);
 export const dbAll = <T>(store: string) => run<T[]>(store, "readonly", one(s => s.getAll()), []);
+/** A store's keys and values, in key order: its keys and its values read in one transaction, which both give in key
+ *  order. None when storage fails. */
+export const dbEntries = <T>(store: string) => run<[string, T][]>(store, "readonly", s => {
+  const keys = s.getAllKeys(), values = s.getAll();
+  return () => keys.result.map((k, i): [string, T] => [String(k), values.result[i] as T]);
+}, []);
 /** A store's keys, without its values. None when storage fails. */
 export const dbKeys = (store: string) => run<IDBValidKey[]>(store, "readonly", one(s => s.getAllKeys()), []);
 /** The keys and values of a store whose key `wanted` takes, in key order: the other values are not read. None when

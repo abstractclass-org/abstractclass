@@ -383,7 +383,8 @@ test("layout of a practice game on Cyanotype", async ({ page }) => {
 // here: only cyanotype-review.spec.ts reviews the test game with the engine. The review has the engine off. The board
 // shows "Not analyzed yet." with the engine off, though the store holds the result of its position. So the board has
 // the engine on, and its search takes the stored result. Each case checks that the page asked the engine for no
-// search (expectNoSearch). Besides the sweep, design 06's window sizes.
+// search (expectNoSearch). Besides the sweep, design 06's window sizes. After the review, its Review tab with the game
+// kept, as Hedge School's: "Continue your last review", and the list of games (design 33, "The player's games").
 for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as const) {
   test(`layout of Cyanotype's ${name}`, async ({ page }) => {
     const skip = await noReview(page);
@@ -397,7 +398,14 @@ for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as
     } else await reviewTestGame(page);
     await expectNoSearch(page);
     const found = await problemsAtSizes(page);
-    expect([await sweep(page, `Cyanotype's ${name}`), ...found].filter(Boolean).join("\n")).toBe("");
+    const reports = [await sweep(page, `Cyanotype's ${name}`), ...found];
+    if (!path) {
+      await page.goto(new URL("/review", CYANOTYPE).href);
+      await expect(page.getByText("Continue your last review")).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByRole("heading", { name: "Your games" })).toBeVisible();
+      reports.push(await sweep(page, "Cyanotype's Review tab"), ...await problemsAtSizes(page));
+    }
+    expect(reports.filter(Boolean).join("\n")).toBe("");
   });
 }
 
