@@ -46,9 +46,8 @@ const options = cpu ? launchOptions : { ...launchOptions, channel: "chromium", a
 /** The longest wait of each step, in ms. On the GPU (abscls-8tl1.64-gpu2, GPU On): the review of 3 turns took 34 s, the
  *  board 12 s, and the bot's first turn 1.4 s. Auto's test needs about 20 s of the GPU after its files load. Off the GPU
  *  (--cpu, 2 threads): the review took 113 to 151 s, the board 62 to 67 s, and the bot's first turn 4.9 to 6.6 s. */
-const WAITS = cpu
-  ? { gpuLine: 60_000, autoTest: 60_000, review: 300_000, board: 180_000, practice: 120_000 }
-  : { gpuLine: 60_000, autoTest: 120_000, review: 90_000, board: 60_000, practice: 60_000 };
+const WAITS = { gpuLine: 60_000, ...cpu ? { autoTest: 60_000, review: 300_000, board: 180_000, practice: 120_000 }
+  : { autoTest: 120_000, review: 90_000, board: 60_000, practice: 60_000 } };
 /** The whole run's limit: under the job's --expect (8 minutes on the GPU). */
 const BUDGET = (cpu ? 12 : 7.5) * 60_000;
 /** The engine settings' line once the GPU has settled, and where the bot must run, for the GPU setting `gpu`. */
@@ -57,7 +56,7 @@ const expectedOf = gpu => cpu ? { status: /^This browser cannot use the GPU/, wh
   : { status: /^In use/, where: /, on the GPU\.$/ };
 /** A line of the GPU that no later state replaces (Auto's test first says "In use. Testing ..."). */
 const settledOf = gpu => new RegExp(`^(This browser cannot|In use${gpu === "auto" ? ", " : ""}|Off:|The GPU did not start)`);
-console.log(`${cpu ? "off the GPU" : "on the GPU"}: ${options.channel ? `channel ${options.channel}` : "the headless shell"}, ` +
+console.log(`${cpu ? "off the GPU: the headless shell" : `on the GPU: channel ${options.channel}`}, ` +
             `Chromium's flags ${JSON.stringify(options.args)}, the GPU settings ${settings.join(", ")}, ` +
             `the run's limit ${BUDGET / 60_000} minutes`);
 
@@ -91,7 +90,7 @@ setTimeout(() => {
 const browser = await chromium.launch(options);
 try {
   for (const gpu of settings) {
-    const expected = expectedOf(gpu), settled = settledOf(gpu), label = name => `${gpu}, ${name}`;
+    const auto = gpu === "auto", expected = expectedOf(gpu), settled = settledOf(gpu);
     const context = await browser.newContext({ viewport: { width: 1376, height: 952 } });
     context.setDefaultTimeout(60_000);
     await context.addInitScript(countGpuWork);
@@ -99,13 +98,13 @@ try {
     page.on("pageerror", e => failures.push(`${gpu}: page error: ${e}`));
     const keep = (more = {}) => page.evaluate(([key, engine]) => localStorage.setItem(key, JSON.stringify(engine)),
                                               [ENGINE_KEY, { on: true, ...LITE, gpu, ...more }]);
-    const settingsLine = () => page.getByRole("region", { name: "Engine settings" }).locator("p[aria-live]");
+    const settingsButton = page.getByRole("button", { name: "Engine settings" });
+    const settingsLine = page.getByRole("region", { name: "Engine settings" }).locator("p[aria-live]");
     /** The GPU's line once it has settled, checked against the expected one. Throws when it does not settle. */
-    async function gpuLine(name, ms) {
-      await settingsLine().filter({ hasText: settled }).first().waitFor({ timeout: upTo(ms) });
-      const status = await settingsLine().first().innerText();
-      console.log(`${label(name)}: the GPU: ${status}`);
-      if (!expected.status.test(status)) failures.push(`${label(name)}: the GPU: "${status}", not ${expected.status}`);
+    async function gpuLine(ms, { say, fail }) {
+      const status = await settingsLine.filter({ hasText: settled }).first().innerText({ timeout: upTo(ms) });
+      say(`the GPU: ${status}`);
+      if (!expected.status.test(status)) fail(`the GPU: "${status}", not ${expected.status}`);
       return status;
     }
     /** The page's state, for a part whose wait ended: its address, the GPU's line, and the bot's line or the
@@ -113,85 +112,83 @@ try {
     async function state() {
       const text = locator => locator.first().innerText({ timeout: 1000 }).then(t => t.replace(/\s+/g, " "), () => null);
       const parts = [`at ${new URL(page.url()).pathname}`];
-      const line = await text(settingsLine());
+      const line = await text(settingsLine);
       if (line !== null) parts.push(`the GPU's line "${line}"`);
       const other = await text(page.getByText(/^(Stamp Duty |Reviewing|Review done|The game stopped)/));
       if (other !== null) parts.push(`"${other}"`);
       return parts.join(", ");
     }
-    /** Runs a part, timed. A part whose wait ends prints the page's state, and the next part runs. */
+    /** Runs a part, timed, with its own `say` and `fail`. A part whose wait ends prints the page's state, and the next
+     *  part runs. */
     async function part(name, body) {
-      if (Date.now() >= deadline) { failures.push(`${label(name)}: not run: the run's limit has passed`); return; }
+      const label = `${gpu}, ${name}`, fail = line => failures.push(`${label}: ${line}`);
+      if (Date.now() >= deadline) { fail("not run: the run's limit has passed"); return; }
       const t0 = Date.now();
       try {
-        await body();
+        await body({ say: line => console.log(`${label}: ${line}`), fail });
       } catch (e) {
-        const reason = (e instanceof Error ? e.message : String(e)).split("\n")[0];
-        failures.push(`${label(name)}: ${reason}; the page's state: ${await state()}`);
+        fail(`${(e instanceof Error ? e.message : String(e)).split("\n")[0]}; the page's state: ${await state()}`);
       }
-      times.push([label(name), seconds(t0)]);
-      console.log(`${label(name)}: ${seconds(t0)} s`);
+      const s = seconds(t0);
+      times.push([label, s]);
+      console.log(`${label}: ${s} s`);
     }
     await page.goto(new URL("/about", CYANOTYPE).href);
 
     // The review: the GPU joins the workers at the sweep's backlog. Auto's test needs the whole game's work.
-    await part("the review", async () => {
+    await part("the review", async report => {
       await keep();
-      const turns = gpu === "auto" ? undefined : LIVE_TURNS;
-      await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(turns))}`, CYANOTYPE).href);
-      await page.getByRole("button", { name: "Engine settings" }).click();
-      await gpuLine("the review", gpu === "auto" ? WAITS.autoTest : WAITS.gpuLine);
-      if (gpu === "auto") return; // the review of the whole game goes on: the board's page ends it
+      await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(auto ? undefined : LIVE_TURNS))}`, CYANOTYPE).href);
+      await settingsButton.click();
+      await gpuLine(auto ? WAITS.autoTest : WAITS.gpuLine, report);
+      if (auto) return; // the review of the whole game goes on: the board's page ends it
       await page.getByText(/^Review done/).waitFor({ timeout: upTo(WAITS.review) });
-      console.log(`${label("the review")} of ${LIVE_TURNS} turns done; the GPU then: ${await settingsLine().first().innerText()}`);
+      report.say(`the review of ${LIVE_TURNS} turns done; the GPU then: ${await settingsLine.first().innerText()}`);
     });
 
     // The Analysis board: 1 worker, and the threat on, make a backlog
-    await part("the board", async () => {
+    await part("the board", async report => {
+      const { say, fail } = report;
       await keep({ workers: 1 });
       await page.goto(new URL(`/analysis#record=${encodeURIComponent(testRecord(LIVE_TURNS + 1))}`, CYANOTYPE).href);
       const threat = page.getByRole("button", { name: "Show threat" });
       await threat.click({ timeout: upTo(WAITS.board) });
-      const settingsButton = page.getByRole("button", { name: "Engine settings" });
       await settingsButton.click();
-      const status = await gpuLine("the board", WAITS.gpuLine);
+      const status = await gpuLine(WAITS.gpuLine, report);
       // A new position: its search takes the worker first, and the threat's search the GPU, where it is in use
       await page.keyboard.press("ArrowLeft");
       const done = name => page.locator(`[role="progressbar"][aria-label="${name}"][aria-valuenow="100"]`)
         .waitFor({ timeout: upTo(WAITS.board) });
       await done("The threat's search");
-      const passes = page.getByText(/^If (Blue|Red) passes: margin/);
-      if (!(await passes.count())) failures.push(`${label("the board")}: the threat's search gave no values`);
+      if (!(await page.getByText(/^If (Blue|Red) passes: margin/).count())) fail("the threat's search gave no values");
       await threat.click();
       await done("This position's search");
       await settingsButton.click(); // the candidates' table in the settings' place
       const table = page.locator("table", { has: page.getByRole("columnheader", { name: "Visits" }) });
       const rows = table.locator("tbody tr").filter({ has: page.locator("td:nth-child(5)", { hasText: /^\d+$/ }) });
-      const first = (await rows.count()) ? (await rows.first().innerText()).replace(/\s+/g, " ") : null;
-      if (!first) failures.push(`${label("the board")}: the position's search ended with no candidates`);
+      const count = await rows.count();
+      const first = count ? (await rows.first().innerText()).replace(/\s+/g, " ") : null;
+      if (!first) fail("the position's search ended with no candidates");
       const work = await page.evaluate(() => window.gpuWork);
-      console.log(`${label("the board")}: ${await rows.count()} candidates, the first "${first}"; ` +
-                  `${work.workers} GPU workers, ${work.searches} searches on the GPU`);
+      say(`${count} candidates, the first "${first}"; ${work.workers} GPU workers, ${work.searches} searches on the GPU`);
       if (cpu ? work.workers : status.startsWith("In use") && !work.searches)
-        failures.push(`${label("the board")}: ${work.workers} GPU workers and ${work.searches} searches on the GPU, with "${status}"`);
+        fail(`${work.workers} GPU workers and ${work.searches} searches on the GPU, with "${status}"`);
     });
 
     // Practice: the bot plays Blue, so it moves first
-    await part("Practice", async () => {
+    await part("Practice", async ({ say, fail }) => {
       await keep();
       await page.goto(new URL("/practice", CYANOTYPE).href);
-      await page.waitForFunction(() => document.querySelector('button[aria-label="Play as Red"]')?.disabled === false, null,
-                                 { timeout: upTo(WAITS.practice) }); // the rules' worker is ready
-      await page.getByRole("button", { name: "Play as Red" }).click();
+      // The button is enabled once the rules' worker is ready: the click waits for that
+      await page.getByRole("button", { name: "Play as Red" }).click({ timeout: upTo(WAITS.practice) });
       const bot = page.getByText(/^Stamp Duty .*, on (the GPU|the CPU workers|one thread)\.$/);
-      await bot.waitFor({ timeout: upTo(WAITS.practice) });
-      const botLine = await bot.innerText();
-      console.log(`${label("Practice")}: the bot: ${botLine}`);
-      if (!expected.where.test(botLine)) failures.push(`${label("Practice")}: the bot: "${botLine}", not ${expected.where}`);
+      const botLine = await bot.innerText({ timeout: upTo(WAITS.practice) });
+      say(`the bot: ${botLine}`);
+      if (!expected.where.test(botLine)) fail(`the bot: "${botLine}", not ${expected.where}`);
       await page.getByText(/^(Stamp Duty's last turn took|The game stopped)/).waitFor({ timeout: upTo(WAITS.practice) });
       const stopped = page.getByText(/^The game stopped/);
-      if (await stopped.count()) failures.push(`${label("Practice")}: ${await stopped.innerText()}`);
-      else console.log(`${label("Practice")}: ${await page.getByText(/^Stamp Duty's last turn took/).innerText()}`);
+      if (await stopped.count()) fail(await stopped.innerText());
+      else say(await page.getByText(/^Stamp Duty's last turn took/).innerText());
     });
     await context.close();
   }

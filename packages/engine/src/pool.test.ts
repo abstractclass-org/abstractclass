@@ -1,6 +1,7 @@
 // Checks that a pool takes a rules worker that the page started before it: the review page starts one once the
 // engine's manifest is read, before it chooses the pool (the review's, or a review snapshot's). The pool does not start the
-// worker a second time, and its rules work. Run: npm test.
+// worker a second time, and its rules work. Also checks the GPU's first-use test when the GPU leaves the pool. Run:
+// npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PROTOCOL } from "./protocol.ts";
@@ -28,7 +29,6 @@ WebAssembly.compileStreaming = (async () => ({})) as unknown as typeof WebAssemb
 
 const { EngineWorker } = await import("./client.ts");
 const { EnginePool } = await import("./pool.ts");
-type SpeedMeterType = SpeedMeter;
 
 const MANIFEST = { artifacts: [
   { kind: "module", id: "module", url: "/engine/module/engine.wasm" },
@@ -58,20 +58,22 @@ test("the GPU's first-use test: a GPU that left the pool ends no test, and the n
   const pool = new EnginePool(0, new EngineWorker());
   try {
     const gpuEngines = () => ({ slots: [], evaluations: async () => 0, terminate() {} }) as unknown as GpuEngines;
-    const speed = (pool as unknown as { speed: SpeedMeterType }).speed;
+    const speed = (pool as unknown as { speed: SpeedMeter }).speed;
+    /** 10 s of the GPU's samples, once a second: a GPU worker's first sample only starts its count. */
+    const gpuFor10s = () => { for (let s = 1; s <= 11; s++) { now += 1000; speed.gpuSample(300 * s); } };
     const ended: string[] = [];
     pool.addGpu(gpuEngines());
     void pool.measureGpu(20).then(() => ended.push("first"));
-    const gpu = speed.watch({ kind: "gpu", terminate() {}, analyse: () => ({ done: new Promise(() => {}), stop() {} }) } as never);
-    gpu.analyse({} as never); // a GPU search that runs
-    for (let s = 1; s <= 11; s++) { now += 1000; speed.gpuSample(300 * s); }
-    pool.dropGpu(); // the idle release, after 10 s of the GPU (a first sample only starts the count)
+    speed.watch({ kind: "gpu", terminate() {}, analyse: () => ({ done: new Promise(() => {}), stop() {} }) } as never)
+      .analyse({} as never); // a GPU search that runs
+    gpuFor10s();
+    pool.dropGpu(); // the idle release
     pool.addGpu(gpuEngines());
     void pool.measureGpu(20).then(() => ended.push("second"));
-    for (let s = 1; s <= 11; s++) { now += 1000; speed.gpuSample(300 * s); } // 10 s more of the GPU
-    const cpu = speed.watch({ kind: "cpu", terminate() {},
-      analyse: () => ({ done: Promise.resolve({ ms: 20_000, reply: { rootInfo: { visits: 1600 } } }), stop() {} }) } as never);
-    cpu.analyse({} as never); // 20 s of a CPU worker's search
+    gpuFor10s();
+    speed.watch({ kind: "cpu", terminate() {},
+      analyse: () => ({ done: Promise.resolve({ ms: 20_000, reply: { rootInfo: { visits: 1600 } } }), stop() {} }) } as never)
+      .analyse({} as never); // 20 s of a CPU worker's search
     await new Promise(r => setImmediate(r));
     assert.deepEqual(ended, ["second"]);
   } finally {

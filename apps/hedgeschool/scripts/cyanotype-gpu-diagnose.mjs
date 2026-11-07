@@ -45,10 +45,11 @@ const NOTE = ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=
 const ENGINES = ["--enable-unsafe-webgpu", "--use-webgpu-power-preference=force-high-performance"];
 const launchOptions = config.projects.find(p => p.name === "chromium").use.launchOptions;
 /** The launches: a label, the browser (channel: none for the headless shell), the flags, and whether the review follows. */
-const FIRST = [{ label: "shell, the note's flags", args: NOTE },
+const CONTROL = { label: "shell, the note's flags (control)", args: NOTE };
+const FIRST = [CONTROL,
                { label: "shell, force-high-performance", args: [...NOTE, "--use-webgpu-power-preference=force-high-performance"], review: true },
                { label: "shell, the engine repository's flags", args: ENGINES }];
-const SECOND = [{ label: "shell, the note's flags (control)", args: NOTE },
+const SECOND = [CONTROL,
                 { label: "Chromium, the note's flags", channel: "chromium", args: NOTE, review: true },
                 { label: "Chromium, the engine repository's flags", channel: "chromium", args: ENGINES },
                 { label: "Chrome, the engine repository's flags", channel: "chrome", args: ENGINES }];
@@ -107,7 +108,11 @@ async function adapter(label, options) {
   log(label, "limits:", JSON.stringify(limits));
 }
 async function fetchArtifact(a) {
-  const pieces = await Promise.all((a.parts ?? [a.url]).map(async u => new Uint8Array(await (await fetch(u)).arrayBuffer())));
+  const pieces = await Promise.all((a.parts ?? [a.url]).map(async u => {
+    const r = await fetch(u);
+    if (!r.ok) throw new Error(u + ": HTTP " + r.status);
+    return new Uint8Array(await r.arrayBuffer());
+  }));
   let bytes = new Uint8Array(await new Blob(pieces).arrayBuffer());
   if (a.encoding === "gzip" && bytes[0] === 0x1f && bytes[1] === 0x8b)
     bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
@@ -164,7 +169,7 @@ onmessage = async ({ data: manifest }) => {
 const manifest = await (await fetch(new URL("/engine/manifest.json", CYANOTYPE))).json();
 for (const { label, channel, args, review } of RUNS) {
   const say = line => console.log(`[${label}] ${line}`);
-  const options = { ...launchOptions, headless: true, args, ...(channel ? { channel } : {}) };
+  const options = { ...launchOptions, args, channel }; // headless, Playwright's default
   // The installed Chrome only in a new temporary profile folder, removed after the launch
   const profile = channel === "chrome" ? mkdtempSync(join(tmpdir(), "cyanotype-gpu-diagnose-")) : null;
   let browser = null, context = null;

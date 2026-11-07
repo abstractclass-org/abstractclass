@@ -160,7 +160,7 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     mode, `ms-playwright/chromium-1243/chrome-win64/chrome.exe`). A headless launch without a channel runs
     `chrome-headless-shell`, which makes no WebGPU device on this machine (the note "Faults with the WebGPU flags").
     `apps/hedgeschool/scripts/cyanotype-gpu-check.mjs` and `scripts/measure/review-sweep.mjs` launch the full
-    Chromium for their GPU runs. A run off the GPU keeps the layout test's launch options.
+    Chromium for their GPU runs. The check's run off the GPU (`--cpu`) keeps the layout test's launch options.
   - **The WebGPU flags:** the full Chromium gets the real GPU's adapter and device with `--enable-unsafe-webgpu
     --use-angle=d3d11 --enable-features=Vulkan`. The engine repository's flags, `--enable-unsafe-webgpu
     --use-webgpu-power-preference=force-high-performance`, also work there. With `--use-webgpu-adapter=swiftshader
