@@ -9135,6 +9135,13 @@ three forms.
   of the test game's first 3 turns and Practice with the GPU On, and with `--auto` the GPU's first-use test. Its
   `--cpu` form ran here, off the GPU, and passed: the engine settings said that the browser cannot use the GPU, and
   the bot started on the CPU workers and played its first turn.
+- **The engine step's practice check** (the entry "Practice: the threaded bot's visits at each setting"): its
+  threaded bot starts on an evaluator that refuses any use, since the start evaluates no position. Blueprints' library
+  reads the evaluator's sizes when the bot starts (`createBatchRunner`), so the check stopped Cyanotype's engine step
+  at `engine-91ab0b7d-bot-batched`. The check's evaluator now gives the manifest's sizes, as a real evaluator has
+  them, and still refuses any other use (`packages/engine/src/practice-check.ts`, `noEvaluator`). Then both of
+  Cyanotype's practice modules, `engine-91ab0b7d-bot` and `engine-91ab0b7d-bot-batched`, gave minPlayoutsPerThread
+  8, and Hedge School's two modules too.
 
 ### A note's moves in glyphs on the middle of the line (2026-11-07)
 

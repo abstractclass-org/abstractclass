@@ -6,13 +6,14 @@
 // config of ours sets it. So a new release or config could change it, and only this check would see it.
 //
 // Each module starts a session (the network, then its game's start command) and answers kata-get-params. The threaded
-// module's start evaluates no position, so its evaluator here refuses any use: the check needs no CPU workers.
+// module's start evaluates no position, so its evaluator here refuses any use but its sizes: the check needs no CPU
+// workers.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Artifact, ArtifactKind, Manifest } from "./client.ts";
 import { errorText } from "./errors.ts";
-import type { PracticeLibrary } from "./library.ts";
+import type { NetworkSizes, PracticeLibrary } from "./library.ts";
 
 const MIN_PLAYOUTS_PER_THREAD = 8;
 
@@ -32,9 +33,12 @@ export function checkMinPlayoutsPerThread(reply: string): void {
                     `threads at a move and its visits past the setting. Check the item before this release goes in.`);
 }
 
-/** An evaluator that refuses any use: the threaded module's start and kata-get-params evaluate no position. */
-const noEvaluator = new Proxy({}, {
+/** An evaluator that refuses any use: the threaded module's start and kata-get-params evaluate no position. It gives
+ *  only the network's sizes (the manifest's, none for Enclosure's), which Blueprints' library reads when the bot starts
+ *  (gpu_engine.mjs, createBatchRunner), as a real evaluator gives them (library.ts, sizesOption). */
+export const noEvaluator = (sizes?: NetworkSizes) => new Proxy({}, {
   get(_, key) {
+    if (key === "sizes") return sizes;
     throw new Error(`the practice check evaluates no position, but the bot asked for its evaluator's ${String(key)}`);
   },
 });
@@ -57,7 +61,7 @@ export async function checkPracticeModules(root: string, manifest: Manifest): Pr
       const module = await WebAssembly.compile(read(m));
       // The threaded bot with two threads, the fewest of its form. The setting does not depend on them.
       const threads = m.kind === "practice-threaded-module" ? 2 : 1;
-      const bot = threads > 1 ? await lib.createBatchedPracticeBot(module, noEvaluator, { maxBatch: threads })
+      const bot = threads > 1 ? await lib.createBatchedPracticeBot(module, noEvaluator(manifest.sizes), { maxBatch: threads })
         : await lib.createPracticeBot(module);
       // The game's start command, from the module's own list: enclosure-start, blueprints-start.
       const commands = answer("list_commands", await bot.command("list_commands")).split(/\s+/);

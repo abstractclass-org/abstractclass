@@ -2,7 +2,7 @@
 // passes, and another value, a reply without it or a refusal stops the step. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkMinPlayoutsPerThread } from "./practice-check.ts";
+import { checkMinPlayoutsPerThread, noEvaluator } from "./practice-check.ts";
 
 // Replies of kata-get-params as the practice modules give them (release engine-d6786eba: `= {"...":...}`).
 const reply = (minPlayoutsPerThread: unknown) =>
@@ -22,4 +22,11 @@ test("a reply without the setting, or a refusal, stops the check", () => {
     /minPlayoutsPerThread undefined/);
   assert.throws(() => checkMinPlayoutsPerThread("? no session: send enclosure-start SEED first"),
     /kata-get-params gave \? no session/);
+});
+
+test("the check's evaluator gives the manifest's sizes, and refuses any other use", () => {
+  const sizes = { board: 67, policyChannels: 6 };
+  assert.deepEqual((noEvaluator(sizes) as { sizes?: unknown }).sizes, sizes);
+  assert.equal((noEvaluator() as { sizes?: unknown }).sizes, undefined); // Enclosure's: the library's default
+  assert.throws(() => (noEvaluator(sizes) as { evaluate?: unknown }).evaluate, /evaluates no position.*evaluate/);
 });
