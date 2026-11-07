@@ -227,3 +227,18 @@ export function writeRecord(tags: Record<string, string>, moves: string[], turns
   const body = turns.map(t => `${t.number}${t.second ? "..." : "."} ${moves.slice(i, (i += t.moves)).join(" ")}`).join(" ");
   return `${head}\n\n${body} ${result}\n`;
 }
+
+/** A record's text with its start given apart (a board's Import, its address's `position`): the start as the record's
+ *  own `Position` tag, unless the record has one, so that its turns are read from the start's own number. No start (the
+ *  standard start): the text as it is. */
+export function withStartTag(text: string, start: string | undefined): string {
+  return start && !/\[Position\s/.test(text) ? `[Position "${start}"]\n${text}` : text;
+}
+
+/** A RecordError of `read`, the text that `pasted` became with a start's tag before it (withStartTag), as an Error that
+ *  says where the problem is in the pasted text, by line and column. */
+export function pastedError(e: RecordError, pasted: string, read: string): Error {
+  const tag = read.length - pasted.length; // the start's tag, put before the pasted text
+  const before = pasted.slice(0, Math.max(0, e.offset - tag)).split("\n");
+  return new Error(`${e.message} (line ${before.length}, column ${before.at(-1)!.length + 1}).`);
+}

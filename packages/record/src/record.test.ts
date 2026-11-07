@@ -2,7 +2,7 @@
 // lower case, and its mark `#N` counts what a move takes (`apple#2`), never `#0`. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { komiOf, komiTag, markMoves, readRecord, RecordError, writeRecord, type Notation } from "./record.ts";
+import { komiOf, komiTag, markMoves, pastedError, readRecord, RecordError, withStartTag, writeRecord, type Notation } from "./record.ts";
 
 /** The test game: its mark is what a move takes, or null for none. A set-up start gives its first turn's label in a
  *  `Start` tag: `3.`, or `2...` for a turn's second move. */
@@ -108,4 +108,17 @@ test("a record written and read back", () => {
   assert.match(text, /^\[Event "\?"\]\n\[Site "\?"\]\n\[Date "\?\?\?\?\.\?\?\.\?\?"\]\n\[Round "-"\]\n\[Blue "ann"\]\n\[Red "bob"\]\n\[Result "r\+R"\]\n\n1\. apple 2\. bee#2 cat 3\. pass dog r\+R\n$/);
   const r = read(text);
   assert.deepEqual([r.moves, r.marked, r.result], [["apple", "bee", "cat", "pass", "dog"], [null, 2, null, null, null], "r+R"]);
+});
+
+test("a start given apart becomes the record's Position tag, unless the record has one", () => {
+  assert.equal(withStartTag("apple bee", "a start"), '[Position "a start"]\napple bee');
+  assert.equal(withStartTag('[Position "its own"]\napple', "a start"), '[Position "its own"]\napple');
+  assert.equal(withStartTag("apple", undefined), "apple"); // the standard start
+});
+
+test("a pasted record's problem says where it is in the pasted text, without the start's tag", () => {
+  const problem = (text: string) => { try { read(text); } catch (e) { return e as RecordError; } throw new Error("read"); };
+  const pasted = "apple\nbee 9z", tagged = withStartTag(pasted, "x");
+  assert.equal(pastedError(problem(pasted), pasted, pasted).message, "not a word, a turn label or a result: 9z (line 2, column 5).");
+  assert.equal(pastedError(problem(tagged), pasted, tagged).message, "not a word, a turn label or a result: 9z (line 2, column 5).");
 });

@@ -1,19 +1,18 @@
-// The Analysis board's tree by link (Hedge School's design 21, item 7; design 33). The link is the shared one
-// (@abstractclass/analysis/boardLink.ts), with Blueprints' moves (share.ts): `/analysis#packed=…&at=…`. Blueprints has
-// no set-up start yet (design 33, "Decision", item 10), so a link or a file that names one cannot open. Nor can a link
-// or a file whose board has a komi (Hedge School's design 24): the board starts its analysis at komi 0 before it
-// chooses its board.
+// The Analysis board's tree by link and from a record (Hedge School's design 21, item 7; design 33). The link is the
+// shared one (@abstractclass/analysis/boardLink.ts), with Blueprints' moves (share.ts): `/analysis#packed=…&at=…`. A
+// set-up start goes in the link's tags as `Position`, in the position's notation (position.ts), as a record carries it.
+// A link or a file whose board has a komi (Hedge School's design 24) cannot open: the board starts its analysis at
+// komi 0 before it chooses its board.
 import * as shared from "@abstractclass/analysis/boardLink.ts";
-import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
+import { boardOfLine, type KeptBoard } from "@abstractclass/analysis/kept.ts";
+import { setUpStart } from "./position.ts";
+import type { GameRecord } from "./record.ts";
 import { BLUEPRINTS_CODE } from "./share.ts";
-import { SITE_NAME } from "../site.ts";
 
-/** Refuses a set-up start in a link's `Position` tag or a file's `start`, which Blueprints has no notation for yet:
- *  throws an Error that says so. Answers null, the standard start, for none. */
-export function refuseSetUpStart(position: string | undefined): null {
-  if (position) throw new Error(`it starts from a set-up position, which ${SITE_NAME} cannot open yet`);
-  return null;
-}
+/** A board of a record's line: a node for each of its positions. The record's reader keeps the line only, so its
+ *  variations stay behind. The record's `Position` tag is the board's start (Hedge School's design 21, item 9). */
+export const boardOfRecord = (record: GameRecord): KeptBoard =>
+  boardOfLine(record.moves, setUpStart(record.tags.Position), record.komi);
 
 /** Refuses a board's komi (Hedge School's design 24): the board's analysis searches at komi 0, so it cannot open a
  *  board at another komi. Throws an Error that says so. */
@@ -28,7 +27,7 @@ export const boardLink = (origin: string, board: KeptBoard, at: number, via?: st
 
 /** A board from a link's `packed` and `at`. Throws an Error that says what is wrong with the link. */
 export function readBoardLink(packed: string, at: string | null): { board: KeptBoard; at: number } {
-  const read = shared.readBoardLink(packed, at, BLUEPRINTS_CODE, refuseSetUpStart);
+  const read = shared.readBoardLink(packed, at, BLUEPRINTS_CODE, setUpStart);
   refuseKomi(read.board.komi);
   return read;
 }

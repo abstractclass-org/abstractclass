@@ -91,12 +91,18 @@
     // A picture (the home page's): the field takes no pointer, no wheel and no touch, and has no zoom buttons, so that
     // the page scrolls over it. It keeps the fit.
     still?: boolean;
+    // The board editor's clicks (Hedge School's design 21, item 10): a click of either button on a hex of the board,
+    // and a click on a hex of a blueprint's frame. With it, a click finds no candidate and makes no move, and the right
+    // button draws no note: the editor has no notes, as Hedge School's has none. A drag still pans. A click on the board
+    // keeps the view as it is, as a pan does, so that the next click finds its hex where it was.
+    onedit?: (at: BoardHex, how: { right: boolean }) => void;
+    chosen?: ({ player: Player } & HandHex) | null; // the editor's chosen cell in a hand, ringed as the input rings one
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
-    notes = [], onnotes, still = false,
+    notes = [], onnotes, still = false, onedit, chosen = null,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -290,7 +296,10 @@
     : hoverHex ? clickBoard(begun, takes.legal, hoverHex, false).move
     : handHover ? clickHand(begun, takes.rules!, takes.legal, handHover.player, handHover.at, false).move
     : null);
-  const handInput = (p: Player): HandInput | null => !takes || p !== mover ? null : {
+  // The editor's hands: both take clicks, and the chosen cell is ringed.
+  const editInput = (p: Player): HandInput => ({ blueprint: null, targets: [], ghost: null,
+    cell: chosen?.player === p ? { blueprint: chosen.blueprint, hex: chosen.hex } : null });
+  const handInput = (p: Player): HandInput | null => onedit ? editInput(p) : !takes || p !== mover ? null : {
     blueprint: begun?.blueprint ?? null,
     cell: begun?.cell ? { blueprint: begun.blueprint, hex: begun.cell } : null,
     targets: takes.targets ?? [],
@@ -352,8 +361,14 @@
     const [a, b] = [...pointers.values()];
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
   }
+  let rightPress: { id: number; x: number; y: number } | null = null; // the editor's right button, pressed
   function down(ev: PointerEvent) {
     if (still || (ev.target as Element).closest("button")) return; // the field's buttons take their own clicks
+    if (ev.pointerType === "mouse" && ev.button === 2 && onedit) {
+      ev.preventDefault();
+      rightPress = { id: ev.pointerId, ...local(ev) };
+      return;
+    }
     if (ev.pointerType === "mouse" && ev.button === 2 && onnotes) {
       ev.preventDefault();
       try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
@@ -397,6 +412,12 @@
     }
   }
   function up(ev: PointerEvent, click: boolean) {
+    if (rightPress?.id === ev.pointerId) {
+      const p = local(ev), moved = Math.hypot(p.x - rightPress.x, p.y - rightPress.y) > DRAG_PX;
+      rightPress = null;
+      if (click && !moved && onBoard(p)) { manual ??= view; onedit?.({ hand: null, hex: hexUnder(p) }, { right: true }); }
+      return;
+    }
     if (sketch?.id === ev.pointerId) {
       const next = !click ? notes : sketchNote ? toggleNote(notes, sketchNote, sameEndpoints) : markedNotes ?? notes;
       sketch = null;
@@ -407,7 +428,8 @@
     if (gesture?.kind === "press" && !gesture.moved && click) {
       const p = local(ev), h = hexUnder(p), c = placementAt(h), touch = ev.pointerType !== "mouse";
       if (notes.length) onnotes?.([]);
-      if (c) oncandidateclick?.(c.name);
+      if (onedit) { if (onBoard(p)) { manual ??= view; onedit({ hand: null, hex: h }, { right: false }); } }
+      else if (c) oncandidateclick?.(c.name);
       else if (takes) {
         const shown = begun?.shown?.type === "place" && foot ? { at: foot.at, hexes: foot.cells.map(s => s.hex) } : null;
         takes.clickBoard(touch ? tapHex(h, toPlane(view, field, p.x, p.y), shown, takes.anchors ?? []) : h, touch);
@@ -469,6 +491,7 @@
         boxes={boxes[p]} marks={marks[p]} input={handInput(p)} hover={handHover?.player === p ? handHover.at : null}
         onhover={at => handAt(p, at)}
         onpick={(at, touch) => {
+          if (onedit) { onedit({ hand: { player: p, ...at }, hex: at.hex }, { right: false }); return; }
           const c = handCandidate(p, at);
           if (c) oncandidateclick?.(c.name);
           else takes?.clickHand(p, at, touch);
@@ -508,7 +531,7 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="field" class:aim={foot?.legal} class:still bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
        onpointercancel={ev => up(ev, false)} onpointerleave={ev => { if (ev.pointerType === "mouse") pointAt(null); }}
-       oncontextmenu={ev => { if (onnotes) ev.preventDefault(); }}>
+       oncontextmenu={ev => { if (onnotes || onedit) ev.preventDefault(); }}>
     {#if field.width > 0 && field.height > 0}
       <svg width={field.width} height={field.height} viewBox={vb.join(" ")} role="img" aria-label="Blueprints board">
         <defs>

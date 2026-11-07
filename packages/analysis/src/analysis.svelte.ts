@@ -864,9 +864,11 @@ export class GameAnalysis<G extends GameTypes> {
     const i = mainIndex(path, this.mainNames);
     return i !== null ? this.moves.slice(0, i) : [...path];
   }
-  /** A query's position: the moves for a path, then `more`, from the board's set-up start when it has one. */
+  /** A query's position: the moves for a path, then `more`, from the board's set-up start when it has one, in the
+   *  engine's form (Game, enginePosition). */
   private query(path: string[], more: string[] = []) {
-    return positionQuery(this.startPosition, [...this.engineMoves(path), ...more]);
+    const start = this.startPosition && (this.game.enginePosition?.(this.startPosition) ?? this.startPosition);
+    return positionQuery(start, [...this.engineMoves(path), ...more]);
   }
   /** A search's position: the query's, at the game's komi. The rules' queries take none: the positions' scores count
    *  the komi here (positionOf). */

@@ -3,23 +3,15 @@
 // writes the five fields. The engine checks that the position could occur in a game (protocol 0.5), so nothing here
 // knows the rules: only the notation's form and its turn structure.
 import { byPoints, canonical, edgeName, parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
-import { turnFromCount, type Edge, type Player } from "#lib/review/enclosure.ts";
+import type { Edge, Player } from "#lib/review/enclosure.ts";
+import { countWithMover, LAST_COUNT, moverOf } from "@abstractclass/analysis/turns.ts";
+// The turn structure is the one that Blueprints shares (@abstractclass/analysis/turns.ts).
+export { LAST_COUNT, moverOf };
 
 /** An edge on the editor's board. `marked`: an edge of the turn, written `*` (invincible: the last turn's, of the player
  *  not to move) or `+` (placed: the turn being played, of the mover), as the edge's player and the mover decide. */
 export interface EditorEdge { edge: Edge; player: Player; marked: boolean }
 export interface EditorPosition { edges: EditorEdge[]; count: number; scores: [number, number] }
-
-export const LAST_COUNT = 120; // a game's edges
-
-/** The player to move and the edges left in the turn, from the edge count (model.ts, turnFromCount): Blue's first turn
- *  has one edge, then turns of two, and Blue's last turn one. A finished game (120 edges) has Red with none left
- *  (`r0`). */
-export function moverOf(count: number): { player: Player; left: number } {
-  if (count >= LAST_COUNT) return { player: 1, left: 0 };
-  const { turn, first } = turnFromCount(count), single = turn === 1 || turn === 61;
-  return { player: ((turn - 1) % 2) as Player, left: first && !single ? 2 : 1 };
-}
 
 /** Whether the editor can place an edge between two points: different points at most 3 apart in each direction (the
  *  engine's 48 directions). The engine's check then names what no game reaches. */
@@ -81,24 +73,17 @@ const START_EDGES = readPosition(STANDARD_START).edges; // A10-D10 and Q10-T10, 
 const drawnCount = (p: EditorPosition) =>
   p.edges.filter(e => !START_EDGES.some(s => s.player === e.player && sameEdge(s.edge, e.edge))).length;
 
-/** The first count from `count` on with `player` to move, or the last before it near the game's end. */
-function nextCount(count: number, player: Player): number {
-  for (let c = count; c < LAST_COUNT; c++) if (moverOf(c).player === player) return c;
-  for (let c = count - 1; c > 0; c--) if (moverOf(c).player === player) return c;
-  return count;
-}
-
 /** The position with the edge count that its rule gives. */
 export function followBoard(p: EditorPosition, rule: CountRule): EditorPosition {
   if (rule === "typed") return p;
   const drawn = Math.min(drawnCount(p), LAST_COUNT);
-  return { ...p, count: rule === null ? drawn : nextCount(drawn, rule) };
+  return { ...p, count: rule === null ? drawn : countWithMover(drawn, rule) };
 }
 
 /** The position and its rule after the player chooses who is to move: a typed count moves on from itself, and a count
  *  from the board keeps the choice as edges are drawn. */
 export function chooseMover(p: EditorPosition, rule: CountRule, player: Player): { pos: EditorPosition; rule: CountRule } {
-  if (rule === "typed") return { pos: { ...p, count: nextCount(p.count, player) }, rule };
+  if (rule === "typed") return { pos: { ...p, count: countWithMover(p.count, player) }, rule };
   return { pos: followBoard(p, player), rule: player };
 }
 

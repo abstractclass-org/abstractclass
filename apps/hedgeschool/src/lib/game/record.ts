@@ -48,10 +48,7 @@ const edges: shared.Notation<boolean> = {
 /** A record's text with its start given apart (the Analysis board's Import, its address's `position`): the start as
  *  the record's own `Position` tag, unless the record has one, so that its turns are read from the start's own
  *  number. The standard start adds nothing. */
-export function withStart(text: string, position: string | null): string {
-  const start = setUpStart(position);
-  return start && !/\[Position\s/.test(text) ? `[Position "${start}"]\n${text}` : text;
-}
+export const withStart = (text: string, position: string | null): string => shared.withStartTag(text, setUpStart(position));
 
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */
 export const parseRecord = (text: string): GameRecord => shared.readRecord(text, edges);

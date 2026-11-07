@@ -168,7 +168,8 @@ engine does by itself.
       can analyze it.
     - **The edge count and the scores** are fields. The edge count fixes the mover and the edges left in its turn,
       which the page shows (a pass forfeits the rest of its turn, and the forfeited edges count). The page computes
-      only the notation's turn structure (`moverOf` in `src/lib/editor/position.ts`). The engine checks the rest.
+      only the notation's turn structure (`moverOf` in `packages/analysis/src/turns.ts`, which Cyanotype's editor
+      shares). The engine checks the rest.
     - **Keys and clicks:** a list under the tools, closed until opened, gives the clicks, X and Escape.
     - **The position in the notation** is a field too, with a Copy button: it shows the position, and a position
       pasted there replaces it.
@@ -225,7 +226,11 @@ engine does by itself.
   `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line. `src/lib/game/analysisFile.ts`: the
   analysis file. Their frames are shared with Cyanotype: `packages/analysis/src/boardLink.ts` (the link) and
   `packages/analysis/src/files.ts` (the file). `packages/review/src/NewMenu.svelte` and `ExportMenu.svelte`: the
-  menus. `packages/analysis/src/model.ts`: `onlyJudged`. `src/lib/game/paste.ts`: a pasted record.
+  menus. `packages/review/src/ImportDialog.svelte`: the Import's dialog. `packages/analysis/src/model.ts`:
+  `onlyJudged`. `src/lib/game/paste.ts`: a pasted record, with the start's tag and the place of a problem from
+  `packages/record/src/record.ts` (`withStartTag`, `pastedError`). `src/routes/editor/+page.svelte` and
+  `src/lib/editor/position.ts`: the board editor. Cyanotype has the board editor and the New menu too (its design 33,
+  "The board editor").
   `packages/import/src/importEvents.ts`: the imports' events, with Hedge School's sources in `src/lib/game/sources.ts`.
 
 ## Log entries

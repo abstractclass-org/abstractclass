@@ -2,7 +2,8 @@
 // effects given by hand where the engine will give them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { markCaptures, parseRecord, RecordError, writeRecord } from "./record.ts";
+import { markCaptures, parseRecord, RecordError, setUpProblem, withStart, writeRecord } from "./record.ts";
+import { STANDARD_START } from "./position.ts";
 import { checkCaptures, type Effect } from "./check.ts";
 
 const GAME = `[Event "Casual"]\n[Blue "ann"]\n[Red "bob"]\n\n` +
@@ -35,10 +36,20 @@ test("a malformed move is refused with its place in the text", () => {
   assert.deepEqual(at("1. 2@-6 *"), ["not a move, a turn label or a result: 2@-6", 3]);
 });
 
-test("a record from a set-up start is refused: the record has no position's notation yet", () => {
-  assert.throws(() => parseRecord('[Position "something"]\n\n5. 2@-6,-2 *'), /standard start only/);
-  assert.throws(() => parseRecord('[Position "something"]\n\n2@-6,-2'), /standard start only/);
+test("a record from a set-up start numbers its turns from the start's moves played", () => {
+  // The standard start's board and hands, at Red's second move of turn 12 (22 moves played).
+  const start = STANDARD_START.replace(/ b1 0\/0 0$/, " r1 0/0 22");
+  const r = parseRecord(`[Position "${start}"]\n\n12... 2@5,-2 13. 2@-6,-2 1@-8,2 *`);
+  assert.equal(r.tags.Position, start);
+  assert.deepEqual(r.moves, ["2@5,-2", "2@-6,-2", "1@-8,2"]);
+  assert.throws(() => parseRecord(`[Position "${start}"]\n\n1. 2@5,-2 *`), /turn 1\. where the notation gives turn 12\.\.\./);
+  // A plain list of moves takes the start's turns too, and the Import's start given apart becomes the record's tag.
+  assert.equal(parseRecord(withStart("2@5,-2 2@-6,-2", start)).tags.Position, start);
+  assert.equal(withStart("2@5,-2", STANDARD_START), "2@5,-2"); // the standard start is no set-up start
   assert.equal(parseRecord('[Position "?"]\n\n1. 2@-6,-2 *').moves.length, 1);
+  // The review takes games from the standard start only, and says where a set-up start opens.
+  assert.match(setUpProblem(r, "Cyanotype") ?? "", /^This game starts from another position\. Cyanotype reviews games from the standard start only: open it on the Analysis board\.$/);
+  assert.equal(setUpProblem(parseRecord(`[Position "${STANDARD_START}"]\n\n1. 2@-6,-2 *`), "Cyanotype"), null);
 });
 
 test("a record written and read back", () => {

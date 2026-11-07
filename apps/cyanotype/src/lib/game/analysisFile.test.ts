@@ -3,13 +3,14 @@
 // A file that cannot be used says why. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SHAPE } from "@abstractclass/analysis/cache.ts";
+import { keyMoves, SHAPE } from "@abstractclass/analysis/cache.ts";
 import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import { STORES, dbPutMany } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 import { ANALYSIS_FORMAT, analysisFileName, exportAnalysis, openAnalysisFile, readAnalysisFile } from "./analysisFile.ts";
 import { readBoardLink } from "./board.ts";
+import { STANDARD_START } from "./position.ts";
 
 const db = memoryDb(); // this browser's store
 
@@ -57,7 +58,20 @@ test("an analysis file that cannot be used says why", () => {
   assert.throws(() => readAnalysisFile(file({ format: "hedge-school-analysis" })), /not a Cyanotype analysis file/);
   assert.throws(() => readAnalysisFile(file({ version: 2 })), /newer Cyanotype/);
   assert.throws(() => readAnalysisFile(file({ board: { version: 2, main: "x", nodes: [] } })), /Cyanotype cannot read the analysis file's lines/);
-  return assert.rejects(openAnalysisFile(file({ board: { ...BOARD, start: "x" } }), MANIFEST), /set-up position/);
+});
+
+test("an analysis file from a set-up start opens from it, with the results of its positions", async () => {
+  db.rows(STORES.analysis).clear();
+  const start = STANDARD_START.replace(/ b1 0\/0 0$/, " r1 0/0 22"); // the start's cells, at Red's move of turn 12
+  const board: KeptBoard = { ...BOARD, start };
+  const keyed = keyMoves(start, ["2@-6,-2"]).join(" ");
+  await dbPutMany(STORES.analysis, [[key(keyed), { blueWin: 0.3 }], [key("2@-6,-2"), { blueWin: 0.9 }]]); // the second: the standard start's
+  const file = await exportAnalysis(board, "abc1234", new Set(["ab12"]));
+  assert.deepEqual(file.analyses.map(a => a[0]), [key(keyed)]);
+  db.rows(STORES.analysis).clear();
+  const link = await openAnalysisFile(JSON.stringify(file), MANIFEST), hash = new URLSearchParams(link.split("#")[1]);
+  assert.equal(readBoardLink(hash.get("packed")!, null).board.start, start);
+  assert.deepEqual([...db.rows(STORES.analysis).keys()], [key(keyed)]);
 });
 
 test("an analysis file whose board has a komi says that the board cannot open it, and keeps none of its results", async () => {

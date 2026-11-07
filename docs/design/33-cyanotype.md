@@ -10,14 +10,16 @@ Analysis board ("How a game comes in from strategyjam.org"). Their test on strat
 (abscls-8tl1.12). The site fetches Blueprints' first release, `engine-3ac5c2fc` (Stamp Duty 0.1, protocol 0.7.1, with
 its practice bot), as Hedge School fetches its own ("The engine's files"). Practice against Stamp Duty (`/practice`)
 is built ("Practice against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and
-the Analysis board"), with no area map yet.
+the Analysis board"), with no area map yet. A position's notation, the board editor and starts from a set-up position
+are built (abscls-8tl1.39, "Decision", item 10, and "The board editor").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
 issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds the engine lock to the same rule
 (design 29, "Consequences").
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
-import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05.
+import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
+notation and the board editor: 2026-11-07.
 
 ## Context
 
@@ -127,11 +129,57 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    - **Names stay where the engine reads them.** The engine's queries, the stored results and a line's steps keep each
      move by its name. When a line changes to a move with another name, its steps come from the engine again. The
      board then shows the same position.
-10. **A position's notation** (as FEN gives a chess position) waits for the board editor and for starts from a set-up
-    position. The first version takes games as records: the standard start and the moves. So the record's reader
-    refuses a `Position` tag. The shared frame refuses it for each game that gives the frame no start. The import
-    refuses a strategyjam.org game whose first position is not the standard start. Every game of the archive starts
-    from it.
+10. **A position's notation:** one line of seven fields, separated by spaces, as FEN gives a chess position, in the
+    form of Hedge School's notation for an Enclosure position (the engine repository's design 04, "A position"). A
+    record's `Position` tag, the board editor's field, the Analysis board's Import and a link's or a file's start hold
+    it (`src/lib/game/position.ts`):
+    1. Blue's cells on the board, in reading order (the least r, then the least q), separated by `;`. A cell is its hex
+       `q,r`, then its kind's letter: `s` for a star, `w` for a wall, and none for a Normal cell. `-` for no cell.
+    2. Red's cells, the same.
+    3. Blue's hand: blueprints 1, 2 and 3, separated by `|`, each its cells in its own frame (item 5), in reading
+       order. `-` for an empty blueprint.
+    4. Red's hand, the same.
+    5. The mover and the moves left in its turn: `b1`, `r2`, and `r0` after 120 moves. The moves played fix it, and
+       the reader refuses another.
+    6. The scores, Blue's, then Red's: `8/0`.
+    7. The moves played, 0 to 120. A pass is one move.
+
+    So a position has one spelling. The standard start has 435 characters, and the review's test game's longest
+    position 5,009 (729 cells). A record from a set-up start numbers its turns from the start's moves played, as
+    Hedge School's does: a start at a turn's second move opens with `N...`. The standard start written out is no set-up
+    start (`setUpStart`), so a board from it keeps the standard start's stored results. The review takes games from the
+    standard start only, and says to open another on the Analysis board (`setUpProblem` in `src/lib/game/record.ts`).
+    The import still refuses a strategyjam.org game whose first position is not the standard start. Every game of the
+    archive starts from it.
+    - **Where it departs from Hedge School's form:**
+      - **Cells, with `;` between them:** a hex has a comma, so the list takes `;`, as the engine's one-line position
+        does. Hedge School's edges have none, and its list takes commas.
+      - **A kind's letter, and none for a Normal cell:** Hedge School marks only the edges of the turn (`*`, `+`), and
+        an edge with no mark is an edge of the board. So the most common kind has no letter. The engine's letter `p`
+        (strategyjam.org's `plain`) is a word that the players do not read (the glossary's Normal).
+      - **The hands,** fields 3 and 4: a move places a blueprint or edits one, so the hands are part of the rules'
+        state, as the pieces in hand are in shogi's SFEN.
+      - **No marks of the turn:** Blueprints' rules keep nothing of the moves of the turn so far, where Enclosure's
+        protect the last turn's edges. The mover field and the moves played carry the turn.
+      - **Whole scores:** a Blueprints score counts stars, so it has no fraction.
+    - **SGF's setup properties** list the stones by colour (`AB`, `AW`), and `PL` names the player to move. The
+      notation lists each player's cells, as SGF lists each colour's stones and Hedge School each player's edges.
+    - **Where it departs from the engine's one-line position** (the engine repository's games/blueprints/README.md,
+      "The port"): the engine's form has nine fields. Its cells are from the middle of its rules board, with that
+      middle's site coordinates (the offset), and it has the pick of an edit in progress and each player's last two
+      placements' boxes, which set the network's view. The site's notation keeps the board's own coordinates, which
+      the moves name, and leaves out the rest, as FEN leaves out what only an engine needs: a position between moves
+      has no pick, and the boxes are history. The site writes the engine's form for each query (`enginePosition`):
+      the middle of the cells' box as the offset, no pick and no boxes. The engine then puts the view at the middle of
+      the cells, and the search of the root's views (item 10 of "The review and the Analysis board") reaches every
+      legal placement. The game interface takes it as `enginePosition` (design 29, item 9): the board keeps the
+      notation's text, the stored results' keys name it, and only the engine's queries take the engine's form.
+    - **The rules' checks:** the engine reads a position, and refuses a hand that does not hold 21 cells, a blueprint
+      that is not connected, and cells that span more than its rules board holds (511 × 511). The notation's reader
+      refuses a blueprint that is not in its frame. Blueprints' build has no check that a game can reach a position
+      (protocol 0.5's check is Enclosure's alone), so the board editor says so, and Analyze needs only the engine's
+      reading. Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
+      back from its notation as the same position, with the same legal moves (`position.engine.test.ts`).
 
 ## How the board takes a move
 
@@ -516,7 +564,7 @@ gives the measurements that led to each choice.
       the analysis file (`src/lib/game/analysisFile.ts`, format `cyanotype-analysis`), and the annotated record, copied
       or as a file (`src/lib/review/annotate.ts`). The record writes each move with its capture mark, and the engine's
       choice by its name ("Blunder. 3@4,-1 1@6,-3 was best."). Its New menu (`packages/review/src/NewMenu.svelte`) has
-      the standard start and "Load an analysis file". A file loads as Hedge School's does: its results go to the
+      Hedge School's four ways ("The board editor"). A file loads as Hedge School's does: its results go to the
       browser's store, and its lines to the board's address, so that the board asks before it replaces its analysis.
     - **The review's Export,** once the review is done: a link that shares the review (`/review#packed=…`,
       `src/lib/game/share.ts`, `src/lib/review/reviewExports.ts`). The review file (abscls-8tl1.34) and the annotated
@@ -535,7 +583,10 @@ gives the measurements that led to each choice.
       sends every legal move of each of the game's positions through a link, from the engine's rules (125,322
       moves): each comes back as it was. A cut link says what is wrong. A link has no checksum, as Hedge School's
       has none, so a changed letter can give another game in the notation: the engine's rules then check it.
-    - **A set-up start:** a link or a file that names one does not open, and says why ("Decision", item 10).
+    - **A set-up start:** a link packs it in its tags as `Position`, and a file keeps it in its board (`start`), in the
+      position's notation ("Decision", item 10), as Hedge School's do. The annotated record writes it in its
+      `Position` tag. The engine reads a start that comes in before it replaces the board kept here: one that it
+      refuses leaves that board, with a notice.
 13. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
     issue. The review keeps one game in this browser: `#record=` in a link brings one, and the import page sends one
     so ("How a game comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page is
@@ -656,6 +707,46 @@ position from move 10. Counts only: the archive's games are other people's, and 
 The Move header and the fade of a cut name are in the shared table, so Hedge School has them too (design 06, item
 12).
 
+## The board editor
+
+Cyanotype's board editor (`/editor`) and the Analysis board's New menu are Hedge School's (its design 21, items 5 and
+10), with Blueprints' pieces. The New menu has the standard start, the board editor from the position on screen, the
+Import of a position or moves, and an analysis file loaded. The Import's dialog is Hedge School's
+(`packages/review/src/ImportDialog.svelte`): a position field, and the moves from that position, as a record or a plain
+list of moves (`src/lib/game/paste.ts`). The engine's rules check them in a worker of the page's own. Then the board's
+opening checks them again with the board's rules, before they replace the board kept here. The home page has the way
+in "Set up a position".
+
+1. **The board and the hands:** the position being made, drawn at once, on Blueprints' board with both hands in its
+   box. A click on a hex of the board puts a cell of the chosen player and kind there ("Blue cells" or "Red cells", and
+   "Normal", "Star" or "Wall"). The same cell again removes it. A cell of the other player or of another kind changes
+   to the chosen one, as Hedge School's editor gives an edge to the other player.
+2. **The right button puts the other player's cell,** as Hedge School's right button draws the other player's edge (a
+   drawing program's second colour). X swaps the two players. A touch screen has the player buttons.
+3. **A hand's cell moves, as an edit moves it:** a click on a cell in a hand chooses it, and a click on an empty hex of
+   the same hand puts it there. The two blueprints then go back to their frames (item 5). Each hand keeps its 21 cells
+   and their kinds, as in every game: an edit moves a cell and makes none. A position pasted in the field can give a
+   hand other cells, and the engine reads it: the rules check a hand's 21 cells and each blueprint's connection only.
+4. **A click keeps the view,** as a pan does: the board does not fit its cells again under the pointer, so the next
+   click finds its hex where it was. "Show all the cells" and a whole position loaded (the standard start, a pasted
+   position, "Remove all cells") fit again.
+5. **The moves played and the scores are fields.** The moves played fix the mover and the moves left in the turn
+   (`moverOf`, which Hedge School's editor shares, in `packages/analysis/src/turns.ts`). "Blue to play" and "Red to
+   play" move the count on to that player's next move. The count does not follow the board, as Hedge School's edge
+   count can: the edits and the captured cells leave nothing on a Blueprints board, so no count follows from it. The
+   scores are whole numbers.
+6. **The engine reads the position at each change,** in its own form ("Decision", item 10). The page shows a refusal
+   in the engine's words, with the players' names for its numbers. Analyze needs a position that the engine reads,
+   with moves left. The page says that the engine does not check if a game can reach the position.
+7. **The position in the notation** is a field with a Copy button, as Hedge School's: a position pasted there replaces
+   the one being made. The browser keeps the position being made (`cyanotype:editor:1`). The address
+   `/editor#position=` brings one, and the position leaves the address at once.
+
+**Where it departs from Hedge School's editor:** the pieces (cells of three kinds, and the hands), the count that does
+not follow the board (item 5), the click that keeps the view (item 4: Hedge School's board does not pan), and the board
+that the page draws and the engine reads, where Hedge School's engine draws its regions. It counts no event: Cyanotype
+has no analytics yet ("The gaps from Hedge School").
+
 ## The logo
 
 Cyanotype's logo is **the cyanotype:** the start's blueprint, a star in its ring of six cells, printed white on
@@ -718,12 +809,11 @@ and the terms.
 ### By page
 
 Both sites have the home page, About, Notation, Notices, Privacy, Tools, Practice, the review, the Analysis board,
-the import page, the site map, the bookmarklet and the userscript. Cyanotype lacks these pages of Hedge School:
+the board editor, the import page, the site map, the bookmarklet and the userscript. Cyanotype lacks these pages of
+Hedge School:
 
 - **How reviews work** (`/how-reviews-work`): where the labels, the accuracy, the hard positions and the meter come from
   (designs 05, 10, 14 and 16). abscls-8tl1.37.
-- **The board editor** (`/editor`): a position set up for the Analysis board (design 21), and the home page's way in
-  to it ("Set up a position", design 22). A position's notation waits for it ("Decision", item 10). abscls-8tl1.39.
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
   18). abscls-8tl1.51. The page describes what Cyanotype takes today, since partner sites are left out (below).
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
@@ -751,8 +841,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   review's game keeps no network and depth of its own: its review uses the recipient's ("The review and the Analysis
   board", item 12). abscls-8tl1.38.
 - **One tab reviews a game at a time** (`game/reviewLock.ts`, design 11). abscls-8tl1.38.
-- **The Analysis board's New menu's other ways** (`game/paste.ts`, design 21): the board editor and a pasted position
-  or moves. Cyanotype's New menu has the standard start and an analysis file loaded. abscls-8tl1.39.
 - **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24).
   abscls-8tl1.40.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
@@ -994,6 +1082,16 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `keptGame.ts` (the game in review, kept in this browser) and `SharedArrival.svelte` (a shared review's page), with
   their tests. The shared parts: `packages/analysis/src/share.ts`, `boardLink.ts`, `files.ts` and `annotate.ts`, and
   `packages/review/src/ExportMenu.svelte`, `exports.ts` and `NewMenu.svelte` (design 29, "Where it is").
+- The board editor and a position's notation ("The board editor", "Decision", item 10): `src/routes/editor/+page.svelte`
+  (the page), `src/lib/editor/position.ts` (a cell put, a hand's cell moved, the count and the scores),
+  `src/lib/game/position.ts` (the notation, the engine's form and a start's turn), `src/lib/game/paste.ts` (the
+  Import's moves), `src/lib/game/board.ts` (a record's board, from its start) and `src/lib/review/recordCheck.ts` (a
+  record's or a start's check by the engine's rules), with their tests. `position.engine.test.ts` gives every position
+  of the lab's games and of the review's test game to the engine through the notation. The shared parts:
+  `packages/review/src/ImportDialog.svelte` (the Import), `packages/record/src/record.ts` (`withStartTag`,
+  `pastedError`), `packages/analysis/src/turns.ts` (`moverOf`, `countWithMover`) and `packages/analysis/src/game.ts`
+  (`enginePosition`). `apps/hedgeschool/tests/cyanotype-editor.spec.ts`: the browser tests of the editor, the Import,
+  and a set-up start through a link and a file, and `layout.spec.ts` the editor's layout.
 - `apps/hedgeschool/tests/cyanotype-review.spec.ts` and `move-header.spec.ts`: the browser tests of the review, and
   `layout.spec.ts` its layout. `cyanotype-notes.spec.ts`: the notes on the Analysis board and on Practice, with
   `cyanotype-notes.ts`, which the review's test, the layout test of the board with notes and Hedge School's test of
@@ -1022,5 +1120,5 @@ engine's legal moves" (2026-10-27), "The import's frame in packages/import, and 
 review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02), "Blueprints' site is
 Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05),
 "Cyanotype's engine from Blueprints' first release" (2026-11-05), "Cyanotype's build without ONNX Runtime's
-WebAssembly" (2026-11-05), and "Cyanotype's logo: the cyanotype" (2026-11-06). The earlier entries name the site
-by its first name, Drawing Board.
+WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), and "Cyanotype's board editor and a
+Blueprints position's notation" (2026-11-07). The earlier entries name the site by its first name, Drawing Board.

@@ -84,4 +84,9 @@ export interface Game<G extends GameTypes> extends Moves<G["move"]> {
    *  one move: a candidate's twins (model.ts, withTwins), and one node of the tree. None: each name gives a position of
    *  its own (Enclosure's edges). */
   afterKey?(move: G["move"], before: G["position"]): string;
+  /** The engine's position (a query's `position`) for a set-up start in the notation: the board's start, a record's
+   *  `Position` tag. The board keeps the notation's text, and the stored results' keys name it (cache.ts, keyMoves).
+   *  Blueprints' notation writes a position in the site's coordinates, and the engine takes its own one-line position
+   *  (Cyanotype's design 33, "Decision", item 10). None: the notation's position is the engine's (Enclosure's). */
+  enginePosition?(start: string): string;
 }

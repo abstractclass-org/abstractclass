@@ -12,6 +12,7 @@ import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import { PLAYER_NAME, WHOLE, type NotePart, type ViewTypes } from "@abstractclass/review/game.ts";
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import { moveName, moveText, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
+import { enginePosition } from "../game/position.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type EngineStep, type GamePosition } from "../board/described.ts";
 import { hexKey, inFrame, parseHex } from "../board/hex.ts";
 import type { BlueprintInput } from "../board/blueprintInput.svelte.ts";
@@ -180,6 +181,7 @@ export const blueprints: Game<Blueprints> = {
   turn: turnFromCount,
   scoreScale: 12,
   afterKey,
+  enginePosition,
 };
 
 // --- The shared types, for Blueprints -------------------------------------------------------------------------------

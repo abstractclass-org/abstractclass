@@ -1,12 +1,14 @@
 <script lang="ts">
-  // The notation page (design 33, items 5 to 10): the moves, their marks and the game record, described for anyone
-  // who writes a reader or a writer, as Hedge School's notation page describes Enclosure's. The moves are
-  // strategyjam.org's own strings. The record is Hedge School's form. The examples are made by hand, not taken from
-  // strategyjam.org's archive: one game from the standard start, its moves legal and their marks right, by a model of
-  // the rules of the engine repository's games/blueprints/README.md. The evaluations and the clock are made up.
+  // The notation page (design 33, items 5 to 10): the moves, their marks, a position and the game record, described for
+  // anyone who writes a reader or a writer, as Hedge School's notation page describes Enclosure's. The moves are
+  // strategyjam.org's own strings. The position and the record are Hedge School's form. The examples are made by hand,
+  // not taken from strategyjam.org's archive: one game from the standard start, its moves legal and their marks right,
+  // by the engine's rules, and the positions of that game, as the engine describes them. The evaluations and the clock
+  // are made up.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
+  import { STANDARD_START } from "#lib/game/position.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   // The hexes within two steps of the origin, as the players see them (design 33, item 5): pointy-top, at
@@ -35,6 +37,16 @@
   const VARIATION = "4. 1@2,4x 3@0,6 (4... 3@0,5x+10)";
   const MARKED = "3. 1@1,-3x 1@0,3x+8? { Mistake. 2@1,-3x 1@0,3x+11 was best. } (3. 2@1,-3x 1@0,3x+11)";
   const COMMANDS = "3. 1@1,-3x { [%eval 0.58 +9 31.2] } 1@0,3x+8 { [%clk 0:00:52] [%eval 0.64 +15 30.8] }";
+  // The example game's position after 1@0,3x+8, its fifth move: Blue scored 8, and Red's blueprint 3 is the one that
+  // Red's edit changed.
+  const AFTER_FIVE = "1,-3;2,-3;0,-2;1,-2s;2,-2;-10,-1w;-9,-1s;-6,-1;-5,-1;-2,-1;-1,-1;0,-1;1,-1;-11,0s;-10,0s;-9,0w;"
+    + "-7,0;-6,0s;-5,0;-3,0;-2,0s;-1,0;-11,1w;-10,1s;-7,1;-6,1;-3,1;-2,1;-2,2;-1,2;-3,3;-2,3s;-1,3;0,3;1,3;-3,4;-2,4;"
+    + "-1,4;0,4s;1,4;-1,5;0,5 3,-1;6,-1;7,-1;10,-1s;11,-1w;2,0s;3,0;5,0;6,0s;7,0;9,0w;10,0s;11,0s;1,1;2,1;3,1s;4,1w;5,1;"
+    + "6,1;9,1s;10,1w;2,2w;3,2s;4,2s;3,3w 0,0;1,0;-1,1;0,1s;1,1;-1,2;0,2|0,0w;1,0s;-1,1s;0,1s;1,1w;-1,2w;0,2s|0,0;1,0;"
+    + "-1,1;0,1s;1,1;-1,2;0,2 0,0;1,0;-1,1;0,1s;1,1;-1,2;0,2|0,0s;1,0w;-1,1w;0,1s;1,1s;-1,2s;0,2w|0,0;0,1;-2,2;-1,2s;"
+    + "0,2;-2,3;-1,3 r2 8/0 5";
+  // The rest of the example game from that position: Red's turn 4 is the start's own turn.
+  const FROM_START = `[Position "${AFTER_FIVE}"]\n\n4. 1@2,4x 3@0,6 *`;
 </script>
 
 <PageMeta title="The notation of Blueprints · {SITE_NAME}"
@@ -44,9 +56,10 @@
   <h1>The notation of Blueprints</h1>
   <p>This page describes how {SITE_NAME} writes the moves of Blueprints and a whole game. The moves are
     strategyjam.org's own: its game page and its move list show the same strings. A <strong>game record</strong> holds
-    a whole game, as PGN records a chess game. The page is for anyone who writes a program that reads or writes them.
-    {SITE_NAME}'s review reads game records in this notation. {ENGINE_NAME}, the site's engine, uses the same
-    moves.</p>
+    a whole game, as PGN records a chess game. A <strong>position</strong> takes one line, as FEN describes a chess
+    position. The page is for anyone who writes a program that reads or writes them. {SITE_NAME}'s review reads game
+    records in this notation, and the Analysis board and its board editor read positions too. {ENGINE_NAME}, the
+    site's engine, uses the same moves.</p>
 
   <h2>The board</h2>
   <p>The board is a grid of hexes with no edge. A hex is two numbers, <code>q,r</code>, in axial coordinates:</p>
@@ -158,6 +171,8 @@
       <tr><td><code>Termination</code></td><td>How the game ended: <code>normal</code>, <code>resignation</code> or
         <code>forfeit</code>.</td></tr>
       <tr><td><code>GameId</code></td><td>The game's identifier on its site.</td></tr>
+      <tr><td><code>Position</code></td><td>The start, in the position notation (below), when it is not the standard
+        start (PGN's <code>FEN</code> tag).</td></tr>
       <tr><td><code>Komi</code></td><td>The points that Red has before the first move. A number below 0 gives them to
         Blue. A whole or half number, such as <code>300</code> or <code>-300</code>. Without the tag, 0. The result and
         the engine's analysis count them.</td></tr>
@@ -227,10 +242,36 @@
   <p>A reader also accepts the moves alone, one after another, without tags and turn numbers: the turns follow from
     the rules.</p>
 
-  <h2>Positions</h2>
-  <p>Blueprints has no position notation yet, as FEN gives a chess position. It comes with a board editor, and with
-    games that start from a position that is not the standard start. Until then, a game record starts from the standard
-    start, and a reader refuses a <code>Position</code> tag.</p>
+  <h2>A position</h2>
+  <p>One line of seven fields, separated by single spaces:</p>
+  <ol>
+    <li><strong>Blue's cells</strong> on the board, separated by <code>;</code>, with no spaces. A cell is its hex,
+      <code>q,r</code>, then the letter of its kind: <code>s</code> for a star, <code>w</code> for a wall, and no letter
+      for a Normal cell. <code>-</code> when Blue has no cell on the board.</li>
+    <li><strong>Red's cells</strong>, the same.</li>
+    <li><strong>Blue's blueprints:</strong> blueprints 1, 2 and 3, separated by <code>|</code>. Each is its cells in its
+      own frame, written as the cells of the board, with its anchor cell at <code>0,0</code>. <code>-</code> for an
+      empty blueprint.</li>
+    <li><strong>Red's blueprints</strong>, the same.</li>
+    <li><strong>The player to move, and the moves left in the turn:</strong> <code>b1</code>, <code>b2</code>,
+      <code>r1</code> or <code>r2</code>. <code>b</code> is Blue and <code>r</code> Red. A finished game (120 moves)
+      has <code>r0</code>. The moves played set this field.</li>
+    <li><strong>The scores,</strong> Blue's, <code>/</code>, then Red's: <code>8/0</code>.</li>
+    <li><strong>The moves played</strong> so far, from 0 to 120. A pass is one move.</li>
+  </ol>
+  <p>A writer writes each list of cells in reading order: the least <code>r</code>, then the least <code>q</code>. So a
+    position has one spelling. The standard start:</p>
+  <pre>{STANDARD_START}</pre>
+  <p>The example game's position after <code>1@0,3x+8</code>, its fifth move, where Blue scored 8:</p>
+  <pre>{AFTER_FIVE}</pre>
+  <p>A position leaves out the earlier moves, as FEN leaves out what only an engine needs. {ENGINE_NAME} looks at the
+    board round each player's last placements, so a program that needs them sends the moves played since a known
+    position.</p>
+  <p>A game record from such a position has it in its <code>Position</code> tag. Its first turn number is the start's
+    own turn, from the moves played, as PGN numbers the moves after a FEN:</p>
+  <pre>{FROM_START}</pre>
+  <p>A start at a turn's second move opens with <code>N...</code>: from the position after six moves, the record opens
+    with <code>4... 3@0,6</code>. A reader refuses any other first number.</p>
 </main>
 
 <SiteFooter />

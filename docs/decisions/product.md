@@ -8911,3 +8911,55 @@ This entry keeps the sources and the checks.
 - **Not done:** the stored games' table has no column for the komi (its JSON and its record hold it). The `Komi` tag
   waits for the engine repository's design 04 (request 27). A record brought to Practice brings its moves, not its
   komi.
+
+### Cyanotype's board editor and a Blueprints position's notation (2026-11-07)
+
+Cyanotype had no board editor, its New menu had no Import, and a link or a file with a set-up start did not open,
+because Blueprints had no position's notation (design 33, "The gaps from Hedge School"). Now it has Hedge School's
+editor, the New menu's four ways and set-up starts (design 21, items 5, 9 and 10, and design 33, "Decision", item 10,
+and "The board editor").
+
+- **What the engine takes:** Blueprints' browser build takes a set-up start as Enclosure's does: a query's `position`,
+  the engine's one-line position, then the moves (the engine repository's games/blueprints/README.md, "The browser
+  build", "The moves"). Its one-line position has nine fields: the moves played, the scores, the cells from the middle
+  of its rules board, the hands, the pick of an edit in progress, that middle's site coordinates, and each player's
+  last two placements' boxes. The engine checks the form, each hand's 21 cells and each blueprint's connection. It has
+  no check that a game can reach a position: protocol 0.5's check is Enclosure's alone. Nothing in the engine
+  repository changed. Its practice bot still starts only from the standard start (`blueprints-set-game`), which is
+  abscls-8tl1.40's concern.
+- **The notation:** seven fields, in Hedge School's form: Blue's cells, Red's cells, Blue's hand, Red's hand, the mover
+  with the moves left in the turn, the scores and the moves played. A cell is `q,r` and its kind's letter (`s`, `w`, or
+  none for a Normal cell), the cells in reading order, joined by `;`. A hand is three blueprints joined by `|`, each in
+  its own frame. Practice gave the form: FEN's fields for the board, the mover and the counts, SGF's lists of each
+  colour's stones (`AB`, `AW`), and Hedge School's lists of each player's edges.
+- **Each departure, with its reason:**
+  - From Hedge School's form: cells, joined by `;` (a hex has a comma), a letter for the kind with none for the
+    commonest kind (as an unmarked edge), the hands as fields (as SFEN's pieces in hand: a move uses them), no marks
+    of the turn (Blueprints' rules keep nothing of it), and whole scores.
+  - From the engine's one-line form: the board's own coordinates, which the moves name, and no pick, offset or
+    boxes, as FEN leaves out what only an engine needs. The site writes the engine's form for each query
+    (`enginePosition`): the middle of the cells' box as the offset, no pick and no boxes. The engine then puts the
+    network's view at the cells' middle, and the search of the root's views reaches every legal placement.
+  - `Normal` has no letter: `p`, the engine's and strategyjam.org's letter, is the word `plain`, which the players do
+    not read.
+- **Measured:** the standard start has 435 characters. The review's test game (Stamp Duty against itself) has 121
+  positions: the longest has 5,009 characters and 729 cells, where the engine's own form has 6,005. Every position of
+  the lab's five games and of that game, written in the notation and given to the engine in its form, came back as
+  the same cells, hands, scores, moves played and mover, with the same legal moves: 125 positions with legal moves.
+  The game's describe_game from its positions after 9, 40 and 77 moves gave the same positions as from its moves. A
+  board's link with the longest position as its start has 6,760 characters, at the live address: too long for a
+  Discord message of 2,000, where a link of Hedge School's whole game fits.
+- **The game interface's new member `enginePosition`** (design 29, item 9): the board keeps the notation's text, the
+  stored results' keys name it, and only the engine's queries take the engine's form. Enclosure gives none: its
+  notation is its engine's.
+- **The editor, as Hedge School's, with Blueprints' pieces:** a click puts the chosen player's cell of the chosen kind,
+  the right button the other player's, X swaps them, and a hand's cell moves as an edit moves it. The moves played do
+  not follow the board, since a Blueprints board shows neither the edits nor the captures. A click keeps the view, so
+  the next click finds its hex. The page draws the position at once, and the engine reads it at each change.
+- **Moved, not copied** (design 29): the Import's dialog (`packages/review/src/ImportDialog.svelte`), the record's
+  start given apart and the place of a pasted record's problem (`withStartTag`, `pastedError` in
+  `packages/record/src/record.ts`), and the turn structure of the editors (`moverOf`, `countWithMover` in
+  `packages/analysis/src/turns.ts`). Hedge School's modules keep their exports and its tests did not change. Its
+  Import's markup and its messages are the same.
+- **The review takes games from the standard start only,** as Hedge School's: a record from a set-up start opens on
+  the Analysis board, and the review says so. The import of a strategyjam.org game still refuses another start.

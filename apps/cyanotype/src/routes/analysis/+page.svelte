@@ -1,16 +1,20 @@
 <script lang="ts">
-  // The Analysis board (Hedge School's design 21, design 33): a free board in the browser, from the standard start, or
-  // a line brought after the `#` (`#record=`: a record, whose moves become the main line, and `&at=`, the place on it),
-  // or the lines of a shared analysis or an analysis file loaded (`#packed=`, game/board.ts, with `&at=`).
-  // The engine checks a record brought as the review checks a game: it plays each move, and confirms each capture mark
-  // (design 33, item 6). A record that fails leaves the board kept here, with a notice. A record that passes asks first
-  // when the board kept here has moves, as Hedge School's board does ("Replace your analysis?").
+  // The Analysis board (Hedge School's design 21, design 33): a free board in the browser, from the standard start, a
+  // set-up position, or a line brought after the `#`: `#record=` (a record, whose moves become the main line, and
+  // `&at=`, the place on it), `#position=` (a set-up start, from the board editor or the Import, in the position's
+  // notation, game/position.ts; with `record=`, the record's start), or the lines of a shared analysis or an analysis
+  // file loaded (`#packed=`, game/board.ts, with `&at=`), which can name a set-up start too.
+  // The engine checks a record brought as the review checks a game: it plays each move from the record's start, and
+  // confirms each capture mark (design 33, item 6). It reads a start brought alone too. A record or a start that fails
+  // leaves the board kept here, with a notice. One that passes asks first when the board kept here has moves, as Hedge
+  // School's board does ("Replace your analysis?").
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and it
   // runs on the CPU until Blueprints has a GPU build for the browser (abscls-wqdl, abscls-8tl1.29). The New menu starts
-  // the board again: from the standard start, or from an analysis file. The Export menu shares the board by link, or
-  // saves it as an analysis file or as an annotated record (Hedge School's design 21, item 7).
+  // the board again: from the standard start, the board editor, a position or moves imported, or an analysis file. The
+  // Export menu shares the board by link, or saves it as an analysis file or as an annotated record (Hedge School's
+  // design 21, item 7), with the board's set-up start.
   import { onDestroy, onMount, untrack } from "svelte";
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
@@ -24,6 +28,7 @@
   import { modelOf } from "@abstractclass/engine/client.ts";
   import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import NewMenu from "@abstractclass/review/NewMenu.svelte";
+  import ImportDialog from "@abstractclass/review/ImportDialog.svelte";
   import { BOARD_EXPORTS, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
   import { shippedModels } from "@abstractclass/analysis/files.ts";
   import { download } from "@abstractclass/site/download.ts";
@@ -34,10 +39,12 @@
   import { blueprints, type Blueprints, type ReviewData } from "#lib/review/blueprints.ts";
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
-  import { describeBy, recordProblem } from "#lib/review/recordCheck.ts";
+  import { checkRecord, checkStart, describeBy, recordProblem, startProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import { parseRecord, type GameRecord } from "#lib/game/record.ts";
-  import { boardLink, readBoardLink } from "#lib/game/board.ts";
+  import { parseRecord, withGivenStart, withStart, type GameRecord } from "#lib/game/record.ts";
+  import { readPasted } from "#lib/game/paste.ts";
+  import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
+  import { boardLink, boardOfRecord, readBoardLink } from "#lib/game/board.ts";
   import { analysisFileName, exportAnalysis, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
@@ -72,62 +79,74 @@
     untrack(() => { if (game?.rulesReady) writeLocal(BOARD_AT_KEY, key); });
   });
 
+  /** A board brought after the `#`: its tree, its place on the main line, what it is (for a notice), and the record
+   *  whose moves the engine checks, else the start that the engine reads. */
+  interface Brought { board: KeptBoard; at: number; kind: "record" | "position" | "link" | "file"; record?: GameRecord }
   /** The board kept here, at its kept place, and a board brought after the `#`, which leaves the address: a record's
-   *  line (`record`), which replaces the kept board once the engine has checked it (recordCheck.ts), or a link's or a
-   *  file's lines, once they are read. Each asks first where the kept board has moves. */
-  async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[];
-                                          brought?: { board: KeptBoard; at: number; record?: GameRecord } }> {
+   *  line (`record`, from its `Position` tag or from `position`), a set-up start alone (`position`), or a link's or a
+   *  file's lines, once they are read. The engine checks it before it replaces the kept board (recordCheck.ts). */
+  async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: Brought }> {
     const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
     const p = new URLSearchParams(location.hash.slice(1)), text = p.get("record"), packed = p.get("packed");
-    if (text === null && packed === null) return { kept, at: keptAt };
+    const position = p.get("position");
+    if (text === null && packed === null && position === null) return { kept, at: keptAt };
     await replaceState("/analysis", {}); // async: the address changes only once it resolves
-    if (text === null) {
+    if (text === null && position === null) {
+      const kind = p.get("via") === "analysis_file" ? "file" : "link";
       try {
-        return { kept, at: keptAt, brought: readBoardLink(packed ?? "", p.get("at")) };
+        return { kept, at: keptAt, brought: { ...readBoardLink(packed ?? "", p.get("at")), kind } };
       } catch (e) {
-        notice = `The Analysis board cannot load this ${p.get("via") === "analysis_file" ? "file" : "link"}: ${sentence(errorText(e))} Your own analysis is here instead.`;
+        refuse(errorText(e), kind);
         return { kept, at: keptAt };
       }
     }
+    if (text === null) return { kept, at: keptAt, brought: { board: boardOfLine([], setUpStart(position)), at: 0, kind: "position" } };
     try {
-      const record = parseRecord(text);
+      const record = withGivenStart(parseRecord(withStart(text, position)), position);
       // The board searches at komi 0: a record with a komi (Hedge School's design 24) opens in the review, which
       // searches at it, and is not analyzed here at another komi.
       if (record.komi) throw new Error("the record has a komi. Open the record in the review");
       const atMain = Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0);
-      return { kept, at: keptAt, brought: { board: boardOfLine(record.moves), at: atMain, record } };
+      return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: atMain, kind: "record", record } };
     } catch (e) {
-      refuse(errorText(e));
+      refuse(errorText(e), "record");
       return { kept, at: keptAt };
     }
   }
   const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
-  /** The notice of a record that the board cannot open. */
-  const refuse = (problem: string) =>
-    (notice = `The Analysis board cannot open this record: ${sentence(problem)} Your own analysis is here instead.`);
-  // A record's board, when the board kept here has moves of its own: the player chooses which to keep.
+  /** The notice of a board brought that cannot open: the board kept here opens. */
+  function refuse(problem: string, kind: Brought["kind"]) {
+    const verb = kind === "link" || kind === "file" ? "load" : "open";
+    notice = `The Analysis board cannot ${verb} this ${kind}: ${sentence(problem)} Your own analysis is here instead.`;
+  }
+  // A board brought, when the board kept here has moves of its own: the player chooses which to keep.
   const question = new ReplaceQuestion();
 
   onMount(async () => {
     try {
       await session.load();
       const opening = chooseBoard();
-      const g = await session.start(pool => new GameAnalysis(blueprints, pool, [], BOARD_ID), async (g, pool) => {
-        const chosen = await opening, b = chosen.brought;
+      let board: KeptBoard | null = null, brought: Brought | undefined, keptAt: string[] = [];
+      // The analysis starts from the board's start, so the engine's rules check a board brought first, once they work:
+      // a record's moves from its start, or a start alone. Only a board that they accept replaces the board kept here.
+      const g = await session.start(async pool => {
+        const chosen = await opening, b = chosen.brought, rules = describeBy(pool.rules);
+        const problem = !b ? null : b.record ? await recordProblem(rules, b.record)
+          : b.board.start ? await startProblem(rules, b.board.start) : null;
+        if (b && problem) refuse(problem, b.kind);
+        brought = b && !problem && (!chosen.kept?.nodes.length || await question.ask()) ? b : undefined;
+        board = brought?.board ?? chosen.kept;
+        keptAt = chosen.at;
+        return new GameAnalysis(blueprints, pool, [], BOARD_ID, board?.start ?? null);
+      }, async (g, pool) => {
         await g.start();
-        const problem = b?.record && g.rulesReady ? await recordProblem(describeBy(pool.rules), b.record) : null;
-        if (problem) refuse(problem);
-        // Only a record that the engine accepted replaces the board kept here: without the rules, the page shows why
-        const offered = !!b && (!b.record || (g.rulesReady && !problem));
-        const brought = offered && (!chosen.kept?.nodes.length || await question.ask()) ? b : undefined;
-        const board = brought?.board ?? chosen.kept;
         if (board) await g.loadBoard(board);
         const model = modelOf(session.manifest!, session.network)?.sha256;
         if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
         if (brought) await dbPut(STORES.branches, BOARD_ID, g.keptBoard()); // a brought board is now this browser's
         const at = brought ? g.mainNames.slice(0, brought.at)
-          : mainIndex(chosen.at, g.mainNames) !== null || pathKey(chosen.at) in g.branches ? chosen.at : [];
+          : mainIndex(keptAt, g.mainNames) !== null || pathKey(keptAt) in g.branches ? keptAt : [];
         start = at;
         current = at;
         game = g;
@@ -146,6 +165,36 @@
     if (game?.keptBoard().nodes.length && !(await question.ask())) return;
     await dbPut(STORES.branches, BOARD_ID, boardOfLine([]));
     writeLocal(BOARD_AT_KEY, "");
+    location.reload();
+  }
+
+  // The position on screen in the notation, which the board editor starts from (Lichess's editor starts from its board).
+  const onScreen = $derived.by(() => {
+    const g = game;
+    if (!g) return null;
+    const i = mainIndex(current, g.mainNames);
+    const p = i !== null ? g.positions[i] : g.branches[pathKey(current)]?.position;
+    return p ? writePosition(p) : null;
+  });
+  const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
+
+  // The board's Import (Hedge School's design 21, item 5): a position, moves or both pasted, checked here by the
+  // engine's rules in a worker of their own, as an import is. Then they go after the `#`, and the page loads again, so
+  // that its opening checks them with the board's rules and asks before it replaces the analysis kept here.
+  let importing = $state(false);
+  async function importPasted(position: string, pasted: string) {
+    if (!pasted.trim()) {
+      const start = setUpStart(position), problem = start ? await checkStart(start) : null;
+      if (problem) throw new Error(`${SITE_NAME} cannot read the position: ${sentence(problem)}`);
+      importAddress(new URLSearchParams({ position: start ?? STANDARD_START }));
+      return;
+    }
+    const read = readPasted(pasted, position || null), problem = await checkRecord(read.record);
+    if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${sentence(problem)}`);
+    importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}) }));
+  }
+  function importAddress(hash: URLSearchParams) {
+    history.replaceState(null, "", `/analysis#${hash}`);
     location.reload();
   }
 
@@ -175,7 +224,8 @@
       download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest))));
       return;
     }
-    const text = annotatedRecord({ R: r, unit, tags: {}, result: "*", branches: g.branches, annotator: SITE_NAME,
+    const text = annotatedRecord({ R: r, unit, tags: g.startPosition ? { Position: g.startPosition } : {}, result: "*",
+                                   branches: g.branches, annotator: SITE_NAME,
                                    note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
     if (kind === "record_copy") await navigator.clipboard.writeText(text);
     else download("analysis.txt", text, "text/plain");
@@ -197,9 +247,10 @@
               onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
     {#snippet tools(unit)}
-      <!-- New (Hedge School's design 21): the standard start, or an analysis file. The board editor and the Import wait
-           for a position's notation (abscls-8tl1.39). -->
-      <NewMenu site={SITE_NAME} onstart={newBoard} onload={loadFile} />
+      <!-- New (Hedge School's design 21): the standard start, the board editor from the position on screen, a
+           position or moves imported, or an analysis file. -->
+      <NewMenu site={SITE_NAME} editor={editorHref} onstart={newBoard} onload={loadFile}
+               importer={{ open: () => (importing = true), hint: "A game record, finished or not, a list of moves, or a position." }} />
       <!-- Export: the link, the analysis file, or the annotated record, labelled by the view's unit. -->
       <ExportMenu icon run={kind => exportAs(kind, unit)} items={BOARD_EXPORTS} />
     {/snippet}
@@ -209,3 +260,8 @@
 {/if}
 
 <ReplaceAnalysis {question} />
+
+<!-- The board's Import: a position, moves, or both pasted (Hedge School's design 21). An analysis file has its own
+     Load. The examples: the start of the standard start, and the first moves of Stamp Duty's own game. -->
+<ImportDialog bind:open={importing} editor={editorHref} positionExample="-10,-1w;-9,-1s;-6,-1;… b1 0/0 0"
+              movesExample="1. 1@-1,1 2. 1@1,-3 1@1,2 …" moveWord="moves" onimport={importPasted} />

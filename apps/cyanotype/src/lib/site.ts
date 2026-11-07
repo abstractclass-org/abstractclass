@@ -21,3 +21,5 @@ export const ENGINE_KEY = "cyanotype:engine:1";
 export const PANEL_KEY = "cyanotype:panel:1";
 export const REVIEW_GAME_KEY = "cyanotype:review-game:2";
 export const BOARD_AT_KEY = "cyanotype:board-at:1";
+/** The key under which this browser keeps the board editor's position being made, in the notation. */
+export const EDITOR_KEY = "cyanotype:editor:1";

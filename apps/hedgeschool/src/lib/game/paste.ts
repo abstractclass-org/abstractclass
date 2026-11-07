@@ -2,6 +2,7 @@
 // which becomes this site's record (constellation.ts). A record that cannot be read says where, by line and column.
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { constellationRecord, isConstellation } from "./constellation.ts";
+import { pastedError } from "@abstractclass/record/record.ts";
 import { parseRecord, RecordError, withStart, type GameRecord } from "./record.ts";
 
 export interface Pasted { record: GameRecord; recordText: string; source: "pasted_record" | "pasted_constellation" }
@@ -19,11 +20,7 @@ export function readPasted(text: string, position: string | null = null): Pasted
     recordText = withStart(recordText, position);
     return { record: parseRecord(recordText), recordText, source };
   } catch (e) {
-    if (e instanceof RecordError && source === "pasted_record") {
-      const tag = recordText.length - text.length; // the start's tag, put before the pasted text
-      const before = text.slice(0, Math.max(0, e.offset - tag)).split("\n");
-      throw new Error(`${e.message} (line ${before.length}, column ${before.at(-1)!.length + 1}).`);
-    }
+    if (e instanceof RecordError && source === "pasted_record") throw pastedError(e, text, recordText);
     throw new Error(errorText(e));
   }
 }

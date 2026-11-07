@@ -7,13 +7,13 @@
   // main line, which "Make main line" changes. One board in each browser, kept as the player leaves it. The engine
   // settings are the review's (docs/design/09-engine-settings.md), and the GPU worker joins as it does there.
   import { onDestroy, onMount, untrack } from "svelte";
-  import { Dialog } from "bits-ui";
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
   import ReplaceAnalysis, { ReplaceQuestion } from "@abstractclass/review/ReplaceAnalysis.svelte";
   import { enclosureView } from "#lib/review/enclosureView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import NewMenu from "@abstractclass/review/NewMenu.svelte";
+  import ImportDialog from "@abstractclass/review/ImportDialog.svelte";
   import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import { STANDARD_START, setUpStart } from "#lib/engine/notation.ts";
@@ -207,7 +207,7 @@
   // The board's Import and Load (designs 21 and 22): a position, moves or both pasted, checked here as an import is, or
   // an analysis file. Either goes after the `#`, and the page loads again, so that its opening checks it, asks before
   // it replaces the analysis kept here, and counts it.
-  let importing = $state(false), pasted = $state(""), pastedPosition = $state(""), importProblem = $state(""), checkingImport = $state(false);
+  let importing = $state(false);
   // The position on screen in the notation, which the board editor starts from (Lichess's editor starts from its board).
   const onScreen = $derived.by(() => {
     const g = game;
@@ -231,25 +231,16 @@
     history.replaceState(null, "", `/analysis#${hash}`);
     location.reload();
   }
-  async function importPasted(event: SubmitEvent) {
-    event.preventDefault();
-    importProblem = "";
-    checkingImport = true;
-    try {
-      const position = pastedPosition.trim().replace(/\s+/g, " ");
-      if (!pasted.trim()) {
-        await positionBoard(position);
-        importAddress(String(new URLSearchParams({ position, via: "pasted_position" })));
-        return;
-      }
-      const read = readPasted(pasted, position || null);
-      await recordBoard(read.recordText, null, position || null);
-      importAddress(String(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}), via: position ? "pasted_position" : read.source })));
-    } catch (e) {
-      importProblem = (e as Error).message;
-    } finally {
-      checkingImport = false;
+  /** The Import's position and moves (ImportDialog), checked: a problem throws, and the dialog shows it. */
+  async function importPasted(position: string, pasted: string) {
+    if (!pasted.trim()) {
+      await positionBoard(position);
+      importAddress(String(new URLSearchParams({ position, via: "pasted_position" })));
+      return;
     }
+    const read = readPasted(pasted, position || null);
+    await recordBoard(read.recordText, null, position || null);
+    importAddress(String(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}), via: position ? "pasted_position" : read.source })));
   }
   async function loadFile(file: File) {
     notice = "";
@@ -321,32 +312,5 @@
 <ReplaceAnalysis {question} />
 
 <!-- The board's Import: a position, moves, or both pasted (design 21). An analysis file has its own Load. -->
-<Dialog.Root bind:open={importing}>
-  <Dialog.Portal>
-    <Dialog.Overlay class="dialog-overlay" />
-    <Dialog.Content class="dialog-box w-[min(94vw,34rem)]">
-      <Dialog.Title class="mb-2 font-semibold">Import a position or moves</Dialog.Title>
-      <form onsubmit={importPasted}>
-        <!-- Lichess's Analysis board takes a FEN and a PGN apart: here a position and the moves from it, both in the
-             notation. -->
-        <label for="board-position" class="block text-sm">Position</label>
-        <p class="mb-1 text-xs text-muted">Leave it empty for the standard start. Or set one up in the
-          <a href={editorHref}>board editor</a>.</p>
-        <input id="board-position" bind:value={pastedPosition} spellcheck="false" autocomplete="off"
-               class="w-full mb-3 px-2.5 py-1.5 font-mono text-sm bg-page text-ink border border-line rounded focus:outline-2 focus:outline-accent"
-               placeholder="A10-D10 Q10-T10 b1 0/0 0" />
-        <label for="board-record" class="block text-sm">Moves</label>
-        <p class="mb-1 text-xs text-muted">The moves played from the position: a game record, finished or not, or a plain
-          list of edges, in the <a href="/notation" target="_blank" rel="noopener noreferrer">notation</a>.</p>
-        <textarea id="board-record" rows="4" bind:value={pasted} spellcheck="false"
-                  class="w-full px-2.5 py-2 font-mono text-sm/[1.4] bg-page text-ink border border-line rounded resize-y focus:outline-2 focus:outline-accent"
-                  placeholder={'1. D10-G10 2. N11-Q10 L10-N11 …'}></textarea>
-        {#if importProblem}<p class="mt-1.5 text-sm text-blunder" role="alert">{importProblem}</p>{/if}
-        <div class="flex flex-wrap items-center gap-3 mt-2">
-          <button class="btn-primary" type="submit" disabled={(!pasted.trim() && !pastedPosition.trim()) || checkingImport}>{checkingImport ? "Checking…" : "Import"}</button>
-          <Dialog.Close type="button" class="ml-auto px-3 py-1 text-sm">Cancel</Dialog.Close> <!-- not the form's submit -->
-        </div>
-      </form>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+<ImportDialog bind:open={importing} editor={editorHref} positionExample="A10-D10 Q10-T10 b1 0/0 0"
+              movesExample={'1. D10-G10 2. N11-Q10 L10-N11 …'} moveWord="edges" onimport={importPasted} />

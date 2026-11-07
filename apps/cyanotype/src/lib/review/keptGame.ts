@@ -5,9 +5,9 @@
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { writeLocal } from "@abstractclass/storage/local.ts";
 import { mergeBranches, type KeptBranches } from "@abstractclass/analysis/kept.ts";
-import { parseRecord } from "../game/record.ts";
+import { parseRecord, setUpProblem } from "../game/record.ts";
 import { sharedRecord, type SharedReview } from "../game/share.ts";
-import { REVIEW_GAME_KEY } from "../site.ts";
+import { REVIEW_GAME_KEY, SITE_NAME } from "../site.ts";
 
 /** A game as this browser keeps it: its record, and when it came. */
 export interface KeptGame { record: string; added: string }
@@ -22,9 +22,12 @@ export function gameId(moves: string[], komi = 0): string {
 }
 
 /** Keeps a game's record in this browser's store, and makes it the game in review. Answers its id, which covers the
- *  record's komi. Throws a RecordError when the record cannot be read. */
+ *  record's komi. Throws a RecordError when the record cannot be read, and an Error for a record from a set-up start,
+ *  which the review does not take (setUpProblem). */
 export async function keepGame(text: string): Promise<string> {
-  const record = parseRecord(text), id = gameId(record.moves, record.komi);
+  const record = parseRecord(text), problem = setUpProblem(record, SITE_NAME);
+  if (problem) throw new Error(problem);
+  const id = gameId(record.moves, record.komi);
   await dbPut(STORES.games, id, { record: text, added: new Date().toISOString() } satisfies KeptGame);
   writeLocal(REVIEW_GAME_KEY, id);
   return id;

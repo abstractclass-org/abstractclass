@@ -178,12 +178,12 @@ function monoSettings(page: Page) {
 
 // The monospaced font draws no ligatures (design 06, item 11), on both sites: a record's text shows as it is, and the
 // columns keep their width of 0.6 em a character. Fira Code's ligatures keep that width, so the settings show them,
-// not the width. The pages: each site's Notation page, and Hedge School's editor, whose position field is in Fira Code.
+// not the width. The pages: each site's Notation page and editor, whose position field is in Fira Code.
 // Cyanotype's test runs when CYANOTYPE_BASE_URL gives its running preview (in CI, playwright.config.ts requires it).
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 for (const [site, urls] of Object.entries({
   "Hedge School": ["/notation", "/editor"],
-  "Cyanotype": CYANOTYPE ? [new URL("/notation", CYANOTYPE).href] : [],
+  "Cyanotype": CYANOTYPE ? [new URL("/notation", CYANOTYPE).href, new URL("/editor", CYANOTYPE).href] : [],
 })) {
   test(`the monospaced font draws no ligatures on ${site}`, async ({ page }) => {
     test.skip(!urls.length, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
@@ -207,6 +207,17 @@ test("layout of Cyanotype's home page", async ({ page }) => {
   await page.goto(new URL("/", CYANOTYPE).href);
   await page.waitForLoadState("networkidle");
   expect(await sweep(page, "Cyanotype's /")).toBe("");
+});
+
+// Cyanotype's board editor (its design 33, as Hedge School's design 21), when CYANOTYPE_BASE_URL gives its preview: the
+// board with both hands in its box, beside the panel on a computer and above it on a phone, with the engine's answer
+// in the panel's status when the preview has the engine's files.
+test("layout of Cyanotype's board editor", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  await page.goto(new URL("/editor", CYANOTYPE).href);
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByText(/The engine (accepts|cannot)|no engine on this site/)).toBeVisible({ timeout: 120_000 });
+  expect(await sweep(page, "Cyanotype's /editor")).toBe("");
 });
 
 // The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header

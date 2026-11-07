@@ -1,10 +1,16 @@
-// Checks the Analysis board's link (board.ts): the tree comes back whole, the main line first, with the moves evaluated
-// and the position on screen. Run: npm test.
+// Checks the Analysis board's link (board.ts): the tree comes back whole, the main line first, with the moves evaluated,
+// the position on screen and a set-up start, and a record's board. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
+import { boardOfLine, type KeptBoard } from "@abstractclass/analysis/kept.ts";
+import { FIXTURE_DATA } from "../board/fixtures.ts";
 import { encodeShare } from "./share.ts";
-import { boardLink, readBoardLink } from "./board.ts";
+import { boardLink, boardOfRecord, readBoardLink } from "./board.ts";
+import { STANDARD_START, writePosition } from "./position.ts";
+import { parseRecord } from "./record.ts";
+
+// A set-up start: the lab's middle game, a position of Stamp Duty's own game (board/fixtures.json).
+const MIDDLE = writePosition(FIXTURE_DATA.fixtures.find(f => f.name === "A middle game")!.position);
 
 // The main line 2@-6,-2 1@0,0 1:0,0>3:1,-1, evaluated at its second move, and a variation 3@1,1 from the first move.
 const BOARD: KeptBoard = { version: 2, main: ["2@-6,-2", "1@0,0", "1:0,0>3:1,-1"],
@@ -31,10 +37,27 @@ test("the start's link has no place, and an analysis file's link names the file"
   assert.equal(readBoardLink(hash.get("packed")!, null).at, 0);
 });
 
-test("a broken link, or one from a set-up start, says so", () => {
+test("a set-up start comes back from a link, in its one spelling, and the standard start is none", () => {
+  const link = boardLink("", { ...BOARD, start: MIDDLE }, 1), hash = new URLSearchParams(link.split("#")[1]);
+  const back = readBoardLink(hash.get("packed")!, hash.get("at"));
+  assert.equal(back.board.start, MIDDLE);
+  assert.equal(back.at, 1);
+  const packed = (Position: string) => encodeShare({ module: "00000000", model: "00000000", visits: 1, tags: { Position }, moves: [], branches: [] });
+  assert.equal(readBoardLink(packed(STANDARD_START), null).board.start, undefined);
+  // Another spelling of the start (its cells in another order) gives its one spelling, which keys its results.
+  const [blue, ...rest] = MIDDLE.split(" ");
+  assert.equal(readBoardLink(packed([blue.split(";").reverse().join(";"), ...rest].join(" ")), null).board.start, MIDDLE);
+});
+
+test("a record's board: its line, from its Position tag", () => {
+  const record = parseRecord(`[Position "${MIDDLE}"]\n\n2@5,-2 *`);
+  assert.deepEqual(boardOfRecord(record), boardOfLine(["2@5,-2"], MIDDLE));
+  assert.equal(boardOfRecord(record).start, MIDDLE);
+  assert.equal(boardOfRecord(parseRecord("1. 2@-6,-2 *")).start, undefined);
+});
+
+test("a broken link says so", () => {
   assert.throws(() => readBoardLink("!!", null), /broken/);
-  const setUp = encodeShare({ module: "00000000", model: "00000000", visits: 1, tags: { Position: "x" }, moves: [], branches: [] });
-  assert.throws(() => readBoardLink(setUp, null), /set-up position/);
 });
 
 test("a link whose board has a komi says that the board cannot open it (Hedge School's design 24)", () => {

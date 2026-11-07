@@ -1,9 +1,9 @@
 <script lang="ts">
   // Home (design 33, as Hedge School's design 22): what Cyanotype is, and the way into each tab. Practice first, as
   // Lichess's front page leads with play: a game against the bot is the quickest way to begin. Then the review, and the
-  // ways in for a game played elsewhere: a game from strategyjam.org, through the tools and the import page, and the
-  // Analysis board. The board plays a scene from a reviewed game, with the review's candidates and labels
-  // (HomeReplay), drawn with no engine. Plain web writing: the page invites.
+  // ways in for a game played elsewhere: a game from strategyjam.org, through the tools and the import page, the
+  // Analysis board and its board editor. The board plays a scene from a reviewed game, with the review's candidates and
+  // labels (HomeReplay), drawn with no engine. Plain web writing: the page invites.
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import HomeReplay from "#lib/home/HomeReplay.svelte";
   import { ENGINE_NAME, SITE_NAME, SITE_ORIGIN } from "#lib/site.ts";
@@ -16,13 +16,14 @@
     { "@context": "https://schema.org", "@type": "WebApplication", name: SITE_NAME, url: `${SITE_ORIGIN}/`,
       applicationCategory: "GameApplication", operatingSystem: "Any", browserRequirements: "Requires JavaScript and WebAssembly",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-      description: "Practice games against a Blueprints engine, reviews of your games and an Analysis board, with the engine running in the browser." },
+      description: "Practice games against a Blueprints engine, reviews of your games, an Analysis board and a board editor, with the engine running in the browser." },
   ];
 
-  // The other ways in: a game played on strategyjam.org, any line.
+  // The other ways in: a game played on strategyjam.org, any line, any position.
   const WAYS = [
     { href: "/tools", title: "Bring a game from strategyjam.org", text: "Add our bookmarklet or userscript to your browser. Then one click opens any game you played there in the review, or on the Analysis board." },
     { href: "/analysis", title: "The Analysis board", text: "Play any line, and the engine searches the position on screen." },
+    { href: "/editor", title: "Set up a position", text: "Place each player's cells and shape their blueprints, then analyze the position on the board." },
   ];
 </script>
 
@@ -49,10 +50,10 @@
     <HomeReplay />
   </section>
 
-  <!-- A game played on strategyjam.org, any line: a quieter list, under a rule. -->
+  <!-- A game played on strategyjam.org, any line, any position: a quieter list, under a rule. -->
   <section class="grid gap-4 pt-8 border-t border-line" aria-labelledby="ways">
     <h2 id="ways" class="text-lg font-semibold">Or start from a game of your own</h2>
-    <ul class="grid gap-x-10 gap-y-5 md:grid-cols-2">
+    <ul class="grid gap-x-10 gap-y-5 md:grid-cols-3">
       {#each WAYS as way (way.href)}
         <li class="grid gap-1">
           <a class="font-semibold text-ink no-underline hover:text-accent hover:underline underline-offset-4" href={way.href}>{way.title}</a>
