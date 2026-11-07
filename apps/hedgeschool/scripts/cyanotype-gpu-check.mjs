@@ -1,6 +1,7 @@
 // The check of Cyanotype's GPU paths (its design 33, "The engine's files", item 4), on Cyanotype's preview, in
-// Playwright's headless Chromium with WebGPU on the real GPU (docs/working-notes.md, "The GPU in Playwright's
-// Chromium"). One run checks the engine settings' GPU On, then Auto, each in a new browser context of one browser, so
+// Playwright's full Chromium (channel "chromium", the new headless mode) with WebGPU on the real GPU
+// (docs/working-notes.md, "The GPU in Playwright's Chromium"). Playwright's headless shell, the browser of a headless
+// launch without a channel, makes no WebGPU device on this machine. One run checks the engine settings' GPU On, then Auto, each in a new browser context of one browser, so
 // that one job of `scripts/machine run --gpu` covers both. Each takes three parts:
 // - The review of the test game's first turns (tests/cyanotype-review.ts, LIVE_TURNS) at Lite: the engine settings say
 //   that the GPU is in use ("In use, ..."), and the review ends.
@@ -34,7 +35,8 @@ const cpu = process.argv.includes("--cpu");
 const settings = process.argv.includes("--on") ? ["on"] : process.argv.includes("--auto") ? ["auto"] : ["on", "auto"];
 const launchOptions = config.projects.find(p => p.name === "chromium").use.launchOptions;
 const WEBGPU = ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"]; // the note's flags
-const options = cpu ? launchOptions : { ...launchOptions, args: WEBGPU };
+// The full Chromium for WebGPU: the headless shell refuses requestDevice ("DynamicLib.Open: dxil.dll Windows Error: 87")
+const options = cpu ? launchOptions : { ...launchOptions, channel: "chromium", args: WEBGPU };
 /** The engine settings' line once the GPU has settled, and where the bot must run, for the GPU setting `gpu`. */
 const expectedOf = gpu => cpu ? { status: /^This browser cannot use the GPU/, where: /, on the CPU workers\.$/ }
   : gpu === "auto" ? { status: /^In use, .*times a worker's speed\.$|^Off: /, where: /, on (the GPU|the CPU workers)\.$/ }
@@ -43,7 +45,8 @@ const expectedOf = gpu => cpu ? { status: /^This browser cannot use the GPU/, wh
 const settledOf = gpu => new RegExp(`^(This browser cannot|In use${gpu === "auto" ? ", " : ""}|Off:|The GPU did not start)`);
 /** The searches of the board: each ends at its 512 visits or at the settings' 30 seconds. The GPU loads first. */
 const BOARD_WAIT = 300_000;
-console.log(`${cpu ? "off the GPU" : "on the GPU"}: Chromium's flags ${JSON.stringify(options.args)}, the GPU settings ${settings.join(", ")}`);
+console.log(`${cpu ? "off the GPU" : "on the GPU"}: ${options.channel ? `channel ${options.channel}` : "the headless shell"}, ` +
+            `Chromium's flags ${JSON.stringify(options.args)}, the GPU settings ${settings.join(", ")}`);
 
 /** Counts the GPU workers that the page starts (packages/engine/src/gpuClient.ts) and the searches posted to them. */
 function countGpuWork() {

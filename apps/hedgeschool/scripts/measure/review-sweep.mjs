@@ -13,8 +13,9 @@
 //     result's write"): from a search's final result to the engine's next search, where both are the sweep's
 //     (speed.mjs, sweepGaps). The init script wraps `Worker`, and notes when the page sends each search to a worker
 //     and when the worker's final reply comes.
-// The engine settings: `workers` search workers (by default 2), the GPU off or on (on: the real GPU, with the flags of
-// docs/working-notes.md, "The GPU in Playwright's Chromium"), the rest the site's defaults. With OUT, every sweep's
+// The engine settings: `workers` search workers (by default 2), the GPU off or on (on: the real GPU, in Playwright's
+// full Chromium with the flags of docs/working-notes.md, "The GPU in Playwright's Chromium": the headless shell makes
+// no WebGPU device), the rest the site's defaults. With OUT, every sweep's
 // numbers and the machine's load go to that file as JSON.
 // A run with `on` checks the site's GPU path: it starts only as that note's rule says, through `machine run --gpu`.
 //
@@ -29,7 +30,8 @@ const port = Number(process.argv[7] ?? 4291);
 const record = JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record;
 
 const builds = [await preview(before, port), await preview(after, port + 1)];
-const browser = await launch(gpu === "on" ? { args: ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"] } : {});
+const browser = await launch(gpu === "on"
+  ? { channel: "chromium", args: ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"] } : {});
 
 /** One sweep of the game at the build's address. */
 async function sweep(url) {

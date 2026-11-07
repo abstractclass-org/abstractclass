@@ -1204,9 +1204,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   the Analysis board and Practice, with the GPU On and then with Auto (Auto's first-use test), each in a new browser
   context of one run, or one setting with `--on` or `--auto`. The board has 1 worker and the threat on, so that its
   searches make the backlog at which the GPU joins (Hedge School's design 15, item 1). The check then counts the
-  searches that go to the GPU worker. It runs only as a GPU-path check ([working-notes.md](../working-notes.md),
-  "The GPU in Playwright's Chromium"). With `--cpu`, it checks the same pages off the GPU, where the board starts no
-  GPU worker and the bot starts on the CPU workers.
+  searches that go to the GPU worker. It runs only as a GPU-path check, in Playwright's full Chromium
+  ([working-notes.md](../working-notes.md), "The GPU in Playwright's Chromium"). With `--cpu`, it checks the same
+  pages off the GPU, where the board starts no GPU worker and the bot starts on the CPU workers.
 - `apps/hedgeschool/scripts/measure/pool-start.mjs`: the start of the engine's pool on the Analysis board of a build
   of either site, on the CPU: each worker's start and memory, the time of the search's answers and of a visit, and the
   memory of the browser's renderers ([decisions/engine.md](../decisions/engine.md), "Cyanotype's engine pool at Hedge
