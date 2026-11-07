@@ -10,7 +10,7 @@ shell=$(command -v sh)
 dir=$(mktemp -d)
 trap 'rm -rf "$dir"' EXIT
 failed=0
-unset ALLOW_DEV_PUSH FAKE_GH_OUT FAKE_GH_FAIL
+unset FAKE_GH_OUT FAKE_GH_FAIL
 
 mkdir "$dir/bin"
 cat > "$dir/bin/gh" <<'EOF'
@@ -61,23 +61,25 @@ check() {
 
 # The tests: each returns 0 when it holds, or sets $why and returns 1.
 exits() { [ "$status" -eq "$1" ] || { why="expected exit $1"; return 1; }; }
+lacks() { ! grep -qF -- "$2" "$1" || { why="\"$2\" in $1"; return 1; }; }
 has() { grep -qF -- "$2" "$1" || { why="no \"$2\" in $1"; return 1; }; }
 empty() { [ ! -s "$1" ] || { why="$1 is not empty"; return 1; }; }
 lines() { n=$(grep -c . "$1"); [ "$n" -eq "$2" ] || { why="$1 has $n lines, expected $2"; return 1; }; }
 
 push "$dev" FAKE_GH_OUT="$run1"
-check "a push to dev with a run in progress is refused" exits 1
+check "a push to dev with a run in progress goes ahead" exits 0
 check "  it names the run's id" has "$dir/err" 123
 check "  it names the run's commit" has "$dir/err" abcdef0
 check "  it names when the run started" has "$dir/err" 2026-11-07T10:00:00Z
 check "  it gives the line that watches the run" has "$dir/err" "scripts/ci-watch abstractclass abcdef0"
-check "  it says why: the cancel" has "$dir/err" cancels
-check "  it gives the override line" has "$dir/err" "ALLOW_DEV_PUSH=1 git push origin dev"
+check "  it says that the push goes ahead" has "$dir/err" "push goes ahead"
+check "  it does not refuse" lacks "$dir/err" "no push"
+check "  it has no override line" lacks "$dir/err" ALLOW_DEV_PUSH
 check "  it asks gh for the runs of Tests on dev" has "$dir/log" "--workflow Tests --branch dev"
 check "  it asks about the repository of the push's URL" has "$dir/log" "--repo $url"
 
 push "$dev" FAKE_GH_OUT="$run1$nl$run2"
-check "a push to dev with two runs is refused" exits 1
+check "a push to dev with two runs goes ahead" exits 0
 check "  it names the first run" has "$dir/err" "scripts/ci-watch abstractclass abcdef0"
 check "  it names the second run" has "$dir/err" "scripts/ci-watch abstractclass fedcba9"
 
@@ -87,7 +89,8 @@ check "  it asks gh once" lines "$dir/log" 1
 check "  it prints nothing" empty "$dir/err"
 
 push "refs/heads/abscls-fa50 $sha refs/heads/dev $zero" FAKE_GH_OUT="$run1"
-check "a push of a branch to dev's ref is refused" exits 1
+check "a push of a branch to dev's ref goes ahead and names the run" exits 0
+check "  it names the run" has "$dir/err" abcdef0
 
 push "refs/heads/abscls-fa50 $sha refs/heads/abscls-fa50 $zero" FAKE_GH_OUT="$run1"
 check "a push of another branch passes" exits 0
@@ -104,22 +107,15 @@ push "refs/heads/abscls-fa50 $sha refs/heads/dev-old $zero" FAKE_GH_OUT="$run1"
 check "a push to a branch whose name starts with dev passes" exits 0
 
 push "$dev$nl$tag" FAKE_GH_OUT="$run1"
-check "a push of dev and a tag together is refused" exits 1
+check "a push of dev and a tag together goes ahead and names the run" exits 0
+check "  it names the run" has "$dir/err" abcdef0
 
 push "$tag$nl$dev" FAKE_GH_OUT="$run1"
-check "a push of a tag and dev together is refused" exits 1
+check "a push of a tag and dev together goes ahead and names the run" exits 0
+check "  it names the run" has "$dir/err" abcdef0
 
-push "$dev" FAKE_GH_OUT="$run1" ALLOW_DEV_PUSH=1
-check "the override passes a push to dev with a run in progress" exits 0
-check "  it says in one line" lines "$dir/err" 1
-check "  that the check was skipped" has "$dir/err" skipped
-check "  it calls no gh" empty "$dir/log"
-
-push "$dev" FAKE_GH_OUT="$run1" ALLOW_DEV_PUSH=0
-check "ALLOW_DEV_PUSH=0 does not skip the check" exits 1
-
-push "$tag" ALLOW_DEV_PUSH=1
-check "the override says nothing about a push of another ref" empty "$dir/err"
+push "$tag" FAKE_GH_OUT="$run1"
+check "a push of a tag prints nothing" empty "$dir/err"
 
 push "$dev" FAKE_GH_FAIL="HTTP 401: Bad credentials"
 check "a push to dev passes when gh fails" exits 0

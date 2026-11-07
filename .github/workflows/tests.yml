@@ -5,8 +5,11 @@
 # serve Cyanotype's build (CYANOTYPE_BASE_URL), with its engine's release files, for the tests that open a Cyanotype
 # page. A run with no CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only a commit
 # whose run passed. The deploy (deploy.yml) runs the check and the unit tests again before each upload. The sweep in
-# Edge stays an option before a release. A newer push cancels a run still going for an older one. The repository is
-# public, so the standard runners cost no minutes.
+# Edge stays an option before a release. Each commit has a concurrency group of its own, and no run cancels another:
+# a release takes only a commit whose run passed, so each commit keeps its result, and a push waits for no run. The
+# deploy (deploy.yml) keeps its own group, so deploys stay in order. The repository is public, so the standard runners
+# cost no minutes. The cost is that runs for older commits use runner time and count toward the limit of concurrent
+# jobs (two jobs for each run).
 name: Tests
 
 on:
@@ -15,8 +18,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: true
+  group: tests-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: read

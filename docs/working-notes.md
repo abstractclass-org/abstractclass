@@ -21,9 +21,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     line over 72 characters (CLAUDE.md in the planning folder, "Commit messages"). A body line of one word, such as a
     URL, may be longer. The pre-commit hook refuses a staged Markdown line over 120 characters, by the rules of the
     workflow Documents (below). A refused commit is not made: wrap the message or the lines, and commit again. The
-    pre-push hook refuses a push to `dev` while a run of the workflow Tests on `dev` is not completed. Tests cancels
-    the run in progress at each push to `dev`, and the commit of that run loses its result. The refusal names each run
-    and the command that watches it. To push on purpose: `ALLOW_DEV_PUSH=1 git push origin dev`. When `gh` fails,
+    pre-push hook never refuses a push. For a push to `dev` while a run of the workflow Tests on `dev` is not
+    completed, it names each such run (its id, its commit and its start) and the command that watches it. A push to
+    `dev` cancels no run, because Tests has a group for each commit, so each commit keeps its result. When `gh` fails,
     the hook warns that the check did not run, and the push goes ahead.
   - `git config merge.decision-log.driver "git merge-file --union --diff3 %A %O %B"` turns on the union merge of
     the decision logs (`.gitattributes`, docs/decisions/README.md). A rebase over another branch's new entry then

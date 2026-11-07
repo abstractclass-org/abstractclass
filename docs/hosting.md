@@ -512,7 +512,9 @@ a push to `main` that the owner did not say to make. The owner's word to release
 
 - **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
   repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs two jobs at the same time
-  (`.github/workflows/tests.yml`). Each one builds the site as production does, with the practice games' storage on:
+  (`.github/workflows/tests.yml`). Each commit has its own run: a push cancels no run, and a push waits for none. So
+  a commit that a newer push followed still has its result. Each job builds the site as production does, with the
+  practice games' storage on:
   - **`test`, on Linux:** `npm run check:all` at the root, then the browser tests in Chromium, every spec file in
     tests/. Among them are the layout test, and a Decline in one tab while a practice game is open in another
     (tests/practice-games.spec.ts). `check:all` holds the one list of the checks before the browser tests

@@ -9472,3 +9472,25 @@ has it too, from the code that both sites share (design 33, "The player's games"
   analytics ask's, which need a build with the Google tag. The notes test that failed once before passed. The shared
   review's test brings a game reviewed at 1,024 visits to a browser set to Lite's 512: the game keeps 1,024, and the
   browser's own setting stays Lite.
+
+### Tests keeps each commit's run (2026-11-08)
+
+abscls-ckqj. The workflow Tests had the concurrency group `tests-<ref>` with `cancel-in-progress` (since 2026-10-15,
+with no reason recorded beyond a sentence in its header). A push to `dev` then cancelled the run of the commit before
+it. A release takes only a commit whose run passed (docs/hosting.md, "Deploy, check and roll back"), so a cancelled
+commit could not be released on its own result. The pre-push hook of abscls-fa50 refused such pushes, to protect the
+result.
+
+- **Decided:** the group is `tests-<sha>`, with no cancel. Each commit keeps its run, and no push waits.
+  `cancel-in-progress: false` alone is not enough: GitHub keeps one pending run for each group, so a third push would
+  drop the result of the middle commit.
+- **Deploy is unchanged.** Its group stays `deploy-<ref>` with no cancel (`deploy.yml`), so deploys run in order and an
+  older commit never deploys after a newer one. Only the Tests workflow changed.
+- **Why it is safe:** the repository is public, so the standard runners cost no minutes.
+- **The cost:** runs for older commits use runner time, and they count toward the limit of concurrent jobs (two jobs
+  for each run). A fast series of pushes can queue the jobs of later runs behind the earlier ones.
+- **The hook** (`.githooks/pre-push`) no longer refuses. It limited the work in three ways: it worked only in a clone
+  with `core.hooksPath` set, it did not see a push from the web interface or with `--no-verify`, and two pushes in the
+  seconds before GitHub made a run both passed. It now names each run still going on `dev` with the `scripts/ci-watch`
+  line, and lets the push go. `ALLOW_DEV_PUSH=1` is gone, as nothing is left to override. Its tests
+  (`scripts/pre-push.test.sh`) follow: 34 cases.
