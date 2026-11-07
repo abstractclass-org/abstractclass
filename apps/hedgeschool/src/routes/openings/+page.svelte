@@ -61,6 +61,7 @@
   let game = $state<GameAnalysis<Enclosure> | null>(null);
   let error = $state("");
   let notice = $state(""); // a line brought that could not open: the board kept here opens
+  let komiNote = $state(""); // a record brought with a komi: the book is at komi 0 (design 24)
   let start = $state<string[] | null>(null); // where the view opens
   let current = $state<string[]>([]); // the position on screen
   const engine = $state(loadEngine());
@@ -265,8 +266,9 @@
     const from: From = via === "review" || via === "analysis" ? via : "link";
     if (!record) return { at: [], from };
     try {
-      const { main: line, start } = boardOfRecord(readPasted(record).record);
+      const { main: line, start, komi } = boardOfRecord(readPasted(record).record);
       if (start) throw new Error("the book starts at the standard start, and this record does not");
+      if (komi) komiNote = "The opening book is at komi 0. Openings does not use the komi of this record.";
       const n = Math.floor(Number(p.get("at") ?? line.length));
       return { at: keptAt, line: line.slice(0, Number.isNaN(n) ? line.length : Math.max(0, n)), from };
     } catch (e) {
@@ -323,6 +325,7 @@
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}
+  {#if komiNote}<p class="{MESSAGE} mb-0" role="status">{komiNote}</p>{/if}
   <!-- The engine header's note says why the engine waits, only while its switch is on: with the switch off, the header
        says what it says on the Analysis board. -->
   <ReviewView bind:this={view} view={openingsView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}

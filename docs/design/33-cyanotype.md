@@ -332,9 +332,10 @@ and the panel's place and size (`cyanotype:practice-panel:1`).
 
 **The komi** (design 24): the card's fourth setting, from the shared card, with Hedge School's range and step. Stamp
 Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the
-size of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does. The
-Analysis board refuses a record with a komi, with a notice: it builds its analysis before it knows which board it
-keeps, and nothing on Cyanotype writes the tag yet, as its practice games are not kept.
+size of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does, and
+the game's id in this browser covers the komi, from a record and from a shared review. The Analysis board refuses a
+record, a link or an analysis file with a komi, with a notice: it builds its analysis at komi 0 before it knows which
+board it keeps, and nothing on Cyanotype writes the tag yet, as its practice games are not kept.
 
 **How it departs from Hedge School's Practice (design 24):**
 

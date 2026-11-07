@@ -9,14 +9,14 @@ import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import type { PracticeBot } from "@abstractclass/practice/bot.ts";
-import { gtpColor, scoreResult, takebackCount } from "@abstractclass/practice/practice.ts";
+import { gtpColor, takebackCount } from "@abstractclass/practice/practice.ts";
 import { withKomi } from "@abstractclass/analysis/game.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type GamePosition } from "../board/described.ts";
 import type { InputRules } from "../board/input.ts";
 import type { BoardMove, Player, SitePosition } from "../board/position.ts";
 import { moveText } from "../game/notation.ts";
 import { ENGINE_NAME } from "../site.ts";
-import { botCommands, keep, type KeptPractice } from "./stampduty.ts";
+import { botCommands, endResult, keep, type KeptPractice } from "./stampduty.ts";
 
 /** Whose move it is, or the game's state when nobody moves. "playing": the player's move, or a takeback, on its way to
  *  the bot and the rules. */
@@ -179,10 +179,9 @@ export class PracticeGame {
       this.lastTurnMs = performance.now() - since;
       this.thinkingSince = null;
     }
-    const outcome = this.described.at(-1)?.outcome;
-    if (outcome) {
-      // The result from the scores with the komi: the rules' own result leaves the komi out
-      this.result = this.kept.komi ? scoreResult(this.position!.scores as [number, number]) : outcome.result;
+    const end = this.described.at(-1);
+    if (end?.outcome) {
+      this.result = endResult(end, this.kept.komi ?? 0);
       return this.finish();
     }
     const reply = await this.describe();

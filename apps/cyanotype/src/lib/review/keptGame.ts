@@ -13,17 +13,18 @@ import { REVIEW_GAME_KEY } from "../site.ts";
 export interface KeptGame { record: string; added: string }
 
 /** A short name of a game's moves, its key in this browser's store: two games with the same moves are one game, and
- *  share their variations, as their positions share the engine's results. FNV-1a, 32 bits. */
-export function gameId(moves: string[]): string {
+ *  share their variations, as their positions share the engine's results. A komi comes before the moves (Hedge
+ *  School's design 24): the same moves at another komi are another game. FNV-1a, 32 bits. */
+export function gameId(moves: string[], komi = 0): string {
   let h = 0x811c9dc5;
-  for (const c of moves.join(" ")) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
+  for (const c of (komi ? `komi ${komi} | ` : "") + moves.join(" ")) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
   return `review-${moves.length}-${h.toString(16).padStart(8, "0")}`;
 }
 
-/** Keeps a game's record in this browser's store, and makes it the game in review. Answers its id. Throws a
- *  RecordError when the record cannot be read. */
+/** Keeps a game's record in this browser's store, and makes it the game in review. Answers its id, which covers the
+ *  record's komi. Throws a RecordError when the record cannot be read. */
 export async function keepGame(text: string): Promise<string> {
-  const id = gameId(parseRecord(text).moves);
+  const record = parseRecord(text), id = gameId(record.moves, record.komi);
   await dbPut(STORES.games, id, { record: text, added: new Date().toISOString() } satisfies KeptGame);
   writeLocal(REVIEW_GAME_KEY, id);
   return id;

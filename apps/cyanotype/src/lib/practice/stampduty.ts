@@ -1,8 +1,10 @@
 // Practice against Stamp Duty (docs/design/33-cyanotype.md, "Practice against Stamp Duty"): Cyanotype's part
 // of @abstractclass/practice (Hedge School's design 24). Its keys in this browser, its networks, the bot's half-life,
 // and the bot's name. Its visits are Hedge School's, 1 to 8,192.
-import { botLabel, choicesStore, keptStore, settingsCommands, type BotSettings } from "@abstractclass/practice/practice.ts";
+import { botLabel, choicesStore, keptStore, scoreResult, settingsCommands, type BotSettings } from "@abstractclass/practice/practice.ts";
+import { withKomi } from "@abstractclass/analysis/game.ts";
 import { NETWORKS, networkName, offersNetwork } from "../analysis/engineSettings.ts";
+import type { GamePosition } from "../board/described.ts";
 import { ENGINE_NAME } from "../site.ts";
 
 /** The networks that the site ships, the first one first: the settings card offers them (engineSettings.ts). */
@@ -22,6 +24,12 @@ const HALFLIFE = 19;
 /** The commands that give the bot a game's settings and its komi, after `blueprints-start`. The bot keeps the komi
  *  through `blueprints-set-game` (its `clear_board` keeps KataGo's rules). */
 export const botCommands = (bot: BotSettings, komi = 0) => settingsCommands(bot, HALFLIFE, komi);
+
+/** The result of a game that the rules ended, at its last position (`b+N`, `r+N` or `0`): the rules' own at komi 0.
+ *  The rules' result leaves the komi out, so at another komi it comes from the scores with the komi (Hedge School's
+ *  design 24). */
+export const endResult = (end: Pick<GamePosition, "scores" | "outcome">, komi: number): string =>
+  komi ? scoreResult(withKomi(end, komi).scores) : end.outcome!.result;
 
 /** The bot's name on the page: its network's release name, "Stamp Duty 0.1, 64 visits, Low variety", as Hedge School
  *  names HedgeFund's. A network with no release name has its id as its name: "Stamp Duty (b6c96-s22323968-d845223),

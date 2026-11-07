@@ -43,6 +43,23 @@ test("a board's link gives back its tree, its start and its place", () => {
   assert.deepEqual([...boardPositionKeys(board)], ["@a_set_up_start", "@a_set_up_start ab", "@a_set_up_start ab cd", "@a_set_up_start ab ef"]);
 });
 
+test("a board's link keeps its komi, and refuses a komi that is not one (Hedge School's design 24)", () => {
+  const board: KeptBoard = { version: 2, main: ["ab"], nodes: [["ab", 0]], komi: -300 };
+  const packedOf = (b: KeptBoard) => new URLSearchParams(boardLink("https://example.com", b, 0, WORDS).split("#")[1]).get("packed")!;
+  assert.equal(readBoardLink(packedOf(board), null, WORDS, p => p).board.komi, -300);
+  // The keys of its positions name the komi after the start's mark.
+  assert.deepEqual([...boardPositionKeys(board)], ["komi=-300", "komi=-300 ab"]);
+  assert.deepEqual([...boardPositionKeys({ ...board, start: "s" })], ["@s komi=-300", "@s komi=-300 ab"]);
+  // A board at komi 0 has none: its link and its keys are as before the komi.
+  const even: KeptBoard = { version: 2, main: ["ab"], nodes: [["ab", 0]] };
+  assert.equal(packedOf({ ...board, komi: 0 }), packedOf(even));
+  assert.equal("komi" in readBoardLink(packedOf(even), null, WORDS, p => p).board, false);
+  assert.deepEqual([...boardPositionKeys(even)], ["", "ab"]);
+  // A link whose Komi tag is not a number of whole or half points cannot open.
+  const bad = encodeShare({ module: "00000000", model: "00000000", visits: 1, tags: { Komi: "2.25" }, moves: [], branches: [] }, WORDS);
+  assert.throws(() => readBoardLink(bad, null, WORDS, p => p), /komi.*2\.25/);
+});
+
 test("the note after a link is copied warns past a Discord message's limit", () => {
   assert.match(shareNote(653), /^Link copied \(653 characters\)/);
   assert.match(shareNote(2400), /2,400 characters.*or send the review file\.$/);

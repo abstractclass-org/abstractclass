@@ -59,3 +59,12 @@ test("an analysis file that cannot be used says why", () => {
   assert.throws(() => readAnalysisFile(file({ board: { version: 2, main: "x", nodes: [] } })), /Cyanotype cannot read the analysis file's lines/);
   return assert.rejects(openAnalysisFile(file({ board: { ...BOARD, start: "x" } }), MANIFEST), /set-up position/);
 });
+
+test("an analysis file whose board has a komi says that the board cannot open it, and keeps none of its results", async () => {
+  // Hedge School's design 24: the board searches at komi 0, so a komi's results are of no use to it.
+  db.rows(STORES.analysis).clear();
+  const file = { format: ANALYSIS_FORMAT, version: 1, exported: "", site: "x", board: { ...BOARD, komi: -300 },
+                 analyses: [[key("komi=-300"), { blueWin: 0.9 }]] };
+  await assert.rejects(openAnalysisFile(JSON.stringify(file), MANIFEST), /komi/);
+  assert.deepEqual([...db.rows(STORES.analysis).keys()], []);
+});

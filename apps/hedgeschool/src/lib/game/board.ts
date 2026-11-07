@@ -1,6 +1,7 @@
 // The Analysis board's tree by link and from a record (design 21). The link is the shared one
 // (@abstractclass/analysis/boardLink.ts): it packs the tree as a review's shared link does (share.ts), with Enclosure's
-// moves. A set-up start goes in the link's tags as `Position`, as a record carries it.
+// moves. A set-up start goes in the link's tags as `Position`, and a komi as `Komi` (design 24), as a record carries
+// them.
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
 import * as shared from "@abstractclass/analysis/boardLink.ts";
 import { boardOfLine } from "@abstractclass/analysis/kept.ts";

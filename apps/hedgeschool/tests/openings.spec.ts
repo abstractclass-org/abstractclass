@@ -125,6 +125,19 @@ test.describe("desktop", () => {
     await expect(here(page)).toHaveAttribute("data-path", "A10-D9 N11-Q10 O11-Q10");
   });
 
+  test("a record with a komi: its line opens, and a line says that the book is at komi 0 (design 24)", async ({ page }) => {
+    const KOMI_NOTE = "The opening book is at komi 0. Openings does not use the komi of this record.";
+    await setUp(page, { on: false }, { judge: "edge" });
+    await open(page, new URLSearchParams({ record: '[Komi "-300"]\n\n1. A10-D9 2. N11-Q10 *' }).toString());
+    await expect(here(page)).toHaveAttribute("data-path", "A10-D9 N11-Q10");
+    await expect(page.getByRole("status").filter({ hasText: KOMI_NOTE })).toBeVisible();
+    // A record at komi 0 has no such line. The page first: an address that differs only after its `#` would not load
+    await page.goto("/about");
+    await open(page, "record=A10-D9 N11-Q10");
+    await expect(here(page)).toHaveAttribute("data-path", "A10-D9 N11-Q10");
+    await expect(page.getByText(KOMI_NOTE)).toHaveCount(0);
+  });
+
   test("a mirror image: the book's moves in the player's orientation", async ({ page }) => {
     await setUp(page, { on: false }, { judge: "edge" });
     // A10-D11 is the mirror image of the book's A10-D9: the book's line after it comes mirrored

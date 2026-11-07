@@ -36,3 +36,9 @@ test("a broken link, or one from a set-up start, says so", () => {
   const setUp = encodeShare({ module: "00000000", model: "00000000", visits: 1, tags: { Position: "x" }, moves: [], branches: [] });
   assert.throws(() => readBoardLink(setUp, null), /set-up position/);
 });
+
+test("a link whose board has a komi says that the board cannot open it (Hedge School's design 24)", () => {
+  // The board starts its analysis before it chooses its board, at komi 0: it cannot search a link's board at a komi.
+  const url = new URL(boardLink("https://example.com", { ...BOARD, komi: -300 }, 0));
+  assert.throws(() => readBoardLink(new URLSearchParams(url.hash.slice(1)).get("packed")!, null), /komi/);
+});

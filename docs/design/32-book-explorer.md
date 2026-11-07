@@ -125,11 +125,11 @@ explorers that people use in chess and Go is [../research/03-opening-explorers.m
      all its edges are book moves, with the turn's quality label. The display setting "Book moves" gives two forms:
      the quality label on the book's brown (the default), or an open book in the quality label's colour. Each form
      follows the setting "Quality labels": a badge, or the quality mark alone. The moves keep their review labels,
-     which are the book's on a book move (the next bullet). The setting shows only where the book loaded. The mark
-     has no click or preview of its own: pointing at it and clicking it do what they do on a quality label in the same
-     slot. The slot behaves the same by edge and by turn (design 06, item 8). By edge, the slot is inside the move's
-     button: pointing at it previews the position after the move, and a click goes there. By turn, the slot is in the
-     turn's judgement cell, one button with the ◆ and the loss figure. Pointing at any part of the cell previews the
+     which are the book's on a book move (the next bullet). The setting shows only where the game has a book opening.
+     The mark has no click or preview of its own: pointing at it and clicking it do what they do on a quality label in
+     the same slot. The slot behaves the same by edge and by turn (design 06, item 8). By edge, the slot is inside the
+     move's button: pointing at it previews the position after the move, and a click goes there. By turn, the slot is in
+     the turn's judgement cell, one button with the ◆ and the loss figure. Pointing at any part of the cell previews the
      position after the turn's last edge, and a click goes there.
    - **A variation's book move** shows the same mark, by the same rule, in the same forms, with the same settings and
      tooltip. The mark comes with the move's quality label, so only after "Evaluate quality" (design 07, item 11): a

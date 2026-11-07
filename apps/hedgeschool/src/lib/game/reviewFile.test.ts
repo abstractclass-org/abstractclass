@@ -74,6 +74,20 @@ test("a review file reads back, and a wrong file says why", () => {
   assert.deepEqual(readReviewFile(JSON.stringify(early)).analyses, [[key("D10-G10", 6), { blueWin: 0.4 }]]);
 });
 
+test("a review file of a game at a komi keeps its komi and its results at it, and opens as that game (design 24)", async () => {
+  const atKomi = `[Komi "-300"]\n${RECORD}`;
+  const entries: [string, unknown][] = [[key(""), { a: 0 }], [key("D10-G10"), { a: 1 }], [key("komi=-300"), { a: 2 }],
+                                        [key("komi=-300 D10-G10"), { a: 3 }], [key("komi=-300 D10-G10 O11-R10"), { a: 4 }]];
+  const file = buildReviewFile(atKomi, null, entries, "abc1234");
+  assert.deepEqual(file.analyses.map(e => e[1]), [{ a: 2 }, { a: 3 }, { a: 4 }]);
+  // The same moves at komi 0 take their own results, and not the komi's start, which is no move from theirs.
+  assert.deepEqual(buildReviewFile(RECORD, null, entries, "abc1234").analyses.map(e => e[1]), [{ a: 0 }, { a: 1 }]);
+  const { id } = await importReview(readReviewFile(JSON.stringify(file)), null, []);
+  const { id: evenId } = await importReview(readReviewFile(JSON.stringify(buildReviewFile(RECORD, null, [], "abc1234"))), null, []);
+  assert.notEqual(id, evenId);
+  assert.equal((await loadGame(id))?.record.komi, -300);
+});
+
 /** Whether the site before the area map (origin/main) takes a file's entry as a result: its readSchoolFile keeps an
  *  entry whose key has a result's form (its cache.ts, isAnalysisKey) and its shape, 5, and whose value is an object,
  *  and its gameAnalyses (belongs) takes a result of shape 5. */

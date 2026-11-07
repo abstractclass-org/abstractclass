@@ -123,7 +123,8 @@ engine does by itself.
      and says to open it on the board (`variantProblem` in `src/lib/game/import.ts`): a review is of a game played
      from the standard start.
    - **A link and a file carry it:** the board's link packs it in its tags as `Position`, as a record carries it, and
-     the analysis file keeps it in its board (`start`).
+     the analysis file keeps it in its board (`start`). A record's komi goes the same way (design 24): `Komi` in the
+     link's tags, and `komi` in the file's board.
    - **The turns number from the start's:** the edge count fixes the turn, so a line from edge 4 starts at turn 3,
      and its first edge can be a turn's second, written `3... D10-G12` in the record and "3. …" in the move list.
    - **The Import takes a position and moves apart,** as Lichess's board takes a FEN and a PGN: a position field

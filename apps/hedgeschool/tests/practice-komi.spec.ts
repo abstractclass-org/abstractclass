@@ -1,8 +1,9 @@
 // Practice's komi (design 24): the card's setting, a head start for the player or the bot; a game at a komi, whose
-// points count it from the first position and whose kept game and record keep it; and its review, which reads the
-// record's Komi tag and takes nothing from the opening book but the Book tab. The bot runs on the CPU (the engine
-// settings' GPU off, and playwright.config's switches), at 1 visit a move. The review's engine is off: the review shows
-// the game's positions and its stored results, and searches nothing. Run:
+// points count it from the first position and whose kept game and record keep it; its review, which reads the record's
+// Komi tag and takes nothing from the opening book but the Book tab; and the Analysis board's record and analysis file
+// at a komi, out and back in. The bot runs on the CPU (the engine settings' GPU off, and playwright.config's switches),
+// at 1 visit a move. The review's engine is off: the review shows the game's positions and its stored results, and
+// searches nothing. Run:
 // npm run test:layout -- tests/practice-komi.spec.ts --project=chromium, with BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "@playwright/test";
@@ -120,6 +121,48 @@ test("a game at a komi: the points count it from the start, the kept game and th
   await expect(row(page)).toBeVisible({ timeout: 60_000 });
   await page.keyboard.press("Home");
   await expect(row(page)).toContainText(/You\s*Blue\s*300\s*points/);
+});
+
+test("the Analysis board at a komi: its annotated record and its analysis file keep the komi, and each opens at it", async ({ page, browser }) => {
+  // A record with Red's komi -300 opens on the board: Blue starts 300 points ahead
+  const atKomi = '[Komi "-300"]\n\n1. D10-G10 2. N11-Q10 L10-N11 *';
+  /** Waits for the board, and checks that its start gives Blue the komi's 300 points. */
+  const atStart = async (p: Page) => {
+    await expect(row(p)).toBeVisible({ timeout: 60_000 });
+    await p.keyboard.press("Home");
+    await expect(row(p)).toContainText(/Blue\s*300\s*points/, { timeout: 60_000 });
+  };
+  await page.goto(`/analysis#${new URLSearchParams({ record: atKomi })}`);
+  await atStart(page);
+  /** The file that an entry of the board's Export menu saves, as text. */
+  const exported = async (entry: RegExp) => {
+    await page.getByRole("button", { name: "Export" }).click();
+    const [file] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: entry }).click()]);
+    return readFileSync((await file.path())!, "utf8");
+  };
+  const record = await exported(/^Annotated record as a file/), analysis = await exported(/^Analysis file/);
+  expect(record).toContain('[Komi "-300"]');
+  expect(JSON.parse(analysis).board.komi).toBe(-300);
+  // Back in, in another browser: the record, then the analysis file, each in a new store
+  const another = async () => {
+    const context = await browser.newContext({ baseURL: test.info().project.use.baseURL });
+    await context.addInitScript(() => {
+      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+      localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
+    });
+    return { context, page: await context.newPage() };
+  };
+  const first = await another();
+  await first.page.goto(`/analysis#${new URLSearchParams({ record })}`);
+  await atStart(first.page);
+  await first.context.close();
+  const second = await another();
+  await second.page.goto("/analysis");
+  await expect(row(second.page)).toBeVisible({ timeout: 60_000 });
+  await second.page.locator('input[type="file"][accept*="json"]')
+    .setInputFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(analysis) });
+  await atStart(second.page); // the page reloads at the file's lines
+  await second.context.close();
 });
 
 // The review of a game at a komi takes nothing from the opening book but the Book tab (design 24): the book is the

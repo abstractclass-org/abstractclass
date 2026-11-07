@@ -5,10 +5,10 @@
 // The analysis file: the board's lines, the moves evaluated, and the engine's results for every position of them and of
 // the positions one move from them (which confirm the Greats), so that the analysis opens at once in another browser.
 // It is the review file's kind for the board: the same results, chosen the same way, and read the same way.
-import { atShape, isAnalysisKey, ofModels, readAnalysisKey, readable } from "./cache.ts";
+import { atShape, isAnalysisKey, ofModels, parentKeyMoves, readAnalysisKey, readable } from "./cache.ts";
 import type { KeptBoard } from "./kept.ts";
 import { boardPositionKeys } from "./boardLink.ts";
-import { parentKey } from "./tree.ts";
+import { komiOf } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 
@@ -42,9 +42,12 @@ export const belongs = (key: string, positions: Set<string>, models: Set<string>
   const k = readAnalysisKey(key);
   return readable(k.shape) && atPositions(k.moves, positions) && (!models || models.has(k.model));
 };
-/** Whether a result's position (its moves) is one of `positions`, or one move from one. */
-const atPositions = (moves: string, positions: Set<string>) =>
-  positions.has(moves) || (!!moves && positions.has(parentKey(moves)));
+/** Whether a result's position (its moves) is one of `positions`, or one move from one. A start (at a set-up position,
+ *  at a komi) is no move from another position (cache.ts, parentKeyMoves). */
+const atPositions = (moves: string, positions: Set<string>) => {
+  const parent = parentKeyMoves(moves);
+  return positions.has(moves) || (parent !== null && positions.has(parent));
+};
 
 /** The networks a manifest ships, by their SHA-256. */
 export const shippedModels = (manifest: { artifacts: { kind: string; sha256: string }[] } | null) =>
@@ -77,13 +80,15 @@ export function analysisFileName(format: string, now = new Date()): string {
 }
 
 /** Reads an analysis file of `site` in `format`. Throws an Error that tells the player what is wrong. Its version rule
- *  is the review file's (Hedge School's design 13). */
+ *  is the review file's (Hedge School's design 13). A board's komi is a number of whole or half points, as a record's
+ *  `Komi` tag is (Hedge School's design 24). */
 export function readAnalysisFile(text: string, site: string, format: string): AnalysisFile {
   const f = readSiteFile(text, site, format, ANALYSIS_FILE_VERSION, "analysis file") as Partial<AnalysisFile> & { analyses: [string, unknown][] };
   const b = f.board;
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
     b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number") &&
-    (b.start === undefined || typeof b.start === "string");
+    (b.start === undefined || typeof b.start === "string") &&
+    (b.komi === undefined || (typeof b.komi === "number" && komiOf(String(b.komi)) === b.komi));
   if (!boardOk) throw new Error(`${site} cannot read the analysis file's lines.`);
   return { ...f, board: b } as AnalysisFile;
 }

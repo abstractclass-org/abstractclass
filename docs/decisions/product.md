@@ -8874,6 +8874,27 @@ This entry keeps the sources and the checks.
   - The record's reader gives the komi (`GameRecord`'s `komi`), as it checks the tag, so the readers take it there.
   - The display setting "Book moves" shows only where the game has a book opening, by the rule that hides it where a
     site has no book.
+- **The exports in the shared packages (2026-11-07):** the Export menus' code moved into packages ("Cyanotype's Export
+  menus and links") while this work was open, so the komi went into the shared files. Each export is tested out and
+  back in at a komi:
+  - The board's link (`packages/analysis/src/boardLink.ts`) writes the `Komi` tag and reads it back. A link whose tag
+    is not a komi cannot open. The keys of a board's positions name its komi, so its analysis file takes the results
+    at that komi.
+  - The analysis file's reader (`files.ts`) takes a board's `komi` only as a number of whole or half points. The first
+    check let `null` through, because `komiOf("null")` is null too. A test found it.
+  - The results that belong in a file (`files.ts`, `atPositions`) take `parentKeyMoves`: a start at a komi or at a
+    set-up position is no move from another position. A komi game's start result no longer goes into the file of the
+    same moves at komi 0.
+  - Cyanotype's game id covers the komi, from a record and from a shared review. Its Analysis board refuses a link or
+    an analysis file whose board has a komi, as it refuses such a record ("it has a komi. This board can analyze only
+    at komi 0."), and keeps none of the file's results.
+  - Cyanotype's practice result at a komi (`endResult`), on the review's test game (`r+730`, the end from the engine's
+    rules): komi 300 gives `r+1030`, komi −730 a draw, and komi −1000 `b+270`. So on that game the rules' margin is
+    the scores' margin, and the komi adds to it.
+  - `giveBook` takes no values at a komi and opens no part of the book, so its callers give it the site's book as at
+    komi 0.
+  - Openings stays the book at komi 0. A record brought there with a komi opens its line, with one line: "The opening
+    book is at komi 0. Openings does not use the komi of this record."
 - **Not done:** the stored games' table has no column for the komi (its JSON and its record hold it). The `Komi` tag
   waits for the engine repository's design 04 (request 27). A record brought to Practice brings its moves, not its
   komi.

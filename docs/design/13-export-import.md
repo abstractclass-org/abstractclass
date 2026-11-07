@@ -16,7 +16,8 @@ searching it again, and to share it as text that others can read.
      position of the game and its variations (`src/lib/game/reviewFile.ts`). Loading it opens the review at once. A
      review made with the opening book searched none of the book's positions, so the file holds no result there
      except one that a search of the position on screen or an earlier review stored. The review takes the book's
-     values there again when it opens (design 32, "A book position's values").
+     values there again when it opens (design 32, "A book position's values"). A game at a komi keeps its `Komi` tag
+     in the record, and the file holds the results at its komi only (design 24).
    - **The annotated record** (text, copied or as a `.txt` file): the game in the site's notation, with the engine's
      view after each edge (`[%eval W L S]`), each Inaccuracy, Mistake, Blunder and Great as a comment ("Mistake. D10-G9
      G9-H10 was best.", Lichess's words), "A hard position." where the review marks one (design 14), the record's

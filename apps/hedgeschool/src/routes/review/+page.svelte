@@ -267,9 +267,9 @@
   /** The game's komi, from its record's Komi tag (design 24): 0 without one. */
   const gameKomi = () => kept?.record.komi ?? 0;
 
-  /** The book that the review takes values from (book/reviewBook.ts, giveBook): the site's, in the early edition. None
-   *  at a komi (design 24): its values are the engine's at komi 0, so none of its parts loads for them. */
-  const siteReviewBook = () => (EARLY_ACCESS && !gameKomi() ? siteBook() : null);
+  /** The book that the review takes values from (book/reviewBook.ts, giveBook, which takes none at a komi): the
+   *  site's, in the early edition. */
+  const siteReviewBook = () => (EARLY_ACCESS ? siteBook() : null);
 
   /** Reviews the game with the site's engine: the rules first, then the sweep. `chosen`: the player chose Review again
    *  on a review snapshot, whose pool ends once the new one has the rules, so that the board keeps working meanwhile. */
