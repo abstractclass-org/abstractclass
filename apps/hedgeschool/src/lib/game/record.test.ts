@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { canonicalEdge, markCuts, MAX_RECORD_KOMI, parseRecord, withStart, writeRecord, RecordError } from "./record.ts";
+import { canonicalEdge, markCuts, parseRecord, withStart, writeRecord, RecordError } from "./record.ts";
 import { readPasted } from "./paste.ts";
 
 test("an edge has one spelling: the lower point first", () => {
@@ -54,14 +54,11 @@ test("the cut mark: read with or without it, and written after the move", () => 
 });
 
 test("the Komi tag: up to the engine's limit, 5,052 points either way, and beyond it an error that names it", () => {
-  assert.equal(MAX_RECORD_KOMI, 5052);
+  // The frame's check and its message: packages/record's record.test.ts. Here, Enclosure's limit.
   assert.equal(parseRecord('[Komi "5052"]\n\n1. D10-G10 *').komi, 5052);
   assert.equal(parseRecord('[Komi "-5052"]\n\n1. D10-G10 *').komi, -5052);
-  for (const beyond of ["5052.5", "-5053", "90000"]) {
-    assert.throws(() => parseRecord(`[Komi "${beyond}"]\n\n1. D10-G10 *`),
-                  (e: unknown) => e instanceof RecordError && e.offset === 0 &&
-                    e.message === `the Komi tag must be from -5052 to 5052 points: ${beyond}`);
-  }
+  assert.throws(() => parseRecord('[Komi "-5052.5"]\n\n1. D10-G10 *'),
+                /: the Komi tag must be from -5,052 to 5,052 points: -5052\.5$/);
 });
 
 test("a bare list of edges", () => {

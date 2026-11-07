@@ -12,7 +12,7 @@ const NO_ENGINE = "00000000"; // a board's link names no engine: the recipient's
 /** The keys of a board's positions in the browser's store (cache.ts): the start, then every node's line, from the
  *  board's start, at its komi (kept.ts, positionKeys). */
 export const boardPositionKeys = (board: KeptBoard): Set<string> =>
-  positionKeys([], board, board.komi, board.start ?? null);
+  positionKeys([], board, board.komi, board.start);
 
 /** The link to a board: its tree, and the position on screen as its place on the main line (`at`, 0 at the start).
  *  `via` names the site's own page that made the link (an analysis file), for the board's notice when the link fails

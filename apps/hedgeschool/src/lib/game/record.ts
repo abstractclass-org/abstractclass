@@ -8,7 +8,9 @@
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import * as shared from "@abstractclass/record/record.ts";
-export { gamePage, komiOf, komiTag, playerNames, startTags, RecordError, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
+export {
+  gamePage, komiOf, playerNames, startTags, RecordError, withTags, writeRecord, writeTags, type Eval,
+} from "@abstractclass/record/record.ts";
 
 /** A game record of Enclosure: `marked` gives, by move, whether the record marks it as a cut (`x`). */
 export type GameRecord = shared.GameRecord<boolean>;

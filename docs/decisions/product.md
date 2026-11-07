@@ -9356,11 +9356,14 @@ WSL. The calibration: "Loading the engine's network…" takes 165.3 and 189.7 pi
 The review of "Practice: the komi, a fourth setting" left these for later, as each needs a file outside that work.
 Design 24, item 15 and design 33 have the decision.
 
-- **Shared code in place of copies, with no change of behaviour:**
-  - `startTags` (`packages/record/src/record.ts`): a start's `Position` tag and the komi's `Komi` tag, for the
-    practice record, the Analysis board's annotated record and the board's link. The practice record from a set-up
-    start at a komi now writes `Position` before `Komi`, as the board's record and link do. A reader takes the tags
-    in any order.
+- **Shared code in place of copies.** It changes one output, the order of a practice record's tags:
+  - `startTags` (`packages/record/src/record.ts`): a start's `Position` tag and the komi's `Komi` tag, in that order,
+    for the practice record, both Analysis boards' annotated records and the board's link. It replaces `komiTag`. The
+    practice record from a set-up start at a komi now writes `Position` before `Komi`, as the board's record and link
+    do. A reader takes the tags in any order.
+  - `withTags` (`record.ts`): tags before a text, in the form and with the escaping of `writeTags`. The board's Import
+    (`withStartTag`) and "Study in Openings" use it with `startTags`, so that one rule gives the start's tags, their
+    order and their written form.
   - `komiPrefix` (`record.ts`): the text `komi K | ` before the moves of a game's id, for Hedge School's store and
     Cyanotype's kept game. The ids stay as they were.
   - `isKomi` (`record.ts`): whether a number is a komi that a tag can give, for the analysis file's reader.
@@ -9373,9 +9376,11 @@ Design 24, item 15 and design 33 have the decision.
   line on a record's komi, as for a pasted record. The book stays at komi 0 there. At the start the link has no
   record, as before, so no komi: a record needs a move, and Openings refuses a record without one. A browser test
   found this.
-- **Cyanotype's board and a kept board's komi:** only a board at komi 0 is kept, so a kept board never has a komi. As
-  a defence, the page refuses one with a notice and opens a new board. The store keeps the old board. The board that
-  takes a komi (abscls-8tl1.50) replaces this refusal.
+- **Cyanotype's board and a kept board's komi:** the board keeps only boards at komi 0, so a kept board never has a
+  komi. As a defence, the page refuses one with a notice and opens a new board. The new board replaces the old one in
+  the store at its first change, as the board keeps one tree. When a link or a record brought to the page fails too,
+  its notice follows the kept board's, which names the new board. The board that takes a komi (abscls-8tl1.50)
+  replaces this refusal.
 - **Each game's limit on the komi:** the engine repository's design 04 (its commit 612a8458, "The record's tags", the
   komi) gives the tag no limit. So the limit is the site's own, from each engine:
   - Enclosure: 5,052 points either way, `Rules::MAX_USER_KOMI` (`katagame/cpp/game/rules.h`), the score target cap,
@@ -9385,7 +9390,7 @@ Design 24, item 15 and design 33 have the decision.
     (`gameencoding.h`, line 1357): (67 × 67 + 60) × 20. The engine that Cyanotype locks (katagame 355a2e66) has the
     same.
   - The shared reader takes the game's limit (its `Notation`'s `maxKomi`) and refuses a tag beyond it where the
-    record is read: "the Komi tag must be from -5052 to 5052 points: 6000". Before, such a record failed at the
+    record is read: "the Komi tag must be from -5,052 to 5,052 points: 6000". Before, such a record failed at the
     engine, with the engine's own message. The reader's own bound, five digits, stays for a game with no limit.
   - The board's link and the analysis file keep their own komi checks, with no limit: they carry a komi apart from a
     record.

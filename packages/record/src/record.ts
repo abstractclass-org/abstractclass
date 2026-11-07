@@ -87,13 +87,10 @@ export function komiOf(value: string | undefined): number | null {
 /** Whether `n` is a komi that a `Komi` tag can give (komiOf): a number of whole or half points. */
 export const isKomi = (n: unknown): n is number => typeof n === "number" && komiOf(String(n)) === n;
 
-/** The `Komi` tag of a game at `komi`: none at 0, so that such a game's record is as it was before the komi. */
-export const komiTag = (komi: number): Record<string, string> => (komi ? { Komi: String(komi) } : {});
-
-/** The tags of a game's start: its set-up start's `Position` tag, then its komi's `Komi` tag (komiTag), each only
- *  where the game has one. */
+/** The tags of a game's start, in their order: its set-up start's `Position` tag, then its komi's `Komi` tag, each only
+ *  where the game has one. No `Komi` tag at 0, so that such a game's record is as it was before the komi. */
 export const startTags = (start: string | null | undefined, komi = 0): Record<string, string> =>
-  ({ ...(start ? { Position: start } : {}), ...komiTag(komi) });
+  ({ ...(start ? { Position: start } : {}), ...(komi ? { Komi: String(komi) } : {}) });
 
 /** The text before a game's moves that its id covers at a komi (Hedge School's design 24): `komi K | `, so that the
  *  same moves at another komi are another game. None at komi 0, where a game keeps the id of its moves alone. */
@@ -173,8 +170,11 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
           throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
         // A komi beyond the game's limit: its engine would refuse it, with the engine's own words.
         const max = notation.maxKomi;
-        if (max !== undefined && Math.abs(komi) > max)
-          throw new RecordError(`the Komi tag must be from -${max} to ${max} points: ${t.value}`, t.at);
+        if (max !== undefined && Math.abs(komi) > max) {
+          // The limit with thousands separated, as the site writes its numbers (the Practice card's "-3,000 to 3,000").
+          const grouped = (n: number) => n.toLocaleString("en");
+          throw new RecordError(`the Komi tag must be from ${grouped(-max)} to ${grouped(max)} points: ${t.value}`, t.at);
+        }
         record.komi = komi;
       }
       record.tags[t.name] = t.value;
@@ -235,8 +235,17 @@ export function writeTags(tags: Record<string, string>): string {
   const order = ["Event", "Site", "Date", "Round", "Blue", "Red", "Result"];
   const all = { Event: "?", Site: "?", Date: "????.??.??", Round: "-", Blue: "?", Red: "?", Result: "*", ...tags };
   return [...order, ...Object.keys(all).filter(k => !order.includes(k))]
-    .map(k => `[${k} "${String(all[k as keyof typeof all]).replace(/(["\\])/g, "\\$1")}"]`).join("\n");
+    .map(k => tagText(k, String(all[k as keyof typeof all]))).join("\n");
 }
+
+/** A tag as a record writes it: `[Name "value"]`, with a quote or a backslash in the value escaped. */
+const tagText = (name: string, value: string): string => `[${name} "${value.replace(/(["\\])/g, "\\$1")}"]`;
+
+/** `text` with `tags` before it, in their order, as a record writes them (tagText), each followed by `between`: a new
+ *  line before a record's text (withStartTag), a space before the moves of a record on one line (Hedge School's "Study
+ *  in Openings"). No tags: the text as it is. */
+export const withTags = (text: string, tags: Record<string, string>, between = "\n"): string =>
+  Object.entries(tags).map(([name, value]) => tagText(name, value) + between).join("") + text;
 
 /** Writes a game record: the required tags, then the turns. `turns` gives each turn's number and how many moves it has. */
 export function writeRecord(tags: Record<string, string>, moves: string[], turns: { number: number; moves: number; second?: boolean }[],
@@ -252,7 +261,7 @@ export function writeRecord(tags: Record<string, string>, moves: string[], turns
  *  own `Position` tag, unless the record has one, so that its turns are read from the start's own number. No start (the
  *  standard start): the text as it is. */
 export function withStartTag(text: string, start: string | undefined): string {
-  return start && !/\[Position\s/.test(text) ? `[Position "${start}"]\n${text}` : text;
+  return start && !/\[Position\s/.test(text) ? withTags(text, startTags(start)) : text;
 }
 
 /** A RecordError of `read`, the text that `pasted` became with a start's tag before it (withStartTag), as an Error that

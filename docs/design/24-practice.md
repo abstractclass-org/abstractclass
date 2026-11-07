@@ -190,7 +190,7 @@ How strong each setting plays against people is not measured yet.
       error in the record, as a wrong turn number is: no reader takes the game at a komi that it did not read.
     - **Each game's limit:** a komi beyond what the game's engine takes is an error in the record too, and its message
       names the limit. Enclosure's engine takes up to 5,052 points either way, its score target cap (the engine
-      repository's `Rules::MAX_USER_KOMI`). Blueprints' engine takes up to 90,980 (its board's area and KataGo's
+      repository's `Rules::MAX_USER_KOMI`). Blueprints' engine takes up to 90,980 points (its board's area and KataGo's
       margin, at its score scale). The engine repository's design 04 gives the tag no limit. Without the site's check,
       a larger komi fails at the engine, with the engine's own message. The card's range stays ±3,000 (item 2).
     - **The game's id** in Your games covers its komi with its start and its moves: the same moves at another komi
@@ -363,8 +363,8 @@ How strong each setting plays against people is not measured yet.
 - **The komi:** its range, the choice, the kept game's field, the turn between the player's side and Red's
   (`komiSide`), its words (`komiHelp`, `komiLine`) and the GTP command in `packages/practice/src/practice.ts`, its
   control in `PracticeCard.svelte`. The scores with it: `withKomi` (`packages/analysis/src/game.ts`), in the practice
-  game and in `GameAnalysis`. The tag: `komiOf` and `komiTag` (`packages/record/src/record.ts`). The reader checks the
-  tag and gives the record's `komi`. The review: `GameAnalysis`'s option `komi`
+  game and in `GameAnalysis`. The tag: `komiOf`, `startTags` and `withTags` (`packages/record/src/record.ts`). The
+  reader checks the tag and gives the record's `komi`. The review: `GameAnalysis`'s option `komi`
   (`packages/analysis/src/analysis.svelte.ts`: the searches' queries, the keys, the positions, no book), and the keys'
   word `komi=K` (`keyMoves`, `lineKeyMoves`, `snapshotPositions` and `parentKeyMoves` in
   `packages/analysis/src/cache.ts`). The opening book at a komi: the review's view gives the game's komi to the book's

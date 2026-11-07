@@ -3,8 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  isKomi, komiOf, komiPrefix, komiTag, markMoves, pastedError, readRecord, RecordError, startTags, withStartTag,
-  writeRecord, type Notation,
+  isKomi, komiOf, komiPrefix, markMoves, pastedError, readRecord, RecordError, startTags, withStartTag, withTags,
+  writeRecord, writeTags, type Notation,
 } from "./record.ts";
 
 /** The test game: its mark is what a move takes, or null for none. A set-up start gives its first turn's label in a
@@ -99,20 +99,17 @@ test("the Komi tag: Red's starting score, 0 without it, and an error where it is
     assert.throws(() => read(`[Event "x"]\n[Komi "${bad}"]\n\n1. apple *`),
                   (e: unknown) => e instanceof RecordError && e.offset === 12 && e.message.includes("Komi"));
   }
-  // The writer's tag: none at 0, so that a game at 0 records as before the komi.
-  assert.deepEqual(komiTag(0), {});
-  assert.deepEqual(komiTag(-300), { Komi: "-300" });
   assert.equal(komiOf("nonsense"), null);
 });
 
-test("a game's limit on the komi: a Komi tag beyond it is an error that names the limit", () => {
-  const limited = (text: string) => readRecord(text, { ...words, maxKomi: 500 });
-  assert.equal(limited('[Komi "500"]\n\n1. apple *').komi, 500);
-  assert.equal(limited('[Komi "-500"]\n\n1. apple *').komi, -500);
-  for (const beyond of ["500.5", "-501", "99999"]) {
+test("a game's limit on the komi: a Komi tag beyond it is an error that names the limit, thousands separated", () => {
+  const limited = (text: string) => readRecord(text, { ...words, maxKomi: 5000 });
+  assert.equal(limited('[Komi "5000"]\n\n1. apple *').komi, 5000);
+  assert.equal(limited('[Komi "-5000"]\n\n1. apple *').komi, -5000);
+  for (const beyond of ["5000.5", "-5001", "99999"]) {
     assert.throws(() => limited(`[Event "x"]\n[Komi "${beyond}"]\n\n1. apple *`),
                   (e: unknown) => e instanceof RecordError && e.offset === 12 &&
-                    e.message === `the Komi tag must be from -500 to 500 points: ${beyond}`);
+                    e.message === `the Komi tag must be from -5,000 to 5,000 points: ${beyond}`);
   }
   // A value that is not a komi keeps its own error, and a game without a limit takes what the reader takes.
   assert.throws(() => limited('[Komi "abc"]\n\n1. apple *'), /whole or half/);
@@ -125,11 +122,22 @@ test("isKomi: a number that a Komi tag can give, whole or half points", () => {
 });
 
 test("startTags: a set-up start's Position tag, then a komi's Komi tag, each only when there is one", () => {
+  // None at komi 0, so that a game at 0 records as before the komi.
   assert.deepEqual(startTags(null, 0), {});
   assert.deepEqual(startTags(undefined), {});
   assert.deepEqual(startTags("a b c", 0), { Position: "a b c" });
   assert.deepEqual(startTags(null, -300), { Komi: "-300" });
   assert.deepEqual(Object.entries(startTags("a b c", 300)), [["Position", "a b c"], ["Komi", "300"]]);
+});
+
+test("withTags: tags before a text in their order, in the form that writeTags writes, each followed by its separator", () => {
+  assert.equal(withTags("apple", startTags("a b", -300)), '[Position "a b"]\n[Komi "-300"]\napple');
+  assert.equal(withTags("apple bee", startTags(null, 120.5), " "), '[Komi "120.5"] apple bee');
+  assert.equal(withTags("apple", {}), "apple");
+  // A quote or a backslash in a value is escaped, as writeTags escapes it, and the reader reads it back.
+  const odd = 'a "b" \\c';
+  assert.equal(withTags("", { Event: odd }, ""), writeTags({ Event: odd }).split("\n")[0]);
+  assert.equal(read(withTags("1. apple *", { Event: odd })).tags.Event, odd);
 });
 
 test("komiPrefix: what a game's id covers before its moves at a komi, nothing at komi 0", () => {

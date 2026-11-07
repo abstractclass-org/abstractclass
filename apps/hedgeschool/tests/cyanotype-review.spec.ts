@@ -386,6 +386,14 @@ test("the Analysis board does not open a kept board with a komi: a new board, wi
       "The Analysis board can analyze only at komi 0. A new board is here instead.", { timeout: 120_000 });
     await expect(board.getByRole("button", { name: "New" })).toBeVisible({ timeout: 120_000 }); // the board is ready
     await expect(board.locator(".movelist button[data-path]")).toHaveCount(0);
+    // A record brought that cannot open either: the kept board's notice stays first, and names the new board.
+    await board.goto(new URL("/about", CYANOTYPE).href);
+    const record = '[Komi "300"]\n\n1. 2@-6,-2 *';
+    await board.goto(new URL(`/analysis#${new URLSearchParams({ record })}`, CYANOTYPE).href);
+    await expect(board.getByRole("alert")).toHaveText("The Analysis board cannot open your own analysis: it has a komi. " +
+      "The Analysis board can analyze only at komi 0. A new board is here instead. The Analysis board cannot open " +
+      "this record: the record has a komi. Open the record in the review.", { timeout: 120_000 });
+    await expect(board.locator(".movelist button[data-path]")).toHaveCount(0);
   } finally {
     await own.close();
   }

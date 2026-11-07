@@ -7,7 +7,7 @@
 import * as shared from "@abstractclass/record/record.ts";
 import { captureText, readMove, type Capture } from "./notation.ts";
 import { setUpStart, startTurn } from "./position.ts";
-export { gamePage, playerNames, RecordError, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
+export { gamePage, playerNames, RecordError, startTags, writeRecord, writeTags, type Eval } from "@abstractclass/record/record.ts";
 
 /** A game record of Blueprints: `marked` gives, by move, the capture mark that the record gives it, or null. */
 export type GameRecord = shared.GameRecord<Capture | null>;

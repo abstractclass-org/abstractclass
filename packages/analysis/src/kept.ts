@@ -39,7 +39,9 @@ export function positionKeys(moves: string[], branches: KeptBranches | null, kom
   const paths = new Set(prefixKeys(moves));
   if (branches?.version === 1) for (const line of branches.lines) for (const k of prefixKeys(line)) paths.add(k);
   else for (const [key] of branchNodes(branches)) paths.add(key);
-  return new Set([...paths].map(k => keyMoves(start, k ? k.split(" ") : [], komi).join(" ")));
+  // The start's word and the komi's (keyMoves), made once: none from the standard start at komi 0.
+  const before = keyMoves(start, [], komi).join(" ");
+  return before ? new Set([...paths].map(k => (k ? `${before} ${k}` : before))) : paths;
 }
 
 /** The variations kept for a game after an import (a review file, a shared review): the kept ones first, in their

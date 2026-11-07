@@ -41,7 +41,7 @@
   import { loadDisplay } from "#lib/review/display.ts";
   import { checkRecord, checkStart, describeBy, recordProblem, startProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import type { GameRecord } from "#lib/game/record.ts";
+  import { startTags, type GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
   import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem, refuseKomi } from "#lib/game/board.ts";
@@ -88,7 +88,7 @@
   async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: Brought }> {
     let kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     // A kept board with a komi (Hedge School's design 24), which the board cannot analyze, does not open: a defence, as
-    // only a board at komi 0 is kept here. The store keeps it, and a new board opens.
+    // only a board at komi 0 is kept here. A new board opens, and replaces it in the store at its first change.
     try {
       refuseKomi(kept?.komi);
     } catch (e) {
@@ -121,10 +121,12 @@
     }
   }
   const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
-  /** The notice of a board brought that cannot open: the board kept here opens. */
+  /** The notice of a board brought that cannot open: the board kept here opens. Where the kept board could not open
+   *  either (chooseBoard's notice, a kept board with a komi), that notice stays first and names the new board. */
   function refuse(problem: string, kind: Brought["kind"]) {
     const verb = kind === "link" || kind === "file" ? "load" : "open";
-    notice = `The Analysis board cannot ${verb} this ${kind}: ${sentence(problem)} Your own analysis is here instead.`;
+    const why = `The Analysis board cannot ${verb} this ${kind}: ${sentence(problem)}`;
+    notice = notice ? `${notice} ${why}` : `${why} Your own analysis is here instead.`;
   }
   // A board brought, when the board kept here has moves of its own: the player chooses which to keep.
   const question = new ReplaceQuestion();
@@ -228,7 +230,7 @@
       download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest))));
       return;
     }
-    const text = annotatedRecord({ R: r, unit, tags: g.startPosition ? { Position: g.startPosition } : {}, result: "*",
+    const text = annotatedRecord({ R: r, unit, tags: startTags(g.startPosition, g.komi), result: "*",
                                    branches: g.branches, annotator: SITE_NAME,
                                    note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
     if (kind === "record_copy") await navigator.clipboard.writeText(text);

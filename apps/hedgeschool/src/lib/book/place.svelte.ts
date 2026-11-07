@@ -16,6 +16,7 @@
 import type { Unit } from "@abstractclass/analysis/model.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
+import { startTags, withTags } from "#lib/game/record.ts";
 import { OpeningBook, OUT, type BookAt } from "./lookup.svelte.ts";
 import { rowCandidates, rowLine, shownRows, tableRows, turnStart, type BookRow } from "./rows.ts";
 
@@ -149,16 +150,16 @@ export class BookPlace {
   /** "Study in Openings" (design 32, items 2 and 8): the address of Openings at the position on screen, from the review
    *  or the Analysis board, while the table shows the book. Its record is the path's edges from the book's start, and
    *  `via` names the page, for the analytics (design 17, `openings_open`). A game at a komi gives its `Komi` tag before
-   *  the edges, so that Openings says that its book is at komi 0 (design 24). At the start there is no record, and no
-   *  komi: a record needs a move. Null where the site has no Openings (and
-   *  on Openings, whose place gives no `openings`), and where the path starts elsewhere than the book's start (a set-up
-   *  start). */
+   *  the edges (startTags), so that Openings says that its book is at komi 0 (design 24). At the start there is no
+   *  record, and no komi: a record needs a move. Null where the site has no Openings (and on Openings, whose place gives
+   *  no `openings`), and where the path starts elsewhere than the book's start (a set-up start). */
   get study(): string | null {
     const book = this.book.book, notations = this.#notations();
     if (!this.#openings || !book || notations[0] !== book.start || !this.showsBook) return null;
-    const edges = this.#edges(), komi = this.komi;
-    const record = edges.length ? `${komi ? `[Komi "${komi}"] ` : ""}${edges.join(" ")}` : "";
-    return `/openings#${new URLSearchParams({ ...(record ? { record } : {}), via: this.#page === "board" ? "analysis" : "review" })}`;
+    const edges = this.#edges();
+    const record: Record<string, string> =
+      edges.length ? { record: withTags(edges.join(" "), startTags(null, this.komi), " ") } : {};
+    return `/openings#${new URLSearchParams({ ...record, via: this.#page === "board" ? "analysis" : "review" })}`;
   }
 
   /** The key o: "Book" or "Candidates". Outside the book "Book" is unavailable, so the key does nothing there. */
