@@ -171,7 +171,9 @@ How strong each setting plays against people is not measured yet.
     - **The threads:** 16 search threads on the GPU, and two for each CPU worker. They are the most that a move
       uses. KataGo's play settings give each thread at least 8 of a move's new playouts (`minPlayoutsPerThread`,
       KataGo's default for GTP). So a move with N new playouts searches with T threads: N / 8, rounded down, at least
-      one and at most the form's threads. A move with fewer than 16 new playouts searches with one thread.
+      one and at most the form's threads. A move with fewer than 16 new playouts searches with one thread. No config
+      of ours sets the value, so each engine update checks it: `npm run engine` starts each practice module of the
+      lock in Node and stops when its `kata-get-params` gives another value (`packages/engine/src/practice-check.ts`).
     - **The visits that a move completes:** a thread checks the completed playouts against the setting before it
       starts a playout, and the playouts in flight then finish. So from a new tree, a move at a setting of N
       completes at most N + T - 1 visits. Below 16 visits it completes at most N, as the one-thread bot does. From 16

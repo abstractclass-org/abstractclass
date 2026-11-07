@@ -25,6 +25,7 @@ import { dirname, join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
+import { checkPracticeModules } from "./practice-check.ts";
 
 const root = process.cwd();
 const lock = JSON.parse(readFileSync(join(root, "engine.lock.json"), "utf8"));
@@ -140,6 +141,10 @@ for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gp
                     `protocol ${version.protocol} and the search ${version.search}`);
 }
 console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
+
+// Each practice module, run once in Node: its minPlayoutsPerThread must be 8, which Hedge School's design 24, item 14
+// rests on (practice-check.ts).
+for (const line of await checkPracticeModules(root, manifest)) console.log(line);
 
 function source(artifact) {
   return artifact.source.local ?? (artifact.source.engines ? `engines/${artifact.source.engines}` : `release ${artifact.source.release.tag}`);

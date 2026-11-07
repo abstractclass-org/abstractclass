@@ -372,7 +372,8 @@ edit in the same commit), so their changes still apply.
   `import.css`, which lets Tailwind find its classes. `apps/hedgeschool/src/lib/game/tools.ts` and `sources.ts`:
   Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
-  files, which each site runs in its own folder (`npm run engine`). `protocol.ts`: the protocol that each site's code
+  files, which each site runs in its own folder (`npm run engine`). `practice-check.ts`: the engine step's check of
+  the practice modules' `minPlayoutsPerThread` (design 24, item 14). `protocol.ts`: the protocol that each site's code
   is written for (Hedge School 0.6.x, Cyanotype 0.7.x with the root's views), from the site's `engine.lock.json`
   and its manifest.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
