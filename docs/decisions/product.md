@@ -9205,3 +9205,58 @@ change, and that holds for Cyanotype as it does for Hedge School.
 - **The test:** the layout test checks the link on each site, at 360 and 1,280 pixels, in each theme: after the name,
   in the accent colour, in the window, with nothing over it. The sweeps of each home page check that the header keeps
   one row at every width. A click on the link opens the About page at the section.
+
+### Cyanotype's GPU-path checks on this machine's GPU (2026-11-07)
+
+- **What:** the three checks of Cyanotype's GPU paths that "Cyanotype on Stamp Duty 0.2, with the GPU and the
+  threaded bot" left: the review and the bot's GPU form with the GPU On, Auto's first-use test and the bot's form from
+  it, and the Analysis board with the GPU on (abscls-8tl1.64). One script checks all three:
+  `scripts/cyanotype-gpu-check.mjs` (design 33, its file list). One run checks On, then Auto, each in a new browser
+  context. Each GPU job ran through `scripts/machine run --gpu --threads 2`, after the yes of both coordinators
+  ([../working-notes.md](../working-notes.md), "The GPU in Playwright's Chromium"), on a Cyanotype preview with
+  engine-91ab0b7d. No job caused a driver reset (the engine repository's driver test, abscls-0qz.5).
+- **The first GPU job** (`abscls-8tl1.64-gpu`, 339 s, exit 1): a headless launch with no channel, so Playwright's
+  chrome-headless-shell, with the WebGPU flags. Every part said "The GPU did not start: 9943656". The board started 1
+  GPU worker and sent no search to it, and the bot started on the CPU workers. The CPU paths passed: the reviews of 3
+  turns took 103 s (On) and 95 s (Auto), and the board 64 s and 66 s.
+- **The GPU worker's start in Node** (`abscls-8tl1.64-gpu-start-cpu`, no GPU): the start with the files that the
+  build serves, on ONNX Runtime Web's CPU backend. createOrtEvaluator took 535 ms, createGpuEngines 155 ms and
+  loadModel 615 ms. query_version gave build 91ab0b7d, protocol 0.7.1 and the network b6c96-s47076224-d3087660. 16
+  searches of 64 visits took 273 s, in 64 batches of 1,024 positions. So the release, the graph, the sizes and the
+  site's start are not the cause.
+- **The first diagnosis** (`abscls-8tl1.64-gpu-diagnose`, 3 s, `scripts/cyanotype-gpu-diagnose.mjs`): three launches of
+  the shell. With the WebGPU flags, and with `--use-webgpu-power-preference=force-high-performance` added, WebGPU gave
+  the RTX 5080's adapter (nvidia, blackwell, not a fallback adapter). The browser logged "DynamicLib.Open: dxil.dll
+  Windows Error: 87", ONNX Runtime logged "WebGPU device lost (4): Device creation failed.", and createOrtEvaluator
+  threw the number 9937240. The review's line said "The GPU did not start: 9943656". With the engine repository's
+  flags alone, the shell gave no adapter ("Failed to query ID3D11Device from ANGLE", "No available adapters").
+- **The second diagnosis** (`abscls-8tl1.64-gpu-diagnose2`, 28 s): ONNX Runtime asked the device for the features
+  timestamp-query, shader-f16, subgroups and subgroup-size-control, and the adapter had each of them. The shell
+  refused the device: "OperationError: Failed to execute 'requestDevice' on 'GPUAdapter': DynamicLib.Open: dxil.dll
+  Windows Error: 87". Three launches made the device: Playwright's full Chromium (channel `chromium`, Chrome
+  153.0.8010.12) with the WebGPU flags and with the engine repository's flags, and the installed Chrome 156.0.8078.80
+  in a temporary profile folder. Each passed every step of the start. loadModel took 386, 644 and 404 ms, and 16
+  searches of 64 visits took 6.5, 4.9 and 5.2 s. In the full Chromium with the WebGPU flags, the review's line said
+  "In use, nvidia blackwell."
+- **The cause and the rule:** the shell ships no `dxil.dll` or `dxcompiler.dll`, and the full Chromium ships both and
+  makes the device. That fits as the cause, but it is not proven ([../working-notes.md](../working-notes.md), "Faults
+  with the WebGPU flags"). The rule: a run on the real GPU uses Playwright's full Chromium (the same note, "The GPU in
+  Playwright's Chromium"). The installed Chrome made the device too, so the site's code needs no change for this
+  cause. The diagnosis script keeps the shell and the full Chromium, and no longer launches the installed Chrome: the
+  repository's browser gate (`scripts/edge.mjs`) knows only Playwright's Chromium and Edge.
+- **The second GPU job** (`abscls-8tl1.64-gpu2`, the full Chromium): On passed every part. The review of 3 turns took
+  34 s ("In use, nvidia blackwell."), the board 12 s with 3 searches on the GPU, and the bot played "on the GPU." with
+  a turn of 1.4 s. Auto's review of 3 turns then waited 601 s on "In use. Testing its speed against a worker…": the
+  first-use test needs 20 s of searches on the GPU (Hedge School's design 15, item 4), and that review gave it less.
+  The job went past its booking (`--expect 10`), and the coordinator stopped it at 15 min 38 s. The GPU was not 50%
+  busy during that time: the test waited, and it did not compute.
+- **The changes after it:** the check gives Auto the review of the whole test game, and waits only for the GPU's
+  line. Each wait has a limit, the run stops at 7.5 minutes, and a watchdog ends it 20 s later. A GPU that leaves the
+  pool now ends no first-use test ([engine.md](engine.md), "The GPU's first-use test when the GPU leaves the pool").
+- **The third GPU job** (`abscls-8tl1.64-gpu3`, 79 s, exit 0): PASS. With On, the review of 3 turns took 26 s ("In
+  use, nvidia blackwell."), the board 11 s (21 candidates, 1 GPU worker, 3 searches on the GPU), and Practice 2 s (the
+  bot "on the GPU.", a turn of 1.2 s). With Auto, the review took 25 s ("In use, nvidia blackwell: 12 times a worker's
+  speed."), the board 12 s (3 searches on the GPU), and Practice 3 s (the bot on the GPU, a turn of 1.2 s).
+- **Not covered:** after a review too short for the test, Auto's line stays "Testing" until more work comes
+  (abscls-11cl). The check's later changes ran only off the GPU (`--cpu`): Auto's bot must follow the review's test,
+  and the GPU's line is read once.

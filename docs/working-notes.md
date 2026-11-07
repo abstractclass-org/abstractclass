@@ -203,9 +203,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     - **The diagnostic script stays for a later fault:** `scripts/cyanotype-gpu-diagnose.mjs` logs each adapter's
       info, features and limits. It logs the device that ONNX Runtime asks for and how the request ends. It logs
       each step of the GPU worker's start, and the page's, the workers' and the browser's own messages. It is a
-      GPU-path run: it starts only after both coordinators' yes, through `scripts/machine run --gpu`. It does not
-      keep to the full Chromium: it launches the headless shell as a control, and the installed Chrome in a new
-      temporary profile folder that it removes after the launch. With `--cpu` it checks itself off the GPU.
+      GPU-path run: it starts only after both coordinators' yes, through `scripts/machine run --gpu`. Beside the full
+      Chromium, it launches the headless shell as a control. It uses only Playwright's browsers, through the
+      repository's browser gate (`scripts/edge.mjs`). With `--cpu` it checks itself off the GPU.
   - **Off the GPU, for a run that needs no WebGPU** (the layout test, Cyanotype's practice games): with
     `--disable-gpu` alone, Chromium's GPU process (`--type=gpu-process --use-angle=swiftshader-webgl`) still opens the
     RTX 5080's adapter. Windows' GPU Engine counters list it there, with 0 KB of GPU memory and 0% on every engine,

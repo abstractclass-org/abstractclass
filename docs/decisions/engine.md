@@ -1266,3 +1266,22 @@ has 16 logical cores. Three runs of each, the median and the range:
   is published with the GPU module and the threaded bot (abscls-wqdl.4)"). Runs of 1 worker outside
   `scripts/machine run`, while the machine was busy, gave answers about 3 seconds apart with the release
   engine-3ac5c2fc, and 2.6, 3.1 and 3.2 seconds apart with engine-91ab0b7d. Not measured: what the player sees of it.
+
+### The GPU's first-use test when the GPU leaves the pool (2026-11-07)
+
+- **The problem,** found on the CPU during Cyanotype's GPU-path checks (abscls-8tl1.64): `measureGpu`
+  (`packages/engine/src/pool.ts`) said that its wait never resolves when the GPU leaves the pool first, but `dropGpu`
+  kept the wait. The idle release drops the GPU during a first-use test ("The GPU in the review", design 15, item 4).
+  The next backlog then starts the GPU and a second test (`packages/analysis/src/gpu.svelte.ts`, `start`). When the
+  counts reach 20 s, both waits end: `start` goes on twice, keeps the test twice and sends the event `gpu_test` twice.
+  A wait that Off or a lost GPU left behind can also end later, on the CPU workers' searches alone, when the GPU's
+  20 s were counted before the drop. `start` then keeps the test, sends `gpu_test`, and shows "In use" with the
+  setting Off.
+- **The change:** `dropGpu` calls `SpeedMeter.abandon()`, which drops the waits: the test that waited never ends. The
+  counts stay, so the next GPU's test goes on from them, as before. The dropped wait's memory is freed too.
+- **Both sites:** Hedge School's pools released their idle workers before. Cyanotype's do too since "Cyanotype's
+  engine pool at Hedge School's size", so the idle release during a test reaches both sites.
+- **Checked:** `packages/engine/src/pool.test.ts`, "the GPU's first-use test: a GPU that left the pool ends no test,
+  and the next GPU's test goes on from the counts". It drives the pool's `addGpu`, `measureGpu` and `dropGpu` with a
+  fake clock. Without the call, both tests end (`["first", "second"]`). With it, only the second ends, on the two
+  GPUs' 10 s together. The engine package's 19 tests pass.

@@ -1209,8 +1209,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   pages off the GPU, where the board starts no GPU worker and the bot starts on the CPU workers.
 - `apps/hedgeschool/scripts/cyanotype-gpu-diagnose.mjs`: a diagnosis of the GPU worker's start on Cyanotype's preview,
   for a GPU that does not start. It prints the adapters, the device that ONNX Runtime asks for, and each step of the
-  start, in several browsers. It is a GPU-path run too ([working-notes.md](../working-notes.md), "Faults with the
-  WebGPU flags").
+  start, in Playwright's full Chromium and in its headless shell, the control. It is a GPU-path run too
+  ([working-notes.md](../working-notes.md), "Faults with the WebGPU flags").
 - `apps/hedgeschool/scripts/measure/pool-start.mjs`: the start of the engine's pool on the Analysis board of a build
   of either site, on the CPU: each worker's start and memory, the time of the search's answers and of a visit, and the
   memory of the browser's renderers ([decisions/engine.md](../decisions/engine.md), "Cyanotype's engine pool at Hedge
