@@ -186,6 +186,7 @@ export class EnginePool {
     if (!gpu) return;
     this.gpu = null;
     clearInterval(this.sampler);
+    this.speed.abandon(); // its first-use test, if one runs, never ends (measureGpu)
     gpu.terminate(); // its searches reject, and gpuLost puts their tasks back in the queue
     for (const e of this.free.filter(e => e.kind === "gpu")) e.terminate();
     this.free = this.free.filter(e => e.kind !== "gpu");
@@ -366,6 +367,10 @@ export class SpeedMeter {
 
   /** Another GPU worker: its count starts from zero. */
   gpuReset() { this.last = null; }
+
+  /** The GPU left the pool: the waits so far never resolve, so the test that waited does not end twice when the next
+   *  GPU's test ends. The counts stay: the next GPU's test goes on from them. */
+  abandon() { this.waiting = []; }
 
   /** A CPU worker's visits a second, over every search that ended, or null before one ends. */
   get cpuRate(): number | null { return this.cpu.ms > 0 ? (1000 * this.cpu.visits) / this.cpu.ms : null; }
