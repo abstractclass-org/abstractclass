@@ -2,6 +2,7 @@
 // earlier engine's review, which opens as a review snapshot.
 import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
+import { MAP_PREFIX, analysisKey, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 
 /** The Review tab's file input. */
 export const fileInput = (page: Page) => page.locator('input[type="file"][accept*="json"]');
@@ -16,7 +17,7 @@ export async function loadReviewFile(page: Page, file: ReviewFileInput) {
 }
 
 /** The search of an earlier engine: not the site's. A review snapshot of an earlier engine leaves it out. */
-export const EARLIER_SEARCH = "earlier-search";
+const EARLIER_SEARCH = "earlier-search";
 
 /** The review file at `path` as a review by an earlier engine: its review names an engine module that no site ships,
  *  and its results are of the search EARLIER_SEARCH. The import then keeps the file's review as an earlier engine's
@@ -27,13 +28,11 @@ export function earlierReview(path: string, { named = true, keep = () => true, m
                                 { named?: boolean; keep?: (edges: number) => boolean; maps?: boolean } = {}): ReviewFileInput {
   const file = JSON.parse(readFileSync(path, "utf8"));
   file.review = { ...file.review, module: "0".repeat(64), ...(named ? { search: EARLIER_SEARCH } : {}) };
-  // A result's key: shape|search|model|visits|moves, and an added map's has "map|" before it
-  // (@abstractclass/analysis/cache.ts, analysisKey and mapKey)
   file.analyses = file.analyses.flatMap(([key, value]: [string, Record<string, unknown>]) => {
-    const parts = key.split("|"), at = key.startsWith("map|") ? 1 : 0, moves = parts[at + 4];
-    if (!keep(moves ? moves.split(" ").length : 0)) return [];
-    parts[at + 1] = EARLIER_SEARCH;
-    return [[parts.join("|"), maps ? value : { ...value, ownership: undefined }]]; // JSON leaves out undefined
+    const k = readAnalysisKey(key), moves = k.moves ? k.moves.split(" ") : [];
+    if (!keep(moves.length)) return [];
+    const earlier = (k.map ? MAP_PREFIX : "") + analysisKey(EARLIER_SEARCH, k.model, moves, k.visits, k.shape);
+    return [[earlier, maps ? value : { ...value, ownership: undefined }]]; // JSON leaves out undefined
   });
   return { name: "earlier-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
 }

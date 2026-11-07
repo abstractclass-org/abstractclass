@@ -147,7 +147,7 @@
   import LabelBadge from "./LabelBadge.svelte";
   import { nameSize } from "./nameSize.ts";
   import { NOT_ANALYZED, noSearchReason, unlabeledText } from "./searchWait.ts";
-  import { visitsText } from "./searchLine.ts";
+  import { searchFill, visitsText } from "./searchLine.ts";
   import { LINE_STEP_MS, LineDrawing } from "./lineDrawing.svelte.ts";
   import { imageLine, lineFrames } from "./lineImage.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -1614,8 +1614,8 @@
   const searching = $derived(!!game && (threatOn ? threatState === "searching" : game.focusing === here));
   // A search of it runs or waits to run (the review's stages, or the threat's search behind others): its visits can
   // still grow. The visits line gives the budget only then (searchLine.ts).
-  const searchGoesOn = $derived(searching || (!!game && (threatOn ? threatState === "waiting" : game.pending(path))));
-  const searched = $derived(shownSearch && deepVisits ? (timedOut ? 1 : Math.min(1, shownSearch.visits / deepVisits)) : null);
+  const searchGoesOn = $derived(searching || (threatOn ? threatState === "waiting" : !!game?.pending(path)));
+  const searched = $derived(shownSearch ? searchFill({ visits: shownSearch.visits, budget: deepVisits, timedOut }) : null);
   // The threat's line in the header's third row, in the place of the position's difficulty: what the pass costs the
   // player, or why it shows nothing. Text that a player follows: strict Simplified Technical English. `busy`: work goes
   // on, as the area map's note shows it.

@@ -23,7 +23,7 @@
 // running first).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { earlierReview, loadReviewFile } from "./review-file.ts";
+import { earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewTestGame, storeReview, toolLink }
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
@@ -142,10 +142,10 @@ async function sweep(page: Page, label: string, ownRules?: OwnRules, heights = H
   return found.length ? report(label, found) : "";
 }
 
-/** Loads the fixture's review file in the Review tab, which opens its review. */
-async function reviewedGame(page: Page) {
+/** Loads a review file in the Review tab, the fixture's by default, which opens its review. */
+async function reviewedGame(page: Page, file: ReviewFileInput = FIXTURE) {
   await page.goto("/review");
-  await loadReviewFile(page, FIXTURE);
+  await loadReviewFile(page, file);
   await page.waitForURL(/#game=/);
 }
 
@@ -488,8 +488,7 @@ test("layout of a review", async ({ page }) => {
 // the sweep takes one.
 test("layout of the area map's note in a review snapshot", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
-  await page.goto("/review");
-  await loadReviewFile(page, earlierReview(FIXTURE, { maps: false }));
+  await reviewedGame(page, earlierReview(FIXTURE, { maps: false }));
   await expect(page.getByText(/^Reviewed on .+ with an earlier version of the engine\.$/)).toBeVisible({ timeout: 60_000 });
   // The map on, before the game's last move: the game's end has a note of its own, and the book, where the early
   // edition has it, holds neither position

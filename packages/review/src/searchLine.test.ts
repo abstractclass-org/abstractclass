@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { visitsText } from "./searchLine.ts";
+import { searchFill, visitsText } from "./searchLine.ts";
 
 const running = { visits: 1234, budget: 4096, goesOn: true, timedOut: false };
 
@@ -28,4 +28,11 @@ test("a time limit drops the budget also while the search seems to go on", () =>
 
 test("a page with no budget gives the visits alone", () => {
   assert.equal(visitsText({ ...running, budget: 0 }), "1,234 visits");
+});
+
+test("the bar fills to the budget, at a time limit, and not without a budget", () => {
+  assert.equal(searchFill({ visits: 1024, budget: 4096, timedOut: false }), 0.25);
+  assert.equal(searchFill({ visits: 5000, budget: 4096, timedOut: false }), 1);
+  assert.equal(searchFill({ visits: 1024, budget: 4096, timedOut: true }), 1);
+  assert.equal(searchFill({ visits: 1024, budget: 0, timedOut: false }), null);
 });
