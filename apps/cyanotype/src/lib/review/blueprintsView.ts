@@ -61,8 +61,8 @@ export const blueprintsView: ViewGame<Blueprints> = {
   },
   Shape: MoveShape,
   shape: {
-    name: "Pictures",
-    help: "Each move as a small picture, a dot, or its notation. A placement is a hex with the number of its blueprint. An edit is the cell that it moves, with an arrow. In the engine's line, the dots show the numbers of the board.",
+    name: "Hexes",
+    help: "Each move as a small hex, a dot, or its notation. A placement is a hex with the number of its blueprint. An edit is the cell that it moves, with an arrow. In the engine's line, the dots show the numbers of the board.",
   },
   // A move's text: as wide as its own (its glyphs: a box, the hex and +N). Moves run from 5 to 19 characters, so two do
   // not fit a row of the side column: each move has a row of its own.

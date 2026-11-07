@@ -1982,7 +1982,9 @@
            list's left, so that a variation's row has the list's whole width. One line for each note, and a note said
            twice in a turn once (a turn of two Great edges). By turn, the turn's. Then the variations from the turn's
            positions, the lines from one position under one rule, and under a Mistake's or a Blunder's note, the
-           engine's best line among them (turnGroups). -->
+           engine's best line among them (turnGroups). A note's moves in glyphs (`glyphs`) sit on the middle of its
+           line, as a name's in the table: an edit's begins with its cell's picture, whose baseline is its lower edge,
+           so on the text's baseline it would stand higher than the move beside it (a turn's two moves). -->
       {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player)
         ? [partsOf(view.turnShortNote(t, R.data.positions[t.start]))] : [])
         : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => partsOf(view.shortNote(e, R.data.positions[e.index]))))}
@@ -1994,7 +1996,7 @@
       {#if notes.length || groups.some(g => g.rows.length) || folds.some(Boolean)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (noteText(note))}
-            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class={SIDE_TEXT[part.player]}>{@render written(part)}</span>{/if}{/each}</div>
+            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class="{SIDE_TEXT[part.player]} [&>*]:align-middle">{@render written(part)}</span>{/if}{/each}</div>
           {/each}
           {#each groups as g, k (k)}
             {@const f = folds[k]}
@@ -2830,10 +2832,11 @@
 
     <!-- The step controls and the display settings' button, at the bottom of the analysis column (Lichess's place), in
          the bar that Practice shares (StepBar), under the status line. On a phone the bar is fixed to the bottom of the
-         window, the status line with it: it says what an edge on the board needs next. -->
+         window, the status line with it: it says what an edge on the board needs next. A move in glyphs sits on the
+         middle of the line, as in a note. -->
     <StepBar class="mt-1.5 pt-1.5 border-t border-line" onfirst={() => setPath([])} onback={back} onforward={forward} onlast={toEnd}>
       {#snippet above()}<p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{#if statusMove}{statusMove.before}<span
-        class={SIDE_TEXT[statusMove.played.player]}>{@render written(statusMove.played)}</span>{statusMove.after}{:else}{statusLine}{/if}</p>{/snippet}
+        class="{SIDE_TEXT[statusMove.played.player]} [&>*]:align-middle">{@render written(statusMove.played)}</span>{statusMove.after}{:else}{statusLine}{/if}</p>{/snippet}
       {#snippet tools()}
         <!-- The page's menus: New on the Analysis board (design 21), and Export (design 13) -->
         {@render pageTools?.(display.judge)}

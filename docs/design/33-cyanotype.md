@@ -575,9 +575,12 @@ build). The decision log gives the measurements that led to each choice.
    - **Text:** the notation of items 5 and 6, as the Notation page gives it (`2@-3,-9x+12`, `1:-1,2>2:0,4`).
    - The setting writes the move list, its notes ("Mistake. … was best."), the status line, the variations and the
      engine's line in the form "Notation", and the candidates' table. A screen reader reads the text in both forms.
+   - In a line of text (a note, the status line, a name in the table), a move's glyphs sit on the middle of the line.
+     An edit begins with its cell's picture, whose baseline is its lower edge: on the text's baseline, the edit
+     would stand about 3 pixels higher than a placement beside it, as the two moves of a turn's note do.
    - A candidate, a note's best move and a line's move before the rules play it have no capture mark, in both forms:
      what they capture is not known yet.
-5. **The small pictures** (the variations' form "Pictures", and the engine's line under the table): a placement is a
+5. **The small hexes** (the variations' form "Hexes", and the engine's line under the table): a placement is a
    hex in the mover's colour with its blueprint's number in it, which tells the hand that the move plays. An edit is
    its cell, with its kind, and an arrow drawn out of it, as one glyph. A pass is a dot. The engine's line has no
    numbers in this form: a number beside the hex would read as the blueprint's number, and the board numbers the
@@ -738,7 +741,7 @@ position from move 10. Counts only: the archive's games are other people's, and 
   to 7 characters, and two fit, as Lichess's moves do.
 - **The setting "Move notation"** (item 4): a Blueprints move reads in two forms, strategyjam.org's glyphs and its
   notation. Enclosure's edge has one form, its notation.
-- **The small pictures, and no numbers in the engine's line in "Pictures"** (item 5): Hedge School's pill lies along
+- **The small hexes, and no numbers in the engine's line in "Hexes"** (item 5): Hedge School's pill lies along
   its edge and holds the line's number. Blueprints' hex holds the blueprint's number, so the line's number goes.
 - **The table's names, each sized to its cell, in the monospaced font, by the notation setting** (item 9): Blueprints'
   names have 5 to 19 characters, so one size for every name in a cell would make the short ones small. Enclosure's
@@ -1130,7 +1133,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
 - `apps/cyanotype/src/routes/review/` and `src/routes/analysis/`: the review and the Analysis board, in the shared
   view (`@abstractclass/review/ReviewView.svelte`). `src/lib/review/`: Blueprints' part of the view
   (`blueprintsView.ts`), its game for the analysis (`blueprints.ts`, with the glyphs' parts and the notes), the board
-  (`ReviewBoard.svelte`), the glyphs (`MoveLabel.svelte`), the small pictures (`MoveShape.svelte`), the table's least
+  (`ReviewBoard.svelte`), the glyphs (`MoveLabel.svelte`), the small hexes (`MoveShape.svelte`), the table's least
   size (`table.ts`), the display settings (`display.ts`), and the area map kept for later (`blueprintsMap.ts`).
   `src/lib/board/chips.ts`: the hands' rank chips. The player's notes ("The player's notes"): `notes.ts` and the
   notes' colours (`review.css`) in `packages/review`, which both sites use, and their keys (`NOTE_KEYS`) and drawing
@@ -1190,5 +1193,6 @@ review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02
 Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05),
 "Cyanotype's engine from Blueprints' first release" (2026-11-05), "Cyanotype's build without ONNX Runtime's
 WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), "Cyanotype's board editor and a
-Blueprints position's notation" (2026-11-07), and "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"
-(2026-11-07). The earlier entries name the site by its first name, Drawing Board.
+Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"
+(2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), and "Cyanotype's variations in
+"Hexes"" (2026-11-07). The earlier entries name the site by its first name, Drawing Board.

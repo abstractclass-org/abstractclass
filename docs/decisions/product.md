@@ -9133,3 +9133,33 @@ three forms.
   of the test game's first 3 turns and Practice with the GPU On, and with `--auto` the GPU's first-use test. Its
   `--cpu` form ran here, off the GPU, and passed: the engine settings said that the browser cannot use the GPU, and
   the bot started on the CPU workers and played its first turn.
+
+### A note's moves in glyphs on the middle of the line (2026-11-07)
+
+Design 33 ("The review and the Analysis board", item 4) changed (abscls-8tl1.29). In Cyanotype's review by turn, a
+Mistake's note ("Mistake. … was best.") names the engine's better turn, two moves in glyphs on one line of text. The
+edit's glyphs stood about 3.4 pixels higher than the placement's beside them: at 1,376 pixels, the edit's boxes from
+608.4 to 620.3 pixels and the placement's from 611.8 to 623.7.
+
+- **The cause:** a move's glyphs (Cyanotype's `MoveLabel.svelte`) are one inline flex box, which sits on the text's
+  baseline by its first part's baseline. A placement begins with its blueprint's box, whose digit has a text baseline.
+  An edit begins with its cell's picture, an SVG, whose baseline is its lower edge. The candidates' table met the same
+  cause, and sets each name's glyphs on the middle of its line (`[&>*]:align-middle`).
+- **Before this branch too:** dev at af6fdca, built apart with its own stored review (Stamp Duty 0.1), has one Mistake
+  by turn (turn 15, "3:0,0>2:3,2 2@-7,-14 was best."), with the edit's boxes 3.3 pixels higher. Stamp Duty 0.2's
+  review has six Mistakes by turn, each with an edit and then a placement, so the fault shows more often.
+- **The fix,** in the shared view (`packages/review/src/ReviewView.svelte`): a note's moves and the status line's move
+  sit on the middle of their line, as a name does in the table. After it, the boxes' tops are equal at 1,376 and at
+  390 pixels. Hedge School writes its moves as text, with no glyphs, so its notes and its status line are as before.
+  The engine's line under a note was not at fault: its moves are flex items, centred in their row.
+- **The check:** `cyanotype-review.spec.ts` measures the boxes' tops in each Mistake's note by turn that names an edit
+  and a placement, at 1,376 and at 390 pixels: they must differ by less than half a pixel.
+
+### Cyanotype's variations in "Hexes" (2026-11-07)
+
+Design 33 ("The review and the Analysis board", item 5) changed (abscls-8tl1.29). The first choice of the display
+setting "Variations and lines" on Cyanotype is named "Hexes", not "Pictures". Hedge School names the same choice
+"Pills", by its mark. Cyanotype's mark is no longer a picture of the blueprint: a placement is a small hex with its
+blueprint's number, and an edit is its cell with an arrow. So the name says what the mark is. Its help says "Each
+move as a small hex, a dot, or its notation." Only the name and its help changed: the setting's stored value stays
+`pills`, so a visitor's setting is kept.

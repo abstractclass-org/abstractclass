@@ -1,9 +1,10 @@
 // Cyanotype's review (its design 33) on its preview (CYANOTYPE_BASE_URL): the review's test game up to turn 20, from
 // the stored review of the engine's real replies (cyanotype-review.ts), with the engine on at Lite as in a live review,
 // in one page that the tests share in turn. The tests check the candidates' table's Move header (move-header.ts), the
-// display setting "Move notation", the marks of a turn's two moves by turn and by move, the hands' rank chips with
-// "+N", that the page has no area map, and the player's notes (cyanotype-notes.ts) by position and while a preview
-// shows. The page asks the engine for no search: cyanotype-live-review.spec.ts reviews with the engine. And the
+// display setting "Move notation", the marks of a turn's two moves by turn and by move, the two moves of a Mistake's
+// note on one line, the hands' rank chips with "+N", that the page has no area map, and the player's notes
+// (cyanotype-notes.ts) by position and while a preview shows. The page asks the engine for no search:
+// cyanotype-live-review.spec.ts reviews with the engine. And the
 // Analysis board's check of a record brought to it. Without the engine's files the tests skip, with a message. Run:
 // npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
@@ -157,6 +158,28 @@ test("by turn and by move, the board marks the same moves: both moves of the tur
   await expect(page.locator("p", { hasText: /^Preview: / })).toBeVisible();
   await expect.poll(async () => (await marks()).outlines).toEqual(seen["move 7"].outlines);
   await page.mouse.move(2, 2);
+});
+
+test("by turn, a Mistake's note writes the engine's two moves in glyphs on one line: their boxes line up", async () => {
+  // The stored review's Mistakes by turn each name a better turn of an edit and a placement. An edit's glyphs begin
+  // with its cell's picture, whose baseline is its lower edge: on the text's baseline it stood 3.4 pixels above the
+  // placement beside it. The view sets each note's move on the middle of the line, as the table does.
+  for (const [w, h] of [[1376, 952], [390, 844]]) {
+    await open(w, h, { judge: "turn", notation: "glyphs", notes: true });
+    const notes = page.locator(".movelist div.truncate[title]").filter({ hasText: /^Mistake\. / });
+    await expect(notes.first()).toBeVisible();
+    /** Each note's moves: the move's notation (its screen reader's text), and the tops of its blueprints' boxes. */
+    const moves = await notes.evaluateAll(all => all.map(n => [...n.children].map(m => ({
+      name: m.querySelector(".sr-only")?.textContent ?? "",
+      tops: [...m.querySelectorAll("span.bg-current")].map(b => b.getBoundingClientRect().top),
+    }))));
+    const turns = moves.filter(n => n.length === 2 && n.some(m => m.name.includes(">")) && n.some(m => m.name.includes("@")));
+    expect(turns.length, `${w} px: a Mistake's note with an edit and a placement`).toBeGreaterThan(0);
+    for (const n of turns) {
+      const tops = n.flatMap(m => m.tops);
+      expect(Math.max(...tops) - Math.min(...tops), `${w} px: ${n.map(m => m.name).join(" ")}: its boxes' tops`).toBeLessThan(0.5);
+    }
+  }
 });
 
 /** A stored result's candidate, as far as this file reads it. */
