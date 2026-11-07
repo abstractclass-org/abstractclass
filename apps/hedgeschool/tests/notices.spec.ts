@@ -9,7 +9,7 @@
 //   - The engine's section (NoticesPage.svelte): its links to the release's LICENSE.txt and NOTICES.txt open the
 //     files that the site ships, the outputs paragraph is LICENSE.txt's section "The engine's outputs" word for word,
 //     KataGo's copyright notice is NOTICES.txt's, the list of works has each version of NOTICES.txt's contents, and
-//     Eigen is in the modules that evaluate on the CPU, as the list says. The build's ONNX Runtime files are the
+//     Eigen is in the modules that run the network on the CPU, as the list says. The build's ONNX Runtime files are the
 //     version that the page names. A build with no engine files (before `npm run engine`) skips this test, and fails
 //     it in CI, where the Tests workflow builds each site with them.
 // Run: npm run test:layout -- tests/notices.spec.ts
@@ -58,11 +58,11 @@ for (const [site, url] of Object.entries({
       `https://github.com/microsoft/onnxruntime/blob/v${ORT_VERSION}/ThirdPartyNotices.txt`);
   });
 
-  test(`${site}'s Notices page links to the engine's terms and notices that the site ships`, async ({ page }) => {
+  test(`${site}'s Notices page agrees with the engine's files that the site serves`, async ({ page }) => {
     test.skip(!url, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     await page.goto(url);
     const manifest = await page.request.get(new URL("/engine/manifest.json", page.url()).href);
-    const noEngine = "the build has no engine files: run `npm run engine` before its build";
+    const noEngine = "the build has no engine files: run `npm run engine` in the site's folder before its build";
     if (!manifest.ok() && process.env.CI) throw new Error(noEngine);
     test.skip(!manifest.ok(), noEngine);
     const ids: string[] = (await manifest.json()).artifacts.map((a: { id: string }) => a.id);

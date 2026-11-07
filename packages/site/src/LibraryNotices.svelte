@@ -1,15 +1,25 @@
 <script lang="ts">
-  // The works of others that the sites' pages ship (design 11), on each site's notices page, inside its text style
-  // (prose.ts). The libraries are under the MIT licence. The page gives the copyright line of each library, as its
-  // node_modules/*/LICENSE has it, and then the licence's text. The font Fira Code (site.css) is under the SIL Open
-  // Font License 1.1. That licence asks that each copy of the font carries its copyright line and the licence. The page
-  // gives both word for word from the package's LICENSE file (apps/hedgeschool/tests/notices.spec.ts compares them).
+  // The works of others that the sites' pages ship (design 11), on each site's notices page (NoticesPage.svelte),
+  // inside its text style (prose.ts): the libraries, ONNX Runtime Web and the font. The libraries are under the MIT
+  // licence. The page gives the copyright line of each library, as its node_modules/*/LICENSE has it, and then the
+  // licence's text. The font Fira Code (site.css) is under the SIL Open Font License 1.1. That licence asks that each
+  // copy of the font carries its copyright line and the licence. The page gives both word for word from the package's
+  // LICENSE file (apps/hedgeschool/tests/notices.spec.ts compares them).
+  // The libraries are the packages whose code the sites' JavaScript holds. A build with source maps lists them
+  // (`node ../../node_modules/vite/bin/vite.js build --sourcemap` in a site's folder: the packages under node_modules
+  // in the maps' `sources`). Floating UI's are @floating-ui/core, dom and utils. esm-env leaves only constants. Tailwind
+  // CSS is in the style sheet, and ONNX Runtime Web has its own section below.
   const MIT = [
     ["Svelte", "https://github.com/sveltejs/svelte", "Copyright (c) 2016-2025 Svelte Contributors"],
+    ["clsx", "https://github.com/lukeed/clsx", "Copyright (c) Luke Edwards"],
     ["SvelteKit", "https://github.com/sveltejs/kit", "Copyright (c) 2020 SvelteKit contributors"],
+    ["devalue", "https://github.com/sveltejs/devalue",
+      "Copyright (c) 2018-19 these people (https://github.com/rich-harris/devalue/graphs/contributors)"],
     ["Bits UI", "https://github.com/huntabyte/bits-ui", "Copyright (c) 2023 Hunter Johnston"],
     ["Runed", "https://github.com/svecosystem/runed", "Copyright (c) 2024 Hunter Johnston"],
     ["svelte-toolbelt", "https://github.com/svecosystem/svelte-toolbelt", "Copyright (c) 2024 Hunter Johnston"],
+    ["style-to-object", "https://github.com/remarkablemark/style-to-object", 'Copyright (c) 2017 Menglin "Mark" Xu'],
+    ["inline-style-parser", "https://github.com/remarkablemark/inline-style-parser", "Copyright (c) 2012 TJ Holowaychuk"],
     ["Floating UI", "https://github.com/floating-ui/floating-ui", "Copyright (c) 2021-present Floating UI contributors"],
     ["tabbable", "https://github.com/focus-trap/tabbable", "Copyright (c) 2015 David Clark"],
     ["esm-env", "https://github.com/benmccann/esm-env", "Copyright 2022 Benjamin McCann"],

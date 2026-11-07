@@ -1089,10 +1089,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   header's bar over the page's own scrolling area, with each page's scroll place),
   `theme.svelte.ts` and `ThemeMenu.svelte` (the theme, under each site's own key), `PageMeta.svelte` and
   `origin.ts` (each page's metadata, from the site's live address), `prose.ts` (the pages' text style), the
-  notices page (`NoticesPage.svelte`: the site's terms, the engine's terms from each site's lock, the works in the
-  engine's modules and the Excellent label's icon, with `LibraryNotices.svelte` for the libraries, ONNX Runtime Web
-  and the font Fira Code that the pages ship), and `themeTokens.ts` (the colour tokens of a site's style sheets in
-  each theme, read in Node by Hedge School's `symbolShades.test.ts` and the hub's
+  notices page (`NoticesPage.svelte`, and `LibraryNotices.svelte` for the libraries, ONNX Runtime Web and the font
+  Fira Code that the pages ship), and `themeTokens.ts` (the colour tokens of a site's style sheets in each theme, read
+  in Node by Hedge School's `symbolShades.test.ts` and the hub's
   `scripts/enclosure-board.mjs`, for the checks that compare colours). Each site's root layout gives `SiteFrame`
   what its header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge
   School's Support Us dialog stays in Hedge School. `SiteMenu.svelte`: the site's menu on a narrow screen (design 22),

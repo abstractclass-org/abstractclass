@@ -38,8 +38,8 @@
     return `/engine/${a.dir ?? a.id}/${a.file}`;
   };
 
-  // The works in the engine's modules, as each release's NOTICES.txt lists them. Eigen is in the modules that evaluate
-  // the network on the CPU: the engine's CPU module, the one-thread practice bot and the evaluator.
+  // The works in the engine's modules, as each release's NOTICES.txt lists them. Eigen is in the modules that run the
+  // network on the CPU: the engine's CPU module, the one-thread practice bot and the evaluator.
   const IN_MODULE = [
     "KataGo (MIT), with its sha2.cpp from Aaron D. Gifford's SHA-2 (BSD-3-Clause)",
     "JSON for Modern C++ 3.8.0, by Niels Lohmann (MIT)",
@@ -81,7 +81,7 @@
 
   <h2>{sounds ? "An icon and the sounds" : "An icon"}</h2>
   <ul>
-    <!-- The mark of the quality label Excellent: packages/analysis's model.ts, THUMB_UP. -->
+    <!-- The icon of the quality label Excellent: packages/analysis's model.ts, THUMB_UP. -->
     <li>The thumbs-up of the Excellent quality label: <a href="https://fonts.google.com/icons">Material Design Icons</a>' "thumb_up",
       by Google, under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>.</li>
     {@render sounds?.()}

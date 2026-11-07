@@ -9267,11 +9267,11 @@ Design 33's gap list changed (abscls-8tl1.60, with abscls-mpx0). Cyanotype's Not
 section and the libraries and the font. Hedge School's page also had the engine's section and the icon and the sounds.
 Both sites ship ONNX Runtime Web 1.30.0 for the engine on the GPU, and neither page named it.
 
-- **What Cyanotype ships of others' work:** its build, with the files of the lock's release `engine-91ab0b7d`, holds
-  the engine's files (the modules, the JavaScript files, the network and its graph, `LICENSE.txt` and
-  `NOTICES.txt`), ONNX Runtime Web's two files (`engine/ort-1.30.0/`) and its JavaScript in the GPU worker, the
-  libraries of the pages, the font Fira Code (seven `woff2` files) and the thumbs-up of the Excellent label (in the
-  review's code, from `packages/analysis`). It ships no sounds. Its logo, its card and its icons are its own.
+- **What Cyanotype ships of others' work:** its build holds the files of the lock's release `engine-91ab0b7d`: the
+  modules, the JavaScript files, the network and its graph, `LICENSE.txt` and `NOTICES.txt`. It also holds ONNX
+  Runtime Web's two files (`engine/ort-1.30.0/`) and its JavaScript in the GPU worker. The pages ship the libraries,
+  the font Fira Code (seven `woff2` files) and the thumbs-up of the quality label Excellent (in the review's code,
+  from `packages/analysis`). Cyanotype ships no sounds. Its logo, its card and its icons are its own.
 - **One shared page,** `packages/site/src/NoticesPage.svelte` (design 29), so that one change serves both sites and
   no copy stays between them. It holds the site's section, the engine's section (moved from Hedge School's page) and
   the icon's section, with `LibraryNotices.svelte` between them. Each site gives its name, the holder, its engine's
@@ -9289,10 +9289,15 @@ Both sites ship ONNX Runtime Web 1.30.0 for the engine on the GPU, and neither p
   repository's `LICENSE` give. The JavaScript that the build bundles holds ONNX Runtime's own code only. Its
   WebAssembly module also contains works of others, which the repository's `ThirdPartyNotices.txt` lists. The page
   links to that file at the tag `v1.30.0`.
-- **Hedge School's page** is otherwise as before: the same sections and words, in the same order, with the section
-  "The engine on the GPU" after the libraries.
-- **The checks:** `notices.spec.ts`, on both sites, compares the page with the files: ONNX Runtime Web's version and
-  copyright line with `node_modules/onnxruntime-web`, the build's ONNX Runtime files with that version, the links of
-  the engine's section with the files that the site serves, the outputs paragraph with the shipped `LICENSE.txt`, and
-  KataGo's notice, the versions of the works and Eigen's modules with the shipped `NOTICES.txt`. A build with no
-  engine files skips that test, and fails it in CI. The layout sweep (`layout.spec.ts`) now covers both Notices pages.
+- **Four more libraries:** the pages of both sites ship four MIT works that the list did not name. They are clsx
+  (Svelte's and svelte-toolbelt's), devalue (SvelteKit's), and style-to-object and inline-style-parser
+  (svelte-toolbelt's). The list now gives their copyright lines. A build with source maps lists the packages that the
+  pages' JavaScript holds, and `LibraryNotices.svelte` tells how to make it.
+- **Hedge School's page** is otherwise as before: the same sections and words, in the same order. It has the section
+  "The engine on the GPU" after the libraries, the four libraries in their list, and Eigen's line.
+- **The checks:** `notices.spec.ts` compares each site's page with the files. ONNX Runtime Web's version and
+  copyright line are those of `node_modules/onnxruntime-web`, and the build's ONNX Runtime files have that version.
+  The links of the engine's section open the files that the site serves. The outputs paragraph is the shipped
+  `LICENSE.txt`'s. KataGo's notice, the versions of the works and Eigen's modules agree with the shipped
+  `NOTICES.txt`. A build with no engine files skips that test, and fails it in CI. The layout test
+  (`layout.spec.ts`) now covers both Notices pages.

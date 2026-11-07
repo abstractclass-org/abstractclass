@@ -327,9 +327,9 @@ read the game from the player's own page.
   for a deleted game: `keepBranches` in `packages/analysis/src/analysis.svelte.ts`.
 - The pages: `src/routes/{about,notation,developers,privacy,notices}/+page.svelte`, `src/lib/SiteFooter.svelte`,
   `packages/site/src/prose.ts` (their text style). The notices page is `packages/site/src/NoticesPage.svelte`, which
-  Cyanotype's page shows too: the site's terms, the engine's terms and the works in its modules, the Excellent label's
-  icon, and `packages/site/src/LibraryNotices.svelte` (the pages' libraries, ONNX Runtime Web and the font Fira Code).
-  Hedge School's page gives it the sounds.
+  Cyanotype's page shows too. It holds the site's terms, the engine's terms, the works in the engine's modules and the
+  icon of the quality label Excellent. `packages/site/src/LibraryNotices.svelte` gives its sections on the pages'
+  libraries, ONNX Runtime Web and the font Fira Code. Hedge School's page gives it the sounds.
 - Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
   when the address holds a game, by the page that removes it (design 22).
 - Hosting: `package.json` (`build:cloudflare`), `.node-version` (at the root), `static/_headers`, `vite.config.ts`

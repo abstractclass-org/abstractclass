@@ -4,7 +4,7 @@
   import NoticesPage from "@abstractclass/site/NoticesPage.svelte";
   import { SITE_COPYRIGHT, SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import lock from "../../../engine.lock.json";
+  import lock from "../../../engine.lock.json" with { type: "json" };
 </script>
 
 <NoticesPage site={SITE_NAME} copyright={SITE_COPYRIGHT} engine="HedgeFund" {lock}>
