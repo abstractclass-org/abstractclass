@@ -14,12 +14,16 @@
 //    --enable-unsafe-webgpu --use-webgpu-power-preference=force-high-performance, no ANGLE or Vulkan flag.
 // The second diagnosis (the default) tries the browsers that ship the shader compiler, each launch whatever the
 // others give:
-// 1. Playwright's full Chromium (channel "chromium", the new headless mode), with the note's flags. It then opens the
+// 1. The headless shell with the note's flags: the control, which fails.
+// 2. Playwright's full Chromium (channel "chromium", the new headless mode), with the note's flags. It then opens the
 //    review with the GPU On and prints the engine settings' GPU line once it settles.
-// 2. Playwright's full Chromium, with the engine repository's flags.
-// 3. The installed Google Chrome (channel "chrome"), headless, with the engine repository's flags, in a new temporary
+// 3. Playwright's full Chromium, with the engine repository's flags.
+// 4. The installed Google Chrome (channel "chrome"), headless, with the engine repository's flags, in a new temporary
 //    profile folder that the run removes after it: never the owner's profile.
-// Each launch prints its browser's product and revision (CDP Browser.getVersion).
+// Each launch prints its browser's product and revision (CDP Browser.getVersion). In every page, in the probe worker
+// and in the site's GPU worker, a wrapper of GPUAdapter.prototype.requestDevice logs the descriptor that ONNX Runtime
+// asks for (each required feature and limit beside the adapter's own), and the device's end: made, refused, lost or an
+// uncaptured error, each with its own message.
 // In each, a probe worker on the preview's origin first logs the adapters that WebGPU gives (default, high-performance,
 // low-power: info, features, limits), then runs the GPU worker's start (packages/engine/src/gpuWorker.ts, init) step by
 // step with the files that the preview serves, ONNX Runtime Web's own bundle (onnxruntime-web/webgpu) and its log at
@@ -44,7 +48,8 @@ const launchOptions = config.projects.find(p => p.name === "chromium").use.launc
 const FIRST = [{ label: "shell, the note's flags", args: NOTE },
                { label: "shell, force-high-performance", args: [...NOTE, "--use-webgpu-power-preference=force-high-performance"], review: true },
                { label: "shell, the engine repository's flags", args: ENGINES }];
-const SECOND = [{ label: "Chromium, the note's flags", channel: "chromium", args: NOTE, review: true },
+const SECOND = [{ label: "shell, the note's flags (control)", args: NOTE },
+                { label: "Chromium, the note's flags", channel: "chromium", args: NOTE, review: true },
                 { label: "Chromium, the engine repository's flags", channel: "chromium", args: ENGINES },
                 { label: "Chrome, the engine repository's flags", channel: "chrome", args: ENGINES }];
 const cpu = process.argv.includes("--cpu");
@@ -53,8 +58,38 @@ const RUNS = (process.argv.includes("--first") ? FIRST : SECOND)
 const ORT = readFileSync(new URL("../../../node_modules/onnxruntime-web/dist/ort.webgpu.bundle.min.mjs", import.meta.url));
 const PROBE_WAIT = 180_000;
 
+/** Wraps GPUAdapter.prototype.requestDevice in a page or a worker: it logs the descriptor that the caller (ONNX
+ *  Runtime) asks for, each required feature and limit beside the adapter's own, and the device's end: made, refused
+ *  (the rejection's message), lost (the loss's message) or an uncaptured error. */
+function wrapRequestDevice() {
+  const Adapter = self.GPUAdapter;
+  if (!Adapter || Adapter.prototype.diagWrapped) return;
+  Adapter.prototype.diagWrapped = true;
+  const request = Adapter.prototype.requestDevice;
+  const say = (...a) => console.log("[requestDevice]", ...a);
+  say(`the wrapper is in ${self.constructor.name} ${self.location?.pathname}`);
+  Adapter.prototype.requestDevice = function (descriptor) {
+    const limits = {};
+    for (const k in this.limits) limits[k] = this.limits[k];
+    const features = [...(descriptor?.requiredFeatures ?? [])];
+    const asked = Object.entries(descriptor?.requiredLimits ?? {}).map(([k, v]) => [k, { asked: v, adapter: limits[k] }]);
+    say(JSON.stringify({ label: descriptor?.label, requiredFeatures: features,
+                         missingFeatures: features.filter(f => !this.features.has(f)), requiredLimits: Object.fromEntries(asked) }));
+    say("the adapter's features:", [...this.features].sort().join(","));
+    say("the adapter's limits:", JSON.stringify(limits));
+    const made = request.call(this, descriptor);
+    made.then(device => {
+      say("device made");
+      device.lost.then(info => say("device lost:", info.reason, info.message));
+      device.addEventListener("uncapturederror", e => say("uncaptured error:", e.error?.message));
+    }, e => say("refused:", e?.name, e?.message ?? String(e)));
+    return made;
+  };
+}
+const WRAP = `(${wrapRequestDevice})();\n`;
+
 /** The probe worker: the adapters, then the GPU worker's start, step by step. */
-const PROBE = `
+const PROBE = WRAP + `
 import * as ort from "/__diag/ort.mjs";
 const log = (...a) => postMessage({ log: a.join(" ") });
 self.addEventListener("error", e => log("worker error:", e.message));
@@ -149,6 +184,13 @@ for (const { label, channel, args, review } of RUNS) {
     page.on("pageerror", e => say(`page error: ${e}`));
     await page.route("**/__diag/ort.mjs", r => r.fulfill({ body: ORT, contentType: "text/javascript" }));
     await page.route("**/__diag/probe.mjs", r => r.fulfill({ body: PROBE, contentType: "text/javascript" }));
+    // The wrapper in every page (an init script) and in the site's own GPU worker (Playwright's init scripts do not
+    // reach workers): its script, as the preview serves it, after the wrapper
+    await context.addInitScript({ content: WRAP });
+    await page.route("**/workers/gpuWorker-*.js", async r => {
+      const response = await r.fetch();
+      await r.fulfill({ response, body: WRAP + await response.text() });
+    });
     await page.exposeFunction("diagLog", line => say(line));
     await page.goto(new URL("/about", CYANOTYPE).href);
     const done = await page.evaluate(([m, wait]) => new Promise(resolve => {
