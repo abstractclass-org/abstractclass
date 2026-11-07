@@ -156,8 +156,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   jam-coord and eng-coord have both said yes. A worker asks its own coordinator, never the others (abscls-gwi0,
   2026-11-04). The run then goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`):
   that job pauses the engines' training on the GPU and guards it.
-  - **The WebGPU flags:** headless Chromium gets WebGPU on the real GPU with `--enable-unsafe-webgpu
-    --use-angle=d3d11 --enable-features=Vulkan`. With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
+  - **The WebGPU flags:** headless Chromium gets the real GPU's adapter with `--enable-unsafe-webgpu
+    --use-angle=d3d11 --enable-features=Vulkan`, but Playwright's headless shell makes no device on it (the note
+    "Faults with the WebGPU flags"). With `--use-webgpu-adapter=swiftshader --enable-unsafe-swiftshader`
     added, WebGPU gets Chrome's software adapter. The software adapter runs the GPU worker and the practice bot's GPU
     form, slowly: it checks that a path works, not its speed. These flags do not keep Chromium off the GPU. With
     `--use-angle=d3d11`, Chromium asks for the default adapter. A measurement of 2026-11-05 read Windows' GPU counters
@@ -169,9 +170,22 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     and at most 120 ms over 1056 calls inside the runs, against a median of 46 ms and at most 955 ms over 13912 calls
     outside them.
   - **Faults with the WebGPU flags:** a GPU timeout of Windows (a TDR) on 2026-10-20 came from a client of the GPU on
-    Windows while no training ran. Check that the GPU worker started before a measurement relies on it: in one review
-    with the real GPU's flags, WebGPU gave an adapter, but the engine settings said "The GPU did not start: 9943656".
-    The cause is not known.
+    Windows while no training ran. Check that the GPU worker started before a measurement relies on it.
+  - **"The GPU did not start: 9943656" in Playwright's headless shell:** a headless `chromium.launch` runs
+    `chrome-headless-shell`, which ships no `dxil.dll` or `dxcompiler.dll` (the DirectX shader compiler). Playwright's
+    full Chromium (`ms-playwright/chromium-1243/chrome-win64`) and the installed Google Chrome ship them. With the
+    WebGPU flags, the shell's WebGPU gives the RTX 5080's adapter ("nvidia blackwell"), also for a low-power request.
+    Dawn's D3D12 backend then cannot make a device: the browser's standard error (the job's `DEBUG=pw:browser`) says
+    "Failed to create device: DynamicLib.Open: dxil.dll Windows Error: 87", at `EnsureDXCLibraries`. ONNX Runtime Web
+    logs "WebGPU device lost (4): Device creation failed." and throws a C++ exception. Its build uses Emscripten's
+    JavaScript exceptions, so the exception reaches the GPU worker as a number, its pointer, and the engine settings
+    show that number. Both sites got the same number: Hedge School's review on 2026-10-18 and Cyanotype's check on
+    2026-11-07 (abscls-8tl1.64). The shell with `--use-webgpu-power-preference=force-high-performance` added fails in
+    the same way. With `--enable-unsafe-webgpu --use-webgpu-power-preference=force-high-performance` alone, the shell
+    gives no adapter ("Failed to query ID3D11Device from ANGLE"). The same start passes on ONNX Runtime Web's CPU
+    backend in Node, with the files that the site serves. So the engine's release, the graph and the site's code are
+    not the cause. `apps/hedgeschool/scripts/cyanotype-gpu-diagnose.mjs` logs the adapters, the start's steps and
+    the consoles. The run in Playwright's full Chromium (channel `chromium`) and in the installed Chrome waits.
   - **Off the GPU, for a run that needs no WebGPU** (the layout test, Cyanotype's practice games): with
     `--disable-gpu` alone, Chromium's GPU process (`--type=gpu-process --use-angle=swiftshader-webgl`) still opens the
     RTX 5080's adapter. Windows' GPU Engine counters list it there, with 0 KB of GPU memory and 0% on every engine,
