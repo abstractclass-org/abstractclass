@@ -906,10 +906,6 @@ Hedge School:
 - **Puzzles, Learn and the engine lab** (`/puzzles`, `/learn`, `/lab/engine`): prototypes, only in the full edition
   (design 11). Left out while they are prototypes: Cyanotype takes each one when Hedge School makes it public.
 
-Cyanotype's Notices page lacks Hedge School's section on the engine's terms. It also does not name ONNX Runtime Web
-(MIT), which the build ships since `engine-91ab0b7d`. Hedge School's page lacks that line too (abscls-mpx0).
-abscls-8tl1.60.
-
 ### By the parts of `src/lib`
 
 The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as features:
@@ -1092,8 +1088,10 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   controls: the menus, the main button, the icon button, the dialogs and the keys' lists), `SiteFrame.svelte` (the
   header's bar over the page's own scrolling area, with each page's scroll place),
   `theme.svelte.ts` and `ThemeMenu.svelte` (the theme, under each site's own key), `PageMeta.svelte` and
-  `origin.ts` (each page's metadata, from the site's live address), `prose.ts` (the pages' text style) and
-  `LibraryNotices.svelte` (the libraries and the font Fira Code that the pages ship), and `themeTokens.ts` (the colour
+  `origin.ts` (each page's metadata, from the site's live address), `prose.ts` (the pages' text style), the
+  notices page's parts (`EngineNotices.svelte` for the engine's terms and the works in its modules, from each site's
+  lock, `LibraryNotices.svelte` for the libraries, ONNX Runtime Web and the font Fira Code that the pages ship, and
+  `ThumbUpNotice.svelte` for the Excellent label's icon), and `themeTokens.ts` (the colour
   tokens of a site's style sheets in each theme, read in Node by Hedge School's `symbolShades.test.ts` and the hub's
   `scripts/enclosure-board.mjs`, for the checks that compare colours). Each site's root layout gives `SiteFrame`
   what its header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge

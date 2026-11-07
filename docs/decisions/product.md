@@ -9260,3 +9260,35 @@ change, and that holds for Cyanotype as it does for Hedge School.
 - **Not covered:** after a review too short for the test, Auto's line stays "Testing" until more work comes
   (abscls-11cl). The check's later changes ran only off the GPU (`--cpu`): Auto's bot must follow the review's test,
   and the GPU's line is read once.
+
+### The Notices pages: Cyanotype's engine section and ONNX Runtime Web (2026-11-07)
+
+Design 33's gap list changed (abscls-8tl1.60, with abscls-mpx0). Cyanotype's Notices page had only the site's own
+section and the libraries and the font. Hedge School's page also had the engine's section and the icon and the sounds.
+Both sites ship ONNX Runtime Web 1.30.0 for the engine on the GPU, and neither page named it.
+
+- **What Cyanotype ships of others' work:** its build, with the files of the lock's release `engine-91ab0b7d`, holds
+  the engine's files (the modules, the JavaScript files, the network and its graph, `LICENSE.txt` and
+  `NOTICES.txt`), ONNX Runtime Web's two files (`engine/ort-1.30.0/`) and its JavaScript in the GPU worker, the
+  libraries of the pages, the font Fira Code (seven `woff2` files) and the thumbs-up of the Excellent label (in the
+  review's code, from `packages/analysis`). It ships no sounds. Its logo, its card and its icons are its own.
+- **One shared part for each section,** in `packages/site` (design 29), so that one change serves both pages:
+  - `EngineNotices.svelte`: the engine's section, moved from Hedge School's page. Each page gives its lock (for the
+    links to the release's `LICENSE.txt` and `NOTICES.txt`, and to its repository), its engine's name, the holder and
+    the works that its release's `NOTICES.txt` lists. Blueprints' release has the same section "The engine's outputs"
+    and the same KataGo copyright notice as Enclosure's, so the shared text is right for both. Cyanotype's list says
+    that Eigen is only in the modules that run the network on the CPU, as its `NOTICES.txt` does.
+  - `LibraryNotices.svelte`: ONNX Runtime Web, its version, its copyright line and the MIT licence, before the MIT
+    licence's text. Its npm package has no `LICENSE` file: the copyright line is its files' banner ("Copyright (c)
+    Microsoft Corporation. All rights reserved."), and the licence is the one that its `package.json` and its
+    repository's `LICENSE` give. The JavaScript that the build bundles holds ONNX Runtime's own code only. Its
+    WebAssembly module also contains works of others, which the repository's `ThirdPartyNotices.txt` lists. The page
+    links to that file at the tag `v1.30.0`.
+  - `ThumbUpNotice.svelte`: the icon's item, in Hedge School's list "An icon and the sounds" and in Cyanotype's "An
+    icon".
+- **Hedge School's page** is otherwise as before: the same sections and words, in the same order, with the section
+  "The engine on the GPU" after the libraries.
+- **The checks:** `notices.spec.ts`, on both sites, compares the page with the files: ONNX Runtime Web's version and
+  copyright line with `node_modules/onnxruntime-web`, the build's ONNX Runtime files with that version, the links of
+  the engine's section with the files that the site serves, the outputs paragraph with the shipped `LICENSE.txt`, and
+  KataGo's notice with the shipped `NOTICES.txt`. The layout sweep (`layout.spec.ts`) now covers both Notices pages.

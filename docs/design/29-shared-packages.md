@@ -49,9 +49,10 @@ edit in the same commit), so their changes still apply.
    moves and marks as a parameter. Design 33 moved it out of Hedge School's `src/lib/game/record.ts`. It also moved
    the turns of one move, then two (`turnFromCount`), out of `review/enclosure.ts` into the analysis package
    (`turns.ts`). A fifth, `@abstractclass/site` (`packages/site`), holds the sites' frame: the colour tokens and base
-   styles, the header's bar and the page's area, the theme, the page's metadata and the pages' text style. Design 33
-   moved it out of Hedge School (its item 4). It also holds the checks of a deployed site that both sites share, a
-   script for Node that no page imports. A sixth, `@abstractclass/review` (`packages/review`), holds the review's
+   styles, the header's bar and the page's area, the theme, the page's metadata, the pages' text style and the notices
+   page's parts (the engine's terms, the libraries and the icon). Design 33 moved it out of Hedge School (its item
+   4). It also holds the checks of a deployed site that both sites share, a script for Node that no page imports. A
+   sixth, `@abstractclass/review` (`packages/review`), holds the review's
    and the Analysis board's view, with the view's game interface (item 9). The site's general controls that the view
    uses (the icons, the toast, the settings' parts, the players' colours and their swatch) and the page's scroll moved
    into `@abstractclass/site` with it. A seventh, `@abstractclass/import` (`packages/import`), holds the import's

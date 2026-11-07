@@ -11,8 +11,8 @@
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's home
-// page. Two check the site's menu open on a narrow window, on each site. Four check the header's "Early Access" link,
-// on each site in each theme. Two check Cyanotype's
+// page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Four check the
+// header's "Early Access" link, on each site in each theme. Two check Cyanotype's
 // Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
@@ -149,7 +149,7 @@ async function reviewedGame(page: Page) {
   await page.waitForURL(/#game=/);
 }
 
-for (const path of ["/", "/about", "/privacy", "/notation", "/tools", "/editor", "/analysis", "/practice"]) {
+for (const path of ["/", "/about", "/privacy", "/notices", "/notation", "/tools", "/editor", "/analysis", "/practice"]) {
   test(`layout of ${path}`, async ({ page }) => {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
@@ -208,6 +208,15 @@ test("layout of Cyanotype's home page", async ({ page }) => {
   await page.goto(new URL("/", CYANOTYPE).href);
   await page.waitForLoadState("networkidle");
   expect(await sweep(page, "Cyanotype's /")).toBe("");
+});
+
+// Cyanotype's Notices page (its design 33, as Hedge School's), when CYANOTYPE_BASE_URL gives its preview: the engine's
+// terms and the licences, with their texts in code blocks, which scroll sideways on purpose.
+test("layout of Cyanotype's Notices page", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  await page.goto(new URL("/notices", CYANOTYPE).href);
+  await page.waitForLoadState("networkidle");
+  expect(await sweep(page, "Cyanotype's /notices")).toBe("");
 });
 
 // Cyanotype's board editor (its design 33, as Hedge School's design 21), when CYANOTYPE_BASE_URL gives its preview: the

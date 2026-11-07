@@ -15,6 +15,13 @@
     ["esm-env", "https://github.com/benmccann/esm-env", "Copyright 2022 Benjamin McCann"],
     ["Tailwind CSS", "https://github.com/tailwindlabs/tailwindcss", "Copyright (c) Tailwind Labs, Inc."],
   ];
+  // ONNX Runtime Web, for the engine on the GPU (packages/engine's gpuWorker.ts and the files ort-<version> that
+  // fetch-engine.mjs ships beside the engine). Its npm package has no LICENSE file. The copyright line is the banner of
+  // its files (dist/ort.webgpu.min.mjs), and the licence is MIT, as its package.json and the repository's LICENSE give.
+  // Its WebAssembly module also contains the works that the repository's ThirdPartyNotices.txt lists. The version is
+  // the package's (notices.spec.ts compares both with node_modules/onnxruntime-web).
+  const ORT_VERSION = "1.30.0";
+  const ORT_COPYRIGHT = "Copyright (c) Microsoft Corporation. All rights reserved.";
 </script>
 
 <h2>The pages</h2>
@@ -22,6 +29,18 @@
 <ul>
   {#each MIT as [name, href, copyright] (name)}<li><a {href}>{name}</a>: {copyright}.</li>{/each}
 </ul>
+
+<h2>The engine on the GPU</h2>
+<p>
+  On the GPU, the engine runs its network with <a href="https://github.com/microsoft/onnxruntime">ONNX Runtime Web</a>
+  {ORT_VERSION}, under the MIT licence:
+</p>
+<p>{ORT_COPYRIGHT}</p>
+<p>
+  Its WebAssembly module also contains works of others, under their own licences. ONNX Runtime's
+  <a href="https://github.com/microsoft/onnxruntime/blob/v{ORT_VERSION}/ThirdPartyNotices.txt">ThirdPartyNotices.txt</a>
+  lists them.
+</p>
 
 <h2>The MIT licence, of the works above</h2>
 <pre class="whitespace-pre-wrap">Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
