@@ -209,9 +209,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     their addresses, the notation, the quality labels, the engine and its network, the files and links that the site
     makes, and what it keeps in the browser), then what the site does now. `VITE_EDITION=early` builds the early
     access, and the Deploy and Tests workflows build Cyanotype with it, as they build Hedge School. The switch
-    (`edition.ts`) and the name with its mark (`SiteName.svelte`) are in `packages/site`, for both sites. Cyanotype
+    (`edition.ts`) and the name with its link (`SiteName.svelte`) are in `packages/site`, for both sites. Cyanotype
     has none of Hedge School's prototype pages (Puzzles, Learn and the engine lab, "The gaps from Hedge School"), so
-    its early access hides no page, and the mark is all that the switch changes.
+    its early access hides no page, and the link is all that the switch changes.
 
 ## How the board takes a move
 
@@ -1039,7 +1039,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
 - `apps/cyanotype/`: the app. `src/lib/site.ts`: the site's name, the engine's, the live address
   (`https://cyanotype.abstractclass.org`, the canonical address of each page) and the storage keys
   (`cyanotype:…`). `src/routes/+layout.svelte`: the icons, the link previews' tags, and the header, with the logo, the
-  name and the early access's mark (`SiteName.svelte` and `edition.ts` of `packages/site`, "Decision", item 11), the
+  name and its "Early Access" link (`SiteName.svelte` and `edition.ts` of `packages/site`, "Decision", item 11), the
   game's pages, the pages about the site and the theme menu, and below a tablet's width the site's menu
   (`SiteMenu.svelte` of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels.
   `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the accent (Hedge School's
@@ -1099,7 +1099,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   what its header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge
   School's Support Us dialog stays in Hedge School. `SiteMenu.svelte`: the site's menu on a narrow screen (design 22),
   with each site's links, and Hedge School's "Support Us" on a phone. `Replay.svelte`: the home page's board as a
-  replay of scenes (design 22), with each site's frames and board. The two footers (`src/lib/SiteFooter.svelte`)
+  replay of scenes (design 22), with each site's frames and board. `edition.ts` and `SiteName.svelte`: the early
+  access's build switch, and the site's name in the header with its "Early Access" link ("Decision", item 11), with
+  each site's logo and name. The two footers (`src/lib/SiteFooter.svelte`)
   have the same markup, with each site's links and the game's credit. They are still each site's own, and move into
   the package in a later change (item 4).
 - `apps/cyanotype/engine.lock.json`: the engine's files and the networks' sizes ("The engine's files"), which

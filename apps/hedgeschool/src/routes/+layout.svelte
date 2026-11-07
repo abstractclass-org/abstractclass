@@ -93,7 +93,7 @@
 	     the menu too. -->
 	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
 	<!-- The name, and the early access in the accent colour beside it: what it means is on the About page (SiteName). -->
-	<SiteName name={SITE_NAME}>{#snippet logo()}<Collie size={28} />{/snippet}</SiteName>
+	<SiteName><Collie size={28} />{SITE_NAME}</SiteName>
 	<nav class="flex flex-wrap gap-4.5 max-lg:hidden">
 		{#each NAV as item (item.label)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
 	</nav>

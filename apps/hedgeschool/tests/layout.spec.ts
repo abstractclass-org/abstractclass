@@ -11,8 +11,8 @@
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's home
-// page. Two check the site's menu open on a narrow window, on each site. Four check the early access's mark in the
-// header and its link, on each site in each theme. Two check Cyanotype's
+// page. Two check the site's menu open on a narrow window, on each site. Four check the header's "Early Access" link,
+// on each site in each theme. Two check Cyanotype's
 // Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
@@ -268,14 +268,16 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
   });
 }
 
-// The early access's mark (design 11, "The header"; packages/site/src/SiteName.svelte), on both sites, in the early
-// edition that check:all and the workflows build (VITE_EDITION=early), at 360 and 1,280 pixels, in each theme (the
-// theme menu's System, on the browser's scheme). On the home page, "Early Access" is in the header, after the name, in
-// the accent colour, in the window, with nothing over it, and the header keeps the sweep's rules. A click on it opens
-// the About page at its section on the early access, under the header.
+// The header's "Early Access" link (design 11, "The header", and packages/site/src/SiteName.svelte), on both sites, in
+// the early edition that check:all and the workflows build (VITE_EDITION=early), at 360 and 1,280 pixels, in each
+// theme (the theme menu's System, on the browser's scheme). On the home page, the link is in the header, after the
+// name, in the accent colour, in the window, with nothing over it. The sweeps of each home page check the header's own
+// rules (one row) at every width. A click on the link opens the About page at its section on the early access, in the
+// window. The header is never over the page (SiteFrame.svelte: the page area is below it, or scrolls with it), so it
+// cannot cover the section.
 for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as const) {
   for (const colorScheme of ["light", "dark"] as const) {
-    test(`the early access's mark on ${site}, ${colorScheme}`, async ({ page }) => {
+    test(`the Early Access link on ${site}, ${colorScheme}`, async ({ page }) => {
       test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
       await page.addInitScript(() =>
         localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
@@ -288,33 +290,30 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as c
         await settle(page);
         const at = `at ${width} pixels`;
         expect(await page.evaluate(() => document.documentElement.dataset.theme), at).toBe(colorScheme);
-        const mark = page.locator("header").getByRole("link", { name: "Early Access", exact: true });
-        await expect(mark, at).toBeVisible();
-        await expect(mark, at).toHaveAttribute("href", "/about#early-access");
-        const own = await mark.evaluate(a => {
+        const link = page.locator("header").getByRole("link", { name: "Early Access", exact: true });
+        await expect(link, at).toBeVisible();
+        await expect(link, at).toHaveAttribute("href", "/about#early-access");
+        const own = await link.evaluate(a => {
           const out: string[] = [], r = a.getBoundingClientRect();
           const probe = document.createElement("span");
           probe.style.color = "var(--accent)";
           document.body.append(probe);
           const accent = getComputedStyle(probe).color, colour = getComputedStyle(a).color;
           probe.remove();
-          if (colour !== accent) out.push(`the mark's colour is ${colour}, not the accent's ${accent}`);
-          if (r.left < 0 || r.right > innerWidth) out.push(`the mark leaves the window (${Math.round(r.left)} to ${Math.round(r.right)})`);
+          if (colour !== accent) out.push(`the link's colour is ${colour}, not the accent's ${accent}`);
+          if (r.left < 0 || r.right > innerWidth) out.push(`the link leaves the window (${Math.round(r.left)} to ${Math.round(r.right)})`);
           const home = document.querySelector('header a[href="/"]')?.getBoundingClientRect();
-          if (!home || r.left < home.right) out.push("the mark is not after the site's name");
+          if (!home || r.left < home.right) out.push("the link is not after the site's name");
           const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-          if (!a.contains(hit)) out.push("something covers the mark");
+          if (!a.contains(hit)) out.push("something covers the link");
           return out;
         });
-        found.push(...[...own, ...(await problems(page)).map(p => p.problem)].map(p => `${at}: ${p}`));
-        await mark.click();
+        found.push(...own.map(p => `${at}: ${p}`));
+        await link.click();
         await page.waitForURL(/\/about#early-access$/);
         const heading = page.locator("#early-access");
         await expect(heading, at).toHaveText("Early access");
         await expect(heading, at).toBeInViewport();
-        const under = await heading.evaluate(h =>
-          h.getBoundingClientRect().top >= document.querySelector("header")!.getBoundingClientRect().bottom - 1);
-        if (!under) found.push(`${at}: the header covers the About page's section`);
       }
       expect(found).toEqual([]);
     });

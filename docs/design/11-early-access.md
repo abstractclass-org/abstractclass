@@ -24,8 +24,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      notation whose columns have `I`.
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
      About page's section on the early access. That section says first that everything can change (the pages and their
-     addresses, the labels, the engine, the files and links, what the browser keeps), then what the site does now.
-     Cyanotype's header has the same mark, and its About page the same section (design 33, "Decision", item 11). Then
+     addresses, the labels, the engine, the files and links, what the browser keeps), then what the site does now. Then
      Practice, Review and Analysis, and on its right Tools (from a tablet's width, design 22), The notation, About,
      "Support Us" (Ko-fi's tip panel, design 22) and the theme
      menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a half-filled
@@ -37,7 +36,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      Tools on a phone), the site's version (its commit), the site's copyright line, and "Enclosure by webgoatguy", so
      that the copyright does not read as the game's. The review has no footer: it fills the window. The About page
      credits webgoatguy as the game's designer, and says that the site is not an official site of the game: it is made
-     independently of webgoatguy, strategyjam.org, meaf.us and Constellation.
+     independently of webgoatguy, strategyjam.org, meaf.us and Constellation. Cyanotype's header has the same "Early
+     Access" link, and its About page the same section (design 33, "Decision", item 11).
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access, of Hedge School and of Cyanotype (design 33).
@@ -316,7 +316,8 @@ read the game from the player's own page.
 ## Where it is
 
 - The switch, the name and the version: `src/lib/edition.ts`, `vite.config.ts` (the commit). Both sites read the
-  switch in `packages/site/src/edition.ts`, and show the name and the mark with `packages/site/src/SiteName.svelte`.
+  switch in `packages/site/src/edition.ts`, and show the name and its "Early Access" link with
+  `packages/site/src/SiteName.svelte`.
   The last game reviewed: `src/lib/game/store.ts`, read by `src/lib/review/ReviewHome.svelte`. The hidden pages:
   `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Search engines: design 23.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.

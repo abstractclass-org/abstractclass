@@ -1,6 +1,6 @@
 <script lang="ts">
-  // About Cyanotype (design 33): what the site does, the early access (the header's mark leads to its section, as
-  // Hedge School's), the game and the engine.
+  // About Cyanotype (design 33): what the site does, the early access (the header's "Early Access" link leads to its
+  // section, as Hedge School's), the game and the engine.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";

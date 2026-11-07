@@ -44,9 +44,9 @@
     <!-- The logo before the name, at 28 pixels, as Hedge School's collie, and in the early access "Early Access" beside
          the name, in the accent colour, which leads to the About page's section on it (SiteName). The links fit in one
          row from a tablet's width. On a phone, they go into the site's menu at the left (SiteMenu), as Hedge School's
-         below 1,024 pixels, and the header keeps the logo, the name, the mark and the theme menu. -->
+         below 1,024 pixels, and the header keeps the logo, the name, "Early Access" and the theme menu. -->
     <span class="sm:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
-    <SiteName name={SITE_NAME} class="max-sm:mr-auto">{#snippet logo()}<Logo size={28} />{/snippet}</SiteName>
+    <SiteName class="max-sm:mr-auto"><Logo size={28} />{SITE_NAME}</SiteName>
     <nav class="flex gap-4.5 max-sm:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
