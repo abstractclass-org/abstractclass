@@ -9394,3 +9394,25 @@ Design 24, item 15 and design 33 have the decision.
     engine, with the engine's own message. The reader's own bound, five digits, stays for a game with no limit.
   - The board's link and the analysis file keep their own komi checks, with no limit: they carry a komi apart from a
     record.
+
+### A pre-push hook waits for dev's Tests run (2026-11-08)
+
+The workflow Tests cancels the run in progress on a branch when a new push comes (`concurrency` with
+`cancel-in-progress`, the group `tests-<ref>`). So a push to `dev` while Tests runs there cancels the run of the
+commit before it, and that commit keeps no result. On 2026-11-07 a push of documents only (cb9e625) cancelled the
+run of a site change (Tests run 42345236518 on af6fdca).
+
+- **The hook:** `.githooks/pre-push`, in POSIX sh. It checks only a push to `refs/heads/dev`. It asks `gh run list`
+  for the workflow Tests on `dev` of the repository that the push goes to, and refuses while a run is not completed.
+  The refusal names each run (its id, its commit and its start) with the `scripts/ci-watch` line that watches it, and
+  the override `ALLOW_DEV_PUSH=1`. A push of another branch, of `dev:main` or of a tag makes no `gh` call.
+- **When `gh` fails** (missing, not signed in, no answer from GitHub), the hook prints the error and a warning, and
+  lets the push go. The hook guards against a cancel. It does not make each push wait on GitHub's API.
+- **Limits:** the hook works only in a clone with `core.hooksPath` set. It does not see a push from the web
+  interface or with `--no-verify`. GitHub takes a few seconds to make a run after a push, so two pushes in those
+  seconds both pass.
+- **Checked:** `sh scripts/pre-push.test.sh` passed its 35 cases in Git for Windows' sh and in dash (the runners'
+  `sh`). In a scratch clone with a bare repository as its remote and a fake `gh`, Git for Windows ran the hook: a
+  push of `dev` while a run was in progress was refused and the remote's `dev` did not change. The same push with
+  `ALLOW_DEV_PUSH=1`, a push of another branch, a push with `gh` failing and a push with only completed runs went
+  through. The workflow Documents runs the test on each push to `dev`.
