@@ -54,9 +54,9 @@ export async function preview(dir, port) {
   return { url: `http://127.0.0.1:${port}`, stop: () => new Promise(resolve => server.close(resolve)) };
 }
 
-/** Playwright's Chromium, headless, with its scroll bars shown, as the layout test runs it (playwright.config.ts). A
- *  `options` go through the gate on Edge and the check on WebGPU flags (edge.mjs, `checkLaunch`). An `executablePath` does not, and no script gives
- *  one. */
+/** Playwright's Chromium, headless, with its scroll bars shown, as the layout test runs it (playwright.config.ts). The
+ *  `options` go through the gate on Edge and the check on WebGPU flags (edge.mjs, `checkLaunch`). An `executablePath`
+ *  does not go through the gate, and no script gives one. */
 export function launch(options = {}) {
   checkLaunch(options);
   return chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], ...options });

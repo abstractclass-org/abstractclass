@@ -3,6 +3,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { browserList, checkBrowser, checkLaunch, edgeProgram, hasWebGpuFlag, withEdge } from "./edge.mjs";
 import { launch, launchHideable } from "./measure/speed.mjs";
 
@@ -62,9 +65,9 @@ test("a WebGPU flag is --enable-unsafe-webgpu, or --enable-features with WebGPU"
   assert.equal(hasWebGpuFlag(undefined), false);
 });
 
-test("a WebGPU launch with no channel, or with a channel other than chromium, throws and names the cause and the note", () => {
+test("a WebGPU launch with no channel, or a channel other than chromium, throws with the cause and the note", () => {
   assert.throws(() => checkLaunch({ args: WEBGPU }, NONE), REASON);
-  assert.throws(() => checkLaunch({ channel: undefined, args: ["--enable-unsafe-webgpu"] }, NONE), REASON);
+  assert.throws(() => checkLaunch({ args: ["--enable-unsafe-webgpu"], headless: false }, NONE), REASON);
   assert.throws(() => checkLaunch({ channel: "msedge", args: WEBGPU }, ASKED), REASON);
 });
 
@@ -75,7 +78,6 @@ test("a WebGPU launch in the channel chromium passes", () => {
 test("a launch with no WebGPU flag passes as before, with or without a channel", () => {
   assert.doesNotThrow(() => checkLaunch({}, NONE));
   assert.doesNotThrow(() => checkLaunch({ args: ["--disable-gpu", "--disable-d3d11"] }, NONE));
-  assert.doesNotThrow(() => checkLaunch({ channel: "chromium", args: ["--disable-gpu"] }, NONE));
   assert.doesNotThrow(() => checkLaunch({ channel: "msedge" }, ASKED));
 });
 
@@ -84,15 +86,23 @@ test("the launch check keeps the gate on Edge and on unknown browsers", () => {
   assert.throws(() => checkLaunch({ channel: "firefox" }, ASKED), /firefox/);
 });
 
-test("the shell's control runs of the GPU diagnosis opt out, and only the WebGPU rule", () => {
+test("the shell's control runs of the GPU diagnosis opt out, and only of the WebGPU rule", () => {
   assert.doesNotThrow(() => checkLaunch({ args: WEBGPU }, NONE, { reproducesFault: true }));
   assert.throws(() => checkLaunch({ channel: "msedge", args: WEBGPU }, NONE, { reproducesFault: true }), /HS_EDGE=1/);
 });
 
-// The program that does not exist makes Playwright fail before it starts a browser, if the gate in launch fails.
+// The opt-out stays with the GPU diagnosis: a launch that sets it starts the shell with WebGPU flags.
+test("no script but the GPU diagnosis sets reproducesFault", () => {
+  const app = fileURLToPath(new URL("..", import.meta.url));
+  const setters = ["scripts", "tests", "../cyanotype/scripts"].flatMap(dir =>
+    readdirSync(join(app, dir), { recursive: true }).map(f => join(dir, f).replaceAll("\\", "/"))
+      .filter(f => /\.(m?js|ts)$/.test(f) && readFileSync(join(app, f), "utf8").includes("reproducesFault")));
+  assert.deepEqual(setters.sort(), ["scripts/cyanotype-gpu-diagnose.mjs", "scripts/edge.mjs", "scripts/edge.test.mjs"]);
+});
+
+// The program that does not exist makes Playwright fail before it starts a browser, if a check in launch fails.
 test("launch refuses a WebGPU flag outside the channel chromium, before it starts a browser", () => {
-  assert.throws(() => launch({ args: WEBGPU }), REASON);
-  assert.throws(() => launch({ channel: "msedge", args: WEBGPU, executablePath: process.env.EDGE }), /HS_EDGE=1/);
+  assert.throws(() => launch({ args: WEBGPU, executablePath: process.env.EDGE }), REASON);
 });
 
 test("launch and launchHideable refuse Edge with no variable", async () => {

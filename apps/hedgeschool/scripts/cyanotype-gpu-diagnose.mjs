@@ -189,7 +189,8 @@ for (const { label, channel, args, review } of RUNS) {
   const options = { ...launchOptions, args, channel, timeout: upTo(60_000) }; // headless, Playwright's default
   let browser = null;
   try {
-    // The runs with no channel are the shell's controls: they show the fault, so the WebGPU rule does not apply to them
+    // The runs with no channel are the shell's controls, which show its fault on purpose: the only launches of either
+    // site that opt out of the WebGPU rule (edge.mjs, checkLaunch). They are GPU-path runs all the same (the header).
     checkLaunch(options, process.env, { reproducesFault: !channel });
     browser = current = await chromium.launch(options);
     const context = await browser.newContext();
