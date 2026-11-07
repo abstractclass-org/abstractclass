@@ -1961,8 +1961,11 @@
                                 board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}
           {@const loss = lossShort(t)}
           {@const slotted = !!t.label && (bookAfter !== undefined || listed(t.label))}
-          <!-- The cell's look is a move's (moveList.ts, MOVE), its label at the slot's left. -->
-          {@const cell = [view.oneMoveALine ? "col-start-3 row-start-1" : "col-start-4",
+          <!-- The cell's look is a move's (moveList.ts, MOVE), its label at the slot's left. With one move a line, the cell
+               stands on the row of the turn's last move (after a continued turn's …), so that the move on the board and
+               its points are one row. -->
+          {@const lastRow = view.oneMoveALine ? (t.continued ? 1 : 0) + t.edges.length : undefined}
+          {@const cell = [view.oneMoveALine ? "col-start-3" : "col-start-4",
                           "flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap", SIDE_TEXT[t.player]]}
           {#snippet judgement()}
             {@render labelSlot(t.label, tip, bookAfter, "w-[2.2ch]")}
@@ -1977,12 +1980,12 @@
                a plain element. -->
           {#if slotted || hard || loss}
             <button type="button" {...asMove(end)} {@attach lightsTurn(() => t.edges.map(e => mainKeys[e.index + 1]))} title={tip}
-                    class={[cell, "bg-transparent border-0", moveState(mainKeys[end + 1], "")]}>
+                    class={[cell, "bg-transparent border-0", moveState(mainKeys[end + 1], "")]} style:grid-row-start={lastRow}>
               {@render judgement()}
             </button>
             {@render litGroup(mainKeys[end + 1], GROUP_HOVER)}
           {:else}
-            <span class={cell} title={tip}>{@render judgement()}</span>
+            <span class={cell} title={tip} style:grid-row-start={lastRow}>{@render judgement()}</span>
           {/if}
         {/if}
       </div>

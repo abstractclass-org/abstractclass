@@ -1,7 +1,8 @@
 // Cyanotype's review (its design 33) on its preview (CYANOTYPE_BASE_URL): the review's test game up to turn 20, from
 // the stored review of the engine's real replies (cyanotype-review.ts), with the engine on at Lite as in a live review,
 // in one page that the tests share in turn. The tests check the candidates' table's Move header (move-header.ts), the
-// display setting "Move notation", the marks of a turn's two moves by turn and by move, the two moves of a Mistake's
+// display setting "Move notation", the marks of a turn's two moves by turn and by move, each turn's cell on its last
+// move's row by turn, the two moves of a Mistake's
 // note on one line with a middle dot, the dot between a turn's two moves in Hexes and in Notation with glyphs, the
 // hands' rank chips with "+N", that the page has no area map, and the player's notes (cyanotype-notes.ts) by position
 // and while a preview shows.
@@ -162,6 +163,46 @@ test("by turn and by move, the board marks the same moves: both moves of the tur
   await expect(page.locator("p", { hasText: /^Preview: / })).toBeVisible();
   await expect.poll(async () => (await marks()).outlines).toEqual(seen["move 7"].outlines);
   await page.mouse.move(2, 2);
+});
+
+test("by turn, a turn's cell stands on its last move's row, and the move on the board lights one row", async () => {
+  // One move a line: the turn's cell (its label, the ◆ and the loss) acts as the turn's last move, so it stands on that
+  // move's row. Else, after a turn of two moves, the second move and the cell on the first row lit as two boxes.
+  for (const [w, h] of [[1376, 952], [390, 844]]) {
+    await open(w, h, { judge: "turn" });
+    // On one row: the cell's box lies within its last move's, from top to bottom, to a pixel. The tops are not equal:
+    // the cell and the move stand on one baseline, and a cell with no label badge is lower than a move (about 17
+    // pixels to 21), so its top is 3 to 4 pixels lower, and 6.5 beside an edit in glyphs (its baseline is its picture's
+    // lower edge).
+    const within = (cell: { top: number; bottom: number }, move: { top: number; bottom: number }) =>
+      cell.top >= move.top - 1 && cell.bottom <= move.bottom + 1;
+    /** Each turn's row: the number of its moves, the grid row of its last move (after a continued turn's …), and its
+     *  cell (the row's last element after the number that is no move and no lit box): its grid row, and the boxes of
+     *  the cell and of the last move. */
+    const rows = await page.locator(".movelist > div:has(> button.mv)").evaluateAll(all => all.map(row => {
+      const moves = [...row.querySelectorAll<HTMLElement>(":scope > button.mv")];
+      const cell = [...row.children].slice(1).filter(c => !c.matches(".mv, [data-lit]")).at(-1);
+      const continued = row.children[1]?.textContent?.trim() === "…";
+      const box = (e: Element) => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
+      return { moves: moves.length, lastRow: String(moves.length + (continued ? 1 : 0)),
+               cellRow: cell && getComputedStyle(cell).gridRowStart, cell: cell && box(cell), move: box(moves.at(-1)!) };
+    }));
+    expect(rows.filter(r => r.moves === 2).length, `${w} px: turns of two moves`).toBeGreaterThan(0);
+    expect(rows.filter(r => r.moves === 1).length, `${w} px: turns of one move`).toBeGreaterThan(0);
+    rows.forEach((r, k) => {
+      expect(r.cellRow, `${w} px: turn ${k + 1}: its cell's grid row`).toBe(r.lastRow);
+      expect(within(r.cell!, r.move), `${w} px: turn ${k + 1}: its cell ${JSON.stringify(r.cell)} on its last move's row ${JSON.stringify(r.move)}`).toBe(true);
+    });
+    // After turn 4 (two placements, moves 6 and 7): the second move and the cell, in the move on the board's look, on
+    // one row
+    await toMove(7);
+    const lit = await page.locator(".movelist .here").evaluateAll(all => all.map(e => {
+      const r = e.getBoundingClientRect();
+      return { move: e.matches(".mv"), top: r.top, bottom: r.bottom };
+    }));
+    expect(lit.map(b => b.move), `${w} px: the boxes lit after turn 4: the move, then the cell`).toEqual([true, false]);
+    expect(within(lit[1], lit[0]), `${w} px: the lit cell ${JSON.stringify(lit[1])} on the lit move's row ${JSON.stringify(lit[0])}`).toBe(true);
+  }
 });
 
 test("by turn, a Mistake's note writes the engine's two moves in glyphs on one line, a middle dot between them", async () => {

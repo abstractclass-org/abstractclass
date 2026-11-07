@@ -589,6 +589,10 @@ build). The decision log gives the measurements that led to each choice.
 3. **The move list:** one move a row, by turn and by move, at every size. A turn's number stands at its first move.
    Two of Blueprints' moves do not fit one row: a move has 5 to 19 characters, and the test game's widest turn by move
    needs 440 pixels in a list of 325 at 1,376 pixels.
+   - **By turn, the turn's cell** (its quality label, the ◆ and the points lost) stands on the row of the turn's last
+     move: the second move's row, or the one row of a turn of one move. The cell acts as the turn's last move, so
+     when the board is after the turn, that move and its points light as one row, not as two boxes on two rows.
+     Hedge School has a turn's two moves in one row, and its cell in a column of its own.
 4. **The setting "Move notation"** in the display settings, as Lichess's "Piece notation": "Glyphs" (the default) or
    "Text".
    - **Glyphs,** as strategyjam.org's move list writes a move: a placement is its blueprint's number in a box, its

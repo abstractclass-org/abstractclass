@@ -9686,3 +9686,25 @@ Cell.svelte draws this one design. The lab's choice of a design (the address's `
 does not ship. No layout case changes: no case takes a picture of the cells or selects a mark. The logo, the link
 preview picture and the strategyjam.org button keep their own five-point star, and the picture keeps its walls'
 bricks. Design 33, "The cells' marks", has the marks' sizes.
+
+### Cyanotype's review by turn: a turn's points on its last move's row (2026-11-08)
+
+Design 33 ("The review and the Analysis board", item 3) changed (abscls-8tl1.66). Cyanotype's move list has one move
+a line. In the review by turn, the turn's cell (its quality label, the ◆ and the points lost) stood on the row of the
+turn's first move. The cell is a button that acts as the turn's last move. So when the board was after a turn of two
+moves, two boxes showed as the move on the board: the second move's row, and the cell on the first row.
+
+- **The change,** in the shared view (`packages/review/src/ReviewView.svelte`): with one move a line, the cell takes
+  the row of the turn's last move. That is the second row for a turn of two moves, and the one row for a turn of one
+  move (Blue's first turn, or a turn that ends the game). The move on the board and its points now light as one row.
+  Hover, the turn's group light, the place kept in view and the move menu are as before.
+- **Not changed:** the review by move, the move lists of the Analysis board and of Practice, and Hedge School, whose
+  turn has its two moves in one row and its cell in a column of its own.
+- **The check:** `cyanotype-review.spec.ts`, by turn at 1,376 and at 390 pixels: each turn's cell is in its last
+  move's grid row, and the cell's box lies within the move's box from top to bottom, to a pixel. After turn 4, the
+  two boxes in the move on the board's look (the second move and the cell) are on one row in the same way.
+- **The tops are not equal,** as they were not on the first row before. The cell and the move stand on one
+  baseline, and a cell with no label badge is lower than a move. At 1,376 pixels by turn, the cell is 16.8 pixels
+  high and the move 21 (Text) or 21.9 (Glyphs). So the cell's top is 3.0 pixels lower in Text and 3.8 in Glyphs,
+  and 6.5 beside an edit in Glyphs, whose baseline is its picture's lower edge. A cell with a badge is 0 to 0.8
+  pixels lower. The cell's own look did not change.
