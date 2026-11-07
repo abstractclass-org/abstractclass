@@ -9467,3 +9467,8 @@ has it too, from the code that both sites share (design 33, "The player's games"
   to its end on the CPU and a game only kept), served at one address in one browser profile, then read by this
   branch's Hedge School: the list showed both games, the reviewed game's Export opened, its review opened done from
   the store with no search, and the stored games did not change.
+- **Checked again after the review,** on dev at `59226d0`: `npm run check:all` passed, all 15 steps. The browser tests
+  on the review's previews, in headless Chromium: 199 tests, 194 passed and 5 skipped. The skipped tests are the
+  analytics ask's, which need a build with the Google tag. The notes test that failed once before passed. The shared
+  review's test brings a game reviewed at 1,024 visits to a browser set to Lite's 512: the game keeps 1,024, and the
+  browser's own setting stays Lite.
