@@ -31,9 +31,8 @@ export interface SessionOptions<G extends GameTypes> {
   /** Makes a pool of `size` search workers, which takes the rules worker `rules` if given: an EnginePool by default, a
    *  test's own pool in a test. */
   pool?: (size: number, rules?: EngineWorker) => EnginePool;
-  /** Whether the pool ends its idle workers (pool.ts, releaseWhenIdle): true by default. An engine whose start is slow
-   *  keeps them: Blueprints' early build takes about 7 seconds and 331 MB to start a worker (the engine repository's
-   *  abscls-qyms). */
+  /** Whether the pool ends its idle workers (pool.ts, releaseWhenIdle): true by default, and on every page of both
+   *  sites. A page whose engine is slow to start a worker could keep them. */
   releaseIdle?: boolean;
 }
 

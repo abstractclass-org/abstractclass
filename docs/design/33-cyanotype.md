@@ -658,8 +658,7 @@ build). The decision log gives the measurements that led to each choice.
       refuses leaves that board, with a notice.
 13. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
     issue. The review keeps one game in this browser: `#record=` in a link brings one, and the import page sends one
-    so ("How a game comes in from strategyjam.org", item 6). The engine's pool keeps its 2 workers while the page is
-    open.
+    so ("How a game comes in from strategyjam.org", item 6).
 
 ### The player's notes
 
@@ -959,11 +958,6 @@ sounds, the area map's settings (where it shows, its style, its thresholds, the 
 games. The review's settings (what the labels judge, for whom, the win chance's form) are Hedge School's, and
 Cyanotype adds "Move notation" ("The review and the Analysis board", item 4). These settings are gaps of their own:
 
-- **The engine's pool** (design 09): Hedge School starts half the processor's threads as workers, at most 8
-  (`defaultPoolSize`), and ends the idle workers after a minute, or 15 seconds in a hidden tab (`releaseWhenIdle`).
-  Cyanotype starts 2 workers (`engineSettings.ts`) and keeps them while the page is open (`releaseIdle: false` on the
-  review and the Analysis board), for a worker's start of 7 seconds and 331 MB in Blueprints' early build (abscls-qyms).
-  That issue is closed, and the release in Cyanotype's lock has its fix. abscls-8tl1.46.
 - **The networks** (design 09): Hedge School's settings and Practice offer two networks, HedgeFund 0.2 Lite and
   HedgeFund 0.2, and its lock keeps the earlier ones for the games that name them. Cyanotype offers the one network
   of Blueprints' release, Stamp Duty 0.2. Put off until Blueprints' release has a second network: abscls-8tl1.54

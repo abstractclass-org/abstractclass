@@ -1213,3 +1213,40 @@ archive's measurement of the maps (2 threads) ran.
   visits is 262 kB of JSON with it and 24 kB without it, in Node. The review does not ask for it (design 30).
 - Not measured: the GPU (another job held it), and the engine's memory at the position on screen's deepest searches:
   each node keeps 361 more numbers.
+
+### Cyanotype's engine pool at Hedge School's size (2026-11-07)
+
+Cyanotype started 2 workers and kept them while the page was open, because a worker of Stamp Duty's early build took
+about 7 seconds and 331 MB to start (the engine repository's abscls-qyms). The fix of that issue is in the release
+engine-91ab0b7d, Cyanotype's lock. Measured with `scripts/measure/pool-start.mjs`: it serves a site's build, opens its
+Analysis board in Playwright's Chromium, headless, with the layout test's launch options (on the CPU), at 1,366 × 657,
+in a fresh context for each run. Before the page's scripts, it stores the engine's settings with the workers asked and
+the GPU off, so the page starts its pool by its own code. It notes each worker's replies. When the last search worker
+was ready and the position's search had given its first answer, and 3 seconds after that, it read the commit charge
+of its own browser's renderer processes. The script now also waits for the search's second answer: in a run outside
+the queue, the second answer came more than 3 seconds after the first. The job ran in `scripts/machine run` with 4
+threads, while the engine repository's training (6 threads and the GPU) and a check of 2 threads ran. The machine has
+16 logical cores. Three runs of each, the median and the range:
+
+| | Cyanotype, 1 worker | Cyanotype, 8 workers | Hedge School, 1 worker | Hedge School, 8 workers |
+|---|---|---|---|---|
+| A search worker's module started | 109 ms (106 to 156) | 463 ms (44 to 585) | 133 ms (102 to 165) | 50 ms (48 to 53) |
+| A search worker ready (its network loaded) | 238 ms (212 to 239) | 528 ms (170 to 654) | 295 ms (265 to 317) | 251 ms (241 to 256) |
+| The last search worker ready | | 553 ms (173 to 695) | | 269 ms (249 to 363) |
+| A search worker's memory | 56 MB | 56 MB | 87 MB | 87 MB |
+| The rules worker's memory | 14 MB | 14 MB | 14 MB | 14 MB |
+| The renderer processes | 178 MB (178 to 180) | 619 MB (615 to 623) | 265 MB (258 to 266) | 948 MB (932 to 954) |
+| The position's search: its first answer | 2.10 s (1.98 to 2.30) | 2.14 s (2.05 to 2.18) | 0.46 s (0.43 to 0.50) | 0.44 s (0.44 to 0.58) |
+| The position's search: its next answer | 2.06 s (2.05 to 2.12) | 2.04 s (1.94 to 2.11) | 0.41 s (0.38 to 0.45) | 0.40 s (0.36 to 0.49) |
+
+- **The start:** a Cyanotype worker is ready in under 0.7 seconds and holds 56 MB, less than Hedge School's 87 MB. The
+  start of 7 seconds and 331 MB is gone.
+- **Decided:** Cyanotype's pool is Hedge School's. It starts half the processor's threads as workers, at most 8
+  (`defaultPoolSize`), and the session ends its idle workers after a minute, or 15 seconds in a hidden tab
+  (`releaseWhenIdle`). The review and the Analysis board no longer keep their workers.
+- **The position's search on the Analysis board:** its first answer comes about 2 seconds after the page asks, and
+  each next answer about 2 seconds later. On Hedge School, each takes about 0.4 seconds. Eight workers do not change
+  it, so it is the speed of the search, not a cost of the start. Runs of 1 worker outside the queue,
+  while the machine was busy, gave about 3 seconds with the release engine-3ac5c2fc, and 2.6, 3.1 and 3.2 seconds
+  with engine-91ab0b7d. So the slow search holds with engine-91ab0b7d, and these runs show no change between the two
+  releases. Not measured: the cause, and what the player sees of it.

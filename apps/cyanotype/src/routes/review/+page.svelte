@@ -51,7 +51,7 @@
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
-  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current, releaseIdle: false,
+  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current,
                                       dropped: () => bar.reset() });
   const failure = $derived(error || session.error);
 

@@ -1,13 +1,18 @@
 // The engine's settings on Cyanotype (Hedge School's design 09), kept in this browser: their general part is the
 // shared analysis's (@abstractclass/analysis/settings.ts). Cyanotype's own part: its networks, from its
 // engine.lock.json, and its defaults. The GPU's setting is Hedge School's: Auto by default, which tests the GPU on its
-// first use (@abstractclass/analysis/gpu.svelte.ts, Hedge School's design 15), and On and Off. A worker of Stamp Duty's
-// early build took about 7 seconds and 331 MB to start (the engine repository's abscls-qyms), so the pool starts with 2
-// workers and keeps them while the page is open (design 33, "The gaps from Hedge School").
+// first use (@abstractclass/analysis/gpu.svelte.ts, Hedge School's design 15), and On and Off. The pool is Hedge
+// School's: half the processor's threads, at most 8 (pool.ts, defaultPoolSize), and the session ends its idle workers
+// (pool.ts, releaseWhenIdle). Stamp Duty's early build took about 7 seconds and 331 MB to start a worker (the engine
+// repository's abscls-qyms). With the release engine-91ab0b7d, a search worker is ready in 0.2 to 0.7 seconds and
+// holds 56 MB, and the renderer holds about 620 MB with 8 workers (Hedge School: 87 MB a worker, about 950 MB). So the
+// pool needs no smaller size than Hedge School's (Hedge School's docs/decisions/engine.md, "Cyanotype's engine pool at
+// Hedge School's size").
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 import { megabytes } from "@abstractclass/engine/client.ts";
-import { maxWorkers, settingsStore, type EngineSettings } from "@abstractclass/analysis/settings.ts";
+import { defaultPoolSize } from "@abstractclass/engine/pool.ts";
+import { settingsStore, type EngineSettings } from "@abstractclass/analysis/settings.ts";
 import { ENGINE_KEY } from "../site.ts";
 export * from "@abstractclass/analysis/settings.ts";
 
@@ -25,12 +30,9 @@ export const networkName = (id: string): string => NETWORKS.find(n => n.id === i
 /** A network's download in MB. */
 export const networkMB = (id: string): string => megabytes(NETWORKS.find(n => n.id === id)?.bytes ?? 0);
 
-/** The pool's workers at first: few, for each one's start and memory (abscls-qyms). */
-const FIRST_WORKERS = 2;
-
 export const defaultEngine = (): EngineSettings => ({
   on: true, visits: DEEP_VISITS, seconds: 30, review: "lite", customReview: 512, network: NETWORKS[0].id,
-  workers: Math.min(FIRST_WORKERS, maxWorkers()), gpu: "auto",
+  workers: defaultPoolSize(), gpu: "auto",
 });
 
 export const { load: loadEngine, save: saveEngine } = settingsStore(ENGINE_KEY, defaultEngine, offersNetwork);

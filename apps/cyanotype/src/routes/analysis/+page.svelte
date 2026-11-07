@@ -60,7 +60,7 @@
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
-  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current, releaseIdle: false });
+  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current });
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);
