@@ -31,9 +31,6 @@ export interface SessionOptions<G extends GameTypes> {
   /** Makes a pool of `size` search workers, which takes the rules worker `rules` if given: an EnginePool by default, a
    *  test's own pool in a test. */
   pool?: (size: number, rules?: EngineWorker) => EnginePool;
-  /** Whether the pool ends its idle workers (pool.ts, releaseWhenIdle): true by default, and on every page of both
-   *  sites. A page whose engine is slow to start a worker could keep them. */
-  releaseIdle?: boolean;
 }
 
 export class EngineSession<G extends GameTypes> {
@@ -54,7 +51,7 @@ export class EngineSession<G extends GameTypes> {
 
   constructor(options: SessionOptions<G>) {
     this.#o = { frozen: () => false, dropped: () => {}, tracker: { track: () => {}, networkName: id => id },
-                pool: (size, rules) => new EnginePool(size, rules), releaseIdle: true, ...options };
+                pool: (size, rules) => new EnginePool(size, rules), ...options };
     const { game, settings, position, frozen } = this.#o;
     // The engine's settings, given to the analysis as they change. The analysis ignores a value it already has.
     $effect(() => {
@@ -161,7 +158,7 @@ export class EngineSession<G extends GameTypes> {
     }
     if (this.pool !== first || !g) return null;
     if (g.rulesReady) {
-      if (this.#o.releaseIdle) first.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
+      first.releaseWhenIdle(); // an idle tab keeps no engine but the rules' (pool.ts, IDLE_RELEASE_MS)
       if (this.network === network) this.#controlGpu(first); // else the next pool gets it (#useNetwork)
     }
     return g;
@@ -187,7 +184,7 @@ export class EngineSession<G extends GameTypes> {
       return;
     }
     if (this.#ended || this.network !== id) { next.terminate(); return; } // ended, or another network was chosen
-    if (this.#o.releaseIdle) next.releaseWhenIdle();
+    next.releaseWhenIdle();
     this.pool = next;
     g.usePool(next);
     this.#controlGpu(next);

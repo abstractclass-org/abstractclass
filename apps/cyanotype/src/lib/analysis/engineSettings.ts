@@ -2,12 +2,10 @@
 // shared analysis's (@abstractclass/analysis/settings.ts). Cyanotype's own part: its networks, from its
 // engine.lock.json, and its defaults. The GPU's setting is Hedge School's: Auto by default, which tests the GPU on its
 // first use (@abstractclass/analysis/gpu.svelte.ts, Hedge School's design 15), and On and Off. The pool is Hedge
-// School's: half the processor's threads, at most 8 (pool.ts, defaultPoolSize), and the session ends its idle workers
-// (pool.ts, releaseWhenIdle). Stamp Duty's early build took about 7 seconds and 331 MB to start a worker (the engine
-// repository's abscls-qyms). With the release engine-91ab0b7d, a search worker is ready in 0.2 to 0.7 seconds and
-// holds 56 MB, and the renderer holds about 620 MB with 8 workers (Hedge School: 87 MB a worker, about 950 MB). So the
-// pool needs no smaller size than Hedge School's (Hedge School's docs/decisions/engine.md, "Cyanotype's engine pool at
-// Hedge School's size").
+// School's: half the processor's threads, at most 8 (@abstractclass/engine/pool.ts, defaultPoolSize), and the session
+// ends its idle workers (releaseWhenIdle). With the release engine-91ab0b7d, a worker starts in under 0.7 seconds and
+// holds 56 MB, less than Hedge School's 87 MB (docs/decisions/engine.md, "Cyanotype's engine pool at Hedge School's
+// size").
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 import { megabytes } from "@abstractclass/engine/client.ts";

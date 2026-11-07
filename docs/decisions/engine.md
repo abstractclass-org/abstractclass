@@ -1216,17 +1216,19 @@ archive's measurement of the maps (2 threads) ran.
 
 ### Cyanotype's engine pool at Hedge School's size (2026-11-07)
 
-Cyanotype started 2 workers and kept them while the page was open, because a worker of Stamp Duty's early build took
-about 7 seconds and 331 MB to start (the engine repository's abscls-qyms). The fix of that issue is in the release
-engine-91ab0b7d, Cyanotype's lock. Measured with `scripts/measure/pool-start.mjs`: it serves a site's build, opens its
-Analysis board in Playwright's Chromium, headless, with the layout test's launch options (on the CPU), at 1,366 × 657,
-in a fresh context for each run. Before the page's scripts, it stores the engine's settings with the workers asked and
-the GPU off, so the page starts its pool by its own code. It notes each worker's replies. When the last search worker
-was ready and the position's search had given its first answer, and 3 seconds after that, it read the commit charge
-of its own browser's renderer processes. The script now also waits for the search's second answer: in a run outside
-the queue, the second answer came more than 3 seconds after the first. The job ran in `scripts/machine run` with 4
-threads, while the engine repository's training (6 threads and the GPU) and a check of 2 threads ran. The machine has
-16 logical cores. Three runs of each, the median and the range:
+Cyanotype started 2 workers and kept them while the page was open. A worker of Stamp Duty's early build took about 7
+seconds and 331 MB to start (the engine repository's abscls-qyms). The fix of that issue is in the release
+engine-91ab0b7d, Cyanotype's lock.
+
+`scripts/measure/pool-start.mjs` serves a site's build and opens its Analysis board in Playwright's Chromium,
+headless, with the layout test's launch options (on the CPU). The window is 1,366 × 657 pixels, and each run has a
+fresh context. Before the page's scripts, the script stores the engine's settings with the workers asked and the GPU
+off. So the page starts its pool by its own code. The script notes each worker's replies. For the table, it waited
+until the last search worker was ready and the position's search had given its first answer, then 3 seconds more.
+Then it read the commit charge of its own browser's renderer processes. The script in the repository waits for the
+search's second answer before the 3 seconds, and it also gives each answer's visits. The table's job ran in
+`scripts/machine run` with 4 threads, while the engine repository's training (6 threads and the GPU) ran. The machine
+has 16 logical cores. Three runs of each, the median and the range:
 
 | | Cyanotype, 1 worker | Cyanotype, 8 workers | Hedge School, 1 worker | Hedge School, 8 workers |
 |---|---|---|---|---|
@@ -1244,9 +1246,23 @@ threads, while the engine repository's training (6 threads and the GPU) and a ch
 - **Decided:** Cyanotype's pool is Hedge School's. It starts half the processor's threads as workers, at most 8
   (`defaultPoolSize`), and the session ends its idle workers after a minute, or 15 seconds in a hidden tab
   (`releaseWhenIdle`). The review and the Analysis board no longer keep their workers.
+- **A second job,** with the script in the repository and 2 threads. A job of 2 threads ran beside it, and the engine
+  repository's training was paused until its last 12 seconds. Three runs of each again. With 1 worker, a search worker
+  was ready after 216 ms on Cyanotype and 314 ms on Hedge School. The memory was the same: 56 MB and 87 MB a search
+  worker, and renderers of 183 MB and 625 MB on Cyanotype, 242 MB and 934 MB on Hedge School. With 8 workers on 2
+  threads, the start was slower: a search worker was ready after 2,214 ms on Cyanotype (177 to 2,300) and 1,185 ms on
+  Hedge School (919 to 2,373). In the three slowest runs, the modules' start took 1.7 to 1.8 seconds of it: 8 modules
+  start on 2 threads.
 - **The position's search on the Analysis board:** its first answer comes about 2 seconds after the page asks, and
   each next answer about 2 seconds later. On Hedge School, each takes about 0.4 seconds. Eight workers do not change
-  it, so it is the speed of the search, not a cost of the start. Runs of 1 worker outside the queue,
-  while the machine was busy, gave about 3 seconds with the release engine-3ac5c2fc, and 2.6, 3.1 and 3.2 seconds
-  with engine-91ab0b7d. So the slow search holds with engine-91ab0b7d, and these runs show no change between the two
-  releases. Not measured: the cause, and what the player sees of it.
+  it, so it is the speed of the search, not a cost of the start. Each answer is a slice of 32 visits (`SLICE_VISITS`
+  in `packages/analysis/src/analysis.svelte.ts`). In the second job, each answer had 32 visits, so a visit took 56 to
+  69 ms on Cyanotype (the median 68 ms with 1 worker, 60 ms with 8) and 13 to 17 ms on Hedge School. This is the
+  expected cost of Blueprints' network on the CPU. The network reads a board of 67 × 67 = 4,489 points, 12.4 times
+  Enclosure's 19 × 19 = 361. The engine repository measured about 80 ms a visit for Blueprints' CPU module in headless
+  Chromium 153: 8 visits in 642 ms with Stamp Duty 0.1, and 8 visits in 729 ms in the start check of engine-91ab0b7d
+  ([`games/blueprints/docs/decisions/port.md`](https://github.com/abstractclass-org/engines/blob/main/games/blueprints/docs/decisions/port.md),
+  "2026-10-26: the browser build with a test network, Stamp Duty 0.1 (abscls-r1k9)" and "2026-11-07: Stamp Duty 0.2
+  is published with the GPU module and the threaded bot (abscls-wqdl.4)"). Runs of 1 worker outside
+  `scripts/machine run`, while the machine was busy, gave answers about 3 seconds apart with the release
+  engine-3ac5c2fc, and 2.6, 3.1 and 3.2 seconds apart with engine-91ab0b7d. Not measured: what the player sees of it.

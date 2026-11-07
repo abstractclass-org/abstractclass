@@ -1192,6 +1192,10 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   and Practice with the GPU On, or with `--auto` Auto's first-use test. It runs only as a GPU-path check
   ([working-notes.md](../working-notes.md), "The GPU in Playwright's Chromium"). With `--cpu`, it checks the same
   pages off the GPU, where the bot starts on the CPU workers.
+- `apps/hedgeschool/scripts/measure/pool-start.mjs`: the start of the engine's pool on the Analysis board of a build
+  of either site, on the CPU: each worker's start and memory, the time of the search's answers and of a visit, and the
+  memory of the browser's renderers ([decisions/engine.md](../decisions/engine.md), "Cyanotype's engine pool at Hedge
+  School's size").
 - `scripts/check-all.mjs`: its engine's release files, its type check, its unit tests, its build and its build's
   file sizes (`scripts/build-sizes.mjs`), in the Tests workflow's checks.
 - [requests/23-blueprints-browser-build.md](../requests/23-blueprints-browser-build.md): what the site asks of the
