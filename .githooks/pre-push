@@ -1,28 +1,34 @@
 #!/bin/sh
-# A push to dev while the workflow Tests runs on dev (docs/working-notes.md). Tests has the concurrency group
-# tests-<ref> with cancel-in-progress (.github/workflows/tests.yml), so each push to dev cancels the run of the commit
-# before it, and that commit loses its result. This hook asks GitHub for the runs of Tests on dev and refuses the push
-# while one is not completed (in progress, queued, waiting, requested or pending). It lists each such run, with the
-# line that watches it. ALLOW_DEV_PUSH=1 git push origin dev pushes anyway, for a push that you mean to make.
-# A push of any other ref passes at once. When gh fails (missing, not signed in, no answer from api.github.com), the
-# push goes ahead with a warning: the hook guards against a cancel, and GitHub's API does not gate a push.
-# Git runs this hook when core.hooksPath names this folder, and gives it one line per ref on stdin:
-# <local ref> <local sha> <remote ref> <remote sha>. POSIX sh, with LF line ends: Git for Windows runs it in its own sh.
+# No push to dev while the workflow Tests runs on dev (docs/working-notes.md). Tests has the concurrency group
+# tests-<ref> with cancel-in-progress (.github/workflows/tests.yml). So each push to dev cancels the run of the commit
+# before it, and that commit loses its result. For a push to dev, this hook asks GitHub for the runs of Tests on dev,
+# in the repository of the push's URL. While one of them is not completed (queued, in progress, waiting, requested or
+# pending), the hook refuses the push. It names each such run and the command that watches it. A push of any other
+# ref passes at once.
+# ALLOW_DEV_PUSH=1 skips the check, for a push that you mean to make: ALLOW_DEV_PUSH=1 git push origin dev.
+# When gh fails, the push goes ahead with a warning: the hook guards against a cancel, and GitHub's API does not gate
+# a push. gh fails when it is missing or not signed in, when api.github.com does not answer, and when the URL is not
+# a GitHub repository's.
+# Git runs this hook when core.hooksPath names this folder. It gives the remote's name and URL as $1 and $2, and one
+# line per ref on stdin: <local ref> <local sha> <remote ref> <remote sha>. POSIX sh, with LF line ends: Git for
+# Windows runs it in its own sh.
 # Test: sh scripts/pre-push.test.sh
 
 to_dev=
-while read -r local_ref local_sha remote_ref remote_sha; do
+while read -r _ _ remote_ref _; do
 	[ "$remote_ref" = refs/heads/dev ] && to_dev=1
 done
 [ -n "$to_dev" ] || exit 0
 
-if [ -n "$ALLOW_DEV_PUSH" ]; then
-	echo "pre-push: ALLOW_DEV_PUSH is set: the check for a running Tests run on dev was skipped." >&2
+if [ "$ALLOW_DEV_PUSH" = 1 ]; then
+	echo "pre-push: ALLOW_DEV_PUSH=1: the check for a running Tests run on dev was skipped." >&2
 	exit 0
 fi
 
-# One line per run that is not completed: its id, its commit's short hash, when it started.
-running=$(gh run list --workflow Tests --branch dev --limit 20 --json status,databaseId,headSha,createdAt \
+# One line per run that is not completed: its id, its commit's short hash, when it started. The concurrency group
+# holds at most one running run and one pending run, so these are among the newest runs: 20 leaves a wide margin.
+running=$(gh run list --repo "$2" --workflow Tests --branch dev --limit 20 \
+	--json status,databaseId,headSha,createdAt \
 	--jq '.[] | select(.status != "completed") | "\(.databaseId) \(.headSha[0:7]) \(.createdAt)"') || {
 	echo "pre-push: WARNING: gh failed, so the check for a running Tests run on dev did not run. The push goes ahead." >&2
 	exit 0
@@ -31,14 +37,11 @@ running=$(gh run list --workflow Tests --branch dev --limit 20 --json status,dat
 
 {
 	echo "pre-push: no push. Tests is still running on dev:"
-	echo "$running" | while read -r id sha started; do
-		echo "  run $id, commit $sha, started $started"
+	printf '%s\n' "$running" | while read -r id sha started; do
+		echo "  run $id, commit $sha, started $started. To watch it, in the planning folder:"
+		echo "    scripts/ci-watch abstractclass $sha"
 	done
 	echo "A push to dev now cancels the run of the commit before it (the concurrency of tests.yml), and that commit"
-	echo "loses its result. Wait until the run ends. To watch it, in the planning folder:"
-	echo "$running" | while read -r id sha started; do
-		echo "  scripts/ci-watch abstractclass $sha"
-	done
-	echo "To push anyway: ALLOW_DEV_PUSH=1 git push origin dev"
+	echo "loses its result. Wait until the run ends, or push anyway: ALLOW_DEV_PUSH=1 git push $1 dev"
 } >&2
 exit 1
