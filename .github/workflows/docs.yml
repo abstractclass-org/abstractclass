@@ -1,7 +1,7 @@
 # The documents wrap at 120 characters (docs/working-notes.md): on each push to dev, an added line over 120 in a
 # Markdown file of the pushed range fails the run. What counts is in scripts/doc-widths.mjs. Its own workflow, with no
 # cancel: the Tests workflow cancels a run for an older push, and the range of that push would then go unchecked.
-# Beside it, the tests of the check and of the commit-msg hook (.githooks/commit-msg).
+# Beside it, the tests of the check and of the commit-msg and pre-push hooks (.githooks/).
 name: Documents
 
 on:
@@ -25,8 +25,8 @@ jobs:
         with:
           node-version-file: .node-version
 
-      - name: The tests of the width check and of the commit-msg hook
-        run: node --test "scripts/*.test.mjs" && sh scripts/commit-msg.test.sh
+      - name: The tests of the width check and of the commit-msg and pre-push hooks
+        run: node --test "scripts/*.test.mjs" && sh scripts/commit-msg.test.sh && sh scripts/pre-push.test.sh
 
       # The pushed range: the pushed commits, from where they leave the branch's commit before the push (the merge
       # base: that commit itself, unless the push was forced). After a force push, the commit before is on no branch,

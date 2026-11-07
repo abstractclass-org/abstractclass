@@ -50,6 +50,8 @@ The repository's own checks run at the root:
 node scripts/doc-widths.mjs origin/dev    # added Markdown lines over 120 characters since origin/dev
 node --test "scripts/*.test.mjs"          # the width check's tests
 sh scripts/commit-msg.test.sh             # the commit-msg hook's tests (.githooks/commit-msg)
+sh scripts/pre-push.test.sh               # the pre-push hook's tests (.githooks/pre-push)
+sh scripts/pre-push.test.sh               # the pre-push hook's tests (.githooks/pre-push)
 ```
 
 To add a dependency to the site, run `npm install <package> -w apps/hedgeschool` at the root.

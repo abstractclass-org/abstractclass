@@ -17,10 +17,16 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   fails it. To update the label snapshot on purpose, see the test's header, and give the reason in the commit message.
 - **The Git settings of this repository's checkouts.** The worktrees share the main checkout's settings, so these run
   once, in the main checkout, and a worker does not run them:
-  - `git config core.hooksPath .githooks` turns on the two hooks. The commit-msg hook refuses a subject or a body
+  - `git config core.hooksPath .githooks` turns on the three hooks. The commit-msg hook refuses a subject or a body
     line over 72 characters (CLAUDE.md in the planning folder, "Commit messages"). A body line of one word, such as a
     URL, may be longer. The pre-commit hook refuses a staged Markdown line over 120 characters, by the rules of the
     workflow Documents (below). A refused commit is not made: wrap the message or the lines, and commit again.
+  - The pre-push hook refuses a push to `dev` while a run of the workflow Tests on `dev` is not completed. Tests
+    cancels the run in progress at each push to `dev`, and the commit of that run loses its result. The hook asks
+    `gh run list --workflow Tests --branch dev`, names each running run, and gives the line that watches it
+    (`scripts/ci-watch`, in the planning folder). To push on purpose: `ALLOW_DEV_PUSH=1 git push origin dev`. When
+    `gh` fails, the hook warns that the check did not run, and the push goes ahead. A push of any other ref passes at
+    once.
   - `git config merge.decision-log.driver "git merge-file --union --diff3 %A %O %B"` turns on the union merge of
     the decision logs (`.gitattributes`, docs/decisions/README.md). A rebase over another branch's new entry then
     keeps both entries, with no conflict. So add each entry at the end of its file. Two edits of the same lines give
