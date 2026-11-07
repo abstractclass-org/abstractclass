@@ -9321,15 +9321,15 @@ WSL. The calibration: "Loading the engine's network…" takes 165.3 and 189.7 pi
   fixture as an earlier engine's review and takes the maps out of its results. At 360 × 700 it checks that the note
   shows and ends with an ellipsis. Then it sweeps every width at a height of 700. The helper that makes such a file
   is now in `tests/review-file.ts` (`earlierReview`), and the review snapshot's test uses it too.
-- **A stopped search's line drops the budget.** Before, the line gave the budget ("512 of 1,024 visits") whenever
-  the visits were short of it. It did so also when no search went on, as after the engine went off in the middle of
-  a search. A search stopped at its time limit already showed a full bar and no budget. Now the line gives the budget
-  only while a search of the position runs or waits to run (the focus, the review's stages, the threat's search).
-  When none goes on, the line gives the visits alone, and "time limit" after a search that stopped there
-  (`packages/review/src/searchLine.ts`, with unit tests). This holds also where no search ran: with the engine off
-  from the page's load, a stored result of 512 visits reads "512 visits". "12,345 visits · time limit" takes 123.2
-  pixels in Segoe UI and 145.5 in DejaVu Sans, in the line's 155. With the budget, it takes 175.5 and 206.7, and the
-  ellipsis hides "time limit". A phone shows no title, so the line must fit by itself.
+- **A stopped search's line drops the budget.** Before, the line gave the budget ("512 of 1,024 visits") whenever the
+  visits were short of it. It did so also when no search went on, as after the engine went off in the middle of a
+  search. A search stopped at its time limit already showed a full bar and no budget. Now the line gives the budget only
+  while a search of the position runs or waits to run (the focus, the review's stages, the threat's search). When none
+  goes on, the line gives the visits alone, and "time limit" after a search that stopped there
+  (`packages/review/src/searchLine.ts`, with unit tests). By the code, this holds also where no search ran: with the
+  engine off from the page's load, a stored result of 512 visits reads "512 visits". "12,345 visits · time limit" takes
+  123.2 pixels in Segoe UI and 145.5 in DejaVu Sans, in the line's 155. With the budget, it takes 175.5 and 206.7, and
+  the ellipsis hides "time limit". A phone shows no title, so the line must fit by itself.
 - **Checked in a real search** at 360 × 700, on both sites, by turn and by edge. The engine settings were the CPU, a
   time limit of 10 seconds and a Depth of 16,384 visits. While the search ran, the line read "512 of 16,384 visits".
   At the time limit, it read "11,264 visits · time limit" on Hedge School (123 pixels, with 32 for the bar), and
@@ -9339,10 +9339,14 @@ WSL. The calibration: "Loading the engine's network…" takes 165.3 and 189.7 pi
   default text size. The longest, "16,383 of 16,384 visits" while a search runs, takes 138 pixels in DejaVu Sans.
   Only "Loading the engine's network…" fills the row. The bar can then hold a stored result's fill, which it does not
   show. A minimum width for the bar cuts the words sooner, so the bar stays as it is.
-- **The review** (2026-11-08) gave the bar and the line one rule (`searchFill` in `searchLine.ts`). The line gives
-  the budget only while a search goes on and the bar is not full. A check of the branch's build at 360 × 700 turned
-  the engine off in the middle of a search. On Hedge School the line read "320 of 1,024 visits" before the change
-  and "320 visits" after it. On Cyanotype the line kept "256 of 1,024 visits" for one second, then read "288 visits".
-  The pool stops a search in slices at the end of its slice (`packages/engine/src/pool.ts`), and until then the
-  analysis counts the search as running (`pending`). So the line is right in that second: the search still adds
-  visits.
+- **The review** (2026-11-08) gave the bar and the line one rule (`searchFill` in `searchLine.ts`). The line gives the
+  budget only while a search goes on and the bar is not full. A check of the branch's build at 360 × 700 turned the
+  engine off in the middle of a search. On Hedge School the line read "320 of 1,024 visits" before the change and "320
+  visits" after it. On Cyanotype the line kept "256 of 1,024 visits" for one second, then read "288 visits". The pool
+  stops a search in slices at the end of its slice (`packages/engine/src/pool.ts`), and until then the analysis counts
+  the search as running (`pending`). So the line is right in that second: the search still adds visits. The review
+  checked the branch merged with dev on both Analysis boards: headless Chromium, the CPU, 360 × 700, a Depth of 16,384
+  visits and a time limit of 10 seconds. Hedge School's line read "512 of 16,384 visits" while the search ran, and "576
+  visits · time limit" at the end (108 pixels, with 48 for the bar). With the engine off in the middle of a search, it
+  read "128 of 16,384 visits" for 0.3 seconds, then "160 visits". Cyanotype's line read "128 visits · time limit" at the
+  end. With the engine off, it read "32 of 16,384 visits" for one second, then "64 visits".
