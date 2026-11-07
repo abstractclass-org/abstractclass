@@ -10,7 +10,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkBrowser, edgeProgram } from "../edge.mjs";
+import { checkLaunch, edgeProgram } from "../edge.mjs";
 
 // The types of the build's files, by their extension. The browser checks some: a module script of another type does
 // not run (the engine's CPU evaluator is a .mjs file), and WebAssembly streams only as application/wasm.
@@ -55,10 +55,10 @@ export async function preview(dir, port) {
 }
 
 /** Playwright's Chromium, headless, with its scroll bars shown, as the layout test runs it (playwright.config.ts). A
- *  `channel` in `options` goes through the gate on Edge (edge.mjs). An `executablePath` does not, and no script gives
+ *  `options` go through the gate on Edge and the check on WebGPU flags (edge.mjs, `checkLaunch`). An `executablePath` does not, and no script gives
  *  one. */
 export function launch(options = {}) {
-  if (options.channel) checkBrowser(options.channel);
+  checkLaunch(options);
   return chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], ...options });
 }
 
@@ -94,7 +94,7 @@ function accountsOf(profile) {
  * in to an account all the same.
  */
 export async function launchHideable({ channel = "chromium", port, size = [1366, 657], args = [] }) {
-  checkBrowser(channel);
+  checkLaunch({ channel, args });
   const profile = mkdtempSync(join(tmpdir(), "hideable-"));
   mkdirSync(join(profile, "Default"));
   writeFileSync(join(profile, "Default", "Preferences"), JSON.stringify({ signin: { allowed: false } }));

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { browserList, checkBrowser, edgeProgram, withEdge } from "./edge.mjs";
+import { browserList, checkBrowser, checkLaunch, edgeProgram, hasWebGpuFlag, withEdge } from "./edge.mjs";
 import { launch, launchHideable } from "./measure/speed.mjs";
 
 const NONE = {}, ASKED = { HS_EDGE: "1" };
@@ -50,7 +50,51 @@ test("Edge's program comes only through the gate: EDGE, or Edge's usual place", 
   assert.match(edgeProgram(ASKED), /Microsoft\/Edge\/Application\/msedge\.exe$/);
 });
 
+// The launch check on WebGPU flags: Playwright's chrome-headless-shell refuses every WebGPU device on this machine.
+const WEBGPU = ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"];
+const REASON = /chrome-headless-shell.*dxil\.dll.*Faults with the WebGPU flags/s;
+
+test("a WebGPU flag is --enable-unsafe-webgpu, or --enable-features with WebGPU", () => {
+  assert.equal(hasWebGpuFlag(WEBGPU), true);
+  assert.equal(hasWebGpuFlag(["--enable-features=Vulkan,WebGPU"]), true);
+  assert.equal(hasWebGpuFlag(["--use-webgpu-power-preference=force-high-performance"]), false);
+  assert.equal(hasWebGpuFlag(["--disable-gpu", "--enable-features=Vulkan"]), false);
+  assert.equal(hasWebGpuFlag(undefined), false);
+});
+
+test("a WebGPU launch with no channel, or with a channel other than chromium, throws and names the cause and the note", () => {
+  assert.throws(() => checkLaunch({ args: WEBGPU }, NONE), REASON);
+  assert.throws(() => checkLaunch({ channel: undefined, args: ["--enable-unsafe-webgpu"] }, NONE), REASON);
+  assert.throws(() => checkLaunch({ channel: "msedge", args: WEBGPU }, ASKED), REASON);
+});
+
+test("a WebGPU launch in the channel chromium passes", () => {
+  assert.doesNotThrow(() => checkLaunch({ channel: "chromium", args: WEBGPU }, NONE));
+});
+
+test("a launch with no WebGPU flag passes as before, with or without a channel", () => {
+  assert.doesNotThrow(() => checkLaunch({}, NONE));
+  assert.doesNotThrow(() => checkLaunch({ args: ["--disable-gpu", "--disable-d3d11"] }, NONE));
+  assert.doesNotThrow(() => checkLaunch({ channel: "chromium", args: ["--disable-gpu"] }, NONE));
+  assert.doesNotThrow(() => checkLaunch({ channel: "msedge" }, ASKED));
+});
+
+test("the launch check keeps the gate on Edge and on unknown browsers", () => {
+  assert.throws(() => checkLaunch({ channel: "msedge" }, NONE), /HS_EDGE=1/);
+  assert.throws(() => checkLaunch({ channel: "firefox" }, ASKED), /firefox/);
+});
+
+test("the shell's control runs of the GPU diagnosis opt out, and only the WebGPU rule", () => {
+  assert.doesNotThrow(() => checkLaunch({ args: WEBGPU }, NONE, { reproducesFault: true }));
+  assert.throws(() => checkLaunch({ channel: "msedge", args: WEBGPU }, NONE, { reproducesFault: true }), /HS_EDGE=1/);
+});
+
 // The program that does not exist makes Playwright fail before it starts a browser, if the gate in launch fails.
+test("launch refuses a WebGPU flag outside the channel chromium, before it starts a browser", () => {
+  assert.throws(() => launch({ args: WEBGPU }), REASON);
+  assert.throws(() => launch({ channel: "msedge", args: WEBGPU, executablePath: process.env.EDGE }), /HS_EDGE=1/);
+});
+
 test("launch and launchHideable refuse Edge with no variable", async () => {
   assert.throws(() => launch({ channel: "msedge", executablePath: process.env.EDGE }), /HS_EDGE=1/);
   await assert.rejects(launchHideable({ channel: "msedge", port: 9 }), /HS_EDGE=1/);

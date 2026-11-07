@@ -33,6 +33,7 @@
 // engine settings say that this browser cannot use the GPU, the board's searches end with no GPU worker, and the bot
 // starts on the CPU workers. That run checks the script itself, and starts no GPU code.
 import { chromium } from "@playwright/test";
+import { checkLaunch } from "./edge.mjs";
 import config from "../playwright.config.ts";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, LITE, LIVE_TURNS, testRecord } from "../tests/cyanotype-review.ts";
@@ -88,6 +89,7 @@ setTimeout(() => {
   process.exit(1);
 }, BUDGET + 20_000).unref();
 
+checkLaunch(options);
 const browser = await chromium.launch(options);
 try {
   for (const gpu of settings) {

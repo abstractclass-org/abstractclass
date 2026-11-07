@@ -39,7 +39,7 @@
 import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import config from "../playwright.config.ts";
-import { checkBrowser } from "./edge.mjs";
+import { checkLaunch } from "./edge.mjs";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, LITE, LIVE_TURNS, testRecord } from "../tests/cyanotype-review.ts";
 
@@ -189,7 +189,8 @@ for (const { label, channel, args, review } of RUNS) {
   const options = { ...launchOptions, args, channel, timeout: upTo(60_000) }; // headless, Playwright's default
   let browser = null;
   try {
-    if (channel) checkBrowser(channel);
+    // The runs with no channel are the shell's controls: they show the fault, so the WebGPU rule does not apply to them
+    checkLaunch(options, process.env, { reproducesFault: !channel });
     browser = current = await chromium.launch(options);
     const context = await browser.newContext();
     const page = await context.newPage();
