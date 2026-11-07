@@ -19,6 +19,19 @@ export function placeCell(p: SitePosition, hex: Hex, player: Player, kind: Kind)
   return { ...p, cells };
 }
 
+/** The position after a drag with Shift passes a hex (design 33, "The board editor"). The drag's first hex sets what it
+ *  does, as a click there would: it removes the player's cell of the kind (`remove`) or puts it. So a hex keeps any
+ *  other cell when the drag removes, and a put changes another cell to this one, as a click does. The same position,
+ *  the same object, when the hex does not change. */
+export function paintCell(p: SitePosition, hex: Hex, player: Player, kind: Kind, remove: boolean): SitePosition {
+  const key = hexKey(hex), old = p.cells[key], same = !!old && old[0] === player && old[1] === kind;
+  if (remove !== same) return p;
+  const cells = { ...p.cells };
+  if (remove) delete cells[key];
+  else cells[key] = [player, kind];
+  return { ...p, cells };
+}
+
 /** The position with no cell on the board: each player keeps the hand. */
 export const removeAllCells = (p: SitePosition): SitePosition => ({ ...p, cells: {} });
 

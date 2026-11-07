@@ -8956,6 +8956,13 @@ and "The board editor").
   the right button the other player's, X swaps them, and a hand's cell moves as an edit moves it. The moves played do
   not follow the board, since a Blueprints board shows neither the edits nor the captures. A click keeps the view, so
   the next click finds its hex. The page draws the position at once, and the engine reads it at each change.
+- **A drag with Shift puts cells along it** (design 33, "The board editor", item 8): Cyanotype's own, a departure from
+  Hedge School's editor. Its reason: a set-up position of Blueprints has many cells (the longest position of the
+  review's test game has 729), and one click a cell makes a large position slow to set up. Hedge School's editor draws
+  an edge with two clicks, and a position has at most 120 edges. The gesture is the notes' drag of marks, which Shift
+  with a right drag makes on Cyanotype's board, as strategyjam.org's Sandbox does. As there, the first hex sets what
+  the drag does: where a click there removes the cell, the drag removes it from each hex. Hedge School's notes and its
+  editor have no such drag.
 - **Moved, not copied** (design 29): the Import's dialog (`packages/review/src/ImportDialog.svelte`), the record's
   start given apart and the place of a pasted record's problem (`withStartTag`, `pastedError` in
   `packages/record/src/record.ts`), and the turn structure of the editors (`moverOf`, `countWithMover` in

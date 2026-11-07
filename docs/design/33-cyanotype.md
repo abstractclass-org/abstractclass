@@ -741,11 +741,20 @@ in "Set up a position".
 7. **The position in the notation** is a field with a Copy button, as Hedge School's: a position pasted there replaces
    the one being made. The browser keeps the position being made (`cyanotype:editor:1`). The address
    `/editor#position=` brings one, and the position leaves the address at once.
+8. **A drag with Shift puts the cell on each hex that it passes,** as a click on that hex does: the left button the
+   chosen player's cell of the chosen kind, and the right button the other player's. The drag's first hex sets what
+   it does. Where a click there removes a cell, the drag removes that cell from each hex that it passes, and leaves
+   the other cells. Else it puts the cell on each hex, in the place of any other cell. A hex that the drag passes twice
+   changes once. The drag takes the hexes between two of the pointer's moves, as the notes' drag of marks does ("The
+   player's notes", item 2), so a fast drag misses no hex. Off the board on screen, it takes no hex. A drag without
+   Shift pans, as before, and the hands keep their clicks. The engine reads the position once, at the drag's end. The
+   editor has no takeback, so one drag is one change of the position, as one click is.
 
 **Where it departs from Hedge School's editor:** the pieces (cells of three kinds, and the hands), the count that does
-not follow the board (item 5), the click that keeps the view (item 4: Hedge School's board does not pan), and the board
-that the page draws and the engine reads, where Hedge School's engine draws its regions. It counts no event: Cyanotype
-has no analytics yet ("The gaps from Hedge School").
+not follow the board (item 5), the click that keeps the view (item 4: Hedge School's board does not pan), the drag with
+Shift (item 8: Hedge School's editor draws an edge with two clicks, and a set-up position of Blueprints has many cells),
+and the board that the page draws and the engine reads, where Hedge School's engine draws its regions. It counts no
+event: Cyanotype has no analytics yet ("The gaps from Hedge School").
 
 ## The logo
 

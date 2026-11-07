@@ -1,10 +1,10 @@
-// Checks the board editor's position (position.ts): a cell placed, removed or changed on the board, a hand's cell moved
-// with the blueprints back in their frames, the moves played and the mover, and the scores, as the notation writes them.
-// Run: npm test.
+// Checks the board editor's position (position.ts): a cell placed, removed or changed on the board, the hexes of a drag
+// with Shift, a hand's cell moved with the blueprints back in their frames, the moves played and the mover, and the
+// scores, as the notation writes them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readPosition, STANDARD_START, writePosition } from "../game/position.ts";
-import { moveHandCell, placeCell, removeAllCells, withCount, withMover, withScore } from "./position.ts";
+import { moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "./position.ts";
 
 const start = readPosition(STANDARD_START);
 const fields = (p: Parameters<typeof writePosition>[0]) => writePosition(p).split(" ");
@@ -19,6 +19,19 @@ test("a click on the board places a cell, the same cell again removes it, and an
   assert.equal(writePosition(placeCell(one, [-3, 0], 1, "plain")), "2,-1s -3,0 -|-|- -|-|- b1 0/0 0");
   assert.deepEqual(removeAllCells(start).cells, {});
   assert.deepEqual(removeAllCells(start).blueprints, start.blueprints);
+});
+
+test("a drag with Shift puts the cell on each hex that it passes, or removes that cell, and leaves the others", () => {
+  const p = readPosition("2,-1s;3,-1 4,-1w -|-|- -|-|- b1 0/0 0");
+  // A put: an empty hex gets it, another cell changes to it, and the same cell stays as it is (the same object)
+  assert.equal(writePosition(paintCell(p, [0, 0], 0, "star", false)), "2,-1s;3,-1;0,0s 4,-1w -|-|- -|-|- b1 0/0 0");
+  assert.equal(writePosition(paintCell(p, [4, -1], 0, "star", false)), "2,-1s;3,-1;4,-1s - -|-|- -|-|- b1 0/0 0");
+  assert.equal(paintCell(p, [2, -1], 0, "star", false), p);
+  // A removal: only the player's cell of the kind goes
+  assert.equal(writePosition(paintCell(p, [2, -1], 0, "star", true)), "3,-1 4,-1w -|-|- -|-|- b1 0/0 0");
+  assert.equal(paintCell(p, [3, -1], 0, "star", true), p); // Blue's Normal cell stays
+  assert.equal(paintCell(p, [4, -1], 0, "wall", true), p); // Red's wall stays
+  assert.equal(paintCell(p, [0, 0], 0, "star", true), p);
 });
 
 test("a hand's cell moves, and the blueprints go back to their frames", () => {

@@ -97,12 +97,18 @@
     // keeps the view as it is, as a pan does, so that the next click finds its hex where it was.
     onedit?: (at: BoardHex, how: { right: boolean }) => void;
     chosen?: ({ player: Player } & HandHex) | null; // the editor's chosen cell in a hand, ringed as the input rings one
+    // The board editor's drag with Shift (design 33, "The board editor"): each hex of the board that the drag passes, in
+    // order, as the pointer reaches it (`first` for the drag's first hex), then the drag's end. The right button's drag
+    // is the other player's, as its click is. Off the board on screen (outside the field, or under the hands' panel),
+    // the drag takes no hex. It keeps the view: it does not pan.
+    onpaint?: (hex: Hex, how: { right: boolean; first: boolean }) => void;
+    onpaintend?: () => void;
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
-    notes = [], onnotes, still = false, onedit, chosen = null,
+    notes = [], onnotes, still = false, onedit, chosen = null, onpaint, onpaintend,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -362,8 +368,31 @@
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
   }
   let rightPress: { id: number; x: number; y: number } | null = null; // the editor's right button, pressed
+  // The editor's Shift drag: its pointer, its button, the point of the plane where it last was on the board, and
+  // whether its next hex is its first.
+  let stroke: { id: number; right: boolean; at: [number, number] | null; first: boolean } | null = null;
+  /** The Shift drag's hexes from its last point on the board to the field's point `p`, as the notes' drag of marks
+   *  takes them: a fast drag misses no hex that it crosses. */
+  function paintTo(p: { x: number; y: number }) {
+    const s = stroke!;
+    if (!onBoard(p)) { s.at = null; return; }
+    const at = toPlane(view, field, p.x, p.y), hexes = s.at ? hexesAlong(s.at, at) : [hexAt(...at)];
+    s.at = at;
+    for (const h of hexes) {
+      onpaint?.(h, { right: s.right, first: s.first });
+      s.first = false;
+    }
+  }
   function down(ev: PointerEvent) {
     if (still || (ev.target as Element).closest("button")) return; // the field's buttons take their own clicks
+    if (ev.pointerType === "mouse" && ev.shiftKey && (ev.button === 0 || ev.button === 2) && onpaint) {
+      ev.preventDefault();
+      try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
+      manual ??= view;
+      stroke = { id: ev.pointerId, right: ev.button === 2, at: null, first: true };
+      paintTo(local(ev));
+      return;
+    }
     if (ev.pointerType === "mouse" && ev.button === 2 && onedit) {
       ev.preventDefault();
       rightPress = { id: ev.pointerId, ...local(ev) };
@@ -389,6 +418,7 @@
     if (still) return;
     const p = local(ev), at = toPlane(view, field, p.x, p.y), h = hexAt(...at);
     if (ev.pointerType === "mouse") pointAt(h);
+    if (stroke?.id === ev.pointerId) { paintTo(p); return; }
     if (sketch?.id === ev.pointerId) {
       // Off the board on screen, the drag takes no hex, and an arrow released there is no note, as chessground drops a
       // shape released off its board.
@@ -412,6 +442,11 @@
     }
   }
   function up(ev: PointerEvent, click: boolean) {
+    if (stroke?.id === ev.pointerId) {
+      stroke = null;
+      onpaintend?.();
+      return;
+    }
     if (rightPress?.id === ev.pointerId) {
       const p = local(ev), moved = Math.hypot(p.x - rightPress.x, p.y - rightPress.y) > DRAG_PX;
       rightPress = null;

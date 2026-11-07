@@ -3,7 +3,9 @@
   // board, as Lichess's board editor does for its Analysis board. The player puts each player's cells on the board, of
   // a kind (Normal, star or wall), moves cells within each hand as an edit moves them, and sets the moves played (which
   // fix the mover) and the scores. The left button puts the tool's player's cell and the right button the other
-  // player's, as a drawing program's two colours, and X swaps the two players. The page writes the position's notation
+  // player's, as a drawing program's two colours, and X swaps the two players. A drag with Shift puts the cell on each
+  // hex that it passes, or removes it, by what a click on its first hex does: Cyanotype's own, since a set-up position
+  // of Blueprints has many cells. The page writes the position's notation
   // (#lib/game/position.ts) and draws it at once. The engine reads it at each change, in its own form, and says what is
   // wrong with it: the rules' checks. Analyze opens the board from it. Its way in: `#position=`, from the Analysis
   // board's New menu and Import (the position on screen) or another page. The position leaves the address at once. The
@@ -16,11 +18,11 @@
   import type { Player } from "@abstractclass/analysis/game.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-  import { hexKey } from "#lib/board/hex.ts";
+  import { hexKey, type Hex } from "#lib/board/hex.ts";
   import { PLAYER_NAMES, type HandHex, type Kind, type SitePosition } from "#lib/board/position.ts";
   import type { DescribeReply } from "#lib/board/described.ts";
   import { enginePosition, readPosition, STANDARD_START, writePosition } from "#lib/game/position.ts";
-  import { moveHandCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
+  import { moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
   import { engineProblem } from "#lib/review/recordCheck.ts";
   import { EDITOR_KEY, SITE_NAME } from "#lib/site.ts";
 
@@ -29,6 +31,7 @@
   let player = $state<Player>(0); // the tool's player
   let kind = $state<Kind>("plain"); // the tool's kind
   let chosen = $state.raw<({ player: Player } & HandHex) | null>(null); // a hand's cell, chosen to move
+  let painting = $state(false); // a drag with Shift is under way: the engine reads the position at its end
   let hint = $state(""); // why the last click did nothing
   let formError = $state(""); // the engine refused the position
   let checked = $state(false); // the engine has read the latest position
@@ -72,7 +75,7 @@
     fieldError = "";
     writeLocal(EDITOR_KEY, n);
     checked = false;
-    if (engine) void check(engine, n);
+    if (engine && !painting) void check(engine, n);
   });
   async function check(e: EngineWorker, n: string) {
     const mine = ++asked;
@@ -105,6 +108,24 @@
       chosen = null;
     }
   }
+  // A drag with Shift: the player, whether it removes (its first hex has the player's cell of the chosen kind, which a
+  // click there removes), and the hexes that it changed, so that a hex that it passes twice changes once. The editor
+  // has no takeback: one drag is one change of the position, as one click is.
+  let stroke: { player: Player; remove: boolean; seen: Set<string> } | null = null;
+  function paint(hex: Hex, { right, first }: { right: boolean; first: boolean }) {
+    const key = hexKey(hex);
+    if (first || !stroke) {
+      const p = right ? other(player) : player, old = made.cells[key];
+      stroke = { player: p, remove: !!old && old[0] === p && old[1] === kind, seen: new Set() };
+      hint = "";
+      painting = true;
+    }
+    if (stroke.seen.has(key)) return;
+    stroke.seen.add(key);
+    made = paintCell(made, hex, stroke.player, kind, stroke.remove);
+  }
+  function paintEnd() { stroke = null; painting = false; }
+
   /** X swaps the two players, and Escape cancels a chosen cell, as long as no field has the keyboard. */
   function key(ev: KeyboardEvent) {
     if (ev.ctrlKey || ev.metaKey || ev.altKey || (ev.target as HTMLElement).closest?.("input, textarea, select")) return;
@@ -134,12 +155,14 @@
   const KIND_WORD: Record<Kind, string> = { plain: "Normal cell", star: "star", wall: "wall" };
   // The tools' help, in strict Simplified Technical English: the player follows it.
   const toolHelp = $derived(`Click a hex to put a ${PLAYER_NAMES[player]} ${KIND_WORD[kind]} on it. To remove the cell, click it again. `
-    + `Right-click to put a ${PLAYER_NAMES[other(player)]} ${KIND_WORD[kind]}.`);
+    + `Right-click to put a ${PLAYER_NAMES[other(player)]} ${KIND_WORD[kind]}. To put cells on many hexes, hold Shift and drag across them.`);
   // The page's keys and clicks, as the review lists its own (ReviewView's KEYS and MOUSE).
   const CANCEL = "Cancel the move of the selected cell";
   const CLICKS: [string, string][] = [
     ["Click a hex of the board", "Put a cell of the selected player and kind on it, or remove the cell"],
     ["Right-click a hex of the board", "Put a cell of the other player on it"],
+    ["Hold Shift and drag across the board", "Put a cell of the selected player and kind on each hex. If the first hex has that cell, remove that cell from each hex"],
+    ["Hold Shift and drag with the right button", "Do the same with a cell of the other player"],
     ["Click a cell in a hand, then an empty hex of the same hand", "Move the cell"],
     ["Click the selected cell again", CANCEL],
     ["Drag the board", "Move the view"],
@@ -165,7 +188,7 @@
     <section class="h-[34rem] min-[961px]:h-[calc(100dvh-var(--site-header)-2rem)] min-[961px]:min-h-[30rem] min-w-0"
              aria-label="The position being set up">
       {#key loads}
-        <Board position={made} layers={{ candidates: false }} onedit={click} {chosen} />
+        <Board position={made} layers={{ candidates: false }} onedit={click} {chosen} onpaint={paint} onpaintend={paintEnd} />
       {/key}
     </section>
 

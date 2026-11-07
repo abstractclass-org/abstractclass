@@ -1,6 +1,6 @@
 // Cyanotype's board editor and the Analysis board's New menu (its design 33, as Hedge School's design 21) on its preview
 // (CYANOTYPE_BASE_URL). The editor sets up a position that the engine's rules read, and Analyze opens the board from
-// it. The Import takes a position and the moves from it. A link and an analysis file with a set-up start open from it,
+// it. A drag with Shift puts cells along it, or removes them. The Import takes a position and the moves from it. A link and an analysis file with a set-up start open from it,
 // and a start that the rules refuse leaves the board kept here, with a notice. The board's engine is off, so nothing
 // searches: the engine's rules check what comes in. The positions are Stamp Duty's own (the lab's games,
 // apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves there. Each test opens a
@@ -92,6 +92,44 @@ test("the editor: a position set up by hand, read by the engine's rules, and Ana
   await newMenu(page, /Board editor/);
   await page.waitForURL(url => url.pathname === "/editor", { timeout: 60_000 });
   await expect(page.getByLabel("Position, in the notation")).toHaveValue(made);
+});
+
+test("the editor: a drag with Shift puts a cell on each hex that it passes, and one from a filled hex removes them", async ({ page }) => {
+  await page.goto(at("/editor"));
+  const status = page.getByRole("status").filter({ hasText: "engine" });
+  await expect(status).toHaveText(/The engine accepts this position/, { timeout: 120_000 });
+  const field = page.getByLabel("Position, in the notation"), start = await field.inputValue(); // the standard start
+  const cells = (text: string, player: 0 | 1) => { const f = text.split(" ")[player]; return f === "-" ? [] : f.split(";"); };
+  // A row in the fit's margin, with no cell: from 10% to 60% of the field's width
+  const box = (await page.locator(".field").first().boundingBox())!;
+  const from = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.06 }, to = { x: box.x + box.width * 0.6, y: from.y };
+  async function drag(shift: boolean, button: "left" | "right" = "left") {
+    if (shift) await page.keyboard.down("Shift");
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button });
+    await page.mouse.move(to.x, to.y, { steps: 12 });
+    await page.mouse.up({ button });
+    if (shift) await page.keyboard.up("Shift");
+  }
+  // Blue's Normal cells along the drag
+  await drag(true);
+  await expect(field).not.toHaveValue(start);
+  const put = await field.inputValue(), added = cells(put, 0).filter(c => !cells(start, 0).includes(c));
+  expect(added.length).toBeGreaterThanOrEqual(4);
+  expect(added.every(c => /^-?\d+,-?\d+$/.test(c)), added.join(";")).toBe(true); // Normal cells: no letter
+  expect(cells(put, 1)).toEqual(cells(start, 1));
+  await expect(status).toHaveText(/The engine accepts this position/, { timeout: 60_000 });
+  // The same drag again: its first hex has Blue's Normal cell, so it removes each one
+  await drag(true);
+  await expect(field).toHaveValue(start);
+  // With the right button, Red's cells. Then a drag without Shift moves the view, and puts no cell.
+  await drag(true, "right");
+  await expect(field).not.toHaveValue(start);
+  const red = await field.inputValue();
+  expect(cells(red, 1).length - cells(start, 1).length).toBe(added.length);
+  expect(cells(red, 0)).toEqual(cells(start, 0));
+  await drag(false);
+  await expect(field).toHaveValue(red);
 });
 
 test("the editor says what the engine's rules refuse, and Analyze waits", async ({ page }) => {
