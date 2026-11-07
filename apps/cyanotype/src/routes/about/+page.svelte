@@ -1,5 +1,6 @@
 <script lang="ts">
-  // About Cyanotype (design 33): what the site does, the game and the engine.
+  // About Cyanotype (design 33): what the site does, the early access (the header's mark leads to its section, as
+  // Hedge School's), the game and the engine.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
@@ -22,6 +23,13 @@
       on the screen.</li>
   </ul>
 
+  <h2 id="early-access">Early access</h2>
+  <p><strong>Everything here can change:</strong> the pages and their addresses, the notation, the quality labels and how
+    they judge a move, the engine and its network, the files and links that the site makes, and what it keeps in your
+    browser. After a change, an old link or file can stop working, and a review can read differently.</p>
+  <p>For now the site has Practice against {ENGINE_NAME}, reviews of your games from strategyjam.org, and an Analysis
+    board with a board editor. Lessons and puzzles come later.</p>
+
   <h2>The game</h2>
   <p>Blueprints uses a grid of hexes with no edge. Each player holds three blueprints: shapes of cells that the
     player can use again and again.</p>
@@ -38,10 +46,6 @@
   <p>{ENGINE_NAME} is the engine of the review and the Analysis board, and the bot in Practice. It is a neural network
     trained for Blueprints, with a search from <a href="https://github.com/lightvector/KataGo">KataGo</a>. It runs in
     your browser, on your computer, so it needs no server.</p>
-
-  <h2>Changes</h2>
-  <p>Everything here can change: the pages and their addresses, the notation, and what the site keeps in your
-    browser.</p>
 </main>
 
 <SiteFooter />

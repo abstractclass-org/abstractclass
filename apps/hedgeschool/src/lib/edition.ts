@@ -1,6 +1,8 @@
 // The site's edition (design 11): the full site, for development, or the early access, which shows the review only.
-// The build sets it: VITE_EDITION=early. The version is the commit the site was built from (vite.config.ts).
-export const EARLY_ACCESS = import.meta.env.VITE_EDITION === "early";
+// The build sets it: VITE_EDITION=early, read in @abstractclass/site/edition.ts, which Cyanotype reads too. The version
+// is the commit the site was built from (vite.config.ts).
+import { EARLY_ACCESS } from "@abstractclass/site/edition.ts";
+export { EARLY_ACCESS };
 /** Openings, the opening book's own page (design 32), with its header tab and its entry points: in the early edition,
  *  and only in a build that a server with the test book serves (vite.config.ts, VITE_TEST_BOOK). The deploy's builds
  *  leave it out, so the live site has no Openings until the engine's book comes (beads abscls-tpaj.13). */

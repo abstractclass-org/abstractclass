@@ -122,8 +122,8 @@ jobs:
           VITE_EDITION: early
           VITE_STORE_PRACTICE_GAMES: "on"
 
-      # Cyanotype's build with its engine's release files, for the layout test below: check:all, which makes it on
-      # Linux, does not run on this job.
+      # Cyanotype's build with its engine's release files, in the early edition, for the layout test below: check:all,
+      # which makes it on Linux, does not run on this job.
       - name: Cache Cyanotype's engine files
         uses: actions/cache@v6
         with:
@@ -133,6 +133,8 @@ jobs:
         working-directory: apps/cyanotype
       - run: npm run build
         working-directory: apps/cyanotype
+        env:
+          VITE_EDITION: early
 
       # Playwright keeps its browsers in the user's AppData on Windows.
       - name: Cache Playwright's browsers

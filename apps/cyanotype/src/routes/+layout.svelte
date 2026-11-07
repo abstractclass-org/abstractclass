@@ -8,6 +8,7 @@
   import { PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
   import SiteFrame from "@abstractclass/site/SiteFrame.svelte";
   import SiteMenu from "@abstractclass/site/SiteMenu.svelte";
+  import SiteName from "@abstractclass/site/SiteName.svelte";
   import ThemeMenu from "@abstractclass/site/ThemeMenu.svelte";
 
   let { children } = $props();
@@ -40,13 +41,12 @@
 
 <SiteFrame origin={SITE_ORIGIN} themeKey={THEME_KEY} placesKey={PLACES_KEY}>
   {#snippet header()}
-    <!-- The logo before the name, at 28 pixels, as Hedge School's collie. The links fit in one row from a tablet's
-         width. On a phone, they go into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels,
-         and the header keeps the logo, the name and the theme menu. -->
+    <!-- The logo before the name, at 28 pixels, as Hedge School's collie, and in the early access "Early Access" beside
+         the name, in the accent colour, which leads to the About page's section on it (SiteName). The links fit in one
+         row from a tablet's width. On a phone, they go into the site's menu at the left (SiteMenu), as Hedge School's
+         below 1,024 pixels, and the header keeps the logo, the name, the mark and the theme menu. -->
     <span class="sm:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
-    <a class="flex items-center gap-2 text-xl font-bold text-ink no-underline max-sm:mr-auto" href="/">
-      <Logo size={28} />{SITE_NAME}
-    </a>
+    <SiteName name={SITE_NAME} class="max-sm:mr-auto">{#snippet logo()}<Logo size={28} />{/snippet}</SiteName>
     <nav class="flex gap-4.5 max-sm:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>

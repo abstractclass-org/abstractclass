@@ -15,6 +15,7 @@
 	import SupportDialog from '#lib/SupportDialog.svelte';
 	import Icon from '@abstractclass/site/Icon.svelte';
 	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';
+	import SiteName from '@abstractclass/site/SiteName.svelte';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -91,13 +92,8 @@
 	     left (SiteMenu), as on Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into
 	     the menu too. -->
 	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
-	<span class="flex items-center gap-2">
-		<a class="flex items-center gap-2 text-xl font-bold text-ink no-underline" href="/">
-			<Collie size={28} />{SITE_NAME}
-		</a>
-		<!-- The early access, in the accent colour beside the name: what it means is on the About page. -->
-		{#if EARLY_ACCESS}<a class="text-xs font-semibold text-accent no-underline hover:underline" href="/about#early-access">Early Access</a>{/if}
-	</span>
+	<!-- The name, and the early access in the accent colour beside it: what it means is on the About page (SiteName). -->
+	<SiteName name={SITE_NAME}>{#snippet logo()}<Collie size={28} />{/snippet}</SiteName>
 	<nav class="flex flex-wrap gap-4.5 max-lg:hidden">
 		{#each NAV as item (item.label)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
 	</nav>

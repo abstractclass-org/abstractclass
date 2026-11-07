@@ -402,8 +402,12 @@ and builds it on each push, as the site's job does: the packages' checks and tes
 (`npm run engine -- --deploy`), the site's type check, unit tests and build. Then it uploads `build/` with Wrangler:
 `main` to production, another branch to a preview at `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys
 nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only: a push to `main` does not run it
-("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and variable
-`CLOUDFLARE_ACCOUNT_ID` (section 3).
+("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and its variables
+`CLOUDFLARE_ACCOUNT_ID` and `VITE_EDITION` (section 3).
+
+- **The early access:** the build takes the repository variable `VITE_EDITION`, as the site's build does. With
+  `early`, it is Cyanotype's early access: the header shows "Early Access" beside the name, and it leads to the About
+  page's section on the early access ([design 33](design/33-cyanotype.md), "Decision", item 11).
 
 - **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
   `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the
@@ -524,13 +528,14 @@ a push to `main` that the owner did not say to make. The owner's word to release
   `layout-sweep-windows` for Windows).
 
   Both jobs also serve Cyanotype's build (`apps/cyanotype`) on port 4174, beside the site's preview on port 4173, and
-  set `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The build has the engine's release files that
-  `apps/cyanotype/engine.lock.json` pins, so the tests that need them run, such as the review of Cyanotype's test
-  game. The job `test` takes the build and the files that `check:all` made (its steps `cyanotype-engine` and
-  `cyanotype-build`). The job `test-windows` gets the files and builds in steps of its own, because `check:all` does
-  not run there. Each job keeps Cyanotype's downloads in a cache, by the lock. Each Cyanotype test that a job runs
-  uses this preview. In CI, `playwright.config.ts` stops the run with a message when `CYANOTYPE_BASE_URL` is missing.
-  Outside CI, the Cyanotype tests skip without it ([working-notes.md](working-notes.md), "The tests on Cyanotype").
+  set `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The build is the early access (`VITE_EDITION=early`), as the site's
+  is. It has the engine's release files that `apps/cyanotype/engine.lock.json` pins, so the tests that need them run,
+  such as the review of Cyanotype's test game. The job `test` takes the build and the files that `check:all` made (its
+  steps `cyanotype-engine` and `cyanotype-build`). The job `test-windows` gets the files and builds in steps of its own,
+  because `check:all` does not run there. Each job keeps Cyanotype's downloads in a cache, by the lock. Each Cyanotype
+  test that a job runs uses this preview. In CI, `playwright.config.ts` stops the run with a message when
+  `CYANOTYPE_BASE_URL` is missing. Outside CI, the Cyanotype tests skip without it
+  ([working-notes.md](working-notes.md), "The tests on Cyanotype").
 - **The sweep in Edge, as an option,** on this computer, by the owner: it shows Edge's own drawing, with this
   computer's settings. A plain `npm run test:layout` runs Chromium alone. The project `edge` comes only when the
   environment has `HS_EDGE=1`. In `apps/hedgeschool`, build as production does (`VITE_EDITION=early npm run build`),
@@ -558,8 +563,8 @@ a push to `main` that the owner did not say to make. The owner's word to release
     The largest network (Hedge School's 20.6 MB, Cyanotype's 2.2 MB) and the terms download whole, as the page reads
     them (the manifest's parts, joined and decompressed), with the lock's SHA-256.
   - the header shows Practice, Review, Analysis, Tools, Notation and About.
-  - on Hedge School only: `/puzzles`, `/learn` and `/lab/engine` lead home (the early access). Cyanotype has no early
-    access, so it has none of these pages.
+  - on Hedge School only: `/puzzles`, `/learn` and `/lab/engine` lead home (the early access). Cyanotype has none of
+    these pages, so its early access hides no page.
   - on Hedge School only: the Function on `/api/practice-games` answers 400 to a request that is not JSON. Cyanotype
     has no Function (section 9).
   - on the live site only: the domain's answers are signed (DNSSEC validated).

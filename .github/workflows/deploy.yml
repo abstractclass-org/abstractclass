@@ -168,7 +168,10 @@ jobs:
       - name: The packages' checks and tests
         run: npm run check --workspace=packages && npm test --workspace=packages
         working-directory: .
+      # The build's edition: the repository variable VITE_EDITION, as for the site's build.
       - run: npm run engine -- --deploy && npm run check && npm test && npm run build
+        env:
+          VITE_EDITION: ${{ vars.VITE_EDITION }}
 
       - name: Upload to Cloudflare Pages
         env:

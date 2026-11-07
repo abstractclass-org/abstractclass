@@ -12,7 +12,8 @@ School fetches its own ("The engine's files"). It has the GPU module and the pra
 runs on the visitor's GPU as Hedge School's does. Practice against Stamp Duty (`/practice`) is built ("Practice
 against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and the Analysis
 board"), with no area map yet. A position's notation, the board editor and starts from a set-up position are built
-(abscls-8tl1.39, "Decision", item 10, and "The board editor").
+(abscls-8tl1.39, "Decision", item 10, and "The board editor"). The early access is built, as Hedge School's
+("Decision", item 11).
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -20,7 +21,7 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 (design 29, "Consequences").
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
-notation and the board editor: 2026-11-07.
+notation and the board editor: 2026-11-07. The early access: 2026-11-07.
 
 ## Context
 
@@ -202,6 +203,15 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       that reads, when the shorter count gives the same mover (`r1 0/0 22` cut to `r1 0/0 2`), as a cut FEN can. The
       notation has no checksum, as a link has none, and the engine's reading checks the hands and the frames, not the
       history. Every cut of the lab's positions says what is wrong (`position.test.ts`).
+11. **The early access, as Hedge School's** (design 11, "The header" and "One build switch"). The header shows "Early
+    Access" beside the name, in the accent colour, at every width down to 360 pixels. It leads to the About page's
+    section on the early access (`#early-access`). That section says first that everything can change (the pages and
+    their addresses, the notation, the quality labels, the engine and its network, the files and links that the site
+    makes, and what it keeps in the browser), then what the site does now. `VITE_EDITION=early` builds the early
+    access, and the Deploy and Tests workflows build Cyanotype with it, as they build Hedge School. The switch
+    (`edition.ts`) and the name with its mark (`SiteName.svelte`) are in `packages/site`, for both sites. Cyanotype
+    has none of Hedge School's prototype pages (Puzzles, Learn and the engine lab, "The gaps from Hedge School"), so
+    its early access hides no page, and the mark is all that the switch changes.
 
 ## How the board takes a move
 
@@ -943,8 +953,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   `hooks.client.ts`, designs 17, 25 and 27). abscls-8tl1.48.
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
-- **The edition** (`edition.ts`, design 11): the early access, its mark in the header, and the full edition's pages.
-  Left out with the prototypes that it serves (Puzzles, Learn and the engine lab, above).
 - **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
   kept review sent to the import page (`from=`). Left out until a Blueprints site wants to be a partner.
 - **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
@@ -1030,8 +1038,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
 
 - `apps/cyanotype/`: the app. `src/lib/site.ts`: the site's name, the engine's, the live address
   (`https://cyanotype.abstractclass.org`, the canonical address of each page) and the storage keys
-  (`cyanotype:…`). `src/routes/+layout.svelte`: the icons, the link previews' tags, and the header, with the logo and
-  the name, the game's pages, the pages about the site and the theme menu, and below a tablet's width the site's menu
+  (`cyanotype:…`). `src/routes/+layout.svelte`: the icons, the link previews' tags, and the header, with the logo, the
+  name and the early access's mark (`SiteName.svelte` and `edition.ts` of `packages/site`, "Decision", item 11), the
+  game's pages, the pages about the site and the theme menu, and below a tablet's width the site's menu
   (`SiteMenu.svelte` of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels.
   `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the accent (Hedge School's
   lavender) and the board's colour tokens, after the shared style and the view's (`@abstractclass/review/review.css`).
@@ -1047,7 +1056,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   latest move with a bad label, and that move. That review gives one scene. More scenes need more reviewed games, and
   the script takes one stored review. The board is a picture there (`Board.svelte`, its prop `still`): no pan, no
   zoom and no zoom buttons, and the page scrolls over it.
-- `apps/cyanotype/src/routes/`: the pages. The Notation page describes the moves, the marks and the record of
+- `apps/cyanotype/src/routes/`: the pages. The About page has the section on the early access (`#early-access`,
+  "Decision", item 11). The Notation page describes the moves, the marks and the record of
   items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
   with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
   design 23. The build's `404.html` answers each path that the site does not have. `static/_headers` also lets a
@@ -1055,9 +1065,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   comes from `engine.lock.json`, and names the engine's release or the network.
 - `apps/cyanotype/scripts/release-check.mjs`: the check of a deployed site ([hosting.md](../hosting.md), "Deploy,
   check and roll back"), with the checks that both sites share (`packages/site/src/release-check.mjs`). It gives them
-  no pages that lead home, because Cyanotype has no edition, and adds no check of a Function, because Cyanotype has
-  none ("The gaps from Hedge School": "The edition" and "Practice's stored games"). When one of these gaps closes, its
-  check comes into this script as in Hedge School's.
+  no pages that lead home, because Cyanotype's early access hides no page ("Decision", item 11), and adds no check of
+  a Function, because Cyanotype has none ("The gaps from Hedge School", "Practice's stored games"). When that gap
+  closes, its check comes into this script as in Hedge School's.
 - `apps/cyanotype/src/lib/game/`: the game's notation and records, as Hedge School's `src/lib/game/` holds
   Enclosure's records. `notation.ts`: the moves (Blueprints' part of the game interface: `moves`), their capture
   marks, and the turns. `record.ts`: the record, on the shared frame. `check.ts`: the capture marks' check against
@@ -1214,5 +1224,6 @@ Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one posit
 "Cyanotype's engine from Blueprints' first release" (2026-11-05), "Cyanotype's build without ONNX Runtime's
 WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), "Cyanotype's board editor and a
 Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"
-(2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), and "Cyanotype's variations in
-"Hexes"" (2026-11-07). The earlier entries name the site by its first name, Drawing Board.
+(2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), "Cyanotype's variations in
+"Hexes"" (2026-11-07), and "Cyanotype's early access, as Hedge School's" (2026-11-07). The earlier entries name the
+site by its first name, Drawing Board.

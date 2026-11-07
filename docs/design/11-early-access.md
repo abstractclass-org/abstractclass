@@ -24,7 +24,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      notation whose columns have `I`.
    - **The header:** the name, which leads home, with "Early Access" beside it in the accent colour, which leads to the
      About page's section on the early access. That section says first that everything can change (the pages and their
-     addresses, the labels, the engine, the files and links, what the browser keeps), then what the site does now. Then
+     addresses, the labels, the engine, the files and links, what the browser keeps), then what the site does now.
+     Cyanotype's header has the same mark, and its About page the same section (design 33, "Decision", item 11). Then
      Practice, Review and Analysis, and on its right Tools (from a tablet's width, design 22), The notation, About,
      "Support Us" (Ko-fi's tip panel, design 22) and the theme
      menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a half-filled
@@ -39,8 +40,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      independently of webgoatguy, strategyjam.org, meaf.us and Constellation.
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
-3. **One build switch:** `VITE_EDITION=early` builds the early access. Without it, the build is the full site, for
-   development.
+3. **One build switch:** `VITE_EDITION=early` builds the early access, of Hedge School and of Cyanotype (design 33).
+   Without it, the build is the full site, for development.
 4. **Listed** (design 23, which replaced the first rule, unlisted): search engines index the live address, and
    Cloudflare's preview addresses answer with `noindex`. The Discord is where players report problems.
 5. **Hosting: Cloudflare Pages.** A GitHub Actions workflow builds the GitHub repository on every push, and
@@ -314,8 +315,9 @@ read the game from the player's own page.
 
 ## Where it is
 
-- The switch, the name and the version: `src/lib/edition.ts`, `vite.config.ts` (the commit). The last game reviewed:
-  `src/lib/game/store.ts`, read by `src/lib/review/ReviewHome.svelte`. The hidden pages:
+- The switch, the name and the version: `src/lib/edition.ts`, `vite.config.ts` (the commit). Both sites read the
+  switch in `packages/site/src/edition.ts`, and show the name and the mark with `packages/site/src/SiteName.svelte`.
+  The last game reviewed: `src/lib/game/store.ts`, read by `src/lib/review/ReviewHome.svelte`. The hidden pages:
   `src/routes/{puzzles,learn,lab/engine}/+page.ts`. Search engines: design 23.
 - The import of Constellation's export: `src/lib/game/constellation.ts`, with its tests.
 - Deleting a game: `deleteGame` in `src/lib/game/store.ts`, the rows in `src/lib/review/ReviewHome.svelte`, the
@@ -337,5 +339,5 @@ read the game from the player's own page.
   (2026-10-12), "Deleting a game, and the browser's storage" (2026-10-12), "A question before a delete replaces the
   Undo" (2026-10-16), "strategyjam.org games through the bookmarklet and the userscript" (2026-10-18), "A meaf.us
   game's review links back to its game" (2026-10-21), "The Privacy page says what goes where, in less detail"
-  (2026-10-22).
+  (2026-10-22), "Cyanotype's early access, as Hedge School's" (2026-11-07).
 - [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17).

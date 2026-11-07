@@ -9178,3 +9178,30 @@ setting "Variations and lines" on Cyanotype is named "Hexes", not "Pictures". He
 blueprint's number, and an edit is its cell with an arrow. So the name says what the mark is. Its help says "Each
 move as a small hex, a dot, or its notation." Only the name and its help changed: the setting's stored value stays
 `pills`, so a visitor's setting is kept.
+
+### Cyanotype's early access, as Hedge School's (2026-11-07)
+
+Cyanotype gets Hedge School's early access (design 11, "The header" and "One build switch"; design 33, "Decision",
+item 11). Before, design 33 left the edition out with Hedge School's prototype pages, which the full edition serves.
+But the early access also tells the players that the site is new and that everything on it can change, and that
+holds for Cyanotype as it does for Hedge School.
+
+- **The mark:** "Early Access" beside the name in the header, in the accent colour, which leads to the About page's
+  section on the early access (`/about#early-access`). Cyanotype's header keeps the name, the mark, the site's menu
+  and the theme menu on a phone, down to 360 pixels.
+- **The About page's section,** as Hedge School's: first that everything can change (the pages and their addresses,
+  the notation, the quality labels, the engine and its network, the files and links that the site makes, and what it
+  keeps in the browser), then what the site does now: Practice, the review of a strategyjam.org game, and the Analysis
+  board with its board editor. It replaces the page's short section "Changes". It has no line that asks for reports:
+  Cyanotype names no place for them yet, where Hedge School names webgoatguy's Discord.
+- **The build switch:** `VITE_EDITION=early`, as Hedge School's. `check:all` and both jobs of the Tests workflow build
+  Cyanotype with it, and the Deploy workflow's job `cyanotype` takes the repository variable `VITE_EDITION`, as the
+  site's job does. That variable is `early` already, so the owner sets nothing.
+- **Moved, not copied** (design 29): the switch is `packages/site/src/edition.ts`, which Hedge School's `edition.ts`
+  passes on, and the name with its mark is `packages/site/src/SiteName.svelte`, with each site's logo as a snippet.
+  Hedge School's header has the same markup and classes as before.
+- **No page hides:** Cyanotype has none of Hedge School's prototype pages (Puzzles, Learn and the engine lab), so its
+  early access hides no page, and its release check has no page that leads home.
+- **The test:** the layout test checks the mark on each site, at 360 and 1,280 pixels, in each theme: in the header's
+  one row, after the name, in the accent colour, in the window, with nothing over it. A click on it opens the About
+  page at the section, under the header.
