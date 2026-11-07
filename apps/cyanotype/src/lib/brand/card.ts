@@ -23,7 +23,8 @@ export const CELLS: [Hex, Player, Kind][] = [
   [[2, -1], 1, "star"], [[3, -2], 1, "plain"], [[3, -1], 1, "plain"], [[2, 0], 1, "plain"],
   [[2, -2], 1, "plain"], [[1, -2], 1, "wall"], [[3, 0], 1, "plain"], [[2, 1], 1, "star"],
 ];
-/** A wall's bricks on the cell at (x, y), of radius `k`: the lines of Cell.svelte's BRICKS. */
+/** A wall's bricks on the cell at (x, y), of radius `k`: the card's own mark, the board's first one. The board's walls
+ *  now have stripes (design 33, "The cells' marks"). */
 const bricks = (x: number, y: number, k: number) =>
   [[-0.45, -0.3, 0.45, -0.3], [0.45, -0.3, 0.45, 0.3], [0.45, 0.3, -0.45, 0.3], [-0.45, 0.3, -0.45, -0.3],
    [-0.45, -0.1, 0.45, -0.1], [-0.45, 0.1, 0.45, 0.1], [0, -0.3, 0, -0.1], [-0.22, -0.1, -0.22, 0.1],

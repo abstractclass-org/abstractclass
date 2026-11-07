@@ -916,6 +916,35 @@ settings of its design 09 and the marks of its design 13), in the code that both
   a game comes in from strategyjam.org", item 6). Hedge School's import page keeps the game itself, and its review
   gives a bare record the Review tab.
 
+## The cells' marks
+
+A cell has its owner's colour. A star cell and a wall also have a white mark, so that the shape tells the kinds apart,
+not the colour alone. The decision log has the five options and the reasons for this design ("Cyanotype's cells:
+striped walls and six-point stars").
+
+1. **A Normal cell** has no mark. It is the most common kind.
+2. **A star cell** has a six-point star: two equilateral triangles, one outline of twelve points. Each point is
+   towards one of the hex's six corners, at 0.64 of the hex's radius from the centre.
+3. **A wall** has three diagonal stripes that rise to the right, at 45°. Each stripe is 0.17 of the hex's radius
+   wide, inside a hex of radius 0.76, and the middle one goes through the centre.
+4. **The same marks everywhere a cell shows:** on the board, in the hands' frames, on a captured cell, on a ghost (a
+   cell that a candidate, a line or the player's own footprint would place), in a move's glyph in the move list and
+   the notes, and in the edit glyph of the form "Hexes". A captured cell and a ghost are faded and dashed, and their
+   marks take the owner's colour. In a line of text, the cell takes the text's colour, and its mark the colour that
+   the text gives.
+5. **Why these marks:**
+   - **They read at text size and in grey.** A move's glyph draws a cell about 15 pixels wide. The thin lines of
+     the earlier marks (a five-point star, and a wall's courses of bricks) blurred there, and on a faded cell.
+   - **The star is round and shares the hex's corners.** A six-point star has the hex's symmetry, so it sits in the
+     middle of the cell and fills more of it. A five-point star needs an offset to look centred, and its points do
+     not match the hex.
+   - **Stripes against a star: lines against a shape.** The two marks differ in their kind, not in a detail, so they
+     stay apart in grey and for a reader who does not see the colours.
+6. **The logo, the link preview picture and the strategyjam.org button keep their own drawings** ("The logo", and
+   "How a game comes in from strategyjam.org"): their five-point star, and the bricks of the picture's walls.
+
+`apps/cyanotype/src/lib/board/Cell.svelte` draws a cell, and `cellMarks.ts` gives the two marks' shapes.
+
 ## The logo
 
 Cyanotype's logo is **the cyanotype:** the start's blueprint, a star in its ring of six cells, printed white on
@@ -1220,6 +1249,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". It keeps
     its fit while a pointer is down. A drag or one finger pans, two fingers pinch, and the wheel zooms round the
     pointer by d3-zoom's steps.
+  - `Cell.svelte`: a cell and its kind's mark ("The cells' marks"), with the marks' shapes in `cellMarks.ts`.
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
     geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the lab's positions, from `fixtures.json` ("How the board
     takes a move").
@@ -1323,5 +1353,6 @@ WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), "Cyan
 Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"
 (2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), "Cyanotype's variations in
 "Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
-games, as Hedge School's" (2026-11-07), and "Cyanotype refuses a set-up start before the click, and shared lookups"
-(2026-11-08). The earlier entries name the site by its first name, Drawing Board.
+games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
+(2026-11-08), and "Cyanotype's cells: striped walls and six-point stars" (2026-11-08). The earlier entries name the
+site by its first name, Drawing Board.

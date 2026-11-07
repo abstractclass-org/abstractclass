@@ -19,7 +19,8 @@ export type Shape = readonly ["rect" | "path", Readonly<Record<string, string | 
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
-/** A five-pointed star's outline, its points `r` from (x, y), as the board's star cell (Cell.svelte) draws it. */
+/** A five-pointed star's outline, its points `r` from (x, y): the logo's and the card's own star. The board's star
+ *  cells have six points (design 33, "The cells' marks"). */
 export function starPath(x: number, y: number, r: number): string {
   return "M" + Array.from({ length: 10 }, (_, k) => {
     const a = (Math.PI / 5) * k - Math.PI / 2, d = k % 2 ? r * 0.42 : r;

@@ -1,14 +1,13 @@
 <script lang="ts" module>
   import { center, hexPath, type Hex } from "./hex.ts";
   import type { Kind, Player } from "./position.ts";
+  import { sixPointStar, stripes } from "./cellMarks.ts";
 
-  // The kinds' marks, for a hex of radius 1: a star (five points, as strategyjam.org names the kind), and a wall as
-  // courses of bricks. A plain cell has no mark. The shapes, not the colours alone, tell the kinds apart.
-  const STAR = Array.from({ length: 10 }, (_, i) => {
-    const a = (Math.PI / 5) * i - Math.PI / 2, r = i % 2 ? 0.22 : 0.52;
-    return `${(r * Math.cos(a)).toFixed(3)},${(r * Math.sin(a) + 0.03).toFixed(3)}`;
-  }).join(" ");
-  const BRICKS = "M-0.45,-0.3H0.45V0.3H-0.45Z M-0.45,-0.1H0.45 M-0.45,0.1H0.45 M0,-0.3V-0.1 M-0.22,-0.1V0.1 M0.22,-0.1V0.1 M0,0.1V0.3";
+  // The kinds' marks (design 33, "The cells' marks"), for a hex of radius 1: a star cell's six-point star, whose points
+  // face the hex's corners, and a wall's three diagonal stripes. A Normal cell has no mark. The shapes, not the colours
+  // alone, tell the kinds apart: a shape against lines.
+  const STAR = sixPointStar(0.64);
+  const STRIPES = stripes(0.76, 0.17, [-0.38, 0, 0.38]);
   /** A cell's radius: a gap of 0.07 between two cells, so that each cell reads alone. */
   export const CELL_SIZE = 0.93;
   const SHAPE = hexPath(0, 0, CELL_SIZE);
@@ -29,9 +28,9 @@
 <g class="cell {look} p{owner}" class:faded={look !== "cell"} class:in-text={inText} transform="translate({x} {y})">
   <path d={SHAPE} class="body" />
   {#if kind === "star"}
-    <polygon points={STAR} class="mark star" />
+    <path d={STAR} class="mark star" />
   {:else if kind === "wall"}
-    <path d={BRICKS} class="mark wall" />
+    <path d={STRIPES} class="mark wall" />
   {/if}
   {#if look === "captured"}
     <text y="0.3" class="cross">×</text>
@@ -44,15 +43,11 @@
   .p1 { --own: var(--red); }
   .in-text { --own: currentColor; }
   .body { fill: var(--own); stroke: none; }
-  .star { fill: var(--on-badge); }
-  .wall { fill: none; stroke: var(--on-badge); stroke-width: 0.07; stroke-linejoin: round; }
-  .in-text .star { fill: var(--on-text, var(--on-badge)); }
-  .in-text .wall { stroke: var(--on-text, var(--on-badge)); }
+  .mark { fill: var(--on-badge); }
+  .in-text .mark { fill: var(--on-text, var(--on-badge)); }
 
   /* A captured cell and a ghost: faded and dashed, the mark in the owner's colour. */
   .faded .body { fill-opacity: 0.18; stroke: var(--own); stroke-width: 0.07; stroke-dasharray: 0.2 0.12; }
-  .faded .mark { opacity: 0.6; }
-  .faded .star { fill: var(--own); }
-  .faded .wall { stroke: var(--own); }
+  .faded .mark { opacity: 0.6; fill: var(--own); }
   .cross { font-size: 0.9px; fill: var(--muted); text-anchor: middle; font-weight: 700; font-family: system-ui, sans-serif; }
 </style>
