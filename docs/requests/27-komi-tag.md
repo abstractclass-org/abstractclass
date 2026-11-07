@@ -1,6 +1,7 @@
 # The record's `Komi` tag
 
-**Status:** open. **Asked:** 2026-11-06.
+**Status:** done (engine repository commit `612a8458`: design 04, "The record's tags", item "The komi"), checked
+here: packages/record's `komiOf` reads the tag as design 04 says. **Asked:** 2026-11-06.
 
 ## What
 
