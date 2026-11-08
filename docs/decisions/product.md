@@ -9696,13 +9696,14 @@ moves, two boxes showed as the move on the board: the second move's row, and the
 
 - **The change,** in the shared view (`packages/review/src/ReviewView.svelte`): with one move a line, the cell takes
   the row of the turn's last move. That is the second row for a turn of two moves, and the one row for a turn of one
-  move (Blue's first turn, or a turn that ends the game). The move on the board and its points now light as one row.
-  Hover, the turn's group light, the place kept in view and the move menu are as before.
+  move (Blue's first turn, or a turn that ends the game). The cell no longer has the first row. It has its column
+  only, and it comes after the turn's moves, so the grid puts it on the last move's row. The move on the board and its
+  points now light as one row. Hover, the turn's group light, the place kept in view and the move menu are as before.
 - **Not changed:** the review by move, the move lists of the Analysis board and of Practice, and Hedge School, whose
   turn has its two moves in one row and its cell in a column of its own.
-- **The check:** `cyanotype-review.spec.ts`, by turn at 1,376 and at 390 pixels: each turn's cell is in its last
-  move's grid row, and the cell's box lies within the move's box from top to bottom, to a pixel. After turn 4, the
-  two boxes in the move on the board's look (the second move and the cell) are on one row in the same way.
+- **The check:** `cyanotype-review.spec.ts`, by turn at 1,376 and at 390 pixels: each turn's cell lies within its
+  last move's box from top to bottom, to a pixel. After turn 4, the two boxes in the move on the board's look (the
+  second move and the cell) are on one row in the same way.
 - **The tops are not equal,** as they were not on the first row before. The cell and the move stand on one
   baseline, and a cell with no label badge is lower than a move. At 1,376 pixels by turn, the cell is 16.8 pixels
   high and the move 21 (Text) or 21.9 (Glyphs). So the cell's top is 3.0 pixels lower in Text and 3.8 in Glyphs,

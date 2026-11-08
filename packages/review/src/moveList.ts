@@ -10,12 +10,14 @@ import { SIDE_TEXT } from "@abstractclass/site/side.ts";
 
 export const MOVE_LIST = "movelist flex-1 min-h-0 overflow-y-auto pt-1.5 text-sm border-t border-line";
 /** A turn's row. `judged`: a last column for the turn's own quality label (the review by turn). `oneMoveALine`: each
- *  move on a line of its own, the turn's label beside its last (ReviewView.svelte places it on that row), so that the
- *  move on the board and its points are one row. Otherwise the moves wrap. Where the number and two moves do not fit, the second move goes under the first, so that nothing hides
- *  sideways. By edge a move holds its quality label, ◆ and loss too, so its rows wrap in a wider box. The number hangs
- *  in the row's left padding (2.45rem: its 2.2rem and the gap), so a second line starts in the first move's column.
- *  Each move takes half the room after the number (50%, less half the gap), and at least its own width. A continued
- *  turn's … takes a move's place. The half pixel less keeps rounding from wrapping two moves that fit. */
+ *  move on a line of its own in the second column, and the turn's label in the third with no row of its own. The label
+ *  comes after the moves, and the grid places its items in their order (not `dense`), so the label stands beside the
+ *  last move: the move on the board and its points are one row. Otherwise the moves wrap. Where the number and two
+ *  moves do not fit, the second move goes under the first, so that nothing hides sideways. By edge a move holds its
+ *  quality label, ◆ and loss too, so its rows wrap in a wider box. The number hangs in the row's left padding
+ *  (2.45rem: its 2.2rem and the gap), so a second line starts in the first move's column. Each move takes half the
+ *  room after the number (50%, less half the gap), and at least its own width. A continued turn's … takes a move's
+ *  place. The half pixel less keeps rounding from wrapping two moves that fit. */
 export const turnRow = (judged = false, oneMoveALine = false) => oneMoveALine
   ? ["grid items-baseline gap-x-1 [&>.mv]:col-start-2", judged ? "grid-cols-[2.2rem_minmax(0,1fr)_auto]" : "grid-cols-[2.2rem_minmax(0,1fr)]"]
   : judged

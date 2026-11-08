@@ -2,10 +2,9 @@
 // the stored review of the engine's real replies (cyanotype-review.ts), with the engine on at Lite as in a live review,
 // in one page that the tests share in turn. The tests check the candidates' table's Move header (move-header.ts), the
 // display setting "Move notation", the marks of a turn's two moves by turn and by move, each turn's cell on its last
-// move's row by turn, the two moves of a Mistake's
-// note on one line with a middle dot, the dot between a turn's two moves in Hexes and in Notation with glyphs, the
-// hands' rank chips with "+N", that the page has no area map, and the player's notes (cyanotype-notes.ts) by position
-// and while a preview shows.
+// move's row by turn, the two moves of a Mistake's note on one line with a middle dot, the dot between a turn's two
+// moves in Hexes and in Notation with glyphs, the hands' rank chips with "+N", that the page has no area map, and the
+// player's notes (cyanotype-notes.ts) by position and while a preview shows.
 // The page asks the engine for no search: cyanotype-live-review.spec.ts reviews with the engine. And the
 // Analysis board's check of a record brought to it, and its refusal of a kept board with a komi. Without the engine's
 // files the tests skip, with a message. Run:
@@ -168,30 +167,25 @@ test("by turn and by move, the board marks the same moves: both moves of the tur
 test("by turn, a turn's cell stands on its last move's row, and the move on the board lights one row", async () => {
   // One move a line: the turn's cell (its label, the ◆ and the loss) acts as the turn's last move, so it stands on that
   // move's row. Else, after a turn of two moves, the second move and the cell on the first row lit as two boxes.
+  // On one row: the cell's box lies within its last move's, from top to bottom, to a pixel. The tops are not equal: the
+  // cell and the move stand on one baseline, and a cell with no label badge is lower than a move (about 17 pixels to
+  // 21), so its top is 3 to 4 pixels lower, and 6.5 beside an edit in glyphs (its baseline is its picture's lower
+  // edge). A cell on the first row beside a second move fails: its top is a row above the move's.
+  type Box = { top: number; bottom: number };
+  const within = (cell: Box | null, move: Box) => !!cell && cell.top >= move.top - 1 && cell.bottom <= move.bottom + 1;
   for (const [w, h] of [[1376, 952], [390, 844]]) {
     await open(w, h, { judge: "turn" });
-    // On one row: the cell's box lies within its last move's, from top to bottom, to a pixel. The tops are not equal:
-    // the cell and the move stand on one baseline, and a cell with no label badge is lower than a move (about 17
-    // pixels to 21), so its top is 3 to 4 pixels lower, and 6.5 beside an edit in glyphs (its baseline is its picture's
-    // lower edge).
-    const within = (cell: { top: number; bottom: number }, move: { top: number; bottom: number }) =>
-      cell.top >= move.top - 1 && cell.bottom <= move.bottom + 1;
-    /** Each turn's row: the number of its moves, the grid row of its last move (after a continued turn's …), and its
-     *  cell (the row's last element after the number that is no move and no lit box): its grid row, and the boxes of
-     *  the cell and of the last move. */
+    /** Each turn's row: the number of its moves, and the boxes of its cell (its third column, as book-review.spec.ts
+     *  finds Hedge School's in its fourth) and of its last move. */
     const rows = await page.locator(".movelist > div:has(> button.mv)").evaluateAll(all => all.map(row => {
-      const moves = [...row.querySelectorAll<HTMLElement>(":scope > button.mv")];
-      const cell = [...row.children].slice(1).filter(c => !c.matches(".mv, [data-lit]")).at(-1);
-      const continued = row.children[1]?.textContent?.trim() === "…";
       const box = (e: Element) => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
-      return { moves: moves.length, lastRow: String(moves.length + (continued ? 1 : 0)),
-               cellRow: cell && getComputedStyle(cell).gridRowStart, cell: cell && box(cell), move: box(moves.at(-1)!) };
+      const moves = row.querySelectorAll(":scope > button.mv"), cell = row.querySelector(":scope > .col-start-3");
+      return { moves: moves.length, cell: cell && box(cell), move: box(moves[moves.length - 1]) };
     }));
     expect(rows.filter(r => r.moves === 2).length, `${w} px: turns of two moves`).toBeGreaterThan(0);
     expect(rows.filter(r => r.moves === 1).length, `${w} px: turns of one move`).toBeGreaterThan(0);
     rows.forEach((r, k) => {
-      expect(r.cellRow, `${w} px: turn ${k + 1}: its cell's grid row`).toBe(r.lastRow);
-      expect(within(r.cell!, r.move), `${w} px: turn ${k + 1}: its cell ${JSON.stringify(r.cell)} on its last move's row ${JSON.stringify(r.move)}`).toBe(true);
+      expect(within(r.cell, r.move), `${w} px: turn ${k + 1}: its cell ${JSON.stringify(r.cell)} on its last move's row ${JSON.stringify(r.move)}`).toBe(true);
     });
     // After turn 4 (two placements, moves 6 and 7): the second move and the cell, in the move on the board's look, on
     // one row
