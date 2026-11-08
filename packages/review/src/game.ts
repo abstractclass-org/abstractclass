@@ -16,6 +16,7 @@ import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
 import type { MoveReview, ReviewData, TurnReview, Unit } from "@abstractclass/analysis/model.ts";
 import type { AreaMark, MapStyle } from "./ownership.ts";
+import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
 
 /** The players, in every game (the glossary): Blue moves first, Red second. */
 export const PLAYER_NAME = ["Blue", "Red"] as const;
@@ -46,6 +47,11 @@ export interface Display {
   // before it ("After vs before", KaTrain's loss grid with the rises)
   mapStyle: MapStyle;
   mapMin: Record<MapStyle, number>; // each style's smallest value marked, in hundredths: 0 marks every point with one
+  // The weak walls (a prototype, Hedge School's design 30, "The weak walls"), on each page, for a game that has them
+  // (the view game's `walls`): each lattice point of a player's edges marked by the chance that an edge there is cut
+  // before the game ends, in one of the forms to compare (WallForm)
+  weakWalls?: { review: boolean; board: boolean };
+  wallForm?: WallForm;
   scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
   areaLine: boolean; // the Advantage chart's line of the players' second number (the game's `second`), Blue − Red
   lineSteps: boolean; // "Lines on the board": the engine's line and a variation's preview drawn one move at a time
@@ -68,6 +74,11 @@ export interface Display {
   moveSound: string; // which set of sounds: the game's
   volume: number; // the move sounds' volume, 0 to 1
 }
+
+/** The forms of the weak walls' marks, to compare: a disc whose size, or a ring whose colour, gives the chance, or a
+ *  gauge, a ring filled as far as the chance. */
+export const WALL_FORMS = ["size", "colour", "gauge"] as const;
+export type WallForm = (typeof WALL_FORMS)[number];
 
 /** A game's types for the view: the analysis's (GameTypes), and the board's own. */
 export interface ViewTypes extends GameTypes {
@@ -115,6 +126,8 @@ export interface BoardProps<G extends ViewTypes> {
   areaMap: (AreaMark | null)[] | null; // the area map, by point (the game's `map.index`)
   // The map that the area map's marks come from: a game whose maps carry their place reads it there (Blueprints' view)
   areaOf: number[] | null;
+  walls: WeakWalls | null; // the weak walls of the position shown (Display's weakWalls), in their form
+  wallForm: WallForm;
   notes: G["note"][];
   onnotes?: (notes: G["note"][]) => void; // a note drawn, changed or removed, or all cleared: none while a preview shows
   oncandidate: (move: G["move"] | null) => void; // the candidate under the board's pointer
@@ -191,6 +204,15 @@ export interface MapParts<G extends ViewTypes> {
   lose: string; // its mark for area that its owner will probably lose: "will be lost"
   help: string; // the area map's setting
   styleHelp: string; // the setting of its style
+}
+
+/** The weak walls' part that is the board's (Display's weakWalls): the point's chance under the pointer, and the
+ *  texts. */
+export interface WallParts<G extends ViewTypes> {
+  reading(point: G["point"], walls: WeakWalls): string | null; // the point's chance, or null where no edge passes
+  help: string; // the setting
+  forms: Record<WallForm, { name: string; help: string }>; // each form's name and what it shows
+  legend(walls: WeakWalls): string; // the legend's words while the weak walls show: what the marks mean, or that none shows
 }
 
 /** A board drawn for an image of a line: the position where the line starts, the move that led there (drawn while
@@ -369,6 +391,7 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   // --- The site's engine and tools
   networks: NetworkParts;
   map?: MapParts<G>;
+  walls?: WallParts<G>;
   image?: ImageParts<G>;
   book?: BookParts<G>;
 }

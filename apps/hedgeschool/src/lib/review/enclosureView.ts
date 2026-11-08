@@ -19,6 +19,7 @@ import { NETWORKS, networkMB, networkName } from "#lib/analysis/engineSettings.t
 import { DIFFERENCE_HELP } from "@abstractclass/review/ownership.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
 import { drawnBoard, occupancy, pointReading } from "./enclosureMap.ts";
+import { WALL_MIN, wallMarks, wallReading } from "./weakWalls.ts";
 import { imageCaption, imageName } from "./enclosureImage.ts";
 import EnclosureBoard, { boardLine } from "./EnclosureBoard.svelte";
 import EdgePill from "./EdgePill.svelte";
@@ -114,6 +115,20 @@ export const enclosureView: ViewGame<Enclosure> = {
     lose: "will be lost",
     help: "Shades or marks each point from the engine's forecast, in the style below. While a line or a preview shows, the map shows the position after its last drawn edge. The key t shows or hides the map.",
     styleHelp: `Forecast: who the engine expects to hold each point, and how surely. Forecast vs board: what the engine expects to happen next, whoever moves. Dots show open area that a player will probably close. Hatching shows closed area that its owner will probably lose. ${DIFFERENCE_HELP}`,
+  },
+
+  // The weak walls (a prototype, design 30, "The weak walls"): the engine's chance at each lattice point of the
+  // players' edges, which the board marks in one of three forms to compare
+  walls: {
+    reading: wallReading,
+    help: "Marks each point of the players' edges by the chance that an edge there is cut before the game ends, from 10% up. The marks are on points, not on edges: an edge is cut at most as often as its weakest point. The engine gives them on its CPU workers, for the position on screen only.",
+    forms: {
+      size: { name: "Size", help: "A disc: the larger, the likelier a cut." },
+      colour: { name: "Colour", help: "A ring: the darker, the likelier a cut." },
+      gauge: { name: "Gauge", help: "A ring filled from the top as far as the chance: a quarter is 25%." },
+    },
+    legend: walls => (wallMarks(walls).length ? "Weak walls: the chance that an edge at each point is cut"
+      : `Weak walls: no point of an edge at ${WALL_MIN * 100}% or more`),
   },
 
   image: {

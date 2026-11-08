@@ -134,3 +134,59 @@ test("the GPU's first-use test waits while no search that it needs runs, and say
     performance.now = clock;
   }
 });
+
+/** A search engine whose searches end when the test says (`ends`), with a reply that the pool's speed meter reads. */
+const heldEngine = (kind: "cpu" | "gpu", ends: (() => void)[]) => ({ kind, terminate() {}, analyse: () => ({ stop() {},
+  done: new Promise(resolve => ends.push(() => resolve({ ms: 0, reply: { rootInfo: { visits: 0 } } }))) }) });
+
+test("a task for the CPU alone waits for a CPU worker: a free GPU slot takes the next task instead", async () => {
+  // The weak walls (protocol 0.6.2): the GPU module refuses the field, so their search runs on a CPU worker. It is the
+  // most urgent task here, and the GPU slot takes the less urgent search behind it.
+  const pool = new EnginePool(0, new EngineWorker());
+  try {
+    const ran: string[] = [], ends: (() => void)[] = [];
+    const internals = pool as unknown as { free: unknown[] };
+    const work = (name: string) => async (e: { kind: string; analyse: (q: never) => { done: Promise<unknown> } }) => {
+      ran.push(`${name} on ${e.kind}`);
+      await e.analyse({} as never).done;
+    };
+    pool.addGpu({ slots: [heldEngine("gpu", ends)], evaluations: async () => 0, terminate() {} } as unknown as GpuEngines);
+    const walls = pool.run(9, "walls", work("walls"), { cpu: true });
+    const sweep = pool.run(1, "sweep", work("sweep"));
+    await new Promise(r => setImmediate(r));
+    assert.deepEqual(ran, ["sweep on gpu"]); // the walls wait: the only free engine is the GPU's
+    internals.free.push(heldEngine("cpu", ends));
+    const pass = pool.run(0, "pass", work("pass")); // a CPU worker comes free: the walls take it, before this task
+    await new Promise(r => setImmediate(r));
+    assert.deepEqual(ran, ["sweep on gpu", "walls on cpu"]);
+    while (ends.length) { ends.splice(0).forEach(end => end()); await new Promise(r => setImmediate(r)); }
+    await Promise.all([walls, sweep, pass]);
+    assert.equal(ran.length, 3); // the pass runs on the engine that frees first
+  } finally {
+    pool.dropGpu();
+  }
+});
+
+test("a task for the CPU alone stops a less urgent search on a CPU worker, not on the GPU", async () => {
+  const pool = new EnginePool(0, new EngineWorker());
+  try {
+    const stopped: string[] = [];
+    const internals = pool as unknown as { free: unknown[] };
+    const ends: (() => void)[] = [];
+    const slow = (name: string) => (_e: unknown, onStop: (stop: () => void) => void) =>
+      new Promise<void>(resolve => { ends.push(resolve); onStop(() => { stopped.push(name); resolve(); }); });
+    internals.free.push(heldEngine("cpu", []));
+    pool.addGpu({ slots: [heldEngine("gpu", [])], evaluations: async () => 0, terminate() {} } as unknown as GpuEngines);
+    void pool.run(1, "on cpu", slow("on cpu")).catch(() => {});
+    const onGpu = pool.run(2, "on gpu", slow("on gpu"));
+    await new Promise(r => setImmediate(r));
+    const walls = pool.run(9, "walls", async e => e.kind, { cpu: true });
+    assert.deepEqual(stopped, ["on cpu"]); // the GPU's search is less urgent too, and goes on
+    assert.equal(await walls, "cpu");
+    ends.forEach(end => end());
+    await onGpu;
+  } finally {
+    pool.halt();
+    pool.dropGpu();
+  }
+});

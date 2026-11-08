@@ -20,6 +20,10 @@
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
+  /* The weak walls' marks (a prototype, design 30): one brown, apart from the players' blue and red and the signs'
+     green and yellow. The colour form's ramp goes from --wall-low (a tenth) to --wall-high (certain). */
+  --wall-high: #6b2a00; /* 9.9:1 against the board */
+  --wall-low: #c39a3f; /* 2.2:1: the faintest marks */
   /* The position symbols' shades (the book's table, design 32, item 3): the stronger the position, the farther its
      symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in OKLCH,
      with the side's hue, from --text (its lightness and chroma) to the side's far shade, at 0.45, 0.72 and 1 of the way
@@ -41,6 +45,8 @@
   --board-bg: #3a362e;
   --board-dot: #6d6555;
   --area: #d27fbb;
+  --wall-high: #ffc94d; /* 8.3:1 against the board */
+  --wall-low: #8f7748; /* 2.1:1 */
   --blue-slightly-better: #9cb6e3;
   --blue-better: #7299df;
   --blue-winning: #487ad9;

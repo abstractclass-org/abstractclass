@@ -6,7 +6,8 @@
 //
 // The GPU module's engines (gpuClient.ts) join the pool as more search engines, a slot each (design 15). The GPU
 // gains by many searches at once, whose evaluations go to it together, and each of its searches runs slower than a CPU
-// worker's. So a task takes a free CPU worker first, and a free GPU slot when no CPU worker is free.
+// worker's. So a task takes a free CPU worker first, and a free GPU slot when no CPU worker is free. A task that needs
+// the CPU module (`cpu`: a field that the GPU module refuses, such as the weak walls) waits for a CPU worker.
 import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "./client.ts";
 import type { GpuEngines } from "./gpuClient.ts";
 import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "./protocol.ts";
@@ -44,6 +45,7 @@ interface Task {
   work: Work<unknown>;
   resolve: (value: unknown) => void;
   reject: (error: unknown) => void;
+  cpu?: boolean; // only a CPU worker takes it
   stop?: () => void; // while it runs, when it can stop
   stopped?: boolean; // stopped to give way: it runs again later
   engine?: SearchEngine; // while it runs
@@ -127,12 +129,13 @@ export class EnginePool {
 
   /** Runs `work` on the next free worker, by priority (higher first, then first come). Engines released when idle start
    *  again first. A task that the pool stops to give way (onStop) runs its work again later, as does a task whose GPU
-   *  was lost: the promise settles with the work's last run, and the earlier runs' results are dropped. */
-  run<T>(priority: number, tag: string, work: Work<T>): Promise<T> {
+   *  was lost: the promise settles with the work's last run, and the earlier runs' results are dropped. `cpu`: only a
+   *  CPU worker runs it, for a field that the GPU module refuses. */
+  run<T>(priority: number, tag: string, work: Work<T>, { cpu = false } = {}): Promise<T> {
     clearTimeout(this.idleTimer);
     if (this.released) { this.released = false; this.resize(this.size); }
     return new Promise<T>((resolve, reject) => {
-      this.enqueue({ priority, tag, work: work as Work<unknown>, resolve: resolve as (v: unknown) => void, reject });
+      this.enqueue({ priority, tag, work: work as Work<unknown>, resolve: resolve as (v: unknown) => void, reject, cpu });
       this.dispatch();
       this.giveWay();
     });
@@ -270,7 +273,10 @@ export class EnginePool {
   private dispatch() {
     while (this.free.length && this.queue.length) {
       const k = Math.max(0, this.free.findIndex(e => e.kind === "cpu")); // a CPU worker first
-      const engine = this.free.splice(k, 1)[0], task = this.queue.shift()!;
+      // The most urgent task that the engine can take: a GPU slot takes no task for the CPU alone
+      const t = this.free[k].kind === "cpu" ? 0 : this.queue.findIndex(q => !q.cpu);
+      if (t < 0) break;
+      const engine = this.free.splice(k, 1)[0], task = this.queue.splice(t, 1)[0];
       task.engine = engine;
       this.running.add(task);
       task.work(this.speed.watch(engine), stop => { task.stop = stop; })
@@ -308,12 +314,13 @@ export class EnginePool {
   }
 
   /** When the most urgent waiting task finds no free worker, stops the least urgent running task that can stop and is
-   *  less urgent than it. Its worker then takes the waiting task, and the stopped task waits to run again. */
+   *  less urgent than it. Its worker then takes the waiting task, and the stopped task waits to run again. A task for
+   *  the CPU alone finds no worker in a free GPU slot, and stops a task on a CPU worker. */
   private giveWay() {
     const first = this.queue[0];
-    if (!first || this.free.length) return;
+    if (!first || this.free.some(e => !first.cpu || e.kind === "cpu")) return;
     const victim = [...this.running]
-      .filter(t => t.stop && !t.stopped && t.priority < first.priority)
+      .filter(t => t.stop && !t.stopped && t.priority < first.priority && (!first.cpu || t.engine?.kind === "cpu"))
       .sort((a, b) => a.priority - b.priority)[0];
     if (!victim) return;
     victim.stopped = true;

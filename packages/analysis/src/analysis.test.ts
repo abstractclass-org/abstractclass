@@ -34,8 +34,10 @@ let models = 0;
  *  once the page stops the search, `maxMs` its time limit. A task runs when an engine is free, the most urgent first,
  *  then first come first served, as the pool runs them (pool.ts). `waiting`: the tasks that wait for an engine. `halt`
  *  drops the waiting tasks and stops the running searches in slices, as the pool does. `cancel` drops the waiting tasks
- *  of the tags that it takes, and lets the running ones end, as the pool does. */
+ *  of the tags that it takes, and lets the running ones end, as the pool does. `cpu`: the tags of the tasks that asked
+ *  for a CPU worker alone. */
 function fakePool(engines = Infinity) {
+  const cpu: string[] = [];
   const searches: { partial(visits: number): void; end(visits: number, late?: boolean, more?: Partial<AnalysisReply>): void;
                     fail(e: Error): void; stopped: boolean; maxMs?: number; query: AnalysisQuery; moves: string[] }[] = [];
   const engine = {
@@ -60,7 +62,8 @@ function fakePool(engines = Infinity) {
   const pool = {
     search: "test", model: { sha256: `m${++models}` }, // a network of its own: the cache's memory outlives a test
     rules: wordRules,
-    run: (priority: number, tag: string, work: Work<unknown>) => new Promise((resolve, reject) => {
+    run: (priority: number, tag: string, work: Work<unknown>, opts?: { cpu?: boolean }) => new Promise((resolve, reject) => {
+      if (opts?.cpu) cpu.push(tag);
       const start = () => {
         busy++;
         let stop = () => {};
@@ -83,7 +86,7 @@ function fakePool(engines = Infinity) {
     terminate() {},
     get waiting() { return queue.length; },
   };
-  return { pool: pool as unknown as EnginePool, searches };
+  return { pool: pool as unknown as EnginePool, searches, cpu };
 }
 
 /** Lets the promises in flight settle: the reads of the store, and the writes that it does not hold. */
@@ -231,14 +234,14 @@ test("the map stage: once the review's stages are done, the maps of the game's p
 
 /** A game whose results are all stored with no map (stored before the ownership), opened from the store: no search. */
 async function noMaps(engines: number, id: string) {
-  const { pool, searches } = fakePool(engines);
+  const { pool, searches, cpu } = fakePool(engines);
   const deep = 16384, model = pool.model!.sha256;
   for (let i = 0; i <= MOVES.length; i++)
     await cachePut(analysisKey(pool.search!, model, MOVES.slice(0, i), deep), toAnalysis(words, reply(deep)));
   const game = new GameAnalysis(words, pool, MOVES, id);
   await game.start();
   await game.fromStore(pool.search!, model);
-  return { game, pool, searches };
+  return { game, pool, searches, cpu };
 }
 
 test("every state of a map ends: a map asked for before the engine is ready waits, then comes", async () => {
@@ -1506,4 +1509,68 @@ test("a komi game's end and labels follow the komi", async () => {
   assert.deepEqual([komi.R.blueWin[1], komi.R.blueScore[1]], [0, -200]);
   assert.equal(komi.R.edges[0].label, "blunder");
   assert.equal(komi.R.edges[0].pointsLost, 280);
+});
+
+// The weak walls (a prototype, Hedge School's design 30): one evaluation of the position on screen, on a CPU worker
+const WALLS = { b: [0.4, null], r: [null, 0.7] };
+
+test("the weak walls: asked for before the engine is ready, they wait, then come from one visit on a CPU worker", async () => {
+  const { game, searches, cpu } = await noMaps(2, "g-walls1");
+  game.askWalls(["a"]);
+  await turns();
+  assert.equal(game.wallState(["a"]), "waiting");
+  void game.sweep();
+  await turns();
+  const asked = searches.find(s => s.query.includeWeakWalls);
+  assert.ok(asked, "the walls are searched once the engine is ready");
+  assert.deepEqual([asked!.query.moves, asked!.query.maxVisits], [["a"], 1]);
+  assert.deepEqual(cpu, ["walls"]); // the GPU module refuses the field
+  assert.equal(game.wallState(["a"]), "searching");
+  asked!.end(1, false, { weakWalls: WALLS });
+  await turns();
+  assert.equal(game.wallState(["a"]), "ready");
+  assert.deepEqual(game.wallsAt(["a"]), WALLS);
+  game.askWalls(["a"]); // kept: no second search
+  await turns();
+  assert.equal(searches.filter(s => s.query.includeWeakWalls).length, 1);
+  game.askWalls(null);
+  assert.equal(game.wallState(["a", "b"]), "unasked");
+});
+
+test("the weak walls: an engine before protocol 0.6.2 gives none, and the page then asks it no more", async () => {
+  const { game, searches } = await noMaps(2, "g-walls2");
+  void game.sweep();
+  await turns();
+  game.askWalls(["a"]);
+  await turns();
+  searches.find(s => s.query.includeWeakWalls)!.end(1); // the field ignored: a reply with no weakWalls
+  await turns();
+  assert.equal(game.wallState(["a"]), "unsupported");
+  game.askWalls(["a", "b"]);
+  await turns();
+  assert.equal(searches.filter(s => s.query.includeWeakWalls).length, 1);
+  assert.equal(game.wallState(["a", "b"]), "unsupported");
+});
+
+test("the weak walls: a search that the engine off dropped is asked for again when the engine is on", async () => {
+  const { game, searches } = await noMaps(1, "g-walls3");
+  void game.sweep();
+  await turns();
+  game.askOwnership([["a"]]); // its short search holds the one engine
+  await turns();
+  game.askWalls(["a"]);
+  await turns();
+  assert.equal(game.wallState(["a"]), "waiting");
+  game.setPaused(true); // its task is dropped from the queue
+  await turns();
+  assert.equal(game.wallState(["a"]), "waiting");
+  game.setPaused(false);
+  await turns();
+  for (const s of searches.filter(s => !s.query.includeWeakWalls)) s.end(MAP_VISITS, false, { ownership: [0.1] });
+  await turns();
+  const walls = searches.filter(s => s.query.includeWeakWalls);
+  assert.ok(walls.length >= 1, "asked for again");
+  walls.at(-1)!.end(1, false, { weakWalls: WALLS });
+  await turns();
+  assert.equal(game.wallState(["a"]), "ready");
 });

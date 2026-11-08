@@ -12,7 +12,8 @@
            turnRow } from "./moveList.ts";
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
   import type { GameTypes, Player } from "@abstractclass/analysis/game.ts";
-  import type { BranchNode, MapState, ThreatCost, ThreatState } from "@abstractclass/analysis/analysis.svelte.ts";
+  import type { BranchNode, MapState, ThreatCost, ThreatState, WallState } from "@abstractclass/analysis/analysis.svelte.ts";
+  import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
   import { PLAYER_NAME, WHOLE, type ViewTypes } from "./game.ts";
 
   /** The review in progress: what the engine does now, and the stages as parts of one bar, each with its share of the
@@ -76,6 +77,10 @@
     passCount: number; // the positions that the review's stages search
     // Adds a map to these positions where they have none, in their order: of the tree, or of a line from it
     askOwnership(paths: string[][]): void;
+    // The weak walls (a prototype, Hedge School's design 30): the position's, asked for while they show, and their state
+    askWalls(path: string[] | null): void;
+    wallsAt(path: string[]): WeakWalls | undefined;
+    wallState(path: string[]): WallState;
     // The threat (Lichess's "Show threat"): the search of the position after a pass by the side to move here, or none
     askThreat(path: string[] | null): void;
     threatAt(path: string[]): Analysis<G["move"]> | undefined; // the analysis of the position after the pass
@@ -139,7 +144,7 @@
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
   import { DIGITS, fmtScore, GLYPH_SEPARATOR, inGlyphs, type BoardCandidate, type BoardMark, type BookJudgment,
-           type Display, type LayerSetting, type LineMove, type NotePart, type ViewGame } from "./game.ts";
+           type Display, type LayerSetting, type LineMove, type NotePart, type ViewGame, WALL_FORMS, type WallForm } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, signInk, valueText, type AreaMark,
            type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
@@ -961,6 +966,34 @@
     return reading && `${view.map.name(mapPoint)} · ${reading}`;
   });
 
+  // The weak walls (a prototype, Hedge School's design 30, "The weak walls"): beside the area map, for a game that has
+  // them (the game's `walls`), off by default on each page. The engine gives them for a position from one evaluation on
+  // a CPU worker (askWalls). They are the position on screen's: while a line or a preview shows, the board shows
+  // another position, and the walls hide. The key w shows or hides them.
+  const wallsOn = $derived(!!view.walls && !!display.weakWalls?.[mapPage]);
+  function setWalls(on: boolean) {
+    if (display.weakWalls) display.weakWalls[mapPage] = on;
+  }
+  $effect(() => {
+    const p = wallsOn ? path : null;
+    untrack(() => game?.askWalls(p));
+  });
+  const shownWalls = $derived(wallsOn && mapLine.kind === "here" ? game?.wallsAt(path) ?? null : null);
+  // The walls' work, in the legend's slot, as the map's (mapWork): nothing once they show
+  const wallWork = $derived.by((): { text: string; busy: boolean } | null => {
+    if (!wallsOn || !game) return null;
+    if (mapLine.kind !== "here") return { text: "Weak walls: for the position on screen only", busy: false };
+    const st = game.wallState(path);
+    if (st === "searching") return { text: "Weak walls: searching", busy: true };
+    if (st === "waiting") return { text: "Weak walls: waiting for the engine", busy: true };
+    if (st === "none") return { text: "No weak walls: the game ends here", busy: false };
+    if (st === "unavailable") return { text: "No weak walls: review snapshots do no searches", busy: false };
+    if (st === "unsupported") return { text: "No weak walls: this engine version does not give them", busy: false };
+    return null;
+  });
+  // The point under the pointer: whose edges pass there, and the chance that one of them is cut
+  const wallReading = $derived(mapPoint !== null && shownWalls && view.walls ? view.walls.reading(mapPoint, shownWalls) : null);
+
   // The players' second numbers in their cards (the game's `second`: Enclosure's areas): now, or, while a line shows,
   // after its last drawn move (from the rules).
   const lineStep = $derived(drawnLine ? stepsNow?.[drawnLine.length - 1] : undefined);
@@ -1459,6 +1492,7 @@
     else if ((key === "e" || key === "l") && engine && onengine) { if (snapshot) nudge(); else onengine({ on: !engine.on }); }
     else if (key === "t" && shift && view.map) nextMapStyle();
     else if (key === "t" && view.map) toggleMap(); // KaTrain's key for its Territory
+    else if (key === "w" && view.walls) setWalls(!wallsOn);
     else if (key === "x") toggleThreat(); // Lichess's key for its "Show threat"
     else if (key === "o" && book?.ready) book.toggle(); // the book's table or the candidates (design 32, item 9)
     else if ((key === "ArrowLeft" && shift) || key === "b" || key === "[" || (key === "k" && shift)) setPath(prevFork(path, childrenOf));
@@ -1499,6 +1533,7 @@
     [["e", "l"], "Turn the engine on or off"],
     [["x"], "Show or hide the threat: the other player's best turn if you pass"],
     ...(view.map ? MAP_KEYS : []),
+    ...(view.walls ? [[["w"], "Show or hide the weak walls"] as [string[], string]] : []),
     ...(book?.ready ? BOOK_KEYS : []),
     [["Escape"], `Close the settings, or cancel the ${view.words.move} that you started`],
     [["?"], "This list"],
@@ -2373,13 +2408,36 @@
       </button>
     {/each}
   </div>
+  {#if view.walls}
+    <!-- The weak walls' switch, beside the area map's: on or off. Its icon: a wall between two nodes, with a crack. -->
+    <button aria-pressed={wallsOn} aria-label="Weak walls" title="Weak walls (w)" tabindex="-1" onmousedown={e => e.preventDefault()}
+            class={["flex-none h-4/5 max-h-6 aspect-square p-0.5 rounded border border-line pointer-events-auto",
+                    wallsOn ? "bg-accent text-on-accent" : "bg-panel-2 text-muted hover:text-ink"]}
+            onclick={() => setWalls(!wallsOn)}>
+      <svg class="size-full" viewBox="0 0 1 1" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="0.1" stroke-linecap="round">
+        <path d="M0.12 0.5H0.4L0.46 0.36L0.54 0.64L0.6 0.5H0.88" />
+        <circle cx="0.12" cy="0.5" r="0.09" fill="currentColor" stroke="none" />
+        <circle cx="0.88" cy="0.5" r="0.09" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
+  {/if}
   <!-- The note stays on one line (design 30, item 9). Where the board is narrower than the note, as in a window 360 pixels
        wide, the note ends with an ellipsis, with its full text as its title, as the engine header's line does. -->
   {#if mapWork && !mapReading}
     <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", mapWork.busy && "bar-glider"]}
           role="status" title={mapWork.text}>{mapWork.text}</span>
   {/if}
-  {#if shownMap}
+  {#if wallWork && !wallReading && !mapReading}
+    <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", wallWork.busy && "bar-glider"]}
+          role="status" title={wallWork.text}>{wallWork.text}</span>
+  {/if}
+  {#if shownWalls && view.walls && (wallReading || !shownMap)}
+    <!-- The weak walls' legend, or the reading of the point under the pointer. With the area map, the map's legend shows,
+         and the walls' reading takes its place under the pointer. -->
+    <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-1 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Weak walls">
+      <span class="min-w-0 truncate" title={wallReading ? undefined : view.walls.forms[display.wallForm ?? "size"].help}>{wallReading ?? view.walls.legend(shownWalls)}</span>
+    </div>
+  {:else if shownMap}
     <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-3 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Area map">
       {#if mapReading}
         <span>{mapReading}</span>
@@ -2445,6 +2503,12 @@
                  oninput={e => (display.mapMin[display.mapStyle] = e.currentTarget.valueAsNumber)}
                  class="w-28 flex-none accent-(--accent)" />
         </div>
+      {/if}
+      {#if view.walls && display.weakWalls}
+        {@const walls = view.walls}
+        {@render toggle("Weak walls", walls.help, () => wallsOn, setWalls)}
+        {@render choice("Weak walls' form", WALL_FORMS.map(f => `${walls.forms[f].name}: ${walls.forms[f].help}`).join(" "),
+          WALL_FORMS.map((f): [string, string] => [f, walls.forms[f].name]), () => display.wallForm ?? "size", v => (display.wallForm = v as WallForm))}
       {/if}
       {#each view.layers.filter(l => l.afterMap) as l (l.key)}{@render layer(l)}{/each}
       {@render choice("Lines on the board", `The engine's line and a variation's preview: one ${view.words.move} at a time, or all at once.`,
@@ -2727,6 +2791,8 @@
           layers={display.layers}
           areaMap={shownMap}
           areaOf={shownMap ? shownOwnership ?? null : null}
+          walls={shownWalls}
+          wallForm={display.wallForm ?? "size"}
           onpointat={p => (mapPoint = p)}
           oncandidate={numbers.point}
           notes={previewing ? [] : notesAt[here] ?? []}

@@ -22,7 +22,7 @@ const KEY = "learn-enclosure:review-display:1";
  *  the board, faintly (decisions/product.md, "After vs before: the third style"). A browser's own stored value stays.
  *  The lines draw one edge at a time (KaTrain's way), an edge shows as a pill along its direction, and a label as a
  *  badge, a book move's on the book's brown, as chess.com's Book mark is a brown disc (design 32, item 4). The sounds
- *  are on, as on Lichess, with the button's set. */
+ *  are on, as on Lichess, with the button's set. The weak walls, a prototype, are off on both pages, in the size form. */
 export const DEFAULT_DISPLAY: Display = {
   judge: "turn",
   reviewFor: "both",
@@ -31,6 +31,8 @@ export const DEFAULT_DISPLAY: Display = {
   areaMap: { review: false, board: true },
   mapStyle: "ownership",
   mapMin: { ownership: 5, change: 5, difference: 5 },
+  weakWalls: { review: false, board: false },
+  wallForm: "size",
   scoreLine: true,
   areaLine: true,
   lineSteps: true,

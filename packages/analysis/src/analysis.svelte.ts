@@ -27,7 +27,7 @@
 // The analysis is every game's (design 29): the game (game.ts) gives the positions from the engine's fields, the moves
 // played, a move's name, the rules for the player's moves and a line's steps. `G` is the game's types.
 import { toAnalysis } from "./reply.ts";
-import { positionQuery } from "@abstractclass/engine/protocol.ts";
+import { positionQuery, type WeakWalls } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import { withKomi, type Game, type GameTypes, type Player } from "./game.ts";
@@ -39,7 +39,7 @@ import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { keepStorage } from "@abstractclass/storage/persist.ts";
 import { DEEP_VISITS, LABEL_VISITS, MAP_SLICE, MAP_VISITS, SWEEP_VISITS, analysisKey, keyMoves, cacheGetAt, cacheGetAtLeast, cachePut, mapGet, mapPut,
          warmCache } from "./cache.ts";
-import { Stopped } from "@abstractclass/engine/client.ts";
+import { EngineError, Stopped } from "@abstractclass/engine/client.ts";
 import { nextTask } from "@abstractclass/engine/channel.ts";
 import { Cancelled, type EnginePool } from "@abstractclass/engine/pool.ts";
 
@@ -57,13 +57,17 @@ const endedAt = <M>(a: Analysis<M>, reply: { terminated?: boolean }, visits: num
 // analysis runs the review again.
 export const BATCH_MS = 100;
 // A variation edge's evaluation, asked for in its menu, comes after the position on screen and before the rest. The
-// ownership that the board shows comes just after the position on screen (askOwnership), and the threat after it
+// ownership that the board shows comes just after the position on screen (askOwnership), as do its weak walls
+// (askWalls), and the threat after it
 // (askThreat): it gives way to the search of the player's own position. Its size's search (askSizeResult) comes after
 // the threat's own, so that the threat's line shows first.
 const PRIORITY = { focus: 10, ownership: 9, threat: 8, size: 7, judge: 6, label: 2, sweep: 1, mapPass: 0 };
 
 /** The state of a position's map (GameAnalysis.mapState). */
 export type MapState = "ready" | "searching" | "waiting" | "none" | "unavailable" | "unasked";
+/** The state of a position's weak walls (GameAnalysis.wallState): as a map's, and `unsupported` where the engine gives
+ *  none: its module is older than protocol 0.6.2, or refuses the field. */
+export type WallState = MapState | "unsupported";
 /** The state of a position's threat (GameAnalysis.threatState): as a map's, and `off` while the engine is off. */
 export type ThreatState = MapState | "off";
 /** What a pass costs the side to move (GameAnalysis.threatCost): win chance, and the lead where both have it. */
@@ -175,6 +179,15 @@ export class GameAnalysis<G extends GameTypes> {
   // stops (dropThreat). The searches of askSizeResult that run, each with its stop, by the same key.
   private sizeResults = $state.raw<Record<string, { analysis: Analysis<G["move"]>; done: boolean }>>({});
   private sizeSearches = new Map<string, { stop?: () => void }>();
+  // Enclosure's weak walls (protocol 0.6.2, askWalls), by path key: one network evaluation of the position, on a CPU
+  // worker, as the GPU module refuses the field. Kept for the page's visit only: a prototype (Hedge School's
+  // design 30, "The weak walls"). The position asked for last, the searches that wait or run, the positions that
+  // got none (the engine refused the position), and whether the engine gives none at all.
+  private walls = $state.raw<Record<string, WeakWalls>>({});
+  private wallsAsked: string[] | null = null;
+  private wallWork = $state.raw<Record<string, "waiting" | "searching">>({});
+  private wallless = $state.raw(new Set<string>());
+  private wallsUnsupported = $state(false);
   private era = 0; // another network starts a new era: results from an earlier one are dropped
   private pool: EnginePool;
   private stalePool = false; // the pool still has the old network: from dropAnalysis until usePool gives the next pool
@@ -993,6 +1006,9 @@ export class GameAnalysis<G extends GameTypes> {
     this.ownership = {};
     this.mapless = new Set();
     this.mapWork = {};
+    this.walls = {};
+    this.wallWork = {};
+    this.wallless = new Set();
     this.unstoredThreats = new Set();
     this.sizeResults = {};
     this.endPass();
@@ -1072,6 +1088,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  again, and for a map that its task gave up. */
   private askAgain() {
     this.askOwnership(this.askedPaths);
+    this.askWalls(this.wallsAsked);
     this.askThreat(this.threatAsked);
     if (this.passWanted.on) this.passMaps(true, this.passWanted.from);
   }
@@ -1115,6 +1132,63 @@ export class GameAnalysis<G extends GameTypes> {
       const wanted = () => this.ownershipWanted.has(key) && !this.mapAt(path) && !this.ownSearchComes(path);
       this.addMap(path, PRIORITY.ownership, "ownership", wanted, false);
     }
+  }
+  /** A position's weak walls (askWalls), once the engine has given them. */
+  wallsAt(path: string[]): WeakWalls | undefined {
+    return this.walls[pathKey(path)];
+  }
+  /** The state of a position's weak walls, for the board's note: as mapState, `none` where the game ends or the engine
+   *  refused the position, `unavailable` in a review snapshot, which does no searches, and `unsupported` where the
+   *  engine gives none. */
+  wallState(path: string[]): WallState {
+    const key = pathKey(path);
+    if (this.walls[key]) return "ready";
+    if (this.hasNoMap(path) || this.wallless.has(key)) return "none";
+    if (this.frozen) return "unavailable";
+    if (this.wallsUnsupported) return "unsupported";
+    if (this.wallWork[key]) return this.wallWork[key];
+    return this.wallsAsked && pathKey(this.wallsAsked) === key && this.idle ? "waiting" : "unasked";
+  }
+  /** Asks for the weak walls of the position at `path` (null: none), which the board shows (protocol 0.6.2,
+   *  `includeWeakWalls`). They come from one network evaluation of the position, not from its search, so one visit
+   *  gives them. Only the CPU module gives them: the search runs on a CPU worker (the pool's `cpu`), also while the GPU
+   *  searches. A module before 0.6.2 ignores the field: its reply has no weak walls, and the engine then gives none
+   *  (wallState, `unsupported`). Asked for while the engine is not ready or off, they are asked for again then
+   *  (askAgain). */
+  askWalls(path: string[] | null) {
+    this.wallsAsked = path;
+    if (!path || this.frozen || this.wallsUnsupported || this.idle) return;
+    const key = pathKey(path);
+    if (this.walls[key] || this.wallWork[key] || this.wallless.has(key) || this.hasNoMap(path)) return;
+    if (!this.searchable(this.known(path) ? path : this.knownPrefix(path))) return;
+    const era = this.era, query = this.searchPosition(path);
+    const set = (state: "waiting" | "searching" | null) => {
+      const rest = { ...this.wallWork };
+      if (state) rest[key] = state; else delete rest[key];
+      this.wallWork = rest;
+    };
+    set("waiting");
+    let tried = false;
+    void this.pool.run(PRIORITY.ownership, "walls", async engine => {
+      if (era !== this.era || this.paused) return; // the engine off: asked for again once it is on
+      set("searching");
+      tried = true;
+      const { reply } = await engine.analyse({ ...query, maxVisits: 1, includeWeakWalls: true }).done;
+      if (era !== this.era) return;
+      if (!reply.weakWalls) this.wallsUnsupported = true;
+      else this.walls = { ...this.walls, [key]: reply.weakWalls };
+    }, { cpu: true })
+      .catch(e => {
+        if (e instanceof Cancelled || e instanceof Stopped || era !== this.era) { tried = false; return; }
+        if (e instanceof EngineError && /weak/i.test(e.field ?? "")) this.wallsUnsupported = true;
+        else this.wallless = new Set(this.wallless).add(key); // the position: a game that ends there
+      })
+      .finally(() => {
+        set(null);
+        // Asked for again when its task gave up without a try (the engine off), while the page still wants it
+        if (!tried && era === this.era && this.wallsAsked && pathKey(this.wallsAsked) === key)
+          queueMicrotask(() => this.askWalls(this.wallsAsked));
+      });
   }
   /** A review snapshot's maps (freeze), read from the store with the review snapshot's search and network file. The store's memory
    *  answers a read again (cache.ts, mapGet). */

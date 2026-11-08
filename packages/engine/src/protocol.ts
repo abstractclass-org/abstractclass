@@ -108,6 +108,7 @@ export interface AnalysisQuery extends PositionQuery {
   includeOwnership?: boolean; // KataGo's: the reply gives `ownership`
   includePVVisits?: boolean; // KataGo's: the reply gives the visits of each move of each pv
   rootViews?: boolean; // 0.7: whether to search the root's views, by default the module's setting (true)
+  includeWeakWalls?: boolean; // 0.6.2, Enclosure's: the reply gives `weakWalls` (the CPU module only)
 }
 
 export interface MoveInfo {
@@ -175,6 +176,16 @@ export interface AnalysisReply {
   // for each hex of the view, at the index y * 67 + x (the engine repository's games/blueprints/README.md, "The
   // ownership").
   view?: EngineView;
+  // 0.6.2, with includeWeakWalls: Enclosure's weak walls, from one network evaluation of the root (WeakWalls). A module
+  // before 0.6.2 ignores the field and gives none. The GPU module refuses it.
+  weakWalls?: WeakWalls;
 }
+
+/** Enclosure's weak walls (protocol 0.6.2, the engine repository's docs/design/04-notation-and-protocol.md, "The root's
+ *  maps"): for each player ("b", "r"), a value at each of the 361 points (index y * 19 + x). At each point of the
+ *  player's edges, their ends and the lattice points that they pass through, it is the chance that an edge of this
+ *  player at this point is cut before the game ends. It is null at the other points. A point's chance is not an edge's:
+ *  an edge's chance is at most the smallest chance on its points. */
+export interface WeakWalls { b: (number | null)[]; r: (number | null)[] }
 
 export const isError = (r: unknown): r is ErrorReply => typeof r === "object" && r !== null && "error" in r;

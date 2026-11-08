@@ -15,12 +15,14 @@
   // map's switch and legend in the board's empty margin above its top row (design 30).
   import Board from "#lib/board/Board.svelte";
   import type { BoardProps } from "@abstractclass/review/game.ts";
+  import { wallMarks } from "./weakWalls.ts";
 
   let { position, last, candidates, pointed, line, lineShape, preview, previewPlayer, marks, layers, input, inputOn, areaMap,
-        notes, onnotes, oncandidate, oncandidateclick, oncandidatedblclick, onpointat, mapControls }: BoardProps<Enclosure> = $props();
+        walls, wallForm, notes, onnotes, oncandidate, oncandidateclick, oncandidatedblclick, onpointat, mapControls }: BoardProps<Enclosure> = $props();
   const numbers = $derived(candidates.map(c => ({ edge: c.move, rank: c.rank, note: c.note })));
   const labels = $derived(marks.map(m => ({ edge: m.move, label: m.label, note: m.note, group: m.group })));
   const drawn = $derived(line && boardLine(line));
+  const wallsShown = $derived(walls && wallMarks(walls));
 </script>
 
 <Board
@@ -42,6 +44,8 @@
   marks={labels}
   {layers}
   {areaMap}
+  walls={wallsShown}
+  {wallForm}
   {onpointat}
   {oncandidate}
   {notes}
