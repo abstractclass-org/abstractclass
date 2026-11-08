@@ -26,6 +26,11 @@ there ([docs/README.md](docs/README.md)). The parts that a jam game's site share
 storage, the analysis, the review's view and the import's frame) are packages in `packages/`
 ([design 29](docs/design/29-shared-packages.md)): a path that starts with `packages/` starts at the root.
 
+A new feature that is not one game's alone goes into `packages/` from its first commit, and the same work puts it
+into each site (design 29, item 11). A site keeps only its game's own parts (its board, record, notation and page
+reader) and the pages that connect the shared parts. Do not copy code from one site into another: move it into a
+package.
+
 ## The engine repository
 
 The engine, the rules and the bots live in the engine repository,

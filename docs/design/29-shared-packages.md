@@ -251,6 +251,13 @@ edit in the same commit), so their changes still apply.
       `strategyjamPage.ts` read the same props of the page, and give different games: Enclosure's and Blueprints'. They
       stay each site's, as Hedge School's tests check its reader as it is. One reader can serve both later, with both
       sites' tests.
+11. **A new feature starts in a package.** A feature that is not one game's alone goes into `packages/` from its
+    first commit, behind the game interface, and the same work puts it into each site: the site's part of each game
+    and the page that shows it. A site keeps only its game's own parts (the board and its input, the record, the
+    notation, the reader of a game site's page) and the pages that connect the shared parts. A feature that only one
+    game has, such as Enclosure's area map, stays in that game's site. Code that a site copied from another site moves
+    into a package too: abscls-8tl1.58 (the logo's files and the Export menu) and abscls-8tl1.15 (Practice's page
+    parts).
 
 ## Why
 
@@ -282,6 +289,13 @@ edit in the same commit), so their changes still apply.
   build's cache), and the rest read the engine's files. Beside `fetch-engine.mjs`, the engine package would have to
   know the sites' frame. In the site package, the check uses the engine package, as the review's and the practice's
   packages do. It draws no page, but one script does not need a package of its own.
+- **A feature in a package from the start:** a feature first built inside one site is tied to that site's game.
+  Cyanotype took each of Hedge School's features in three steps: the move out of Hedge School into a package, with
+  Hedge School changed and checked again, then Blueprints' part, then the feature in Cyanotype's pages. A feature
+  that was in a package already took a few lines in Cyanotype (the engine pool 32, Early Access 38). One that was in
+  Hedge School took about as much work as a new one (the player's games 1,566 lines in Cyanotype, beside 1,058 in
+  Hedge School and 1,170 in the packages). In a package from its first commit, a feature costs its game parts only,
+  and a third game's site gets it with no move.
 - **The site's page code decides, and the frame acts:** the flows that differ by game site (meaf.us's watcher's view,
   the login that strategyjam.org asks for) are each site's knowledge. With `read` in the site's page code, the frame
   has one way to read a page, and a new game site changes only the site that reads it.
@@ -429,4 +443,4 @@ review takes two moves that give one position as one move" (2026-11-05), "Cyanot
 and the threaded bot" (2026-11-07), and "Cyanotype refuses a set-up start before the click, and shared lookups"
 (2026-11-08).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
-(2026-11-06).
+(2026-11-06), and "A new feature starts in a package" (2026-11-08).

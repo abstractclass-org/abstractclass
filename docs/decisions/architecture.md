@@ -318,3 +318,29 @@ public repository and the history rewrites.
   has a required reviewer" would then stop each live deploy. So `main` gets no push before this change merges.
 - **Checked:** by reading `deploy.yml`, a push to `main` runs `deploy` and `hub` and skips `cyanotype`. A push to
   another branch runs all three, as previews. No job names an environment. actionlint is not on this computer.
+
+### A new feature starts in a package (2026-11-08)
+
+- **What:** a feature that is not one game's alone goes into `packages/` from its first commit, and the same work
+  puts it into each site (design 29, item 11). A site keeps only its game's own parts and the pages that connect the
+  shared parts. Code that one site copied from another moves into a package too (abscls-8tl1.58, abscls-8tl1.15,
+  both raised to P2). abscls-qcs1.
+- **Why:** most of Hedge School's features were built inside `apps/hedgeschool`, tied to Enclosure. Each one that
+  Cyanotype took first moved out of Hedge School into a package, with Hedge School changed and checked again. Then
+  came Blueprints' part and the feature in Cyanotype's pages. So a feature that Hedge School had cost Cyanotype about
+  as much as a new one. A feature that was in a package already cost a few lines.
+- **Measured:** the lines that each ticket's commits on dev changed (added and removed), in Hedge School, in the
+  packages and in Cyanotype:
+
+  | Ticket | Feature | Hedge School | Packages | Cyanotype |
+  |---|---|---:|---:|---:|
+  | abscls-8tl1.46 | The engine pool | 192 | 14 | 32 |
+  | abscls-8tl1.61 | Early Access | 115 | 39 | 38 |
+  | abscls-8tl1.60 | The Notices page | 295 | 292 | 149 |
+  | abscls-8tl1.41 | The Export menus and links | 587 | 737 | 875 |
+  | abscls-8tl1.38 | The player's games | 1,058 | 1,170 | 1,566 |
+  | abscls-8tl1.39 | The board editor | 389 | 163 | 1,551 |
+
+  On dev e672801, the eight packages' `src` folders hold about 17,200 lines, and Cyanotype's `src` 9,300, of which
+  2,700 are tests and 2,100 Blueprints' board. 46 of Cyanotype's 104 files in `src` have a path that Hedge School has
+  too, and about 30% of their lines are the same as Hedge School's.
