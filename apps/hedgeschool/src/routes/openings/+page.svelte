@@ -113,7 +113,7 @@
     const n = notationAt(p), a = n && book ? book.at(n) : null;
     return a?.state === "in" ? a.position : null;
   }
-  const known = (p: string[]) => mainIndex(p, mainNames) !== null || (!!game && pathKey(p) in game.branches);
+  const known = (p: string[]) => !!game?.positionAt(p); // a position of the board's tree
   // The book's values at each position that it holds, which the board shows ahead of a search's (GameAnalysis
   // `viewValues`): its area map and its win chance, also while the engine waits. They give no label.
   const maps = new Map<string, number[]>();

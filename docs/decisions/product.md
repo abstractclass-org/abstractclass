@@ -9170,22 +9170,23 @@ edit's glyphs stood about 3.4 pixels higher than the placement's beside them: at
   notation is Glyphs, since a turn there reads as the note's did ("12. [cell] 1 1,1 > 2 2,0 2 -1,-21 13."). With
   Move notation Text, "Notation" keeps the record's space. "Dots" and Hedge School's pills are as before.
 
-### Later steps of the board editor's and the GPU branch's reviews (2026-11-08)
+### Cyanotype refuses a set-up start before the click, and shared lookups (2026-11-08)
 
 Designs 29 and 33 changed (abscls-8tl1.63). Hedge School's pages and exports stay the same.
 
-- **Design 29** lists what the board editor's branch moved: `enginePosition` in the game interface, `moverOf`,
-  `LAST_COUNT` and `countWithMover` in `turns.ts`, `ImportDialog.svelte`, and `withStartTag`, `pastedError` and
-  `givenStartProblem` in the record package.
-- **The tree's lookup:** `ReviewView` and the Openings page read a position with `GameAnalysis.positionAt`, in place of
-  their own copies (`ReviewGame` has `positionAt`). The editor's `position.ts` no longer re-exports `LAST_COUNT` and
-  `moverOf`: its users import them from `@abstractclass/analysis/turns.ts`.
+- **Design 29** lists the code that the board editor moved into the packages: `enginePosition` in the game
+  interface, `moverOf`, `LAST_COUNT` and `countWithMover` in `turns.ts`, `ImportDialog.svelte`, and `withStartTag`,
+  `pastedError` and `givenStartProblem` in the record package.
+- **The tree's lookup:** `ReviewView` and the Openings page read a position, and whether a path is in the tree, with
+  `GameAnalysis.positionAt`, in place of their own copies (`ReviewGame` has `positionAt`). The editor's `position.ts`
+  no longer re-exports `LAST_COUNT` and `moverOf`: its users import them from `@abstractclass/analysis/turns.ts`.
 - **One refusal text:** `setUpRefusal(site)` in `@abstractclass/record/record.ts` gives the text for Cyanotype's
   `setUpProblem` and Hedge School's `variantProblem`.
 - **Cyanotype's import page** refuses a record with a `Position` tag before the click: the "Review the game" button is
-  off, the reason takes the place of its text, and the Analysis board's button takes the review button's
-  `autofocus`. Hedge School's arrival has the same fault: it offers the review and refuses after the click
-  (`importRecord`). It should change too, with the same `refusal` of `ToolChoice.svelte`. It is not changed here.
+  off, the reason takes the place of its text, and the Analysis board's button takes the focus. Each way of
+  `ToolChoice.svelte` can have a `refusal`, and the first way that the site offers takes the focus. Hedge School's
+  import page has the same fault: it offers the review and refuses after the click (`importRecord`). It should change
+  too, with the same `refusal` (abscls-464q).
 - **Glyphs on the middle of the line:** `MoveLabel.svelte`'s root has `align-middle`, in place of the three
   `[&>*]:align-middle` in `ReviewView.svelte`. The move list's buttons take it too: before, an edit's boxes stood
   1.31 px above a placement's in 63 of 120 pairs, and after, all 120 are level.

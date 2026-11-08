@@ -1,5 +1,5 @@
-// Checks the board editor's position (position.ts): the turn structure from the edge count, and the notation's
-// position written and read back. Run: npm test.
+// Checks the board editor's position (position.ts): the turn structure from the edge count that it takes from
+// @abstractclass/analysis/turns.ts, and the notation's position written and read back. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { STANDARD_START } from "#lib/engine/notation.ts";

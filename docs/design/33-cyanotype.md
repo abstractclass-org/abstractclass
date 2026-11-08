@@ -1316,5 +1316,6 @@ Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one posit
 WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), "Cyanotype's board editor and a
 Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"
 (2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), "Cyanotype's variations in
-"Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), and "Cyanotype keeps the player's
-games, as Hedge School's" (2026-11-07). The earlier entries name the site by its first name, Drawing Board.
+"Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
+games, as Hedge School's" (2026-11-07), and "Cyanotype refuses a set-up start before the click, and shared lookups"
+(2026-11-08). The earlier entries name the site by its first name, Drawing Board.

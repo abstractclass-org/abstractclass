@@ -165,7 +165,9 @@
     view: ViewGame<G>;
     R: Review<NoInfer<G>>;
     progress?: ReviewProgress | null; // the review in progress, or null when it is complete
-    game?: ReviewGame<NoInfer<G>>; // the analysis behind the view
+    // The analysis behind the view: the tree's positions (positionAt) and variations come from it, so each page gives
+    // it with `R`
+    game?: ReviewGame<NoInfer<G>>;
     deepVisits?: number; // the budget of the position on screen: its search bar is full at this many visits
     deeperPositions?: number; // positions with a result deeper than the review's: by the Depth, or an older review
     again?: ReviewAgain | null; // why a game reviewed before is reviewed again, when the site's engine changed
@@ -487,7 +489,7 @@
    *  it goes there edge by edge, at the engine's line's pace (a trap and its refutation, design 32, item 7). */
   async function playPath(target: string[], feature: string, stepwise = false) {
     target = game?.nodesOf(target) ?? target; // a move that gives a node's position goes there
-    if (snapshot && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) { nudge(); return; }
+    if (snapshot && !positionOf(target)) { nudge(); return; }
     used(feature);
     if (onplay) await onplay(target);
     clearInterval(stepping);
@@ -509,7 +511,7 @@
   /** Goes to a line from the start, which the page adds to the tree first where it is not there (`onplay`): Openings'
    *  links to another line and its "Back to the main line" (design 32, item 5). */
   export async function visit(target: string[]) {
-    if (onplay && mainIndex(target, mainNames) === null && !(pathKey(target) in branches)) await onplay(target);
+    if (onplay && !positionOf(target)) await onplay(target);
     clearInterval(stepping);
     setPath(target);
   }
@@ -1381,9 +1383,9 @@
   function bookAfterAt(p: string[]): string | undefined {
     const i = mainIndex(p, mainNames);
     if (i !== null) return i > 0 ? bookMoves.get(i - 1) : undefined;
-    const parts = view.book, node = branches[pathKey(p)], before = positionOf(p.slice(0, -1));
-    if (!opening || !parts || !node || !before) return undefined;
-    return parts.opening([parts.notation(before), parts.notation(node.position)], [p.at(-1)!], komi)?.bookMoves[0]?.after;
+    const parts = view.book, after = positionOf(p), before = positionOf(p.slice(0, -1));
+    if (!opening || !parts || !after || !before) return undefined;
+    return parts.opening([parts.notation(before), parts.notation(after)], [p.at(-1)!], komi)?.bookMoves[0]?.after;
   }
   /** The same for the last of the moves into `paths` (by turn, a turn's), where each of them is a book move. It asks no
    *  further after a move outside the book. */
@@ -1858,8 +1860,7 @@
        fades at its end. While a name is smaller or cut, the Move header is a button that opens the column: each name
        at its full size, the column as wide as the widest name, and the table wider than its box, which then scrolls
        to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
-       (`glyphs`) sit on the middle of its line (their Label sets that: game.ts): an edit's begins with its cell's
-       picture, whose baseline is its lower edge, and on the line's baseline it would make the row taller. -->
+       (`glyphs`) sit on the middle of its line: their Label sets that (game.ts, `Label`). -->
   <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
   <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"

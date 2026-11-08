@@ -125,7 +125,9 @@ test.describe("with the engine's files", () => {
     await expect(board).toHaveAttribute("autofocus", ""); // where the review is refused, the board takes the review's autofocus
     await board.click();
     await page.waitForURL(url => url.pathname === "/analysis" && !url.hash, { timeout: 60_000 });
-    expect(await local(page, LAST_REVIEW_KEY)).toBeNull(); // no review was started
+    // The board takes the game from its set-up start: at the game's end, and with no refusal
+    await expect.poll(() => local(page, BOARD_AT_KEY), { timeout: 120_000 }).toBe(boardAt(undefined, record));
+    await expect(page.getByRole("alert")).toHaveCount(0);
   });
 
   for (const [tool, v, notice] of [["userscript", "old", "Your userscript is older than the userscript on this site."],

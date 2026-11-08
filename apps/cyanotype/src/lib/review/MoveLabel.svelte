@@ -2,9 +2,8 @@
      boxes and the cell take the colour of the text round it: the mover's, which the move's button gives, or the
      table's. Their digits and marks are white, or the colour that the text round them gives (--on-text: the table's
      ground, so that they show on its text colour in both themes). A screen reader reads the move's notation, and the
-     title gives it. The glyphs sit on the middle of the line (align-middle): an edit begins with its cell's picture,
-     whose baseline is its lower edge, and on the line's baseline it would stand higher than a placement's boxes and
-     make the line taller. -->
+     title gives it. The glyphs sit on the middle of the line (align-middle), as the view's game interface asks of a
+     Label (@abstractclass/review/game.ts, `Label`). -->
 <script lang="ts">
   import Cell from "../board/Cell.svelte";
   import { glyphOf, playedText, type Played } from "./blueprints.ts";

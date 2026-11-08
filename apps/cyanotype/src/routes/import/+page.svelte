@@ -6,9 +6,9 @@
   // shows why, and opens nothing. Else the player chooses the review, which keeps the game in this browser, or the
   // Analysis board at the position that the game's page showed, which asks before the game replaces the board kept
   // here. A game from a set-up start offers the board only: the review refuses it, so the choice says so before the
-  // click (setUpProblem). Each goes to its page's own address with the record, and that page takes it out of the address again. For an
-  // out-of-date tool, the page also says how to update it. Cyanotype has no analytics yet, so the import counts no
-  // event. The page alone goes to the tools.
+  // click (setUpProblem). Each goes to its page's own address with the record, and that page takes it out of the
+  // address again. For an out-of-date tool, the page also says how to update it. Cyanotype has no analytics yet, so the
+  // import counts no event. The page alone goes to the tools.
   import { onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
@@ -106,7 +106,7 @@
                 players="{names.blue} against {names.red}" length="{moves} {moves === 1 ? 'move' : 'moves'}"
                 pending={phase.at === "checking" ? "The engine examines the moves of the game…" : undefined}
                 review={{ label: "Review the game", text: REVIEW_TEXT, onclick: () => reviewChosen(sent),
-                          refusal: setUpProblem(record, SITE_NAME) ?? undefined }}
+                          refusal: setUpProblem(record, SITE_NAME) }}
                 analyze={{ label: "Analyze on the board", text: analyzeText(sent), onclick: () => analyzeChosen(sent, record) }}>
       {#if sent.tool}<p>{shown(sent.at, moves)}</p>{/if}
     </ToolChoice>

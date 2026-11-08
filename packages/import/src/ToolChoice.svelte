@@ -6,9 +6,8 @@
   import type { Snippet } from "svelte";
 
   /** A way for the game: its button's label, what it does, and the action. A way that the site refuses for this game
-   *  has the reason in `refusal`: its button is off, the reason takes the place of what it does, and the other way
-   *  takes the review button's `autofocus`. */
-  interface Way { label: string; text: string; onclick: () => void; refusal?: string }
+   *  has the reason in `refusal`: its button is off, and the reason takes the place of what it does. */
+  interface Way { label: string; text: string; onclick: () => void; refusal?: string | null }
   let { notice, heading, players, length, children, pending, review, analyze }: {
     /** The notice for an out-of-date tool, when it is one. */
     notice?: Snippet;
@@ -23,7 +22,19 @@
     review: Way;
     analyze: Way;
   } = $props();
+  // The first way that the site offers for the game takes the focus: the review, else the Analysis board
+  const focused = $derived([review, analyze].find(w => !w.refusal));
 </script>
+
+{#snippet way(w: Way)}
+  <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
+    <!-- svelte-ignore a11y_autofocus: the page holds only this choice, and Enter then reviews, as the tools did, or
+         opens the board where the review is refused -->
+    <button class="btn-primary justify-self-start" type="button" autofocus={w === focused} disabled={!!w.refusal}
+            onclick={w.onclick}>{w.label}</button>
+    <p class="text-sm">{w.refusal ?? w.text}</p>
+  </section>
+{/snippet}
 
 {#if notice}
   <p class="px-4 py-3 bg-panel border border-accent rounded-lg" role="status">{@render notice()}</p>
@@ -34,18 +45,5 @@
 {#if pending}
   <p class="text-muted" role="status">{pending}</p>
 {:else}
-  <div class="grid gap-3 sm:grid-cols-2">
-    <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
-      <!-- svelte-ignore a11y_autofocus: the page holds only this choice, and Enter then reviews, as the tools did -->
-      <button class="btn-primary justify-self-start" type="button" autofocus={!review.refusal} disabled={!!review.refusal}
-              onclick={review.onclick}>{review.label}</button>
-      <p class="text-sm">{review.refusal ?? review.text}</p>
-    </section>
-    <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
-      <!-- svelte-ignore a11y_autofocus: where the review is refused, Enter then opens the board -->
-      <button class="btn-primary justify-self-start" type="button" autofocus={!!review.refusal}
-              onclick={analyze.onclick}>{analyze.label}</button>
-      <p class="text-sm">{analyze.text}</p>
-    </section>
-  </div>
+  <div class="grid gap-3 sm:grid-cols-2">{@render way(review)}{@render way(analyze)}</div>
 {/if}

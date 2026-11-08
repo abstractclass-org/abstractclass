@@ -425,7 +425,8 @@ edit in the same commit), so their changes still apply.
 [decisions/product.md](../decisions/product.md), "The analysis and the review in packages/" (2026-10-19), "The
 review's view in packages/review" (2026-10-25), "The review's styles in packages/review and packages/site"
 (2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), "Cyanotype's
-review takes two moves that give one position as one move" (2026-11-05), and "Cyanotype on Stamp Duty 0.2, with the
-GPU and the threaded bot" (2026-11-07).
+review takes two moves that give one position as one move" (2026-11-05), "Cyanotype on Stamp Duty 0.2, with the GPU
+and the threaded bot" (2026-11-07), and "Cyanotype refuses a set-up start before the click, and shared lookups"
+(2026-11-08).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06).
