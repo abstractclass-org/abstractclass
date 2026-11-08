@@ -9654,33 +9654,35 @@ snapshot has several stored reviews for these rules. Now Cyanotype's has two mor
 
 ### Cyanotype's cells: striped walls and six-point stars (2026-11-08)
 
-Cyanotype's star cells had a white five-point star, and its walls white courses of bricks (abscls-8tl1.67). A lab
-showed five designs of the marks on the same position, the board fixture "A capture" of Stamp Duty's game: on the
-Analysis page at 1,280 pixels in both themes, on the board at 360 pixels, in the hands, and in a move list's row
-with a star cell's edit.
+Cyanotype's star cells had a white five-point star, and its walls white courses of bricks. A lab (abscls-8tl1.67)
+showed five designs of the marks on the same position: the board fixture "A capture" of Stamp Duty's game. It showed
+each design on the Analysis page at 1,280 pixels in both themes, on the board at 360 pixels, in the hands, and in a
+move list's row with a star cell's edit.
 
-- **A, the earlier marks:** a five-point star, and a wall's bricks. Their thin lines blur in a move's glyph,
-  which draws a cell about 15 pixels wide, and on a faded cell.
-- **B, strategyjam.org's cells,** redrawn: pale Normal cells joined into one shape, a hatched star cell, and a
-  smaller solid wall with a plate and six rivets. It is a close copy of another site's artwork, which a public site
-  can ship only with its makers' consent.
-- **C, six points and a rampart:** a six-point star that shares the hex's six corners, and a wall with a thick dark
+- **The earlier marks:** a five-point star, and a wall's bricks. Their thin lines blur in a move's glyph, which
+  draws a cell about 15 pixels high, and on a faded cell.
+- **strategyjam.org's cells,** redrawn: pale Normal cells joined into one shape, a hatched star cell, and a smaller
+  solid wall with a plate and six rivets. They redraw another site's artwork closely, so a public site needs its
+  makers' consent to ship them.
+- **Six points and a rampart:** a six-point star that shares the hex's six corners, and a wall with a thick dark
   rim. The star fills more of the cell and reads at text size. In the dark theme, the rim blends into the dark board.
-- **D, a jewel and stripes:** a round white disc, and three diagonal white stripes. They are the two simplest marks
+- **A jewel and stripes:** a round white disc, and three diagonal white stripes. They are the two simplest marks
   that stay apart at text size and in grey: a shape against lines.
-- **E, a hollow star cell and a notched wall:** each kind changes the cell's body. At small sizes the notched wall
+- **A hollow star cell and a notched wall:** each kind changes the cell's body. At small sizes the notched wall
   looks like a gear.
 
-The choice is D's wall and C's star:
+The choice is the jewel and stripes, with the six-point star in place of the jewel:
 
 - **Both marks read at text size and in grey.** A move's glyph, a captured cell and a ghost show them as clearly
   as the board does.
 - **The six-point star is round and shares the hex's corners.** It has the hex's symmetry, so it sits in the middle
-  of the cell with no offset, and it keeps the shape that the kind's name gives. D's disc is only a dot.
+  of the cell with no offset. It fills more of the cell than the jewel, and it keeps the shape that the kind's name
+  gives.
 - **Stripes against a star: lines against a shape.** The two marks differ in their kind, so they stay apart for a
-  reader who does not see the colours. C's rim is not taken: the stripes need no rim, and the rim blends into the
-  dark theme's board.
+  reader who does not see the colours. The rampart is not taken: the stripes need no rim, and the rim blends into
+  the dark theme's board.
 
-Cell.svelte draws the one design with no option, and the lab's switch does not ship. No layout case changes: no case
-takes a picture of the cells or selects a mark. The logo, the link preview picture and the strategyjam.org button keep
-their own five-point star. Design 33, "The cells' marks", has the marks' sizes.
+Cell.svelte draws this one design. The lab's choice of a design (the address's `?cells=`, and a bar on each page)
+does not ship. No layout case changes: no case takes a picture of the cells or selects a mark. The logo, the link
+preview picture and the strategyjam.org button keep their own five-point star, and the picture keeps its walls'
+bricks. Design 33, "The cells' marks", has the marks' sizes.

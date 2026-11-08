@@ -920,21 +920,24 @@ settings of its design 09 and the marks of its design 13), in the code that both
 
 A cell has its owner's colour. A star cell and a wall also have a white mark, so that the shape tells the kinds apart,
 not the colour alone. The decision log has the five options and the reasons for this design ("Cyanotype's cells:
-striped walls and six-point stars").
+striped walls and six-point stars"). The sizes below are shares of the grid's hex radius, from a hex's centre to a
+corner (`hex.ts`). A cell's body has the radius 0.93, so that a gap shows between two cells.
 
 1. **A Normal cell** has no mark. It is the most common kind.
 2. **A star cell** has a six-point star: two equilateral triangles, one outline of twelve points. Each point is
-   towards one of the hex's six corners, at 0.64 of the hex's radius from the centre.
-3. **A wall** has three diagonal stripes that rise to the right, at 45°. Each stripe is 0.17 of the hex's radius
-   wide, inside a hex of radius 0.76, and the middle one goes through the centre.
-4. **The same marks everywhere a cell shows:** on the board, in the hands' frames, on a captured cell, on a ghost (a
-   cell that a candidate, a line or the player's own footprint would place), in a move's glyph in the move list and
-   the notes, and in the edit glyph of the form "Hexes". A captured cell and a ghost are faded and dashed, and their
-   marks take the owner's colour. In a line of text, the cell takes the text's colour, and its mark the colour that
-   the text gives.
+   towards one of the hex's six corners, 0.64 from the centre.
+3. **A wall** has three diagonal stripes that rise to the right, at 45°. Each stripe is 0.17 wide, and their middles
+   are 0.38 apart. The middle one goes through the centre. A hex of radius 0.76 cuts off the stripes at their ends.
+4. **The same marks everywhere a cell shows:**
+   - The board and the hands' frames.
+   - A captured cell, and a ghost: a cell that a candidate, a line or the player's own move would place. Both are
+     faded and dashed, and their marks take the owner's colour.
+   - A move's glyph in the move list and the notes, and an edit's cell in the form "Hexes". In a line of text, the
+     cell takes the text's colour, and its mark the colour that the text gives.
 5. **Why these marks:**
-   - **They read at text size and in grey.** A move's glyph draws a cell about 15 pixels wide. The thin lines of
-     the earlier marks (a five-point star, and a wall's courses of bricks) blurred there, and on a faded cell.
+   - **They read at text size and in grey.** A move's glyph draws a cell about as high as the text round it,
+     about 15 pixels. The thin lines of the earlier marks (a five-point star, and a wall's courses of bricks) blurred
+     there, and on a faded cell.
    - **The star is round and shares the hex's corners.** A six-point star has the hex's symmetry, so it sits in the
      middle of the cell and fills more of it. A five-point star needs an offset to look centred, and its points do
      not match the hex.
