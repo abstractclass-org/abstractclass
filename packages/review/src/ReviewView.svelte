@@ -1963,7 +1963,7 @@
           {@const slotted = !!t.label && (bookAfter !== undefined || listed(t.label))}
           <!-- The cell's look is a move's (moveList.ts, MOVE), its label at the slot's left. With one move a line, the cell
                takes the third column and no row: it comes after the turn's moves, so the grid puts it on the row of the
-               last (`turnRow`), and the move on the board and its points are one row. -->
+               last (`turnRow`). The move on the board and the cell then light on one row. -->
           {@const cell = [view.oneMoveALine ? "col-start-3" : "col-start-4",
                           "flex items-baseline gap-1 px-[0.2rem] py-px font-mono text-[0.95em] text-left whitespace-nowrap", SIDE_TEXT[t.player]]}
           {#snippet judgement()}

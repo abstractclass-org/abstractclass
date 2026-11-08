@@ -168,11 +168,13 @@ test("by turn, a turn's cell stands on its last move's row, and the move on the 
   // One move a line: the turn's cell (its label, the ◆ and the loss) acts as the turn's last move, so it stands on that
   // move's row. Else, after a turn of two moves, the second move and the cell on the first row lit as two boxes.
   // On one row: the cell's box lies within its last move's, from top to bottom, to a pixel. The tops are not equal: the
-  // cell and the move stand on one baseline, and a cell with no label badge is lower than a move (about 17 pixels to
+  // cell and the move stand on one baseline, and a cell with no label badge is shorter than a move (about 17 pixels to
   // 21), so its top is 3 to 4 pixels lower, and 6.5 beside an edit in glyphs (its baseline is its picture's lower
-  // edge). A cell on the first row beside a second move fails: its top is a row above the move's.
+  // edge). A cell on the first row beside a second move fails: its top is a row above the move's. So does a move with
+  // no height (a list that does not show).
   type Box = { top: number; bottom: number };
-  const within = (cell: Box | null, move: Box) => !!cell && cell.top >= move.top - 1 && cell.bottom <= move.bottom + 1;
+  const within = (cell: Box | null, move: Box) =>
+    !!cell && move.bottom > move.top && cell.top >= move.top - 1 && cell.bottom <= move.bottom + 1;
   for (const [w, h] of [[1376, 952], [390, 844]]) {
     await open(w, h, { judge: "turn" });
     /** Each turn's row: the number of its moves, and the boxes of its cell (its third column, as book-review.spec.ts
