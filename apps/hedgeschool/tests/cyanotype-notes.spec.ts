@@ -4,9 +4,10 @@
 // Ctrl, Alt or both). The same note again removes it, and in another colour changes its colour. An arrow drawn the
 // other way is another arrow. A right drag with Shift marks each hex that it goes across, or clears that colour's marks
 // when its first hex has one. The notes stay with their position for the visit, a click on the board clears them, and a
-// pan does not. Hedge School's notes are in notes.spec.ts. The review's notes are in cyanotype-review.spec.ts, which
-// reviews the game once. Without the engine's files the tests skip, with a message. Run: npx playwright test
-// tests/cyanotype-notes.spec.ts, with CYANOTYPE_BASE_URL.
+// pan does not. A right-click stays a click while the view fits again under it. Hedge School's notes are in
+// notes.spec.ts. The review's notes are in cyanotype-review.spec.ts, which reviews the game once. Without the engine's
+// files the tests skip, with a message. Run: npx playwright test tests/cyanotype-notes.spec.ts, with
+// CYANOTYPE_BASE_URL.
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { CYANOTYPE, noReview } from "./cyanotype-review.ts";
@@ -119,6 +120,46 @@ test.describe("with the engine's files", () => {
     const yellow = dialog.locator("tr", { hasText: "Yellow" });
     await expect(yellow).toContainText("Ctrl");
     await expect(yellow).not.toContainText("Shift");
+  });
+
+  test("the Analysis board: a right-click marks its hex while the view fits again under the pointer", async ({ page }) => {
+    // The engine's rules for a new position come later on a busy machine, and the view fits again when they come. A
+    // right-click during that fit is still a click (design 33, "The player's notes", item 14). The page holds each
+    // message from its workers while `hold` is on, and gives them at `flush`.
+    await page.addInitScript(() => {
+      const w = window as unknown as { hold: boolean; flush: () => number };
+      const held: (() => void)[] = [];
+      w.hold = false;
+      w.flush = () => { w.hold = false; const n = held.length; for (const f of held.splice(0)) f(); return n; };
+      let proto: object | null = Worker.prototype, d: PropertyDescriptor | undefined;
+      while (proto && !(d = Object.getOwnPropertyDescriptor(proto, "onmessage"))) proto = Object.getPrototypeOf(proto);
+      Object.defineProperty(Worker.prototype, "onmessage", {
+        configurable: true,
+        get() { return d!.get!.call(this); },
+        set(h: ((e: MessageEvent) => void) | null) {
+          d!.set!.call(this, h && function (this: Worker, e: MessageEvent) {
+            if (w.hold) held.push(() => h.call(this, e)); else h.call(this, e);
+          });
+        },
+      });
+    });
+    await page.setViewportSize({ width: 1376, height: 952 });
+    await analysisAt(page, 10);
+    const svg = field(page).locator("svg[aria-label='Blueprints board']");
+    await page.locator("body").click({ position: { x: 2, y: 2 } }); // no control has the focus: the page takes the keys
+    await page.evaluate(() => { (window as unknown as { hold: boolean }).hold = true; });
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(() => notesOn(page)).toEqual([]);
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); // drawn
+    const fitted = await svg.getAttribute("viewBox"); // the new position's fit without its rules
+    const p = await spot(page, 0, -60);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down({ button: "right" });
+    expect(await page.evaluate(() => (window as unknown as { flush: () => number }).flush())).toBeGreaterThan(0);
+    await expect(svg).not.toHaveAttribute("viewBox", fitted!); // the rules came, and the view fitted again
+    await page.mouse.move(p.x, p.y, { steps: 6 });
+    await page.mouse.up({ button: "right" });
+    await expect.poll(() => notesOn(page)).toEqual([{ brush: "purple", kind: "hex" }]);
   });
 
   test("Practice: the notes stay with their position", async ({ page }) => {

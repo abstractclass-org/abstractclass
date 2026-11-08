@@ -255,6 +255,9 @@
   let sketch = $state.raw<{ id: number; brush: NoteBrush; from: Hex; to: Hex | null; marks: { clear: boolean; hexes: Hex[] } | null }
                           | null>(null);
   let sketchAt: [number, number] | null = null; // the point of the plane where the drag of marks last was on the board
+  // Where the right button went down, in the window, until the pointer moves more than DRAG_PX from it: until then
+  // the press is a click.
+  let sketchPress: { x: number; y: number } | null = null;
   $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; sketch = null; });
   const hovered = $derived(layers.candidates && hoverName ? candidates.find(c => c.name === hoverName) ?? null : null);
   const active = $derived(hovered ?? (pointed ? candidates.find(c => c.name === pointed) ?? null : null));
@@ -418,6 +421,7 @@
       try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
       const p = local(ev), brush = brushFor(ev, NOTE_KEYS);
       sketchAt = toPlane(view, field, p.x, p.y);
+      sketchPress = { x: ev.clientX, y: ev.clientY };
       const h = hexAt(...sketchAt);
       const marks = ev.shiftKey ? { clear: ringed(notes, h, brush), hexes: [h] } : null;
       sketch = { id: ev.pointerId, brush, from: h, to: h, marks };
@@ -435,9 +439,21 @@
     if (ev.pointerType === "mouse") pointAt(h);
     if (stroke?.id === ev.pointerId) { paintTo(p); return; }
     if (sketch?.id === ev.pointerId) {
+      // A press that moves less than DRAG_PX is a click: it marks its hex. The pointer's own move decides it, not the
+      // hex under the pointer, because the view can move under a pointer that stays still. The fit changes when a
+      // page's rules for the position come (the review's come from the engine, later on a busy machine), and a hex
+      // that changed then would draw an arrow from a click. The drag's marks start from the press's point in the view
+      // of the moment.
+      const on = onBoard(p);
+      if (sketchPress) {
+        if (Math.hypot(ev.clientX - sketchPress.x, ev.clientY - sketchPress.y) <= DRAG_PX) {
+          sketchAt = on ? at : null;
+          return;
+        }
+        sketchPress = null;
+      }
       // Off the board on screen, the drag takes no hex, and an arrow released there is no note, as chessground drops a
       // shape released off its board.
-      const on = onBoard(p);
       if (sketch.marks) {
         // The hexes from the drag's last point to this one: a fast drag skips hexes between two of its moves.
         const { hexes } = sketch.marks;

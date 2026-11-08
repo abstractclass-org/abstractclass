@@ -9539,3 +9539,24 @@ result.
   not change after the GPU is lost, after Off, or after the control ends. The idle release in a hidden page brings
   "Waiting: it starts when there is more work than the workers can take."
 - **Not covered:** the line in a browser on a GPU. No GPU run was made.
+
+### A right-click on Cyanotype's board while the view fits again (2026-11-08)
+
+- **The problem** (abscls-0gmp): in whole layout runs beside other jobs, `cyanotype-notes.spec.ts:83` failed twice.
+  A right-click on the Analysis board drew an arrow, not a highlighted hex. Alone, the test passed.
+- **The cause, in the page:** the note's ends were the hexes under the pointer at the press and at each move, with no
+  rule in pixels. The view fits the anchor hexes of the position's legal moves too, and the review asks the engine for
+  those rules at each new position (`ReviewView.svelte`). The answer comes from the engine's worker, later on a busy
+  machine, and the view then fits again. If it came while the right button was down, the same point of the window
+  showed another hex, and the click became an arrow. A player on a slow machine, or with the engine busy, could get
+  the same arrow from a click just after a step to another position. So the page was wrong, not the test.
+- **The change:** a right press that moves less than the board's `DRAG_PX` (4 pixels) in the window is a click, as
+  for the pan and the board editor's right button (design 33, "The player's notes", item 14). After that, the drag
+  follows the hex under the pointer, as before. Chessground and Hedge School's board have no such rule: neither board
+  moves under the pointer.
+- **Measured,** on the CPU in headless Chromium. CDP's CPU throttling (6 times) did not reproduce it: 10 of 10 passed,
+  since it slows the page and not the engine's worker. A test that holds the workers' messages, steps to the next
+  position, presses the right button, then gives the rules (the view fits again: the board's `viewBox` grows from 42
+  to 49 units wide) failed 5 of 5 before the change, each with an arrow. After it, it passed 5 of 5, and
+  `cyanotype-notes.spec.ts` passed 20 of 20 (`--repeat-each=5`). That test is now a case of
+  `cyanotype-notes.spec.ts`.

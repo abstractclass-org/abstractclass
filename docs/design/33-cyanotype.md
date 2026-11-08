@@ -739,6 +739,13 @@ shapes) on Blueprints' hexes.
     page gets no event `contextmenu` that it could cancel (MDN, "Element: contextmenu event"). So in Firefox, a right
     drag with Shift can end with Firefox's menu on screen. The page cannot stop it. Ctrl and Alt do not open it, and
     Hedge School's yellow has Ctrl too. The sites are tested in Chromium only.
+14. **A right press that moves less than 4 pixels is a right-click,** by the board's rule for a click (`DRAG_PX`,
+    which the pan and the board editor use too). It highlights its hex, also when the hex under the pointer changes.
+    The view can move under a pointer that does not move: the fit changes when the position's rules come, and the
+    review and the Analysis board get them from the engine for each new position. On a busy machine they can come
+    during the click. If the hex under the pointer decided, as on chessground's board, that click would draw an
+    arrow. Chessground's board does not move under the pointer, so it needs no such rule. Hedge School's board does
+    not move either. A Shift drag's highlights start from the press's point in the view at the drag's first move.
 
 ### No area map yet
 
