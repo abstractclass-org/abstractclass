@@ -4,7 +4,8 @@
 // display setting "Move notation", the marks of a turn's two moves by turn and by move, each turn's cell on its last
 // move's row by turn, the two moves of a Mistake's note on one line with a middle dot, the dot between a turn's two
 // moves in Hexes and in Notation with glyphs, the hands' rank chips with "+N", that the page has no area map, and the
-// player's notes (cyanotype-notes.ts) by position and while a preview shows.
+// player's notes (cyanotype-notes.ts) by position and while a preview shows. The stored review was made with an earlier
+// release of the same search, and opens with no search on the lock's release.
 // The page asks the engine for no search: cyanotype-live-review.spec.ts reviews with the engine. And the
 // Analysis board's check of a record brought to it, and its refusal of a kept board with a komi. Without the engine's
 // files the tests skip, with a message. Run:
@@ -12,6 +13,7 @@
 import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
 import { readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
+import { moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { CYANOTYPE, DISPLAY, MOVES, expectNoSearch, noReview, putResults, readStored, reviewTestGame, testRecord }
   from "./cyanotype-review.ts";
@@ -434,6 +436,19 @@ test("the Analysis board does not open a kept board with a komi: a new board, wi
   } finally {
     await own.close();
   }
+});
+
+test("a review kept with an earlier release of the same search opens with no search", async () => {
+  // The stored results' keys name the search (cache.ts, analysisKey), not the release: Stamp Duty 0.2's results of
+  // engine-91ab0b7d serve engine-887be290, whose module reports the same search.
+  const manifest: Manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json());
+  const module = moduleOf(manifest)!, stored = readStored();
+  test.skip(module.id === `engine-${stored.search}`, `the lock's release ${module.id} made the stored review itself`);
+  expect(module.search).toBe(stored.search);
+  expect(stored.analyses.filter(([key]) => readAnalysisKey(key).search !== stored.search)).toEqual([]);
+  await reload();
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
+  await expectNoSearch(page);
 });
 
 test("no page error in the review, and no search", async () => {

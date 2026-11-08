@@ -1,6 +1,9 @@
 # Blueprints: the practice bot from a set-up start, and a position's check
 
-**Status:** open (the engine repository's abscls-0dh7). **Asked:** 2026-11-07.
+**Status:** done (release `engine-887be290` of `abstractclass-org/blueprints-engine`, the engine repository's
+abscls-0dh7): protocol 0.8.0 with the position check, the practice bot's interface 0.1.3 with
+`blueprints-set-position`, and the search `91ab0b7d` of `engine-91ab0b7d` with Stamp Duty 0.2. Cyanotype takes it
+(abscls-8tl1.59: the position check). The bot from a set-up start is abscls-8tl1.40. **Asked:** 2026-11-07.
 
 ## What
 

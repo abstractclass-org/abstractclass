@@ -5,7 +5,7 @@
 // that a script in Node can store positions for a page (scripts/home-replay.mjs, the home page's scenes) without
 // loading the analysis.
 import { parseEdge, parsePoint } from "./notation.ts";
-import type { CheckReason, DescribeGameReply as GameReply } from "@abstractclass/engine/protocol.ts";
+import type { CheckReason, DescribeGameReply as GameReply, PositionCheck } from "@abstractclass/engine/protocol.ts";
 import type { EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import type { Player, Position } from "#lib/review/enclosure.ts";
 
@@ -29,11 +29,14 @@ export interface PositionFields {
   outcome: { result: string } | null;
 }
 
+/** A reason of Enclosure's position check (protocol 0.5), with the edges that it names. */
+export interface EdgeReason extends CheckReason { edges: string[] }
+
 export interface DescribeReply extends PositionFields {
   id: string;
   nodes: Record<Side, string[]>;
   legal: string[];
-  check?: { possible: boolean; reasons: CheckReason[] }; // the position's, before its moves (protocol 0.5)
+  check?: PositionCheck<EdgeReason>; // the position's, before its moves (protocol 0.5)
 }
 
 /** A position in describe_game's reply (protocol 0.6.1), and `cuts`: the enemy edge that the move to it cut, as

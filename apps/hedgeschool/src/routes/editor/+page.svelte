@@ -12,9 +12,9 @@
   import { onDestroy, onMount } from "svelte";
   import Board, { type PointClick } from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
-  import type { CheckReason } from "@abstractclass/engine/protocol.ts";
+  import type { PositionCheck } from "@abstractclass/engine/protocol.ts";
   import { parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
-  import { boardPosition, type DescribeReply } from "#lib/engine/position.ts";
+  import { boardPosition, type DescribeReply, type EdgeReason } from "#lib/engine/position.ts";
   import { otherPlayer, PLAYER_NAME, type Edge, type Player, type Position } from "#lib/review/enclosure.ts";
   import { chooseMover, drawEdge, followBoard, placeable, readPosition, ruleOf, toggleMark, writePosition, type CountRule,
            type EditorPosition } from "#lib/editor/position.ts";
@@ -23,6 +23,7 @@
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import PositionCheckStatus from "@abstractclass/review/PositionCheckStatus.svelte";
 
   const KEPT = "hedge-school:editor"; // the position being made (a convenience: the editor opens at the start without it)
   const KEPT_RULE = "hedge-school:editor-count"; // how its edge count is set (CountRule), which its notation cannot say
@@ -37,7 +38,7 @@
   let right = $state(false); // the last click was the right button's: the dashed edge shows the other player
   let hint = $state(""); // why the last click did nothing
   let drawn = $state.raw<Position | null>(null); // the engine's drawing of the position
-  let check = $state.raw<{ possible: boolean; reasons: CheckReason[] } | null>(null);
+  let check = $state.raw<PositionCheck<EdgeReason> | null>(null);
   let formError = $state(""); // the engine refused the position's form
   let field = $state(""); // the position field, as the player types it
   let fieldError = $state("");
@@ -290,19 +291,7 @@
         {#if fieldError}<p class="text-xs text-blunder" role="alert">{fieldError}</p>{/if}
       </div>
 
-      <div role="status">
-        {#if formError}
-          <p class="text-sm text-blunder">The engine cannot read this position: {formError}</p>
-        {:else if check?.possible}
-          <p class="text-sm">A game can reach this position.</p>
-        {:else if check}
-          <p class="text-sm">No game reaches this position:</p>
-          <ul class="mt-1 pl-5 list-disc text-sm text-blunder">
-            {#each check.reasons as r, i (i)}<li>{r.text}</li>{/each}
-          </ul>
-          <p class="mt-1 text-xs text-muted">The edges each reason names glow on the board.</p>
-        {/if}
-      </div>
+      <PositionCheckStatus refused={formError} {check} places="edges" />
 
       <div class="flex flex-wrap items-center gap-2">
         <button type="button" class="btn-primary" disabled={!analyzable} onclick={analyze}

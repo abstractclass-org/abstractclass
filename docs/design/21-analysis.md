@@ -229,8 +229,9 @@ engine does by itself.
   menus. `packages/review/src/ImportDialog.svelte`: the Import's dialog. `packages/analysis/src/model.ts`:
   `onlyJudged`. `src/lib/game/paste.ts`: a pasted record, with the start's tag and the place of a problem from
   `packages/record/src/record.ts` (`withStartTag`, `pastedError`). `src/routes/editor/+page.svelte` and
-  `src/lib/editor/position.ts`: the board editor. Cyanotype has the board editor and the New menu too (its design 33,
-  "The board editor").
+  `src/lib/editor/position.ts`: the board editor. `packages/review/src/PositionCheckStatus.svelte`: its status, the
+  engine's reading and its position check, which Cyanotype's editor shares. Cyanotype has the board editor and the
+  New menu too (its design 33, "The board editor").
   `packages/import/src/importEvents.ts`: the imports' events, with Hedge School's sources in `src/lib/game/sources.ts`.
 
 ## Log entries

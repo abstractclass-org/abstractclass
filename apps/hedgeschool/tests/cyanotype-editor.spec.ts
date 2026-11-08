@@ -1,8 +1,9 @@
 // Cyanotype's board editor and the Analysis board's New menu (its design 33, as Hedge School's design 21) on its preview
-// (CYANOTYPE_BASE_URL). The editor sets up a position that the engine's rules read, and Analyze opens the board from
-// it. A drag with Shift puts cells along it, or removes them. The Import takes a position and the moves from it. A link
-// and an analysis file with a set-up start open from it, and a start that the rules refuse leaves the board kept here,
-// with a notice. Each way in refuses a komi, which the board does not take yet (design 33, "The komi"), and the review
+// (CYANOTYPE_BASE_URL). The editor sets up a position that the engine's rules read and that a game can reach (the
+// engine's position check, protocol 0.8.0), and Analyze opens the board from it. A position that no game reaches gets
+// the engine's reasons, with their hexes marked, and Analyze waits. A drag with Shift puts cells along it, or removes
+// them. The Import takes a position and the moves from it. A link and an analysis file with a set-up start open from
+// it, and a start that the rules refuse or that no game reaches leaves the board kept here, with a notice. Each way in refuses a komi, which the board does not take yet (design 33, "The komi"), and the review
 // refuses a game from a set-up start. The board's engine is off, so nothing
 // searches: the engine's rules check what comes in. The positions are Stamp Duty's own (the lab's games,
 // apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves there. Each test opens a
@@ -21,6 +22,27 @@ const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.js
 const middle = fixtures.find(f => f.name === "A middle game")!; // Red's first move of turn 6, after 9 moves
 const MIDDLE = writePosition(middle.position);
 const MOVE = middle.legal[0]; // a legal move there, from the engine
+/** MIDDLE with a Red cell on an empty hex beside one Blue cell that is not a wall, and beside no other: a placement
+ *  would have captured one of the two, so no game reaches it. The hexes are the Blue cell's and the Red cell's. (A Red
+ *  cell beside two such Blue cells gets the engine's words for two pairs.) */
+const [UNREACHED, BLUE_HEX, RED_HEX] = (() => {
+  const cells = middle.position.cells;
+  const beside = (hex: string) => {
+    const [q, r] = hex.split(",").map(Number);
+    return [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]].map(([dq, dr]) => `${q + dq},${r + dr}`);
+  };
+  const blue = (hex: string) => cells[hex]?.[0] === 0 && cells[hex][1] !== "wall";
+  for (const hex of Object.keys(cells).filter(blue)) {
+    const free = beside(hex).find(h => !cells[h] && beside(h).filter(blue).length === 1);
+    if (free) return [writePosition({ ...middle.position, cells: { ...cells, [free]: [1, "plain"] } }), hex, free];
+  }
+  throw new Error("no empty hex beside one Blue cell");
+})();
+const NO_GAME = "No game reaches this position:";
+/** The reason of UNREACHED, in the engine's words, as a pattern. */
+const TOUCH = "Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a wall: a placement captures each cell "
+  + "of the opponent that touches it, except walls\\.";
+const WHY = `This position cannot occur in a game: ${TOUCH}`;
 
 const at = (path: string) => new URL(path, CYANOTYPE).href;
 /** The board kept in this browser (the `branches` store, under `board`), or null. */
@@ -60,8 +82,8 @@ test.beforeEach(async ({ page }) => {
 
 test("the editor: a position set up by hand, read by the engine's rules, and Analyze opens the board from it", async ({ page }) => {
   await page.goto(at("/editor"));
-  const status = page.getByRole("status").filter({ hasText: "engine" });
-  await expect(status).toHaveText("The engine accepts this position. It does not examine if a game can get to it.", { timeout: 120_000 });
+  const status = page.getByRole("status").filter({ hasText: "position" });
+  await expect(status).toHaveText("A game can reach this position.", { timeout: 120_000 });
   // A position pasted in the field
   const field = page.getByLabel("Position, in the notation");
   await field.fill(MIDDLE);
@@ -81,7 +103,7 @@ test("the editor: a position set up by hand, read by the engine's rules, and Ana
   await expect(field).not.toHaveValue(blue);
   const red = await field.inputValue();
   expect(red.split(" ")[0]).toBe(MIDDLE.split(" ")[0]); // Blue's cells as before
-  await expect(status).toHaveText(/The engine accepts this position/, { timeout: 60_000 });
+  await expect(status).toHaveText("A game can reach this position.", { timeout: 60_000 });
   // Red to play from 9 moves: Red's first move of turn 6 stays; Blue to play goes on to move 11
   await page.getByRole("radio", { name: "Blue to play" }).click();
   await expect(page.getByLabel("Moves played")).toHaveValue("11");
@@ -98,8 +120,8 @@ test("the editor: a position set up by hand, read by the engine's rules, and Ana
 
 test("the editor: a drag with Shift puts a cell on each hex that it passes, and one from a filled hex removes them", async ({ page }) => {
   await page.goto(at("/editor"));
-  const status = page.getByRole("status").filter({ hasText: "engine" });
-  await expect(status).toHaveText(/The engine accepts this position/, { timeout: 120_000 });
+  const status = page.getByRole("status").filter({ hasText: "position" });
+  await expect(status).toHaveText("A game can reach this position.", { timeout: 120_000 });
   const field = page.getByLabel("Position, in the notation"), start = await field.inputValue(); // the standard start
   const cells = (text: string, player: 0 | 1) => { const f = text.split(" ")[player]; return f === "-" ? [] : f.split(";"); };
   // A row in the fit's margin, with no cell: from 10% to 60% of the field's width
@@ -120,7 +142,8 @@ test("the editor: a drag with Shift puts a cell on each hex that it passes, and 
   expect(added.length).toBeGreaterThanOrEqual(4);
   expect(added.every(c => /^-?\d+,-?\d+$/.test(c)), added.join(";")).toBe(true); // Normal cells: no letter
   expect(cells(put, 1)).toEqual(cells(start, 1));
-  await expect(status).toHaveText(/The engine accepts this position/, { timeout: 60_000 });
+  // With no move played, only the standard start is a position of a game
+  await expect(status).toContainText(NO_GAME, { timeout: 60_000 });
   // The same drag again: its first hex has Blue's Normal cell, so it removes each one
   await drag(true);
   await expect(field).toHaveValue(start);
@@ -136,7 +159,8 @@ test("the editor: a drag with Shift puts a cell on each hex that it passes, and 
 
 test("the editor: a right-button drag opens no menu, also when it ends off the board", async ({ page }) => {
   await page.goto(at("/editor"));
-  await expect(page.getByRole("status").filter({ hasText: "engine" })).toHaveText(/The engine accepts this position/, { timeout: 120_000 });
+  await expect(page.getByRole("status").filter({ hasText: "position" }))
+    .toHaveText("A game can reach this position.", { timeout: 120_000 });
   // Each contextmenu event, and whether the page cancelled it, read once the event has gone to every listener
   await page.evaluate(() => {
     const w = window as unknown as { menus: boolean[] };
@@ -165,9 +189,67 @@ test("the editor says what the engine's rules refuse, and Analyze waits", async 
   fields[2] = fields[2].replace(/;[^;|]+$/, ""); // Blue's blueprint 3 without its last cell: 20 cells
   await field.fill(fields.join(" "));
   await field.press("Enter");
-  await expect(page.getByRole("status").filter({ hasText: "engine" }))
+  await expect(page.getByRole("status").filter({ hasText: "position" }))
     .toHaveText("The engine cannot read this position: Blue's blueprints hold 20 cells, not 21.", { timeout: 120_000 });
   await expect(page.getByRole("button", { name: "Analyze" })).toBeDisabled();
+});
+
+test("the editor says when no game reaches the position, with the engine's reasons and their hexes marked", async ({ page }) => {
+  await page.goto(at("/editor"));
+  const field = page.getByLabel("Position, in the notation");
+  const status = page.getByRole("status").filter({ hasText: "position" });
+  await expect(status).toHaveText("A game can reach this position.", { timeout: 120_000 });
+  await expect(page.locator("path.target")).toHaveCount(0);
+  await field.fill(UNREACHED);
+  await field.press("Enter");
+  await expect(status).toContainText(NO_GAME, { timeout: 60_000 });
+  await expect(status.getByRole("listitem")).toHaveText([
+    `Blue's cell on ${BLUE_HEX} touches Red's cell on ${RED_HEX}, and neither is a wall: a placement captures each cell `
+    + "of the opponent that touches it, except walls."]);
+  await expect(status).toContainText("The hexes each reason names glow on the board.");
+  await expect(page.locator("path.target")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Analyze" })).toBeDisabled();
+  // The middle game's position again: a game reaches it, and no hex glows
+  await field.fill(MIDDLE);
+  await field.press("Enter");
+  await expect(status).toHaveText("A game can reach this position.", { timeout: 60_000 });
+  await expect(page.locator("path.target")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Analyze" })).toBeEnabled();
+});
+
+test("the Analysis board does not open a position that no game reaches: from the editor, a link, a file or the Import", async ({ page }) => {
+  // The editor's address, as its Analyze opens the board
+  await page.goto(at(`/analysis#${new URLSearchParams({ position: UNREACHED, via: "editor" })}`));
+  await expect(page.getByRole("alert"))
+    .toHaveText(new RegExp(`^The Analysis board cannot open this position: ${WHY} Your own analysis is here instead\\.$`),
+                { timeout: 120_000 });
+  expect((await keptBoard(page))?.start).toBeUndefined();
+  // A link with a move from that start
+  await page.goto("about:blank"); // else the link changes only the address's hash, and the board does not read it
+  await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [MOVE], nodes: [[MOVE, -1]], start: UNREACHED }, 1));
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^The Analysis board cannot load this link: ${WHY}`),
+                                                   { timeout: 120_000 });
+  // An analysis file with that start
+  const file = { format: "cyanotype-analysis", version: 1, exported: "2026-11-09T00:00:00.000Z", site: "test",
+                 board: { version: 2, main: [], nodes: [], start: UNREACHED }, analyses: [] };
+  await page.getByRole("button", { name: "New", exact: true }).click({ timeout: 120_000 });
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: /Load an analysis file/ }).click();
+  await (await chooser).setFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^The Analysis board cannot load this file: ${WHY}`),
+                                                   { timeout: 120_000 });
+  expect((await keptBoard(page))?.start).toBeUndefined();
+  // The Import: the position alone, then with a move from it
+  await newMenu(page, /Import a position or moves/);
+  const dialog = page.getByRole("dialog", { name: "Import a position or moves" });
+  await dialog.getByLabel("Position").fill(UNREACHED);
+  await dialog.getByRole("button", { name: "Import" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText(new RegExp(`^Cyanotype cannot open this position: ${WHY}$`),
+                                                     { timeout: 120_000 });
+  await dialog.getByLabel("Moves").fill(MOVE);
+  await dialog.getByRole("button", { name: "Import" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText(new RegExp(`^Cyanotype cannot open these moves: ${WHY}$`),
+                                                     { timeout: 120_000 });
 });
 
 test("the Import: a position and the moves from it, then a position alone", async ({ page }) => {

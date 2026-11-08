@@ -6,9 +6,10 @@
   // player's, as a drawing program's two colours, and X swaps the two players. A drag with Shift puts the cell on each
   // hex that it passes, or removes it, by what a click on its first hex does: Cyanotype's own, since a set-up position
   // of Blueprints has many cells. The page writes the position's notation (#lib/game/position.ts) and draws it at once.
-  // The engine reads it at each change, as the Analysis board reads a start (startProblem), and says what is wrong with
-  // it: the rules' checks. Analyze opens the board from it. Its way in: `#position=`, from the Analysis board's New menu
-  // and Import (the position on screen) or another page. The position leaves the address at once. The position being
+  // The engine reads it at each change, as the Analysis board reads a start (startChecked), and says what is wrong with
+  // it: the rules' checks, and whether a game can reach it (protocol 0.8.0's check), with the hexes that each reason
+  // names marked on the board. Analyze opens the board from a position that a game can reach. Its way in:
+  // `#position=`, from the Analysis board's New menu and Import (the position on screen) or another page. The position leaves the address at once. The position being
   // made is kept in this browser, so that a reload keeps it.
   import { onDestroy, onMount } from "svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
@@ -18,11 +19,14 @@
   import type { Player } from "@abstractclass/analysis/game.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-  import { hexKey, type Hex } from "#lib/board/hex.ts";
+  import PositionCheckStatus from "@abstractclass/review/PositionCheckStatus.svelte";
+  import type { PositionCheck } from "@abstractclass/engine/protocol.ts";
+  import type { HexReason } from "#lib/board/described.ts";
+  import { hexKey, parseHex, type Hex } from "#lib/board/hex.ts";
   import { PLAYER_NAMES, type HandHex, type Kind, type SitePosition } from "#lib/board/position.ts";
   import { readPosition, STANDARD_START, writePosition } from "#lib/game/position.ts";
   import { hasCell, moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
-  import { describeBy, startProblem } from "#lib/review/recordCheck.ts";
+  import { rulesBy, startChecked } from "#lib/review/recordCheck.ts";
   import { EDITOR_KEY, SITE_NAME } from "#lib/site.ts";
 
   let made = $state.raw<SitePosition>(readPosition(STANDARD_START)); // the position as the player made it
@@ -32,6 +36,7 @@
   let chosen = $state.raw<({ player: Player } & HandHex) | null>(null); // a hand's cell, chosen to move
   let hint = $state(""); // why the last click did nothing
   let formError = $state(""); // the engine refused the position
+  let check = $state.raw<PositionCheck<HexReason> | null>(null); // whether a game can reach it
   let checked = $state(false); // the engine has read the latest position
   let field = $state(""); // the position field, as the player types it
   let fieldError = $state("");
@@ -40,7 +45,9 @@
 
   const notation = $derived(writePosition(made));
   const mover = $derived(moverOf(made.ply));
-  const analyzable = $derived(checked && !formError && mover.left > 0);
+  const analyzable = $derived(checked && !formError && !!check?.possible && mover.left > 0);
+  // The hexes that the reasons name, once the engine has read the latest position
+  const targets = $derived(checked ? (check?.reasons ?? []).flatMap(r => r.hexes.map(parseHex)) : []);
   const other = (p: Player): Player => (p ? 0 : 1);
 
   onMount(() => {
@@ -65,7 +72,7 @@
   onDestroy(() => engine?.terminate());
 
   // At each change: the field shows the position, the browser keeps it, and the engine reads it, as the Analysis board
-  // reads a start (startProblem). Only the latest answer counts. A drag with Shift counts at its end.
+  // reads a start (startChecked). Only the latest answer counts. A drag with Shift counts at its end.
   let asked = 0;
   $effect(() => {
     if (stroke) return;
@@ -74,12 +81,13 @@
     fieldError = "";
     writeLocal(EDITOR_KEY, n);
     checked = false;
-    if (engine) void check(engine, n);
+    if (engine) void askEngine(engine, n);
   });
-  async function check(e: EngineWorker, n: string) {
-    const mine = ++asked, problem = await startProblem(describeBy(e), n);
+  async function askEngine(e: EngineWorker, n: string) {
+    const mine = ++asked, read = await startChecked(rulesBy(e), n);
     if (mine === asked) {
-      formError = problem ?? "";
+      formError = read.refused ?? "";
+      check = read.check;
       checked = true;
     }
   }
@@ -183,7 +191,7 @@
     <section class="h-[34rem] min-[961px]:h-[calc(100dvh-var(--site-header)-2rem)] min-[961px]:min-h-[30rem] min-w-0"
              aria-label="The position being set up">
       {#key loads}
-        <Board position={made} layers={{ candidates: false }} onedit={click} {chosen} onpaint={paint} onpaintend={paintEnd} />
+        <Board position={made} layers={{ candidates: false }} onedit={click} {chosen} onpaint={paint} onpaintend={paintEnd} {targets} />
       {/key}
     </section>
 
@@ -262,21 +270,17 @@
         {#if fieldError}<p class="text-xs text-blunder" role="alert">{fieldError}</p>{/if}
       </div>
 
-      <div role="status">
-        {#if !engine || !checked}
-          <p class="text-sm text-muted">The engine reads the position…</p>
-        {:else if formError}
-          <p class="text-sm text-blunder">The engine cannot read this position: {formError.replace(/\.?$/, ".")}</p>
-        {:else if !mover.left}
-          <p class="text-sm">The game is over at this position: all {LAST_COUNT} moves are played.</p>
-        {:else}
-          <p class="text-sm">The engine accepts this position. It does not examine if a game can get to it.</p>
-        {/if}
-      </div>
+      <PositionCheckStatus reading={!engine || !checked} refused={formError && formError.replace(/\.?$/, ".")} {check}
+                           places="hexes">
+        {#snippet reachable()}
+          <p class="text-sm">A game can reach this position.{#if !mover.left} The game is over at this position: all
+            {LAST_COUNT} moves are played.{/if}</p>
+        {/snippet}
+      </PositionCheckStatus>
 
       <div class="flex flex-wrap items-center gap-2">
         <button type="button" class="btn-primary" disabled={!analyzable} onclick={analyze}
-                title={analyzable ? "Open the Analysis board from this position" : mover.left ? "Analyze a position that the engine accepts" : "The game is over at this position"}>Analyze</button>
+                title={analyzable ? "Open the Analysis board from this position" : mover.left ? "Analyze a position that a game can reach" : "The game is over at this position"}>Analyze</button>
         <button type="button" class="text-sm" onclick={() => load(readPosition(STANDARD_START))}>Standard start</button>
         <button type="button" class="text-sm" onclick={() => load(removeAllCells(made))}>Remove all cells</button>
       </div>

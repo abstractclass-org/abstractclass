@@ -10031,3 +10031,68 @@ windows. Each number is the same. The run also measured two phones held sideways
 The crops (the script's `--crops`, not committed) show the table at 1,376 by 768 and 1,920 by 1,080, light and
 dark, on Cyanotype after move 36 in Glyphs and on Hedge School after edge 36. Each is from a build: "before" from a
 build without the wide Lead column, and "after" from a build with it.
+
+### Cyanotype's board editor checks that a game can reach the position (2026-11-09)
+
+Design 33 ("Decision", item 10, "The engine's files", items 1 and 2, "The board editor", item 6, and "The gaps from
+Hedge School"), design 29 and design 21 changed (abscls-8tl1.59). Cyanotype takes Blueprints' release
+`engine-887be290` (request 28, the engine repository's abscls-0dh7, its `games/blueprints/docs/decisions/port.md`,
+entry of 2026-11-09). Its board editor, its Import and its starts from a link or a file now check that a game can reach
+a set-up position, as Hedge School's do (its design 21, item 10, with Enclosure's protocol 0.5).
+
+- **The lock** (`apps/cyanotype/engine.lock.json`): the four files that the release changed come from
+  `engine-887be290`: the module and the GPU module (build `887be290`, protocol 0.8.0, search `91ab0b7d`) and the two
+  practice bots (interface 0.1.3). The other nine files have the same SHA-256 in the manifests of `engine-91ab0b7d` and
+  `engine-887be290` (the two libraries, the evaluator and its two libraries, the notices, the terms, the network and
+  its graph), so their entries and their paths stay, and a browser's cache keeps them. No script writes the lock: its
+  entries were edited, as at each earlier move. Each of the 13 entries has its SHA-256 and its size in the manifest of
+  `engine-887be290`, and the lock's `sizes` are the manifest's `engine.sizes`. The release's `settings.cfg` stays out,
+  as before. `npm run engine -- --deploy` fetched the 13 files with the lock's SHA-256, checked the sizes and
+  `maxThreads` against the manifest of `engine-91ab0b7d` (the evaluator's release), and the module answered protocol
+  0.8.0 and the search `91ab0b7d`. Both bots give `minPlayoutsPerThread` 8.
+- **Protocol 0.8.0** breaks a 0.7 client: an analysis of a position that no game reaches is refused, with the error's
+  field `position` and the reasons. `ROOT_VIEWS_PROTOCOL` is 0.8.0, so the engine package refuses a 0.7 module for
+  Cyanotype, as the lock's move needs. `describe` gives `check` for its `position`. describe_game gives none, so the
+  site asks describe.
+- **The stored results stay:** their keys name the search and the network's SHA-256 (`packages/analysis/src/cache.ts`,
+  `analysisKey`), not the release. The pool takes the search that the module reports, and the review's first reads
+  take the manifest's `search`, which the lock gives. Both are `91ab0b7d`, as at `engine-91ab0b7d`. A browser test opens
+  the stored review of the test game, made with `engine-91ab0b7d`, on the new release with the engine on, and checks
+  that the page asks for no search (`tests/cyanotype-review.spec.ts`).
+- **The board's lab data** (`src/lib/board/fixtures.json`) made again: only its header changed. Every position, legal
+  move and footprint is the same.
+- **The shared parts** (design 29, item 11): the position check's type (`PositionCheck`) and its sentence for a
+  notice (`checkProblem`, "This position cannot occur in a game: …") are in `packages/engine/src/protocol.ts`, and the
+  editor's status (`packages/review/src/PositionCheckStatus.svelte`) in the review package. Hedge School's editor and
+  its Analysis board use them, with the same words and the same markup as before. Each game's reason keeps its own
+  places: Enclosure's `edges` (Hedge School's `EdgeReason`), Blueprints' `hexes` (Cyanotype's `HexReason`).
+- **Cyanotype's editor** says "A game can reach this position.", or "No game reaches this position:" with each reason
+  in the engine's words, and "The hexes each reason names glow on the board." The board draws each named hex with a
+  soft fill and ring in the accent colour, over the cells (`Board.svelte`, `targets`), as Hedge School's board makes
+  the reasons' edges glow. Analyze needs a position that a game can reach. A finished position that a game reaches
+  also says that the game is over.
+- **The Analysis board, the Import and the links:** `recordCheck.ts` checks a set-up start with describe before
+  anything else (`startChecked`, `startProblem`), and a record's start before its moves (`recordChecked`). So the
+  editor's Analyze, a `#position=` address, a link, an analysis file and the Import refuse a start that no game
+  reaches, with the engine's reasons, and the board kept here stays. The Import's words for a refused position are
+  now "Cyanotype cannot open this position: …", as for moves, since "cannot read" is wrong for a position that the
+  engine reads.
+- **The reasons' words,** from the engine on the CPU in Node (`recordCheck.engine.test.ts`): a cell more on the
+  standard start with no move played gives `start` and its hex. A Red cell beside a Blue cell that is not a wall, in a
+  middle game, gives `touch` and both hexes: "Blue's cell on 0,-7 touches Red's cell on 0,-8, and neither is a wall: a
+  placement captures each cell of the opponent that touches it, except walls." A Red cell beside two such Blue cells
+  gets one reason for both pairs ("2 pairs of Blue's and Red's cells touch, …"), with its three hexes. The cell more
+  on the start after 3 moves passes.
+- **A game's position goes to the engine as its moves,** and a set-up start keeps its own search: design 33's note
+  stays, with request 28's measurement.
+- **Left to abscls-8tl1.40:** the practice bot from a set-up start (`blueprints-set-position`, interface 0.1.3), on
+  the same lock.
+- **Checked:** `npm run check:all` passed every step (the unit tests of both sites and of the packages, with the
+  engine's tests on the CPU, none skipped). Hedge School's editor on this branch against dev's preview, in
+  Playwright's Chromium, on the standard start and on two positions that no game reaches: the same status text, the
+  same markup and the same glowing edges. Each of Cyanotype's 13 engine files, as the local preview serves it, has
+  the SHA-256 and the size of the release manifest that its lock entry names. The check of the deployed site
+  (`scripts/release-check.mjs`) waits for the deploy. The layout test on the two previews (Chromium): 203 passed,
+  1 failed and 5 skipped. The 5 are the analytics cases, which need `VITE_GA_ID`. The failure was the layout case of
+  Cyanotype's editor, which waited for the editor's earlier words. Its pattern now takes the new ones, and the case
+  passed alone.

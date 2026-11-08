@@ -4,7 +4,7 @@
 import { EngineError, EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
-import { positionQuery } from "@abstractclass/engine/protocol.ts";
+import { checkProblem, positionQuery } from "@abstractclass/engine/protocol.ts";
 import type { DescribeReply, GamePosition } from "#lib/engine/position.ts";
 import type { GameRecord } from "./record.ts";
 
@@ -45,10 +45,7 @@ export async function checkMoves(record: GameRecord): Promise<Checked> {
 }
 
 /** Why a position could not occur in a game, in the engine's words (protocol 0.5's check), or null when it could. */
-function positionProblem(d: DescribeReply): string | null {
-  if (!d.check || d.check.possible) return null;
-  return `This position cannot occur in a game: ${d.check.reasons.map(r => r.text.replace(/\.$/, "")).join("; ")}.`;
-}
+const positionProblem = (d: DescribeReply): string | null => checkProblem(d.check);
 
 /** Whether a set-up position could occur in a game (protocol 0.5's check, design 21): what is wrong, or null. A
  *  position whose form the engine refuses gets that refusal. Null when the site has no engine. */

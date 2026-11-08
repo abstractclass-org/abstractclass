@@ -7,12 +7,13 @@ record, with the import of a strategyjam.org game as a record. The owner's step 
 The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
 strategyjam.org and the import page are built: the page opens the game that a tool sends in the review or the
 Analysis board ("How a game comes in from strategyjam.org"). Their test on strategyjam.org waits for the owner
-(abscls-8tl1.12). The site fetches Blueprints' release `engine-91ab0b7d` (Stamp Duty 0.2, protocol 0.7.1), as Hedge
+(abscls-8tl1.12). The site fetches Blueprints' release `engine-887be290` (Stamp Duty 0.2, protocol 0.8.0), as Hedge
 School fetches its own ("The engine's files"). It has the GPU module and the practice bot's three forms, so the engine
 runs on the visitor's GPU as Hedge School's does. Practice against Stamp Duty (`/practice`) is built ("Practice
 against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The review and the Analysis
 board"), with no area map yet. A position's notation, the board editor and starts from a set-up position are built
-(abscls-8tl1.39, "Decision", item 10, and "The board editor"). The early access is built, as Hedge School's
+(abscls-8tl1.39, "Decision", item 10, and "The board editor"), with the engine's check that a game can reach a
+position (abscls-8tl1.59). The early access is built, as Hedge School's
 ("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
 player's games"). Partner sites are designed, not built ("Partner sites").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
@@ -23,7 +24,7 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
 notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07. Partner sites:
-2026-11-08.
+2026-11-08. The position check: 2026-11-09.
 
 ## Context
 
@@ -192,14 +193,29 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       root's Blue win differed by 0 to 8.3 points (the median 0.9). The same position searched twice from its moves
       gave the same best move and top five each time. The stored results keep the two apart: their keys name the start's
       notation, or the moves from the standard start. A line played from a set-up start gets its placements' boxes
-      from its own moves.
+      from its own moves. Request 28 measured it again with Stamp Duty 0.2 at 400 visits, on 10 positions (the engine
+      repository's games/blueprints/README.md, "A set-up start's view"): the moves gave the game's best move at 10,
+      the engine's one-line form at 4 and the site's form at 4. No start without its moves can search as its game,
+      because the search reads each player's last placements. So a game's position goes to the engine as its moves,
+      and a set-up start keeps its own search.
     - **The rules' checks:** the engine reads a position, and refuses a hand that does not hold 21 cells, a blueprint
       that is not connected, and cells that span more than its rules board holds (511 × 511). The notation's reader
-      refuses a blueprint that is not in its frame. Blueprints' build has no check that a game can reach a position
-      (protocol 0.5's check is Enclosure's alone), so the board editor says so, and Analyze needs only the engine's
-      reading. Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
+      refuses a blueprint that is not in its frame.
+    - **The position check** (protocol 0.8.0, request 28, as Enclosure's protocol 0.5 checks its positions): the
+      engine's `describe` says whether a game can reach its `position`, with the reasons when none can. Each reason
+      has a code, words that a player reads, and the hexes that it names, in the board's coordinates. The check reads
+      what the notation holds: the cells, both hands, the scores and the moves played. It refuses only what every
+      game makes certain: with no move played, the position is the standard start, the start's walls stay, no two
+      cells of the players that are not walls touch, a player's cells and walls are no more than its moves can put,
+      a hand holds the start's cells, and a player who has made no move has no points (the engine repository's
+      games/blueprints/README.md, "The position check"). Every position of the archive's games passes. An analysis of
+      a position that no game reaches is refused, and a finished one gets the game's end first. So the board editor,
+      the Import and a start from a link or a file take the check before they open the Analysis board, as Hedge
+      School's do (its design 21). A record from a set-up start takes it before its moves. describe_game gives no
+      check: the site asks describe for it (`src/lib/review/recordCheck.ts`, `startChecked`).
+    - Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
       back from its notation as the same position, with the same legal moves (`position.engine.test.ts`, at
-      `engine-3ac5c2fc` and at `engine-91ab0b7d`).
+      `engine-3ac5c2fc`, at `engine-91ab0b7d` and at `engine-887be290`).
     - **A position cut or changed:** the reader refuses a position with a field missing or a field it cannot read, and
       a mover field that the moves played do not give. A cut inside the moves played can still give another position
       that reads, when the shorter count gives the same mover (`r1 0/0 22` cut to `r1 0/0 2`), as a cut FEN can. The
@@ -322,8 +338,9 @@ engine gives in `src/lib/board/fixtures.json`: each position, its mover, every l
 move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates and
 their lines are hand-made marks, and the engine plays each one where it stands, so each is a legal move. The 0.7
 builds (`engine-b64eea10`, `engine-217be61f`, `engine-70dfdc0f` with a new network, then the releases
-`engine-3ac5c2fc` and `engine-91ab0b7d`) give the five games the same data as the early build: only the file's header,
-which names the build, changed. The data is the rules' alone, which no network changes.
+`engine-3ac5c2fc` and `engine-91ab0b7d`) and the 0.8 release `engine-887be290` give the five games the same data as
+the early build: only the file's header, which names the build, changed. The data is the rules' alone, which no
+network changes.
 
 - **The build and the tests read the stored file.** `fixtures.engine.test.ts` runs the engine again and compares, in
   the Tests workflow too. It is skipped when the site has no engine (`npm run engine` was not run).
@@ -345,30 +362,40 @@ Cyanotype takes the engine's files as Hedge School does (design 03): `apps/cyano
 file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs`, which both sites run) puts them in
 `static/engine/` with their manifest. The page loads them from there.
 
-1. **The release:** `engine-91ab0b7d` (Stamp Duty 0.2), in the public repository
+1. **The release:** `engine-887be290` (Stamp Duty 0.2), in the public repository
    [abstractclass-org/blueprints-engine](https://github.com/abstractclass-org/blueprints-engine), with its manifest.
-   Its files: the module (`blueprints-engine.wasm`, build and search `91ab0b7d`, protocol 0.7.1, with the search of
-   the root's views of request 24), the GPU module (`blueprints-engine-gpu.wasm`, the same protocol and search) and the
-   network's graph (request 26), `gpu_engine.mjs`, the practice bot with one search thread (`blueprints-bot.wasm`,
-   interface 0.1.2, with `practice_bot.mjs`, request 25), the threaded practice bot (`blueprints-bot-batched.wasm`,
-   interface 0.1.2) with its CPU evaluator (`blueprints-eval.wasm`, `cpu_evaluator.mjs` and `cpu_eval_worker.mjs`),
-   `NOTICES.txt`, `LICENSE.txt` and bpj5's network `b6c96-s47076224-d3087660`, whose name in the release is Stamp
-   Duty 0.2. Each entry of the lock takes its file from the release (a source of kind `release`), with the SHA-256
-   and the size of the release's manifest. The lock also copies the manifest's networks' sizes (`sizes`: a board of 67
+   Its files: the module (`blueprints-engine.wasm`, build `887be290`, protocol 0.8.0 with the position check of
+   request 28, and the search `91ab0b7d` of request 24's root's views), the GPU module (`blueprints-engine-gpu.wasm`,
+   the same protocol and search) and the network's graph (request 26), `gpu_engine.mjs`, the practice bot with one
+   search thread (`blueprints-bot.wasm`, interface 0.1.3, with `practice_bot.mjs`, request 25), the threaded practice
+   bot (`blueprints-bot-batched.wasm`, interface 0.1.3) with its CPU evaluator (`blueprints-eval.wasm`,
+   `cpu_evaluator.mjs` and `cpu_eval_worker.mjs`), `NOTICES.txt`, `LICENSE.txt` and bpj5's network
+   `b6c96-s47076224-d3087660`, whose name in the release is Stamp Duty 0.2. Interface 0.1.3 adds
+   `blueprints-set-position`, the bot from a set-up start, which abscls-8tl1.40 takes. Each entry of the lock takes its
+   file from a release (a source of kind `release`), with the SHA-256 and the size of the release's manifest. The
+   four files that the release changed (the two modules and the two bots) come from `engine-887be290`. The other
+   nine have the same bytes in both releases (the same SHA-256 in both manifests), so they keep their entries of
+   `engine-91ab0b7d` and their paths, and a browser's cache keeps them, as Hedge School's lock keeps the files that a
+   release did not change. The lock also copies the manifest's networks' sizes (`sizes`: a board of 67
    and 6 policy channels, item 4) and the evaluator's `maxThreads` (128). `npm run engine` compares these numbers
    with the release's manifest, and stops at a difference ([design 03](03-stack.md)). The release's `settings.cfg` is
    the text of the search's settings, which the module embeds: the site does not read it, so the lock does not take
    it. The engine repository's record of the release: its
    [games/blueprints/docs/decisions/port.md](https://github.com/abstractclass-org/engines/blob/main/games/blueprints/docs/decisions/port.md),
-   entry of 2026-11-07. Blueprints' first release, `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the
-   threaded bot), stays in `abstractclass-org/blueprints-engine`.
-2. **Protocol 0.7.** Blueprints' build speaks 0.7.1, and Enclosure's stays 0.6.x (the engine repository's design 04,
+   entries of 2026-11-07 (`engine-91ab0b7d`) and 2026-11-09 (`engine-887be290`). Blueprints' earlier releases,
+   `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the threaded bot) and `engine-91ab0b7d` (protocol
+   0.7.1, without the position check), stay in `abstractclass-org/blueprints-engine`. The stored results of
+   `engine-91ab0b7d` stay valid: their keys name the search, which is the same, and the network
+   (`packages/analysis/src/cache.ts`).
+2. **Protocol 0.8.** Blueprints' build speaks 0.8.0, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
-   passes find no candidate gives its first pass's policy move. The lock's `protocol` names the protocol that
-   Cyanotype's code is written for (0.7.1, `ROOT_VIEWS_PROTOCOL`), and the manifest carries it, so `packages/engine`
-   refuses a module of another minor version for each site: 0.6.x for Hedge School, 0.7.x from 0.7.1 for
-   Cyanotype. The types take request 24's fields: the query's `rootViews`, a candidate's `checkVisits`,
-   and `rootInfo`'s `views` and `searches`. The network's raw values are optional: a reply of more views has none.
+   passes find no candidate gives its first pass's policy move. 0.8.0 brought the position check, and breaks a 0.7
+   client, as Enclosure's 0.5 broke a 0.4 client: an analysis of a position that no game reaches is refused. The
+   lock's `protocol` names the protocol that Cyanotype's code is written for (0.8.0, `ROOT_VIEWS_PROTOCOL`), and the
+   manifest carries it, so `packages/engine` refuses a module of another minor version for each site: 0.6.x for Hedge
+   School, 0.8.x for Cyanotype. The types take request 24's fields: the query's `rootViews`, a candidate's
+   `checkVisits`, and `rootInfo`'s `views` and `searches`. The network's raw values are optional: a reply of more
+   views has none.
 3. **Every file from the release, for the deploy and the tests.** `npm run engine -- --deploy` refuses a file that is
    not from a release. The job `cyanotype` of the Deploy workflow takes the files before its checks and its build, so
    each deployment has its engine. The Tests workflow takes them too (the step `cyanotype-engine` of
@@ -858,8 +885,13 @@ in "Set up a position".
    count can: the edits and the captured cells leave nothing on a Blueprints board, so no count follows from it. The
    scores are whole numbers.
 6. **The engine reads the position at each change,** in its own form ("Decision", item 10). The page shows a refusal
-   in the engine's words, with the players' names for its numbers. Analyze needs a position that the engine reads,
-   with moves left. The page says that the engine does not check if a game can reach the position.
+   in the engine's words, with the players' names for its numbers. Then it says whether a game can reach the
+   position (the engine's position check, "Decision", item 10), as Hedge School's editor does: "A game can reach this
+   position.", or "No game reaches this position:" with each reason in the engine's words. The hexes that the reasons
+   name glow on the board, as Hedge School's editor makes the reasons' edges glow. Analyze needs a position that the
+   engine reads, that a game can reach, and that has moves left. The status and its words are Hedge School's
+   (`packages/review/src/PositionCheckStatus.svelte`), and the check's sentence for the Analysis board's notices too
+   (`checkProblem`, `packages/engine/src/protocol.ts`).
 7. **The position in the notation** is a field with a Copy button, as Hedge School's: a position pasted there replaces
    the one being made. The browser keeps the position being made (`cyanotype:editor:1`). The address
    `/editor#position=` brings one, and the position leaves the address at once.
@@ -1189,12 +1221,8 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The area map** (`review/enclosureMap.ts`, design 30). abscls-8tl1.17 decides whether Blueprints has one ("No
   area map yet").
 - **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24). The
-  practice bot starts only from the standard start: abscls-8tl1.40 waits for request 28
-  (`docs/requests/28-blueprints-set-up-start.md`, the engine repository's abscls-0dh7).
-- **The board editor's check that a game can reach the position** (design 21, item 10: Hedge School's engine checks
-  it, protocol 0.5). Blueprints' engine reads a position and checks its hands and its frames, not its history. Until
-  then the editor says that the engine does not check it, and Analyze needs only the engine's reading. abscls-8tl1.59,
-  which waits for request 28 too.
+  practice bot starts only from the standard start: abscls-8tl1.40 takes `blueprints-set-position` of request 28
+  (`docs/requests/28-blueprints-set-up-start.md`), which the lock's release `engine-887be290` has.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
   `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
   ("Practice against Stamp Duty", item 2). abscls-8tl1.50.
@@ -1520,5 +1548,5 @@ Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with
 "Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
 games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
 (2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), "Cyanotype's How a review
-works page" (2026-11-08), and "Cyanotype's partner sites: the design" (2026-11-08). The earlier entries name the
-site by its first name, Drawing Board.
+works page" (2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), and "Cyanotype's board editor checks
+that a game can reach the position" (2026-11-09). The earlier entries name the site by its first name, Drawing Board.

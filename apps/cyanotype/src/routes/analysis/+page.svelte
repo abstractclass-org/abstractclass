@@ -5,9 +5,10 @@
   // notation, game/position.ts; with `record=`, the record's start), or the lines of a shared analysis or an analysis
   // file loaded (`#packed=`, game/board.ts, with `&at=`), which can name a set-up start too.
   // The engine checks a record brought as the review checks a game: it plays each move from the record's start, and
-  // confirms each capture mark (design 33, item 6). It reads a start brought alone too. A record or a start that fails
-  // leaves the board kept here, with a notice. One that passes asks first when the board kept here has moves, as Hedge
-  // School's board does ("Replace your analysis?").
+  // confirms each capture mark (design 33, item 6). It reads a start, brought alone or as a record's, and checks that a
+  // game can reach it (protocol 0.8.0's check), so it analyzes no position that no game reaches. A record or a start
+  // that fails leaves the board kept here, with a notice. One that passes asks first when the board kept here has
+  // moves, as Hedge School's board does ("Replace your analysis?").
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and the
@@ -39,7 +40,7 @@
   import { blueprints, type Blueprints, type ReviewData } from "#lib/review/blueprints.ts";
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
-  import { checkRecord, checkStart, describeBy, recordProblem, startProblem } from "#lib/review/recordCheck.ts";
+  import { checkRecord, checkStart, recordProblem, rulesBy, startProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { startTags, type GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -139,7 +140,7 @@
       // The analysis starts from the board's start, so the engine's rules check a board brought first, once they work:
       // a record's moves from its start, or a start alone. Only a board that they accept replaces the board kept here.
       const g = await session.start(async pool => {
-        const chosen = await opening, b = chosen.brought, rules = describeBy(pool.rules);
+        const chosen = await opening, b = chosen.brought, rules = rulesBy(pool.rules);
         const problem = !b ? null : b.record ? await recordProblem(rules, b.record)
           : b.board.start ? await startProblem(rules, b.board.start) : null;
         if (b && problem) refuse(problem, b.kind);
@@ -190,7 +191,7 @@
   async function importPasted(position: string, pasted: string) {
     if (!pasted.trim()) {
       const start = setUpStart(position), problem = start ? await checkStart(start) : null;
-      if (problem) throw new Error(`${SITE_NAME} cannot read the position: ${sentence(problem)}`);
+      if (problem) throw new Error(`${SITE_NAME} cannot open this position: ${sentence(problem)}`);
       importAddress(new URLSearchParams({ position: start ?? STANDARD_START }));
       return;
     }

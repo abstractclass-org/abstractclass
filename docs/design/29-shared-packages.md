@@ -358,8 +358,10 @@ edit in the same commit), so their changes still apply.
 - **The engine's protocol:** each site's code is written for one protocol, and the engine package refuses a module of
   another minor version (`protocol.ts`, `speaksProtocol`). Hedge School's is 0.6.1, the package's `PROTOCOL`. A site
   whose engine speaks another names its protocol in its `engine.lock.json`, and the manifest carries it: Cyanotype's
-  0.7.1, with the search of the root's views (design 33, "The engine's files"). The fields of `describe` are
-  each game's own: Enclosure's are in Hedge School's `src/lib/engine/position.ts`.
+  0.8.0, with the search of the root's views and the position check (design 33, "The engine's files"). The fields of
+  `describe` are each game's own: Enclosure's are in Hedge School's `src/lib/engine/position.ts`. The position check
+  is both games' (`PositionCheck`, and its sentence `checkProblem`), and each game's reason names its own places:
+  Enclosure's edges, Blueprints' hexes.
 
 ## Where it is
 
@@ -402,9 +404,11 @@ edit in the same commit), so their changes still apply.
   check (`onimport`). `src/ExportMenu.svelte`
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages
   share: the Analysis board's, the review's link and the annotated record. `src/NewMenu.svelte`: the Analysis board's
-  New menu, with the ways that a site has (design 21). `src/howReviews/`: the sections that the two sites' pages "How
-  a review works" share (the searches, the quality labels with their bands, Best and Great, the accuracy, the hard
-  positions and the meter), with the numbers from the analysis package's code, and each site's words for a move
+  New menu, with the ways that a site has (design 21). `src/PositionCheckStatus.svelte`: what the board editor says of
+  its position, the engine's refusal, or whether a game can reach it with the engine's reasons, and each site's word
+  for the places that the board marks (design 21, item 10). `src/howReviews/`: the sections that the two sites'
+  pages "How a review works" share (the searches, the quality labels with their bands, Best and Great, the accuracy,
+  the hard positions and the meter), with the numbers from the analysis package's code, and each site's words for a move
   ("edges" on Hedge School) and for the other player ("enemy") as props (design 33, "The review and the Analysis
   board", item 13). `src/review.css`: the package's Tailwind source and
   the view's style (item 9), which a site's style imports after `site.css`.
@@ -433,7 +437,8 @@ edit in the same commit), so their changes still apply.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files, which each site runs in its own folder (`npm run engine`). `practice-check.ts`: the engine step's check of
   the practice modules' `minPlayoutsPerThread` (design 24, item 14). `protocol.ts`: the protocol that each site's code
-  is written for (Hedge School 0.6.x, Cyanotype 0.7.x with the root's views), from the site's `engine.lock.json`
+  is written for (Hedge School 0.6.x, Cyanotype 0.8.x with the root's views and the position check), from the site's
+  `engine.lock.json`
   and its manifest.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
   words), `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one

@@ -36,6 +36,11 @@
 // no longer refused. The search gives its first pass's policy move. Cyanotype's practice bot then plays at any
 // visits from 1, as Hedge School's does.
 //
+// 0.8.0 is Blueprints' build only, and breaks a 0.7 client as 0.5 broke a 0.4 client (request 28): `describe` gives
+// `check` for its `position`, as Enclosure's 0.5 does, and an analysis of a position that no game reaches is refused
+// with an error of the field `position` and the reasons. A finished position gets the game's end first. Its search is
+// 0.7.1's (search 91ab0b7d). Each game's reason names its own places: Enclosure's its edges, Blueprints' its hexes.
+//
 // The fields of describe, describe_game and play are each game's own: the engine package types only the analysis and
 // the messages that every game's engine shares (design 29). Enclosure's are in Hedge School's
 // src/lib/engine/position.ts. Every win chance and score is from the first player's side (KataGo's convention:
@@ -43,8 +48,9 @@
 
 /** The protocol that a site's code is written for, unless its manifest names another: 0.6.1 brings describe_game. */
 export const PROTOCOL = "0.6.1";
-/** Blueprints' protocol: 0.7.0 brings the search of the root's views, and 0.7.1 its move at few visits. */
-export const ROOT_VIEWS_PROTOCOL = "0.7.1";
+/** Blueprints' protocol: 0.7.0 brings the search of the root's views, 0.7.1 its move at few visits, and 0.8.0 the
+ *  position check. */
+export const ROOT_VIEWS_PROTOCOL = "0.8.0";
 /** Whether a build's protocol is one that a site written for `site` speaks: the same major and minor version (before
  *  1.0, a minor version can break), with `site`'s patch or a later one. */
 export function speaksProtocol(version: string, site = PROTOCOL): boolean {
@@ -56,9 +62,17 @@ export function speaksProtocol(version: string, site = PROTOCOL): boolean {
 /** The engine tag on every analysis reply: which build and which network made it (the network's SHA-256). */
 export interface EngineTag { protocol: string; build: string; search: string; model: string }
 
-/** A reason why a position could not occur in a game (protocol 0.5): its code, words for the player, and the edges
- *  that it names. */
-export interface CheckReason { code: string; text: string; edges: string[] }
+/** A reason why a position could not occur in a game (Enclosure's protocol 0.5, Blueprints' 0.8.0): its code and
+ *  words for the player. Each game's reason also names its places: Enclosure's `edges`, Blueprints' `hexes`. */
+export interface CheckReason { code: string; text: string }
+/** describe's `check` of its `position`: whether a game can reach it, and the reasons when none can. */
+export interface PositionCheck<R extends CheckReason = CheckReason> { possible: boolean; reasons: R[] }
+/** Why a position could not occur in a game, in the engine's words, or null when it could (or the engine gave no
+ *  check). */
+export function checkProblem(check: PositionCheck | null | undefined): string | null {
+  if (!check || check.possible) return null;
+  return `This position cannot occur in a game: ${check.reasons.map(r => r.text.replace(/\.$/, "")).join("; ")}.`;
+}
 
 export interface ErrorReply { id: string; error: string; field?: string; reasons?: CheckReason[] }
 

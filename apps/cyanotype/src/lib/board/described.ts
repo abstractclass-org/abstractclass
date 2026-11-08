@@ -2,6 +2,7 @@
 // describe_game (the engine's README, "The fields"), and each move with what it did. The site has no rules: it reads
 // the engine's positions, legal moves, footprints and captures, and only puts a move's cells on its anchor hex. The
 // board's lab (fixtures.ts) reads them from its data file, and Practice from the engine's rules worker.
+import type { CheckReason, PositionCheck } from "@abstractclass/engine/protocol.ts";
 import { parseMove } from "../game/notation.ts";
 import { anchorOf, hexKey, parseHex, type Hex } from "./hex.ts";
 import { handHexOf } from "./input.ts";
@@ -23,8 +24,15 @@ export interface GamePosition {
   captured: Record<string, [Player, Kind]> | null;
   points: number | null;
 }
-/** describe's reply: the position, with every legal move. */
-export interface DescribeReply extends Omit<GamePosition, "footprint" | "captured" | "points"> { legal: string[] }
+/** A reason of Blueprints' position check (protocol 0.8.0), with the hexes that it names, "q,r" in the board's
+ *  coordinates. */
+export interface HexReason extends CheckReason { hexes: string[] }
+/** describe's reply: the position, with every legal move, and whether a game can reach its `position`, the position
+ *  before its moves (protocol 0.8.0). describe_game gives no check. */
+export interface DescribeReply extends Omit<GamePosition, "footprint" | "captured" | "points"> {
+  legal: string[];
+  check?: PositionCheck<HexReason>;
+}
 
 /** The engine's mover as the board's player. */
 export const playerOf = (mover: "b" | "r"): Player => (mover === "b" ? 0 : 1);

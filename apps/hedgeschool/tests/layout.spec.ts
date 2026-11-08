@@ -222,7 +222,7 @@ test("layout of Cyanotype's board editor", async ({ page }) => {
   test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   await page.goto(new URL("/editor", CYANOTYPE).href);
   await page.waitForLoadState("networkidle");
-  await expect(page.getByText(/The engine (accepts|cannot)|no engine on this site/)).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText(/A game can reach|No game reaches|The engine cannot|no engine on this site/)).toBeVisible({ timeout: 120_000 });
   expect(await sweep(page, "Cyanotype's /editor")).toBe("");
 });
 

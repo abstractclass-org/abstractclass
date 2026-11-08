@@ -103,12 +103,15 @@
     // the drag takes no hex. It keeps the view: it does not pan.
     onpaint?: (hex: Hex, how: { right: boolean; first: boolean }) => void;
     onpaintend?: () => void;
+    // Hexes to point at, drawn as a soft glow over the cells: the board editor's hexes that the engine's reasons name
+    // when no game reaches the position, as Hedge School's board makes the reasons' edges glow (its design 21, item 10)
+    targets?: Hex[];
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
-    notes = [], onnotes, still = false, onedit, chosen = null, onpaint, onpaintend,
+    notes = [], onnotes, still = false, onedit, chosen = null, onpaint, onpaintend, targets = [],
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -661,6 +664,10 @@
           <Cell hex={c.hex} owner={c.owner} kind={c.kind} />
         {/each}
 
+        {#each targets as t (hexKey(t))}
+          <path d={hexPath(...center(t))} class="target" />
+        {/each}
+
         <!-- Over the cells: a cell that the forecast gives the other side gets a smaller hex in that side's colour, as
              KaTrain marks a stone that it expects to die. Then the change style's marks, and the difference style's
              signs, each as strong as the forecast rose or fell: a green plus or a yellow minus, by good or bad for the
@@ -876,6 +883,7 @@
   .origin { fill: var(--board-dot); }
   /* The last move's outline: 0.14 of a hex's radius shows, inside the footprint. */
   .last-move-outline { fill: none; stroke: var(--last); stroke-width: 0.28; stroke-linecap: round; pointer-events: none; }
+  .target { fill: var(--accent); fill-opacity: 0.35; stroke: var(--accent); stroke-width: 0.3; stroke-opacity: 0.6; pointer-events: none; }
   .hover { fill: var(--last); fill-opacity: 0.25; stroke: var(--last); stroke-width: 0.08; pointer-events: none; }
   /* The area map, in the players' colours, as Hedge School's board draws it. */
   .hold, .change-hex { stroke: none; pointer-events: none; }
