@@ -1,0 +1,193 @@
+# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-whole-review.json, the whole test game
+# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts).
+# Update this file only as the test's header says. The commit message says why each label moved.
+# "-": no label.
+# Labels by move: best 40, excellent 35, good 17, inaccuracy 19, mistake 8, blunder 1
+# Labels by turn: best 10, excellent 18, good 5, inaccuracy 14, mistake 13, blunder 1
+# Turns of two moves in the other order than the engine's best turn: 3
+# Positions with a twin: 85 93. Played moves that are a twin: 0
+
+[by move]
+  1  turn  1  Blue  1:-1,1>2:0,-1     excellent
+  2  turn  2  Red   1:-1,1>2:-2,1     excellent
+  3  turn  2  Red   1:0,2>2:0,3       excellent
+  4  turn  3  Blue  1:0,2>2:2,2       excellent
+  5  turn  3  Blue  2@1,-5            good
+  6  turn  4  Red   2@6,-5x           excellent
+  7  turn  4  Red   2@3,-7x+10        excellent
+  8  turn  5  Blue  1:1,0>2:-2,2      excellent
+  9  turn  5  Blue  2@-1,-7x+9        inaccuracy
+ 10  turn  6  Red   1:1,0>2:2,1       excellent
+ 11  turn  6  Red   2@1,-9x+13        best
+ 12  turn  7  Blue  2@-3,-9x+12       inaccuracy
+ 13  turn  7  Blue  2@0,-12x+16       best
+ 14  turn  8  Red   2@3,-13x+15       good
+ 15  turn  8  Red   2@-1,-14x+19      best
+ 16  turn  9  Blue  2@-4,-12x+18      inaccuracy
+ 17  turn  9  Blue  2@-4,-16x+22      best
+ 18  turn 10  Red   1:-1,2>2:0,-1     excellent
+ 19  turn 10  Red   2@-1,-18x+21      best
+ 20  turn 11  Blue  1:-1,2>2:-2,4     best
+ 21  turn 11  Blue  2@-4,-19x+25      best
+ 22  turn 12  Red   2@-1,-21x+24      inaccuracy
+ 23  turn 12  Red   2@-5,-22x+28      good
+ 24  turn 13  Blue  2@-7,-19x+27      good
+ 25  turn 13  Blue  3@-7,-22x+31      inaccuracy
+ 26  turn 14  Red   2@-2,-24          inaccuracy
+ 27  turn 14  Red   1@-3,-13x+68      inaccuracy
+ 28  turn 15  Blue  2@-4,-27x         inaccuracy
+ 29  turn 15  Blue  2@0,-28x+34       good
+ 30  turn 16  Red   2@2,-23           mistake
+ 31  turn 16  Red   2@3,-27x+38       excellent
+ 32  turn 17  Blue  2@4,-31x          good
+ 33  turn 17  Blue  2@7,-30x+41       good
+ 34  turn 18  Red   2@6,-26x+41       excellent
+ 35  turn 18  Red   2@10,-28x         mistake
+ 36  turn 19  Blue  2@11,-33          mistake
+ 37  turn 19  Blue  2@14,-31x+48      good
+ 38  turn 20  Red   2@-1,1x           mistake
+ 39  turn 20  Red   2@13,-27x+52      excellent
+ 40  turn 21  Blue  2@-6,2x           inaccuracy
+ 41  turn 21  Blue  2@-3,4x+55        good
+ 42  turn 22  Red   1:0,0>2:3,1       inaccuracy
+ 43  turn 22  Red   2@-7,-14x+110     best
+ 44  turn 23  Blue  2@2,2x+57         best
+ 45  turn 23  Blue  2@-8,-10x+61      inaccuracy
+ 46  turn 24  Red   2@-11,-12x        inaccuracy
+ 47  turn 24  Red   2@-12,-7x+61      mistake
+ 48  turn 25  Blue  2@7,1x+64         best
+ 49  turn 25  Blue  2@-13,-3x+68      best
+ 50  turn 26  Red   2@9,-5            best
+ 51  turn 26  Red   2@10,2x+67        best
+ 52  turn 27  Blue  2@7,4x+71         best
+ 53  turn 27  Blue  2@11,5x+75        excellent
+ 54  turn 28  Red   2@14,3x+69        best
+ 55  turn 28  Red   2@13,7x+73        best
+ 56  turn 29  Blue  2@17,-30x+77      excellent
+ 57  turn 29  Blue  2@10,9x+81        best
+ 58  turn 30  Red   2@16,-26x+75      best
+ 59  turn 30  Red   1@4,-27x+158      inaccuracy
+ 60  turn 31  Blue  1:0,0>2:-3,5      blunder
+ 61  turn 31  Blue  2@14,10x+82       mistake
+ 62  turn 32  Red   2@17,7x+79        inaccuracy
+ 63  turn 32  Red   2@16,12x+83       inaccuracy
+ 64  turn 33  Blue  2@13,14x+84       best
+ 65  turn 33  Blue  2@-5,-6           best
+ 66  turn 34  Red   2@-16,-5x         good
+ 67  turn 34  Red   2@-17,0x+90       excellent
+ 68  turn 35  Blue  1@-16,0x+91       mistake
+ 69  turn 35  Blue  2@-19,-2x+92      best
+ 70  turn 36  Red   2@-20,-5x+92      good
+ 71  turn 36  Red   2@-23,-1x+96      excellent
+ 72  turn 37  Blue  2@-21,2x+94       excellent
+ 73  turn 37  Blue  2@17,15x+98       best
+ 74  turn 38  Red   2@20,13x+98       best
+ 75  turn 38  Red   1@-1,5x+204       best
+ 76  turn 39  Blue  2@-26,2x+99       good
+ 77  turn 39  Blue  2@19,17x+103      best
+ 78  turn 40  Red   1@-7,-10x+202     inaccuracy
+ 79  turn 40  Red   2@-27,-1x+102     good
+ 80  turn 41  Blue  2@-29,2x+104      best
+ 81  turn 41  Blue  1@-6,-11x+216     inaccuracy
+ 82  turn 42  Red   1@-13,0x+206      good
+ 83  turn 42  Red   2@23,15x+104      inaccuracy
+ 84  turn 43  Blue  2@21,19x+106      excellent
+ 85  turn 43  Blue  3@24,18x+110      mistake
+ 86  turn 44  Red   3@-1,6x+106       good
+ 87  turn 44  Red   2@2,6x+214        good
+ 88  turn 45  Blue  1:0,0>1:2,-1      inaccuracy
+ 89  turn 45  Blue  1@2,-10x+216      good
+ 90  turn 46  Red   1@1,-11x+218      best
+ 91  turn 46  Red   2@-13,1x+110      best
+ 92  turn 47  Blue  1@0,-12x+106      excellent
+ 93  turn 47  Blue  2@4,-17x+214      best
+ 94  turn 48  Red   2@7,-16x+111      excellent
+ 95  turn 48  Red   1@-20,2x+230      best
+ 96  turn 49  Blue  1@8,-1x+216       best
+ 97  turn 49  Blue  1@10,-2x+218      best
+ 98  turn 50  Red   2@6,-20x+112      excellent
+ 99  turn 50  Red   1@-16,-1x+232     best
+100  turn 51  Blue  2@13,-8x+107      excellent
+101  turn 51  Blue  2@15,-5x+111      best
+102  turn 52  Red   2:0,0>1:0,-1      excellent
+103  turn 52  Red   2@6,8x+230        excellent
+104  turn 53  Blue  2:-2,2>1:-2,1     excellent
+105  turn 53  Blue  1@-13,-3x+226     best
+106  turn 54  Red   1@11,-29x+234     excellent
+107  turn 54  Red   1@14,-28x+236     excellent
+108  turn 55  Blue  1@-13,-4x+220     best
+109  turn 55  Blue  1@4,-11x+111      best
+110  turn 56  Red   1@-6,-16x+232     excellent
+111  turn 56  Red   1@-7,-10x+234     excellent
+112  turn 57  Blue  1:0,0>1:-1,2      excellent
+113  turn 57  Blue  1@3,6x+216        best
+114  turn 58  Red   1@8,0x+232        excellent
+115  turn 58  Red   2@6,-11x+117      excellent
+116  turn 59  Blue  1@-11,-7x+212     excellent
+117  turn 59  Blue  1@8,2x+214        best
+118  turn 60  Red   3@-10,-5x+234     excellent
+119  turn 60  Red   1@11,-3x+118      excellent
+120  turn 61  Blue  1@7,7x+210        best
+
+[by turn]
+turn  1  Blue  1:-1,1>2:0,-1                      excellent
+turn  2  Red   1:-1,1>2:-2,1 1:0,2>2:0,3          excellent
+turn  3  Blue  1:0,2>2:2,2 2@1,-5                 good
+turn  4  Red   2@6,-5x 2@3,-7x+10                 good
+turn  5  Blue  1:1,0>2:-2,2 2@-1,-7x+9            inaccuracy
+turn  6  Red   1:1,0>2:2,1 2@1,-9x+13             excellent
+turn  7  Blue  2@-3,-9x+12 2@0,-12x+16            inaccuracy
+turn  8  Red   2@3,-13x+15 2@-1,-14x+19           good
+turn  9  Blue  2@-4,-12x+18 2@-4,-16x+22          inaccuracy
+turn 10  Red   1:-1,2>2:0,-1 2@-1,-18x+21         excellent
+turn 11  Blue  1:-1,2>2:-2,4 2@-4,-19x+25         best
+turn 12  Red   2@-1,-21x+24 2@-5,-22x+28          mistake
+turn 13  Blue  2@-7,-19x+27 3@-7,-22x+31          mistake
+turn 14  Red   2@-2,-24 1@-3,-13x+68              mistake
+turn 15  Blue  2@-4,-27x 2@0,-28x+34              mistake
+turn 16  Red   2@2,-23 2@3,-27x+38                inaccuracy
+turn 17  Blue  2@4,-31x 2@7,-30x+41               inaccuracy
+turn 18  Red   2@6,-26x+41 2@10,-28x              mistake
+turn 19  Blue  2@11,-33 2@14,-31x+48              mistake
+turn 20  Red   2@-1,1x 2@13,-27x+52               mistake
+turn 21  Blue  2@-6,2x 2@-3,4x+55                 inaccuracy
+turn 22  Red   1:0,0>2:3,1 2@-7,-14x+110          inaccuracy
+turn 23  Blue  2@2,2x+57 2@-8,-10x+61             good
+turn 24  Red   2@-11,-12x 2@-12,-7x+61            mistake
+turn 25  Blue  2@7,1x+64 2@-13,-3x+68             best
+turn 26  Red   2@9,-5 2@10,2x+67                  best
+turn 27  Blue  2@7,4x+71 2@11,5x+75               excellent
+turn 28  Red   2@14,3x+69 2@13,7x+73              best
+turn 29  Blue  2@17,-30x+77 2@10,9x+81            excellent
+turn 30  Red   2@16,-26x+75 1@4,-27x+158          inaccuracy
+turn 31  Blue  1:0,0>2:-3,5 2@14,10x+82           blunder
+turn 32  Red   2@17,7x+79 2@16,12x+83             mistake
+turn 33  Blue  2@13,14x+84 2@-5,-6                best
+turn 34  Red   2@-16,-5x 2@-17,0x+90              inaccuracy
+turn 35  Blue  1@-16,0x+91 2@-19,-2x+92           mistake
+turn 36  Red   2@-20,-5x+92 2@-23,-1x+96          inaccuracy
+turn 37  Blue  2@-21,2x+94 2@17,15x+98            good
+turn 38  Red   2@20,13x+98 1@-1,5x+204            best
+turn 39  Blue  2@-26,2x+99 2@19,17x+103           inaccuracy
+turn 40  Red   1@-7,-10x+202 2@-27,-1x+102        mistake
+turn 41  Blue  2@-29,2x+104 1@-6,-11x+216         mistake
+turn 42  Red   1@-13,0x+206 2@23,15x+104          inaccuracy
+turn 43  Blue  2@21,19x+106 3@24,18x+110          mistake
+turn 44  Red   3@-1,6x+106 2@2,6x+214             inaccuracy
+turn 45  Blue  1:0,0>1:2,-1 1@2,-10x+216          inaccuracy
+turn 46  Red   1@1,-11x+218 2@-13,1x+110          best
+turn 47  Blue  1@0,-12x+106 2@4,-17x+214          excellent
+turn 48  Red   2@7,-16x+111 1@-20,2x+230          excellent
+turn 49  Blue  1@8,-1x+216 1@10,-2x+218           best
+turn 50  Red   2@6,-20x+112 1@-16,-1x+232         excellent
+turn 51  Blue  2@13,-8x+107 2@15,-5x+111          excellent
+turn 52  Red   2:0,0>1:0,-1 2@6,8x+230            excellent
+turn 53  Blue  2:-2,2>1:-2,1 1@-13,-3x+226        excellent
+turn 54  Red   1@11,-29x+234 1@14,-28x+236        excellent
+turn 55  Blue  1@-13,-4x+220 1@4,-11x+111         best
+turn 56  Red   1@-6,-16x+232 1@-7,-10x+234        excellent
+turn 57  Blue  1:0,0>1:-1,2 1@3,6x+216            excellent
+turn 58  Red   1@8,0x+232 2@6,-11x+117            excellent
+turn 59  Blue  1@-11,-7x+212 1@8,2x+214           excellent
+turn 60  Red   3@-10,-5x+234 1@11,-3x+118         excellent
+turn 61  Blue  1@7,7x+210                         best

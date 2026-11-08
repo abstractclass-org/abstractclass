@@ -8650,12 +8650,9 @@ same for Cyanotype's stored review (abscls-h2uq).
 - **What the stored review reaches:** 39 moves in 20 turns. By move: Excellent 14, Best 12, Good 6, Inaccuracy 6,
   Mistake 1. By turn: Excellent 7, Good 5, Inaccuracy 6, Best 1, Mistake 1. The Mistake is turn 15, the review's first
   note. The last test fails when the stored review stops reaching one of these five kinds, by move or by turn.
-- **Not covered:** Great and Blunder, by move and by turn: the stored review reaches neither. It has no turn that
-  plays the engine's best turn in the other order. It has no two moves that give one position either (Cyanotype's
-  twins, design 33, item 9). The snapshot's header counts both, and finds none now. So a stored review written again
-  that reaches one shows in the snapshot's diff. Cyanotype's page takes all of these from the shared review's code.
-  Hedge School's label snapshot covers the Greats, the Blunders and the turn order on Enclosure. Enclosure has no such
-  twins, so no label snapshot covers them.
+- **What the stored review does not reach:** Great and Blunder, the turns in the other order than the engine's best
+  turn, and the twins (design 33, item 9). Two more stored reviews reach them now: "Two more stored reviews for
+  Cyanotype's label snapshot" (2026-11-08, below).
 - **No skip in CI:** without the engine in `apps/cyanotype/static/engine`, the test skips. With the variable `CI`
   set, each of its tests fails, with a message that names the missing engine. The step `cyanotype-engine` of
   `check:all` fetches the engine before `cyanotype-test`, so CI needed no new step.
@@ -9600,3 +9597,43 @@ result.
   waits until the reply with the rules is among the delayed messages, and then presses. Against the build with the
   4-pixel rule, both failed 2 of 2. The view grew from 42 to 49 units wide under the right press, and the click
   pinned nothing. With the view's hold, `cyanotype-notes.spec.ts` passed 18 of 18 (`--repeat-each=3`).
+
+### Two more stored reviews for Cyanotype's label snapshot (2026-11-08)
+
+Cyanotype's label snapshot read one stored review, the test game to the end of turn 20. It reached no Great and no
+Blunder, no turn in the other order than the engine's best turn, and no twin (design 33, item 9). Hedge School's label
+snapshot has several stored reviews for these rules. Now Cyanotype's has two more (abscls-j7xf).
+
+- **The games:** Stamp Duty's own games against itself, Blue at 4 visits a move and Red at 64
+  (`apps/cyanotype/scripts/selfplay.mjs`). No other person's game.
+  - **The whole test game** (`src/lib/review/fixtures/stamp-duty.txt`, 61 turns). An older engine (engine-70dfdc0f)
+    gave it a twin after 83 moves (`twins.test.ts`). Its review at Lite reaches a Blunder by move and by turn (move
+    60, turn 31, Blue's edit `1:0,0>2:-3,5`). It also reaches 3 turns in the other order (turns 25, 26 and 33, each
+    Best) and twins at the positions after 85 and 93 moves (before turns 44 and 48). No played move is a twin. It
+    reaches no Great.
+  - **The game of seed 12** (`src/lib/review/fixtures/stamp-duty-seed12.txt`), new, to the end of turn 23. A screen
+    found it. A search of each position at 32 visits, in Node on the CPU, gave the moves that gained more than 0.05 of
+    win chance since the start of the other player's last turn. A search of those positions at 512 visits kept the
+    moves that were the engine's first choice, with the second choice at least 0.10 worse. The screen found 3 such
+    moves in the game's first 43 moves, and none in the test game's first 38. Its review at Lite reaches a Great by
+    move: move 39, turn 20, Red's capture `2@-27,-17`. The screen stopped after this game. Seeds 13 and 14 were not
+    screened.
+- **The stored reviews:** `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes them after
+  `cyanotype-review.json`, at the same visits, in headless Chromium with the layout test's launch options and the
+  engine on the CPU (`cyanotype-review.ts`, `OTHER_STORED`). A review of the test game runs in the same page and takes
+  the first turns' results from the store, so the two files give those positions the same results. A review of
+  another game runs in a new browser context. Each file keeps the results of its own review (`ofRecord`): each
+  position of the record, and the positions at most two moves from them that the review searches to confirm a Great.
+  With the files as arguments, the script writes only those, from the committed `cyanotype-review.json`. Through
+  `scripts/machine run` with 2 threads, the whole test game took 2,236 s (241 results, 3.5 MB:
+  `tests/fixtures/cyanotype-whole-review.json`). The game of seed 12 took 1,358 s (92 results, 1.3 MB:
+  `tests/fixtures/cyanotype-seed12-review.json`). The search is `91ab0b7d`, and the network is Stamp Duty 0.2.
+- **The label snapshots:** `cyanotype-whole.txt` and `cyanotype-seed12.txt` beside `cyanotype.txt`, from the same test
+  (`labels.snapshot.engine.test.ts`). Each stored review goes to the store in memory under a search of its own, as in
+  Hedge School's test, so that no review reads another review's results. `cyanotype.txt` did not change. In the whole
+  test game, moves 1 to 39 have the labels by move of `cyanotype.txt`, and turns 1 to 19 its labels by turn. Turn 20
+  is Excellent in `cyanotype.txt` and a Mistake in the whole game. `cyanotype-review.json` has no result of the
+  position after turn 20, the record's end, and the whole game's review has one at 32 and at 512 visits. A test for
+  each stored review fails when it stops reaching what it reaches now.
+- **Not covered:** a Great by turn. No stored review reaches one. Hedge School's label snapshot covers it on
+  Enclosure. A move has one quality label, because Cyanotype has no opening book (abscls-8tl1.53).

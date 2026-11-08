@@ -1277,11 +1277,16 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   The tests of the review, and the layout test's review and Analysis board, load a stored review of the test game
   (`cyanotype-review.ts`, `storeReview`) and ask the engine for no search: `tests/fixtures/cyanotype-review.json`,
   which `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes again when Cyanotype's `engine.lock.json`
-  takes a new release. `cyanotype-live-review.spec.ts` reviews the game's first three turns with the engine, on the
-  CPU, and checks that the browser's store then holds the stored review's results for them, value for value. The
-  rank chips' test needs a position whose candidates place one blueprint more often than a panel shows. Stamp Duty
-  0.2's review of the test game has none, so the test makes one from the stored result after move 8, and puts the
-  stored result back after it.
+  takes a new release. The same script writes the other stored reviews (`cyanotype-review.ts`, `OTHER_STORED`), which
+  only Cyanotype's label snapshot reads (`apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`): the whole
+  test game, and a second game of Stamp Duty against itself to the end of turn 23
+  (`src/lib/review/fixtures/stamp-duty-seed12.txt`). With them, the label snapshot reaches each quality label by
+  move, each one by turn but Great, the turns in the other order and the twins (item 9).
+  `cyanotype-live-review.spec.ts` reviews the game's first three turns with the engine, on the CPU, and checks that
+  the browser's store then holds the stored review's results for them, value for value. The rank chips' test needs
+  a position whose candidates place one blueprint more often than a panel shows. Stamp Duty 0.2's review of the test
+  game has none, so the test makes one from the stored result after move 8, and puts the stored result back after
+  it.
 - `apps/hedgeschool/scripts/cyanotype-gpu-check.mjs`: the check of the GPU paths on Cyanotype's preview: the review,
   the Analysis board and Practice. One run checks the GPU On and then Auto (Auto's first-use test), each in a new
   browser context. `--on` or `--auto` checks one setting. The board has 1 worker and the threat on, so that its

@@ -34,18 +34,42 @@ const STORE = [NAME, STORES.analysis] as const;
  *  the engine that made them. scripts/cyanotype-review-fixture.mjs writes it: run it again when Cyanotype's
  *  engine.lock.json takes a new release. */
 export const STORED = "tests/fixtures/cyanotype-review.json";
-/** The stored review's file: its engine (`search`, `network`, the network's SHA-256 `model`), the review's depth
- *  (`visits`) and its results. Read by the file's place, so that Cyanotype's label snapshot
- *  (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) reads it too. */
-export const readStored = (): { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] } =>
-  JSON.parse(readFileSync(new URL(`../${STORED}`, import.meta.url), "utf8"));
+/** The test game's file in apps/cyanotype/src/lib/review/fixtures. */
+export const TEST_GAME = "stamp-duty.txt";
+/** The other stored reviews: the results of real reviews at the same visits, each with its file, its game (a file in
+ *  apps/cyanotype/src/lib/review/fixtures) and the turns that it reviews (Infinity: the whole game). Only Cyanotype's
+ *  label snapshot reads them: they reach the kinds of label and the rules that STORED does not reach (the snapshot
+ *  test's header names them). scripts/cyanotype-review-fixture.mjs writes them after STORED. */
+export const OTHER_STORED = [
+  { file: "tests/fixtures/cyanotype-whole-review.json", game: TEST_GAME, turns: Infinity },
+  { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
+] as const;
+/** A stored review's file (STORED unless `file` gives another): its engine (`search`, `network`, the network's
+ *  SHA-256 `model`), the review's depth (`visits`) and its results. Read by the file's place, so that Cyanotype's
+ *  label snapshot (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) reads it too. */
+export const readStored = (file = STORED):
+  { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] } =>
+  JSON.parse(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"));
 
-/** The test game's record up to the end of turn `turns`: its tags, but not its result, and its moves. */
-export function testRecord(turns = TURNS): string {
-  const text = readFileSync(new URL("../../cyanotype/src/lib/review/fixtures/stamp-duty.txt", import.meta.url), "utf8");
+/** The record of the test game, or of the game `game` (a file in apps/cyanotype/src/lib/review/fixtures), up to the
+ *  end of turn `turns`, or to its end when the game has no later turn: its tags, but not its result, and its moves. */
+export function testRecord(turns = TURNS, game: string = TEST_GAME): string {
+  const text = readFileSync(new URL(`../../cyanotype/src/lib/review/fixtures/${game}`, import.meta.url), "utf8");
   const [tags, moves] = text.split(/\r?\n\r?\n/);
-  const words = moves.trim().split(/\s+/);
-  return `${tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t)).join("\n")}\n\n${words.slice(0, words.indexOf(`${turns + 1}.`)).join(" ")}\n`;
+  const words = moves.trim().split(/\s+/), next = words.indexOf(`${turns + 1}.`);
+  // Without a later turn, the moves end before the record's last word, its result
+  return `${tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t)).join("\n")}\n\n${words.slice(0, next < 0 ? -1 : next).join(" ")}\n`;
+}
+
+/** Whether the key `key` is a result of a review of the record whose moves are `played`: a position of the record,
+ *  or a position at most two moves away from one of them. The review searches those to confirm a Great: the position
+ *  after the engine's second choice by edge, and after the other candidate by turn (ReviewData's `seconds` and
+ *  `others`, in @abstractclass/analysis/model.ts). A position of the Analysis board's SPREAD_BOARD is not. */
+export function ofRecord(key: string, played: readonly string[]): boolean {
+  const moves = readAnalysisKey(key).moves.split(" ").filter(Boolean);
+  let shared = 0;
+  while (shared < moves.length && moves[shared] === played[shared]) shared++;
+  return moves.length - shared <= 2;
 }
 
 /** A record that the engine refuses: the test game's first three turns, with an x on 2@1,-5, which captures nothing. */
