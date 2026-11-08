@@ -1280,8 +1280,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   takes a new release. The same script writes the other stored reviews (`cyanotype-review.ts`, `OTHER_STORED`), which
   only Cyanotype's label snapshot reads (`apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`): the whole
   test game, and a second game of Stamp Duty against itself to the end of turn 23
-  (`src/lib/review/fixtures/stamp-duty-seed12.txt`). With them, the label snapshot reaches each quality label by
-  move, each one by turn but Great, the turns in the other order and the twins (item 9).
+  (`src/lib/review/fixtures/stamp-duty-seed12.txt`). Their results have no ownership, because only the area map reads
+  it. With them, the label snapshot reaches each quality label by move, each one by turn but Great, the turns in the
+  other order and the twins (item 9).
   `cyanotype-live-review.spec.ts` reviews the game's first three turns with the engine, on the CPU, and checks that
   the browser's store then holds the stored review's results for them, value for value. The rank chips' test needs
   a position whose candidates place one blueprint more often than a panel shows. Stamp Duty 0.2's review of the test

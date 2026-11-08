@@ -9622,18 +9622,30 @@ snapshot has several stored reviews for these rules. Now Cyanotype's has two mor
   `cyanotype-review.json`, at the same visits, in headless Chromium with the layout test's launch options and the
   engine on the CPU (`cyanotype-review.ts`, `OTHER_STORED`). A review of the test game runs in the same page and takes
   the first turns' results from the store, so the two files give those positions the same results. A review of
-  another game runs in a new browser context. Each file keeps the results of its own review (`ofRecord`): each
-  position of the record, and the positions at most two moves from them that the review searches to confirm a Great.
-  With the files as arguments, the script writes only those, from the committed `cyanotype-review.json`. Through
-  `scripts/machine run` with 2 threads, the whole test game took 2,236 s (241 results, 3.5 MB:
-  `tests/fixtures/cyanotype-whole-review.json`). The game of seed 12 took 1,358 s (92 results, 1.3 MB:
+  another game runs in a new browser context. Each file keeps the results of its own review, as a review file keeps
+  them (`@abstractclass/analysis/files.ts`, `belongs`): each position of the record, and the positions one move from
+  them, which the review searches to confirm a Great. With the files as arguments, the script writes only those, from
+  the committed `cyanotype-review.json`. Through `scripts/machine run` with 2 threads, the whole test game took 2,236 s
+  (241 results: `tests/fixtures/cyanotype-whole-review.json`). The game of seed 12 took 1,358 s (92 results:
   `tests/fixtures/cyanotype-seed12-review.json`). The search is `91ab0b7d`, and the network is Stamp Duty 0.2.
+- **No ownership in these files:** each result's ownership (4,492 numbers, for the area map) was two thirds of their
+  bytes, and no reader of these files reads it: only the label snapshot reads them, and the labels read no ownership.
+  So the script writes them without it, and `cyanotype-review.json`, which the browser tests load, keeps it. The whole
+  game's file went from 3.6 MB to 1.1 MB (deflated from 0.49 MB to 0.14 MB), and the file of seed 12 from 1.3 MB to
+  0.42 MB (0.15 MB to 0.05 MB). Hedge School's largest stored review, `hedgefund-review.json`, has 1.4 MB (0.30 MB
+  deflated). The label snapshots did not change. A shorter part of the whole game was not worth a new review: the
+  twins need its first 93 moves of 120.
 - **The label snapshots:** `cyanotype-whole.txt` and `cyanotype-seed12.txt` beside `cyanotype.txt`, from the same test
   (`labels.snapshot.engine.test.ts`). Each stored review goes to the store in memory under a search of its own, as in
   Hedge School's test, so that no review reads another review's results. `cyanotype.txt` did not change. In the whole
   test game, moves 1 to 39 have the labels by move of `cyanotype.txt`, and turns 1 to 19 its labels by turn. Turn 20
-  is Excellent in `cyanotype.txt` and a Mistake in the whole game. `cyanotype-review.json` has no result of the
-  position after turn 20, the record's end, and the whole game's review has one at 32 and at 512 visits. A test for
-  each stored review fails when it stops reaching what it reaches now.
-- **Not covered:** a Great by turn. No stored review reaches one. Hedge School's label snapshot covers it on
-  Enclosure. A move has one quality label, because Cyanotype has no opening book (abscls-8tl1.53).
+  is Excellent in `cyanotype.txt` and a Mistake in the whole game. Blueprints' position gives `over` only where the
+  game ends (`blueprints.ts`), and the review takes a position with no `over` at the record's end as the game's end
+  (`model.ts`, `review`). So the review to the end of turn 20 searches no position after turn 20, and judges the turn
+  by the scores there, as a result: Red's win chance after move 39 is 1.000. The whole game's review searches that
+  position (Red's win chance 0.704). Hedge School's position gives `over: false` before the end, so its review of an
+  unfinished game searches the end. abscls-2pge fixes this for Cyanotype. The last test fails when the stored reviews
+  together stop reaching one of the kinds of label, the turn order or the twins, as Hedge School's last test does.
+- **Not covered:** a Great by turn, and a played move that is a twin. No stored review reaches one. Hedge School's
+  label snapshot covers both on Enclosure (`hedgefund-review.json`, `twin-turn-review.json`). A move has one quality
+  label, because Cyanotype has no opening book (abscls-8tl1.53).
