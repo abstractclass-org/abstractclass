@@ -172,15 +172,20 @@
   // the fit is larger (panel.ts). A drag or a resize of the panel is the player's choice, as a pan or a zoom is: the
   // fits after it (a move, a change of the area's size) keep the panel where it is, and fit as if no panel were there,
   // so a drag never makes the board smaller. "Show all the cells" and a new page fit with the panel again.
+  // While a pointer is down on the field, the view keeps its fit (`held`), and it fits again after the release. So the
+  // board does not move under a press, as chessground's board never does. The rules can come during a click (the
+  // review gets them from the engine), and a new fit then would put another hex under the pointer at the release.
   let manual = $state.raw<View | null>(null);
+  let held = $state.raw<View | null>(null);
   let placedByPlayer = $state(false); // the player dragged or resized the panel
   const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? [])]);
   const fitBox = $derived(boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
   const hasPanel = $derived(handsForm === "panel" && field.width > 0 && field.height > 0);
   // When the cells, the legal moves or the area change, the fit may move the panel to a corner, before the board
-  // draws. Not after the player's choice, and not in a view that the player panned or zoomed.
+  // draws. Not after the player's choice, not in a view that the player panned or zoomed, and not under a press: after
+  // its release.
   $effect.pre(() => {
-    if (!hasPanel || manual || placedByPlayer) return;
+    if (!hasPanel || manual || placedByPlayer || held) return;
     const hexes = fitHexes, area = field;
     untrack(() => {
       const best = fitWithPanel(hexes, area, panelSize, place, zoomRect, 1.2).place;
@@ -191,8 +196,9 @@
   let dragAt = $state<Rect | null>(null);
   const panelAt = $derived(panelRect(place, field, panelSize, zoomRect));
   const shownAt = $derived(resizeTo ?? dragAt ?? panelAt);
-  const view = $derived(manual ?? (hasPanel && !placedByPlayer ? fitAround(fitHexes, field, panelAt, 1.2)
-                                                                : fit(fitBox, field, 1.2)));
+  const fitted = $derived(hasPanel && !placedByPlayer ? fitAround(fitHexes, field, panelAt, 1.2)
+                                                      : fit(fitBox, field, 1.2));
+  const view = $derived(manual ?? held ?? fitted);
   const vb = $derived(viewBox(view, field));
   /** Shows all the cells: the fit, with the panel again. */
   function fitAll() { manual = null; placedByPlayer = false; }
@@ -255,9 +261,6 @@
   let sketch = $state.raw<{ id: number; brush: NoteBrush; from: Hex; to: Hex | null; marks: { clear: boolean; hexes: Hex[] } | null }
                           | null>(null);
   let sketchAt: [number, number] | null = null; // the point of the plane where the drag of marks last was on the board
-  // Where the right button went down, in the window, until the pointer moves more than DRAG_PX from it: until then
-  // the press is a click.
-  let sketchPress: { x: number; y: number } | null = null;
   $effect.pre(() => { void position; hoverHex = null; handHover = null; hoverName = null; sketch = null; });
   const hovered = $derived(layers.candidates && hoverName ? candidates.find(c => c.name === hoverName) ?? null : null);
   const active = $derived(hovered ?? (pointed ? candidates.find(c => c.name === pointed) ?? null : null));
@@ -370,6 +373,16 @@
     const [a, b] = [...pointers.values()];
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
   }
+  // The pointers down on the field. The view holds its fit (`held`) from the first press, and fits again when the last
+  // is up. Each press that the field takes captures its pointer, so that its release comes to the field, and a lost
+  // capture ends the press as a cancel does.
+  const holding = new Set<number>();
+  function hold(ev: PointerEvent) {
+    try { el.setPointerCapture(ev.pointerId); } catch { return; } // not down any more: no release will come
+    if (ev.isPrimary) holding.clear(); // a new press: no other pointer is down, whatever a lost release left
+    if (!holding.size) held = fitted;
+    holding.add(ev.pointerId);
+  }
   let rightPress: { id: number; x: number; y: number } | null = null; // the editor's right button, pressed
   // The editor's Shift drag: its pointer, its button, the point of the plane where it last was on the board, and
   // whether its next hex is its first.
@@ -405,7 +418,7 @@
     menuGuard = ev.pointerType === "mouse" && ev.button === 2 && !!(onedit || onnotes);
     if (ev.pointerType === "mouse" && ev.shiftKey && (ev.button === 0 || ev.button === 2) && onpaint) {
       ev.preventDefault();
-      try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
+      hold(ev);
       manual ??= view;
       stroke = { id: ev.pointerId, right: ev.button === 2, at: null, first: true };
       paintTo(local(ev));
@@ -413,22 +426,22 @@
     }
     if (ev.pointerType === "mouse" && ev.button === 2 && onedit) {
       ev.preventDefault();
+      hold(ev);
       rightPress = { id: ev.pointerId, ...local(ev) };
       return;
     }
     if (ev.pointerType === "mouse" && ev.button === 2 && onnotes) {
       ev.preventDefault();
-      try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
+      hold(ev);
       const p = local(ev), brush = brushFor(ev, NOTE_KEYS);
       sketchAt = toPlane(view, field, p.x, p.y);
-      sketchPress = { x: ev.clientX, y: ev.clientY };
       const h = hexAt(...sketchAt);
       const marks = ev.shiftKey ? { clear: ringed(notes, h, brush), hexes: [h] } : null;
       sketch = { id: ev.pointerId, brush, from: h, to: h, marks };
       return;
     }
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
-    try { el.setPointerCapture(ev.pointerId); } catch { /* not down any more */ }
+    hold(ev);
     pointers.set(ev.pointerId, local(ev));
     if (pointers.size === 1) gesture = { kind: "press", ...local(ev), moved: false, start: view };
     else if (pointers.size === 2) gesture = { kind: "pinch", from: twoFingers(), start: view };
@@ -439,21 +452,9 @@
     if (ev.pointerType === "mouse") pointAt(h);
     if (stroke?.id === ev.pointerId) { paintTo(p); return; }
     if (sketch?.id === ev.pointerId) {
-      // A press that moves less than DRAG_PX is a click: it marks its hex. The pointer's own move decides it, not the
-      // hex under the pointer, because the view can move under a pointer that stays still. The fit changes when a
-      // page's rules for the position come (the review's come from the engine, later on a busy machine), and a hex
-      // that changed then would draw an arrow from a click. The drag's marks start from the press's point in the view
-      // of the moment.
-      const on = onBoard(p);
-      if (sketchPress) {
-        if (Math.hypot(ev.clientX - sketchPress.x, ev.clientY - sketchPress.y) <= DRAG_PX) {
-          sketchAt = on ? at : null;
-          return;
-        }
-        sketchPress = null;
-      }
       // Off the board on screen, the drag takes no hex, and an arrow released there is no note, as chessground drops a
       // shape released off its board.
+      const on = onBoard(p);
       if (sketch.marks) {
         // The hexes from the drag's last point to this one: a fast drag skips hexes between two of its moves.
         const { hexes } = sketch.marks;
@@ -472,7 +473,14 @@
       if (gesture.moved) manual = pan(gesture.start, p.x - gesture.x, p.y - gesture.y);
     }
   }
+  /** A pointer up, or its press cancelled (`click` false). The press ends first, in the view that it held. Then, with
+   *  no pointer down, the view fits again. */
   function up(ev: PointerEvent, click: boolean) {
+    end(ev, click);
+    if (holding.delete(ev.pointerId) && !holding.size) held = null;
+  }
+  /** The end of a press: a click, a note, the end of a drag, or nothing when `click` is false. */
+  function end(ev: PointerEvent, click: boolean) {
     if (stroke?.id === ev.pointerId) {
       stroke = null;
       onpaintend?.();
@@ -598,7 +606,8 @@
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="field" class:aim={foot?.legal} class:still bind:this={el} onpointerdown={down} onpointermove={move} onpointerup={ev => up(ev, true)}
-       onpointercancel={ev => up(ev, false)} onpointerleave={ev => { if (ev.pointerType === "mouse") pointAt(null); }}
+       onpointercancel={ev => up(ev, false)} onlostpointercapture={ev => up(ev, false)}
+       onpointerleave={ev => { if (ev.pointerType === "mouse") pointAt(null); }}
        oncontextmenu={ev => { if (onnotes || onedit) ev.preventDefault(); }}>
     {#if field.width > 0 && field.height > 0}
       <svg width={field.width} height={field.height} viewBox={vb.join(" ")} role="img" aria-label="Blueprints board">

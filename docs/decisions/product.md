@@ -9540,23 +9540,40 @@ result.
   "Waiting: it starts when there is more work than the workers can take."
 - **Not covered:** the line in a browser on a GPU. No GPU run was made.
 
-### A right-click on Cyanotype's board while the view fits again (2026-11-08)
+### A click on Cyanotype's board while the view fits again (2026-11-08)
 
-- **The problem** (abscls-0gmp): in whole layout runs beside other jobs, `cyanotype-notes.spec.ts:83` failed twice.
-  A right-click on the Analysis board drew an arrow, not a highlighted hex. Alone, the test passed.
+- **The problem** (abscls-0gmp): in whole layout runs beside other jobs, a case of `cyanotype-notes.spec.ts` failed
+  twice ("the Analysis board: the notes stay with their position, a pan keeps them, and a click clears them"). A
+  right-click on the Analysis board drew an arrow, not a highlighted hex. Alone, the case passed.
 - **The cause, in the page:** the note's ends were the hexes under the pointer at the press and at each move, with no
   rule in pixels. The view fits the anchor hexes of the position's legal moves too, and the review asks the engine for
   those rules at each new position (`ReviewView.svelte`). The answer comes from the engine's worker, later on a busy
   machine, and the view then fits again. If it came while the right button was down, the same point of the window
   showed another hex, and the click became an arrow. A player on a slow machine, or with the engine busy, could get
   the same arrow from a click just after a step to another position. So the page was wrong, not the test.
-- **The change:** a right press that moves less than the board's `DRAG_PX` (4 pixels) in the window is a click, as
-  for the pan and the board editor's right button (design 33, "The player's notes", item 14). After that, the drag
-  follows the hex under the pointer, as before. Chessground and Hedge School's board have no such rule: neither board
-  moves under the pointer.
+- **The same cause, other clicks:** a left click and a tap take their hex at the release, in the view of that moment.
+  The review shows a position's candidates from its stored results at once, before the rules. So a click on a
+  candidate, pressed before the rules came and released after them, found another hex: it pinned no candidate. The
+  board editor gets no rules, so its view does not fit again under a click. A click in a hand takes the hex in the
+  hand's own frame, which the rules do not move. The hands' panel can move to another corner when the rules come,
+  also under a press on a hand. The click is then lost: it takes no hex, and no other hex.
+- **The change:** while a pointer is down on the board, the view keeps its fit, and it fits again after the release
+  (design 33, "How the board takes a move", item 1). A move of the hands' panel to another corner waits for the
+  release too. So every press reads its hexes in one view, as on chessground's board, which never moves under the
+  pointer. Each press that the board takes captures its pointer, so that its release comes to the board. The board
+  editor's right press did not capture it before. A lost capture ends the press as a cancel does. A press on a hand
+  does not keep the panel in its corner. To keep it there, the panel must wait for the hand's click, which comes
+  after the release.
+- **First tried:** a right press that moved less than the board's `DRAG_PX` (4 pixels) was a click, whatever the hex
+  under the pointer. It fixed the right-click alone, and chessground's shapes have no such rule. The view that keeps
+  its fit under a press replaced it.
 - **Measured,** on the CPU in headless Chromium. CDP's CPU throttling (6 times) did not reproduce it: 10 of 10 passed,
-  since it slows the page and not the engine's worker. A test that holds the workers' messages, steps to the next
-  position, presses the right button, then gives the rules (the view fits again: the board's `viewBox` grows from 42
-  to 49 units wide) failed 5 of 5 before the change, each with an arrow. After it, it passed 5 of 5, and
-  `cyanotype-notes.spec.ts` passed 20 of 20 (`--repeat-each=5`). That test is now a case of
-  `cyanotype-notes.spec.ts`.
+  since it slows the page and not the engine's worker. A test held the workers' messages and stepped to the next
+  position. It pressed the right button, then gave the rules. The view then fitted again: the board's `viewBox` grew
+  from 42 to 49 units wide. Before any change, the test failed 5 of 5, each with an arrow. With the 4-pixel rule it
+  passed 5 of 5. Two cases of `cyanotype-notes.spec.ts` now delay the workers' messages. One right-clicks on the
+  Analysis board, and checks that the view keeps its fit under the press and fits after the release. The other
+  clicks a candidate's rank on the review, and checks that the click pins the candidate that it pressed. Each case
+  waits until the reply with the rules is among the delayed messages, and then presses. Against the build with the
+  4-pixel rule, both failed 2 of 2. The view grew from 42 to 49 units wide under the right press, and the click
+  pinned nothing. With the view's hold, `cyanotype-notes.spec.ts` passed 18 of 18 (`--repeat-each=3`).

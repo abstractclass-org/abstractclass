@@ -229,7 +229,12 @@ list marks a few hexes where the game has dozens, and the page then reads as if 
    that the string names (`K@q,r`, item 5). While the input has its rules, the board's view fits the anchor hexes of
    every legal placement with the cells, so that every dot is in view. It fits them also while the input is off, so
    that the view stays as it is when the input turns on. A page that sets the rules after the position (the review,
-   when the engine's describe answers) sees the view fit again once, when the rules come.
+   when the engine's describe answers) sees the view fit again once, when the rules come. While a pointer is down on
+   the board, the view keeps its fit, and it fits again after the release. A move of the hands' panel to another
+   corner waits for the release too. So the board does not move under a press, as chessground's board never does.
+   On a busy machine the rules can come during a click. A click, a tap or a right-click then takes the hex that it
+   pressed, not the hex that the new fit puts under the pointer. A press on a hand in the panel does not hold the
+   panel. If the panel moves under it, the click is lost.
 2. **An edit:** the player clicks a cell of a blueprint. A dot marks each legal new place of the cell, in that
    blueprint or another one, with both coordinates in the frames before the edit: every one in the list, and no other
    hex. A new place can be outside the blueprint's cells (a negative coordinate) or an empty blueprint's dashed hex
@@ -739,13 +744,12 @@ shapes) on Blueprints' hexes.
     page gets no event `contextmenu` that it could cancel (MDN, "Element: contextmenu event"). So in Firefox, a right
     drag with Shift can end with Firefox's menu on screen. The page cannot stop it. Ctrl and Alt do not open it, and
     Hedge School's yellow has Ctrl too. The sites are tested in Chromium only.
-14. **A right press that moves less than 4 pixels is a right-click,** by the board's rule for a click (`DRAG_PX`,
-    which the pan and the board editor use too). It highlights its hex, also when the hex under the pointer changes.
-    The view can move under a pointer that does not move: the fit changes when the position's rules come, and the
-    review and the Analysis board get them from the engine for each new position. On a busy machine they can come
-    during the click. If the hex under the pointer decided, as on chessground's board, that click would draw an
-    arrow. Chessground's board does not move under the pointer, so it needs no such rule. Hedge School's board does
-    not move either. A Shift drag's highlights start from the press's point in the view at the drag's first move.
+14. **The hex under the pointer decides, as on chessground's board,** because the view does not move under a right
+    press ("How the board takes a move", item 1). The fit changes when the position's rules come, and the review and
+    the Analysis board get them from the engine for each new position. On a busy machine they can come during a
+    right-click. The view then keeps its fit until the release, so the click highlights the hex that it pressed and
+    draws no arrow. A Shift drag's highlights all come from one view. Hedge School's board does not move: its view is
+    the game's board size.
 
 ### No area map yet
 
@@ -1209,8 +1213,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
     mover's colour. A hover or a click finds a candidate by its anchor hex (the hex that its name, `K@q,r`, gives) or
     by its rank's hex. While a line shows, the candidates are hidden, and the pointer finds only the candidate whose
     line it is, as on Hedge School's board.
-  - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". A drag
-    or one finger pans, two fingers pinch, and the wheel zooms round the pointer by d3-zoom's steps.
+  - The view: the board fits the cells until the player pans or zooms, and again after "Show all the cells". It keeps
+    its fit while a pointer is down. A drag or one finger pans, two fingers pinch, and the wheel zooms round the
+    pointer by d3-zoom's steps.
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
     geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the lab's positions, from `fixtures.json` ("How the board
     takes a move").
