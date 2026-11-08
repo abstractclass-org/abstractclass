@@ -1341,13 +1341,18 @@ has 16 logical cores. Three runs of each, the median and the range:
   Stamp Duty against itself, 120 positions). The workers take the positions in an order that spreads each first
   part over the whole game (the van der Corput order: 60, 30, 90, 15, …). A short measure then has early, middle and
   late positions. This matters most for Blueprints, where a late position has more legal placements.
-- **Each pool size,** from 1 worker to the device's logical cores: new workers, so that no worker keeps the network's
-  evaluations of a position from an earlier pool size. Each worker starts the engine, loads the network and searches
-  the first position at the sweep's 32 visits. The time to here is the pool's start. Then each worker searches the
-  same positions in the same order, with the review's query for the label stage: the review's visits, the PV's
-  visits, the ownership and the early slice at 256 visits. A worker starts a new search until 30 seconds pass, and
-  each search goes to its end. The measure counts only whole searches, because Blueprints' check searches come at the
-  end of a search.
+- **The pool sizes:** each from 1 to 4 workers, then 6, 8, 12, 16, 24 and so on (each a half or a third more than the
+  one before), up to the device's logical cores. The logical cores are always in, because the settings let a visitor
+  choose any number up to them (`maxWorkers`), and so is the site's default pool on the device. A device of 16 logical
+  cores measures 8 sizes. One size for each core would make the page's estimate on such a device 15 minutes for Hedge
+  School and 26 for Cyanotype.
+- **Each pool size:** new workers, so that no worker keeps the network's evaluations of a position from an earlier
+  pool size. The page fetches and checks the module and the network once, before the first pool's start. Each worker
+  starts the engine, loads the network and searches the first position at the sweep's 32 visits. The time to here is
+  the pool's start. Then each worker searches the same positions in the same order, with the review's query for the
+  label stage: the review's visits, the PV's visits, the ownership and the early slice at 256 visits. A worker starts
+  a new search until 30 seconds pass, and each search goes to its end. The measure counts only whole searches,
+  because Blueprints' check searches come at the end of a search.
 - **The units:**
   - visits a second: each worker's visits over its time in its searches, and the sum of the workers
   - searches: the whole searches that the pool made
@@ -1357,10 +1362,14 @@ has 16 logical cores. Three runs of each, the median and the range:
   - the GPU part, as in "The GPU in the review": the GPU worker's evaluations a second (16 searches), one CPU
     worker's visits a second beside it, and their ratio
 - **The GPU part** runs only where the browser can run the GPU module and WebGPU gives an adapter. It is design 15's
-  first-use test (`EnginePool.measureGpu`, 20 seconds of each kind) with the site's default pool. It stops after
-  150 seconds.
-- **The estimate before Start:** 10 s + cores × (3 s + the warm-up + 30 s + one search) + 90 s for the GPU part.
-  The site gives one search's time on a slow device: 20 s for Enclosure and 60 s for Blueprints.
+  first-use test (`EnginePool.measureGpu`, 20 seconds of each kind) with the site's default pool. It stops 150
+  seconds after its start.
+- **The estimate before Start:** 10 s + the pool sizes × (3 s + the warm-up + 30 s + one search) + 90 s for the GPU
+  part. The site gives one search's time on a slow device: 20 s for Enclosure and 60 s for Blueprints.
+- **The time left:** once a pool size has measured, the progress line gives the time left. It counts the steps not
+  done in the same way, with one search as long as the last pool's workers took for it. The estimate before Start
+  stays a guess: on the development machine, a worker searched Blueprints' 512 visits in 30 to 50 s, and Cyanotype's
+  run took 2.9 minutes against its estimate of 7.
 - **A hidden tab:** the page asks for the screen's wake lock. When the tab is hidden, the page stops the measure in
   progress, ends its workers and says so. "Run it again" runs the measures that did not end. The block names each
   stop with its time.
@@ -1382,9 +1391,9 @@ has 16 logical cores. Three runs of each, the median and the range:
   gives it (Chromium's `performance.memory`), and the workers' WebAssembly memory.
 - **The download:** the manifest's sizes for the CPU workers' files and for the GPU's. Resource Timing gives the bytes
   that the page itself transferred for the engine's files. A worker's own fetches are not in the page's timeline.
-- **Headless Chromium on this machine** (`apps/hedgeschool/scripts/measure/engine-measure.mjs`, with the layout test's
-  launch options, off the GPU, a device of 4 logical cores, 30 seconds for each pool size). Other jobs ran on the
-  machine at the same time.
+- **Headless Chromium on the development machine** (`apps/hedgeschool/scripts/measure/engine-measure.mjs`, with the
+  layout test's launch options, off the GPU, a device of 4 logical cores, 30 seconds for each pool size). Other jobs
+  ran on the machine at the same time.
 
   | Workers | Hedge School: visits a second, all workers | A review | Cyanotype: visits a second, all workers | A review |
   |---|---|---|---|---|
@@ -1405,13 +1414,20 @@ has 16 logical cores. Three runs of each, the median and the range:
     Their times from Start to the end differed by 0.4 minutes at most. One worker of Hedge School gave 65.3 visits
     a second in the run whose first minute met the restart, against 76.2 here and 75.4 in a short run. The larger
     pools varied from run to run by up to a third (4 workers: 182, 252 and 189), with the other jobs' load.
-- **On a phone** (not measured): the page's estimate takes a slow device's search of 512 visits to take 20 s for
-  Enclosure and 60 s for Blueprints: 26 and 8.5 visits a second, from a third to two thirds of a worker's speed
-  here. With 4 logical cores, Hedge School's page takes about 4 minutes, and 5.3 with the GPU part. Cyanotype's page
-  takes about 7 minutes, and 8 with the GPU part. Many phones give 8 logical cores: then Hedge School's page takes
-  about 9 minutes with the GPU part, and Cyanotype's about 15. Each pool size adds 30 seconds and one search.
+- **On a phone or a laptop** (not measured): the page's estimate takes a slow device's search of 512 visits to take
+  20 s for Enclosure and 60 s for Blueprints: 26 and 8.5 visits a second, from a third to two thirds of a worker's
+  speed here. Each pool size adds 30 seconds and up to one search. The estimates, in minutes:
+
+  | Logical cores | Pool sizes | Hedge School | With the GPU part | Cyanotype | With the GPU part |
+  |---|---|---|---|---|---|
+  | 4 | 1, 2, 3, 4 | 3.8 | 5.3 | 6.6 | 8.1 |
+  | 8 | 1, 2, 3, 4, 6, 8 | 5.6 | 7.1 | 9.8 | 11.3 |
+  | 16 | 1, 2, 3, 4, 6, 8, 12, 16 | 7.4 | 8.9 | 13.1 | 14.6 |
+
+  The page rounds them up to whole minutes.
 - **Checked:** the package's unit test of the block (`packages/measure/src/measure.test.ts`). The browser test
   `apps/hedgeschool/tests/engine-measure.spec.ts` runs each site's page from Start to its end at 2 logical cores and
-  4 seconds for each pool size. It checks that the copied block holds each measure. On Hedge School it also hides the
-  tab during the measure of 2 workers, and "Run it again" ends the run. The GPU part did not run on this machine: the
-  test's Chromium runs off the GPU.
+  4 seconds for each pool size. It checks the pool sizes that the page gives before Start (1 and 2 workers), and that
+  the copied block holds each measure. It also hides the tab during the measure of 2 workers, and "Run it again" ends
+  the run. On a device of 16 logical cores, it checks the plan before Start: 1, 2, 3, 4, 6, 8, 12 and 16 workers. The
+  GPU part did not run on the development machine: the test's Chromium runs off the GPU.

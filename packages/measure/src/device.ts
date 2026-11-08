@@ -15,7 +15,7 @@ type Nav = Navigator & {
 };
 
 /** The adapter that WebGPU gives the page with its default options, as the GPU worker asks for it, or why none. */
-export async function adapterFacts(): Promise<DeviceFacts["webgpu"]> {
+async function adapterFacts(): Promise<DeviceFacts["webgpu"]> {
   const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<Adapter | null> } }).gpu;
   if (!gpu) return "none";
   const adapter = await gpu.requestAdapter().catch(() => null);

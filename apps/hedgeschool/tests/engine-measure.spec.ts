@@ -1,10 +1,10 @@
 // The engine measure's page (packages/measure; decisions/engine.md, "The engine measure on a visitor's device"), on each
 // site: Hedge School's with Enclosure's engine, and Cyanotype's with Blueprints' on its preview (CYANOTYPE_BASE_URL).
-// Each run goes from Start to its end, and the block that "Copy results" copies holds every measure. The test makes
-// the device one of 2 logical cores and each pool size's time 4 seconds (the address's `seconds`), so the run has two
-// pool sizes and stays short. The browser here gives no GPU adapter (playwright.config.ts runs Chromium off the GPU),
-// so the GPU part says that it did not run. Hedge School's test also hides the tab during the measure of 2 workers:
-// that measure stops, and "Run it again" runs it and ends the run.
+// Each site gets the same tests. The page's plan on a device of 16 logical cores: its pool sizes, with fewer above 4.
+// A run from Start to its end, at 2 logical cores and 4 seconds for each pool size (the address's `seconds`), so the
+// run has two pool sizes and stays short. The test hides the tab during the measure of 2 workers: that measure stops,
+// and "Run it again" runs it and ends the run. The block that "Copy results" copies holds every measure. The browser
+// here gives no GPU adapter (playwright.config.ts runs Chromium off the GPU), so the GPU part says that it did not run.
 import { test, expect, type Page } from "@playwright/test";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
@@ -13,15 +13,15 @@ const PATH = "/lab/measure?seconds=4";
  *  machine, and each pool size finishes its workers' last search. */
 const RUN_WAIT = 8 * 60_000;
 
-/** A device of 2 logical cores, and a tab whose visibility the test sets (`hide`). */
-async function setUp(page: Page) {
+/** A device of `cores` logical cores, and a tab whose visibility the test sets (setHidden). */
+async function setUp(page: Page, cores = 2) {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 2 });
+  await page.addInitScript(n => {
+    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => n });
     const w = window as unknown as { hidden: boolean };
     w.hidden = false;
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (w.hidden ? "hidden" : "visible") });
-  });
+  }, cores);
 }
 
 /** Hides the tab, or shows it again, as the browser tells a page. */
@@ -30,12 +30,13 @@ const setHidden = (page: Page, hidden: boolean) => page.evaluate(h => {
   document.dispatchEvent(new Event("visibilitychange"));
 }, hidden);
 
-/** Starts the run once the page gives its estimate. */
-async function start(page: Page, url: string) {
+/** The page's plan before Start: its estimate, on a device of `cores` logical cores, and its pool sizes. */
+async function checkPlan(page: Page, url: string, cores: number, sizes: string) {
   await page.goto(url);
-  await expect(page.getByTestId("measure-estimate")).toContainText(/approximately \d+ minutes? on this device \(2 logical cores\)/,
-                                                                    { timeout: 60_000 });
-  await page.getByRole("button", { name: "Start" }).click();
+  const estimate = page.getByTestId("measure-estimate");
+  // A string's whitespace matches any whitespace in the page's text, and a pattern's does not: the text breaks lines.
+  await expect(estimate).toContainText(/approximately \d+ minutes?/, { timeout: 60_000 });
+  await expect(estimate).toContainText(`on this device (${cores} logical cores). It measures with ${sizes} workers.`);
 }
 
 /** Copies the results at the run's end and checks that the block holds every measure: the build, the device, both
@@ -67,24 +68,43 @@ async function checkResults(page: Page, site: string) {
   return copied;
 }
 
-test("Hedge School's engine measure runs to its end, stops while the tab is hidden, and copies every measure", async ({ page }) => {
-  await setUp(page);
-  await start(page, PATH);
+/** A run from Start to its end, with the tab hidden during the measure of 2 workers: the block that it copies. */
+async function run(page: Page, url: string, site: string) {
+  await checkPlan(page, url, 2, "1 and 2");
+  await page.getByRole("button", { name: "Start" }).click();
   const progress = page.getByTestId("measure-progress");
-  await expect(progress).toContainText("2 workers, searching", { timeout: 120_000 });
+  await expect(progress).toContainText("2 workers, searching", { timeout: RUN_WAIT });
   await setHidden(page, true);
   await expect(page.getByRole("alert")).toContainText("The tab was hidden, so the measure of 2 workers stopped.");
   await setHidden(page, false);
   await page.getByRole("button", { name: "Run it again" }).click();
-  const copied = await checkResults(page, "Hedge School");
+  const copied = await checkResults(page, site);
   expect(copied).toMatch(/Stopped because the tab was hidden: 2 workers \(\d\d:\d\d:\d\d UTC\)\.$/);
+  return copied;
+}
+
+const SIXTEEN = "1, 2, 3, 4, 6, 8, 12 and 16";
+
+test("Hedge School's engine measure measures fewer pool sizes above 4 workers", async ({ page }) => {
+  await setUp(page, 16);
+  await checkPlan(page, PATH, 16, SIXTEEN);
 });
 
-test("Cyanotype's engine measure runs to its end with Blueprints' engine, and copies every measure", async ({ page }) => {
+test("Hedge School's engine measure runs to its end, stops while the tab is hidden, and copies every measure", async ({ page }) => {
+  await setUp(page);
+  const copied = await run(page, PATH, "Hedge School");
+  expect(copied).toMatch(/^- Positions: Enclosure, the sample game \(.+, 120 positions\)\./m);
+});
+
+test("Cyanotype's engine measure measures fewer pool sizes above 4 workers", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  await setUp(page, 16);
+  await checkPlan(page, new URL(PATH, CYANOTYPE).href, 16, SIXTEEN);
+});
+
+test("Cyanotype's engine measure runs to its end with Blueprints' engine, stops while the tab is hidden, and copies every measure", async ({ page }) => {
   test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   await setUp(page);
-  await start(page, new URL(PATH, CYANOTYPE).href);
-  const copied = await checkResults(page, "Cyanotype");
+  const copied = await run(page, new URL(PATH, CYANOTYPE).href, "Cyanotype");
   expect(copied).toMatch(/^- Positions: Blueprints, the review's test game \(Stamp Duty against itself, 120 positions\)\./m);
-  expect(copied).toMatch(/No measure stopped\.$/);
 });
