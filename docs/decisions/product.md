@@ -10296,3 +10296,49 @@ review files", and design 29).
   writes them on the fixture before. The committed scenes come from an earlier release (search `3ac5c2fc`), so the
   script differs from them on dev too: this branch leaves them as they are.
   The checks and the browser tests are in the next entry, which ran on both issues' code.
+
+### Cyanotype's review snapshot and annotated record from the store (2026-11-08)
+
+abscls-8tl1.35. Hedge School shows a review by an earlier engine as it was (a review snapshot, design 20), and exports
+a stored game's annotated record from the store (design 13). Cyanotype reviewed such a game again at once, and its
+review's Export had no annotated record (design 33, "The gaps from Hedge School"). Now Cyanotype has both, on one path
+that the two sites share (design 33, "The review snapshot and the annotated record from the store", and design 29).
+
+- **What the two issues share** (abscls-8tl1.34, the entry before): the store's game and its mark, which results
+  belong to a game (`positionKeys`, `belongs`), and the review's Export menu. Above all, a review file of an earlier
+  engine is what opens as a review snapshot: the load keeps its review as that engine's mark. So Hedge School's tests
+  of the review snapshot load such a file, and Cyanotype's do too.
+- **What moved into the packages:** a review from the browser's store alone, with no search, went from Hedge School
+  into `packages/analysis/src/storedReview.ts`: its first steps (`startStored` and `openStored`, from Hedge School's
+  `src/lib/review/storedReview.ts`), the review snapshot's opening (`openSnapshot`, from Hedge School's review page),
+  and the annotated record of a stored game (`annotatedFromStore`, from Hedge School's `src/lib/review/exportText.ts`).
+  Each site gives its step after the engine's rules: Hedge School's opening book's values, Cyanotype's check of the
+  record's capture marks. A site's step answers why the site cannot review the game, or nothing: Hedge School's never
+  refuses. The steps keep their order, so the label snapshots, the review snapshot and the annotated record from the
+  store give the quality labels that the review page shows.
+- **Hedge School does what it did.** Its `storedReview.ts` and `exportText.ts` keep their exports and their answers,
+  and its review page keeps its review snapshot, with its line, its events and its Review again. Its tests did not
+  change.
+- **Cyanotype's review snapshot** is Hedge School's: the engine's rules alone, the record's capture marks checked, and
+  the stored results of the mark's search at the mark's depth, with the line "Reviewed on (date) with an earlier
+  version of the engine." and Review again. A record whose capture marks are wrong opens no review snapshot: the review
+  then runs and says why, as before. Cyanotype counts no event of it: it has no analytics yet (abscls-8tl1.48).
+- **Cyanotype's annotated record** follows the review file in the review's Export menu and beside each game in the
+  Review tab, copied or as a file. The review page writes it from its review, and the Review tab from the store, with
+  the note "Reviewed by Cyanotype with Stamp Duty 0.2 (the network …), at least N visits a position."
+- **Checked,** on this branch with both issues' code: `npm run check:all` passed, all 15 steps. Two earlier runs
+  stopped at the engine step: GitHub's release downloads gave HTTP 504, so the lock's files came through `gh release
+  download` into the download cache, each checked by its SHA-256. The whole layout test (`npm run test:layout --
+  --project=chromium`) on this branch's previews, in headless Chromium on the CPU: 206 cases, 200 passed, 5 skipped
+  and 1 failed. The 5 skipped are the analytics ask's (`analytics-ask.spec.ts`), which need a build with the Google
+  tag (`VITE_GA_ID`). The failed case was the new test's check of the annotated record's note, which the record wraps
+  over two lines. The check now folds the whitespace, and the new `cyanotype-snapshot.spec.ts` then passed alone, 3
+  of 3: the review snapshot's move list is the review's, by move and by turn, the annotated record from the review
+  and from the store is one text, and the review file that the review exports opens in a new browser with no search.
+  The layout test's Cyanotype review, which loads the stored review as a review file, passed.
+- **Hedge School's exports are byte for byte as dev's.** A build of dev at `5cd6b41` and a build of this branch, each
+  served in turn at one address, in a new browser context with the engine off: the layout test's game loaded from its
+  review file, then each export taken on the review page and beside the game in the Review tab. The share link, the
+  annotated record (copied and as a file) and the files' names were the same bytes. The review file was the same
+  bytes but for its time of export (`exported`), the site's version (`site`) and the time that the load marked the
+  game (`review.at`).

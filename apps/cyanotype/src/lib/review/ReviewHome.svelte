@@ -9,6 +9,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
+  import type { ExportKind } from "@abstractclass/review/exports.ts";
   import { keepStorage, storageKept } from "@abstractclass/storage/persist.ts";
   import { loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -21,6 +22,7 @@
   import { loadReviewFile } from "#lib/game/reviewFile.ts";
   import { loadEngine, settingsFor } from "#lib/analysis/engineSettings.ts";
   import { REVIEW_EXPORTS, deliverExport } from "./reviewExports.ts";
+  import { annotatedFromStore } from "./exportText.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
@@ -102,6 +104,13 @@
   let loadingFile = $state(false);
   let dragging = $state(false);
 
+  /** A game's export, as on the review page: the annotated record is written from the stored results, with no
+   *  search (exportText.ts). */
+  async function exportGame(id: string, record: string, kind: ExportKind) {
+    const m = await manifestLoad;
+    return deliverExport(kind, id, record, m, () => annotatedFromStore(id, m));
+  }
+
   async function loadFile(file: File | undefined) {
     if (!file) return;
     fileProblem = "";
@@ -154,8 +163,8 @@
       id: game.id, title: title(record), href: `/review#game=${game.id}`,
       detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
         + `added ${new Date(game.added).toLocaleDateString()}`,
-      exports: { run: async kind => deliverExport(kind, game.id, await manifestLoad), items: REVIEW_EXPORTS,
-        ontrack: trackExport, ready: reviewCovers(game.reviewed, want),
+      exports: { run: kind => exportGame(game.id, game.record, kind), items: REVIEW_EXPORTS, ontrack: trackExport,
+        ready: reviewCovers(game.reviewed, want),
         why: !game.reviewed ? "Open the game to review it, then export."
           : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game to review it again, then export."
           : "Open the game to finish its review with the engine settings now, then export." },

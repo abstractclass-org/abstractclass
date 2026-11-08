@@ -88,12 +88,20 @@ export async function reviewTestGame(page: Page, display: object = {}, { on = fa
  *  mark, its network and its depth (game/reviewFile.ts), and puts the file's results in the browser's store. Then it
  *  names the game in its address, and reviews it from the store. */
 export async function reviewStoredFile(page: Page) {
-  await checkStored(page);
-  await keepSettings(page, { on: false, ...LITE }, {});
-  await page.goto(new URL("/review", CYANOTYPE).href);
-  await page.locator('input[type="file"][accept*="json"]').setInputFiles(STORED);
-  await page.waitForURL(/#game=/, { timeout: 60_000 });
+  await loadStoredFile(page);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
+}
+
+/** Loads the review file `file` (the stored review by default) in the Review tab of `page`, with the engine off and
+ *  the display settings `display`, and waits until the page names its game in the address. A file that a test makes
+ *  is its name, type and contents (review-file.ts, ReviewFileInput). */
+export async function loadStoredFile(page: Page, file: string | { name: string; mimeType: string; buffer: Buffer } = STORED,
+                                     display: object = {}) {
+  await checkStored(page);
+  await keepSettings(page, { on: false, ...LITE }, display);
+  await page.goto(new URL("/review", CYANOTYPE).href);
+  await page.locator('input[type="file"][accept*="json"]').setInputFiles(file);
+  await page.waitForURL(/#game=/, { timeout: 60_000 });
 }
 
 /** Reviews the test game's first LIVE_TURNS turns in `page` with the engine on at Lite, from no stored result, and

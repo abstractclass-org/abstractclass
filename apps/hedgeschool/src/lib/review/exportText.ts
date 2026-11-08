@@ -1,11 +1,10 @@
 // The annotated record of a reviewed game (design 13), from the review page's own review, or from the browser's store
-// alone where no review runs (the home page): the engine's rules give the positions, the stored results give the
-// values, and nothing is searched. Both write the same record.
-import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
+// alone where no review runs (the Review tab): the engine's rules give the positions, the stored results give the
+// values, and nothing is searched (@abstractclass/analysis/storedReview.ts). Both write the same record.
+import { annotatedFromStore as fromStore } from "@abstractclass/analysis/storedReview.ts";
 import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { loadEngine, networkName, settingsFor } from "#lib/analysis/engineSettings.ts";
-import { EnginePool } from "@abstractclass/engine/pool.ts";
-import { modelOf, type Manifest } from "@abstractclass/engine/client.ts";
+import type { Manifest } from "@abstractclass/engine/client.ts";
 import { EARLY_ACCESS, SITE_NAME } from "#lib/edition.ts";
 import { playerNames, type GameRecord } from "#lib/game/record.ts";
 import { loadGame } from "#lib/game/store.ts";
@@ -28,33 +27,19 @@ export function annotatedText(R: Review, unit: Unit, record: GameRecord, branche
 
 /** The annotated record of a stored game, from the stored results of the network and the review depth that the game
  *  reviews with (settingsFor), with the labels by turn or by edge as the review shows them. Loads the engine's rules,
- *  not its network. */
+ *  not its network (@abstractclass/analysis/storedReview.ts, annotatedFromStore). */
 export async function annotatedFromStore(id: string, manifest: Manifest | null): Promise<string> {
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
   if (!manifest) throw new Error("this site has no engine");
-  const { network, visits } = settingsFor(stored.game, loadEngine());
-  const model = modelOf(manifest, network);
-  if (!model) throw new Error(`this site has no network ${network}`);
-  const pool = new EnginePool(0); // the rules alone: no search
-  try {
-    await pool.start(manifest, network);
-    const game = new GameAnalysis(enclosure, pool, stored.record.moves, id, null, { komi: stored.record.komi });
+  const { network, visits } = settingsFor(stored.game, loadEngine()), record = stored.record;
+  return fromStore({
+    game: enclosure, id, moves: record.moves, komi: record.komi,
     // The book's values, as the review takes them (the stages did not search those positions), and the stored results.
     // Where the review takes no book (at a komi, design 24), the export makes none: siteBook() starts to load its
     // index.
-    const book = EARLY_ACCESS && game.takesBook ? siteBook() : null;
-    if (!(await openStored(game, visits, pool.search!, model.sha256, book))) throw new Error(game.error);
-    const data = game.data(playerNames(stored.record.tags));
-    if (!data) throw new Error("the engine could not read this game");
-    // A game this browser has not reviewed with the current engine and network, or only in part: a record without the
-    // engine's values would still say it was reviewed. The review page reviews it. The start is left out: every game
-    // shares it, so another game's review stores it.
-    const own = data.analysis.slice(1, data.moves.length), found = own.filter(a => a).length;
-    if (found === 0) throw new Error("open the game to review it first");
-    if (found < own.length) throw new Error("open the game to finish its review first");
-    return annotatedText(review(data, "lead", LABEL_VISITS), loadDisplay().judge, stored.record, game.branches, network);
-  } finally {
-    pool.terminate();
-  }
+    open: async (g, v, search, model) =>
+      ((await openStored(g, v, search, model, EARLY_ACCESS && g.takesBook ? siteBook() : null)) ? null : g.error),
+  }, manifest, network, visits, playerNames(record.tags), (data, branches) =>
+    annotatedText(review(data, "lead", LABEL_VISITS), loadDisplay().judge, record, branches, network));
 }

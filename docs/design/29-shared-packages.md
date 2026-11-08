@@ -82,7 +82,11 @@ edit in the same commit), so their changes still apply.
    package (`reviewFile.ts`), with each site's name, format, record's reader, store of games and import's check as
    parameters. The way to tell a review file from an analysis file (`fileKind`) went into `files.ts`, and the Export
    menu's entry for the review file into the review package's `exports.ts`. Hedge School's files, its messages and
-   its tests stayed as they were.
+   its tests stayed as they were. The review from the browser's store alone (Hedge School's designs 13 and 20) moved
+   out of Hedge School with Cyanotype's review snapshot: the steps of Hedge School's `src/lib/review/storedReview.ts`,
+   the review snapshot's opening of its review page and the annotated record of a stored game of its `exportText.ts`
+   went into the analysis package (`storedReview.ts`), with each site's step after the rules as a parameter: Hedge
+   School's opening book, Cyanotype's check of the capture marks.
    A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
    its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
    (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site
@@ -399,6 +403,10 @@ edit in the same commit), so their changes still apply.
   School's and Cyanotype's `src/lib/game/reviewFile.ts` give their parts. `annotate.ts`: the annotated record (design
   13), with how each game writes a move. Hedge School's `src/lib/game/share.ts`, `board.ts`, `analysisFile.ts` and
   `src/lib/review/annotate.ts` give Enclosure's parts, with the exports that its code and tests use.
+- `packages/analysis/src/storedReview.ts`: a review from the store alone, with no search (designs 13 and 20): its
+  first steps (`startStored`, `openStored`), the review snapshot (`openSnapshot`) and the annotated record of a stored
+  game (`annotatedFromStore`), with each site's step after the rules. Hedge School's and Cyanotype's
+  `src/lib/review/storedReview.ts` and `exportText.ts` give their parts.
 - `packages/analysis/src/games.ts`: the store of the player's games (Hedge School's designs 11 and 22), with each
   site's record's reader, a game's id and the key of its last review as parameters (`gameStore`), and the marks of a
   finished review (design 13). `reviewLock.ts`: one tab reviews a game at a time (design 11). `settings.ts`: the
@@ -483,6 +491,7 @@ review's view in packages/review" (2026-10-25), "The review's styles in packages
 (2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), "Cyanotype's
 review takes two moves that give one position as one move" (2026-11-05), "Cyanotype on Stamp Duty 0.2, with the GPU
 and the threaded bot" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
-(2026-11-08), and "Cyanotype's review files, as Hedge School's" (2026-11-08).
+(2026-11-08), "Cyanotype's review files, as Hedge School's" (2026-11-08), and "Cyanotype's review snapshot and
+annotated record from the store" (2026-11-08).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06), and "A new feature starts in a package" (2026-11-08).

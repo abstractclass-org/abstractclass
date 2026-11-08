@@ -25,7 +25,8 @@
   import ReviewHome from "#lib/review/ReviewHome.svelte";
   import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { reviewArrives } from "@abstractclass/import/importHash.ts";
-  import { LABEL_VISITS, SWEEP_VISITS, lineKeyMoves, snapshotExcept, snapshotPositions, snapshotSearch, warmCache } from "@abstractclass/analysis/cache.ts";
+  import { LABEL_VISITS, SWEEP_VISITS, lineKeyMoves, warmCache } from "@abstractclass/analysis/cache.ts";
+  import { openSnapshot as sharedSnapshot } from "@abstractclass/analysis/storedReview.ts";
   import { enclosure, review, type Enclosure, type GameEnding, type ReviewData } from "#lib/review/enclosure.ts";
   import { EnginePool } from "@abstractclass/engine/pool.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
@@ -316,21 +317,11 @@
   async function openSnapshot(moves: string[], why: "engine" | "network"): Promise<boolean> {
     const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0, session.takeRules());
     try {
-      // The store is read while the rules worker starts: an earlier engine's search is not the site's. The positions
-      // that the test needs come once the rules give the game's positions and the book its values there.
-      const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
-      const komi = gameKomi(), g = new GameAnalysis(enclosure, rules, moves, kept!.id, null, { komi });
-      const line = snapshotPositions(moves, komi);
-      // An older mark, which names no search, is older than the book: its review searched every position, and the
-      // removal of earlier results keeps them by that rule (earlierResults.ts)
-      const needed = started.then(async () => {
-        await startWithBook(g, mark.visits, siteReviewBook()); // the rules, then the book's values (storedReview.ts)
-        return mark.search === undefined ? line : line.filter((_, i) => !g.bookResults[i + 1]); // line[i]: after i + 1 moves
-      });
-      const search = await snapshotSearch(mark.search, mark.model, line, mark.visits, started, needed);
-      if (!search || !g.rulesReady) { rules.terminate(); return false; } // without the rules, the review shows why
-      await g.fromStore(search, mark.model);
-      g.freeze(search, mark.model); // its maps from the store alone
+      // The rules, then the book's values (storedReview.ts), then the stored results of the mark's search
+      // (@abstractclass/analysis/storedReview.ts, openSnapshot)
+      const g = await sharedSnapshot({ game: enclosure, id: kept!.id, moves, komi: gameKomi() }, rules, manifest, network,
+                                     mark, why, g => startWithBook(g, mark.visits, siteReviewBook()));
+      if (!g) { rules.terminate(); return false; } // without the rules, the review shows why
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
       const what = why === "engine" ? "the engine" : (modelOf(manifest, network)?.displayName ?? "the network");

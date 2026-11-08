@@ -12,9 +12,11 @@
   // the network. The GPU worker joins the pool once the network is loaded (Hedge School's design 15). A game that keeps
   // its own network and depth (a shared review's, Hedge School's design 09) reviews with them. The engine's results are
   // kept by position (@abstractclass/analysis/cache.ts), so a review opened again shows them at once. Once the review
-  // is done, the game keeps its mark (game/store.ts), and its Export menu shares it by link or as a review file
-  // (reviewExports.ts). The page counts its events as Hedge School's review does (Hedge School's design 17): the
-  // review's open and end, the engine's errors, the settings changed, the features used and the exports. The
+  // is done, the game keeps its mark (game/store.ts), and its Export menu shares it by link, as a review file or as the
+  // annotated record (reviewExports.ts). A game reviewed with an earlier engine opens as that review, from the stored
+  // results with the engine's rules alone, until the player chooses Review again (Hedge School's design 20). The page
+  // counts its events as Hedge School's review does (Hedge School's design 17): the review's open and end, the review
+  // snapshot opened and Review again, the engine's errors, the settings changed, the features used and the exports. The
   // analytics start once a game has left the address (holdsGame), else from the layout.
   import { onDestroy, onMount, untrack } from "svelte";
   import { afterNavigate, replaceState } from "$app/navigation";
@@ -24,7 +26,9 @@
   import type { ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
   import { LABEL_VISITS, SWEEP_VISITS, lineKeyMoves, warmCache } from "@abstractclass/analysis/cache.ts";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
-  import { review, type GameEnding } from "@abstractclass/analysis/model.ts";
+  import { openSnapshot as sharedSnapshot } from "@abstractclass/analysis/storedReview.ts";
+  import { review, type GameEnding, type Unit } from "@abstractclass/analysis/model.ts";
+  import { EnginePool } from "@abstractclass/engine/pool.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { holdReview } from "@abstractclass/analysis/reviewLock.ts";
   import { modelOf, moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
@@ -47,13 +51,20 @@
            type ReviewMark } from "#lib/game/store.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import { REVIEW_EXPORTS, deliverExport } from "#lib/review/reviewExports.ts";
+  import { annotatedText } from "#lib/review/exportText.ts";
   import SharedArrival from "#lib/review/SharedArrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
 
   let game = $state<GameAnalysis<Blueprints> | null>(null);
-  let kept = $state.raw<{ id: string; record: GameRecord } | null>(null); // the game in review
+  // A review by an earlier engine shown as it was (Hedge School's design 20): its depth and its bar's text. Nothing is
+  // searched until the player chooses Review again.
+  let snapshot = $state<{ visits: number; text: string } | null>(null);
+  // The review snapshot's analysis, an earlier engine's results. It stays after Review again, which ends the review
+  // snapshot, until the new review's analysis replaces it (ReviewBar's `stale`).
+  let snapshotGame = $state.raw<GameAnalysis<Blueprints> | null>(null);
+  let kept = $state.raw<{ id: string; text: string; record: GameRecord } | null>(null); // the game in review
   let packed = $state<string | null>(null); // a shared review's link, which the page shows first
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree
@@ -67,8 +78,11 @@
   // (withOwn and changeOwn). Raw: the store cannot copy a proxy.
   let own = $state.raw<OwnSettings | null>(null);
   const settings = $derived(own ? withOwn(engine, own) : engine);
+  // The engine and the GPU worker (session.svelte.ts). A review snapshot searches nothing: the settings wait for Review
+  // again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
-                                      tracker: { track, networkName }, dropped: () => bar.reset() });
+                                      frozen: () => !!snapshot, tracker: { track, networkName },
+                                      dropped: () => bar.reset() });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
     const { network, review, customReview, ...rest } = change;
@@ -88,12 +102,16 @@
                                                            termination: kept.record.tags.Termination } : undefined);
   const siteLink = $derived(kept && gamePage(kept.record.tags));
   const budget = $derived(reviewVisits(settings)); // the label stage's
+  const depth = $derived(snapshot?.visits ?? budget); // the depth of the review on screen
   const data = $derived(game?.data(players, ending) ?? null);
   // The review shows once the stored results are read, so that a review opened again shows them in its first frame.
   let preloaded = $state(false);
   const R = $derived(data && preloaded ? review(blueprints, data, "lead", LABEL_VISITS) : null);
-  const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * budget).length : 0);
-  const bar = new ReviewBar({ game: () => game, moves: () => kept?.record.moves.length ?? 0, budget: () => budget });
+  const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * depth).length : 0);
+  // The review's work as one bar. A review snapshot's has none: its analysis stays on screen after Review again, until
+  // the new review's analysis replaces it.
+  const bar = new ReviewBar({ game: () => game, moves: () => kept?.record.moves.length ?? 0, budget: () => budget,
+                              frozen: () => !!snapshot, stale: () => game === snapshotGame });
   // The review's events (Hedge School's design 17): when it opens and when it ends, with what it ran with and how long
   // it took. The time counts from the review's start, or from a change of its network or depth, which starts it again.
   // A review that opened already done (doneBefore: its mark covers it, or the store held every step's results) sends
@@ -101,7 +119,7 @@
   let startedAt = 0, doneBefore = false;
   function reviewParams(): Record<string, string | number | boolean> {
     return {
-      network: networkName(settings.network), depth: budget, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
+      network: networkName(settings.network), depth, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
       workers: engine.workers, gpu_mode: engine.gpu, cores: range(navigator.hardwareConcurrency || 1, CORE_RANGES),
       edges: range(kept?.record.moves.length ?? 0, EDGE_RANGES), own_settings: !!own,
       practice_game: false, // Cyanotype keeps no practice game in the player's games yet (abscls-8tl1.50)
@@ -132,13 +150,13 @@
   let markBefore: ReviewMark | undefined; // the game's mark when the page opened it
   // A game reviewed before that is reviewed again because the site's engine or network changed (reviewAgainWhy): the
   // view says why under its progress, and in a dialog once in a visit for each game and engine (Hedge School's design
-  // 11). Cyanotype keeps no review snapshot yet (abscls-8tl1.35), so the review runs again at once.
+  // 11). After Review again on a review snapshot (`chosen`), the line alone: the player knows why.
   let again = $state<ReviewAgain | null>(null);
-  function againFor(why: "engine" | "network", want: { module: string }): ReviewAgain {
+  function againFor(why: "engine" | "network", want: { module: string }, chosen: boolean): ReviewAgain {
     const what = why === "engine" ? "the engine" : modelOf(session.manifest!, session.network)?.displayName ?? "the network";
     const key = `cyanotype:review-again:${kept!.id}:${want.module}`;
-    const dialog = !readSession(key); // blocked storage: each time
-    writeSession(key, "1");
+    let dialog = !chosen;
+    if (dialog) { dialog = !readSession(key); writeSession(key, "1"); } // blocked storage: each time
     return { title: `A new version of ${what}`, dialog,
       text: `We updated ${what} after this game's last review, so the engine reviews the game again.`,
       body: `This game's last review used an earlier version of ${what}, so the engine reviews the game again.` };
@@ -198,7 +216,10 @@
       if (!(await lock)) { elsewhere = "open"; return; }
       const manifest = await engineReady;
       if (session.ended) return; // another tab took the game meanwhile, or the page closed
-      await startReview(record, manifest);
+      const want = reviewMark(manifest, settings.network, budget);
+      const why = reviewCovers(markBefore, want) ? null : reviewAgainWhy(markBefore, want);
+      if (why && (await openSnapshot(record, why))) return;
+      await startReview(record, manifest, false);
     } catch (e) {
       // A review stopped for another tab, or by the page's close, fails its searches: no error to show.
       if (!session.ended) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
@@ -216,14 +237,16 @@
       throw new Error(`This browser has no game ${id}.`);
     }
     rememberReview(id);
-    kept = { id, record: stored.record };
+    kept = { id, text: stored.game.record, record: stored.record };
     markBefore = stored.game.reviewed;
     own = ownSettings(stored.game); // a network that the site no longer ships: the browser's
     return stored.record;
   }
 
-  /** Reviews the game with the site's engine: the rules, the record's capture marks, then the sweep. */
-  async function startReview(record: GameRecord, manifest: Manifest) {
+  /** Reviews the game with the site's engine: the rules, the record's capture marks, then the sweep. `chosen`: the
+   *  player chose Review again on a review snapshot, whose pool ends once the new one has the rules, so that the board
+   *  keeps working meanwhile. */
+  async function startReview(record: GameRecord, manifest: Manifest, chosen: boolean) {
     // The stored results, read while the engine starts: the review shows them in its first frame. The record's komi:
     // the searches ask at it, and its results' keys name it.
     const moves = record.moves, komi = record.komi;
@@ -246,10 +269,52 @@
     const want = reviewMark(manifest, session.network, budget);
     doneBefore = reviewCovers(markBefore, want) || bar.done; // done from the store: nothing has searched yet
     const why = doneBefore ? null : reviewAgainWhy(markBefore, want);
-    again = why && want ? againFor(why, want) : null;
+    again = why && want ? againFor(why, want, chosen) : null;
     startedAt = performance.now();
-    track("review_open", { ...reviewParams(), done_before: doneBefore });
+    if (!chosen) track("review_open", { ...reviewParams(), done_before: doneBefore }); // a review snapshot counted the open
     await g.sweep();
+  }
+
+  /** Opens the game's last review, by an earlier engine or network file, as it was (Hedge School's design 20): the
+   *  engine's rules alone, no network, the record's capture marks checked, and the stored results of the mark's search
+   *  (@abstractclass/analysis/storedReview.ts, openSnapshot). False, with nothing kept, when the store lacks them or the
+   *  record's marks are wrong: the review then runs, and says why. True, with nothing kept, when the session ended
+   *  meanwhile (another tab took the game, or the page closed). */
+  async function openSnapshot(record: GameRecord, why: "engine" | "network"): Promise<boolean> {
+    const mark = markBefore!, manifest = session.manifest!, network = settings.network;
+    const rules = new EnginePool(0, session.takeRules());
+    try {
+      const g = await sharedSnapshot({ game: blueprints, id: kept!.id, moves: record.moves, komi: record.komi }, rules,
+                                     manifest, network, mark, why,
+                                     async g => (await startChecked(g, record, mark.visits)) === null && g.rulesReady);
+      if (!g) { rules.terminate(); return false; }
+      if (session.ended) { rules.terminate(); return true; }
+      const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
+      const what = why === "engine" ? "the engine" : (modelOf(manifest, network)?.displayName ?? "the network");
+      snapshot = { visits: mark.visits, text: `Reviewed on ${date} with an earlier version of ${what}.` };
+      session.pool = rules; // the rules alone, until Review again starts the engine (EngineSession.start)
+      session.network = network;
+      preloaded = true;
+      game = snapshotGame = g;
+      track("review_open", { ...reviewParams(), done_before: true });
+      trackOnce(`${kept!.id} snapshot opened`, "feature", { feature_name: "snapshot opened" });
+      return true;
+    } catch {
+      rules.terminate();
+      return false;
+    }
+  }
+
+  /** Review again, on a review snapshot: the game reviewed with the site's engine, as a new review. The board stays. */
+  async function reviewAgain() {
+    if (!snapshot || !kept) return;
+    trackOnce(`${kept.id} review again`, "feature", { feature_name: "review again" });
+    snapshot = null;
+    try {
+      await startReview(kept.record, session.manifest!, true);
+    } catch (e) {
+      if (!session.ended) { error = errorText(e); track("engine_error", { error_kind: "load" }); }
+    }
   }
 
   /** Ends the engine and frees the game's lock, now or once it is held: the page closed, or this browser lacks the
@@ -260,11 +325,16 @@
   }
   onDestroy(stop);
 
-  /** The review exported (reviewExports.ts): its link, with what the game's mark names, or its review file, with the
-   *  engine's results. */
-  async function exportAs(kind: ExportKind): Promise<ExportResult | void> {
-    if (!kept) throw new Error("no game is open");
-    return deliverExport(kind, kept.id, session.manifest);
+  /** The review exported (reviewExports.ts): its link, with what the game's mark names, its review file, with the
+   *  engine's results, or the annotated record, copied or as a file. The record's labels are the page's (by turn or by
+   *  move). */
+  async function exportAs(kind: ExportKind, unit: Unit): Promise<ExportResult | void> {
+    const k = kept;
+    if (!k) throw new Error("no game is open");
+    return deliverExport(kind, k.id, k.text, session.manifest, () => {
+      if (!R) throw new Error("the review is not ready");
+      return annotatedText(R, unit, k.record, game?.branches ?? {}, session.network);
+    });
   }
 </script>
 
@@ -292,14 +362,16 @@
   <p class="{MESSAGE} text-blunder" role="alert">The engine could not read this game: {game.error}</p>
 {:else if R}
   <ReviewView view={blueprintsView} {R} progress={bar.progress} {deeperPositions} {again} {siteLink} game={game ?? undefined}
-              deepVisits={engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
-              reviewVisits={budget} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
+              snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }}
+              deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
+              reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })}
               ownSettings={own?.from} gpu={session.gpuView}>
-    {#snippet tools()}
-      <!-- Export (Hedge School's design 13): once the review is done, a link that shares it, or its review file. -->
-      <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={bar.done} why="Export once the review is done."
-                  ontrack={trackExport} />
+    {#snippet tools(unit)}
+      <!-- Export (Hedge School's design 13): once the review is done, a link that shares it, its review file, or the
+           annotated record, labelled by the view's unit. -->
+      <ExportMenu icon run={kind => exportAs(kind, unit)} items={REVIEW_EXPORTS} ready={bar.done} ontrack={trackExport}
+                  why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />
     {/snippet}
   </ReviewView>
 {:else if kept}

@@ -177,7 +177,8 @@ searching it again, and to share it as text that others can read.
   `readAnalysisKey`), `packages/storage/src/db.ts` (`dbEntriesWhere`, `dbPutMany`), `src/lib/game/record.ts`
   (`writeTags`).
 - `packages/review/src/ExportMenu.svelte` (the menu, which Cyanotype shares, with each page's entries in
-  `packages/review/src/exports.ts`'s form), `src/lib/review/exportText.ts` (`annotatedText`, `annotatedFromStore`),
+  `packages/review/src/exports.ts`'s form), `src/lib/review/exportText.ts` (`annotatedText`,
+  `annotatedFromStore`, on `packages/analysis/src/storedReview.ts`),
   `packages/analysis/src/analysis.svelte.ts` (`fromStore`: a review from the stored results only).
 - `src/routes/review/+page.svelte` (`exportAs`), `packages/review/src/ReviewView.svelte` (the menu's place),
   `src/lib/review/ReviewHome.svelte` (the menu beside each game, Load a review file, the drop).
