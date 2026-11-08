@@ -1285,3 +1285,24 @@ has 16 logical cores. Three runs of each, the median and the range:
   and the next GPU's test goes on from the counts". It drives the pool's `addGpu`, `measureGpu` and `dropGpu` with a
   fake clock. Without the call, both tests end (`["first", "second"]`). With it, only the second ends, on the two
   GPUs' 10 s together. The engine package's 19 tests pass.
+
+### The engine step checks the lock's sizes and maxThreads against the release (2026-11-08)
+
+- **The problem** (abscls-8tl1.62, from the review of abscls-8tl1.29): Cyanotype's `engine.lock.json` copies by hand
+  the networks' sizes (`sizes`: board 67, policyChannels 6) and the CPU evaluator's `maxThreads` (128) from the
+  manifest of release `engine-91ab0b7d`. The step checked each file's SHA-256 but not these. The GPU forms of the
+  library compare the graph's outputs with the sizes, and give a message. The CPU form cannot
+  (`cpu_evaluator.mjs`): a wrong size traps (`unreachable`) or plays another move with no message.
+- **The change:** a lock with `sizes` or a `maxThreads` also gives `releaseManifest`: the release's `manifest.json`
+  as a source and a SHA-256, as an artifact has them. `obtain` in `packages/engine/src/fetch-engine.mjs` is the old
+  fetch of an artifact (the download cache, the source, the SHA-256 check, the same two log lines), now also used for
+  this file. `checkLockAgainstRelease` (`packages/engine/src/lock-check.ts`) then compares the numbers and stops with
+  the field, the lock's value and the release's. A lock with `sizes` or a `maxThreads` and no `releaseManifest` stops
+  too. The release's fields, from the real manifest of `engine-91ab0b7d` (4,708 bytes, SHA-256 `9ff6cf5d...`):
+  `engine.sizes.board` (67) and `engine.sizes.policyChannels` (6) for `sizes`, and `maxThreads` (128) in the entry of
+  `assets` whose `file` is the artifact's release asset (`blueprints-eval.wasm`, kind `practice-evaluator`) for the
+  artifact's `maxThreads`.
+- **Hedge School:** its lock gives neither number, so its step reads no manifest, and fetches and prints what it did.
+- **Checked:** `packages/engine/src/lock-check.test.ts`, with a fake manifest in the real manifest's shape and no
+  network: a match passes, each of the two sizes and the `maxThreads` that differs stops with its message, a release
+  without the field stops, and a lock without `releaseManifest` stops.
