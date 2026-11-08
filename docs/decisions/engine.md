@@ -1318,3 +1318,14 @@ has 16 logical cores. Three runs of each, the median and the range:
   look for a file from another release in the manifest. Cyanotype's step ran on four wrong copies of its lock: a
   board of 19, a `maxThreads` of 256, the evaluator's SHA-256 with one character changed, and no `sizes`. Each
   stopped with its message, before the step wrote `static/engine`.
+
+### The release d6786eba-terms2: the terms name all nine files of the engine's own code (2026-11-08)
+
+- **What:** the engine repository's release `engine-d6786eba-terms2`, for request 29 (its commit `3f8617ab`): the
+  files of `engine-d6786eba` byte for byte, with a new `LICENSE.txt` (2,172 bytes) and a new manifest. The terms'
+  list of the engine's own code now names the practice modules, the evaluator and their three scripts, beside the
+  engine's two modules and `gpu_engine.mjs`. No right changes.
+- **The change:** the lock's terms entry takes the new tag, and the new file's SHA-256 (`01cdf550...`) and size. Its
+  id is now `engine-d6786eba-terms2`, so the terms have a new path under the year's immutable cache. Nothing else in
+  the lock changes. The notices page takes the path from the lock.
+- **Checked:** requests/29, "Checked here".

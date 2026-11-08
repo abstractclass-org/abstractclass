@@ -24,12 +24,12 @@
       "bytes": 10859
     },
     {
-      "id": "engine-85f1792-terms2",
+      "id": "engine-d6786eba-terms2",
       "kind": "terms",
       "file": "LICENSE.txt",
-      "source": { "release": { "tag": "wasm-v2-engine-85f1792-terms2", "asset": "LICENSE.txt" } },
-      "sha256": "e457cfd8286e0f21ea3a9bd4a99b31ae8b1e86c441bd75a6507c85dd91562d53",
-      "bytes": 2032
+      "source": { "release": { "tag": "engine-d6786eba-terms2", "asset": "LICENSE.txt" } },
+      "sha256": "01cdf5508a1a4cf2f59655d70c68d43308af429146a5fca4b0c8fae69121046e",
+      "bytes": 2172
     },
     {
       "id": "engine-d6786eba-gpu",

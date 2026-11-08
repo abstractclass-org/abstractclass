@@ -38,4 +38,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 26 | [Blueprints on the visitor's GPU, and the practice bot's threaded forms](26-blueprints-gpu-and-threaded.md) | done (release `engine-91ab0b7d`, Stamp Duty 0.2), checked here on the CPU. The GPU paths wait for a check on the GPU |
 | 27 | [The record's `Komi` tag](27-komi-tag.md) | done (engine repository commit `612a8458`, design 04's tag "The komi"), checked here against `komiOf` |
 | 28 | [Blueprints: the practice bot from a set-up start, and a position's check](28-blueprints-set-up-start.md) | open |
-| 29 | [The engine terms' list of the engine's own files](29-engine-terms-file-list.md) | open |
+| 29 | [The engine terms' list of the engine's own files](29-engine-terms-file-list.md) | done (the engine repository's commit `3f8617ab`, release `engine-d6786eba-terms2`), checked here and pinned |
