@@ -16,15 +16,15 @@
 // bot's CPU workers take them (library.ts, sizesOption). A lock without them has Enclosure's, the library's default.
 // The practice evaluator's `maxThreads`, from the release's manifest too, caps the threaded bot's search threads on
 // its CPU workers.
-// A lock with `sizes` or a `maxThreads` also gives the release's manifest (`releaseManifest`: a source and its
-// SHA-256, as an artifact has them). The step checks the file as it checks an artifact, and stops with a message that
-// names the field, the lock's value and the release's when they differ (lock-check.ts).
+// The step checks these numbers against the manifests of the releases that the files come from, and stops at a
+// difference (lock-check.ts).
 //
 // Cloudflare Pages serves no file over 25 MiB (docs/hosting.md). A file over 24 MiB is stored compressed with gzip,
 // and the compressed bytes are split into parts of 24 MiB or less when they are larger still: `model.onnx.gz.0`,
 // `model.onnx.gz.1`. A network's graph is stored compressed at any size: gzip makes it 9% smaller (20.5 MB to 18.7 MB
 // for b15c192). The manifest entry names the parts and the encoding, and the page joins and decompresses them
-// (@abstractclass/engine/artifacts.ts). The downloads are kept in node_modules/.cache/engine/, by SHA-256.
+// (@abstractclass/engine/artifacts.ts). The downloads are kept in node_modules/.cache/engine/, by SHA-256, and each
+// release's manifest by its tag (`releases/<tag>/manifest.json`).
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { findPackageJSON } from "node:module";
@@ -33,7 +33,7 @@ import { gzipSync } from "node:zlib";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
 import { checkPracticeModules } from "./practice-check.ts";
-import { checkLockAgainstRelease, releaseManifestEntry } from "./lock-check.ts";
+import { checkLockAgainstRelease, releasesToCheck, whyNotTheRelease } from "./lock-check.ts";
 
 const root = process.cwd();
 const lock = JSON.parse(readFileSync(join(root, "engine.lock.json"), "utf8"));
@@ -63,24 +63,24 @@ async function get(artifact) {
   throw new Error(`${artifact.id}: the source must be "local", "engines" or "release"`);
 }
 
-/** The bytes of an artifact: from the download cache when its file there has the locked SHA-256, else from its source,
- *  where they must have it, and then into the cache. Logs which. */
-async function obtain(artifact) {
-  const cached = join(cacheDir, artifact.sha256);
-  let bytes = existsSync(cached) ? readFileSync(cached) : null;
-  if (!bytes || sha256(bytes) !== artifact.sha256) {
-    bytes = await get(artifact);
-    const hash = sha256(bytes);
-    if (hash !== artifact.sha256)
-      throw new Error(`${artifact.id}: SHA-256 ${hash} is not the locked ${artifact.sha256}. ` +
-                      `If the build changed on purpose, update engine.lock.json.`);
-    mkdirSync(cacheDir, { recursive: true });
-    writeFileSync(cached, bytes);
-    console.log(`${artifact.id}: ${bytes.length} bytes from ${source(artifact)}`);
-  } else {
-    console.log(`${artifact.id}: up to date`);
+const parse = text => { try { return JSON.parse(text); } catch { return null; } };
+
+/** The manifest of release `tag` (its manifest.json): from the download cache when it is that release's manifest for
+ *  this lock (lock-check.ts, whyNotTheRelease), else from the release, and then into the cache. Logs which. */
+async function releaseManifest(tag) {
+  const id = `release ${tag} manifest.json`, cached = join(cacheDir, "releases", tag, "manifest.json");
+  const kept = existsSync(cached) ? parse(readFileSync(cached, "utf8")) : null;
+  if (kept && whyNotTheRelease(lock, tag, kept) === null) {
+    console.log(`${id}: up to date`);
+    return kept;
   }
-  return bytes;
+  const bytes = await get({ id, source: { release: { tag, asset: "manifest.json" } } });
+  const release = parse(bytes.toString("utf8"));
+  if (!release) throw new Error(`${id}: the file is not JSON`);
+  mkdirSync(dirname(cached), { recursive: true });
+  writeFileSync(cached, bytes);
+  console.log(`${id}: ${bytes.length} bytes from release ${tag}`);
+  return release;
 }
 
 /** Writes a file under static/engine/<id>/: compressed when asked or when it is too large to serve, and in parts when
@@ -107,23 +107,16 @@ function store(id, file, bytes, compress = false) {
   return { url, encoding: "gzip", parts, download: gz.length };
 }
 
-// A lock that gives the networks' sizes or an evaluator's maxThreads copied them from the release's manifest. The step
-// gets that manifest as it gets an artifact (the lock gives its SHA-256) and stops at a number that differs from it
-// (lock-check.ts). A lock that gives neither, Hedge School's, fetches and prints nothing more.
-const releaseManifest = releaseManifestEntry(lock);
-if (releaseManifest) {
-  if (deploy && !releaseManifest.source.release)
-    throw new Error(`${releaseManifest.id}: a deploy needs the released manifest, not a file on this machine`);
-  const text = (await obtain(releaseManifest)).toString("utf8");
-  let release;
-  try {
-    release = JSON.parse(text);
-  } catch (e) {
-    throw new Error(`${releaseManifest.id}: not valid JSON: ${e.message}`);
-  }
-  checkLockAgainstRelease(lock, release);
-  console.log(`${releaseManifest.id}: the lock's sizes and maxThreads are the release's`);
+// The lock's sizes and maxThreads against its releases' manifests (lock-check.ts). A lock that gives neither, Hedge
+// School's, reads no manifest and prints nothing more.
+const toCheck = releasesToCheck(lock);
+for (const tag of toCheck.tags) {
+  checkLockAgainstRelease(lock, tag, await releaseManifest(tag));
+  console.log(`release ${tag}: the lock's sizes and maxThreads are the release's`);
 }
+if (toCheck.unchecked.length)
+  console.log(`not checked against a release's manifest, since they are files on this machine: ` +
+              toCheck.unchecked.join(", "));
 
 // The folder holds only what this run writes: it is generated (and ignored by Git), and the downloads stay in the cache.
 rmSync(outDir, { recursive: true, force: true });
@@ -132,7 +125,20 @@ const manifest = { ...(lock.protocol ? { protocol: lock.protocol } : {}), ...(lo
 for (const artifact of lock.artifacts) {
   if (deploy && !artifact.source.release)
     throw new Error(`${artifact.id}: a deploy needs a released build, not a file on this machine`);
-  const bytes = await obtain(artifact);
+  const cached = join(cacheDir, artifact.sha256);
+  let bytes = existsSync(cached) ? readFileSync(cached) : null;
+  if (!bytes || sha256(bytes) !== artifact.sha256) {
+    bytes = await get(artifact);
+    const hash = sha256(bytes);
+    if (hash !== artifact.sha256)
+      throw new Error(`${artifact.id}: SHA-256 ${hash} is not the locked ${artifact.sha256}. ` +
+                      `If the build changed on purpose, update engine.lock.json.`);
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(cached, bytes);
+    console.log(`${artifact.id}: ${bytes.length} bytes from ${source(artifact)}`);
+  } else {
+    console.log(`${artifact.id}: up to date`);
+  }
   // A file that imports another by a relative path (the engine's JavaScript libraries) shares its folder (`dir`).
   const stored = store(artifact.dir ?? artifact.id, artifact.file, bytes, artifact.kind === "graph");
   if (stored.parts) console.log(`  stored as ${stored.parts.length} gzip part(s) of ${bytes.length} bytes`);

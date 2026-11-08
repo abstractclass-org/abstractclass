@@ -2,10 +2,6 @@
   "repository": "abstractclass-org/blueprints-engine",
   "protocol": "0.7.1",
   "sizes": { "board": 67, "policyChannels": 6 },
-  "releaseManifest": {
-    "source": { "release": { "tag": "engine-91ab0b7d", "asset": "manifest.json" } },
-    "sha256": "9ff6cf5d998b1238047a1d4cb1c2b5266a95cfdd9f4484d4195bfbe3b4e1150a"
-  },
   "artifacts": [
     {
       "id": "engine-91ab0b7d",

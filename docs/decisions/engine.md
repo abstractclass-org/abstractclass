@@ -1293,16 +1293,28 @@ has 16 logical cores. Three runs of each, the median and the range:
   manifest of release `engine-91ab0b7d`. The step checked each file's SHA-256 but not these. The GPU forms of the
   library compare the graph's outputs with the sizes, and give a message. The CPU form cannot
   (`cpu_evaluator.mjs`): a wrong size traps (`unreachable`) or plays another move with no message.
-- **The change:** a lock with `sizes` or a `maxThreads` also gives `releaseManifest`: the release's `manifest.json`
-  as a source and a SHA-256, as an artifact has them. `obtain` in `packages/engine/src/fetch-engine.mjs` is the old
-  fetch of an artifact (the download cache, the source, the SHA-256 check, the same two log lines), now also used for
-  this file. `checkLockAgainstRelease` (`packages/engine/src/lock-check.ts`) then compares the numbers and stops with
-  the field, the lock's value and the release's. A lock with `sizes` or a `maxThreads` and no `releaseManifest` stops
-  too. The release's fields, from the real manifest of `engine-91ab0b7d` (4,708 bytes, SHA-256 `9ff6cf5d...`):
-  `engine.sizes.board` (67) and `engine.sizes.policyChannels` (6) for `sizes`, and `maxThreads` (128) in the entry of
-  `assets` whose `file` is the artifact's release asset (`blueprints-eval.wasm`, kind `practice-evaluator`) for the
-  artifact's `maxThreads`.
-- **Hedge School:** its lock gives neither number, so its step reads no manifest, and fetches and prints what it did.
-- **Checked:** `packages/engine/src/lock-check.test.ts`, with a fake manifest in the real manifest's shape and no
-  network: a match passes, each of the two sizes and the `maxThreads` that differs stops with its message, a release
-  without the field stops, and a lock without `releaseManifest` stops.
+- **The change:** for a lock that gives `sizes` or a `maxThreads`, `packages/engine/src/fetch-engine.mjs` reads the
+  `manifest.json` of each release that a network (kind `model` or `graph`) or a file with a `maxThreads` comes from.
+  `checkLockAgainstRelease` (`packages/engine/src/lock-check.ts`) compares the numbers. It stops when a number
+  differs, or when only one of the lock and the release gives it. Without its `sizes`, the CPU evaluator would take
+  Enclosure's. The message names the field, the lock's value and the release's.
+- **The release's fields,** in the real manifest of `engine-91ab0b7d` (4,708 bytes): `engine.sizes.board` (67) and
+  `engine.sizes.policyChannels` (6) give the `sizes`. The entry of `assets` whose `file` is the evaluator's release
+  asset (`blueprints-eval.wasm`, kind `practice-evaluator`) gives its `maxThreads` (128).
+- **The lock does not pin the manifest.** A pinned manifest would be one more entry to copy by hand at each release.
+  An entry left at the old release would check the new numbers against the old release's numbers. That is the error
+  that the check is for. So the manifest must give the release's `tag`, and list each file that the lock takes from
+  the release with the lock's SHA-256 and size. The step checks this before it reads the numbers. It keeps the
+  manifest in the download cache by its tag (`releases/<tag>/manifest.json`), and uses the kept file only when it
+  meets the same condition.
+- **A file from this machine** (a source that is not a release) has no release's manifest. The step names it and does
+  not check it. A deploy refuses such a file.
+- **Hedge School:** its lock gives neither number, so its step reads no manifest. Its output and its `static/engine`
+  are the same as before the change, byte for byte (22 files, their SHA-256 compared).
+- **Checked:** `packages/engine/src/lock-check.test.ts` uses a fake manifest in the real manifest's shape, with no
+  network. A match passes. A size or a `maxThreads` that differs stops the step with its message. A number that only
+  the lock or only the release gives stops it too. A manifest with another tag stops the step before its numbers. So
+  does a manifest that lists a file of the lock with another SHA-256 or size, or does not list it. The step does not
+  look for a file from another release in the manifest. Cyanotype's step ran on four wrong copies of its lock: a
+  board of 19, a `maxThreads` of 256, the evaluator's SHA-256 with one character changed, and no `sizes`. Each
+  stopped with its message, before the step wrote `static/engine`.

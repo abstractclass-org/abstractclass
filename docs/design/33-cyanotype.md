@@ -349,11 +349,10 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    `NOTICES.txt`, `LICENSE.txt` and bpj5's network `b6c96-s47076224-d3087660`, whose name in the release is Stamp
    Duty 0.2. Each entry of the lock takes its file from the release (a source of kind `release`), with the SHA-256
    and the size of the release's manifest. The lock also copies the manifest's networks' sizes (`sizes`: a board of 67
-   and 6 policy channels, item 4) and the evaluator's `maxThreads` (128), and it pins the manifest itself
-   (`releaseManifest`, with its SHA-256). `npm run engine` checks those numbers against the manifest and stops at a
-   difference ([design 03](03-stack.md)). The release's `settings.cfg` is the text of
-   the search's settings, which the module embeds: the site does not read it, so the lock does not take it. The engine
-   repository's record of the release: its
+   and 6 policy channels, item 4) and the evaluator's `maxThreads` (128). `npm run engine` compares these numbers
+   with the release's manifest, and stops at a difference ([design 03](03-stack.md)). The release's `settings.cfg` is
+   the text of the search's settings, which the module embeds: the site does not read it, so the lock does not take
+   it. The engine repository's record of the release: its
    [games/blueprints/docs/decisions/port.md](https://github.com/abstractclass-org/engines/blob/main/games/blueprints/docs/decisions/port.md),
    entry of 2026-11-07. Blueprints' first release, `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the
    threaded bot), stays in `abstractclass-org/blueprints-engine`.

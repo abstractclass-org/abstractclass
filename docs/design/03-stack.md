@@ -57,11 +57,14 @@ new builds arrive often.
     `static/engine/manifest.json`, which the site reads to find the files and to name them in its results.
   - **Numbers copied from the release's manifest:** a lock may give the networks' `sizes` and an evaluator's
     `maxThreads`, copied by hand from the manifest of the release (`manifest.json`, an asset of the release). The CPU
-    evaluator cannot check a size against its network, so a wrong one traps or plays another move with no message. A
-    lock with either number also gives the manifest as `releaseManifest`: a source and its SHA-256, as an artifact
-    has them. The step gets it as it gets an artifact (the download cache, the SHA-256 check) and stops with a message
-    that names the field, the lock's value and the release's when they differ (`packages/engine/src/lock-check.ts`).
-    A lock with neither number, Hedge School's, gets and prints nothing more.
+    evaluator cannot check a size against its network. A wrong size traps or plays another move with no message. So
+    the step reads the manifests of the releases that the networks and the evaluator come from. It stops when a
+    number differs, or when only one of the lock and the release gives it. Its message names the field, the lock's
+    value and the release's (`packages/engine/src/lock-check.ts`).
+  - **The lock does not pin the release's manifest.** The manifest must give the release's tag. It must also list each
+    file that the lock takes from the release, with the lock's SHA-256 and size. So a new release changes no other
+    entry of the lock. A file from this machine has no release's manifest, so the step names it and does not check
+    it. A lock with neither number, Hedge School's, reads no manifest.
   - **Development may use local sources,** to try a build in the engine repository's `runs/` before it is released.
     The lock file in Git points at a release.
   - **A deploy uses releases only.** The deploy refuses a local source. Data that ships (precomputed analyses,
