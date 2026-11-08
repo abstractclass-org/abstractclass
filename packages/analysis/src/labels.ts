@@ -22,9 +22,12 @@ export const listed = (l: Label | null): l is Label => l === "great" || (!!l && 
 
 /** The Good band's upper limit: a loss within it is Good or better. */
 export const GOOD_WIN = 0.05;
-/** The bands: each label with its loss's upper limit, in win chance. A larger loss is a Blunder. The sites' pages "How a
- *  review works" give them (@abstractclass/review/howReviews/Losses.svelte). */
-export const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", GOOD_WIN], ["inaccuracy", 0.10], ["mistake", 0.20]];
+/** The Mistake band's upper limit: a larger loss is a Blunder. */
+export const MISTAKE_WIN = 0.20;
+/** The bands: each quality label with its loss's upper limit, in win chance. A larger loss is a Blunder. The sites'
+ *  pages "How a review works" give them (@abstractclass/review/howReviews). */
+export const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", GOOD_WIN], ["inaccuracy", 0.10],
+                                             ["mistake", MISTAKE_WIN]];
 
 /** The meter's groups (model.ts, `likelyMoves`): Good or better (a loss up to GOOD_WIN), then Inaccuracy, Mistake and
  *  Blunder, by the labels' bands. Maia's Blunder Meter has three groups, cut at 0.05 and 0.10 of win chance; these cut
@@ -44,13 +47,15 @@ export const KEPT_GAIN = 0.05;
  *  positions, where 62% of the played edges were Mistakes or worse (decisions/engine.md, "Complexity on the archive"). */
 export const HARD = 0.10;
 
+/** The least weight of a move in its player's accuracy (accuracyWeight). */
+export const MIN_ACCURACY_WEIGHT = 0.05;
 /** A move's weight in its player's accuracy, as KaTrain weighs its points lost (katrain/core/ai.py, game_report):
  *  max(complexity, loss), each against the weight it gets in full, between 0.05 and 1. KaTrain's full weights are a
  *  complexity of 1 Go point and 4 points lost; here, in win chance, a hard position's complexity (HARD) and a
- *  Blunder's loss (0.20). Without a complexity (an analysis without the network's priors), the move weighs 1. */
+ *  Blunder's loss (MISTAKE_WIN). Without a complexity (an analysis without the network's priors), the move weighs 1. */
 export function accuracyWeight(complexity: number | undefined, loss: number): number {
   if (complexity === undefined) return 1;
-  return Math.max(0.05, Math.min(1, Math.max(complexity / HARD, loss / 0.20)));
+  return Math.max(MIN_ACCURACY_WEIGHT, Math.min(1, Math.max(complexity / HARD, loss / MISTAKE_WIN)));
 }
 
 /** The label of a played edge or turn, from its loss of the engine's win chance. The loss is rounded to 6 decimals,

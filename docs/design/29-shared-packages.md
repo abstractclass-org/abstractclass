@@ -395,9 +395,10 @@ edit in the same commit), so their changes still apply.
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages
   share: the Analysis board's, the review's link and the annotated record. `src/NewMenu.svelte`: the Analysis board's
   New menu, with the ways that a site has (design 21). `src/howReviews/`: the sections that the two sites' pages "How
-  a review works" share (the searches, a move's loss and the bands, the accuracy, the hard positions and the meter),
-  with the numbers from the analysis package's code, and each site's word for a move ("edges" on Hedge School) as a
-  prop (design 33, "The review and the Analysis board", item 13). `src/review.css`: the package's Tailwind source and
+  a review works" share (the searches, the quality labels with their bands, Best and Great, the accuracy, the hard
+  positions and the meter), with the numbers from the analysis package's code, and each site's words for a move
+  ("edges" on Hedge School) and for the other player ("enemy") as props (design 33, "The review and the Analysis
+  board", item 13). `src/review.css`: the package's Tailwind source and
   the view's style (item 9), which a site's style imports after `site.css`.
 - `apps/hedgeschool/src/lib/review/enclosureView.ts`: Enclosure's part of the view, which the review's and the
   Analysis board's pages give it. Its components: `EnclosureBoard.svelte` (Hedge School's board with the view's

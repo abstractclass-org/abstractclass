@@ -688,8 +688,9 @@ build). The decision log gives the measurements that led to each choice.
       refuses leaves that board, with a notice.
 13. **How a review works** (`/how-reviews-work`), as Hedge School's page (its designs 05, 10, 14 and 16): the
     searches, the quality labels and their bands, Best and Great, the accuracy, the hard positions and the meter. The
-    sections that the two pages share are in `packages/review/src/howReviews/`, with the numbers from the shared
-    analysis's code (`cache.ts`, `settings.ts`, `labels.ts`), so that the two pages cannot differ in them. Hedge
+    sections that the two pages share are in `packages/review/src/howReviews/`, so that the two pages cannot differ
+    in them. The rules' numbers there come from the shared analysis's code (`cache.ts`, `settings.ts`, `labels.ts`).
+    Only the constants of Lichess's accuracy formula are typed, because `model.ts` does not export them. Hedge
     School's page reads as before. Cyanotype's page says what differs for Blueprints:
     - **Its engine,** Stamp Duty, and "move" where Hedge School says "edge", "opponent" where it says "enemy".
     - **The turns:** Blue's first turn has one move, and each later turn two. The review judges whole turns by
@@ -699,7 +700,8 @@ build). The decision log gives the measurements that led to each choice.
     - **An edit's likelihood** in the complexity and the meter is its cell's: a candidate edit has its pick's prior
       (the engine repository's `games/blueprints/README.md`, "An edit").
     - **No opening book:** the engine searches every position of the game, the opening too.
-    - **The lead's example,** in points, from the stored review of the test game (the decision log gives it).
+    - **The examples** of the lead, in points, and of the hard positions, from the stored review of the test game
+      (the decision log gives them).
     The footer, the About page (its section "How a review works"), the review's line under the report ("How it
     works", in the shared view) and the site map link to it, as Hedge School's do.
 14. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
