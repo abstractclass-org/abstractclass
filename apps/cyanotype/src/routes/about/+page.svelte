@@ -1,6 +1,7 @@
 <script lang="ts">
   // About Cyanotype (design 33): what the site does, the early access (the header's "Early Access" link leads to its
-  // section, as Hedge School's), the game and the engine.
+  // section, as Hedge School's), the game, how a review works (with the link to its page, as Hedge School's) and the
+  // engine.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
@@ -41,6 +42,18 @@
     <li><strong>An edit</strong> moves one cell of a blueprint, inside the blueprint or to another one.</li>
   </ul>
   <p>Blue makes one move, then each player makes two moves a turn. The game ends after 120 moves.</p>
+
+  <h2>How a review works</h2>
+  <ul>
+    <li><strong>Your game:</strong> paste its record in the <a href="/review">Review tab</a>, or bring a game from
+      strategyjam.org with the <a href="/tools">tools</a>. <a href="/notation">The notation page</a> describes the
+      records.</li>
+    <li><strong>The engine</strong> takes a quick look at every position first, then searches each position
+      deeper.</li>
+    <li><strong>The quality labels</strong> judge each turn by how much it lowered your chance of winning. You can judge
+      each move instead, in the review's settings.</li>
+  </ul>
+  <p>The rules and their numbers are on <a href="/how-reviews-work">How a review works</a>.</p>
 
   <h2>The engine</h2>
   <p>{ENGINE_NAME} is the engine of the review and the Analysis board, and the bot in Practice. It is a neural network

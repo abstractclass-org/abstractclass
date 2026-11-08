@@ -22,7 +22,9 @@ export const listed = (l: Label | null): l is Label => l === "great" || (!!l && 
 
 /** The Good band's upper limit: a loss within it is Good or better. */
 export const GOOD_WIN = 0.05;
-const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", GOOD_WIN], ["inaccuracy", 0.10], ["mistake", 0.20]];
+/** The bands: each label with its loss's upper limit, in win chance. A larger loss is a Blunder. The sites' pages "How a
+ *  review works" give them (@abstractclass/review/howReviews/Losses.svelte). */
+export const WIN_BANDS: [Label, number][] = [["excellent", 0.02], ["good", GOOD_WIN], ["inaccuracy", 0.10], ["mistake", 0.20]];
 
 /** The meter's groups (model.ts, `likelyMoves`): Good or better (a loss up to GOOD_WIN), then Inaccuracy, Mistake and
  *  Blunder, by the labels' bands. Maia's Blunder Meter has three groups, cut at 0.05 and 0.10 of win chance; these cut

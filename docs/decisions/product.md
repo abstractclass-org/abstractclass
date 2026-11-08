@@ -9711,3 +9711,36 @@ on the board showed on two rows: the second move on its own row, and the judgeme
   high, and the move is 21 pixels (Text) or 21.9 (Glyphs). So the cell's top is 3.0 pixels lower in Text and 3.8 in
   Glyphs. Beside an edit in Glyphs it is 6.5 pixels lower, because an edit's baseline is its picture's lower edge.
   A cell with a badge is 0 to 0.8 pixels lower. The cell's own look did not change.
+
+### Cyanotype's How a review works page (2026-11-08)
+
+- **The page** (abscls-8tl1.37, design 33, "The review and the Analysis board", item 13): Hedge School's
+  `/how-reviews-work` for Blueprints' review. Its line in design 33's gap list goes.
+- **The shared sections** (`packages/review/src/howReviews/`, design 29): the searches, a move's loss and the bands,
+  the accuracy, the hard positions and the meter. Both sites review with the same steps, depths, bands and weights,
+  so these sections read the same on both pages, with each site's word for a move ("edges" on Hedge School). Their
+  numbers now come from the code (`SWEEP_VISITS`, `REVIEW_PRESETS`, `DEEP_VISITS`, `WIN_BANDS`, `HARD`), so the two
+  pages cannot drift from the review. Hedge School's page keeps its own intro, its bullets on Best, Great and turns,
+  and its sources. Its page reads as before (the check below).
+- **What differs for Blueprints:** Stamp Duty; "move" for "edge" and "opponent" for "enemy" (the glossaries); Blue's
+  first turn of one move; two moves that give one position as one move (Best for either, one row of the table, the
+  prior counted once in the complexity and the meter); an edit's likelihood, which is its pick's prior (the engine
+  repository's `games/blueprints/README.md`); and no opening book, so every position has the engine's own search.
+- **The examples,** from the stored review of the test game (`apps/hedgeschool/tests/fixtures/cyanotype-review.json`,
+  Stamp Duty against itself to the end of turn 20, at Lite), labelled by the review's code as the label snapshot does
+  (`labels.snapshot.engine.test.ts`, with no search). Its labels are the snapshot's.
+  - **The lead:** Blue's `2@-1,-7x+9` (turn 5) lost 41.2 points from a lead of -1.3: 7.6% of win chance, an
+    Inaccuracy. Blue's `2@4,-31x` (turn 17) lost 40.1 points from a lead of -67.1: 3.0%, Good. The same loss in
+    points gives two labels, as Hedge School's example of a lead of 120 against 20 says.
+  - **The hard positions:** 4 of the 39 positions (before moves 26, 27, 30 and 35: complexities 0.104, 0.140, 0.133
+    and 0.128). Their moves are two Inaccuracies and two Mistakes.
+  - The players' accuracies by move: Blue 76.8, Red 79.1. By turn: Blue 64.9, Red 71.8. The page does not give them.
+- **The links,** as Hedge School's: the footer, a section "How a review works" on the About page, the site map, and
+  the review's line under the report ("How it works"), which the shared view already wrote as `/how-reviews-work`. On
+  Cyanotype that link led to the 404 page until now.
+- **The layout test** sweeps the page with Cyanotype's home page and Notices page (`layout.spec.ts`).
+- **Checked:** Hedge School's page before and after the change, each rendered with the site's Vite config and
+  Svelte's server render: the same markup of `main` (7,139 characters, with Svelte's comments removed and the white
+  space folded). The page's head is the same source. dev's preview (`dev.abstractclass.pages.dev`) gave no baseline:
+  it served 117 characters of text. Cyanotype's page in Playwright's Chromium, at 1,280 and 390 pixels in both themes:
+  no page wider than the window. Its links: the footer of each page, the About page's section and the site map.

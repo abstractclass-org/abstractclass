@@ -686,7 +686,23 @@ build). The decision log gives the measurements that led to each choice.
       position's notation ("Decision", item 10), as Hedge School's do. The annotated record writes it in its
       `Position` tag. The engine reads a start that comes in before it replaces the board kept here: one that it
       refuses leaves that board, with a notice.
-13. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
+13. **How a review works** (`/how-reviews-work`), as Hedge School's page (its designs 05, 10, 14 and 16): the
+    searches, the quality labels and their bands, Best and Great, the accuracy, the hard positions and the meter. The
+    sections that the two pages share are in `packages/review/src/howReviews/`, with the numbers from the shared
+    analysis's code (`cache.ts`, `settings.ts`, `labels.ts`), so that the two pages cannot differ in them. Hedge
+    School's page reads as before. Cyanotype's page says what differs for Blueprints:
+    - **Its engine,** Stamp Duty, and "move" where Hedge School says "edge", "opponent" where it says "enemy".
+    - **The turns:** Blue's first turn has one move, and each later turn two. The review judges whole turns by
+      default, as Hedge School's.
+    - **Two moves that give one position** are one move (item 9 of "Decision"): Best for either, one row of the
+      table, and the network's likelihood counted once in the complexity and the meter.
+    - **An edit's likelihood** in the complexity and the meter is its cell's: a candidate edit has its pick's prior
+      (the engine repository's `games/blueprints/README.md`, "An edit").
+    - **No opening book:** the engine searches every position of the game, the opening too.
+    - **The lead's example,** in points, from the stored review of the test game (the decision log gives it).
+    The footer, the About page (its section "How a review works"), the review's line under the report ("How it
+    works", in the shared view) and the site map link to it, as Hedge School's do.
+14. **Not built yet:** each feature of Hedge School that Cyanotype lacks is in "The gaps from Hedge School", with its
     issue.
 
 ### The player's notes
@@ -1010,12 +1026,10 @@ the module, the GPU module and its library, the practice bot in its three forms 
 
 ### By page
 
-Both sites have the home page, About, Notation, Notices, Privacy, Tools, Practice, the review, the Analysis board,
-the board editor, the import page, the site map, the bookmarklet and the userscript. Cyanotype lacks these pages of
-Hedge School:
+Both sites have the home page, About, How reviews work, Notation, Notices, Privacy, Tools, Practice, the review, the
+Analysis board, the board editor, the import page, the site map, the bookmarklet and the userscript. Cyanotype lacks
+these pages of Hedge School:
 
-- **How reviews work** (`/how-reviews-work`): where the labels, the accuracy, the hard positions and the meter come from
-  (designs 05, 10, 14 and 16). abscls-8tl1.37.
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
   18). abscls-8tl1.51. The page describes what Cyanotype takes today, since partner sites are left out (below).
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
@@ -1147,8 +1161,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   name and its "Early Access" link (`SiteName.svelte` and `edition.ts` of `packages/site`, "Decision", item 11), the
   game's pages, the pages about the site and the theme menu, and below a tablet's width the site's menu
   (`SiteMenu.svelte` of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels.
-  `src/lib/SiteFooter.svelte`: the footer, with Privacy and Notices. `src/app.css`: the accent (Hedge School's
-  lavender) and the board's colour tokens, after the shared style and the view's (`@abstractclass/review/review.css`).
+  `src/lib/SiteFooter.svelte`: the footer, with How reviews work, Privacy and Notices. `src/app.css`: the accent
+  (Hedge School's lavender) and the board's colour tokens, after the shared style and the view's
+  (`@abstractclass/review/review.css`).
 - `apps/cyanotype/src/lib/brand/`: the logo ("The logo"). `logo.ts` (the drawings), `Logo.svelte` (the logo at a size),
   `card.ts` (the link preview picture) and `logo.test.ts`. `scripts/brand.mjs` draws the files from them:
   `src/lib/assets/favicon.svg`, `static/favicon.ico`, `static/apple-touch-icon.png` and `static/brand/card.png`.
@@ -1162,12 +1177,13 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   scene. More scenes need more reviewed games, and the script takes one stored review. The board is a picture there
   (`Board.svelte`, its prop `still`): no pan, no zoom and no zoom buttons, and the page scrolls over it.
 - `apps/cyanotype/src/routes/`: the pages. The About page has the section on the early access (`#early-access`,
-  "Decision", item 11). The Notation page describes the moves, the marks and the record of
-  items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's display, and comes
-  with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow
-  design 23. The build's `404.html` answers each path that the site does not have. `static/_headers` also lets a
-  browser keep each of the engine's files under `/engine/:id/:file` for a year, as Hedge School's: each folder's name
-  comes from `engine.lock.json`, and names the engine's release or the network.
+  "Decision", item 11), and the section "How a review works", with the link to its page. `how-reviews-work/`: How a
+  review works ("The review and the Analysis board", item 13). The Notation page describes the moves, the marks and
+  the record of items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's
+  display, and comes with the move list. `sitemap.xml`, `static/robots.txt` and `static/_headers` follow design 23.
+  The build's `404.html` answers each path that the site does not have. `static/_headers` also lets a browser keep
+  each of the engine's files under `/engine/:id/:file` for a year, as Hedge School's: each folder's name comes from
+  `engine.lock.json`, and names the engine's release or the network.
 - `apps/cyanotype/scripts/release-check.mjs`: the check of a deployed site ([hosting.md](../hosting.md), "Deploy,
   check and roll back"), with the checks that both sites share (`packages/site/src/release-check.mjs`). It gives them
   no pages that lead home, because Cyanotype's early access hides no page ("Decision", item 11), and adds no check of
@@ -1361,5 +1377,5 @@ Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with
 (2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), "Cyanotype's variations in
 "Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
 games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
-(2026-11-08), and "Cyanotype's cells: striped walls and six-point stars" (2026-11-08). The earlier entries name the
-site by its first name, Drawing Board.
+(2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), and "Cyanotype's How a review
+works page" (2026-11-08). The earlier entries name the site by its first name, Drawing Board.

@@ -2,11 +2,17 @@
   // How a review works (designs 05, 10, 14 and 16), for a player who wants to know where the labels, the accuracy, the
   // hard positions and the meter come from: the rules and their numbers, in words, with the sources they follow. The
   // numbers are the code's (@abstractclass/analysis/labels.ts, model.ts, src/lib/analysis/engineSettings.ts): a change
-  // there changes this page.
+  // there changes this page. The parts that Cyanotype's page shares are in @abstractclass/review/howReviews, with the
+  // numbers from the code.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import { SITE_NAME } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import Accuracy from "@abstractclass/review/howReviews/Accuracy.svelte";
+  import HardPositions from "@abstractclass/review/howReviews/HardPositions.svelte";
+  import Losses from "@abstractclass/review/howReviews/Losses.svelte";
+  import Meter from "@abstractclass/review/howReviews/Meter.svelte";
+  import Searches from "@abstractclass/review/howReviews/Searches.svelte";
 </script>
 
 <PageMeta title="How a review works · {SITE_NAME}"
@@ -18,33 +24,10 @@
     player's chance to win, and the edges worth playing. A move's quality label compares the position before the move with the
     position after it. This page gives the rules and their numbers, and where each one comes from.</p>
 
-  <h2>The searches</h2>
-  <p>A search counts its work in <strong>visits</strong>: each visit adds one position to the search, down the lines that
-    look best so far. More visits give a better estimate, and take longer.</p>
-  <ul>
-    <li><strong>A first look</strong> at every position, at 32 visits, draws the chart's first estimate.</li>
-    <li><strong>The label stage</strong> searches every position at the review's depth: 512 visits with Lite, the default,
-      and 1,024 with Standard (the engine's settings).</li>
-    <li><strong>The position on screen</strong> gets a search to the Depth setting, 1,024 visits by default. Each
-      position keeps its deepest result, and everything follows it: the quality labels of the moves into and out of it, the
-      report and the chart. So a position you look at closely can change its labels.</li>
-  </ul>
-  <p>Your browser keeps the results, so a game reviewed before opens at once.</p>
+  <Searches />
 
   <h2>The quality labels</h2>
-  <p>A move's <strong>loss</strong> is the mover's win chance before the move, less the mover's win chance after it,
-    each from its own position's search. A move that raises the win chance loses nothing. The quality label reads the loss in
-    the bands that chess.com uses for every player:</p>
-  <table>
-    <thead><tr><th>Quality label</th><th>Win chance lost</th></tr></thead>
-    <tbody>
-      <tr><td>Excellent</td><td>up to 2%</td></tr>
-      <tr><td>Good</td><td>up to 5%</td></tr>
-      <tr><td>Inaccuracy</td><td>up to 10%</td></tr>
-      <tr><td>Mistake</td><td>up to 20%</td></tr>
-      <tr><td>Blunder</td><td>more than 20%</td></tr>
-    </tbody>
-  </table>
+  <Losses />
   <ul>
     <li><strong>Best:</strong> the engine's own first choice, whatever its loss. Two searches each have a small error,
       and the engine's own move should never read as a mistake.</li>
@@ -66,27 +49,11 @@
   <p>The move list and the chart show Great, Inaccuracy, Mistake and Blunder, to stay quiet. The board shows every quality label.
     Under a Mistake or a Blunder, the engine's best line from that position shows as a variation.</p>
 
-  <h2>Accuracy</h2>
-  <p>Each move gets an accuracy from its loss <em>d</em>, in percent, by Lichess's formula:</p>
-  <pre>accuracy = 103.1668 × e^(−0.04354 × d) − 3.1669 + 1</pre>
-  <p>A loss of 0 gives 100, a loss of 10% about 65, and a loss of 40% about 16. A player's accuracy is the mean of their
-    moves' accuracies, each weighed as KaTrain weighs it:</p>
-  <pre>weight = max(0.05, min(1, max(complexity ÷ 0.10, loss ÷ 0.20)))</pre>
-  <p>A move in a hard position, or a large loss, counts in full. An easy move with no loss counts for little, so a long
-    run of obvious moves cannot hide the moves that mattered.</p>
+  <Accuracy />
 
-  <h2>Hard positions</h2>
-  <p>A position's <strong>complexity</strong> is KaTrain's: the average loss of the edges that the engine searched, each
-    weighed by how likely the network thinks a strong player would choose it. A complexity of 0.10 or more is a
-    <strong>hard position</strong>, marked ◆: there, the likely edges lose a Mistake's worth on average. A turn is as hard
-    as its harder position. The Difficulty chart, beside the Advantage chart, shows each turn's complexity, so you can see
-    whether the mistakes fell where the game was hard.</p>
+  <HardPositions moves="edges" />
 
-  <h2>The likely edges' meter</h2>
-  <p>Under the engine's line, the meter shows what the network expects a player to choose here, as Maia's Blunder Meter
-    does. It adds up the network's likelihood of the searched edges, by how much each one loses against the best: good
-    or better (up to 5%), Inaccuracy (up to 10%), Mistake (up to 20%) and Blunder. The grey rest is the edges that the
-    search did not reach.</p>
+  <Meter moves="edges" />
 
   <h2>Where the rules come from</h2>
   <p>{SITE_NAME} follows tools that players already trust, and names each change it makes for Enclosure:</p>

@@ -200,11 +200,13 @@ for (const [site, urls] of Object.entries({
   });
 }
 
-// Cyanotype's home page and Notices page (its design 33), when CYANOTYPE_BASE_URL gives its preview. The home page: the
-// invitation, the board's scene from a reviewed game, and the ways in. The Notices page: the engine's terms and the
-// licences, with their texts in code blocks, which scroll sideways on purpose. Each sweep checks the header in one row,
-// with the site's menu closed below a tablet's width.
-for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"]]) {
+// Cyanotype's home page, Notices page and How a review works (its design 33), when CYANOTYPE_BASE_URL gives its
+// preview. The home page: the invitation, the board's scene from a reviewed game, and the ways in. The Notices page: the
+// engine's terms and the licences, with their texts in code blocks, which scroll sideways on purpose. How a review
+// works: its table of bands and its formulas in code blocks. Each sweep checks the header in one row, with the site's
+// menu closed below a tablet's width.
+for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
+                            ["How a review works", "/how-reviews-work"]]) {
   test(`layout of Cyanotype's ${name}`, async ({ page }) => {
     test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     await page.goto(new URL(path, CYANOTYPE).href);

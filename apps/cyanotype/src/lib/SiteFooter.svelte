@@ -3,8 +3,8 @@
   // its version, the site's copyright, and the game's home beside it, so that the copyright does not read as the
   // game's.
   import { SITE_COPYRIGHT, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
-  const LINKS: [string, string, boolean?][] = [["/tools", "Tools", true], ["/privacy", "Privacy"],
-                                               ["/notices", "Notices"]]; // true: on a phone only
+  const LINKS: [string, string, boolean?][] = [["/how-reviews-work", "How reviews work"], ["/tools", "Tools", true],
+                                               ["/privacy", "Privacy"], ["/notices", "Notices"]]; // true: on a phone only
 </script>
 
 <footer class="box-content max-w-[1000px] mx-auto mt-8 mb-6 px-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
