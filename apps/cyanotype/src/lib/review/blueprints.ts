@@ -28,7 +28,7 @@ export interface Position extends SitePosition {
   player: Player;
   movesLeft: number;
   scores: [number, number];
-  over?: boolean;
+  over: boolean;
   count: number;
   stars: [number, number];
 }
@@ -71,7 +71,7 @@ export interface Blueprints extends ViewTypes {
 /** A position from the engine's fields. */
 const positionOf = (f: GamePosition | DescribeReply): Position => ({
   ...sitePosition(f), player: playerOf(f.mover), movesLeft: f.movesLeft, scores: f.scores, count: f.moveCount,
-  stars: starsOf(f.cells), ...(f.outcome ? { over: true } : {}),
+  stars: starsOf(f.cells), over: !!f.outcome,
 });
 
 /** What a move did, from the position after it. */

@@ -11,8 +11,9 @@ import { LIVE_TURNS, LIVE_WAIT, engineWork, keptResults, noReview, reviewFirstTu
 test.use({ viewport: { width: 1376, height: 952 } });
 
 test("the engine reviews the game's first turns in the browser, as it made the stored review", async ({ page }) => {
-  // The review searches each position before a move of turns 1 to LIVE_TURNS at the stored review's depths, so the
-  // browser's store keeps the stored review's results for them. The engine's search gives the same result for the same
+  // The review searches each position before a move of turns 1 to LIVE_TURNS, and the position after them (the end of
+  // an unfinished game), at the stored review's depths, so the browser's store keeps the stored review's results for
+  // them. The engine's search gives the same result for the same
   // position, visits and engine: in three runs, each result was the stored one, byte for byte. The test's browser
   // context is new, so the store starts empty.
   test.setTimeout(LIVE_WAIT + 2 * 60_000);

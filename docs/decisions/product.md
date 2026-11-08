@@ -9774,3 +9774,37 @@ on the board showed on two rows: the second move on its own row, and the judgeme
 - **The three choices, decided 2026-11-09 as recommended:** no first partner yet (the list starts empty), each
   site's own messages' names (`cyanotype:*`), and the buttons' labels in Hedge School's form. Design 33's "The three
   choices" gives each with its reason.
+
+### Cyanotype's review searches the end of an unfinished game (2026-11-09)
+
+Cyanotype's review of an unfinished game took the position after the last move as the game's end (abscls-2pge).
+Blueprints' position gave `over` only where the game ends (`apps/cyanotype/src/lib/review/blueprints.ts`). The shared
+analysis read a missing `over` in two ways. The analysis searches the end only where `over` is false
+(`analysis.svelte.ts`, `passCount`), so it did not search that position. The review takes a missing `over` as the end
+(`model.ts`, `review`), so it judged the last move and the last turn by the scores there, as a result. Hedge School's
+position always gives `over`, so its review of an unfinished game searched the end.
+
+- **The fix:** Blueprints' position gives `over: !!outcome`, as Hedge School's gives `over: outcome !== null`.
+  `endingText`'s own rule (`over ?? false`) reads the same with it.
+- **`over` is required:** in the game interface's `PositionInfo` (`@abstractclass/analysis/game.ts`, design 29), and
+  in each site's position type (Blueprints' `Position`, Enclosure's in `enclosure.ts`). So no site can leave it out,
+  and the analysis and the review cannot read it in two ways. Two places in Hedge School built a position without it:
+  a lesson's board before the engine draws it (`lessons.ts`, `lineBoard`) and the image caption's test. Both now give
+  `over: false`, as they read before. Both sites build and type-check.
+- **The test:** `blueprints.engine.test.ts` reviews the test game to move 39 from the engine's positions. Each position
+  says `over: false`, and the review takes the end's win chance from its search. On the code before the fix, the
+  position said nothing.
+- **The stored reviews:** `cyanotype-review-fixture.mjs` wrote them again, through `scripts/machine run` with 2
+  threads, on the CPU. The review to turn 20 took 973 s, the whole game 1,830 s, and seed 12's game to turn 23
+  1,138 s. Each review of an unfinished game gained 2 results, the end at 32 and at 512 visits: 79 to 81 in
+  `cyanotype-review.json`, and 92 to 94 in `cyanotype-seed12-review.json`. Every other result is the same, byte for
+  byte. The whole game's file did not change, except its date, so it stays as it was.
+- **The labels:** the end of the review to turn 20 has its search, Red's win chance 0.704 at 512 visits. The whole
+  game's review has the same result there. Turn 20 starts at Red's 0.811, so the turn loses 0.107: it is a Mistake,
+  not Excellent. Before, the review read Red's 1.000 at the end, a gain. Move 39 goes from Red's 0.691 to 0.704: it
+  stays Excellent. In `cyanotype.txt`, only turn 20 moved (labels by turn: Excellent 5 to 4, Mistake 6 to 7). Now it
+  has the labels of `cyanotype-whole.txt` for moves 1 to 39 and for turns 1 to 20. No label of the game of seed 12
+  moved: its last turn (turn 23) and its last move (move 45) stay Mistakes.
+- **The browser tests:** `storedResults` (`cyanotype-review.ts`) takes the position after the last move too, as the
+  live review of turns 1 to 3 now searches it. The label snapshot's test checks a stored result for each position that
+  the review searches (`passCount`).

@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { checkCaptures } from "../game/check.ts";
 import { parseRecord } from "../game/record.ts";
+import { review } from "@abstractclass/analysis/model.ts";
 import { afterKey, blueprints, endingText, playedText, type ReviewData } from "./blueprints.ts";
-import type { DescribeReply } from "../board/described.ts";
+import type { DescribeReply, GamePosition } from "../board/described.ts";
 
 // Blueprints' game (blueprints.ts) on the review's test game, a game of Stamp Duty against itself
 // (fixtures/stamp-duty.txt, scripts/selfplay.mjs), through the engine's describe_game, the request that the review's
@@ -38,6 +39,26 @@ test("the review's game reads each move of a game of Stamp Duty from the engine"
   const margin = Math.abs(blue - red).toLocaleString("en");
   assert.equal(endingText(data), `${blue > red ? "Blue" : "Red"} won by ${margin}`);
   assert.equal(record.result, `${blue > red ? "b" : "r"}+${Math.abs(blue - red)}`);
+});
+
+test("the review of an unfinished game searches the position after its last move, and does not take it as the end", {
+  skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",
+}, async () => {
+  const { call } = await nodeEngine(app);
+  // The test game to the end of turn 20 (move 39), as the review's stored test game (cyanotype-review.json)
+  const moves = parseRecord(text).moves.slice(0, 39);
+  const fields: GamePosition[] = call({ id: "g", action: "describe_game", moves }).positions;
+  const positions = fields.map(blueprints.position);
+  // Every position says whether the game has ended there. The analysis searches the end where it says "not over"
+  // (passCount), and the review judges the last move from that search.
+  positions.forEach((p, i) => assert.equal(p.over, false, `position ${i}`));
+  const played = moves.map((m, i) => blueprints.played(m, fields[i], fields[i + 1]));
+  const [blue, red] = positions.at(-1)!.scores;
+  const analysis = positions.map((_, i) => ({ blueWin: i === moves.length ? 0.3 : 0.5, visits: 100, candidates: [] }));
+  const data: ReviewData = { players: { blue: "Blue", red: "Red" }, result: { blue, red }, moves: played, positions, analysis };
+  const r = review(blueprints, data);
+  assert.equal(r.blueWin.at(-1), 0.3, "the end's win chance is its search's, not the scores as a result");
+  assert.equal(endingText(data), "Unfinished after move 39");
 });
 
 test("the key of the position after a move (afterKey) groups the legal moves as the engine's positions after them", {

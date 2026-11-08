@@ -24,11 +24,9 @@
 // School's label snapshot covers it on Enclosure.
 //
 // cyanotype.txt and cyanotype-whole.txt have the same labels by move for moves 1 to 39, and the same labels by turn
-// for turns 1 to 19. Turn 20 is Excellent in cyanotype.txt and a Mistake in cyanotype-whole.txt. Blueprints' position
-// says `over` only where the game ends (blueprints.ts), and the review takes a position with no `over` at the record's
-// end as the game's end (model.ts, review). So the review to the end of turn 20 searches no position after turn 20, and
-// judges the turn by the scores there, as a result (a win for Red). The whole game's review judges it by the search of
-// that position. The review of seed 12 ends in the same way after turn 23. The fix of the review is abscls-2pge.
+// for turns 1 to 20. The review of an unfinished game searches the position after its last move (the game is not over
+// there), and judges the last move and the last turn by that search, as the whole game's review does. So the stored
+// reviews to the end of turn 20 and of turn 23 hold a result for that position too.
 //
 // After a change that moves labels on purpose, update the label snapshots: run
 //   node --test --test-update-snapshots src/lib/review/labels.snapshot.engine.test.ts
@@ -114,8 +112,10 @@ async function labelled({ file, game, turns }: StoredReview): Promise<Review<Blu
   assert.equal(problem, null, "the record's capture marks are the engine's");
   const d = g.data(playerNames(record.tags), ending); // none when the rules refuse the game
   assert.ok(d, `the rules refused the game: ${g.error}`);
-  // fromStore passes over a position whose result the store lacks: each position before a move has its stored result
-  const unread = record.moves.flatMap((_, i) => ((d.analysis[i]?.visits ?? 0) >= stored.visits ? [] : [i]));
+  // fromStore passes over a position whose result the store lacks: each position that the review searches has its
+  // stored result (passCount: each position before a move, and the end of an unfinished game)
+  const unread = Array.from({ length: g.passCount }, (_, i) => i)
+    .filter(i => (d.analysis[i]?.visits ?? 0) < stored.visits);
   assert.deepEqual(unread, [], "the positions with no stored result at the review's depth");
   return review(blueprints, d, "lead", LABEL_VISITS);
 }

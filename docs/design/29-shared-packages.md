@@ -91,7 +91,7 @@ edit in the same commit), so their changes still apply.
      step: unknown;           // a move of a line, played: what the board draws after it. Enclosure: the cut, the regions
    }
    /** What the analysis reads of a position. */
-   interface PositionInfo { player: Player; over?: boolean; scores: [number, number]; count?: number }
+   interface PositionInfo { player: Player; over: boolean; scores: [number, number]; count?: number }
    interface Played<M> { player: Player; edge: M | null } // `edge`: the move, null for a pass
 
    interface Game<G extends GameTypes> {
@@ -119,6 +119,10 @@ edit in the same commit), so their changes still apply.
    - **The turn structure comes from the positions:** each position says who moves next (`player`), and a turn is a
      run of one player's moves. `turn` gives only the notation's numbers. Enclosure's first turn has one edge, then
      two a turn. A game of one move a turn numbers each move.
+   - **Each position says whether the game ends there** (`over`, from the engine's outcome). The type requires it. The
+     analysis searches the position after the last move when that position is not the end (an unfinished game), and
+     the review judges the last move from that search. At the game's end, the review takes the result as the value. A
+     position with no `over` could have one reading in the analysis and another in the review.
    - **A turn has one move or two.** The review judges a turn of two moves by Enclosure's rules: the same two moves in
      either order are one turn, and the engine's best turn is its first choice and the next move of that choice's
      line (`judgeTurn`, and `GameAnalysis`'s turns). A game of longer turns, or one where the order within a turn

@@ -3,7 +3,7 @@
 # Update this file only as the test's header says. The commit message says why each label moved.
 # "-": no label.
 # Labels by move: best 7, excellent 12, good 8, inaccuracy 8, mistake 4
-# Labels by turn: best 1, excellent 5, good 3, inaccuracy 5, mistake 6
+# Labels by turn: best 1, excellent 4, good 3, inaccuracy 5, mistake 7
 # Turns of two moves in the other order than the engine's best turn: 0
 # Positions with a twin: none. Played moves that are a twin: 0
 
@@ -68,4 +68,4 @@ turn 16  Red   2@2,-23 2@3,-27x+38                inaccuracy
 turn 17  Blue  2@4,-31x 2@7,-30x+41               inaccuracy
 turn 18  Red   2@6,-26x+41 2@10,-28x              mistake
 turn 19  Blue  2@11,-33 2@14,-31x+48              mistake
-turn 20  Red   2@-1,1x 2@13,-27x+52               excellent
+turn 20  Red   2@-1,1x 2@13,-27x+52               mistake

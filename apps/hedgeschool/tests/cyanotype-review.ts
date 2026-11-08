@@ -19,10 +19,11 @@ export const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 export const TURNS = 20;
 export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each other turn two
 /** The turns that the engine reviews live (reviewFirstTurns), and how long the test waits for the review's
- *  end. Turns 1 to 3 have 5 positions before a move, each searched at 32 and at 512 visits. On the owner's machine
- *  with 2 threads, their review took 90 to 118 s, 11 to 15 percent of the whole game's 13.1 minutes. The whole game
- *  took 9.6 to 20.0 minutes on the Linux runners, and probably about 22 in one run, so turns 1 to 3 take about 3
- *  minutes on a slow runner. The wait is more than three times that. */
+ *  end. Turns 1 to 3 have 5 positions before a move, and the review searches the position after them too (the end of
+ *  an unfinished game: analysis.svelte.ts, passCount), each at 32 and at 512 visits. On the owner's machine with 2
+ *  threads, the review of the 5 positions before a move took 90 to 118 s, 11 to 15 percent of the whole game's 13.1
+ *  minutes. The whole game took 9.6 to 20.0 minutes on the Linux runners, and probably about 22 in one run, so turns 1
+ *  to 3 take about 3 minutes on a slow runner. The wait is more than three times that. */
 export const LIVE_TURNS = 3, LIVE_WAIT = 10 * 60_000;
 /** The key of the review's display settings in local storage (the site's DISPLAY_KEY). */
 export const DISPLAY = DISPLAY_KEY;
@@ -126,12 +127,13 @@ async function openReview(page: Page, turns: number, timeout: number) {
 }
 
 /** The stored review's results for the test game's first `turns` turns, in the order of their keys: each position
- *  before a move, at each depth of the review. */
+ *  before a move and the position after the last, at each depth of the review. The review of an unfinished game
+ *  searches its end (analysis.svelte.ts, passCount). */
 export function storedResults(turns: number): [string, unknown][] {
   const played = parseRecord(testRecord(turns)).moves;
   return readStored().analyses.filter(([key]) => {
     const moves = readAnalysisKey(key).moves.split(" ").filter(Boolean);
-    return moves.length < played.length && moves.every((m, i) => m === played[i]);
+    return moves.length <= played.length && moves.every((m, i) => m === played[i]);
   }).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 

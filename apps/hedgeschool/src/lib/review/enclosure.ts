@@ -30,7 +30,7 @@ export interface Position {
   player: Player;
   movesLeft: number;
   regions: [Region[], Region[]];
-  over?: boolean; // the game has ended here (the engine's outcome)
+  over: boolean; // the game has ended here (the engine's outcome)
   count?: number; // the edges played so far, forfeited ones too (the notation's edge count)
   notation?: string; // the position in the notation (the engine's describe)
 }

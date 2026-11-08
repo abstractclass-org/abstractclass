@@ -38,7 +38,7 @@ export function lineBoard(line: string): Position {
   const marked = (p: Player) => of(p).filter(e => e.marked).map(e => e.edge);
   return {
     edges: [of(0).map(e => e.edge), of(1).map(e => e.edge)], protected: marked(otherPlayer(player)),
-    placed: marked(player), scores, player, movesLeft: left, regions: [[], []],
+    placed: marked(player), scores, player, movesLeft: left, regions: [[], []], over: false,
   };
 }
 

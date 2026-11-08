@@ -20,7 +20,7 @@ export type Player = 0 | 1;
 /** What the analysis reads of a position. */
 export interface PositionInfo {
   player: Player; // who moves next
-  over?: boolean; // the game has ended here (the engine's outcome)
+  over: boolean; // the game has ended here (the engine's outcome)
   scores: [number, number]; // each player's score: the result, where the game ends
   count?: number; // the moves played so far, as the notation counts them
 }
