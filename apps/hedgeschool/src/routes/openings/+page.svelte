@@ -107,10 +107,7 @@
   });
   const mainNames = $derived(data ? data.moves.map(m => moveName(m.edge)) : []);
   /** The notation of a position of the board's tree, by its path. */
-  function notationAt(p: string[]): string | undefined {
-    const i = mainIndex(p, mainNames);
-    return (i !== null ? data?.positions[i] : game?.branches[pathKey(p)]?.position)?.notation;
-  }
+  const notationAt = (p: string[]): string | undefined => game?.positionAt(p)?.notation;
   /** The book at a position of the tree, once its part has loaded: null elsewhere. */
   function bookAt(p: string[]): BookPosition | null {
     const n = notationAt(p), a = n && book ? book.at(n) : null;

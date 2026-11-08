@@ -10,7 +10,7 @@
 import { BAD_LABELS, LABELS, type Label } from "@abstractclass/analysis/labels.ts";
 import type { Unit } from "@abstractclass/analysis/model.ts";
 import type { BookJudgment, BookMoveMark } from "@abstractclass/review/game.ts";
-import { moverOf } from "#lib/editor/position.ts";
+import { moverOf } from "@abstractclass/analysis/turns.ts";
 import { bookMove } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
 import type { BookAt } from "./lookup.svelte.ts";

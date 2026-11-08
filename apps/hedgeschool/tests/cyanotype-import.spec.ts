@@ -6,8 +6,11 @@
 // game replaces an analysis kept there. An out-of-date tool gets its notice. Each test opens a fresh browser context,
 // so its store starts empty. The tests that need the engine skip, with a message, when the preview has no engine files.
 // Run: npx playwright test tests/cyanotype-import.spec.ts, with CYANOTYPE_BASE_URL.
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
+import { writePosition } from "../../cyanotype/src/lib/game/position.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
+import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
 import { BOARD_AT_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, MOVES, REFUSED, noReview, testRecord, toolLink } from "./cyanotype-review.ts";
 
@@ -99,6 +102,30 @@ test.describe("with the engine's files", () => {
     await expect(page).toHaveURL(url => url.pathname === "/import");
     expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
     expect(await local(page, BOARD_AT_KEY)).toBeNull();
+  });
+
+  test("a game from a set-up start: the review is off before the click, and the Analysis board takes the game", async ({ page }) => {
+    // The editor's test position (Red's first move of turn 6, after 9 moves) with a legal move from the engine
+    const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as
+      { name: string; position: SitePosition; legal: string[] }[];
+    const middle = fixtures.find(f => f.name === "A middle game")!;
+    const record = `[Blue "Ann"]
+[Red "Bo"]
+[Position "${writePosition(middle.position)}"]
+
+6. ${middle.legal[0]} *
+`;
+    await page.goto(toolLink({ record }));
+    await noHash(page);
+    const review = page.getByRole("button", { name: "Review the game" }), board = page.getByRole("button", { name: "Analyze on the board" });
+    await expect(board).toBeVisible({ timeout: 120_000 });
+    await expect(review).toBeDisabled();
+    await expect(page.getByText("This game starts from another position. Cyanotype reviews games from the standard start only: "
+                                + "open it on the Analysis board.")).toBeVisible();
+    await expect(board).toHaveAttribute("autofocus", ""); // where the review is refused, the board takes the review's autofocus
+    await board.click();
+    await page.waitForURL(url => url.pathname === "/analysis" && !url.hash, { timeout: 60_000 });
+    expect(await local(page, LAST_REVIEW_KEY)).toBeNull(); // no review was started
   });
 
   for (const [tool, v, notice] of [["userscript", "old", "Your userscript is older than the userscript on this site."],

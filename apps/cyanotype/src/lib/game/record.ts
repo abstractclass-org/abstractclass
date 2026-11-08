@@ -33,9 +33,7 @@ export const withStart = (text: string, position: string | null): string => shar
 /** Why the review cannot take a record, or null: a review is of a game played from the standard start, so a record
  *  from a set-up start opens on the Analysis board only (Hedge School's design 21, item 9). */
 export function setUpProblem(record: GameRecord, site: string): string | null {
-  return setUpStart(record.tags.Position)
-    ? `This game starts from another position. ${site} reviews games from the standard start only: open it on the Analysis board.`
-    : null;
+  return setUpStart(record.tags.Position) ? shared.setUpRefusal(site) : null;
 }
 
 /** Adds the capture mark to every move that has none yet. `captures` is by move, from the engine (check.ts). */

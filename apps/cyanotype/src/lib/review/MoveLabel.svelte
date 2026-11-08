@@ -2,7 +2,9 @@
      boxes and the cell take the colour of the text round it: the mover's, which the move's button gives, or the
      table's. Their digits and marks are white, or the colour that the text round them gives (--on-text: the table's
      ground, so that they show on its text colour in both themes). A screen reader reads the move's notation, and the
-     title gives it. -->
+     title gives it. The glyphs sit on the middle of the line (align-middle): an edit begins with its cell's picture,
+     whose baseline is its lower edge, and on the line's baseline it would stand higher than a placement's boxes and
+     make the line taller. -->
 <script lang="ts">
   import Cell from "../board/Cell.svelte";
   import { glyphOf, playedText, type Played } from "./blueprints.ts";
@@ -15,7 +17,7 @@
   font-sans text-[0.85em] font-bold leading-none"><span class="text-[color:var(--on-text,var(--on-badge))]">{n}</span></span>{/snippet}
 
 <span class="sr-only">{text}</span>
-<span class="inline-flex items-center whitespace-nowrap" aria-hidden="true" title={text}>
+<span class="inline-flex items-center align-middle whitespace-nowrap" aria-hidden="true" title={text}>
   {#each parts as part, k (k)}
     {#if part.kind === "box"}{@render box(part.n)}
     {:else if part.kind === "place"}{part.text}

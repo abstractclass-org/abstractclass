@@ -6,7 +6,6 @@ import { byPoints, canonical, edgeName, parseEdge, sameEdge, STANDARD_START } fr
 import type { Edge, Player } from "#lib/review/enclosure.ts";
 import { countWithMover, LAST_COUNT, moverOf } from "@abstractclass/analysis/turns.ts";
 // The turn structure is the one that Blueprints shares (@abstractclass/analysis/turns.ts).
-export { LAST_COUNT, moverOf };
 
 /** An edge on the editor's board. `marked`: an edge of the turn, written `*` (invincible: the last turn's, of the player
  *  not to move) or `+` (placed: the turn being played, of the mover), as the edge's player and the mover decide. */

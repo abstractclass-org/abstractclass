@@ -5,8 +5,10 @@
   // Simplified Technical English.
   import type { Snippet } from "svelte";
 
-  /** A way for the game: its button's label, what it does, and the action. */
-  interface Way { label: string; text: string; onclick: () => void }
+  /** A way for the game: its button's label, what it does, and the action. A way that the site refuses for this game
+   *  has the reason in `refusal`: its button is off, the reason takes the place of what it does, and the other way
+   *  takes the review button's `autofocus`. */
+  interface Way { label: string; text: string; onclick: () => void; refusal?: string }
   let { notice, heading, players, length, children, pending, review, analyze }: {
     /** The notice for an out-of-date tool, when it is one. */
     notice?: Snippet;
@@ -35,11 +37,14 @@
   <div class="grid gap-3 sm:grid-cols-2">
     <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
       <!-- svelte-ignore a11y_autofocus: the page holds only this choice, and Enter then reviews, as the tools did -->
-      <button class="btn-primary justify-self-start" type="button" autofocus onclick={review.onclick}>{review.label}</button>
-      <p class="text-sm">{review.text}</p>
+      <button class="btn-primary justify-self-start" type="button" autofocus={!review.refusal} disabled={!!review.refusal}
+              onclick={review.onclick}>{review.label}</button>
+      <p class="text-sm">{review.refusal ?? review.text}</p>
     </section>
     <section class="grid content-start gap-2 p-4 bg-panel border border-line rounded-lg">
-      <button class="btn-primary justify-self-start" type="button" onclick={analyze.onclick}>{analyze.label}</button>
+      <!-- svelte-ignore a11y_autofocus: where the review is refused, Enter then opens the board -->
+      <button class="btn-primary justify-self-start" type="button" autofocus={!!review.refusal}
+              onclick={analyze.onclick}>{analyze.label}</button>
       <p class="text-sm">{analyze.text}</p>
     </section>
   </div>

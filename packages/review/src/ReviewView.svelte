@@ -46,6 +46,7 @@
     error: string;
     readonly komi: number; // the game's komi, Red's starting score (Hedge School's design 24): 0 for most games
     branches: Record<string, BranchNode<G>>; // the variations' positions, by path key (tree.ts), in the order added
+    positionAt(path: string[]): G["position"] | undefined; // a position of the tree: the game's, or a variation's
     focusing: string | null; // the path key of the position searched for the player, while it runs
     engineReady: boolean; // the engine's network is loaded: the searches can start
     paused: boolean; // the engine is off: no search starts
@@ -354,10 +355,7 @@
     const i = mainIndex(p, mainNames);
     return [...(i !== null && i < mainNames.length ? [[...p, mainNames[i]]] : []), ...branchKids(p)];
   }
-  const positionOf = (p: string[]): G["position"] | undefined => {
-    const i = mainIndex(p, mainNames);
-    return i !== null ? R.data.positions[i] : branches[pathKey(p)]?.position;
-  };
+  const positionOf = (p: string[]): G["position"] | undefined => game?.positionAt(p);
   // The turn of the move from a place, and whether it is the turn's first edge: the game's own turns on its line, and in
   // a variation the turn goes on while the same player moves.
   const turnCache = $derived.by(() => { void gamePositions; void branches; return new Map<string, { turn: number; first: boolean }>(); });
@@ -1860,8 +1858,8 @@
        fades at its end. While a name is smaller or cut, the Move header is a button that opens the column: each name
        at its full size, the column as wide as the widest name, and the table wider than its box, which then scrolls
        to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
-       (`glyphs`) sit on the middle of its line: an edit's begins with its cell's picture, whose baseline is its
-       lower edge, and on the line's baseline it would make the row taller. -->
+       (`glyphs`) sit on the middle of its line (their Label sets that: game.ts): an edit's begins with its cell's
+       picture, whose baseline is its lower edge, and on the line's baseline it would make the row taller. -->
   <div class="flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
   <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"
@@ -1891,7 +1889,7 @@
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
           <!-- A name that fits its cell (`fitName`) leaves room for the twins' mark -->
-          <td><div class="@container flex items-center gap-1 min-w-0"><span data-name class="flex-none {view.nameText} {twins.length && view.fitName ? 'max-w-[calc(100%_-_1.25em)]' : ''} [--on-text:var(--panel)] [&>*]:align-middle
+          <td><div class="@container flex items-center gap-1 min-w-0"><span data-name class="flex-none {view.nameText} {twins.length && view.fitName ? 'max-w-[calc(100%_-_1.25em)]' : ''} [--on-text:var(--panel)]
                 data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(c.edge, mover, position)} />{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
                 class="flex-none leading-none font-normal text-muted" title="{view.twinWords ?? "Mirror"}: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>
@@ -2007,7 +2005,7 @@
       {#if notes.length || groups.some(g => g.rows.length) || folds.some(Boolean)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
           {#each notes as note (noteText(note))}
-            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each glyphs ? inGlyphs(note) : note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class="{SIDE_TEXT[part.player]} [&>*]:align-middle">{@render written(part)}</span>{/if}{/each}</div>
+            <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each glyphs ? inGlyphs(note) : note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class="{SIDE_TEXT[part.player]}">{@render written(part)}</span>{/if}{/each}</div>
           {/each}
           {#each groups as g, k (k)}
             {@const f = folds[k]}
@@ -2856,7 +2854,7 @@
          middle of the line, as in a note. -->
     <StepBar class="mt-1.5 pt-1.5 border-t border-line" onfirst={() => setPath([])} onback={back} onforward={forward} onlast={toEnd}>
       {#snippet above()}<p class="mb-1.5 text-xs text-muted truncate" title={statusLine}>{#if statusMove}{statusMove.before}<span
-        class="{SIDE_TEXT[statusMove.played.player]} [&>*]:align-middle">{@render written(statusMove.played)}</span>{statusMove.after}{:else}{statusLine}{/if}</p>{/snippet}
+        class="{SIDE_TEXT[statusMove.played.player]}">{@render written(statusMove.played)}</span>{statusMove.after}{:else}{statusLine}{/if}</p>{/snippet}
       {#snippet tools()}
         <!-- The page's menus: New on the Analysis board (design 21), and Export (design 13) -->
         {@render pageTools?.(display.judge)}

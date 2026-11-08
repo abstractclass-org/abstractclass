@@ -6,7 +6,8 @@
 // mover's nodes, plays the visitor's edge and gives the board after it (describe_game). The boards are teaching
 // boards that no game reaches: only the edges that a step needs. So the page ignores describe's check. A step's task
 // test reads the engine's boards before and after the edge, not the edge's points.
-import { moverOf, readPosition } from "#lib/editor/position.ts";
+import { readPosition } from "#lib/editor/position.ts";
+import { moverOf } from "@abstractclass/analysis/turns.ts";
 import { parseEdge } from "#lib/engine/notation.ts";
 import type { GamePosition } from "#lib/engine/position.ts";
 import { otherPlayer, type Edge, type Player, type Position } from "#lib/review/enclosure.ts";

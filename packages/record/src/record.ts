@@ -264,6 +264,11 @@ export function withStartTag(text: string, start: string | undefined): string {
   return start && !/\[Position\s/.test(text) ? withTags(text, startTags(start)) : text;
 }
 
+/** What a site says when its review refuses a game from a set-up start (a `Position` tag other than the standard start):
+ *  the review is of games from the standard start, and the Analysis board takes the others. One text for every site. */
+export const setUpRefusal = (site: string): string =>
+  `This game starts from another position. ${site} reviews games from the standard start only: open it on the Analysis board.`;
+
 /** A RecordError of `read`, the text that `pasted` became with a start's tag before it (withStartTag), as an Error that
  *  says where the problem is in the pasted text, by line and column. */
 export function pastedError(e: RecordError, pasted: string, read: string): Error {

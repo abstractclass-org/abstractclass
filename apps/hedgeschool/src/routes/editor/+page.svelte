@@ -16,8 +16,9 @@
   import { parseEdge, sameEdge, STANDARD_START } from "#lib/engine/notation.ts";
   import { boardPosition, type DescribeReply } from "#lib/engine/position.ts";
   import { otherPlayer, PLAYER_NAME, type Edge, type Player, type Position } from "#lib/review/enclosure.ts";
-  import { chooseMover, drawEdge, followBoard, LAST_COUNT, moverOf, placeable, readPosition, ruleOf, toggleMark,
-           writePosition, type CountRule, type EditorPosition } from "#lib/editor/position.ts";
+  import { chooseMover, drawEdge, followBoard, placeable, readPosition, ruleOf, toggleMark, writePosition, type CountRule,
+           type EditorPosition } from "#lib/editor/position.ts";
+  import { LAST_COUNT, moverOf } from "@abstractclass/analysis/turns.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { startAnalytics, track } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";

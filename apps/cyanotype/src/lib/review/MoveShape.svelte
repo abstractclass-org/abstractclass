@@ -3,7 +3,8 @@
      cell that it moves, with an arrow drawn out of it, as one glyph: the cell's kind from the hand before the move,
      where the view gives it, else a cell with no kind. A pass is a round dot. Hollow when the move is in the tree
      already. The engine's line shows its moves in order, with no numbers: the board numbers them, and a number beside
-     the hex would read as the blueprint's. -->
+     the hex would read as the blueprint's. An edit's viewBox ends at its arrow's ink: the tip's round join reaches
+     2.25 + 0.13, so that the space after the shape is measured from the ink. -->
 <script lang="ts">
   import { DIGITS, type ShapeProps } from "@abstractclass/review/game.ts";
   import { SIDE_TEXT } from "@abstractclass/site/side.ts";
@@ -31,7 +32,7 @@
     </span>
   {:else if move}
     <!-- An edit: the cell that it moves, with an arrow drawn out of it. -->
-    <svg class={["h-[1.05em] w-auto flex-none overflow-visible", SIDE_TEXT[player]]} viewBox="-1 -1 3.3 2" style:aspect-ratio="1.65" aria-hidden="true">
+    <svg class={["h-[1.05em] w-auto flex-none overflow-visible", SIDE_TEXT[player]]} viewBox="-1 -1 3.38 2" style:aspect-ratio="1.69" aria-hidden="true">
       {#if kind}<Cell hex={[0, 0]} owner={player} {kind} look={hollow ? "ghost" : "cell"} />
       {:else}<path d={HEX} fill="none" stroke="currentColor" stroke-width="0.14" stroke-dasharray={hollow ? "0.25 0.18" : undefined} />{/if}
       <path d="M0.8 0H2.05" stroke="currentColor" stroke-width="0.26" stroke-linecap="round" fill="none" />

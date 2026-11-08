@@ -101,6 +101,7 @@ edit in the same commit), so their changes still apply.
      turn(count: number): { turn: number; first: boolean }; // the notation's turn of the next move
      scoreScale: number;                         // the engine's points per Go point (KataGame's SCORE_SCALE)
      afterKey?(move: G["move"], before: G["position"]): string; // the position after a move, as a key (none: its name)
+     enginePosition?(start: string): string;     // the engine's position for a set-up start in the notation (none: the notation's)
    }
    ```
 
@@ -344,8 +345,12 @@ edit in the same commit), so their changes still apply.
 - `packages/engine/`, `packages/storage/`, `packages/analysis/`: each with its `package.json` (name, `exports`,
   scripts), `tsconfig.json` and `src/`. `packages/site/` holds the sites' frame (design 33, item 4), on the same
   rules. Its check is `svelte-check`, since it holds components.
-- `packages/record/`: the game record's frame (design 33). `packages/analysis/src/turns.ts`: the turns of one move,
-  then two, for a game's `turn`.
+- `packages/record/`: the game record's frame (design 33). It also holds what both sites do with a set-up start: a
+  record's start given apart (`withStartTag`), the place of a problem in a pasted record (`pastedError`), the check that
+  the record's own start is the one given (`givenStartProblem`) and the review's refusal of a record from a set-up start
+  (`setUpRefusal`). `packages/analysis/src/turns.ts`: the turns of one move, then two, for a game's `turn`, with the
+  mover from the move count (`moverOf`), the last count (`LAST_COUNT`) and the first count with a given player to move
+  (`countWithMover`), which both board editors use.
 - `packages/analysis/src/share.ts`: the format of a link that carries a game's tree (design 13, item 8), with each
   site's moves as a parameter (`MoveCode`). `boardLink.ts`: the Analysis board's link (design 21). `files.ts`: how a
   site reads its files, the results that belong in a file, and the analysis file, in each site's format.
@@ -370,7 +375,9 @@ edit in the same commit), so their changes still apply.
   the Analysis board's question before a line brought replaces the analysis kept in the browser. `src/GameList.svelte`:
   the Review tab's list of the player's games, with each game's Export and Delete and the line on what the browser
   keeps, with each site's rows (Hedge School's and Cyanotype's `src/lib/review/ReviewHome.svelte`), and the
-  question before a Delete (`@abstractclass/site`'s `ConfirmDialog.svelte`). `src/ExportMenu.svelte`
+  question before a Delete (`@abstractclass/site`'s `ConfirmDialog.svelte`). `src/ImportDialog.svelte`: the Analysis
+  board's Import (design 21), a position, moves or both pasted, with each site's examples, board editor address and
+  check (`onimport`). `src/ExportMenu.svelte`
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages
   share: the Analysis board's, the review's link and the annotated record. `src/NewMenu.svelte`: the Analysis board's
   New menu, with the ways that a site has (design 21). `src/review.css`: the package's Tailwind source and the view's

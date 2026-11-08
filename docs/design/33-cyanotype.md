@@ -550,7 +550,11 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    browser. The Analysis board opens at that position, or at the game's end when the tool sent none. When the board
    kept here has moves, the board first asks "Replace your analysis?", as Hedge School's does ("The review and the
    Analysis board", item 11). The record as Cyanotype wrote it is under "The record", closed. For an out-of-date
-   tool, the page says how to update it, as Hedge School's does. Without a game, the page goes to the tools page.
+   tool, the page says how to update it, as Hedge School's does. Without a game, the page goes to the tools page. A
+   record from a set-up start (a `Position` tag) is for the board only: the review refuses it, so the "Review the
+   game" button is off, its reason (`setUpProblem`) takes the place of its text, and the Analysis board's button
+   takes the review button's `autofocus`. Hedge School's import page offers the review for such a record and refuses
+   it after the click.
 6. **The record's check comes first.** The page takes the game out of the address at once, as Hedge School's does.
    Then the engine's rules check the record, in a rules worker of the page's own, as the Analysis board checks a record
    brought to it ("The review and the Analysis board", item 11). A record that they refuse shows why, and the page

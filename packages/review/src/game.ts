@@ -298,7 +298,9 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   /** The moves in glyphs, where their notation alone is not the game's look (Blueprints' blueprint number in a box,
    *  design 33, item 8): the second form of the display setting `notation`, whose help `help` gives. None: the lists
    *  write the notation, and the settings offer no choice.
-   *  - `Label`: a move played, as wide as `moveText`.
+   *  - `Label`: a move played, as wide as `moveText`. Its root sets itself on the middle of the line (`vertical-align:
+   *    middle`): a glyph that begins with a picture stands on its lower edge, and on the line's baseline it would
+   *    make the line taller. The lists put it in a line with no rule of their own for it.
    *  - `asPlayed`: a move not played as a move played, for its glyphs: a candidate, a line's move, a note's move. From
    *    the position before it, or the line's step before it, where the view knows it, and from its own step once the
    *    rules have played it (a line's). */

@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
-import { moverOf } from "#lib/editor/position.ts";
+import { moverOf } from "@abstractclass/analysis/turns.ts";
 import { edgeName, mirrorEdge, parseEdge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
 import { enclosure, judgeBranchMove, judgeTurn, moverWin, review, valuesAfter, type Analysis, type ReviewData } from "#lib/review/enclosure.ts";

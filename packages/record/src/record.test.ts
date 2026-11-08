@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  isKomi, komiOf, komiPrefix, markMoves, pastedError, readRecord, RecordError, startTags, withStartTag, withTags,
+  isKomi, komiOf, komiPrefix, markMoves, pastedError, readRecord, RecordError, setUpRefusal, startTags, withStartTag, withTags,
   writeRecord, writeTags, type Notation,
 } from "./record.ts";
 
@@ -119,6 +119,11 @@ test("a game's limit on the komi: a Komi tag beyond it is an error that names th
 test("isKomi: a number that a Komi tag can give, whole or half points", () => {
   for (const n of [0, 300, -300, 120.5, -0.5, 99999.5]) assert.equal(isKomi(n), true, String(n));
   for (const n of [6.25, 1e6, NaN, Infinity, "300", null, undefined]) assert.equal(isKomi(n), false, String(n));
+});
+
+test("setUpRefusal: the site's name in the text that sends a set-up start to the Analysis board", () => {
+  assert.equal(setUpRefusal("A site"),
+    "This game starts from another position. A site reviews games from the standard start only: open it on the Analysis board.");
 });
 
 test("startTags: a set-up start's Position tag, then a komi's Komi tag, each only when there is one", () => {

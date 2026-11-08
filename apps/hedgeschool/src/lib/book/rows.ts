@@ -8,7 +8,7 @@ import { classify, type Label } from "@abstractclass/analysis/labels.ts";
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { parseEdge, type Edge } from "#lib/engine/notation.ts";
 import { playerOf } from "#lib/engine/position.ts";
-import { moverOf } from "#lib/editor/position.ts";
+import { moverOf } from "@abstractclass/analysis/turns.ts";
 import { LABEL_TEXT, moverWin, PLAYER_NAME } from "#lib/review/enclosure.ts";
 import type { Book } from "./book.ts";
 import type { BookMove, BookPosition } from "./form.ts";
@@ -193,7 +193,7 @@ export function rowCandidates(rows: BookRow[]): { edge: Edge; rank: number; note
 }
 
 /** The row's line (rowLine) as the board draws it (Board.svelte, BoardLineEdge): each edge with its mover, from the
- *  edge count (editor/position.ts, moverOf). */
+ *  edge count (@abstractclass/analysis/turns.ts, moverOf). */
 export function rowBoardLine(book: Book, p: BookPosition, row: BookRow): { edge: Edge; player: Player }[] {
   const count = edgeCount(p);
   return rowLine(book, row).map((e, i) => ({ edge: parseEdge(e), player: moverOf(count + i).player }));

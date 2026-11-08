@@ -1,5 +1,6 @@
 // A game record into the player's games: checked with the engine's rules (check.ts), given its cut marks, and kept in
 // this browser (store.ts). The pages that import (Home, and the review's ways in, Arrival.svelte) show the outcome.
+import { setUpRefusal } from "@abstractclass/record/record.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { checkMoves } from "./check.ts";
 import { markCuts, type GameRecord } from "./record.ts";
@@ -14,8 +15,7 @@ export function variantProblem(record: GameRecord, board = false): string | null
   const set = (tag: string) => { const v = record.tags[tag]?.trim(); return v && v !== "?" && v !== "-" ? v : null; };
   const rules = set("Rules"), position = setUpStart(record.tags.Position);
   if (rules) return `This game uses other rules (${rules}). Hedge School reviews games of the online rules only.`;
-  if (position && !board)
-    return "This game starts from another position. Hedge School reviews games from the standard start only: open it on the Analysis board.";
+  if (position && !board) return setUpRefusal("Hedge School");
   return null;
 }
 
