@@ -13,14 +13,7 @@ export { ANALYSIS_FILE_VERSION } from "@abstractclass/analysis/files.ts";
 export const ANALYSIS_FORMAT = "hedge-school-analysis";
 
 /** The kind of a Hedge School file, from its `format`, or null for another file. */
-export function fileKind(text: string): "review" | "analysis" | null {
-  try {
-    const f = JSON.parse(text) as { format?: unknown };
-    return f?.format === ANALYSIS_FORMAT ? "analysis" : f?.format === REVIEW_FORMAT ? "review" : null;
-  } catch {
-    return null;
-  }
-}
+export const fileKind = (text: string) => shared.fileKind(text, REVIEW_FORMAT, ANALYSIS_FORMAT);
 
 /** The analysis file of a board, with the results of `models`, the networks this site ships. */
 export const exportAnalysis = (board: KeptBoard, site: string, models: Set<string> | null, now = new Date()) =>

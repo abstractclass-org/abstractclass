@@ -168,8 +168,9 @@ searching it again, and to share it as text that others can read.
 
 ## Where it is
 
-- `src/lib/game/reviewFile.ts` (the file: build, read, merge, export, import, `deliverExport`, the menu's entries
-  `reviewExports`),
+- `src/lib/game/reviewFile.ts` (the file in Hedge School's format, `deliverExport`, the menu's entries
+  `reviewExports`), on `packages/analysis/src/reviewFile.ts` (the file's build, reader, import and export from the
+  store, which Cyanotype shares, with each site's part as a parameter),
   `src/lib/review/annotate.ts` (the annotated record, Enclosure's part), `packages/analysis/src/annotate.ts` (the
   annotated record's frame, which Cyanotype shares), `packages/analysis/src/files.ts` (how a site reads its files, the
   results that belong in a file), `packages/analysis/src/cache.ts` (`cacheGetAtLeast`,

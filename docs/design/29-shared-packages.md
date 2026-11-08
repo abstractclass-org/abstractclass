@@ -77,6 +77,12 @@ edit in the same commit), so their changes still apply.
    as a parameter). The engine settings' changes as events went into the analysis package (`settingChanges.ts`), the
    exports' event into the review's (`exportEvents.ts`) and a practice game's parameters into the practice's
    (`practiceEvents.ts`), each with the site's analytics and its networks' names as parameters.
+   The review file (Hedge School's design 13) moved out of Hedge School's `src/lib/game/reviewFile.ts` with
+   Cyanotype's review files: its build, its reader, its import and its export from the store went into the analysis
+   package (`reviewFile.ts`), with each site's name, format, record's reader, store of games and import's check as
+   parameters. The way to tell a review file from an analysis file (`fileKind`) went into `files.ts`, and the Export
+   menu's entry for the review file into the review package's `exports.ts`. Hedge School's files, its messages and
+   its tests stayed as they were.
    A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
    its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
    (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site
@@ -388,10 +394,11 @@ edit in the same commit), so their changes still apply.
   (`countWithMover`), which both board editors use.
 - `packages/analysis/src/share.ts`: the format of a link that carries a game's tree (design 13, item 8), with each
   site's moves as a parameter (`MoveCode`). `boardLink.ts`: the Analysis board's link (design 21). `files.ts`: how a
-  site reads its files, the results that belong in a file, and the analysis file, in each site's format.
-  `annotate.ts`: the annotated record (design 13), with how each game writes a move. Hedge School's
-  `src/lib/game/share.ts`, `board.ts`, `analysisFile.ts` and `src/lib/review/annotate.ts` give Enclosure's parts, with
-  the exports that its code and tests use.
+  site reads its files, the results that belong in a file, a file's kind, and the analysis file, in each site's
+  format. `reviewFile.ts`: the review file (design 13), with each site's part as a parameter (`reviewFiles`). Hedge
+  School's and Cyanotype's `src/lib/game/reviewFile.ts` give their parts. `annotate.ts`: the annotated record (design
+  13), with how each game writes a move. Hedge School's `src/lib/game/share.ts`, `board.ts`, `analysisFile.ts` and
+  `src/lib/review/annotate.ts` give Enclosure's parts, with the exports that its code and tests use.
 - `packages/analysis/src/games.ts`: the store of the player's games (Hedge School's designs 11 and 22), with each
   site's record's reader, a game's id and the key of its last review as parameters (`gameStore`), and the marks of a
   finished review (design 13). `reviewLock.ts`: one tab reviews a game at a time (design 11). `settings.ts`: the
@@ -414,10 +421,10 @@ edit in the same commit), so their changes still apply.
   board's Import (design 21), a position, moves or both pasted, with each site's examples, board editor address and
   check (`onimport`). `src/ExportMenu.svelte`
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages
-  share: the Analysis board's, the review's link and the annotated record. `src/NewMenu.svelte`: the Analysis board's
-  New menu, with the ways that a site has (design 21). `src/PositionCheckStatus.svelte`: what the board editor says of
-  its position, the engine's refusal, or whether a game can reach it with the engine's reasons, and each site's word
-  for the places that the board marks (design 21, item 10). `src/howReviews/`: the sections that the two sites'
+  share: the Analysis board's, the review's link, the review file and the annotated record. `src/NewMenu.svelte`: the
+  Analysis board's New menu, with the ways that a site has (design 21). `src/PositionCheckStatus.svelte`: what the
+  board editor says of its position, the engine's refusal, or whether a game can reach it with the engine's reasons,
+  and each site's word for the places that the board marks (design 21, item 10). `src/howReviews/`: the sections that the two sites'
   pages "How a review works" share (the searches, the quality labels with their bands, Best and Great, the accuracy,
   the hard positions and the meter), with the numbers from the analysis package's code, and each site's words for a move
   ("edges" on Hedge School) and for the other player ("enemy") as props (design 33, "The review and the Analysis
@@ -475,7 +482,7 @@ edit in the same commit), so their changes still apply.
 review's view in packages/review" (2026-10-25), "The review's styles in packages/review and packages/site"
 (2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), "Cyanotype's
 review takes two moves that give one position as one move" (2026-11-05), "Cyanotype on Stamp Duty 0.2, with the GPU
-and the threaded bot" (2026-11-07), and "Cyanotype refuses a set-up start before the click, and shared lookups"
-(2026-11-08).
+and the threaded bot" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
+(2026-11-08), and "Cyanotype's review files, as Hedge School's" (2026-11-08).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06), and "A new feature starts in a package" (2026-11-08).

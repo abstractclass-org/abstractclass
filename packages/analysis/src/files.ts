@@ -35,6 +35,17 @@ export function readSiteFile(text: string, site: string, format: string, version
   return { ...f, analyses };
 }
 
+/** The kind of a site's file, from its `format`: a review file in `review`, an analysis file in `analysis`, or null for
+ *  another file. */
+export function fileKind(text: string, review: string, analysis: string): "review" | "analysis" | null {
+  try {
+    const f = JSON.parse(text) as { format?: unknown };
+    return f?.format === analysis ? "analysis" : f?.format === review ? "review" : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Whether a result belongs to a file of `positions`: of one of them, or one move from one, in a shape that the readers
  *  read, and of `models` (the networks' SHA-256) when given. A result of a network that the site no longer ships is of no
  *  use to any copy of it. */

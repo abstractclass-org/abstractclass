@@ -1,18 +1,20 @@
 // Cyanotype's stored reviews (tests/fixtures/cyanotype-review.json, STORED, and the others of OTHER_STORED in
-// tests/cyanotype-review.ts). The tests of Cyanotype's review (tests/cyanotype-review.spec.ts) and the layout test's
-// Cyanotype cases (tests/layout.spec.ts) load the first, so that nothing searches there (tests/cyanotype-review.ts,
-// storeReview). Only one test reviews with the engine, the game's first turns, and checks that the store then holds
-// the stored review's results for them. Cyanotype's label snapshot
-// (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) reads them all. This script makes the files from real
-// reviews:
+// tests/cyanotype-fixture.ts). STORED is a review file of Cyanotype's (apps/cyanotype/src/lib/game/reviewFile.ts). The
+// tests of Cyanotype's review (tests/cyanotype-review.spec.ts) and the layout test's Cyanotype cases
+// (tests/layout.spec.ts) load it, so that nothing searches there (tests/cyanotype-review.ts: the layout test's review
+// loads it in the Review tab, the others put its results in the browser's store). Only one test reviews with the
+// engine, the game's first turns, and checks that the store then holds the stored review's results for them.
+// Cyanotype's label snapshot (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) reads them all. This
+// script makes the files from real reviews:
 // - In Playwright's headless Chromium, with the layout test's launch options (playwright.config.ts), it reviews the
 //   test game to the end of turn 20 on Cyanotype's preview as cyanotype-review.ts does: the game comes in by the
 //   Review tab's paste (pasteRecord), and the review runs at Lite, 512 visits a position, on the CPU. The script prints
 //   the review's first line of progress once the engine has searched a position.
+// - It saves the review file from the review's Export menu: the game's record as the page keeps it, the review's mark
+//   (its engine module, its search, its network and its depth), and the results of the game's positions.
 // - Then it searches the Analysis board's position of more views (cyanotype-review.ts, SPREAD_BOARD) to 512 visits.
-// - It writes each result that the browser's store of analyses then holds, under its key
-//   (@abstractclass/analysis/cache.ts, analysisKey), and the engine that made them: its search, and the network's id
-//   and SHA-256 (STORED).
+//   It adds the results of that position, and of the positions one move from it, to the file's results, and writes
+//   the file as STORED: a review file of the game leaves them out, and the layout test's Analysis board takes them.
 // - Then it makes each other stored review at the same visits: it reviews the stored review's game to its turn, and
 //   writes the results of that review (@abstractclass/analysis/files.ts, belongs: of a position of the record, or one
 //   move from one), without their ownership, which only the area map reads. A review of the test game runs in the
@@ -29,7 +31,7 @@
 //
 //   CYANOTYPE_BASE_URL=http://127.0.0.1:4174 node scripts/cyanotype-review-fixture.mjs [tests/fixtures/FILE.json...]
 import { chromium } from "@playwright/test";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { belongs } from "@abstractclass/analysis/files.ts";
 import { positionKeys } from "@abstractclass/analysis/kept.ts";
@@ -103,6 +105,14 @@ try {
     await putResults(page, first.analyses);
   } else {
     await review(page, TURNS);
+    // The review file, from the review's Export menu (its button in the step bar)
+    await page.getByRole("button", { name: "Export" }).click();
+    const [saved] = await Promise.all([page.waitForEvent("download"),
+                                       page.getByRole("menuitem", { name: /^Review file/ }).click()]);
+    const file = JSON.parse(readFileSync(await saved.path(), "utf8"));
+    if (file.format !== "cyanotype-review" || file.review?.search !== search || file.review?.model !== model.sha256)
+      throw new Error("the review's Export gave no review file of the preview's engine");
+
     // The Analysis board's position: its record's moves, all of them (at the record's end)
     const board = new URLSearchParams(SPREAD_BOARD.split("#")[1]);
     const moves = parseRecord(board.get("record")).moves.join(" ");
@@ -119,7 +129,18 @@ try {
       await page.waitForTimeout(2_000);
     }
     console.log(`the Analysis board's position: ${Math.round((Date.now() - t1) / 1000)} s`);
-    await write(page, STORED, key => models.has(readAnalysisKey(key).model));
+
+    // The board's results: of its position, and of the positions one move from it
+    const fromBoard = (await keptResults(page, true)).filter(([key]) => {
+      const k = readAnalysisKey(key);
+      return k.model === model.sha256 && (k.moves === moves ||
+        (k.moves.startsWith(`${moves} `) && !k.moves.slice(moves.length + 1).includes(" ")));
+    });
+    const have = new Set(file.analyses.map(([key]) => key));
+    file.analyses.push(...fromBoard.filter(([key]) => !have.has(key)));
+    const text = JSON.stringify(file) + "\n";
+    writeFileSync(STORED, text);
+    console.log(`${STORED}: ${file.analyses.length} results, ${Math.round(text.length / 1024)} KB`);
   }
 
   for (const { file, game, turns } of others) {

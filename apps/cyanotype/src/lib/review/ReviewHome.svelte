@@ -1,29 +1,30 @@
 <script lang="ts">
   // The Review tab without a game (design 33, as Hedge School's ReviewHome.svelte and its design 22): import a game to
-  // review it by pasting its record, continue the last review, and the player's games, kept in this browser
-  // (game/store.ts), with their Export and their Delete (GameList). A review opens on a game the player brought: there
-  // is no sample game (Hedge School's design 11). An analysis file dropped here goes to the Analysis board, as on Hedge
-  // School. Cyanotype has no review files yet (abscls-8tl1.34), so the tab has no "Load a review file". The tab counts
-  // its events as Hedge School's does (its design 17): the games kept, a delete and a delete stopped, an import and its
-  // failure, an analysis file that cannot load, and the exports.
+  // review it by pasting its record or by loading a review file (game/reviewFile.ts), continue the last review, and the
+  // player's games, kept in this browser (game/store.ts), with their Export and their Delete (GameList). A review opens
+  // on a game the player brought: there is no sample game (Hedge School's design 11). An analysis file dropped here goes
+  // to the Analysis board, as on Hedge School. The tab counts its events as Hedge School's does (its design 17): the
+  // games kept, a delete and a delete stopped, an import and its failure, a review file loaded, a file that cannot load,
+  // and the exports.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
   import { keepStorage, storageKept } from "@abstractclass/storage/persist.ts";
   import { loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { playerNames, type GameRecord } from "#lib/game/record.ts";
+  import { parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { deleteGame, lastReview, listGames, reviewAgainWhy, reviewCovers, reviewMark,
            type StoredGame } from "#lib/game/store.ts";
-  import { openAnalysisFile } from "#lib/game/analysisFile.ts";
+  import { fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
+  import { loadReviewFile } from "#lib/game/reviewFile.ts";
   import { loadEngine, settingsFor } from "#lib/analysis/engineSettings.ts";
   import { REVIEW_EXPORTS, deliverExport } from "./reviewExports.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
-  import { trackExport, trackImport, trackImportFailed, trackLoadFailed } from "#lib/game/sources.ts";
+  import { trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
   import { GAME_RANGES, range } from "@abstractclass/site/measure.ts";
 
   let text = $state("");
@@ -95,22 +96,50 @@
     location.assign(`/review#game=${id}`); // the review loads it (hashchange)
   }
 
-  // A file dropped on the tab: an analysis file goes to the Analysis board, its results kept here (Hedge School's design
-  // 21). Cyanotype has no review files yet.
+  // Files (Hedge School's designs 13 and 21), chosen or dropped on the page: a review file is kept and reviewed, and an
+  // analysis file goes to the Analysis board, its results kept here.
   let fileProblem = $state("");
+  let loadingFile = $state(false);
   let dragging = $state(false);
-  async function dropped(event: DragEvent) {
-    event.preventDefault();
-    dragging = false;
-    const file = event.dataTransfer?.files[0];
+
+  async function loadFile(file: File | undefined) {
     if (!file) return;
     fileProblem = "";
+    loadingFile = true;
+    const content = await file.text();
+    if (fileKind(content) === "analysis") {
+      try {
+        await goto(await openAnalysisFile(content, await manifestLoad)); // the board counts the load
+      } catch (e) {
+        fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
+        trackLoadFailed("analysis_file", "file");
+      } finally {
+        loadingFile = false;
+      }
+      return;
+    }
     try {
-      await goto(await openAnalysisFile(await file.text(), await manifestLoad)); // the board counts the load
+      const { id, file } = await loadReviewFile(content, await manifestLoad);
+      trackLoad("review_file", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
+      location.assign(`/review#game=${id}`); // the review loads it (hashchange)
     } catch (e) {
       fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
-      trackLoadFailed("analysis_file", "file");
+      trackLoadFailed("review_file", "file");
+    } finally {
+      loadingFile = false;
     }
+  }
+
+  /** Loads the input's file, then empties the input: the same file chosen again then loads again. */
+  function loadInputFile(input: HTMLInputElement) {
+    void loadFile(input.files?.[0]);
+    input.value = "";
+  }
+
+  function dropped(event: DragEvent) {
+    event.preventDefault();
+    dragging = false;
+    void loadFile(event.dataTransfer?.files[0]);
   }
 
   const title = (r: GameRecord) => { const p = playerNames(r.tags); return `${p.blue} against ${p.red}`; };
@@ -125,8 +154,8 @@
       id: game.id, title: title(record), href: `/review#game=${game.id}`,
       detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
         + `added ${new Date(game.added).toLocaleDateString()}`,
-      exports: { run: kind => deliverExport(kind, game.id), items: REVIEW_EXPORTS, ontrack: trackExport,
-                 ready: reviewCovers(game.reviewed, want),
+      exports: { run: async kind => deliverExport(kind, game.id, await manifestLoad), items: REVIEW_EXPORTS,
+        ontrack: trackExport, ready: reviewCovers(game.reviewed, want),
         why: !game.reviewed ? "Open the game to review it, then export."
           : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game to review it again, then export."
           : "Open the game to finish its review with the engine settings now, then export." },
@@ -167,6 +196,15 @@
       <p class="mt-2.5 text-xs text-muted">From <a href="https://strategyjam.org/blueprints/" target="_blank" rel="noopener noreferrer">strategyjam.org</a>:
         use the <a href="/tools">bookmarklet or the userscript</a>, one click on the game's page.</p>
     </form>
+    <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
+      <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2", loadingFile ? "opacity-50" : "hover:border-accent"]}>
+        {loadingFile ? "Loading…" : "Load a review file"}
+        <input type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
+               onchange={e => loadInputFile(e.currentTarget)} />
+      </label>
+      <span class="flex-1 min-w-56 text-xs text-muted">A review file that {SITE_NAME} exported, from this browser or another. You can
+        also drop it on this page. It opens at once, with the engine's results it holds.</span>
+    </div>
     {#if fileProblem}<p class="mt-1.5 text-blunder" role="alert">{fileProblem}</p>{/if}
   </section>
 

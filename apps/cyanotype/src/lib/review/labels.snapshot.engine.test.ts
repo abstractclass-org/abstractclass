@@ -1,5 +1,5 @@
 // The label snapshot of Cyanotype: its quality labels on its stored reviews (apps/hedgeschool/tests/fixtures/
-// cyanotype-review.json and the others of OTHER_STORED in apps/hedgeschool/tests/cyanotype-review.ts, which
+// cyanotype-review.json and the others of OTHER_STORED in apps/hedgeschool/tests/cyanotype-fixture.ts, which
 // apps/hedgeschool/scripts/cyanotype-review-fixture.mjs writes), by move and by turn, in a committed text file for each
 // (apps/hedgeschool/tests/snapshots/review-labels/<file's name less "-review.json">.txt), as Hedge School's label
 // snapshot (apps/hedgeschool/src/lib/review/labels.snapshot.test.ts). The labels come from the code that the review
@@ -52,7 +52,7 @@ import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 import { parseRecord, playerNames } from "../game/record.ts";
 import { blueprints, playedText, type Blueprints } from "./blueprints.ts";
 import { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord }
-  from "../../../../hedgeschool/tests/cyanotype-review.ts";
+  from "../../../../hedgeschool/tests/cyanotype-fixture.ts";
 
 memoryDb(queueMicrotask); // the store that fromStore reads
 const { GameAnalysis } = await import("@abstractclass/analysis/analysis.svelte.ts");

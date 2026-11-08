@@ -1,13 +1,14 @@
 // The home page's board (src/routes/+page.svelte, src/lib/home/HomeReplay.svelte), as Hedge School's
 // (apps/hedgeschool/scripts/home-replay.mjs): scenes from a reviewed game, played on the board with the review's
 // candidates and labels. The stored review of the review's test game gives the engine's results (Hedge School's
-// tests/fixtures/cyanotype-review.json, which its scripts/cyanotype-review-fixture.mjs writes from a real review), and
-// the record gives the game: a game of Stamp Duty against itself (src/lib/review/fixtures/stamp-duty.txt). The
-// engine's rules (static/engine, after `npm run engine`) give its positions and what each move did, and the review's own
-// rules give its labels by move (@abstractclass/analysis/model.ts, review), from the stored results at the label
-// stage's depth, as the review reads them (GameAnalysis.fromStore, with the twins of withTwins). The game stops at its
-// last position with a stored result. A scene is the 9 turns before the game's latest move with a bad label, and that
-// move. So one game gives one scene, and more scenes need more reviewed games. Nothing names the players.
+// tests/fixtures/cyanotype-review.json, a review file, which its scripts/cyanotype-review-fixture.mjs writes from a
+// real review), and the record gives the game: a game of Stamp Duty against itself
+// (src/lib/review/fixtures/stamp-duty.txt). The engine's rules (static/engine, after `npm run engine`) give its
+// positions and what each move did, and the review's own rules give its labels by move
+// (@abstractclass/analysis/model.ts, review), from the stored results at the label stage's depth, as the review reads
+// them (GameAnalysis.fromStore, with the twins of withTwins). The game stops at its last position with a stored result.
+// A scene is the 9 turns before the game's latest move with a bad label, and that move. So one game gives one scene,
+// and more scenes need more reviewed games. Nothing names the players.
 //
 //   node scripts/home-replay.mjs STORED.json RECORD.txt
 // writes src/lib/home/replay.json (the scenes, loaded after the page shows) and src/lib/home/still.json (the first
@@ -29,11 +30,12 @@ if (!storedFile || !recordFile) throw new Error("usage: node scripts/home-replay
 const { call } = await nodeEngine(".");
 
 const stored = JSON.parse(readFileSync(storedFile, "utf8"));
-// The results of the stored network, each position's at the label stage's depth or deeper (cacheGetAtLeast).
+// The results of the stored review's network (its mark, src/lib/game/reviewFile.ts), each position's at the label
+// stage's depth or deeper (cacheGetAtLeast).
 const byMoves = new Map();
 for (const [key, value] of stored.analyses) {
   const k = readAnalysisKey(key);
-  if (k.map || k.model !== stored.model || k.visits < LABEL_VISITS) continue;
+  if (k.map || k.model !== stored.review.model || k.visits < LABEL_VISITS) continue;
   const kept = byMoves.get(k.moves);
   if (!kept || kept.visits < k.visits) byMoves.set(k.moves, { visits: k.visits, value });
 }
@@ -101,7 +103,8 @@ const scenes = [{ frames }];
 const labels = R.edges.map(e => e.label ?? "-").join(" ");
 console.log(`${moves.length} moves, ${analysis.filter(Boolean).length} positions with a result; labels by move: ${labels}`);
 
-const made = { by: "scripts/home-replay.mjs", labelVisits: LABEL_VISITS, search: stored.search, network: stored.network };
+const made = { by: "scripts/home-replay.mjs", labelVisits: LABEL_VISITS, search: stored.review.search,
+               network: stored.review.network };
 writeFileSync("src/lib/home/replay.json", JSON.stringify({ made, scenes }) + "\n");
 writeFileSync("src/lib/home/still.json", JSON.stringify(scenes[0].frames[0]) + "\n");
 const size = n => `${Math.round(n / 1024)} KB`;

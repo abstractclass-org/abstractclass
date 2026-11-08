@@ -50,7 +50,7 @@
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
   import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem, refuseKomi } from "#lib/game/board.ts";
-  import { analysisFileName, exportAnalysis, openAnalysisFile } from "#lib/game/analysisFile.ts";
+  import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
@@ -245,11 +245,14 @@
   }
 
   /** An analysis file loaded from the New menu: its results go to this browser's store, and its lines to the board's
-   *  address, so that the page's opening reads them and asks before it replaces the board kept here. */
+   *  address, so that the page's opening reads them and asks before it replaces the board kept here. A review file
+   *  loads in the Review tab, as on Hedge School. */
   async function loadFile(file: File) {
     notice = "";
+    const content = await file.text();
     try {
-      history.replaceState(null, "", await openAnalysisFile(await file.text(), session.manifest)); // `/analysis#packed=…`
+      if (fileKind(content) === "review") throw new Error("this is a review file: load it in the Review tab");
+      history.replaceState(null, "", await openAnalysisFile(content, session.manifest)); // `/analysis#packed=…`
       location.reload();
     } catch (e) {
       notice = `The Analysis board cannot load this file: ${sentence(errorText(e))}`;

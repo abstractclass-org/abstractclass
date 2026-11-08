@@ -1,115 +1,67 @@
-// A reviewed game as a file (design 13): the game's record, the player's variations, and the engine's results for every
-// position of the game and its variations, so that another browser opens the review without searching again. The
-// results are keyed by the engine's build and network (@abstractclass/analysis/cache.ts), so a browser whose site ships
-// another network keeps the game and its variations, and its review searches again with its own engine. KaTrain keeps its
-// analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the annotated
-// record (review/annotate.ts).
-import { atShape, makeEarlierRemovalDue, ofModels } from "@abstractclass/analysis/cache.ts";
-import { belongs, readSiteFile, shippedModels } from "@abstractclass/analysis/files.ts";
-import { STORES, dbEntriesWhere, dbGet, dbPut, dbPutMany } from "@abstractclass/storage/db.ts";
+// A reviewed game as a file (design 13): the shared review file (@abstractclass/analysis/reviewFile.ts), in Hedge
+// School's format, with its record's reader, its store of games and its import's check of the variant. The file holds
+// the game's record, the player's variations, and the engine's results for every position of the game and its
+// variations, so that another browser opens the review without searching again. The game's record alone, with
+// evaluations and labels, is the annotated record (review/annotate.ts).
+import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
-import { branchNodes, loadGame, markReviewed, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
-import { searchModules, type Manifest } from "@abstractclass/engine/client.ts";
+import { branchNodes, loadGame, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
+import type { Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { ENCLOSURE_CODE, sharedRecord, type SharedReview } from "./share.ts";
 import { reviewLink, shareNote } from "@abstractclass/analysis/share.ts";
 import { importRecord, variantProblem } from "./import.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
 import { mergeBranches, positionKeys } from "@abstractclass/analysis/kept.ts";
+import { shippedModels } from "@abstractclass/analysis/files.ts";
+import { reviewFiles, type ReviewFile } from "@abstractclass/analysis/reviewFile.ts";
 import { download } from "@abstractclass/site/download.ts";
-import { RECORD_EXPORTS, REVIEW_LINK, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
-export const REVIEW_FILE_VERSION = 1;
-
-export interface ReviewFile {
-  format: typeof REVIEW_FORMAT;
-  version: number;
-  exported: string; // ISO date and time
-  site: string; // the site's version (its commit) that wrote the file
-  review: FileReview | null; // the review that ran to its end, which the results hold
-  record: string; // the game's record, as kept
-  branches: KeptBranches | null;
-  analyses: [string, unknown][]; // the engine's results, by their keys in the browser's store
-}
-
-/** The finished review in a file: the engine module's and the network's SHA-256, the module's search (none in an older
- *  file), the network's id and name, the review's depth, and when it ended. */
-export interface FileReview extends ReviewMark { networkName: string }
+export { REVIEW_FILE_VERSION, gameAnalyses, shippedModules, type FileReview, type ReviewFile } from "@abstractclass/analysis/reviewFile.ts";
 
 // The moves of every position of a game and its variations, as the results' keys spell them, at the game's komi: the
 // shared ones (@abstractclass/analysis/kept.ts).
 export { positionKeys };
-
-/** The results that belong to a game: of its positions, and of the positions one move from them, which confirm the
- *  Greats (@abstractclass/analysis/analysis.svelte.ts, confirmGreats), in a shape that the readers read, and of `models`
- *  (the networks' SHA-256) when given: a result of a network that the site no longer ships is of no use to any copy of
- *  it. */
-export function gameAnalyses(entries: [string, unknown][], positions: Set<string>, models: Set<string> | null = null): [string, unknown][] {
-  return entries.filter(([key]) => belongs(key, positions, models));
-}
 // Which results belong to a file, and the networks a manifest ships: the shared ones (@abstractclass/analysis/files.ts).
 export { belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
-export function buildReviewFile(record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
-                                models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
-  const { moves, komi } = parseRecord(record);
-  return {
-    format: REVIEW_FORMAT, version: REVIEW_FILE_VERSION, exported: now.toISOString(), site,
-    review: reviewed && { ...reviewed, networkName: networkName(reviewed.network) }, record, branches,
-    analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches, komi), models)),
-  };
-}
+/** Hedge School's review files. A file's game is kept as an imported record is (import.ts), but for its check of a
+ *  start: a variant is refused, and a set-up start is kept. */
+const files = reviewFiles({
+  name: "Hedge School", format: REVIEW_FORMAT, prefix: "hedge-school", parse: parseRecord,
+  players: r => playerNames(r.tags), networkName, loadGame,
+  async keep(text, record) {
+    const variant = variantProblem(record);
+    if (variant) throw new Error(variant);
+    return (await saveGame(text, record)).id;
+  },
+});
+
+/** The review file of a game, its record and its variations, with its results among `entries` (of `models` when
+ *  given). `site` is the site's version. `reviewed`: the game's mark. */
+export const buildReviewFile = (record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
+                                models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile =>
+  files.build(record, branches, entries, site, models, reviewed, now);
 
 /** Reads a review file (@abstractclass/analysis/files.ts, readSiteFile, for its frame and its results). Throws an Error
  *  that tells the player what is wrong. */
-export function readReviewFile(text: string): ReviewFile {
-  const f = readSiteFile(text, "Hedge School", REVIEW_FORMAT, REVIEW_FILE_VERSION, "review file") as Partial<ReviewFile> & { analyses: [string, unknown][] };
-  if (typeof f.record !== "string") throw new Error("The review file has no game record.");
-  parseRecord(f.record); // throws with the record's own problem
-  const b = f.branches;
-  const branchesOk = b === null || b === undefined ||
-    (b.version === 2 && Array.isArray(b.nodes) && b.nodes.every(n => Array.isArray(n) && typeof n[0] === "string" && typeof n[1] === "number")) ||
-    (b.version === 1 && Array.isArray(b.lines) && b.lines.every(l => Array.isArray(l) && l.every(m => typeof m === "string")));
-  if (!branchesOk) throw new Error("Hedge School cannot read the review file's variations.");
-  const r = f.review;
-  const review = r && typeof r === "object" && typeof r.module === "string" && typeof r.model === "string" &&
-    typeof r.network === "string" && typeof r.visits === "number" ? r : null;
-  if (review && typeof review.search !== "string") delete review.search; // an older file's review names no search
-  return { ...f, review, branches: b ?? null } as ReviewFile;
-}
+export const readReviewFile = files.read;
 
 /** Reads a review file and keeps it in this browser (importReview), with the networks and the engine modules that the
  *  manifest ships. Answers the game's id, and the file for the load's count. Throws an Error that tells the player what
  *  is wrong. */
-export async function loadReviewFile(text: string, manifest: Manifest | null): Promise<{ id: string; file: ReviewFile }> {
-  const file = readReviewFile(text);
-  const { id } = await importReview(file, shippedModels(manifest), shippedModules(manifest));
-  return { id, file };
-}
+export const loadReviewFile = (text: string, manifest: Manifest | null) => files.load(text, manifest);
 
 /** The variations kept for a game after an import: the shared rule (@abstractclass/analysis/kept.ts). */
 export { mergeBranches } from "@abstractclass/analysis/kept.ts";
 
 /** A file name for the game: its players, and its id so that two games of the same players differ. */
-export function reviewFileName(record: string, id: string): string {
-  const p = playerNames(parseRecord(record).tags);
-  const slug = (s: string) => s.normalize("NFKD").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "player";
-  return `hedge-school-${slug(p.blue)}-vs-${slug(p.red)}-${id}.json`;
-}
+export const reviewFileName = files.fileName;
 
 /** The review file of a stored game, with the results of `models`, the networks this site ships. */
-async function exportReview(id: string, site: string, models: Set<string> | null): Promise<ReviewFile> {
-  const stored = await loadGame(id);
-  if (!stored) throw new Error(`This browser has no game ${id}.`);
-  const branches = (await dbGet<KeptBranches>(STORES.branches, id)) ?? null;
-  const positions = positionKeys(stored.record.moves, branches, stored.record.komi);
-  const entries = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
-  return buildReviewFile(stored.game.record, branches, entries, site, models, stored.game.reviewed ?? null);
-}
-
-/** The engine modules of a manifest's search, by SHA-256: a file's review counts as done where it ran with one. */
-export const shippedModules = (manifest: Manifest | null) => (manifest ? searchModules(manifest) : null);
+const exportReview = files.exportReview;
 
 /** What an export makes, an entry of the Export menu, and what an export tells the player: the shared menu's
  *  (@abstractclass/review/exports.ts). */
@@ -122,7 +74,7 @@ export type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review
 export const reviewExports = (partner: string | null = null): ExportItem[] => [
   ...(partner ? [["partner_save", `Save to ${partner}`, "The review file, to your account there.", `Saved to ${partner}`] as ExportItem] : []),
   REVIEW_LINK,
-  ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"],
+  REVIEW_FILE,
   ...RECORD_EXPORTS,
 ];
 
@@ -177,33 +129,11 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
   else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
 }
 
-/** Keeps a review file's game, variations and results in this browser. `models` are the networks that this site ships
- *  (their SHA-256): results of another network are left out, since this site's engine never asks for them. `modules` are
- *  the engine modules of this site's search (their SHA-256). The file's review is the game's mark when it ran with a
- *  network kept: done here when it ran with one of these modules, else a review by an earlier engine, which opens as
- *  it was (design 20). A mark of this site's search stays over an earlier engine's. The mark keeps the search that the
- *  file's review names: an older file's review names none. The mark comes before the results:
- *  a removal of earlier results in another tab (earlierResults.ts) that runs between them then finds none of them,
- *  rather than results that no mark needs yet. */
-export async function importReview(file: ReviewFile, models: Set<string> | null, modules: string[] | null = null) {
-  const variant = variantProblem(parseRecord(file.record));
-  if (variant) throw new Error(variant);
-  const { id } = await saveGame(file.record, parseRecord(file.record));
-  if (file.branches) await dbPut(STORES.branches, id, mergeBranches((await dbGet<KeptBranches>(STORES.branches, id)) ?? null, file.branches));
-  const r = file.review, before = (await loadGame(id))?.game.reviewed;
-  const ours = (module?: string) => !!module && !!modules?.includes(module);
-  if (r && (!models || models.has(r.model)) && (ours(r.module) || !ours(before?.module)))
-    await markReviewed(id, { module: r.module, model: r.model, network: r.network, visits: r.visits,
-                             ...(r.search ? { search: r.search } : {}),
-                             modules: ours(r.module) ? modules! : [r.module] });
-  // The game keeps the file's network and depth, when the site ships that network, so that its review opens as it was
-  // made. The browser's settings stay for the other games.
-  if (r && (!models || models.has(r.model))) await setGameSettings(id, { network: r.network, visits: r.visits });
-  const wanted = ofModels(file.analyses, models);
-  const kept = await dbPutMany(STORES.analysis, wanted), other = file.analyses.length - wanted.length;
-  makeEarlierRemovalDue(); // results of an earlier engine that the game's mark may not need: a mark of this site's stays
-  return { id, kept, other };
-}
+/** Keeps a review file's game, variations and results in this browser (@abstractclass/analysis/reviewFile.ts). `models`
+ *  are the networks that this site ships (their SHA-256), `modules` the engine modules of this site's search. The
+ *  file's review is the game's mark when it ran with a network kept: done here when it ran with one of these modules,
+ *  else a review by an earlier engine, which opens as it was (design 20). */
+export const importReview = files.importReview;
 
 /** Gives the player a file to save: the shared one (@abstractclass/site/download.ts). */
 export { download };

@@ -18,6 +18,10 @@ export interface ExportResult { note?: string; linkLength?: number }
 export const REVIEW_LINK: ExportItem =
   ["share_link", "Copy a link to share the review", "Short. The recipient's browser reviews the game again.", "Link copied"];
 
+/** The review file (Hedge School's design 13): it holds the engine's results, so the review opens at once. */
+export const REVIEW_FILE: ExportItem =
+  ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"];
+
 /** The annotated record, copied or as a file: the review's and the Analysis board's last entries. */
 export const RECORD_EXPORTS: ExportItem[] = [
   ["record_copy", "Copy the annotated record", "", "Annotated record copied"],

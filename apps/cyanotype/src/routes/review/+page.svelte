@@ -12,9 +12,9 @@
   // the network. The GPU worker joins the pool once the network is loaded (Hedge School's design 15). A game that keeps
   // its own network and depth (a shared review's, Hedge School's design 09) reviews with them. The engine's results are
   // kept by position (@abstractclass/analysis/cache.ts), so a review opened again shows them at once. Once the review
-  // is done, the game keeps its mark (game/store.ts), and its Export menu shares it by link (reviewExports.ts). The
-  // page counts its events as Hedge School's review does (Hedge School's design 17): the review's open and end, the
-  // engine's errors, the settings changed, the features used and the exports. The
+  // is done, the game keeps its mark (game/store.ts), and its Export menu shares it by link or as a review file
+  // (reviewExports.ts). The page counts its events as Hedge School's review does (Hedge School's design 17): the
+  // review's open and end, the engine's errors, the settings changed, the features used and the exports. The
   // analytics start once a game has left the address (holdsGame), else from the layout.
   import { onDestroy, onMount, untrack } from "svelte";
   import { afterNavigate, replaceState } from "$app/navigation";
@@ -260,10 +260,11 @@
   }
   onDestroy(stop);
 
-  /** The review exported (reviewExports.ts): its link, with what the game's mark names. */
+  /** The review exported (reviewExports.ts): its link, with what the game's mark names, or its review file, with the
+   *  engine's results. */
   async function exportAs(kind: ExportKind): Promise<ExportResult | void> {
     if (!kept) throw new Error("no game is open");
-    return deliverExport(kind, kept.id);
+    return deliverExport(kind, kept.id, session.manifest);
   }
 </script>
 
@@ -296,7 +297,7 @@
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })}
               ownSettings={own?.from} gpu={session.gpuView}>
     {#snippet tools()}
-      <!-- Export (Hedge School's design 13): once the review is done, a link that shares it. -->
+      <!-- Export (Hedge School's design 13): once the review is done, a link that shares it, or its review file. -->
       <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={bar.done} why="Export once the review is done."
                   ontrack={trackExport} />
     {/snippet}

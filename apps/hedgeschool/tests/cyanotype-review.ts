@@ -1,22 +1,25 @@
 // Cyanotype's review (its design 33) for the browser tests, on its preview (CYANOTYPE_BASE_URL): the review's test game
 // (apps/cyanotype/src/lib/review/fixtures/stamp-duty.txt, Stamp Duty against itself) up to the end of turn TURNS, at
 // Lite (512 visits a move): with the release engine-91ab0b7d, its first note is a Mistake at turn 12. The tests load
-// the stored review of the game (STORED), the results of a real review in the browser, and search nothing. A review
+// the stored review of the game (STORED, cyanotype-fixture.ts), the results of a real review in the browser, and search
+// nothing: the layout test's review loads it as a review file in the Review tab (reviewStoredFile), the others put its
+// results in the browser's store (storeReview). A review
 // of the whole game with the engine takes 10 to 20 minutes on the CI runners. So only one test reviews with the
 // engine, on the CPU: the game's first LIVE_TURNS turns. The Tests workflow builds Cyanotype with the engine's files
 // (design 33, "The engine's files"). A test skips, with a message, when the preview has none, and fails in CI.
 import { expect, type Page } from "@playwright/test";
-import { readFileSync } from "node:fs";
 import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
 import { modelOf, moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
 import { analysisKey, readAnalysisKey, readable } from "../../../packages/analysis/src/cache.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
+import { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord } from "./cyanotype-fixture.ts";
+
+// The stored reviews and the games' records: in a module with no Playwright import, for Cyanotype's label snapshot.
+export { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord };
 
 export const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
-/** The turns of the test game that the review's tests review, and STORED holds. */
-export const TURNS = 20;
 export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each other turn two
 /** The turns that the engine reviews live (reviewFirstTurns), and how long the test waits for the review's
  *  end. Turns 1 to 3 have 5 positions before a move, and the review searches the position after them too (the end of
@@ -32,39 +35,6 @@ export const DISPLAY = DISPLAY_KEY;
 export const LITE = { review: "lite", visits: 512, gpu: "off" } as const;
 /** The site's database and its store of analyses. */
 const STORE = [NAME, STORES.analysis] as const;
-/** The stored review: the results of a real review of the test game, and of the Analysis board's SPREAD_BOARD, with
- *  the engine that made them. scripts/cyanotype-review-fixture.mjs writes it: run it again when Cyanotype's
- *  engine.lock.json takes a new release. */
-export const STORED = "tests/fixtures/cyanotype-review.json";
-/** The test game's file in apps/cyanotype/src/lib/review/fixtures. */
-export const TEST_GAME = "stamp-duty.txt";
-/** The other stored reviews: the results of real reviews at the same visits, each with its file, its game (a file in
- *  apps/cyanotype/src/lib/review/fixtures) and the turns that it reviews (Infinity: the whole game). Only Cyanotype's
- *  label snapshot reads them: they reach the kinds of label and the rules that STORED does not reach (the snapshot
- *  test's header names them). So their results hold no ownership, which only the area map reads.
- *  scripts/cyanotype-review-fixture.mjs writes them after STORED. */
-export const OTHER_STORED = [
-  { file: "tests/fixtures/cyanotype-whole-review.json", game: TEST_GAME, turns: Infinity },
-  { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
-] as const;
-/** A stored review's file (STORED unless `file` gives another): its engine (`search`, `network`, the network's
- *  SHA-256 `model`), the review's depth (`visits`) and its results. Read by the file's place, so that Cyanotype's
- *  label snapshot (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) reads it too. */
-export const readStored = (file = STORED):
-  { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] } =>
-  JSON.parse(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"));
-
-/** The record of the test game, or of the game `game` (a file in apps/cyanotype/src/lib/review/fixtures), up to the
- *  end of turn `turns`, or to its end when the game has no later turn: its tags, but not its result, and its moves. */
-export function testRecord(turns = TURNS, game: string = TEST_GAME): string {
-  const text = readFileSync(new URL(`../../cyanotype/src/lib/review/fixtures/${game}`, import.meta.url), "utf8");
-  const [tags, moves] = text.split(/\r?\n\r?\n/);
-  const words = moves.trim().split(/\s+/), next = words.indexOf(`${turns + 1}.`);
-  // Without a later turn (next is -1), the moves end before the record's last word, its result
-  const kept = tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t));
-  return `${kept.join("\n")}\n\n${words.slice(0, next).join(" ")}\n`;
-}
-
 /** A record that the engine refuses: the test game's first three turns, with an x on 2@1,-5, which captures nothing. */
 export const REFUSED = '[Blue "Ann"]\n[Red "Bo"]\n\n1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *\n';
 
@@ -111,6 +81,19 @@ async function keepSettings(page: Page, engine: object, display: object) {
 export async function reviewTestGame(page: Page, display: object = {}, { on = false } = {}) {
   await storeReview(page, display, { on });
   await openReview(page, TURNS, 120_000);
+}
+
+/** Reviews the test game in `page` from the stored review as a review file, which the Review tab's "Load a review file"
+ *  loads (ReviewHome.svelte), with the engine off, and waits for the review's end. The page keeps the game with its
+ *  mark, its network and its depth (game/reviewFile.ts), and puts the file's results in the browser's store. Then it
+ *  names the game in its address, and reviews it from the store. */
+export async function reviewStoredFile(page: Page) {
+  await checkStored(page);
+  await keepSettings(page, { on: false, ...LITE }, {});
+  await page.goto(new URL("/review", CYANOTYPE).href);
+  await page.locator('input[type="file"][accept*="json"]').setInputFiles(STORED);
+  await page.waitForURL(/#game=/, { timeout: 60_000 });
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
 }
 
 /** Reviews the test game's first LIVE_TURNS turns in `page` with the engine on at Lite, from no stored result, and
@@ -185,13 +168,20 @@ export function keptResults(page: Page, values = false): Promise<[string, unknow
 }
 
 /** Puts the stored review's results (STORED) in the browser's store of analyses, with the display settings `display`,
- *  and the engine off, or on at Lite with `on`. The test's browser context is new, so the site has no database yet.
+ *  and the engine off, or on at Lite with `on` (checkStored first). The test's browser context is new, so the site has no database yet.
  *  This makes the database with the site's stores, so the site's upgrade adds none (db.ts adds only the stores that
  *  are missing). A page that opens next takes the results as its own. With the engine on, a search of a position takes
  *  its stored result (analysis.svelte.ts, search), and asks nothing of the engine. Then expectNoSearch checks that the
- *  page asked the engine for no search. Fails when the preview's engine is not the one that made the results, or when
- *  the site no longer reads their keys (cache.ts, analysisKey and READ_SHAPES). */
+ *  page asked the engine for no search. */
 export async function storeReview(page: Page, display: object = {}, { on = false } = {}) {
+  await checkStored(page);
+  await keepSettings(page, { on, ...LITE }, display);
+  await putResults(page, readStored().analyses);
+}
+
+/** Fails when the preview's engine is not the one that made the stored review's results (STORED), or when the site no
+ *  longer reads their keys (cache.ts, analysisKey and READ_SHAPES). */
+async function checkStored(page: Page) {
   const fixture = readStored(), analyses = fixture.analyses;
   const manifest: Manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href)
     .then(r => r.json());
@@ -205,8 +195,6 @@ export async function storeReview(page: Page, display: object = {}, { on = false
   });
   if (unread.length)
     throw new Error(`${STORED} has ${unread.length} results whose keys the site no longer reads: ${rerun}`);
-  await keepSettings(page, { on, ...LITE }, display);
-  await putResults(page, analyses);
 }
 
 /** Puts the results `entries` (each key with its result) in the browser's store of analyses on the page's site, and

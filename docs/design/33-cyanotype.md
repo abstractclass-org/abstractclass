@@ -15,9 +15,9 @@ are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map
 editor and starts from a set-up position are built (abscls-8tl1.39, "Decision", item 10, and "The board editor"), with
 the engine's check that a game can reach a position (abscls-8tl1.59). The early access is built, as Hedge School's
 ("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
-player's games"). Partner sites are designed, not built ("Partner sites"). The analytics and the consent banner are
-built as Hedge School's (abscls-8tl1.48, "Analytics and consent"). No build measures yet: PostHog replaces Google
-Analytics first (abscls-xb0k).
+player's games"), with their review files (abscls-8tl1.34, "The review files"). Partner sites are designed, not built
+("Partner sites"). The analytics and the consent banner are built as Hedge School's (abscls-8tl1.48, "Analytics and
+consent"). No build measures yet: PostHog replaces Google Analytics first (abscls-xb0k).
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -26,8 +26,8 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
 notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07. Partner sites:
-2026-11-08. The import page keeps the game: 2026-11-08. The position check: 2026-11-09. The analytics and the consent:
-2026-11-06.
+2026-11-08. The import page keeps the game: 2026-11-08. The review files: 2026-11-08. The position check: 2026-11-09.
+The analytics and the consent: 2026-11-06.
 
 ## Context
 
@@ -716,8 +716,10 @@ build). The decision log gives the measurements that led to each choice.
     - **The review's Export,** once the review is done: a link that shares the review (`/review#packed=…`,
       `src/lib/game/share.ts`, `src/lib/review/reviewExports.ts`), on the review and beside each game in the Review
       tab ("The player's games"). The link names the game's mark, its deepest review that ran to its end, as Hedge
-      School's does, not the depth set when Export is clicked. The review file (abscls-8tl1.34) and the annotated
-      record (abscls-8tl1.35) add their entries after it. The link's page (`src/lib/review/SharedArrival.svelte`)
+      School's does, not the depth set when Export is clicked. The review file follows it, with the engine's results
+      ("The review files"). The annotated record (abscls-8tl1.35) adds its entries after them. When a link is longer
+      than a Discord message takes, the note after it says to send the review file. The link's page
+      (`src/lib/review/SharedArrival.svelte`)
       says what the link holds and what the sender's review ran with. "Review it" keeps the game in the player's
       games, as a pasted record: the engine's rules check it first, as the import page does, and a game that they
       refuse is not kept. So a link that the rules refuse says why.
@@ -942,15 +944,15 @@ and the board that the page draws and the engine reads, where Hedge School's eng
 Cyanotype keeps the player's games in this browser, as Hedge School does (its designs 11 and 22, with a game's own
 settings of its design 09 and the marks of its design 13), in the code that both sites share (design 29).
 
-1. **The Review tab** (`/review` without a game): a box for a game record, "Continue your last review", and the
-   player's games, newest first, each with its link, its Export and its Delete. A review is `/review#game=…`. A game's
-   link and "Continue your last review" open it. The address names no game, so the Review link in the header opens
-   the tab, as Hedge School's does.
-2. **A record comes in three ways:** pasted in the Review tab, the import page's "Review the game", and a shared
-   review's "Review it". Each goes through one import (`src/lib/game/import.ts`). The import first refuses a game from
-   a set-up start: the review takes games from the standard start only, and says to open it on the Analysis board.
-   Then the engine's rules play the record and check its capture marks, in a rules worker of the page's own
-   (`checkRecordMarks`, `src/lib/review/recordCheck.ts`). The import page has checked its game already, so it gives
+1. **The Review tab** (`/review` without a game): a box for a game record, "Load a review file" ("The review
+   files"), "Continue your last review", and the player's games, newest first, each with its link, its Export and its
+   Delete. A review is `/review#game=…`. A game's link and "Continue your last review" open it. The address names no
+   game, so the Review link in the header opens the tab, as Hedge School's does.
+2. **A record comes in four ways:** pasted in the Review tab, the import page's "Review the game", a shared review's
+   "Review it", and a review file. Each goes through one import (`src/lib/game/import.ts`). The import first refuses
+   a game from a set-up start: the review takes games from the standard start only, and says to open it on the
+   Analysis board. Then the engine's rules play the record and check its capture marks, in a rules worker of the
+   page's own (`checkRecordMarks`, `src/lib/review/recordCheck.ts`). The import page has checked its game already, so it gives
    the import that check's answer ("How a game comes in from strategyjam.org", item 7). The list keeps no game that
    the review refuses: the page says why, in the import page's words ("Cyanotype cannot review this game: …"). The
    list keeps the record with a capture mark on every move that captures, as Hedge School's adds its cut marks. The
@@ -973,21 +975,21 @@ settings of its design 09 and the marks of its design 13), in the code that both
    School.
 7. **One tab reviews a game at a time,** with the Web Locks API. Another tab for the game starts no engine, and says
    that the game is open in another tab, with "Review here".
-8. **A game's own network and depth:** a shared review's game keeps the sender's, when the site ships the sender's
-   network, and a game whose last review used a network that has left the menus keeps that review's. The review uses
-   them, and the engine settings show and change them, as on Hedge School. Cyanotype ships one network now, so only a
-   shared review's game has its own.
+8. **A game's own network and depth:** a shared review's game keeps the sender's, and a review file's game the
+   file's, when the site ships that network. A game whose last review used a network that has left the menus keeps
+   that review's. The review uses them, and the engine settings show and change them, as on Hedge School. Cyanotype
+   ships one network now, so only a shared review's game and a review file's have their own.
 9. **The mark:** a review that runs to its end marks its game with the engine, the network and the depth. The
    Export beside a game in the list opens when the mark covers the review that the game reviews with now. When the
    site's engine or network changes, a game reviewed before is reviewed again, and the review says why, in a dialog
    once in a visit and in a line under its progress.
-10. **An analysis file** dropped on the Review tab opens on the Analysis board, as on Hedge School.
+10. **An analysis file** dropped on the Review tab opens on the Analysis board, as on Hedge School. A review file
+    dropped there loads as one chosen with "Load a review file". The Analysis board's New menu refuses a review file,
+    with Hedge School's words: "this is a review file: load it in the Review tab".
 11. **The home page** has "Review a game you played" among its ways in, for a record, as Hedge School's.
 
 **Where it departs from Hedge School's:**
 
-- **No review file** in the Review tab, and no "Load a review file": Cyanotype has no review files yet
-  (abscls-8tl1.34).
 - **No review snapshot:** a game reviewed by an earlier engine is reviewed again at once, with the notice of item 9.
   Hedge School first shows the earlier review as it was (its design 20). abscls-8tl1.35.
 - **No marks before the first paint:** until the page's code runs, `/review` shows the line "Reading the game with the
@@ -995,6 +997,30 @@ settings of its design 09 and the marks of its design 13), in the code that both
 - **No partner sites yet** ("Partner sites").
 - **No game from a set-up start in the list:** the review takes none, and Cyanotype's practice games are not kept yet
   (abscls-8tl1.40, abscls-8tl1.50). Hedge School's list opens such a game on the Analysis board.
+
+### The review files
+
+A review file is Hedge School's (its design 13): the game's record as the list keeps it, the player's variations, the
+review that ran to its end (the game's mark, with the network's name), and the engine's results for every position of
+the game and its variations, and of the positions one move from them (the Greats' confirmations). Another browser opens
+the review at once, with no search. The file and its reader are shared (`packages/analysis/src/reviewFile.ts`, design
+29). Cyanotype's part is `src/lib/game/reviewFile.ts`.
+
+1. **The format** is `cyanotype-review`, at the shared version 1. A file's name is `cyanotype-`, the players, and the
+   game's id (`cyanotype-Ann-vs-Bo-review-39-0a1b2c3d.json`). Hedge School's reader refuses a Cyanotype file, and
+   Cyanotype's a Hedge School file: "This is not a Cyanotype review file."
+2. **The export:** the review's Export menu and the Export beside each game in the Review tab have "Review file, to
+   load later or elsewhere", after the link, once the review is done ("The review and the Analysis board", item 12).
+   The file holds the results of the networks that the site ships.
+3. **The load:** "Load a review file" in the Review tab, or a file dropped there. The game comes in as a pasted
+   record does ("The player's games", item 2): the review refuses a game from a set-up start, and the engine's rules
+   check the record and its capture marks. A game that the review refuses keeps nothing: no game, no variations and no
+   results. Then the variations join the game's own, the file's review becomes the game's mark when the site ships its
+   network, the game keeps the file's network and depth (item 8 of "The player's games"), and the results of the
+   shipped networks go to the browser's store. The review then opens at `/review#game=…`.
+4. **A file of an earlier engine:** its review is the game's mark as that engine's, as on Hedge School, so the review
+   reviews the game again (item 9 of "The player's games"). Hedge School first shows such a review as it was. Cyanotype
+   does not yet ("Where it departs from Hedge School's").
 
 ## Partner sites
 
@@ -1301,8 +1327,6 @@ measure (`/lab/measure`, `packages/measure`). Cyanotype lacks these pages of Hed
 The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as features:
 
 - **The removal of earlier engine results after a release** (`game/earlierResults.ts`, design 20). abscls-8tl1.30.
-- **Review files, loaded and exported** (`game/reviewFile.ts`, the review's file input, and the review file in the
-  review's Export menu). abscls-8tl1.34.
 - **The review snapshot and the annotated export** (`review/exportText.ts`, design 13): a saved review that reopens
   under an earlier engine, and the annotated record from the store and in the review's Export menu. The record's
   writer is shared (`packages/analysis/src/annotate.ts`), and the Analysis board's Export uses it. abscls-8tl1.35.
@@ -1556,9 +1580,10 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   which both sites' boards use.
 - The Export menus and the links ("The review and the Analysis board", item 12): `src/lib/game/share.ts` (Blueprints'
   moves in a link, the review's link and its record), `board.ts` (the board's link), `analysisFile.ts` (the analysis
-  file), `src/lib/review/annotate.ts` (the annotated record), `reviewExports.ts` (the review's entries and the link
-  from a game's mark) and `SharedArrival.svelte` (a shared review's page), with their tests. The shared parts:
-  `packages/analysis/src/share.ts`, `boardLink.ts`, `files.ts` and `annotate.ts`, and
+  file), `reviewFile.ts` (the review file, "The review files"), `src/lib/review/annotate.ts` (the annotated record),
+  `reviewExports.ts` (the review's entries, the link from a game's mark and the review file) and
+  `SharedArrival.svelte` (a shared review's page), with their tests. The shared parts:
+  `packages/analysis/src/share.ts`, `boardLink.ts`, `files.ts`, `reviewFile.ts` and `annotate.ts`, and
   `packages/review/src/ExportMenu.svelte`, `exports.ts` and `NewMenu.svelte` (design 29, "Where it is").
 - The board editor and a position's notation ("The board editor", "Decision", item 10): `src/routes/editor/+page.svelte`
   (the page), `src/lib/editor/position.ts` (a cell put, a hand's cell moved, the count and the scores),
@@ -1590,14 +1615,18 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   of an out-of-date tool, and `layout.spec.ts` the page's layout. They
   run where the site has the engine's files, the Tests workflow too: without them they skip.
   The tests of the review, and the layout test's review and Analysis board, load a stored review of the test game
-  (`cyanotype-review.ts`, `storeReview`) and ask the engine for no search: `tests/fixtures/cyanotype-review.json`,
-  which `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes again when Cyanotype's `engine.lock.json`
-  takes a new release. The same script writes the other stored reviews (`cyanotype-review.ts`, `OTHER_STORED`), which
-  only Cyanotype's label snapshot reads (`apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`): the whole
-  test game, and a second game of Stamp Duty against itself to the end of turn 23
-  (`src/lib/review/fixtures/stamp-duty-seed12.txt`). Their results have no ownership, because only the area map reads
-  it. With them, the label snapshot reaches each quality label by move, each one by turn but Great, the turns in the
-  other order and the twins (item 9).
+  and ask the engine for no search: `tests/fixtures/cyanotype-review.json`, a review file, which
+  `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes again when Cyanotype's `engine.lock.json` takes a new
+  release. The script saves it from the review's Export menu, and adds the results of the Analysis board's position.
+  The layout test's review loads it in the Review tab, as a player loads a review file (`cyanotype-review.ts`,
+  `reviewStoredFile`). The other tests put its results in the browser's store (`storeReview`). The same script writes
+  the other stored reviews (`cyanotype-fixture.ts`, `OTHER_STORED`), which only Cyanotype's label snapshot reads
+  (`apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`): the whole test game, and a second game of Stamp
+  Duty against itself to the end of turn 23 (`src/lib/review/fixtures/stamp-duty-seed12.txt`). They are not review
+  files: each holds its engine and its results. Their results have no ownership, because only the area map reads it.
+  With them, the label snapshot reaches each quality label by move, each one by turn but Great, the turns in the other
+  order and the twins (item 9). `cyanotype-fixture.ts` reads the stored reviews, with no Playwright import, for the
+  label snapshot too.
   `cyanotype-live-review.spec.ts` reviews the game's first three turns with the engine, on the CPU, and checks that
   the browser's store then holds the stored review's results for them, value for value. The rank chips' test needs
   a position whose candidates place one blueprint more often than a panel shows. Stamp Duty 0.2's review of the test

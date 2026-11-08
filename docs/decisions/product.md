@@ -10256,3 +10256,43 @@ path in the site's folder.
     modules and engine-d6786eba's networks, as abscls-tdbr's branch has it, and that lock passes.
   - Nothing in `packages/` imports a file of `apps/` by any path, a computed one included. `static/engine` is not
     the site's code: the step writes it from the releases.
+
+### Cyanotype's review files, as Hedge School's (2026-11-08)
+
+abscls-8tl1.34. Hedge School's review loads and exports review files (design 13). Cyanotype's review had neither
+(design 33, "The gaps from Hedge School"). Now Cyanotype has both, from code that the two sites share (design 33, "The
+review files", and design 29).
+
+- **What moved into the packages:** the review file's build, its reader, its import and its export from the store
+  went from Hedge School's `src/lib/game/reviewFile.ts` into `packages/analysis/src/reviewFile.ts`
+  (`reviewFiles`). Each site gives its name, its format, the start of a file's name, its record's reader, its players'
+  names, its networks' names, its store of games and the way a file's game comes in. The way to tell a review file
+  from an analysis file (`fileKind`) went into `packages/analysis/src/files.ts`, and the Export menu's entry for the
+  review file into `packages/review/src/exports.ts` (`REVIEW_FILE`).
+- **Hedge School does what it did.** Its `reviewFile.ts` keeps every export, with its format `hedge-school-review`,
+  its messages and its file's fields in their order. Its game comes in as before: a variant is refused, and the game
+  is kept as it is. Its tests did not change.
+- **A Cyanotype file's game comes in as a pasted record does** (`src/lib/game/import.ts`): the review refuses a game
+  from a set-up start, and the engine's rules check the record and its capture marks. The list keeps no game that the
+  review refuses, so a refused file keeps nothing: no game, no variations and no results. Hedge School's import keeps
+  the file's game without the engine's rules, as its paste does.
+- **The format is `cyanotype-review`,** at the shared version 1, so a site's reader refuses the other site's files. A
+  file's name starts with `cyanotype-`.
+- **The tests' stored review is now a review file.** `tests/fixtures/cyanotype-review.json` held the results of a real
+  review and the engine that made them, in a form of its own. It now holds the same 79 results, value for value, in a
+  Cyanotype review file: the game's record, the review's mark (the engine module of the lock, the search, the network
+  and 512 visits), and the results. 78 results are of the game's 39 positions, at 32 and at 512 visits, and one is of
+  the Analysis board's position (`SPREAD_BOARD`), which a review file of the game leaves out. The fixture script now
+  saves the review file from the review's Export menu, and adds the board's results. The layout test's review loads
+  it in the Review tab, as a player loads a review file (`reviewStoredFile`). The other tests still put its results
+  in the browser's store (`storeReview`). The fixture, the test game's record and the reader moved into
+  `tests/cyanotype-fixture.ts`, which imports no Playwright, so that the label snapshot no longer loads it.
+- **Checked:** the unit tests of both sites' review files: Cyanotype's new `reviewFile.test.ts` (5 tests: the file
+  read back and the wrong files, the load with its capture marks, variations, mark, settings and results, a refused
+  game that keeps nothing, an earlier engine's mark, the file's name), and Hedge School's (9 tests, unchanged). Both
+  label snapshots passed on the stored reviews, so Cyanotype's labels on the converted fixture did not change. The
+  home page's replay script (`apps/cyanotype/scripts/home-replay.mjs`) reads the network and the search from the
+  file's mark now: on the converted fixture it writes `replay.json` and `still.json` byte for byte as dev's script
+  writes them on the fixture before. The committed scenes come from an earlier release (search `3ac5c2fc`), so the
+  script differs from them on dev too: this branch leaves them as they are.
+  The checks and the browser tests are in the next entry, which ran on both issues' code.

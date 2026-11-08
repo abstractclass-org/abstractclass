@@ -24,7 +24,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
-import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewTestGame, storeReview, toolLink }
+import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewStoredFile, storeReview, toolLink }
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
 import { toMove } from "./move-header.ts";
@@ -389,8 +389,10 @@ test("layout of a practice game on Cyanotype", async ({ page }) => {
 
 // Cyanotype's review and Analysis board (its design 33), when CYANOTYPE_BASE_URL gives its preview with the engine's
 // files: the review's test game up to turn 20, and the Analysis board on the practice bot's position of more views,
-// with its candidates. Both cases load the stored review (cyanotype-review.ts, storeReview), and nothing searches
-// here: only cyanotype-review.spec.ts reviews the test game with the engine. The review has the engine off. The board
+// with its candidates. Both cases load the stored review (cyanotype-review.ts), and nothing searches here: only
+// cyanotype-review.spec.ts reviews the test game with the engine. The review has the engine off, and loads the stored
+// review as a review file in the Review tab (reviewStoredFile), as a player loads one. The board takes its results in
+// the browser's store (storeReview). The board
 // shows "Not analyzed yet." with the engine off, though the store holds the result of its position. So the board has
 // the engine on, and its search takes the stored result. Each case checks that the page asked the engine for no
 // search (expectNoSearch). Besides the sweep, design 06's window sizes. After the review, its Review tab with the game
@@ -405,7 +407,7 @@ for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as
       await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
       const candidates = page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]");
       await expect(candidates.first()).toBeVisible({ timeout: 120_000 });
-    } else await reviewTestGame(page);
+    } else await reviewStoredFile(page);
     await expectNoSearch(page);
     const found = await problemsAtSizes(page);
     const reports = [await sweep(page, `Cyanotype's ${name}`), ...found];

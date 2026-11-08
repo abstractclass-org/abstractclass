@@ -8,9 +8,14 @@ import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import { boardLink, refuseKomi } from "./board.ts";
 import { MAX_RECORD_KOMI } from "./record.ts";
+import { REVIEW_FORMAT } from "./reviewFile.ts";
 import { SITE_NAME } from "../site.ts";
 
 export const ANALYSIS_FORMAT = "cyanotype-analysis";
+
+/** The kind of a Cyanotype file, from its `format`: a review file (reviewFile.ts), an analysis file, or null for
+ *  another file. */
+export const fileKind = (text: string) => shared.fileKind(text, REVIEW_FORMAT, ANALYSIS_FORMAT);
 
 /** The analysis file of a board, with the results of `models`, the networks this site ships. `site` is the site's
  *  version. */
