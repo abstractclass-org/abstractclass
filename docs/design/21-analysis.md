@@ -83,6 +83,11 @@ engine does by itself.
        `at`, so the board opens at the game's end.
      - **The page asks before it keeps anything.** It reads the record first, so a record that it cannot read fails at
        once. The engine's rules check the record on the page chosen. A player who closes the page imports nothing.
+     - **A way that the site refuses for the game is off before the click** (`wayRefusals` in
+       `src/lib/game/import.ts`, the choice's `refusal`): its button cannot be clicked, and the reason takes the place
+       of what it does. A game from a set-up start turns off the review only, with the words that Cyanotype shows too
+       (`setUpRefusal` in `packages/record`): they send the player to the Analysis board, which takes the game. A
+       game of other rules turns off both ways.
      - **A partner's link** (design 18) goes straight to the review. Its button says "Review".
    - **The board's New menu,** beside its Export: every way to start the board again. Each replaces the analysis kept
      here, after the board asks (item 6).

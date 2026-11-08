@@ -19,6 +19,11 @@ export function variantProblem(record: GameRecord, board = false): string | null
   return null;
 }
 
+/** Why the arrival's two ways (ToolChoice.svelte, design 21) refuse a tool's game, each before its click, or null: the
+ *  review refuses another variant and another start, and the Analysis board refuses another variant only. */
+export const wayRefusals = (record: GameRecord): { review: string | null; analyze: string | null } =>
+  ({ review: variantProblem(record), analyze: variantProblem(record, true) });
+
 /** Imports a read record. Returns the game's id, or throws an Error whose message tells the player what is wrong. */
 export async function importRecord(text: string, record: GameRecord): Promise<string> {
   const variant = variantProblem(record);

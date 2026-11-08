@@ -1,9 +1,10 @@
-// Checks which addresses count as a partner's save page (design 18), the variant check on import, and the game's own
-// page from its Site tag. Run: npm test.
+// Checks which addresses count as a partner's save page (design 18), the variant check on import and the arrival's
+// refusals, and the game's own page from its Site tag. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gamePartner, partnerOf } from "./partners.ts";
-import { variantProblem } from "./import.ts";
+import { variantProblem, wayRefusals } from "./import.ts";
+import { setUpRefusal } from "@abstractclass/record/record.ts";
 import { gamePage, parseRecord } from "./record.ts";
 
 test("a save page counts only on a partner's own host, over https", () => {
@@ -28,6 +29,17 @@ test("a game of other rules, or from another start, is refused; the online rules
   assert.equal(variantProblem(setUp, true), null); // the Analysis board takes it
   assert.equal(variantProblem(game('[Position "A10-D10 Q10-T10 b1 0/0 0"]')), null); // the standard start, written out
   assert.equal(variantProblem(game('[Rules "?"]')), null);
+});
+
+test("the arrival's ways: a set-up start turns off the review only, with the shared words; other rules turn off both", () => {
+  const game = (tags: string, moves = "1. D10-E13") => parseRecord(`${tags}\n\n${moves} *`);
+  const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]', "2. N9-Q10");
+  assert.deepEqual(wayRefusals(setUp), { review: setUpRefusal("Hedge School"), analyze: null });
+  assert.equal(wayRefusals(setUp).review, "This game starts from another position. Hedge School reviews games from the "
+    + "standard start only: open it on the Analysis board.");
+  const rules = variantProblem(game('[Rules "Race to 2000"]'));
+  assert.deepEqual(wayRefusals(game('[Rules "Race to 2000"]')), { review: rules, analyze: rules });
+  assert.deepEqual(wayRefusals(game('[Event "?"]')), { review: null, analyze: null });
 });
 
 test("the game's own page comes from a web address in Site, and from nothing else", () => {

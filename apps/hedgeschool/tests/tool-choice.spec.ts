@@ -62,6 +62,29 @@ test("Review the game: the game kept, then reviewed", async ({ page }) => {
   await expect.poll(() => stored(page, "games").catch(() => null), { timeout: 60_000 }).toHaveLength(1);
 });
 
+test("a game from a set-up start: the review is off before the click, and the Analysis board takes the game", async ({ page }) => {
+  // The game above after its first move, as a start of its own: Red's first turn
+  const setUp = '[Blue "Ann"]\n[Red "Bo"]\n[Position "A10-D10,D10-E13* Q10-T10 r2 0/0 1"]\n\n2. Q10-R8 O11-Q10 *\n';
+  await page.goto("/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", record: setUp }));
+  const review = page.getByRole("button", { name: "Review the game" }), board = page.getByRole("button", { name: "Analyze on the board" });
+  await expect(board).toBeVisible();
+  await expect(review).toBeDisabled();
+  await expect(page.getByText("This game starts from another position. Hedge School reviews games from the standard start "
+                              + "only: open it on the Analysis board.")).toBeVisible();
+  await expect(page.getByText("The engine examines all the moves of the game.")).toHaveCount(0); // the reason in its place
+  await expect(board).toHaveAttribute("autofocus", ""); // the board takes the review's autofocus
+  // No import was tried: no game kept, and the page stays
+  await review.click({ force: true });
+  await expect(page).toHaveURL(url => url.pathname === "/import");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect(await stored(page, "games")).toEqual([]);
+  await board.click();
+  await page.waitForURL(url => url.pathname === "/analysis" && !url.hash);
+  // The board takes the game from its set-up start, at the game's end, with no refusal
+  await boardAt(page).toBe("Q10-R8 O11-Q10");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
 test("a userscript that Tampermonkey has not updated: the review asks too, and says to update it", async ({ page }) => {
   await page.goto("/review#" + new URLSearchParams({ tool: "userscript", v: "old", site: "strategyjam.org", record }));
   await expect(page.getByText("Your userscript is older than this site's.")).toBeVisible();
