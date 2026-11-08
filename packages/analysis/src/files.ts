@@ -8,7 +8,7 @@
 import { atShape, isAnalysisKey, ofModels, parentKeyMoves, readAnalysisKey, readable } from "./cache.ts";
 import type { KeptBoard } from "./kept.ts";
 import { boardPositionKeys } from "./boardLink.ts";
-import { isKomi } from "@abstractclass/record/record.ts";
+import { isKomi, komiLimitProblem } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 
@@ -81,8 +81,10 @@ export function analysisFileName(format: string, now = new Date()): string {
 
 /** Reads an analysis file of `site` in `format`. Throws an Error that tells the player what is wrong. Its version rule
  *  is the review file's (Hedge School's design 13). A board's komi is a number of whole or half points, as a record's
- *  `Komi` tag is (Hedge School's design 24). */
-export function readAnalysisFile(text: string, site: string, format: string): AnalysisFile {
+ *  `Komi` tag is (Hedge School's design 24), and within the game's limit `maxKomi`, either way (its record's
+ *  `MAX_RECORD_KOMI`), which the engine would refuse. A site reads the file before it keeps its results (keepAnalyses),
+ *  so a file that the board cannot open puts none in the store. */
+export function readAnalysisFile(text: string, site: string, format: string, maxKomi?: number): AnalysisFile {
   const f = readSiteFile(text, site, format, ANALYSIS_FILE_VERSION, "analysis file") as Partial<AnalysisFile> & { analyses: [string, unknown][] };
   const b = f.board;
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
@@ -90,6 +92,8 @@ export function readAnalysisFile(text: string, site: string, format: string): An
     (b.start === undefined || typeof b.start === "string") &&
     (b.komi === undefined || isKomi(b.komi));
   if (!boardOk) throw new Error(`${site} cannot read the analysis file's lines.`);
+  const beyond = komiLimitProblem(b.komi ?? 0, maxKomi, "the analysis file's komi");
+  if (beyond) throw new Error(`${beyond}: ${b.komi}`);
   return { ...f, board: b } as AnalysisFile;
 }
 

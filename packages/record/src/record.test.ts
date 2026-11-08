@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  isKomi, komiOf, komiPrefix, markMoves, pastedError, readRecord, RecordError, setUpRefusal, startTags, withStartTag, withTags,
+  isKomi, komiLimitProblem, komiOf, komiPrefix, komiRange, markMoves, pastedError, readRecord, RecordError, setUpRefusal, startTags, withStartTag, withTags,
   writeRecord, writeTags, type Notation,
 } from "./record.ts";
 
@@ -100,6 +100,15 @@ test("the Komi tag: Red's starting score, 0 without it, and an error where it is
                   (e: unknown) => e instanceof RecordError && e.offset === 12 && e.message.includes("Komi"));
   }
   assert.equal(komiOf("nonsense"), null);
+});
+
+test("a komi's limit in the site's numbers, and why a komi passes it", () => {
+  assert.equal(komiRange(90_980), "from -90,980 to 90,980 points");
+  assert.equal(komiLimitProblem(5052, 5052), null);
+  assert.equal(komiLimitProblem(-5052, 5052), null);
+  assert.equal(komiLimitProblem(5052.5, 5052), "the Komi tag must be from -5,052 to 5,052 points");
+  assert.equal(komiLimitProblem(-6000, 5052, "the file's komi"), "the file's komi must be from -5,052 to 5,052 points");
+  assert.equal(komiLimitProblem(99_999, undefined), null); // no limit: what a tag can give
 });
 
 test("a game's limit on the komi: a Komi tag beyond it is an error that names the limit, thousands separated", () => {

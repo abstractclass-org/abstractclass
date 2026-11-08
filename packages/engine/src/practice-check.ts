@@ -5,6 +5,12 @@
 // gives the value when the config does not set it (the engine repository's katagame/cpp/program/setup.cpp), and no
 // config of ours sets it. So a new release or config could change it, and only this check would see it.
 //
+// The same session checks the game's komi cap. Each site's record copies it as MAX_RECORD_KOMI (Hedge School's design
+// 24, item 15): Enclosure's Rules::MAX_USER_KOMI, and Blueprints' from its MAX_BOARD_LEN and SCORE_SCALE (the engine
+// repository's katagame/cpp/game/rules.h). The site's reader refuses a record, a board's link or an analysis file
+// beyond it. The module's GTP `komi` (KataGo's) takes a komi from -MAX_USER_KOMI to MAX_USER_KOMI in whole or half
+// points, and refuses any other. So the module must take the site's limit either way, and refuse half a point past it.
+//
 // Each module starts a session (the network, then its game's start command) and answers kata-get-params. The threaded
 // module's start evaluates no position, so its evaluator here refuses any use but its sizes: the check needs no CPU
 // workers.
@@ -33,6 +39,24 @@ export function checkMinPlayoutsPerThread(reply: string): void {
                     `threads at a move and its visits past the setting. Check the item before this release goes in.`);
 }
 
+/** Checks that a module's komi cap is `max`, the site's MAX_RECORD_KOMI: `komi` sends GTP's `komi K` and gives the
+ *  reply. The module must take K = max and -max, and refuse half a point past each, the next komi that a record can
+ *  give. An error says which komi the module took or refused, and what to change. */
+export async function checkKomiCap(max: number, komi: (value: number) => string | Promise<string>): Promise<void> {
+  const fix = "Make the site's MAX_RECORD_KOMI (src/lib/game/record.ts) the engine's Rules::MAX_USER_KOMI, and check " +
+              "the Notation page's Komi row, before this release goes in.";
+  for (const value of [max, -max]) {
+    const reply = await komi(value);
+    if (!reply.startsWith("="))
+      throw new Error(`the practice bot refuses komi ${value}, which the site's MAX_RECORD_KOMI ${max} takes ` +
+                      `(${reply.trim()}). ${fix}`);
+  }
+  for (const value of [max + 0.5, -max - 0.5]) {
+    if ((await komi(value)).startsWith("="))
+      throw new Error(`the practice bot takes komi ${value}, past the site's MAX_RECORD_KOMI ${max}. ${fix}`);
+  }
+}
+
 /** An evaluator that refuses any use: the threaded module's start and kata-get-params evaluate no position. It gives
  *  only the network's sizes (the manifest's, none for Enclosure's), which Blueprints' library reads when the bot starts
  *  (gpu_engine.mjs, createBatchRunner), as a real evaluator gives them (library.ts, sizesOption). */
@@ -44,9 +68,10 @@ export const noEvaluator = (sizes?: NetworkSizes) => new Proxy({}, {
 });
 
 /** Checks each practice module of a site's static/engine (the one-thread and the threaded bot) with
- *  checkMinPlayoutsPerThread, from the site's folder (`root`) and its manifest, and logs a line for each. An error
- *  names the module. The threaded module needs JSPI (Node 24.21 has it with no flag). */
-export async function checkPracticeModules(root: string, manifest: Manifest): Promise<void> {
+ *  checkMinPlayoutsPerThread, and with checkKomiCap against `maxKomi` (the site's MAX_RECORD_KOMI), from the site's
+ *  folder (`root`) and its manifest, and logs a line for each. An error names the module. The threaded module needs
+ *  JSPI (Node 24.21 has it with no flag). */
+export async function checkPracticeModules(root: string, manifest: Manifest, maxKomi: number): Promise<void> {
   const ofKind = (kind: ArtifactKind) => manifest.artifacts.filter(a => a.kind === kind);
   const read = (a: Artifact) => readFileSync(join(root, "static", a.url));
   const modules = [...ofKind("practice-module"), ...ofKind("practice-threaded-module")];
@@ -70,9 +95,11 @@ export async function checkPracticeModules(root: string, manifest: Manifest): Pr
       await bot.setModel(network);
       answer(start, await bot.command(`${start} 1 ${threads}`)); // SEED THREADS
       checkMinPlayoutsPerThread(await bot.command("kata-get-params"));
+      await checkKomiCap(maxKomi, value => bot.command(`komi ${value}`));
     } catch (e) {
       throw new Error(`${m.id}: ${errorText(e)}`, { cause: e });
     }
-    console.log(`${m.id}: minPlayoutsPerThread ${MIN_PLAYOUTS_PER_THREAD}, as design 24, item 14 needs`);
+    console.log(`${m.id}: minPlayoutsPerThread ${MIN_PLAYOUTS_PER_THREAD}, as design 24, item 14 needs, and the komi ` +
+                `cap ${maxKomi}, the site's MAX_RECORD_KOMI`);
   }
 }

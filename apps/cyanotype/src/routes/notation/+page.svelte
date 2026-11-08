@@ -9,6 +9,8 @@
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
   import { STANDARD_START } from "#lib/game/position.ts";
+  import { MAX_RECORD_KOMI } from "#lib/game/record.ts";
+  import { komiRange } from "@abstractclass/record/record.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   // The hexes within two steps of the origin, as the players see them (design 33, item 5): pointy-top, at
@@ -175,7 +177,8 @@
         start (PGN's <code>FEN</code> tag).</td></tr>
       <tr><td><code>Komi</code></td><td>The points that Red has before the first move. A number below 0 gives them to
         Blue. A whole or half number, such as <code>300</code> or <code>-300</code>. Without the tag, 0. The result and
-        the engine's analysis count them.</td></tr>
+        the engine's analysis count them. The engine takes a komi {komiRange(MAX_RECORD_KOMI)}, so {SITE_NAME} does
+        not read a record beyond that.</td></tr>
       <tr><td><code>Annotator</code></td><td>Who annotated the game (PGN's tag): a person, or a program such as
         {SITE_NAME}.</td></tr>
     </tbody>

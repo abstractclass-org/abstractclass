@@ -7,6 +7,7 @@ import * as shared from "@abstractclass/analysis/files.ts";
 import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import { boardLink, refuseKomi } from "./board.ts";
+import { MAX_RECORD_KOMI } from "./record.ts";
 import { SITE_NAME } from "../site.ts";
 
 export const ANALYSIS_FORMAT = "cyanotype-analysis";
@@ -19,8 +20,10 @@ export const exportAnalysis = (board: KeptBoard, site: string, models: Set<strin
 /** A file name for an analysis: the date and time it was saved, the player's own. */
 export const analysisFileName = (now = new Date()): string => shared.analysisFileName(ANALYSIS_FORMAT, now);
 
-/** Reads an analysis file. Throws an Error that tells the player what is wrong. */
-export const readAnalysisFile = (text: string): shared.AnalysisFile => shared.readAnalysisFile(text, SITE_NAME, ANALYSIS_FORMAT);
+/** Reads an analysis file. Throws an Error that tells the player what is wrong, also for a komi beyond the one that a
+ *  record can give (MAX_RECORD_KOMI). */
+export const readAnalysisFile = (text: string): shared.AnalysisFile =>
+  shared.readAnalysisFile(text, SITE_NAME, ANALYSIS_FORMAT, MAX_RECORD_KOMI);
 
 /** Reads an analysis file and keeps its results in this browser, of the manifest's search and the networks it ships.
  *  Answers the board's address with the file's lines. Throws an Error that tells the player what is wrong. */

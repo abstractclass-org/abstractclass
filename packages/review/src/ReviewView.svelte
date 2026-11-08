@@ -45,6 +45,7 @@
   export interface ReviewGame<G extends GameTypes> {
     error: string;
     readonly komi: number; // the game's komi, Red's starting score (Hedge School's design 24): 0 for most games
+    readonly takesBook: boolean; // the analysis takes the opening book: not on the board, nor at a komi (design 24)
     branches: Record<string, BranchNode<G>>; // the variations' positions, by path key (tree.ts), in the order added
     positionAt(path: string[]): G["position"] | undefined; // a position of the tree: the game's, or a variation's
     focusing: string | null; // the path key of the position searched for the player, while it runs
@@ -1361,13 +1362,13 @@
   // The opening book in the review (design 32, item 4): the Report's rows on the game's opening, and the move list's
   // mark on each book move, from the site's one book (`openingBook`). In the early edition only, and only
   // where the book loads: a site that serves no book shows neither, and the Report has no opening row while the book
-  // loads or when it did not load. The Analysis board has none. A game at a komi has none either (the site's
-  // `opening`, Hedge School's design 24), and so no variation's mark.
+  // loads or when it did not load. Only where the analysis takes the book (GameAnalysis.takesBook): the Analysis board
+  // has none, and a game at a komi has none either (Hedge School's design 24), and so no variation's mark.
   // The game's opening, once every part of the book that the game's positions need has loaded
   const opening = $derived.by(() => {
     const parts = view.book;
-    if (board || !book || !parts) return null;
-    return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames, komi);
+    if (!game?.takesBook || !book || !parts) return null;
+    return parts.opening(gamePositions.map(p => parts.notation(p)), mainNames);
   });
   // The row follows "Review by" (design 32, item 4): by turn, the turn that left the book and the turn's quality label,
   // and the row goes to the turn's start. By edge, the edge and its label. Its earlier book move has the review's label
@@ -1385,7 +1386,7 @@
     if (i !== null) return i > 0 ? bookMoves.get(i - 1) : undefined;
     const parts = view.book, after = positionOf(p), before = positionOf(p.slice(0, -1));
     if (!opening || !parts || !after || !before) return undefined;
-    return parts.opening([parts.notation(before), parts.notation(after)], [p.at(-1)!], komi)?.bookMoves[0]?.after;
+    return parts.opening([parts.notation(before), parts.notation(after)], [p.at(-1)!])?.bookMoves[0]?.after;
   }
   /** The same for the last of the moves into `paths` (by turn, a turn's), where each of them is a book move. It asks no
    *  further after a move outside the book. */
@@ -2458,7 +2459,7 @@
           () => (display.notation === "text" ? "text" : "glyphs"), v => (display.notation = v as "glyphs" | "text"))}
       {/if}
       <!-- Only where the move list can show a book move: the game has a book opening, so none where the site has no
-           book, where it did not load, on the board, or at a komi (the site's `opening`) -->
+           book, where it did not load, on the board, or at a komi (GameAnalysis.takesBook) -->
       {#if opening}
         {@render choice("Book moves", "Each book move's quality label in brown, or an open book in the quality label's colour.",
           [["label", "Brown"], ["book", "Book"]], () => display.bookMoves, v => (display.bookMoves = v as Display["bookMoves"]))}

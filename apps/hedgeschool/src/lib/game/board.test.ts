@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { boardLink, boardOfRecord, boardPositionKeys, readBoardLink } from "./board.ts";
-import { parseRecord } from "./record.ts";
+import { MAX_RECORD_KOMI, parseRecord } from "./record.ts";
 import type { KeptBoard } from "./store.ts";
 
 test("a link gives back the board's tree: its lines in order, and the moves evaluated", () => {
@@ -46,4 +46,15 @@ test("a record's komi is the board's, and its link and keys keep it (design 24)"
 
 test("a broken link says so", () => {
   assert.throws(() => readBoardLink("!!", null), /broken/);
+});
+
+test("a link beyond the komi that a record can give does not open, in the record's words (design 24)", () => {
+  const packed = (komi: number) =>
+    new URLSearchParams(new URL(boardLink("https://example.com", { version: 2, main: [], nodes: [], komi }, 0)).hash.slice(1)).get("packed")!;
+  assert.equal(readBoardLink(packed(MAX_RECORD_KOMI), null).board.komi, 5052);
+  assert.equal(readBoardLink(packed(-MAX_RECORD_KOMI), null).board.komi, -5052);
+  // Komi 6,000: before, the board opened it, and the engine refused it
+  assert.throws(() => readBoardLink(packed(6000), null),
+    (e: Error) => e.message === "the Komi tag must be from -5,052 to 5,052 points: 6000");
+  assert.throws(() => readBoardLink(packed(-5052.5), null), /from -5,052 to 5,052 points: -5052\.5$/);
 });

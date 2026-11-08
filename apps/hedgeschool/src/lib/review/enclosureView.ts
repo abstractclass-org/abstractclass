@@ -133,10 +133,10 @@ export const enclosureView: ViewGame<Enclosure> = {
       return book && new BookPlace(book, page, notations, unit, { ...more, openings: OPENINGS });
     },
     notation: p => p.notation,
-    // None at a komi other than 0 (design 24): the book is the engine's at komi 0
-    opening: (notations, edges, komi) => {
+    // The view asks only where the analysis takes the book (GameAnalysis.takesBook): none at a komi (design 24)
+    opening: (notations, edges) => {
       const book = siteBook();
-      return book && reviewOpening(n => book.at(n), notations, edges, komi);
+      return book && reviewOpening(n => book.at(n), notations, edges);
     },
     openingRow,
     trapRows,

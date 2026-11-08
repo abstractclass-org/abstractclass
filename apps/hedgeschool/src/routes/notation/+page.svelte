@@ -5,6 +5,8 @@
   // change is decided there first, then this page follows (request 11).
   import { PROSE } from "@abstractclass/site/prose.ts";
   import { SITE_NAME } from "#lib/edition.ts";
+  import { MAX_RECORD_KOMI } from "#lib/game/record.ts";
+  import { komiRange } from "@abstractclass/record/record.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
@@ -131,7 +133,8 @@ A10-D10,D10-E11,D10-F13+ Q10-T10,Q10-T13*,T10-T13* b1 0/4.5 4`;
         start (PGN's <code>FEN</code> tag).</td></tr>
       <tr><td><code>Komi</code></td><td>The points that Red has before the first move. A number below 0 gives them to
         Blue. A whole or half number, such as <code>300</code> or <code>-300</code>. Without the tag, 0. The result and
-        the engine's analysis count them. {SITE_NAME}'s practice games write it.</td></tr>
+        the engine's analysis count them. {SITE_NAME}'s practice games write it. The engine takes a komi
+        {komiRange(MAX_RECORD_KOMI)}, so {SITE_NAME} does not read a record beyond that.</td></tr>
       <tr><td><code>Rules</code></td><td>The variant, when the game does not follow the online rules (PGN's
         <code>Variant</code>).</td></tr>
       <tr><td><code>Annotator</code></td><td>Who annotated the game (PGN's tag): a person, or a program such as

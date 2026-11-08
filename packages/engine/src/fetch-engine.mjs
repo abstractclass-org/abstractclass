@@ -29,6 +29,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { findPackageJSON } from "node:module";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
@@ -183,8 +184,10 @@ for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gp
 }
 console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
 
-// Each practice module, run once in Node: its minPlayoutsPerThread must be 8 (practice-check.ts).
-await checkPracticeModules(root, manifest);
+// Each practice module, run once in Node: its minPlayoutsPerThread must be 8, and its komi cap the site's
+// MAX_RECORD_KOMI, which each site's record copies from the engine (practice-check.ts).
+const { MAX_RECORD_KOMI } = await import(pathToFileURL(join(root, "src", "lib", "game", "record.ts")).href);
+await checkPracticeModules(root, manifest, MAX_RECORD_KOMI);
 
 function source(artifact) {
   return artifact.source.local ?? (artifact.source.engines ? `engines/${artifact.source.engines}` : `release ${artifact.source.release.tag}`);

@@ -47,3 +47,11 @@ test("an analysis file whose komi is not one says so", () => {
   for (const komi of [2.25, "300", null, 1e6])
     assert.throws(() => readAnalysisFile(file({ ...board, komi }), "Test", FORMAT), /cannot read the analysis file's lines/, String(komi));
 });
+
+test("an analysis file whose komi is beyond the game's limit says so (Hedge School's design 24)", () => {
+  const board = { version: 2, main: [], nodes: [] };
+  assert.equal(readAnalysisFile(file({ ...board, komi: -5000 }), "Test", FORMAT, 5000).board.komi, -5000);
+  assert.throws(() => readAnalysisFile(file({ ...board, komi: 5000.5 }), "Test", FORMAT, 5000),
+    (e: Error) => e.message === "the analysis file's komi must be from -5,000 to 5,000 points: 5000.5");
+  assert.equal(readAnalysisFile(file({ ...board, komi: 6000 }), "Test", FORMAT).board.komi, 6000); // no limit
+});

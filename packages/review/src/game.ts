@@ -244,9 +244,10 @@ export interface BookParts<G extends ViewTypes> {
   place(page: "review" | "board", notations: () => (string | undefined)[], unit: () => Unit,
         more?: { path: () => string[]; used: (name: string) => void; komi: () => number }): G["book"] | null;
   notation(position: G["position"]): string | undefined; // the position's notation, by which the book finds it
-  /** The game's opening, once every part of the book that the game's positions need has loaded. `komi`: the game's,
-   *  Red's starting score (Hedge School's design 24: none at a komi other than 0). */
-  opening(notations: (string | undefined)[], moves: string[], komi: number): BookOpening | null;
+  /** The game's opening, once every part of the book that the game's positions need has loaded. The view asks only
+   *  where the analysis takes the book (GameAnalysis.takesBook): not on the board, nor at a komi other than 0 (Hedge
+   *  School's design 24). */
+  opening(notations: (string | undefined)[], moves: string[]): BookOpening | null;
   /** The Report's row, with the position that it goes to. By turn it names the turn that left the book. `label`: the
    *  review's label of the move or turn that left the book. `judged`: the review's judgment of the move that starts at
    *  an edge's index, or by turn of the turn that starts there; null where the review has none. */

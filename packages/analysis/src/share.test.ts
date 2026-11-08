@@ -60,6 +60,18 @@ test("a board's link keeps its komi, and refuses a komi that is not one (Hedge S
   assert.throws(() => readBoardLink(bad, null, WORDS, p => p), /komi.*2\.25/);
 });
 
+test("a board's link refuses a komi beyond the game's limit, in the record's words (Hedge School's design 24)", () => {
+  const packedOf = (komi: number) => new URLSearchParams(boardLink("https://example.com",
+    { version: 2, main: [], nodes: [], komi }, 0, WORDS).split("#")[1]).get("packed")!;
+  assert.equal(readBoardLink(packedOf(5000), null, WORDS, p => p, 5000).board.komi, 5000);
+  assert.equal(readBoardLink(packedOf(-5000), null, WORDS, p => p, 5000).board.komi, -5000);
+  for (const beyond of [5000.5, -6000])
+    assert.throws(() => readBoardLink(packedOf(beyond), null, WORDS, p => p, 5000),
+      (e: Error) => e.message === `the Komi tag must be from -5,000 to 5,000 points: ${beyond}`);
+  // Without a limit, the link takes any komi that a tag can give.
+  assert.equal(readBoardLink(packedOf(6000), null, WORDS, p => p).board.komi, 6000);
+});
+
 test("the note after a link is copied warns past a Discord message's limit", () => {
   assert.match(shareNote(653), /^Link copied \(653 characters\)/);
   assert.match(shareNote(2400), /2,400 characters.*or send the review file\.$/);

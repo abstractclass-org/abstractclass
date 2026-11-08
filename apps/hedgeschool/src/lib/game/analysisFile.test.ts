@@ -40,3 +40,10 @@ test("an analysis file at a komi opens the board at it, and a komi that is not o
   assert.equal(readBoardLink(address.get("packed")!, address.get("at")).board.komi, -300);
   assert.throws(() => readAnalysisFile(file({ board: { ...BOARD, komi: "-300" } })), /cannot read the analysis file's lines/);
 });
+
+test("an analysis file beyond the komi that a record can give does not open, before its results go to the store", async () => {
+  // keepAnalyses would reach the store (IndexedDB, which Node lacks): the refusal comes first
+  await assert.rejects(openAnalysisFile(file({ board: { ...BOARD, komi: 6000 } }), null),
+    (e: Error) => e.message === "the analysis file's komi must be from -5,052 to 5,052 points: 6000");
+  assert.equal(readAnalysisFile(file({ board: { ...BOARD, komi: 5052 } })).board.komi, 5052);
+});

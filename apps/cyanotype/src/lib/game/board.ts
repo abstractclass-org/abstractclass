@@ -1,12 +1,12 @@
 // The Analysis board's tree by link and from a record (Hedge School's design 21, item 7; design 33). The link is the
 // shared one (@abstractclass/analysis/boardLink.ts), with Blueprints' moves (share.ts): `/analysis#packed=…&at=…`. A
 // set-up start goes in the link's tags as `Position`, in the position's notation (position.ts), as a record carries it.
-// A link or a file whose board has a komi (Hedge School's design 24) cannot open: the board starts its analysis at
-// komi 0 before it chooses its board.
+// A link or a file whose board has a komi (Hedge School's design 24) cannot open: the board's analysis searches at
+// komi 0 (design 33, "The komi").
 import * as shared from "@abstractclass/analysis/boardLink.ts";
 import { boardOfLine, type KeptBoard } from "@abstractclass/analysis/kept.ts";
 import { setUpStart } from "./position.ts";
-import type { GameRecord } from "./record.ts";
+import { MAX_RECORD_KOMI, type GameRecord } from "./record.ts";
 import { BLUEPRINTS_CODE } from "./share.ts";
 
 /** A board of a record's line: a node for each of its positions. The record's reader keeps the line only, so its
@@ -33,9 +33,10 @@ export function refuseKomi(komi: number | undefined): void {
 export const boardLink = (origin: string, board: KeptBoard, at: number, via?: string): string =>
   shared.boardLink(origin, board, at, BLUEPRINTS_CODE, via);
 
-/** A board from a link's `packed` and `at`. Throws an Error that says what is wrong with the link. */
+/** A board from a link's `packed` and `at`. Throws an Error that says what is wrong with the link: a komi beyond the
+ *  one that a record can give (MAX_RECORD_KOMI), and for now any komi (refuseKomi). */
 export function readBoardLink(packed: string, at: string | null): { board: KeptBoard; at: number } {
-  const read = shared.readBoardLink(packed, at, BLUEPRINTS_CODE, setUpStart);
+  const read = shared.readBoardLink(packed, at, BLUEPRINTS_CODE, setUpStart, MAX_RECORD_KOMI);
   refuseKomi(read.board.komi);
   return read;
 }
