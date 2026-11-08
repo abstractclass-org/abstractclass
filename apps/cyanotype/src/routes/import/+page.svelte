@@ -2,31 +2,38 @@
   // The import page (Hedge School's designs 21 and 22, design 33): a game that comes in from outside, after the `#`
   // (@abstractclass/import's importHash.ts). The bookmarklet and the userscript (src/lib/game/tools.ts) send a
   // strategyjam.org game with the position that its page showed. The game leaves the address at once, as on Hedge
-  // School. The engine's rules then check the record (recordCheck.ts, design 33, item 11): a record that they refuse
-  // shows why, and opens nothing. Else the player chooses the review, which keeps the game in this browser, or the
-  // Analysis board at the position that the game's page showed, which asks before the game replaces the board kept
-  // here. A game from a set-up start offers the board only: the review refuses it, so the choice says so before the
-  // click (setUpProblem). Each goes to its page's own address with the record, and that page takes it out of the
-  // address again. For an out-of-date tool, the page also says how to update it. Cyanotype has no analytics yet, so the
-  // import counts no event. The page alone goes to the tools.
+  // School. The engine's rules then check the record once, with each move's capture mark (recordCheck.ts, design 33,
+  // item 11): a record that they refuse shows why, and opens nothing. Else the player chooses the review or the
+  // Analysis board. The review's choice keeps the game in this browser here, as Hedge School's import page does
+  // (game/import.ts, with this page's check), then opens its review by the game's id (openReview). A failure there
+  // stays on this page, with why. The Analysis board opens by its own address with the record, at the position that the
+  // game's page showed, and asks before the game replaces the board kept here. A game from a set-up start offers the
+  // board only: the review refuses it, so the choice says so before the click (setUpProblem). For an out-of-date tool,
+  // the page also says how to update it. Cyanotype has no analytics yet, so the import counts no event. The page alone
+  // goes to the tools.
   import { onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
   import { analysisAddress, holdsGame, readImportHash, staleTool, type ImportHash,
            type Tool } from "@abstractclass/import/importHash.ts";
+  import { openReview } from "@abstractclass/import/openReview.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import type { Checked } from "#lib/game/check.ts";
+  import { importRecord } from "#lib/game/import.ts";
   import { turnFromCount } from "#lib/game/notation.ts";
   import { parseRecord, playerNames, setUpProblem, type GameRecord } from "#lib/game/record.ts";
-  import { checkRecord } from "#lib/review/recordCheck.ts";
+  import { checkRecordMarks } from "#lib/review/recordCheck.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
-  // What the page shows: the game while the engine checks it, then the choice, or why it opens nothing.
-  type Phase = { at: "reading" } | { at: "checking" | "choose"; sent: ImportHash; record: GameRecord }
+  // What the page shows: the game while the engine checks it, then the choice with the check's answer, the review's
+  // wait while the game is kept, or why the page opens nothing.
+  type Phase = { at: "reading" } | { at: "checking"; sent: ImportHash; record: GameRecord }
+    | { at: "choose"; sent: ImportHash; record: GameRecord; checked: Checked } | { at: "keeping" }
     | { at: "failed"; message: string };
   let phase = $state.raw<Phase>({ at: "reading" });
   let stale = $state<Tool | null>(null); // the tool, when it is out of date
@@ -51,14 +58,24 @@
       return;
     }
     phase = { at: "checking", sent, record };
-    const problem = await checkRecord(record);
-    phase = problem ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${sentence(problem)}` }
-      : { at: "choose", sent, record };
+    const checked = await checkRecordMarks(record);
+    phase = checked.problem ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${sentence(checked.problem)}` }
+      : { at: "choose", sent, record, checked };
   });
 
   // Each choice replaces this page in the history: Back then leads to the game's page.
-  const reviewChosen = (sent: ImportHash) =>
-    location.replace("/review#" + new URLSearchParams({ record: sent.record }));
+  /** The review: the game kept with this page's check, then its review. A failure says why, in the import's own
+   *  words (game/import.ts), in whole sentences. */
+  async function reviewChosen() {
+    if (phase.at !== "choose") return;
+    const { sent, record, checked } = phase;
+    phase = { at: "keeping" };
+    try {
+      openReview(await importRecord(sent.record, record, async () => checked));
+    } catch (e) {
+      phase = { at: "failed", message: errorText(e) };
+    }
+  }
   const analyzeChosen = (sent: ImportHash, record: GameRecord) =>
     location.replace(analysisAddress(sent, record.moves.length, null)); // no analytics: no source
   // What each choice does, in strict Simplified Technical English: the player follows it.
@@ -95,6 +112,8 @@
   {/if}
   {#if phase.at === "reading"}
     <p class="text-muted">Opening the game…</p>
+  {:else if phase.at === "keeping"}
+    <p class="text-muted">Loading the review…</p>
   {:else if phase.at === "failed"}
     <p class="text-blunder" role="alert">{phase.message}</p>
     <p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>
@@ -105,7 +124,7 @@
     <ToolChoice heading={sent.site === "strategyjam.org" ? "A game from strategyjam.org" : "A game"}
                 players="{names.blue} against {names.red}" length="{moves} {moves === 1 ? 'move' : 'moves'}"
                 pending={phase.at === "checking" ? "The engine examines the moves of the game…" : undefined}
-                review={{ label: "Review the game", text: REVIEW_TEXT, onclick: () => reviewChosen(sent),
+                review={{ label: "Review the game", text: REVIEW_TEXT, onclick: reviewChosen,
                           refusal: setUpProblem(record, SITE_NAME) }}
                 analyze={{ label: "Analyze on the board", text: analyzeText(sent), onclick: () => analyzeChosen(sent, record) }}>
       {#if sent.tool}<p>{shown(sent.at, moves)}</p>{/if}

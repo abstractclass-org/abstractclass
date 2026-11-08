@@ -1,8 +1,9 @@
 // Cyanotype's import page (its design 33, "How a game comes in from strategyjam.org") on its preview
 // (CYANOTYPE_BASE_URL), with the review's test game up to turn 20 (cyanotype-review.ts, Stamp Duty against itself), as
 // the bookmarklet and the userscript send it. The game leaves the address at once. The engine's rules check the record
-// first: a record that they refuse shows why and opens nothing. Else each choice opens its page with the game: the
-// review, which keeps it, and the Analysis board at the position that the game's page showed, which asks before the
+// first: a record that they refuse shows why and opens nothing. Else the review's choice keeps the game on the import
+// page, as Hedge School's does, and opens its review by the game's id: a game that the browser cannot keep stays on
+// the import page, with why. The Analysis board opens at the position that the game's page showed, and asks before the
 // game replaces an analysis kept there. An out-of-date tool gets its notice. Each test opens a fresh browser context,
 // so its store starts empty. The tests that need the engine skip, with a message, when the preview has no engine files.
 // Run: npx playwright test tests/cyanotype-import.spec.ts, with CYANOTYPE_BASE_URL.
@@ -33,7 +34,10 @@ test.describe("with the engine's files", () => {
     test.skip(!!skip, skip);
   });
 
-  test("Review the game: the game leaves the address, the engine checks it, and the review keeps it", async ({ page }) => {
+  test("Review the game: the game leaves the address, the engine checks it, and the import page keeps it", async ({ page }) => {
+    // Each address of the tab: after the import page, none holds the record
+    const addresses: string[] = [];
+    page.on("framenavigated", frame => { if (frame === page.mainFrame()) addresses.push(frame.url()); });
     await page.goto(toolLink({ at: 5 }));
     await noHash(page);
     await expect(page.getByRole("heading", { name: "A game from strategyjam.org" })).toBeVisible();
@@ -44,14 +48,19 @@ test.describe("with the engine's files", () => {
     // The game's lines stay when the choice comes after the check
     await expect(page.getByText("Move 5 is the second move of turn 3 in the record.")).toBeVisible();
     await page.getByRole("button", { name: "Review the game" }).click();
-    // The review checks the record and keeps it in the player's games, then opens it at its own address
+    // The import page keeps the record in the player's games with its check, then the review opens it by its id
     await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith(`#game=review-${MOVES}-`), { timeout: 120_000 });
-    await expect.poll(() => local(page, LAST_REVIEW_KEY), { timeout: 60_000 }).toMatch(new RegExp(`^review-${MOVES}-`));
+    // The review's address comes first, then the page loads: a read during the load answers nothing
+    await expect.poll(() => local(page, LAST_REVIEW_KEY).catch(() => null), { timeout: 60_000 })
+      .toMatch(new RegExp(`^review-${MOVES}-`));
     await expect(page.getByRole("alert")).toHaveCount(0);
-    // The game is in the Review tab's list of the player's games, as on Hedge School
+    expect(addresses.filter(a => new URL(a).pathname !== "/import" && /record=/.test(new URL(a).hash)),
+           "no address after the import page holds the record").toEqual([]);
+    // The game is in the Review tab's list of the player's games, once, as on Hedge School
     await page.goto(new URL("/review", CYANOTYPE).href);
-    await expect(page.getByRole("region", { name: "Review a game" }).locator("li").getByRole("link", { name: PLAYERS }))
-      .toBeVisible({ timeout: 60_000 });
+    const games = page.getByRole("region", { name: "Review a game" }).locator("li");
+    await expect(games.getByRole("link", { name: PLAYERS })).toBeVisible({ timeout: 60_000 });
+    await expect(games).toHaveCount(1);
   });
 
   for (const [name, at, text] of [
@@ -102,6 +111,19 @@ test.describe("with the engine's files", () => {
     await expect(page).toHaveURL(url => url.pathname === "/import");
     expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
     expect(await local(page, BOARD_AT_KEY)).toBeNull();
+  });
+
+  test("a game that this browser cannot keep: the import page says why, and opens nothing", async ({ page }) => {
+    // Blocked site data: the browser opens no database (the engine's check runs in its worker, as before)
+    await page.addInitScript(() => {
+      IDBFactory.prototype.open = () => { throw new DOMException("blocked", "SecurityError"); };
+    });
+    await page.goto(toolLink({ at: 5 }));
+    await page.getByRole("button", { name: "Review the game" }).click({ timeout: 120_000 });
+    await expect(page.getByRole("alert")).toHaveText("This browser does not let the site keep games (a private window, or "
+                                                     + "blocked site data).", { timeout: 60_000 });
+    await expect(page).toHaveURL(url => url.pathname === "/import" && !url.hash);
+    expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
   });
 
   test("a game from a set-up start: the review is off before the click, and the Analysis board takes the game", async ({ page }) => {

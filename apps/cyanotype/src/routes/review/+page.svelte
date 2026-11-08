@@ -3,10 +3,9 @@
   // Stamp Duty (@abstractclass/analysis), in the review's view with Blueprints' parts (blueprintsView.ts).
   // `#game=ID` opens a game kept in this browser (game/store.ts), as on Hedge School. Without it, the page is the Review
   // tab (ReviewHome.svelte): a pasted record, the last review a click away, and the player's games. One tab reviews a
-  // game at a time (@abstractclass/analysis/reviewLock.ts). A game that comes after the `#` leaves the address at once:
-  // a record (`#record=`, from the import page or a link) is checked by the engine's rules and kept (game/import.ts),
-  // then reviewed, so that the list keeps no game that the review refuses. A shared review (`#packed=`, game/share.ts)
-  // shows what it holds first (SharedArrival.svelte).
+  // game at a time (@abstractclass/analysis/reviewLock.ts). A shared review after the `#` (`#packed=`, game/share.ts)
+  // leaves the address at once, and shows what it holds first (SharedArrival.svelte). A record there, which only the
+  // import page takes, gets the Review tab, as on Hedge School: the import page keeps the game, then opens its review.
   // The board works from the engine's rules at once (describe_game), and the record's capture marks are checked
   // against what each move did. Then the sweep, the label stage, the Greats' confirmations, and deeper searches where
   // the player looks (Hedge School's design 05). The engine's settings apply as they change: the workers, the GPU and
@@ -36,8 +35,7 @@
   import { changeOwn, loadEngine, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn, type EngineSettings,
            type OwnSettings } from "#lib/analysis/engineSettings.ts";
   import { startChecked } from "#lib/review/storedReview.ts";
-  import { gamePage, parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
-  import { importRecord } from "#lib/game/import.ts";
+  import { gamePage, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
   import { SITE_NAME } from "#lib/site.ts";
@@ -115,20 +113,18 @@
       body: `This game's last review used an earlier version of ${what}, so the engine reviews the game again.` };
   }
 
-  // The game shown, or none (null) for the Review tab. Undefined until the page has read its address, and while a
-  // record after the `#` is checked and kept (`arriving`).
+  // The game shown, or none (null) for the Review tab. Undefined until the page has read its address.
   let shown = $state<string | null | undefined>(undefined);
-  let arriving = false;
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
-  // paste, an address typed, back and forward): the page reviews that one from the start. So does a record or a shared
-  // review after the `#`, as a link pasted in the address bar over the Review tab brings it. A change of the `#` alone
-  // is the browser's own navigation, with no router's: it fires `hashchange`. Only once the page has chosen what it
-  // shows (`shown`): before, the address's game is the one it loads.
+  // paste, an address typed, back and forward): the page reviews that one from the start. So does a shared review
+  // after the `#`, as a link pasted in the address bar over the Review tab brings it. A change of the `#` alone is the
+  // browser's own navigation, with no router's: it fires `hashchange`. Only once the page has chosen what it shows
+  // (`shown`): before, the address's game is the one it loads.
   const addressHash = () => new URLSearchParams(location.hash.slice(1));
   const otherGame = () => {
-    if (arriving || shown === undefined) return;
+    if (shown === undefined) return;
     const hash = addressHash();
-    if (hash.get("game") !== shown || hash.has("record") || hash.has("packed")) location.reload();
+    if (hash.get("game") !== shown || hash.has("packed")) location.reload();
   };
   afterNavigate(otherGame);
   onMount(() => {
@@ -148,23 +144,10 @@
   }
 
   onMount(async () => {
-    const hash = addressHash(), sent = hash.get("record"), link = hash.get("packed");
+    const hash = addressHash(), link = hash.get("packed");
     if (link !== null) { await replaceState("/review", {}); packed = link; return; } // async: the address changes once it resolves
-    if (sent !== null) {
-      // A record: checked and kept first, then its review's address in place of this one
-      arriving = true;
-      await replaceState("/review", {});
-      try {
-        await replaceState(`/review#game=${await importRecord(sent, parseRecord(sent))}`, {});
-      } catch (e) {
-        error = errorText(e);
-        return;
-      } finally {
-        arriving = false;
-      }
-    }
     // The game to review: the one named in the address. Without one, the Review tab.
-    const id = addressHash().get("game");
+    const id = hash.get("game");
     shown = id;
     if (!id) return;
     // The game, its lock and the engine's manifest are read at the same time. The rules worker needs only the

@@ -19,6 +19,7 @@
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
   import { analysisAddress, hashParams, readImportHash, staleTool, type ImportHash,
            type Tool } from "@abstractclass/import/importHash.ts";
+  import { openReview } from "@abstractclass/import/openReview.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
   import { toolSource } from "#lib/game/tools.ts";
   import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
@@ -53,12 +54,6 @@
     void arrive(hash);
   });
 
-  /** Opens the review of a game now kept in this browser: the review's address, loaded, in place of this one. */
-  function review(id: string) {
-    history.replaceState(null, "", `/review#game=${id}`);
-    location.reload();
-  }
-
   async function arrive(hash: string) {
     const packed = hashParams(hash)?.get("packed");
     if (packed) { await readShared(packed); return; }
@@ -91,7 +86,7 @@
     const partner = gamePartner(sent.save);
     if (partner) await setGamePartner(id, partner);
     trackImport("review", source, record.moves.length);
-    review(id);
+    openReview(id);
   }
 
   /** An import that failed: the page says why, and the event names its source and why (design 17). */
@@ -132,7 +127,7 @@
     try {
       const id = await importShare(shared, here.network);
       trackLoad("review_share_link", shared.moves.length, { with_branches: shared.branches.length > 0 });
-      review(id);
+      openReview(id);
     } catch (e) {
       phase = { at: "failed", load: true, problem: errorText(e) };
       trackLoadFailed("review_share_link", "rejected");
@@ -151,7 +146,7 @@
       const kept = gamePartner(save);
       if (kept) await setGamePartner(id, kept);
       trackLoad("partner_review", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
-      review(id);
+      openReview(id);
     } catch (e) {
       phase = { at: "failed", load: true, problem: errorText(e) };
       trackLoadFailed("partner_review", "rejected");

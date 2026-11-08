@@ -10118,3 +10118,27 @@ a set-up position, as Hedge School's do (its design 21, item 10, with Enclosure'
   in Node on the CPU). The whole layout test on this branch's two previews (Chromium): 205 passed and 5 skipped, of
   210. The 5 are the analytics cases, which need `VITE_GA_ID`. The 13 cases of `tests/cyanotype-editor.spec.ts`
   passed, the new case of the kept board too.
+
+### Cyanotype's import page keeps the game, as Hedge School's (2026-11-09)
+
+abscls-8tl1.71, from the decision on abscls-8tl1.38's review (2026-11-08): keep the game as Hedge School's import page
+does. Design 33, "How a game comes in from strategyjam.org", items 6 and 7, and "The player's games", item 2, give the
+result. Design 33's departure "A record after the review's `#`" is gone.
+
+- **Before:** the import page checked the record with the engine's rules (`checkRecord`). "Review the game" then sent
+  the record to `/review#record=…`, and the review imported it: the rules checked the same record again, in a second
+  worker, before the list kept it. A failure there (blocked site data) showed on the review page.
+- **Now:** the import page checks the record once, with each move's capture mark (`checkRecordMarks`). "Review the
+  game" keeps the game through the one import (`src/lib/game/import.ts`) and gives it that check's answer, so the
+  rules do not run again. Then the review opens by the game's id. A failure to keep the game stays on the import page,
+  with why. The review checks its game again when it opens, as Hedge School's does: that check is the review's own.
+- **The review's `#record=`** gets the Review tab, as on Hedge School (its design 22). Only the import page took the
+  game there, and the review took it out of the address at once, so no player holds such a link.
+- **A link's record** (`/import#record=…`) keeps the choice of a tool's game. Hedge School opens a partner's link in
+  the review at once. abscls-8tl1.75 brings the partners' links to Cyanotype.
+- **Shared code (design 29, item 11):** the review's opening of a kept game (Hedge School's `Arrival.svelte`, its
+  `review(id)`) moved into `@abstractclass/import` as `openReview.ts`. Hedge School's import page and both sites'
+  shared reviews use it, with Hedge School's behaviour as before. The rest of Hedge School's arrival step is
+  Enclosure's (its analytics, its partners, its sources) or has no part in Cyanotype yet.
+- **The Analysis board** still checks the record that its address brings, as for any link to the board: the address
+  cannot carry the import page's answer, since a link could claim it.

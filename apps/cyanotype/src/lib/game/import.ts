@@ -1,8 +1,9 @@
 // A game record into the player's games (design 33, as Hedge School's src/lib/game/import.ts): refused when the review
 // does not take it (a game from a set-up start, setUpProblem), checked by the engine's rules (a move that they refuse,
 // a capture mark that they do not confirm: review/recordCheck.ts), given its capture marks, and kept in this browser
-// (store.ts). So the list keeps no game that the review refuses. The Review tab's paste, the review's `#record=` (from
-// the import page or a link) and a shared review's page (review/SharedArrival.svelte) come here, and show the outcome.
+// (store.ts). So the list keeps no game that the review refuses. The Review tab's paste, the import page's review
+// (with the check that the page ran already) and a shared review's page (review/SharedArrival.svelte) come here, and
+// show the outcome.
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { mergeBranches, type KeptBranches } from "@abstractclass/analysis/kept.ts";
 import type { Checked } from "./check.ts";
@@ -12,8 +13,8 @@ import { saveGame, setGameSettings } from "./store.ts";
 import { checkRecordMarks } from "../review/recordCheck.ts";
 import { SITE_NAME } from "../site.ts";
 
-/** A record's check by the engine's rules, with each move's capture mark: recordCheck.ts's, in a worker of its own. A
- *  test gives its own. */
+/** A record's check by the engine's rules, with each move's capture mark: recordCheck.ts's, in a worker of its own. The
+ *  import page gives the answer of its own check, so that the rules check its game once. A test gives its own. */
 export type RecordCheck = (record: GameRecord) => Promise<Checked>;
 
 /** An error's text, ended by one period. */

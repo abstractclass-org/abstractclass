@@ -120,9 +120,12 @@ export async function reviewFirstTurns(page: Page) {
   await openReview(page, LIVE_TURNS, LIVE_WAIT);
 }
 
-/** Opens the review of the test game up to the end of turn `turns`, and waits `timeout` ms for "Review done". */
+/** Opens the review of the test game up to the end of turn `turns`, and waits `timeout` ms for "Review done": the
+ *  Review tab's paste keeps the game, then its review opens. */
 async function openReview(page: Page, turns: number, timeout: number) {
-  await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(turns))}`, CYANOTYPE).href);
+  await page.goto(new URL("/review", CYANOTYPE).href);
+  await page.getByLabel("A game record").fill(testRecord(turns));
+  await page.getByRole("button", { name: "Review", exact: true }).click();
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout });
 }
 

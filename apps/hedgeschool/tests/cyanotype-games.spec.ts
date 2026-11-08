@@ -118,11 +118,12 @@ test.describe("with the engine's files", () => {
     await box.fill("1. 9@0,0 *");
     await review.click();
     await expect(page.getByRole("alert")).toBeVisible();
-    // A record after the review's `#`: checked first, and refused, it leaves the address and keeps nothing
+    // A record after the review's `#`, which only the import page takes: the Review tab, as on Hedge School, and
+    // nothing kept. From another page: over the Review tab, a change of the `#` alone loads nothing
+    await page.goto("about:blank");
     await page.goto(new URL(`/review#record=${encodeURIComponent(REFUSED)}`, CYANOTYPE).href);
-    await expect(page.getByRole("alert")).toHaveText(/^Cyanotype cannot review this game: Move 5 \(2@1,-5x\)/, { timeout: 120_000 });
-    await expect.poll(() => new URL(page.url()).hash).toBe("");
-    await expect(page.getByRole("link", { name: "Review tab" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Review your Blueprints game" })).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("alert")).toHaveCount(0);
     expect(await keptIds(page)).toEqual([]);
     expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
     await openTab(page);

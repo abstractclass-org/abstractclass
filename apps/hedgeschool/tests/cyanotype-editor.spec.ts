@@ -362,7 +362,10 @@ test("the Import, a link and an analysis file with a komi: the board says that i
 });
 
 test("the review refuses a game from a set-up start, and says where it opens", async ({ page }) => {
-  await page.goto(at(`/review#${new URLSearchParams({ record: `[Position "${MIDDLE}"]\n\n${MOVE} *` })}`));
+  // The Review tab's paste: the import page offers such a game to the board alone (cyanotype-import.spec.ts)
+  await page.goto(at("/review"));
+  await page.getByLabel("A game record").fill(`[Position "${MIDDLE}"]\n\n${MOVE} *`);
+  await page.getByRole("button", { name: "Review", exact: true }).click();
   await expect(page.getByRole("alert")).toHaveText("This game starts from another position. Cyanotype reviews games from the "
     + "standard start only: open it on the Analysis board.", { timeout: 120_000 });
 });

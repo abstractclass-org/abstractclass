@@ -432,8 +432,9 @@ edit in the same commit), so their changes still apply.
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review
   and the Analysis board, with each site's words (design 33, "How a game comes in from strategyjam.org"), and
-  `import.css`, which lets Tailwind find its classes. `apps/hedgeschool/src/lib/game/tools.ts` and `sources.ts`:
-  Hedge School's parts.
+  `import.css`, which lets Tailwind find its classes. `openReview.ts`: the review's opening of a game that a way in has
+  kept (the import page's, a shared review's, a partner's), by the game's id. `apps/hedgeschool/src/lib/game/tools.ts`
+  and `sources.ts`: Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files, which each site runs in its own folder (`npm run engine`). `practice-check.ts`: the engine step's check of
   the practice modules' `minPlayoutsPerThread` (design 24, item 14). `protocol.ts`: the protocol that each site's code

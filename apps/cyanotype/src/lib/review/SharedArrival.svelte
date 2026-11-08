@@ -9,6 +9,7 @@
   import { onMount } from "svelte";
   import { loadManifest, sameSearch } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
+  import { openReview } from "@abstractclass/import/openReview.ts";
   import { networkName, reviewDepthText } from "#lib/analysis/engineSettings.ts";
   import { playerNames } from "#lib/game/record.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
@@ -34,14 +35,12 @@
     }
   });
 
-  /** Keeps the shared game, its variations and the sender's network and depth for it, and opens its review: the
-   *  review's address, loaded, in place of this one. */
+  /** Keeps the shared game, its variations and the sender's network and depth for it, and opens its review
+   *  (openReview). */
   async function review(shared: SharedReview, here: Here) {
     phase = { at: "keeping" };
     try {
-      const id = await importShare(shared, here.network);
-      history.replaceState(null, "", `/review#game=${id}`);
-      location.reload();
+      openReview(await importShare(shared, here.network));
     } catch (e) {
       phase = { at: "failed", message: errorText(e) };
     }
