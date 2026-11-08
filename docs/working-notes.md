@@ -87,7 +87,9 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     Playwright").
   - `preview(dir, port)` serves a build folder on a port of its own, as Cloudflare Pages serves it, with the headers
     of the folder's own `_headers`. To compare two builds, copy `build` to a folder in `runs/` (Git ignores it) after
-    each build, and serve each copy on its own port.
+    each build, and serve each copy on its own port. It does not serve the test book at `/test-book/` (only Vite's
+    servers do), so a layout test against it skips every case of the book and of Openings, 81 cases. Run the layout
+    test against Vite's preview.
   - `launch()` starts Playwright's Chromium with its scroll bars. `trace(browser, page, act)` records Chrome's trace
     while `act` runs.
   - `storeReview(page, url)` keeps the review of the test fixture (`FIXTURE`) in the page's browser, and waits until

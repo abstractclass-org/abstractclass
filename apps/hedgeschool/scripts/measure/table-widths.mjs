@@ -1,10 +1,12 @@
-// The candidates table's column widths on Cyanotype (packages/review/src/ReviewView.svelte, engineTable): how well
-// each column of the shared colgroup fits its content (decisions/product.md, "The candidates table's column widths,
-// measured on Cyanotype"). The script opens the review of the test game from the stored review
-// (tests/cyanotype-review.ts, reviewTestGame: Stamp Duty against itself, up to turn 20, with the engine on at Lite and
-// the GPU off, so the page asks the engine for no search). Then it reads the table at every position of the game, by
-// move, at each window width (in the Analysis tab where the window has one), in each "Move notation" (Glyphs, the
-// default, and Text). For each column it gives:
+// The candidates table's column widths on Cyanotype or Hedge School (packages/review/src/ReviewView.svelte,
+// engineTable): how well each column of the shared colgroup fits its content (decisions/product.md, "The candidates
+// table's column widths, measured on Cyanotype"). On Cyanotype the script opens the review of the test game from the
+// stored review (tests/cyanotype-review.ts, reviewTestGame: Stamp Duty against itself, up to turn 20, with the engine
+// on at Lite and the GPU off, so the page asks the engine for no search). Then it reads the table at every position of
+// the game, by move, at each window width (in the Analysis tab where the window has one), in each "Move notation"
+// (Glyphs, the default, and Text). With `--site hedgeschool` it opens Hedge School's stored review instead (the review
+// file of the layout test, tests/fixtures/hedgefund-review.json, from the Review tab), and reads the table at every
+// position by edge, in the site's default edge notation (one notation: "edges"). For each column it gives:
 //
 // - the column's width, its header's width, and the widest value of its cells (the text's measured width);
 // - the cells cut (content wider than the cell's content box), and the room left over (the median and the least);
@@ -19,24 +21,39 @@
 // so the height sets the side column's width (364 to 460 pixels) and the Move column's.
 //
 // With `--lab`, the page takes the proposal (LAB_CSS, below) before it loads, as a style sheet. It is a lab switch in
-// this script, not in the site's code. With `--crops DIR`, the script takes crops of the table instead of the
-// measure: at the `--crop-sizes` windows, light and dark, in Glyphs, at the position after move `--crop-move`.
+// this script, not in the site's code. The proposal of the wide Lead column is in the site's code since then (its
+// colgroup), so `--lab` on a build that has it changes nothing. With `--crops DIR`, the script takes crops of the table
+// instead of the measure: at the `--crop-sizes` windows, light and dark, in the first notation (Glyphs on
+// Cyanotype), at the position after move (or edge) `--crop-move`. A crop's file is `<site>-table-<window>-<scheme>-<tag>.png`, its tag "after" with `--lab` and else
+// "before", or `--crop-tag`'s.
 //
-//   node scripts/measure/table-widths.mjs [--lab] [--json FILE] [--widths 360,1376x768,...] [--notations glyphs,text]
-//   node scripts/measure/table-widths.mjs [--lab] --crops DIR [--crop-move K] [--crop-sizes 390,1376]
+//   node scripts/measure/table-widths.mjs [--site hedgeschool] [--lab] [--json FILE] [--widths 360,1376x768,...]
+//                                         [--notations glyphs,text]
+//   node scripts/measure/table-widths.mjs [--site hedgeschool] [--lab] --crops DIR [--crop-move K]
+//                                         [--crop-sizes 390,1376] [--crop-tag TAG]
 //   node scripts/measure/table-widths.mjs --from FILE      the report again, from a run's --json, with no browser
 //
-// Run it in apps/hedgeschool, with CYANOTYPE_BASE_URL at a Cyanotype build that has the engine's files. Headless
-// Chromium only, with playwright.config.ts's launch options (off the GPU on Windows).
+// Run it in apps/hedgeschool, with CYANOTYPE_BASE_URL at a Cyanotype build that has the engine's files, or, for Hedge
+// School, BASE_URL at its build (playwright.config.ts's address by default). Headless Chromium only, with
+// playwright.config.ts's launch options (off the GPU on Windows).
 import { chromium } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import config from "../../playwright.config.ts";
 import { CYANOTYPE, DISPLAY, MOVES, noReview, reviewTestGame } from "../../tests/cyanotype-review.ts";
+import { loadReviewFile } from "../../tests/review-file.ts";
 
 const arg = name => { const i = process.argv.indexOf(name); return i < 0 ? undefined : process.argv[i + 1]; };
 const LAB = process.argv.includes("--lab");
 const JSON_OUT = arg("--json"), CROPS = arg("--crops"), FROM = arg("--from");
+/** The site: "cyanotype" (the default) or "hedgeschool". Hedge School's address is the layout test's (BASE_URL). */
+const SITE = arg("--site") ?? "cyanotype", HEDGE = SITE === "hedgeschool";
+if (!["cyanotype", "hedgeschool"].includes(SITE)) throw new Error(`--site: cyanotype or hedgeschool, not ${SITE}`);
+const HEDGE_URL = config.use.baseURL, HEDGE_REVIEW = "tests/fixtures/hedgefund-review.json";
+/** The word of the position's line ("Move 3 of 39" on Cyanotype, "Edge 3 of 120" on Hedge School). */
+const WORD = HEDGE ? "Edge" : "Move";
+/** The number of positions read: the game's moves (Cyanotype's stored review), or its edges (read from the page). */
+let positionCount = MOVES;
 /** Each width's window height: a phone's, a tablet's, then computers'. */
 const HEIGHT = { 360: 780, 390: 844, 768: 1024, 1024: 768, 1280: 800, 1376: 952, 1920: 1080 };
 /** The windows: `W` (its height from HEIGHT, else 900) or `WxH`, each with its label as given. */
@@ -46,7 +63,7 @@ const sizes = list => list.split(",").map(s => {
 });
 const WIDTHS = sizes(arg("--widths") ?? "360,390,768,1024,1280,1376,1920");
 const CROP_SIZES = sizes(arg("--crop-sizes") ?? "390,1376");
-const NOTATIONS = (arg("--notations") ?? "glyphs,text").split(",");
+const NOTATIONS = (arg("--notations") ?? (HEDGE ? "edges" : "glyphs,text")).split(",");
 /** The columns, by short keys, and their names in the glossary (GLOSSARY.md, "The engine's candidates" and "The
  *  engine's numbers"). */
 const COLUMNS = ["#", "Move", "win%", "Lead", "Visits"];
@@ -66,6 +83,8 @@ const LAB_CSS = `div:has(> table.table-fixed) { container-type: inline-size; }
 /** The position of the crops: after this move. After move 7, four of the five names in view are cut at 390 pixels
  *  and smaller at 1,376 pixels, in Glyphs. */
 const CROP_MOVE = Number(arg("--crop-move") ?? 7);
+/** The crops' tag in their files' names. */
+const CROP_TAG = arg("--crop-tag") ?? (LAB ? "after" : "before");
 
 const launchOptions = config.projects.find(p => p.name === "chromium").use.launchOptions;
 
@@ -125,8 +144,10 @@ const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length 
 const r1 = x => (Number.isFinite(x) ? Math.round(x * 10) / 10 : "–");
 
 async function openAt(page, { w, h }, notation) {
-  await page.evaluate(([k, d]) => localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) ?? "{}"), ...d })),
-                      [DISPLAY, { notation }]);
+  // Cyanotype's "Move notation". Hedge School keeps its default edge notation.
+  if (!HEDGE)
+    await page.evaluate(([k, d]) => localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) ?? "{}"), ...d })),
+                        [DISPLAY, { notation }]);
   await page.setViewportSize({ width: w, height: h });
   await page.reload();
   await page.locator("main.review:not([aria-busy])").waitFor({ timeout: 120_000 });
@@ -137,7 +158,7 @@ async function openAt(page, { w, h }, notation) {
 
 /** The table at the position after move `k` once it holds still: the same reading twice, 150 ms apart. */
 async function settled(page, k) {
-  await page.locator("section.side").filter({ hasText: `Move ${k + 1} of ${MOVES}` }).waitFor({ timeout: 20_000 });
+  await page.locator("section.side").filter({ hasText: `${WORD} ${k + 1} of ${positionCount}` }).waitFor({ timeout: 20_000 });
   let last = "";
   for (let i = 0; i < 40; i++) {
     const t = await page.evaluate(readTable, { worst: WORST, heads: HEADS });
@@ -158,6 +179,17 @@ async function start(browser) {
       const s = document.createElement("style"); s.textContent = css; document.head.append(s);
     });
   }, LAB_CSS);
+  if (HEDGE) {
+    // The layout test's review: the review file, from the Review tab, which stores the game and opens its review
+    await page.goto(new URL("/review", HEDGE_URL).href);
+    if (!/Hedge School/.test(await page.title())) throw new Error(`${HEDGE_URL} serves no Hedge School`);
+    await loadReviewFile(page, HEDGE_REVIEW);
+    await page.waitForURL(/#game=/);
+    await page.locator("main.review:not([aria-busy])").waitFor({ timeout: 120_000 });
+    const line = await page.locator("section.side").filter({ hasText: new RegExp(`${WORD} \\d+ of \\d+`) }).first().innerText();
+    positionCount = Number(line.match(new RegExp(`${WORD} \\d+ of (\\d+)`))[1]);
+    return { context, page };
+  }
   const why = await noReview(page);
   if (why) throw new Error(why);
   await reviewTestGame(page, {}, { on: true });
@@ -168,7 +200,7 @@ async function start(browser) {
 async function* positions(page) {
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press("Home");
-  for (let k = 0; k < MOVES; k++) {
+  for (let k = 0; k < positionCount; k++) {
     if (k) await page.keyboard.press("ArrowRight");
     yield [k, await settled(page, k)];
   }
@@ -239,7 +271,7 @@ function markdown(rows) {
 /** The report of a run's readings: its tables, and the Win chance column's headers. */
 function report(readings, lab) {
   return `${lab ? `With the proposal (${JSON.stringify(lab)})` : "The current widths"}, ` +
-         `${MOVES} positions a width, font ${readings[0].t.font}\n\n${markdown(summarize(readings))}\n\n` +
+         `${new Set(readings.map(r => r.k)).size} positions a width, font ${readings[0].t.font}\n\n${markdown(summarize(readings))}\n\n` +
          `The Win chance column's header, in its font: ` +
          `${readings[0].t.probe.heads.map(h => `"${h.text}" ${r1(h.width)} px`).join(", ")}`;
 }
@@ -249,7 +281,7 @@ if (FROM) {
   console.log(report(readings, lab && proposal));
   process.exit(0);
 }
-if (!CYANOTYPE) throw new Error("Set CYANOTYPE_BASE_URL to the Cyanotype build's address");
+if (!HEDGE && !CYANOTYPE) throw new Error("Set CYANOTYPE_BASE_URL to the Cyanotype build's address");
 const browser = await chromium.launch(launchOptions);
 try {
   const { context, page } = await start(browser);
@@ -258,13 +290,13 @@ try {
     for (const scheme of ["light", "dark"]) {
       await page.emulateMedia({ colorScheme: scheme });
       for (const size of CROP_SIZES) {
-        await openAt(page, size, "glyphs");
+        await openAt(page, size, NOTATIONS[0]);
         let found = false;
         for await (const [k] of positions(page)) if (k === CROP_MOVE) { found = true; break; }
         if (!found) throw new Error(`no position after move ${CROP_MOVE}`);
         await page.mouse.move(1, 1);
         const box = page.locator('div:has(> table.table-fixed)').filter({ visible: true }).filter({ has: page.locator("th", { hasText: "Visits" }) }).first();
-        const file = join(CROPS, `table-${size.label}-${scheme}-${LAB ? "after" : "before"}.png`);
+        const file = join(CROPS, `${SITE}-table-${size.label}-${scheme}-${CROP_TAG}.png`);
         await box.screenshot({ path: file });
         console.log(file);
       }
@@ -286,7 +318,7 @@ try {
           console.error(`${notation} ${w}: ${String(e).split("\n")[0]}; again`);
         }
       }
-      console.error(`${notation} ${w}: ${MOVES} positions read`);
+      console.error(`${notation} ${w}: ${positionCount} positions read`);
     }
     if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ lab: LAB, proposal: LAB ? PROPOSAL : null, readings }));
     console.log(report(readings, LAB && PROPOSAL));

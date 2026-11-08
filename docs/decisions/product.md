@@ -9973,3 +9973,50 @@ leads are in points and short, so they gain only room.
 The crops (not committed, `look-8tl1.68/`) show the position after move 36, in Glyphs, light and dark: all five rows
 in view have three-digit leads ("Red +140" to "Red +160") and four have two-move names. At 1,376 by 768 and 1,920 by
 1,080 Lead widens and every name keeps its size. At 1,376 by 952 the before and after crops are the same.
+
+**Built.** The proposal is taken as it stands: Lead is 5.5rem where the candidates table is at least 24rem wide, and
+4.75rem where it is narrower. Win chance and the other columns keep their widths. In the shared colgroup
+(`packages/review/src/ReviewView.svelte`, `engineTable`), the table's box is the container (`@container`), and Lead's
+`col` has `w-19 @min-[24rem]:w-22`. The box keeps room for its scroll bar at all times, and a container query reads
+the box's content width, which leaves that room out. So the query reads the table's own width. Measured in the built
+site (headless Chromium, `playwright.config.ts`'s launch options, off the GPU), the box's content width and the table's
+width are the same at every window, on both sites. The query takes the box as meant: at 1,024 by 768 (a table of 377
+pixels) and 1,366 by 768 (382) Lead stays 76 pixels, and at 1,376 by 768 (387) it is 88. A query on the box with its
+scroll bar's room (392 and 397 pixels) would widen Lead at the first two.
+
+**Cyanotype, measured in the built site.** The script ran on a Cyanotype build of the branch on dev at a2f5be8
+(`VITE_EDITION=early`), at the windows of the measurement above and 360, in Glyphs and Text. Each number is the same as
+in the `--lab` run. Lead is 88 pixels at 768, 1152x864, 1259x800, 1376x768 and from 1536x864 to 1920x1080, and 76 at
+360, 390, 1024x768, 1260x800, 1280x800, 1366x768, 1376x952 and 1440x900. No value of any column is cut. Where Lead
+widens, every name keeps its full size: in Glyphs the least room left is 27.6 pixels in a side column of 460 and 3.6
+at 1376x768. "Blue +104" leaves 17.3 pixels. A phone keeps the widths of before: at 360 and 390 each number is the
+same as in a build of dev.
+
+**Hedge School, measured.** The script now also opens Hedge School's review (`--site hedgeschool`): the review file of
+the layout test (`tests/fixtures/hedgefund-review.json`, 120 edges), read at every position in the default edge
+notation, at the same windows, on a build of dev and on a build of the branch. Hedge School's side column is as wide as
+Cyanotype's at most windows (447 pixels at 1680x1050, 458 at 1152x864, 402 at 1440x900). Lead widens at the same
+windows as on Cyanotype. Its leads are in points, and in the second half of this game they have three digits (the
+widest, "Blue +114", 62.7 pixels). No Lead value is cut: they leave 5.3 pixels at least at 76 pixels, and 17.3 at 88.
+The Edge column's names are 5 to 7 characters (62.7 pixels at most), and they keep their full size at every window
+from 768 on, before and after. The least room that they leave, in pixels:
+
+| Window | Lead | Edge column, dev | Edge column, branch |
+|---|---:|---:|---:|
+| 360 | 76 | −28.9 (names at 70%) | −28.9 (names at 70%) |
+| 390 | 76 | 1.1 (names at 97%) | 1.1 (names at 97%) |
+| 768 | 88 | 379.1 | 367.1 |
+| 1024x768, 1366x768 | 76 | 84.1, 89.1 | 84.1, 89.1 |
+| 1152x864, 1259x800 | 88 | 116.1, 118.1 | 104.1, 106.1 |
+| 1260x800, 1280x800, 1376x952 | 76 | 32.1 | 32.1 |
+| 1376x768 | 88 | 94.1 | 82.1 |
+| 1440x900 | 76 | 60.1 | 60.1 |
+| 1536x864 to 1920x1080 (1680x1050) | 88 | 118.1 (105.1) | 106.1 (93.1) |
+
+Two cuts on Hedge School do not come from the column widths, and are the same on dev: the rank of a 100th candidate
+or later ("100" to "103", at the game's last position) is 3.8 pixels wider than the Rank column's room, and 28 names
+with wide letters (such as "M10-N11", 58.8 pixels) are wider than the name's slot at every window.
+
+The crops (not committed, `look-8tl1.68/round3/`) show the table at 1,376 by 768 and 1,920 by 1,080, light and dark,
+on Cyanotype after move 36 in Glyphs and on Hedge School after edge 36. Each is from a build: "before" from dev and
+"after" from the branch.
