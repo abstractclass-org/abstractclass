@@ -9754,3 +9754,22 @@ on the board showed on two rows: the second move on its own row, and the judgeme
   Cyanotype's page at the same widths and themes: no page wider than the window. Its links: the footer of each page,
   the About page's section and the site map. The examples: the stored review labelled again by the steps of the label
   snapshot gives the numbers above.
+
+### Cyanotype's partner sites: the design (2026-11-08)
+
+- **The decision** (abscls-8tl1.70, on abscls-8tl1.38's review): Cyanotype gets partner sites as Hedge School has
+  them (design 18). Design 33 had left them out until a Blueprints site wanted to be a partner. Design 33's section
+  "Partner sites" gives the design, and its gap list and its logo's item 6 follow it.
+- **What is shared:** the list's checks, the window messages and the receiving step move from Hedge School's
+  `src/lib/game/partners.ts` to `packages/import/src/partners.ts`. The stored game's partner moves to the shared store
+  (`packages/analysis/src/games.ts`), and "Save to …" to the shared Export menu's entries
+  (`packages/review/src/exports.ts`). The link's reader, the link back to the game's page and the review file were
+  shared already. Hedge School's behaviour stays the same.
+- **Blueprints' own parts:** the record and the import's checks (built), the list of partners (empty), the messages'
+  name (`cyanotype:*`), and the head for the buttons (`/brand/cyanotype.svg`, the logo's simple drawing).
+- **Enclosure's alone:** enclosuregame.com as a partner, and Hedge School's older links.
+- **The order:** abscls-8tl1.71 (the import page keeps the game) and abscls-8tl1.34 (review files) first, then
+  abscls-8tl1.74 (the move), abscls-8tl1.75 (the link and the save), abscls-8tl1.76 (a kept review opened again) and
+  abscls-8tl1.77 (the buttons and the partner sections of /developers, after abscls-8tl1.51).
+- **The owner's choices, open:** the first partner (none yet, recommended), the messages' names (each site's own,
+  recommended) and the buttons' labels (Hedge School's form, recommended).

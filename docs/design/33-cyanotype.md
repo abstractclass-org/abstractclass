@@ -14,7 +14,7 @@ against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7
 board"), with no area map yet. A position's notation, the board editor and starts from a set-up position are built
 (abscls-8tl1.39, "Decision", item 10, and "The board editor"). The early access is built, as Hedge School's
 ("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
-player's games").
+player's games"). Partner sites are designed, not built ("Partner sites").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -22,7 +22,8 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 (design 29, "Consequences").
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
-notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07.
+notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07. Partner sites:
+2026-11-08.
 
 ## Context
 
@@ -564,7 +565,7 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    out of the address again, and which checks it again. Cyanotype has no analytics yet, so the import counts no
    event: the board's address names no source (`via`). A reload of the page after the game left its address goes to
    the tools page. A partner's links (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design 18): the
-   page refuses `from=` and a link with no record, and reads no `save=`.
+   page refuses `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites".
 7. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the header from a tablet's width, and in the footer on
    a phone, as Hedge School's (design 22).
@@ -931,12 +932,146 @@ settings of its design 09 and the marks of its design 13), in the code that both
   Hedge School first shows the earlier review as it was (its design 20). abscls-8tl1.35.
 - **No marks before the first paint:** until the page's code runs, `/review` shows the line "Reading the game with the
   engine's rules…", not the Review tab. abscls-8tl1.45.
-- **No analytics** of the imports, the deletes or the reviews (abscls-8tl1.48), and no partner sites (left out).
+- **No analytics** of the imports, the deletes or the reviews (abscls-8tl1.48), and no partner sites yet
+  ("Partner sites").
 - **No game from a set-up start in the list:** the review takes none, and Cyanotype's practice games are not kept yet
   (abscls-8tl1.40, abscls-8tl1.50). Hedge School's list opens such a game on the Analysis board.
 - **A record after the review's `#`** is checked and kept, since Cyanotype's import page sends its game there ("How
   a game comes in from strategyjam.org", item 6). Hedge School's import page keeps the game itself, and its review
   gives a bare record the Review tab.
+
+## Partner sites
+
+Cyanotype takes games from partner sites and gives their players' reviews back to them, as Hedge School does (its
+design 18). A partner is another site where Blueprints is played. It puts a button on its finished games that opens
+their review here. It can also keep its players' reviews with its own sign-in, and open a kept review here again.
+Hedge School has one partner, enclosuregame.com. Cyanotype has none yet. The build makes each part ready, and the
+partners' test runs the whole way. A new partner is then one line in a list and a release, as on Hedge School.
+
+Not built yet. The steps are abscls-8tl1.74 to abscls-8tl1.77 (the order is below).
+
+### Each part of Hedge School's design
+
+Each item is an item of Hedge School's design 18. Each says what Cyanotype does, and where the code lives: in a
+package that both sites share (design 29, item 11), in Cyanotype as Blueprints' own part, or in Hedge School as
+Enclosure's alone.
+
+1. **One link brings a game in:** `/import#record=…`, with an optional `save=`. The import page keeps the game and
+   opens its review at once. It asks no choice: only a game from the bookmarklet or the userscript asks for the review
+   or the Analysis board. A link without `record` gets the message "the link has no record=". **Shared, and already
+   in the package:** the link's reader (`readImportHash`, `packages/import/src/importHash.ts`). Cyanotype's import
+   page keeps the game itself once abscls-8tl1.71 is done, and the link's game then goes through the same steps.
+2. **The record is the site's notation.** For Cyanotype it is Blueprints' notation (the /notation page), and the
+   import's checks are Cyanotype's: the import refuses a game from a set-up start, and the engine's rules check each
+   move and each capture mark (`src/lib/game/import.ts`, "The player's games", item 2). **Blueprints' own part, and
+   built.** A web address in the `Site` tag gives the review its link back, "View this game on …" under the result.
+   **Shared, and built:** `gamePage` in `packages/record/src/record.ts`, the link in
+   `packages/review/src/ReviewView.svelte`. Cyanotype's review already passes it (`siteLink`).
+3. **Other rules are refused, never reviewed wrongly.** Hedge School refuses a record with a `Rules` or a `Position`
+   tag (`variantProblem`). Blueprints has one set of rules, and its notation has no `Rules` tag. A set-up start gets
+   its message before the review (`setUpProblem`), and the engine's rules refuse a move that they do not allow.
+   **Blueprints' own part, and built.** When strategyjam.org gives Blueprints another version of its rules, the
+   notation needs a tag for it, and the import refuses it, as the page reader refuses such a game now
+   (`strategyjam.ts`).
+4. **A list of partners, by host.** A save page (`save`) counts only on a partner's own host, over https. The game
+   keeps its partner's name and save page in the browser's store. The review's Export menu then offers "Save to …"
+   first. **Shared:** the list's checks (`partnerOf`, `gamePartner`) move to `packages/import/src/partners.ts`, with
+   each site's list as a parameter. The stored game's `partner` and `setGamePartner` move to the shared store
+   (`packages/analysis/src/games.ts`). The menu's entry moves to `packages/review/src/exports.ts`. **Each site's:**
+   its list, in its `src/lib/game/partners.ts`. Hedge School's holds enclosuregame.com, which is Enclosure's alone.
+   Cyanotype's is empty until the owner names a partner (choice 1, below).
+5. **The review file is what goes back,** not the annotated record. **Shared:** the review file is in
+   `packages/analysis/src/reviewFile.ts`, and Cyanotype's format is `cyanotype-review` (abscls-8tl1.34).
+6. **Window messages, in the player's browser, at the player's click.** The site opens the save page in a new tab,
+   and the pages exchange `ready`, `review`, and `saved` or `failed`, with `protocol: 1`, each page checking the other's
+   origin, with a minute for each answer. **Shared:** `saveToPartner`, `receiveFromPartner` and `PROTOCOL` move to
+   `packages/import/src/partners.ts`. The messages' names start with the site's name, which each site gives:
+   `hedge-school:ready` on Hedge School, `cyanotype:ready` on Cyanotype (choice 2).
+7. **A saved review opens again from the partner's page:** the partner's page opens `/review#from=` and its origin,
+   with `window.open`, and sends the file when the review asks for it. The review loads it as a review file, and opens
+   at once with the engine's results. A review by an earlier engine opens as a review snapshot (abscls-8tl1.35).
+   **Shared:** the receiving step (the partner by its origin, the file received, loaded by the site's loader, and the
+   save page kept) becomes one function in `packages/import/src/partners.ts`. Its call and its text ("Waiting for …
+   to send the review…") stay in each site's arrival step. Cyanotype's review takes `from=` (`reviewArrives`, already
+   shared), and its import page takes it too, as Hedge School's does. **The tie between the two pages:** Cyanotype
+   sends no `Cross-Origin-Opener-Policy` (its `static/_headers`), as Hedge School sends none.
+8. **One save, which updates.** **Shared as it is:** the review file holds the whole review so far, and an opened
+   file's variations merge with the browser's (`packages/analysis/src/kept.ts`).
+9. **One public description,** the /developers page. abscls-8tl1.51 builds Cyanotype's page, on a frame shared with
+   Hedge School's page, and leaves out the sections on the review saved back, a saved review opened again, the
+   buttons and the partners' test. abscls-8tl1.77 adds them on Cyanotype. Its list of changes starts on Cyanotype's
+   own first day. Its promises are Hedge School's: lenient reading, additions only, a versioned handshake, the review
+   file as the site's own.
+10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
+    a partner. Cyanotype has no analytics yet (abscls-8tl1.48). The step that comes second, the analytics or the
+    partner parts, adds these events.
+11. **Buttons as a kit, not a widget:** four labels (choice 3), the site's head as a file, a sample style and the
+    markup. **Blueprints' own part:** Cyanotype's head is the logo's simple drawing, at `/brand/cyanotype.svg`
+    ("The logo", item 6), and the sample style is in Cyanotype's colours, white on the dark ground of its tools'
+    button. A test keeps the file equal to the drawing, as Hedge School's `collie.test.ts` does for its collie.
+
+**The partners' test** (Hedge School's design 18, "Consequences") is shared too. The build of the branch
+`partner_test`, and a local build with `VITE_PARTNER_TEST=1`, count `127.0.0.1` and `localhost` as "the local test
+site". Cyanotype's `vite.config.ts` sets it for that branch, as Hedge School's does. The deploy already builds a
+preview of Cyanotype for each branch that is not `main`, `partner_test` too. `docs/hosting.md` gives the steps for
+both projects.
+
+**Enclosure's alone, and not in Cyanotype:** enclosuregame.com as a partner, and the tools for meaf.us and
+Constellation's export ("The gaps from Hedge School"). Hedge School's history stays its own too: the
+`/review#record=…` link that opened a game for a few days, and the import page's `from=` for a partner's older link.
+Cyanotype's import page takes `from=` only so that one shared step serves both sites.
+
+### Hedge School's files that move
+
+Hedge School's behaviour stays the same: the same messages (`hedge-school:*`, protocol 1), the same partner list, the
+same texts, the same events and the same tests. abscls-8tl1.74 moves the code, before Cyanotype uses it.
+
+- `apps/hedgeschool/src/lib/game/partners.ts`: `partnerOf`, `gamePartner`, `PROTOCOL`, `saveToPartner`,
+  `receiveFromPartner` and the test site move to `packages/import/src/partners.ts`. The site gives its message name,
+  its list and its test switch. Hedge School's file keeps its list (`PARTNERS`) and its name. `partners.test.ts`
+  moves with the code, and Hedge School keeps a test of its list.
+- `apps/hedgeschool/src/lib/game/store.ts`: the stored game's `partner` and `setGamePartner` move to
+  `packages/analysis/src/games.ts`.
+- `apps/hedgeschool/src/lib/game/reviewFile.ts`: the menu's entry "Save to …" moves to
+  `packages/review/src/exports.ts`. Each site's `deliverExport` keeps its partner case, which calls the shared
+  `saveToPartner`.
+- `apps/hedgeschool/src/lib/review/Arrival.svelte`: the steps of `receiveReview` become the shared receiving
+  function. The page's phases and texts stay.
+- Hedge School's `/developers` page: abscls-8tl1.51 moves its frame into a package.
+- `static/brand/hedge-school.svg` and its test stay Hedge School's.
+
+### The order of the work
+
+1. **abscls-8tl1.71 first:** Cyanotype's import page keeps the game itself, as Hedge School's does. A link's save
+   page is kept with the game in that same step, so the partner's link builds on it.
+2. **abscls-8tl1.34** (review files) before the partner code moves: "Save to …" sends the review file, and a kept
+   review comes back as one. That issue also changes Hedge School's `reviewFile.ts`, which the move changes again.
+3. **abscls-8tl1.74:** Hedge School's partner code into the packages, unchanged.
+4. **abscls-8tl1.75:** Cyanotype takes a partner's link and saves the review back (items 1 to 6, the partners'
+   test). After 8tl1.71, 8tl1.74 and 8tl1.34.
+5. **abscls-8tl1.76:** Cyanotype opens a review that a partner kept (item 7). After 8tl1.75, and after
+   abscls-8tl1.35 for an earlier engine's review.
+6. **abscls-8tl1.77:** the buttons' head and the partner sections of Cyanotype's /developers (items 9 and 11).
+   After 8tl1.76 and abscls-8tl1.51.
+
+abscls-8tl1.51 does not wait for the partner parts: the page is useful without them, since a site can send a game by
+its link alone. It builds the shared frame with all of Hedge School's sections, so that abscls-8tl1.77 only adds the
+partner sections on Cyanotype.
+
+### The owner's choices
+
+1. **The first partner.** (a) None yet: the list starts empty, and the partners' test runs every part. A partner
+   that asks is then one line and a release, as enclosuregame.com was for Hedge School. (b) Ask strategyjam.org to be
+   the first partner, outside this repository: it would add a button to its game page and, to keep reviews, a save
+   page. **Recommended: (a).** The build is the same for both, and (b) can follow at any time.
+2. **The messages' names.** (a) Each site's own: `cyanotype:ready`, `cyanotype:review`, `cyanotype:saved`,
+   `cyanotype:failed`. A partner of both sites then tells the two apart, as each site's review file has its own
+   format. (b) Hedge School's names on both sites: one handler for both, but the messages name a site that did not
+   send them. Neither changes Hedge School. **Recommended: (a).**
+3. **The buttons' labels.** (a) Hedge School's form: "Review in Cyanotype" and "Review" for a finished game, "Open in
+   Cyanotype" and "Open" for a saved review. "Open in Cyanotype" is also the bookmarklet's name, and both open a game
+   here. (b) Another label for the saved review, such as "Open your review in Cyanotype": longer, and unlike Hedge
+   School's. **Recommended: (a).**
 
 ## The cells' marks
 
@@ -999,8 +1134,9 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
    other, with a wall of each. On the right, the full print, the site's name, "Learn Blueprints" in the accent, what
    the site does, and its address. The root layout gives it to every page (`og:image`, with its size and alt text, and
    `twitter:card` `summary_large_image`).
-6. **No button for partner sites.** Hedge School gives its head to partner sites at `/brand/hedge-school.svg` (design
-   18). Cyanotype has no partner sites, so it has no such file.
+6. **The head for partner sites' buttons.** Hedge School gives its head to partner sites at
+   `/brand/hedge-school.svg` (design 18). Cyanotype's comes with its partner sites ("Partner sites", item 11): the
+   simple drawing at `/brand/cyanotype.svg`, abscls-8tl1.77. Until then Cyanotype has no such file.
 7. **How each file is made.** The drawings are SVG in code (`src/lib/brand/logo.ts`, and the card in `card.ts`).
    `scripts/brand.mjs` writes the favicon's SVG file from them, and draws the PNG files in headless Chromium, each at
    its own size, with the launch options of the layout test (off the GPU on Windows). Run it again after a change of
@@ -1033,7 +1169,8 @@ Analysis board, the board editor, the import page, the site map, the bookmarklet
 measure (`/lab/measure`, `packages/measure`). Cyanotype lacks these pages of Hedge School:
 
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
-  18). abscls-8tl1.51. The page describes what Cyanotype takes today, since partner sites are left out (below).
+  18). abscls-8tl1.51. The page describes what Cyanotype takes today. Its sections on partner sites come with them
+  ("Partner sites", item 9, abscls-8tl1.77).
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
   the builds that serve the test book. Put off until Blueprints has an opening book: abscls-8tl1.53 (deferred).
 - **Puzzles, Learn and the engine lab** (`/puzzles`, `/learn`, `/lab/engine`): prototypes, only in the full edition
@@ -1075,7 +1212,8 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
 - **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
-  kept review sent to the import page (`from=`). Left out until a Blueprints site wants to be a partner.
+  kept review sent back to the review (`from=`). To be built: "Partner sites" gives the steps, abscls-8tl1.74 to
+  abscls-8tl1.77.
 - **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
   tools. Both play Enclosure only ("Decision", item 3), so they are left out.
 
@@ -1381,5 +1519,6 @@ Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with
 (2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), "Cyanotype's variations in
 "Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
 games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
-(2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), and "Cyanotype's How a review
-works page" (2026-11-08). The earlier entries name the site by its first name, Drawing Board.
+(2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), "Cyanotype's How a review
+works page" (2026-11-08), and "Cyanotype's partner sites: the design" (2026-11-08). The earlier entries name the
+site by its first name, Drawing Board.
