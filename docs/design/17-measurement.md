@@ -14,8 +14,8 @@ visitors' machines, and the GPU on other machines.
 
 1. **Events to Google Analytics, one for each decision** (`track` in `src/lib/analytics.svelte.ts`). Cloudflare's
    service stays as it is: it takes no events.
-2. **Counts and ranges only** (`src/lib/measure.ts`): never a game, a move, a player's name, or a game's id. A count
-   that could set a visitor apart, or would scatter a report, goes as a range: a game's edges (1-29, 30-59, 60-89,
+2. **Counts and ranges only** (`packages/site/src/measure.ts`): never a game, a move, a player's name, or a game's id. A
+   count that could set a visitor apart, or would scatter a report, goes as a range: a game's edges (1-29, 30-59, 60-89,
    90-119, 120+), the machine's cores (1-2, 3-4, 5-8, 9-16, 17+), a review's minutes (0, 1-2, 3-9, 10-29, 30-59,
    60-119, 120-239, 240+: a review at the deepest custom depth, 16,384 visits, takes hours), a share link's
    characters (0-499, 500-999, 1000-1999, 2000-3999, 4000+), the games kept (0, 1, 2-4, 5-9, 10-24, 25+), a practice
@@ -518,10 +518,12 @@ shows few rows. Read it as section "Reading it" says.
 
 ## Where it is
 
-- `src/lib/analytics.svelte.ts` (`track`, `trackOnce`, `setVisitor`), `src/lib/measure.ts` (the ranges, tested in
-  `src/lib/measure.test.ts`).
-- The flag of internal traffic: `src/lib/internalTraffic.ts`, tested in `src/lib/internalTraffic.test.ts`. The site
-  reads the address's parameter as it starts, in `src/hooks.client.ts`.
+- `src/lib/analytics.svelte.ts` (`track`, `trackOnce`, `setVisitor`), Hedge School's analytics of
+  `packages/site/src/analytics.svelte.ts`. The ranges: `packages/site/src/measure.ts`, tested in `measure.test.ts`
+  beside it. Cyanotype has the same, with its own services and keys (design 33, "Analytics and consent").
+- The flag of internal traffic: `src/lib/internalTraffic.ts`, Hedge School's key of
+  `packages/site/src/internalTraffic.ts`, tested in `src/lib/internalTraffic.test.ts`. The site reads the address's
+  parameter as it starts, in `src/hooks.client.ts`.
 - The events: `packages/import/src/importEvents.ts` (the imports and loads), with Hedge School's sources in
   `src/lib/game/sources.ts`, `src/lib/review/ReviewHome.svelte` (the Review tab's imports and loads, deletes,
   `games_stored`), `src/lib/review/Arrival.svelte` (the tools' imports, the share links' and partners' loads),
@@ -529,11 +531,13 @@ shows few rows. Read it as section "Reading it" says.
   `src/routes/openings/+page.svelte` (`openings_open`, `openings_positions`, Openings' features),
   `src/lib/book/place.svelte.ts` (`book shown`), `src/routes/review/+page.svelte`
   (the review's events, settings, features, `game_missing`, the address), `packages/review/src/ReviewView.svelte`
-  (`onfeature`), `trackExport` in `src/lib/game/sources.ts` (`export`, from the Export menu),
+  (`onfeature`), `trackExport` in `src/lib/game/sources.ts` (`export`, from the Export menu, on
+  `packages/review/src/exportEvents.ts`), the settings' changes in `src/lib/analysis/settingChanges.ts` (on
+  `packages/analysis/src/settingChanges.ts`),
   `packages/analysis/src/gpu.svelte.ts` (`gpu_test`, the GPU's failure), `workerSpeed` in
   `packages/engine/src/pool.ts`, `src/routes/practice/+page.svelte` (Practice's events and features), with their
-  parameters in `src/lib/practice/hedgefund.ts` (`practiceParams`, `practiceEndParams`, tested in
-  `practice.test.ts`).
+  parameters in `src/lib/practice/hedgefund.ts` (`practiceParams`, `practiceEndParams`, on
+  `packages/practice/src/practiceEvents.ts`, tested in `practice.test.ts`).
 - The privacy page: `src/routes/privacy/+page.svelte`.
 
 ## Log entries

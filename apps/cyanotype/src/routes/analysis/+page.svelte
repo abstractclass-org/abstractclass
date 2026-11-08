@@ -17,6 +17,9 @@
   // standard start, the board editor, a position or moves imported, or an analysis file. The Export menu shares the
   // board by link, or saves it as an analysis file or as an annotated record (Hedge School's design 21, item 7), with
   // the board's set-up start.
+  // The page counts its events as Hedge School's board does (its design 17): the board's open, a line brought (an
+  // import, or a load of saved work) and its failure, the engine's errors, the settings changed, the features used and
+  // the exports. The analytics start once a line brought has left the address.
   import { onDestroy, onMount, untrack } from "svelte";
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
@@ -50,6 +53,11 @@
   import { analysisFileName, exportAnalysis, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
+  import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
+  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
+           type LoadSource } from "#lib/game/sources.ts";
+  import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
   const PLAYERS: ReviewData["players"] = { blue: "Blue", red: "Red" };
@@ -62,7 +70,8 @@
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
-  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current });
+  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current,
+                                      tracker: { track, networkName } });
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);
@@ -84,6 +93,11 @@
   /** A board brought after the `#`: its tree, its place on the main line, what it is (for a notice), and the record
    *  whose moves the engine checks, else the start that the engine reads. */
   interface Brought { board: KeptBoard; at: number; kind: "record" | "position" | "link" | "file"; record?: GameRecord }
+  /** What a board brought counts as (Hedge School's design 17): an import by its source, or a load of saved work.
+   *  The address names the source (`via`): a tool's game from the import page, or the Import's paste. A record or a
+   *  position with none is a link's. The board editor's position is the site's own: neither. */
+  let imported: ImportSource | undefined, loaded: LoadSource | undefined;
+  const OWN: string[] = ["editor"];
   /** The board kept here, at its kept place, and a board brought after the `#`, which leaves the address: a record's
    *  line (`record`, from its `Position` tag or from `position`), a set-up start alone (`position`), or a link's or a
    *  file's lines, once they are read. The engine checks it before it replaces the kept board (recordCheck.ts). */
@@ -100,8 +114,12 @@
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
     const p = new URLSearchParams(location.hash.slice(1)), text = p.get("record"), packed = p.get("packed");
     const position = p.get("position");
-    if (text === null && packed === null && position === null) return { kept, at: keptAt };
+    if (text === null && packed === null && position === null) { startAnalytics(); return { kept, at: keptAt }; }
     await replaceState("/analysis", {}); // async: the address changes only once it resolves
+    startAnalytics();
+    const via = p.get("via"), brings = text !== null || position !== null; // moves or a start, not saved work
+    imported = !brings || OWN.includes(via ?? "") ? undefined : isImportSource(via) ? via : "site_link";
+    loaded = brings ? undefined : via === "analysis_file" ? via : "analysis_share_link";
     if (text === null && position === null) {
       const kind = p.get("via") === "analysis_file" ? "file" : "link";
       try {
@@ -114,7 +132,7 @@
     if (text === null) return { kept, at: keptAt, brought: { board: boardOfLine([], setUpStart(position)), at: 0, kind: "position" } };
     try {
       const record = readPasted(text, position).record, komi = recordKomiProblem(record);
-      if (komi) throw new Error(komi);
+      if (komi) { refuse(komi, "record", true); return { kept, at: keptAt }; }
       const atMain = Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0);
       return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: atMain, kind: "record", record } };
     } catch (e) {
@@ -124,8 +142,12 @@
   }
   const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
   /** The notice of a board brought that cannot open: the board kept here opens. Where the kept board could not open
-   *  either (chooseBoard's notice, a kept board with a komi), that notice stays first and names the new board. */
-  function refuse(problem: string, kind: Brought["kind"]) {
+   *  either (chooseBoard's notice, a kept board with a komi), that notice stays first and names the new board. The
+   *  failure counts by why: a link or a file that does not read, a record that does not read, or a line that the
+   *  engine's rules refuse (`rules`). */
+  function refuse(problem: string, kind: Brought["kind"], rules = false) {
+    if (loaded) trackLoadFailed(loaded, rules ? "rejected" : kind === "file" ? "file" : "link");
+    if (imported) trackImportFailed("analysis", imported, rules ? "rejected" : kind === "record" ? "record" : "link");
     const verb = kind === "link" || kind === "file" ? "load" : "open";
     const why = `The Analysis board cannot ${verb} this ${kind}: ${sentence(problem)}`;
     notice = notice ? `${notice} ${why}` : `${why} Your own analysis is here instead.`;
@@ -154,7 +176,7 @@
         // it", "this link: no game can reach its start".
         const problem = !b ? null : b.record ? await recordProblem(rules, b.record)
           : b.board.start ? await startProblem(rules, b.board.start, b.kind === "position" ? "it" : "its start") : null;
-        if (b && problem) refuse(problem, b.kind);
+        if (b && problem) refuse(problem, b.kind, true);
         brought = b && !problem && (!kept?.nodes.length || await question.ask()) ? b : undefined;
         board = brought?.board ?? kept;
         keptAt = chosen.at;
@@ -172,9 +194,14 @@
         game = g;
       });
       if (!g) return;
+      // The board opened, and an import or a load when a line came with it, which the player kept
+      track("analysis_open", { edges: range(g.mainNames.length, EDGE_RANGES) });
+      if (brought && imported) trackImport("analysis", imported, g.mainNames.length);
+      if (brought && loaded) trackLoad(loaded, g.mainNames.length);
       await g.sweep(); // the board's sweep makes the engine ready
     } catch (e) {
       error = errorText(e);
+      track("engine_error", { error_kind: "load" });
     }
   });
   onDestroy(() => session.end());
@@ -203,13 +230,14 @@
     if (!pasted.trim()) {
       const start = setUpStart(position), problem = start ? await checkStart(start) : null;
       if (problem) throw new Error(`${SITE_NAME} cannot open this position: ${sentence(problem)}`);
-      importAddress(new URLSearchParams({ position: start ?? STANDARD_START }));
+      importAddress(new URLSearchParams({ position: start ?? STANDARD_START, via: "pasted_position" }));
       return;
     }
     const read = readPasted(pasted, position || null);
     const problem = recordKomiProblem(read.record) ?? await checkRecord(read.record, "their start");
     if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${sentence(problem)}`);
-    importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}) }));
+    importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}),
+                                        via: position ? "pasted_position" : "pasted_record" }));
   }
   function importAddress(hash: URLSearchParams) {
     history.replaceState(null, "", `/analysis#${hash}`);
@@ -225,6 +253,7 @@
       location.reload();
     } catch (e) {
       notice = `The Analysis board cannot load this file: ${sentence(errorText(e))}`;
+      trackLoadFailed("analysis_file", "file");
     }
   }
 
@@ -262,7 +291,8 @@
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}
   <ReviewView view={blueprintsView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
               onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} {engine}
-              onengine={(change: Partial<EngineSettings>) => Object.assign(engine, change)} gpu={session.gpuView}
+              onengine={(change: Partial<EngineSettings>) => { trackSettingChange(change, engine, false); Object.assign(engine, change); }}
+              onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
     {#snippet tools(unit)}
       <!-- New (Hedge School's design 21): the standard start, the board editor from the position on screen, a
@@ -270,7 +300,7 @@
       <NewMenu site={SITE_NAME} editor={editorHref} onstart={newBoard} onload={loadFile}
                importer={{ open: () => (importing = true), hint: "A game record, finished or not, a list of moves, or a position." }} />
       <!-- Export: the link, the analysis file, or the annotated record, labelled by the view's unit. -->
-      <ExportMenu icon run={kind => exportAs(kind, unit)} items={BOARD_EXPORTS} />
+      <ExportMenu icon run={kind => exportAs(kind, unit)} items={BOARD_EXPORTS} ontrack={trackExport} />
     {/snippet}
   </ReviewView>
 {:else}

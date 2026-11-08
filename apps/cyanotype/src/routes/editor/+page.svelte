@@ -10,7 +10,9 @@
   // it: the rules' checks, and whether a game can reach it (protocol 0.8.0's check), with the hexes that each reason
   // names marked on the board. Analyze opens the board from a position that a game can reach. Its way in:
   // `#position=`, from the Analysis board's New menu and Import (the position on screen) or another page. The position
-  // leaves the address at once. The position being made is kept in this browser, so that a reload keeps it.
+  // leaves the address at once. The position being made is kept in this browser, so that a reload keeps it. The page
+  // counts its open and Analyze, as Hedge School's editor does (its design 17). The analytics start once the position
+  // has left the address.
   import { onDestroy, onMount } from "svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
@@ -26,6 +28,7 @@
   import { hasCell, moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
   import { rulesBy, startChecked, type StartChecked } from "#lib/review/recordCheck.ts";
   import { EDITOR_KEY, SITE_NAME } from "#lib/site.ts";
+  import { startAnalytics, track } from "#lib/analytics.svelte.ts";
 
   let made = $state.raw<SitePosition>(readPosition(STANDARD_START)); // the position as the player made it
   let loads = $state(0); // a new whole position: the board fits its view again
@@ -50,10 +53,12 @@
   onMount(() => {
     const brought = new URLSearchParams(location.hash.slice(1)).get("position");
     history.replaceState(null, "", location.pathname);
+    startAnalytics();
     for (const text of [brought, readLocal(EDITOR_KEY)]) {
       if (!text) continue;
       try { load(readPosition(text)); break; } catch { /* the next, or the start */ }
     }
+    track("editor_open");
     void (async () => {
       try {
         const manifest = await loadManifest();
@@ -144,6 +149,7 @@
     setTimeout(() => (copied = false), 2000);
   }
   function analyze() {
+    track("editor_analyze");
     location.assign(`/analysis#${new URLSearchParams({ position: notation, via: "editor" })}`);
   }
 

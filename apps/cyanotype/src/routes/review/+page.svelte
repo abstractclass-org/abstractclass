@@ -12,7 +12,10 @@
   // the network. The GPU worker joins the pool once the network is loaded (Hedge School's design 15). A game that keeps
   // its own network and depth (a shared review's, Hedge School's design 09) reviews with them. The engine's results are
   // kept by position (@abstractclass/analysis/cache.ts), so a review opened again shows them at once. Once the review
-  // is done, the game keeps its mark (game/store.ts), and its Export menu shares it by link (reviewExports.ts).
+  // is done, the game keeps its mark (game/store.ts), and its Export menu shares it by link (reviewExports.ts). The
+  // page counts its events as Hedge School's review does (Hedge School's design 17): the review's open and end, the
+  // engine's errors, the settings changed, the features used and the exports. The
+  // analytics start once a game has left the address (holdsGame), else from the layout.
   import { onDestroy, onMount, untrack } from "svelte";
   import { afterNavigate, replaceState } from "$app/navigation";
   import { MediaQuery } from "svelte/reactivity";
@@ -32,8 +35,12 @@
   import { blueprints, type Blueprints, type ReviewData } from "#lib/review/blueprints.ts";
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
-  import { changeOwn, loadEngine, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn, type EngineSettings,
-           type OwnSettings } from "#lib/analysis/engineSettings.ts";
+  import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
+           type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
+  import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
+  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { trackExport } from "#lib/game/sources.ts";
+  import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "@abstractclass/site/measure.ts";
   import { startChecked } from "#lib/review/storedReview.ts";
   import { gamePage, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
@@ -61,11 +68,12 @@
   let own = $state.raw<OwnSettings | null>(null);
   const settings = $derived(own ? withOwn(engine, own) : engine);
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
-                                      dropped: () => bar.reset() });
+                                      tracker: { track, networkName }, dropped: () => bar.reset() });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
     const { network, review, customReview, ...rest } = change;
     if (own?.from === "mark" && network !== undefined && offersNetwork(network)) own = null;
+    trackSettingChange(change, settings, !!own); // Hedge School's design 17
     if (own && kept && (network !== undefined || review !== undefined || customReview !== undefined)) {
       own = changeOwn(own, engine, change);
       if (own.from === "stored") void setGameSettings(kept.id, own.settings);
@@ -86,6 +94,23 @@
   const R = $derived(data && preloaded ? review(blueprints, data, "lead", LABEL_VISITS) : null);
   const deeperPositions = $derived(game ? game.analysis.filter(a => !!a && a.visits >= 1.5 * budget).length : 0);
   const bar = new ReviewBar({ game: () => game, moves: () => kept?.record.moves.length ?? 0, budget: () => budget });
+  // The review's events (Hedge School's design 17): when it opens and when it ends, with what it ran with and how long
+  // it took. The time counts from the review's start, or from a change of its network or depth, which starts it again.
+  // A review that opened already done (doneBefore: its mark covers it, or the store held every step's results) sends
+  // no end.
+  let startedAt = 0, doneBefore = false;
+  function reviewParams(): Record<string, string | number | boolean> {
+    return {
+      network: networkName(settings.network), depth: budget, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
+      workers: engine.workers, gpu_mode: engine.gpu, cores: range(navigator.hardwareConcurrency || 1, CORE_RANGES),
+      edges: range(kept?.record.moves.length ?? 0, EDGE_RANGES), own_settings: !!own,
+      practice_game: false, // Cyanotype keeps no practice game in the player's games yet (abscls-8tl1.50)
+    };
+  }
+  $effect(() => {
+    void budget; void settings.network;
+    untrack(() => { if (startedAt) { startedAt = performance.now(); doneBefore = false; } });
+  });
   // The review is done (bar.done): every step of the bar. The game keeps the mark of it (store.ts), so that the Review
   // tab can offer its export, and the Export menu opens (Hedge School's design 13). The export reads the mark from the
   // store.
@@ -94,6 +119,12 @@
     untrack(() => {
       const mark = session.manifest && reviewMark(session.manifest, session.network, budget);
       if (kept && mark) void markReviewed(kept.id, mark);
+      if (!kept || !startedAt || doneBefore) return;
+      const seconds = (performance.now() - startedAt) / 1000, speed = session.pool?.workerSpeed;
+      trackOnce(`${kept.id} done ${session.network} ${budget}`, "review_done", {
+        ...reviewParams(), review_seconds: Math.round(seconds), minutes: range(seconds / 60, MINUTE_RANGES),
+        gpu_used: session.gpu?.status.state === "on", ...(speed ? { worker_speed: 5 * Math.round(speed / 5) } : {}),
+      });
     });
   });
   const wide = new MediaQuery(WIDE);
@@ -145,7 +176,8 @@
 
   onMount(async () => {
     const hash = addressHash(), link = hash.get("packed");
-    if (link !== null) { await replaceState("/review", {}); packed = link; return; } // async: the address changes once it resolves
+    // A shared review. The analytics start once the game has left the address (async: it changes once it resolves).
+    if (link !== null) { await replaceState("/review", {}); startAnalytics(); packed = link; return; }
     // The game to review: the one named in the address. Without one, the Review tab.
     const id = hash.get("game");
     shown = id;
@@ -169,7 +201,7 @@
       await startReview(record, manifest);
     } catch (e) {
       // A review stopped for another tab, or by the page's close, fails its searches: no error to show.
-      if (!session.ended) error = errorText(e);
+      if (!session.ended) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
       if (!kept) stop(); // a game this browser lacks: its lock free for the tab that imports it
     }
   });
@@ -178,7 +210,11 @@
    *  lacks it. */
   async function readGame(id: string): Promise<GameRecord> {
     const stored = await loadGame(id);
-    if (!stored) throw new Error(`This browser has no game ${id}.`);
+    if (!stored) {
+      // A review's address opened in a browser that lacks its game (a review's address sent to someone): counted.
+      track("game_missing");
+      throw new Error(`This browser has no game ${id}.`);
+    }
     rememberReview(id);
     kept = { id, record: stored.record };
     markBefore = stored.game.reviewed;
@@ -204,10 +240,15 @@
       preloaded = true;
       game = g;
     });
-    if (!g || error || !g.rulesReady) return; // another pool took over, or the rules refused the game: the page shows why
+    if (!g) return; // another pool took over
+    // The rules, or the record's capture marks, refused the game: the page shows why
+    if (error || !g.rulesReady) { track("engine_error", { error_kind: "rules" }); return; }
     const want = reviewMark(manifest, session.network, budget);
-    const why = reviewCovers(markBefore, want) || bar.done ? null : reviewAgainWhy(markBefore, want);
+    doneBefore = reviewCovers(markBefore, want) || bar.done; // done from the store: nothing has searched yet
+    const why = doneBefore ? null : reviewAgainWhy(markBefore, want);
     again = why && want ? againFor(why, want) : null;
+    startedAt = performance.now();
+    track("review_open", { ...reviewParams(), done_before: doneBefore });
     await g.sweep();
   }
 
@@ -252,10 +293,12 @@
   <ReviewView view={blueprintsView} {R} progress={bar.progress} {deeperPositions} {again} {siteLink} game={game ?? undefined}
               deepVisits={engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={budget} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
+              onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })}
               ownSettings={own?.from} gpu={session.gpuView}>
     {#snippet tools()}
       <!-- Export (Hedge School's design 13): once the review is done, a link that shares it. -->
-      <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={bar.done} why="Export once the review is done." />
+      <ExportMenu icon run={exportAs} items={REVIEW_EXPORTS} ready={bar.done} why="Export once the review is done."
+                  ontrack={trackExport} />
     {/snippet}
   </ReviewView>
 {:else if kept}

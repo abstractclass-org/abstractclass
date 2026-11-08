@@ -331,7 +331,8 @@ read the game from the player's own page.
   Cyanotype's page shows too. It holds the site's terms, the engine's terms, the works in the engine's modules and the
   icon of the quality label Excellent. `packages/site/src/LibraryNotices.svelte` gives its sections on the pages'
   libraries, ONNX Runtime Web and the font Fira Code. Hedge School's page gives it the sounds.
-- Analytics: `src/lib/analytics.svelte.ts`, `src/lib/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
+- Analytics: `src/lib/analytics.svelte.ts` (on `packages/site/src/analytics.svelte.ts`), the banner
+  `packages/site/src/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
   when the address holds a game, by the page that removes it (design 22).
 - Hosting: `package.json` (`build:cloudflare`), `.node-version` (at the root), `static/_headers`, `vite.config.ts`
   (the 404 page and the version). The setup, step by step, and how to deploy: [hosting.md](../hosting.md).

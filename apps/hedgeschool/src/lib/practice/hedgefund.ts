@@ -4,13 +4,13 @@
 // bot's half-life, the turns after a set-up start, the analytics' parameters and the game's record.
 import { NETWORKS, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
 import { startTags, writeRecord } from "#lib/game/record.ts";
-import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "#lib/measure.ts";
 import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
 import {
   botLabel, choicesStore, keptStore, settingsCommands, VARIETY_NAME, type BotSettings, type KeptPractice as Kept,
   type PracticeOutcome,
 } from "@abstractclass/practice/practice.ts";
 import type { BotMode } from "@abstractclass/practice/botMessages.ts";
+import { practiceEvents } from "@abstractclass/practice/practiceEvents.ts";
 
 export * from "@abstractclass/practice/practice.ts";
 
@@ -37,26 +37,9 @@ export const botName = (bot: BotSettings) => botLabel(networkName(bot.network), 
  *  whether that move opens its turn (the engine repository's design 04, "The turns after a set-up start"). */
 export const practiceTurn = (k: Pick<KeptPractice, "start">) => turnFromCount(k.start ? Number(k.start.split(" ")[4]) : 0);
 
-/** What Google Analytics receives about a practice game (design 17): its settings, the network by its name, with
- *  `cores` and the bot's form (gpu, cpu, single), as `practice_start` and `practice_end` both carry them. Never a move
- *  or the player's name. */
-export function practiceParams(k: KeptPractice, form: string, cores: number): Record<string, string | number> {
-  return {
-    network: networkName(k.bot.network), bot_visits: k.bot.visits, bot_variety: k.bot.variety,
-    practice_side: k.human === 0 ? "blue" : "red", bot_form: form, cores: range(cores || 1, CORE_RANGES),
-  };
-}
-
-/** `practice_end`'s parameters: the game's settings, its outcome, its edges, its takebacks, and the bot's average
- *  seconds a turn, as ranges ("none" before the bot's first turn). */
-export function practiceEndParams(k: KeptPractice, form: string, cores: number, outcome: PracticeOutcome, edges: number) {
-  const turns = k.botTurns ?? 0;
-  return {
-    ...practiceParams(k, form, cores), practice_outcome: outcome, edges: range(edges, EDGE_RANGES),
-    practice_takebacks: range(k.takebacks ?? 0, TAKEBACK_RANGES),
-    bot_seconds: turns ? range(Math.floor((k.botMs ?? 0) / turns / 1000), BOT_SECOND_RANGES) : "none",
-  };
-}
+/** What Google Analytics receives about a practice game (design 17, @abstractclass/practice/practiceEvents.ts):
+ *  `practice_start`'s parameters, and `practice_end`'s, with the network by its name. */
+export const { practiceParams, practiceEndParams } = practiceEvents(networkName);
 
 /** The record's event for a practice game: the review knows a practice game by it (design 17, `practice_game`). */
 export const PRACTICE_EVENT = "Hedge School practice";

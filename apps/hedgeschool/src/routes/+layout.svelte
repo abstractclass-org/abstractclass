@@ -4,12 +4,12 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { EARLY_ACCESS, ENGINE_FILES, OPENINGS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
-	import { ASKS_CONSENT, asksToAllow, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
+	import { ASKS_CONSENT, analytics, asksToAllow, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
 	import { earlierRemovalDue, removeOlderShapes } from '@abstractclass/analysis/cache.ts';
 	import { holdsGame } from '@abstractclass/import/importHash.ts';
-	import ConsentBanner from '#lib/ConsentBanner.svelte';
-	import AnalyticsAsk from '#lib/AnalyticsAsk.svelte';
+	import ConsentBanner from '@abstractclass/site/ConsentBanner.svelte';
+	import AnalyticsAsk from '@abstractclass/site/AnalyticsAsk.svelte';
 	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
 	import SiteMenu from '@abstractclass/site/SiteMenu.svelte';
 	import SupportDialog from '#lib/SupportDialog.svelte';
@@ -111,4 +111,7 @@
 </SiteFrame>
 <SupportDialog bind:open={supporting} />
 
-{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner />{:else if asksToAllow()}<AnalyticsAsk />{/if}
+<!-- The card's collie, at 48 pixels: its head and chest (design 12). -->
+{#snippet collie()}<Collie size={48} />{/snippet}
+{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner {analytics} site={SITE_NAME} title="Help the school get better" mark={collie} />
+{:else if asksToAllow()}<AnalyticsAsk {analytics} site={SITE_NAME} mark={collie} />{/if}

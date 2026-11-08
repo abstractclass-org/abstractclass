@@ -20,7 +20,7 @@
   import { annotatedFromStore } from "#lib/review/exportText.ts";
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
   import { trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
-  import { GAME_RANGES, range } from "#lib/measure.ts";
+  import { GAME_RANGES, range } from "@abstractclass/site/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
 

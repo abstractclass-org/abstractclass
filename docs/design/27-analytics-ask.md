@@ -80,10 +80,11 @@ counts.
 
 ## Where it is
 
-- The check and the choice: `src/lib/analytics.svelte.ts` (`asksToAllow`, `closeAsk`, and the script's `load` and
-  `error` events in `startAnalytics`).
-- The card: `src/lib/AnalyticsAsk.svelte`, in the card that it shares with the consent banner
-  (`src/lib/ui/CornerCard.svelte`). The layout shows it (`src/routes/+layout.svelte`).
+- The check and the choice: `packages/site/src/analytics.svelte.ts` (`asksToAllow`, `closeAsk`, and the script's
+  `load` and `error` events in `startAnalytics`).
+- The card: `packages/site/src/AnalyticsAsk.svelte`, in the card that it shares with the consent banner
+  (`packages/site/src/CornerCard.svelte`). The layout shows it (`src/routes/+layout.svelte`). Cyanotype shows the
+  same card (its design 33, "Analytics and consent").
 - The check in a browser: `tests/analytics-ask.spec.ts`, on a build with a made-up measurement ID
   (`VITE_GA_ID=G-TEST000000`). It stops the tag's script, puts a blocker's stand-in in its place, or loads it from
   Google, and stops every other request to Google. A build without the Google tag skips it, as the builds of CI do.

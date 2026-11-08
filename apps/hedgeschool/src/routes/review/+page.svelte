@@ -46,7 +46,7 @@
   import { afterNavigate, replaceState } from "$app/navigation";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { trackExport } from "#lib/game/sources.ts";
-  import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "#lib/measure.ts";
+  import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "@abstractclass/site/measure.ts";
   import { deliverExport, reviewExports, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
   import type { Unit } from "#lib/review/enclosure.ts";

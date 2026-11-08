@@ -136,10 +136,10 @@ Lichess and chess.com keep every game played on them:
   tab, or sent again after a failed send, does not come back after the delete. The check is in the insert's own
   statement, so that a delete cannot come between them. Each tab follows a choice made in another tab (the browser's
   `storage` event), and a game takes the number, and goes with it, only as the browser keeps the choice at that moment.
-- **The banner** (`src/lib/ConsentBanner.svelte`): item 5's text, with the collie, for the purposes that the build
-  has: a build without Google Analytics, as the previews, does not name its cookies. The banner's card
-  (`src/lib/ui/CornerCard.svelte`) also holds the request to allow Google Analytics in a blocker, which shows after
-  the banner, in the same place (design 27).
+- **The banner** (`packages/site/src/ConsentBanner.svelte`, shown by `src/routes/+layout.svelte`): item 5's text, with
+  the collie, for the purposes that the build has: a build without Google Analytics, as the previews, does not name its
+  cookies. The banner's card (`packages/site/src/CornerCard.svelte`) also holds the request to allow Google Analytics in
+  a blocker, which shows after the banner, in the same place (design 27).
 - **Tests:** `src/lib/practice/stored.test.ts` checks the stored game, and the Function on the real schema in Node's
   own SQLite, behind the part of D1's binding that the Function uses.
 

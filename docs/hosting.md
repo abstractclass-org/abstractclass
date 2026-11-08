@@ -16,12 +16,12 @@ entries before it).
 | The deploy | GitHub Actions (`.github/workflows/deploy.yml`) | On each push: builds the site and uploads it to Pages with Wrangler. `main` goes to production, another branch to a preview (section 3). A site that is not launched yet deploys previews only ("The launch switch"). |
 | The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
-| Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). |
+| Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). Cyanotype has its own (section 9). |
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout test on Windows ("Deploy, check and roll back"). |
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
-| Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with no Function and no analytics (section 9). |
+| Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with no Function, and its own analytics (section 9). |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
 runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it keeps the practice games (section 7).
@@ -249,7 +249,8 @@ put them behind a sign-in (Cloudflare Access).
   share Hedge School's ID, for one report of the whole domain, split by hostname: a visitor who moves between the
   subdomains is then one user, because Google's cookie is set on `abstractclass.org`. A page can also send to two
   properties, its own and one for the whole domain (two `config` commands), which needs a list of IDs in
-  `src/lib/analytics.svelte.ts`. Each site asks its own consent: the choice is kept per address.
+  `src/lib/analytics.svelte.ts`. Each site asks its own consent: the choice is kept per address. Cyanotype has a
+  property of its own (section 9, "Cyanotype's analytics").
 
 ## 5. Cloudflare Web Analytics
 
@@ -403,7 +404,8 @@ and builds it on each push, as the site's job does: the packages' checks and tes
 `main` to production, another branch to a preview at `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys
 nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only: a push to `main` does not run it
 ("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and its variables
-`CLOUDFLARE_ACCOUNT_ID` and `VITE_EDITION` (section 3).
+`CLOUDFLARE_ACCOUNT_ID` and `VITE_EDITION` (section 3), and Cyanotype's own two variables of its analytics
+("Cyanotype's analytics", below).
 
 - **The early access:** the build takes the repository variable `VITE_EDITION`, as the site's build does. With
   `early`, it is Cyanotype's early access: the header shows "Early Access" beside the name, and it leads to the About
@@ -434,11 +436,11 @@ nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only:
   `static/robots.txt` names its sitemap.
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
   have with it, and with status 404.
-- **No Function and no storage at Cloudflare.** The browser keeps only the theme and the scroll places (its Privacy
-  page).
+- **No Function and no storage at Cloudflare.** The browser keeps the visitor's games, settings and choices (its
+  Privacy page).
 
-**The owner's steps, once** (abscls-8tl1.3). Do not set a repository variable: the workflow names the project. Each
-push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
+**The owner's steps, once** (abscls-8tl1.3). Do not set a repository variable for the project: the workflow names it.
+Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
 
 1. **Make the Pages project, with `main` as its production branch.** Done (2026-11-04), with Wrangler 4.144.0:
    `npx wrangler@4.144.0 pages project create cyanotype --production-branch=main --force`. The project's name is
@@ -476,6 +478,53 @@ push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
      sure that the last line says `release-check: PASS`. The footer's version shows that the job deployed the push.
 5. **End Wrangler's login** on the computer of step 1, if you do not use Wrangler there:
    `npx wrangler@4.144.0 logout`.
+
+### Cyanotype's analytics
+
+Cyanotype counts its visits and events as Hedge School does ([design 33](design/33-cyanotype.md), "Analytics and
+consent"): Google Analytics after the visitor's consent, and Cloudflare Web Analytics, without cookies. They are
+Cyanotype's own, apart from Hedge School's, so that each site's reports stay apart (section 4, "One property for Hedge
+School"): both sites send events with the same names. The job `cyanotype` gives the build two repository variables of
+Cyanotype's under the names that the code reads, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN`. Only a push to `main`
+gives them, so previews are not counted. Until Cyanotype's launch, the job deploys previews only, so no build has
+them. A build without them measures nothing and shows no consent banner.
+
+| Name | Kind | Value |
+|---|---|---|
+| `CYANOTYPE_GA_ID` | variable | The measurement ID of Cyanotype's web stream (step 1) |
+| `CYANOTYPE_CF_ANALYTICS_TOKEN` | variable | The token of Cyanotype's Web Analytics site (step 2) |
+
+**The owner's steps, once,** before Cyanotype's launch (section 9, step 3). Each variable goes in the repository's
+**Settings → Secrets and variables → Actions → Variables → New repository variable**: a variable of the whole
+repository, as section 3's are, not of an environment.
+
+1. **Google Analytics: Cyanotype's own property and web stream.**
+   1. At [analytics.google.com](https://analytics.google.com), click **Admin**, then **Create → Property**. Property
+      name: `Cyanotype`. Give the time zone and the currency as Hedge School's property has them. Finish the steps.
+   2. In the new property, **Admin → Data collection and modification → Data streams → Add stream → Web**. Website
+      URL: `https://cyanotype.abstractclass.org`. Stream name: `Cyanotype`. Keep **Enhanced measurement** on, with
+      **"Page changes based on browser history events"** on (section 4). Click **Create stream**.
+   3. Copy the stream's **Measurement ID** (`G-…`), and set it as the repository variable `CYANOTYPE_GA_ID`.
+   4. Set up the property as Hedge School's: the custom dimensions and metrics, the key events and the data retention
+      of 14 months, as design 17's "The setup in Google Analytics" lists them. Cyanotype's events use the same
+      parameters. Design 33's "Analytics and consent" names the values that differ.
+   5. The owner's own visits: do the four steps of section 4's "The owner's own visits" in this property, with
+      Cyanotype's address: `https://cyanotype.abstractclass.org/?internal=on`. Each site keeps its own flag in the
+      browser, so a browser needs the flag on each site.
+2. **Cloudflare Web Analytics: Cyanotype's own site.**
+   1. In the Cloudflare dashboard, **Web Analytics → Add a site**. Hostname: `cyanotype.abstractclass.org`. If
+      Cloudflare turns on its **automatic setup** for it, change it: **Manage site → "Enable with JS Snippet
+      installation" → Update**, as section 5, step 2, does for the domain.
+   2. The snippet holds the site's token (`data-cf-beacon='{"token": "…"}'`). Set the token alone, the 32
+      hexadecimal digits, as the repository variable `CYANOTYPE_CF_ANALYTICS_TOKEN`.
+   3. Do not turn on the Pages project's own Web Analytics (**Metrics → Web Analytics** of the project `cyanotype`):
+      visits would count twice.
+   The domain's site (section 5) also takes Cyanotype's beacon, since its hostname ends with `abstractclass.org`. A
+   site of Cyanotype's own gives Cyanotype a dashboard of its own.
+3. **Check, after the launch's deploy:** open `https://cyanotype.abstractclass.org` in a new private window. The
+   banner "Help Cyanotype get better" shows. In Google Analytics, Cyanotype's property shows the visit in **Reports →
+   Realtime**. Cloudflare's dashboard shows it in the Web Analytics site `cyanotype.abstractclass.org`, after some
+   minutes. Visit the Privacy page's "Your choices" too: its switch shows.
 
 ## The launch switch
 

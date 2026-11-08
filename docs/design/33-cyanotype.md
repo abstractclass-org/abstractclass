@@ -15,7 +15,9 @@ are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map
 editor and starts from a set-up position are built (abscls-8tl1.39, "Decision", item 10, and "The board editor"), with
 the engine's check that a game can reach a position (abscls-8tl1.59). The early access is built, as Hedge School's
 ("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
-player's games"). Partner sites are designed, not built ("Partner sites").
+player's games"). Partner sites are designed, not built ("Partner sites"). The analytics and the consent banner are
+built as Hedge School's (abscls-8tl1.48, "Analytics and consent"). Cyanotype's own Google Analytics property and
+Cloudflare Web Analytics site are the owner's steps.
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -24,7 +26,8 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 **Decided:** 2026-10-25. Practice's layout and its bot: 2026-10-30. The review and the Analysis board: 2026-11-01. The
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
 notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07. Partner sites:
-2026-11-08. The import page keeps the game: 2026-11-08. The position check: 2026-11-09.
+2026-11-08. The import page keeps the game: 2026-11-08. The position check: 2026-11-09. The analytics and the consent:
+2026-11-06.
 
 ## Context
 
@@ -496,11 +499,11 @@ its practice games are not kept. The board takes a komi as Hedge School's does w
 1. **A search of more views takes its best check, with no temperature,** and a move of another view keeps no tree for
    the next move (the engine's README, "The search"). The variety then does not act on that move. Request 25 accepts
    this.
-2. **No practice game in Your games, no stored game, no analytics and no review of a game played here:** the site
-   keeps no practice game, and has no backend (design 25) and no analytics (design 17) yet. These are gaps, each in
-   "The gaps from Hedge School". So a game that ends is no longer kept: the next visit starts a new one. Abort ends
-   the game, and it is gone. The site ships only its lock's networks, so a new build can drop a kept game's network.
-   Such a game cannot go on: the page drops it, and the settings card says so.
+2. **No practice game in Your games, no stored game and no review of a game played here:** the site keeps no practice
+   game, and has no backend (design 25) yet. These are gaps, each in "The gaps from Hedge School". So a game that ends
+   is no longer kept: the next visit starts a new one. Abort ends the game, and it is gone. The site ships only its
+   lock's networks, so a new build can drop a kept game's network. Such a game cannot go on: the page drops it, and the
+   settings card says so.
 3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
    page has no sounds. The player's notes are on the board ("The player's notes"). No game comes from a record or a
    set-up start. These are gaps too ("The gaps from Hedge School").
@@ -608,11 +611,12 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    words ("Cyanotype could not import the game: …"), and with no line about the tools page: newer tools do not help that
    browser. A record that the page cannot read or that the rules refuse keeps that line, since an old tool can send one.
    "Analyze on the board" opens the board by its own address with the record (`/analysis#record=…&at=`), which takes it
-   out of the address again and checks it, as a link to the board does. Cyanotype has no analytics yet, so the import
-   counts no event: the board's address names no source (`via`). A reload of the page after the game left its address
-   goes to the tools page. A partner's links (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design
-   18): the page refuses `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites". A
-   link's record (`/import#record=…`) gets the same choice as a tool's.
+   out of the address again and checks it, as a link to the board does. The page counts the review's import once it
+   keeps the game. The board's address names the tool's source (`via`), and the board counts the import by it
+   ("Analytics and consent", item 4). A reload of the page after the game left its address goes to the tools page. A
+   partner's links (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design 18): the page refuses
+   `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites". A link's record
+   (`/import#record=…`) gets the same choice as a tool's.
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the header from a tablet's width, and in the footer on
    a phone, as Hedge School's (design 22).
@@ -931,8 +935,7 @@ in "Set up a position".
 **Where it departs from Hedge School's editor:** the pieces (cells of three kinds, and the hands), the count that does
 not follow the board (item 5), the click that keeps the view (item 4: Hedge School's board does not pan), the drag with
 Shift (item 8: Hedge School's editor draws an edge with two clicks, and a set-up position of Blueprints has many cells),
-and the board that the page draws and the engine reads, where Hedge School's engine draws its regions. It counts no
-event: Cyanotype has no analytics yet ("The gaps from Hedge School").
+and the board that the page draws and the engine reads, where Hedge School's engine draws its regions.
 
 ## The player's games
 
@@ -989,8 +992,7 @@ settings of its design 09 and the marks of its design 13), in the code that both
   Hedge School first shows the earlier review as it was (its design 20). abscls-8tl1.35.
 - **No marks before the first paint:** until the page's code runs, `/review` shows the line "Reading the game with the
   engine's rules…", not the Review tab. abscls-8tl1.45.
-- **No analytics** of the imports, the deletes or the reviews (abscls-8tl1.48), and no partner sites yet
-  ("Partner sites").
+- **No partner sites yet** ("Partner sites").
 - **No game from a set-up start in the list:** the review takes none, and Cyanotype's practice games are not kept yet
   (abscls-8tl1.40, abscls-8tl1.50). Hedge School's list opens such a game on the Analysis board.
 
@@ -1159,6 +1161,73 @@ corner (`hex.ts`). A cell's body has the radius 0.93, so that a gap shows betwee
 
 `apps/cyanotype/src/lib/board/Cell.svelte` draws a cell, and `cellMarks.ts` gives the two marks' shapes.
 
+## Analytics and consent
+
+Cyanotype measures its visits and its events as Hedge School does (its designs 11, 17, 25 and 27), in the code that
+both sites share (design 29), with Cyanotype's own services and keys.
+
+1. **The shared parts,** moved from Hedge School: in `packages/site`, the analytics (`analytics.svelte.ts`: one
+   `Analytics` for each site, with its build's two services and its keys), the flag of internal traffic
+   (`internalTraffic.ts`), the ranges (`measure.ts`), the card at the window's lower left with the site's mark
+   (`CornerCard.svelte`), the consent banner (`ConsentBanner.svelte`) and the ask to allow Google Analytics in a
+   blocker (`AnalyticsAsk.svelte`). The engine settings' changes (`packages/analysis/src/settingChanges.ts`), the
+   exports (`packages/review/src/exportEvents.ts`) and a practice game's parameters
+   (`packages/practice/src/practiceEvents.ts`), beside the import's events (`packages/import/src/importEvents.ts`).
+   Each site's `src/lib/analytics.svelte.ts` makes its analytics. Its other files give the events the site's names of
+   its networks and its sources. Hedge School's behaviour, events and keys stay as they were.
+2. **The services are Cyanotype's own:** a Google Analytics property and a Cloudflare Web Analytics site, so that its
+   reports stay apart from Hedge School's. The two sites' events have the same names. The build reads Hedge School's
+   variable names, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN`. The deploy gives them from Cyanotype's repository
+   variables, `CYANOTYPE_GA_ID` and `CYANOTYPE_CF_ANALYTICS_TOKEN`, for `main` only. Without them, as in development
+   and on the previews, nothing is measured and no banner shows. [docs/hosting.md](../hosting.md), "Cyanotype's
+   analytics", gives the owner's steps.
+3. **The consent has one purpose,** Google Analytics' cookies: Cyanotype stores no practice games yet
+   (abscls-8tl1.50), so it has no random number that links them. The banner is Hedge School's, with the logo at 48
+   pixels (the full print, "The logo") and its own title, "Help Cyanotype get better". The Privacy page says what is
+   measured, in Hedge School's words, and has the purpose's switch under "Your choices". The browser keeps the choice
+   under `cyanotype:consent:1`, the closed ask under `cyanotype:analytics-ask:1` and the flag of internal traffic
+   under `cyanotype:internal-traffic:1`. Each site keeps its own: a visitor chooses on each.
+4. **The events have Hedge School's names and parameters** where the thing is the same, so that the two sites' reports
+   compare. The layout starts the analytics, unless the address holds a game: then the page that takes the game out
+   of the address starts them (the review, the import page, the Analysis board and the board editor). The pages send
+   these events:
+   - the review: `review_open`, `review_done`, `game_missing`, `engine_error`, `setting_change`, `feature`, `export`,
+     and `import_game` or `import_failed` for a record after the `#`;
+   - the Review tab: `import_game`, `import_failed`, `load_failed`, `game_delete`, `game_delete_cancel`, `export`, and
+     the visitor's property `games_stored`;
+   - a shared review: `review_share_open`, `load_saved`, `load_failed`;
+   - the import page: `tool_out_of_date`, and `import_failed` for a game that it cannot read or open;
+   - the Analysis board: `analysis_open`, `import_game`, `import_failed`, `load_saved`, `load_failed`,
+     `engine_error`, `setting_change`, `feature`, `export`;
+   - the board editor: `editor_open`, `editor_analyze`;
+   - Practice: `practice_start`, `practice_end`, `engine_error`, `feature`;
+   - the engine's session, on the review and the Analysis board: `gpu_test`, and `engine_error` for the GPU.
+
+   **Where Cyanotype's events differ from Hedge School's:**
+   - **Its ways in** (`import_source`): `pasted_record`, `pasted_position`, `site_link`, `strategyjam_bookmarklet`
+     and `strategyjam_userscript`. Cyanotype has no meaf.us tools (`bookmarklet`, `userscript`, `older_tool`) and no
+     Constellation export (`pasted_constellation`): both are Enclosure's. Its tools always send their version, so
+     `stale_tool` is never `older`.
+   - **Where the import counts:** Cyanotype's import page sends the game to the review's or the board's address, with
+     the tool's source as `via`, and that page counts the import when it keeps the game. Hedge School's import page
+     keeps the game for the review itself, and counts it there. A record after `/review#record=` or
+     `/analysis#record=` with no `via` is a link's (`site_link`).
+   - **Its saved work** (`load_source`): `review_share_link`, `analysis_share_link` and `analysis_file`. Cyanotype has
+     no review files (abscls-8tl1.34) and no partner sites.
+   - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the
+     reports have one dimension for a game's length.
+   - **`network`** names Stamp Duty's networks (Stamp Duty 0.2).
+   - **`practice_game` is always false,** and **`practice_from` is `new` or `resumed`:** Cyanotype keeps no practice
+     game in the player's games yet (abscls-8tl1.50), and its Practice starts from the standard start only
+     (abscls-8tl1.40).
+   - **Practice's features** (`feature_name`): `practice komi`, `practice takeback`, `practice look back` and `note
+     drawn`. Cyanotype's Practice has no display settings of Hedge School's, so it sends none of their features.
+   - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
+   - **No event of a part that Cyanotype lacks:** Support Us (`support_open`, abscls-8tl1.49), Openings
+     (abscls-8tl1.53), the review snapshot's features (abscls-8tl1.35) and the review file's loads (abscls-8tl1.34).
+5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics-ask.spec.ts`) run on both sites,
+   each on a build with a made-up measurement ID. They skip on a build without it, as Hedge School's do.
+
 ## The logo
 
 Cyanotype's logo is **the cyanotype:** the start's blueprint, a star in its ring of six cells, printed white on
@@ -1256,9 +1325,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   abscls-8tl1.43.
 - **The opening book** in the review and on the Analysis board (`book/`, design 32). Put off with the Openings page:
   abscls-8tl1.53 (deferred).
-- **The analytics and the consent** (`analytics.svelte.ts`, `ConsentBanner.svelte`, `AnalyticsAsk.svelte`,
-  `ui/CornerCard.svelte`, `measure.ts`, `internalTraffic.ts`, `analysis/settingChanges.ts`, `game/sources.ts`,
-  `hooks.client.ts`, designs 17, 25 and 27). abscls-8tl1.48.
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
 - **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
@@ -1354,6 +1420,12 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `src/lib/SiteFooter.svelte`: the footer, with How reviews work, Privacy and Notices. `src/app.css`: the accent
   (Hedge School's lavender) and the board's colour tokens, after the shared style and the view's
   (`@abstractclass/review/review.css`).
+- `apps/cyanotype/src/lib/analytics.svelte.ts`: Cyanotype's analytics ("Analytics and consent"), on
+  `packages/site/src/analytics.svelte.ts`, with the flag of internal traffic (`src/lib/internalTraffic.ts`, read as
+  the site starts in `src/hooks.client.ts`), the sources and the imports' and exports' events
+  (`src/lib/game/sources.ts`), the settings' changes (`src/lib/analysis/settingChanges.ts`) and a practice game's
+  parameters (`src/lib/practice/stampduty.ts`). The layout shows the banner and the ask, and the Privacy page has the
+  switch. The deploy's two variables: the job `cyanotype` of `.github/workflows/deploy.yml`.
 - `apps/cyanotype/src/lib/brand/`: the logo ("The logo"). `logo.ts` (the drawings), `Logo.svelte` (the logo at a size),
   `card.ts` (the link preview picture) and `logo.test.ts`. `scripts/brand.mjs` draws the files from them:
   `src/lib/assets/favicon.svg`, `static/favicon.ico`, `static/apple-touch-icon.png` and `static/brand/card.png`.
@@ -1571,6 +1643,7 @@ Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with
 "Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
 games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
 (2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), "Cyanotype's How a review works page"
-(2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), "Cyanotype's board editor checks that a game can
-reach the position" (2026-11-09), and "Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09). The
-earlier entries name the site by its first name, Drawing Board.
+(2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), "Cyanotype's analytics and consent, as Hedge
+School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach the position" (2026-11-09), and
+"Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09). The earlier entries name the site by its
+first name, Drawing Board.

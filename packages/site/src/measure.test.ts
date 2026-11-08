@@ -1,4 +1,4 @@
-// Checks the ranges that the site's measurements send (measure.ts). Run: npm test.
+// Checks the ranges that the sites' measurements send (measure.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CORE_RANGES, EDGE_RANGES, GAME_RANGES, MINUTE_RANGES, range } from "./measure.ts";

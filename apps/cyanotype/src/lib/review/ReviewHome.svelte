@@ -3,8 +3,9 @@
   // review it by pasting its record, continue the last review, and the player's games, kept in this browser
   // (game/store.ts), with their Export and their Delete (GameList). A review opens on a game the player brought: there
   // is no sample game (Hedge School's design 11). An analysis file dropped here goes to the Analysis board, as on Hedge
-  // School. Cyanotype has no review files yet (abscls-8tl1.34), so the tab has no "Load a review file", and counts no
-  // event: it has no analytics yet (design 33, "The gaps from Hedge School").
+  // School. Cyanotype has no review files yet (abscls-8tl1.34), so the tab has no "Load a review file". The tab counts
+  // its events as Hedge School's does (its design 17): the games kept, a delete and a delete stopped, an import and its
+  // failure, an analysis file that cannot load, and the exports.
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
@@ -21,6 +22,9 @@
   import { REVIEW_EXPORTS, deliverExport } from "./reviewExports.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import { setVisitor, track } from "#lib/analytics.svelte.ts";
+  import { trackExport, trackImport, trackImportFailed, trackLoadFailed } from "#lib/game/sources.ts";
+  import { GAME_RANGES, range } from "@abstractclass/site/measure.ts";
 
   let text = $state("");
   let problem = $state("");
@@ -49,17 +53,22 @@
     [games, kept] = await Promise.all([listGames(), storageKept().then(Boolean)]); // the list with its line on storage
     lastId = lastReview();
     read = true;
+    setVisitor({ games_stored: range(games.length, GAME_RANGES) }); // how many games a visitor keeps
     if (games.length && !kept) void keepStorage().then(k => (kept = k));
     manifest = await manifestLoad;
   }
 
-  /** A confirmed delete (GameList): the game goes from the store, and its row at once. */
+  /** A confirmed delete (GameList): the game goes from the store, and its row at once. Each decision counts: a "no"
+   *  is a delete that the question stopped, a slip or a change of mind. An "undecided", the second click of a double
+   *  click, is no decision. */
   async function removeGame(id: string) {
     await deleteGame(id);
     games = games.filter(g => g.game.id !== id);
+    track("game_delete");
   }
 
-  /** The pasted game, checked by the engine's rules, kept and reviewed (game/import.ts). */
+  /** The pasted game, checked by the engine's rules, kept and reviewed (game/import.ts). The import counted by the
+   *  game's length, and a failure by why: no record leaves. */
   async function importGame(event: SubmitEvent) {
     event.preventDefault();
     problem = "";
@@ -68,6 +77,7 @@
       pasted = readPasted(text);
     } catch (e) {
       problem = errorText(e);
+      trackImportFailed("review", "pasted_record", "record");
       return;
     }
     checking = true;
@@ -76,10 +86,12 @@
       id = await importRecord(pasted.recordText, pasted.record);
     } catch (e) {
       problem = errorText(e);
+      trackImportFailed("review", "pasted_record", "rejected");
       return;
     } finally {
       checking = false;
     }
+    trackImport("review", "pasted_record", pasted.record.moves.length);
     location.assign(`/review#game=${id}`); // the review loads it (hashchange)
   }
 
@@ -94,9 +106,10 @@
     if (!file) return;
     fileProblem = "";
     try {
-      await goto(await openAnalysisFile(await file.text(), await manifestLoad));
+      await goto(await openAnalysisFile(await file.text(), await manifestLoad)); // the board counts the load
     } catch (e) {
       fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
+      trackLoadFailed("analysis_file", "file");
     }
   }
 
@@ -112,7 +125,8 @@
       id: game.id, title: title(record), href: `/review#game=${game.id}`,
       detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
         + `added ${new Date(game.added).toLocaleDateString()}`,
-      exports: { run: kind => deliverExport(kind, game.id), items: REVIEW_EXPORTS, ready: reviewCovers(game.reviewed, want),
+      exports: { run: kind => deliverExport(kind, game.id), items: REVIEW_EXPORTS, ontrack: trackExport,
+                 ready: reviewCovers(game.reviewed, want),
         why: !game.reviewed ? "Open the game to review it, then export."
           : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game to review it again, then export."
           : "Open the game to finish its review with the engine settings now, then export." },
@@ -156,7 +170,8 @@
     {#if fileProblem}<p class="mt-1.5 text-blunder" role="alert">{fileProblem}</p>{/if}
   </section>
 
-  <GameList games={rows} {kept} site={SITE_NAME} ondelete={removeGame} />
+  <GameList games={rows} {kept} site={SITE_NAME} ondelete={removeGame}
+            ondecide={answer => { if (answer === "no") track("game_delete_cancel"); }} />
 </main>
 
 <!-- The footer waits for the list of games, which comes above it. -->

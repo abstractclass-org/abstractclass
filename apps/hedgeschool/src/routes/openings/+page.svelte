@@ -37,7 +37,7 @@
   import { mainIndex, pathKey, sharedLength } from "@abstractclass/analysis/tree.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
-  import { POSITION_RANGES, range } from "#lib/measure.ts";
+  import { POSITION_RANGES, range } from "@abstractclass/site/measure.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { siteBook } from "#lib/book/place.svelte.ts";
   import { OpeningsPlace } from "#lib/book/openings.svelte.ts";

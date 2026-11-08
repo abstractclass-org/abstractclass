@@ -5,7 +5,8 @@
   // check it, as the import page checks a game, then the list keeps the game, the sender's variations (beside the
   // recipient's own for that game) and the sender's network and depth for its review, when this site ships that
   // network (a game's own settings, Hedge School's design 09). Other games review as before. A game that the rules
-  // refuse is not kept: the page says why.
+  // refuse is not kept: the page says why. The link's open, its load and a failure count as Hedge School's do (its
+  // design 17): the review page has started the analytics, after the link left the address.
   import { onMount } from "svelte";
   import { loadManifest, sameSearch } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -15,6 +16,8 @@
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
   import { importShare } from "#lib/game/import.ts";
   import { SITE_NAME } from "#lib/site.ts";
+  import { track } from "#lib/analytics.svelte.ts";
+  import { trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
 
   let { packed, class: box }: { packed: string; class: string } = $props();
 
@@ -29,9 +32,12 @@
     try {
       const shared = decodeShare(packed), manifest = await loadManifest();
       const network = manifest?.artifacts.find(a => a.kind === "model" && a.sha256.startsWith(shared.model))?.id ?? null;
-      phase = { at: "share", shared, here: { network, sameEngine: !!manifest && sameSearch(manifest, shared.module) } };
+      const here = { network, sameEngine: !!manifest && sameSearch(manifest, shared.module) };
+      phase = { at: "share", shared, here };
+      track("review_share_open", { network_found: !!network, same_engine: here.sameEngine });
     } catch (e) {
       phase = { at: "failed", message: `${SITE_NAME} could not load the review: ${errorText(e)}` };
+      trackLoadFailed("review_share_link", "link");
     }
   });
 
@@ -40,9 +46,12 @@
   async function review(shared: SharedReview, here: Here) {
     phase = { at: "keeping" };
     try {
-      openReview(await importShare(shared, here.network));
+      const id = await importShare(shared, here.network);
+      trackLoad("review_share_link", shared.moves.length, { with_branches: shared.branches.length > 0 });
+      openReview(id);
     } catch (e) {
       phase = { at: "failed", message: errorText(e) };
+      trackLoadFailed("review_share_link", "rejected");
     }
   }
 </script>

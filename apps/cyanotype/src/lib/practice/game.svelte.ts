@@ -181,6 +181,10 @@ export class PracticeGame {
       }
       this.lastTurnMs = performance.now() - since;
       this.thinkingSince = null;
+      // The bot's turns and their time, for the average that the game's end counts (Hedge School's design 17)
+      this.kept.botTurns = (this.kept.botTurns ?? 0) + 1;
+      this.kept.botMs = (this.kept.botMs ?? 0) + this.lastTurnMs;
+      keep(this.kept);
     }
     const end = this.described.at(-1);
     if (end?.outcome) {

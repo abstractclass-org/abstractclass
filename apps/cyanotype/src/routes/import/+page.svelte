@@ -10,8 +10,11 @@
   // not offer it there. The Analysis board opens by its own address with the record, at the position that the
   // game's page showed, and asks before the game replaces the board kept here. A game from a set-up start offers the
   // board only: the review refuses it, so the choice says so before the click (setUpProblem). For an out-of-date tool,
-  // the page also says how to update it. Cyanotype has no analytics yet, so the import counts no event. The page alone
-  // goes to the tools.
+  // the page also says how to update it, and counts it. The page counts the import as Hedge School's does (its design
+  // 17): the review's import once the game is kept, by its source, and the board's by the source that its address
+  // names (`via`), which the board counts. A game that the page cannot read, open or keep counts as a failed import to
+  // the review. The analytics start once the game has left the address. The page alone goes to the tools, and counts
+  // nothing.
   import { onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
@@ -26,6 +29,8 @@
   import { turnFromCount } from "#lib/game/notation.ts";
   import { parseRecord, playerNames, setUpProblem, type GameRecord } from "#lib/game/record.ts";
   import { checkRecordMarks } from "#lib/review/recordCheck.ts";
+  import { startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { toolSource, trackImport, trackImportFailed, type ImportFailure, type ImportSource } from "#lib/game/sources.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
@@ -33,9 +38,9 @@
 
   // What the page shows: the game while the engine checks it, then the choice with the check's answer, the review's
   // wait while the game is kept, or why the page opens nothing. `keeping`: the failure came while the page kept the
-  // game, not while it read or checked it.
-  type Phase = { at: "reading" } | { at: "checking"; sent: ImportHash; record: GameRecord }
-    | { at: "choose"; sent: ImportHash; record: GameRecord; checked: Checked } | { at: "keeping" }
+  // game, not while it read or checked it. `source`: the import's source, for its events.
+  type Phase = { at: "reading" } | { at: "checking"; sent: ImportHash; record: GameRecord; source: ImportSource }
+    | { at: "choose"; sent: ImportHash; record: GameRecord; source: ImportSource; checked: Checked } | { at: "keeping" }
     | { at: "failed"; message: string; keeping: boolean };
   let phase = $state.raw<Phase>({ at: "reading" });
   let stale = $state<Tool | null>(null); // the tool, when it is out of date
@@ -45,44 +50,56 @@
     if (!holdsGame(location.hash)) { location.replace("/tools"); return; }
     const hash = location.hash.slice(1);
     await replaceState(location.pathname, {}); // async: the address changes only once it resolves
-    let sent: ImportHash, record: GameRecord;
+    startAnalytics();
+    // A failure by the step that fails (Hedge School's design 17): the address, then the record, then the rules.
+    let sent: ImportHash, record: GameRecord, source: ImportSource = "site_link", failure: ImportFailure = "link";
     try {
       sent = readImportHash(hash);
+      if (sent.tool) source = toolSource(sent.tool);
       // A partner's page that sends a kept review (`from=`) and a shared review (`packed=`) come with Hedge School's
       // partners, which Cyanotype does not have.
       if (sent.from || !sent.record) throw new Error("this link does not hold a game record");
       // Cyanotype's tools always send their version, so a record with no tool (a link's) has no tool to update.
       const old = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
       stale = old === "older" ? null : old;
+      if (stale) track("tool_out_of_date", { stale_tool: stale });
+      failure = "record";
       record = parseRecord(sent.record);
     } catch (e) {
       phase = { at: "failed", keeping: false,
                 message: `${SITE_NAME} could not read the game: ${sentence(errorText(e))}` };
+      trackImportFailed("review", source, failure);
       return;
     }
-    phase = { at: "checking", sent, record };
+    phase = { at: "checking", sent, record, source };
     const checked = await checkRecordMarks(record);
+    if (checked.problem) trackImportFailed("review", source, "rejected");
     phase = checked.problem
       ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${sentence(checked.problem)}`, keeping: false }
-      : { at: "choose", sent, record, checked };
+      : { at: "choose", sent, record, source, checked };
   });
 
   // Each choice replaces this page in the history: Back then leads to the page before it.
-  /** The review: the game kept with this page's check, then its review. A failure says why in Hedge School's words
+  /** The review: the game kept with this page's check, then its review. The import counts by its source and the
+   *  game's length, and a failure as rejected (Hedge School's design 17). A failure says why in Hedge School's words
    *  ("… could not import the game:"), then the import's own (game/import.ts), in whole sentences. */
   async function reviewChosen() {
     if (phase.at !== "choose") return;
-    const { sent, record, checked } = phase;
+    const { sent, record, source, checked } = phase;
     phase = { at: "keeping" };
     try {
-      openReview(await keepChecked(sent.record, record, checked));
+      const id = await keepChecked(sent.record, record, checked);
+      trackImport("review", source, record.moves.length);
+      openReview(id);
     } catch (e) {
       phase = { at: "failed", keeping: true,
                 message: `${SITE_NAME} could not import the game: ${sentence(errorText(e))}` };
+      trackImportFailed("review", source, "rejected");
     }
   }
-  const analyzeChosen = (sent: ImportHash, record: GameRecord) =>
-    location.replace(analysisAddress(sent, record.moves.length, null)); // no analytics: no source
+  /** The Analysis board, by its own address: the board counts the import, by the source that the address names. */
+  const analyzeChosen = (sent: ImportHash, record: GameRecord, source: ImportSource) =>
+    location.replace(analysisAddress(sent, record.moves.length, source));
   // What each choice does, in strict Simplified Technical English: the player follows it.
   const REVIEW_TEXT = `The engine examines all the moves of the game. It gives a quality label to each move. ${SITE_NAME} `
     + "keeps the game in this browser.";
@@ -123,7 +140,7 @@
     <p class="text-blunder" role="alert">{phase.message}</p>
     {#if !phase.keeping}<p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>{/if}
   {:else}
-    {@const { sent, record } = phase}
+    {@const { sent, record, source } = phase}
     {@const names = playerNames(record.tags)}
     {@const moves = record.moves.length}
     <ToolChoice heading={sent.site === "strategyjam.org" ? "A game from strategyjam.org" : "A game"}
@@ -131,7 +148,7 @@
                 pending={phase.at === "checking" ? "The engine examines the moves of the game…" : undefined}
                 review={{ label: "Review the game", text: REVIEW_TEXT, onclick: reviewChosen,
                           refusal: setUpProblem(record, SITE_NAME) }}
-                analyze={{ label: "Analyze on the board", text: analyzeText(sent), onclick: () => analyzeChosen(sent, record) }}>
+                analyze={{ label: "Analyze on the board", text: analyzeText(sent), onclick: () => analyzeChosen(sent, record, source) }}>
       {#if sent.tool}<p>{shown(sent.at, moves)}</p>{/if}
     </ToolChoice>
     <details>

@@ -8,8 +8,9 @@
   // position, for the visit, as on Hedge School's Practice (design 33, "The player's notes"). One game in progress,
   // kept in this browser and resumed. The rules run in the engine's worker, and the bot in its own, in the first of its
   // forms that this browser runs, as on Hedge School's Practice: on the GPU or on the CPU workers through the threaded
-  // bot, else on one thread (@abstractclass/practice/botForms.ts), with the engine settings' GPU and workers.
-  import { onDestroy, onMount } from "svelte";
+  // bot, else on one thread (@abstractclass/practice/botForms.ts), with the engine settings' GPU and workers. The page
+  // counts a game's start and end, the engine's errors and the features used, as Hedge School's does (its design 17).
+  import { onDestroy, onMount, untrack } from "svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
@@ -33,9 +34,11 @@
   import { moveName } from "#lib/game/notation.ts";
   import { loadEngine } from "#lib/analysis/engineSettings.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
-  import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, saveChoices, type KeptPractice }
+  import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, practiceEndParams, practiceParams, saveChoices,
+           type KeptPractice }
     from "#lib/practice/stampduty.ts";
-  import { komiLine, komiSide } from "@abstractclass/practice/practice.ts";
+  import { komiLine, komiSide, practiceOutcome, type PracticeOutcome } from "@abstractclass/practice/practice.ts";
+  import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
@@ -70,7 +73,7 @@
         rules = w;
         ready = true;
         const resume = loadKept();
-        if (phase === "game" && !game && resume) await play(resume);
+        if (phase === "game" && !game && resume) await play(resume, "resumed");
       } catch (e) {
         failed = errorText(e);
       }
@@ -78,8 +81,9 @@
   });
   onDestroy(() => { game?.end(); rules?.terminate(); });
 
-  /** Starts the bot for a game, and the game: a new one, or one kept from an earlier visit. */
-  async function play(kept: KeptPractice) {
+  /** Starts the bot for a game, and the game: a new one, or one kept from an earlier visit (`from`, for
+   *  `practice_start`). */
+  async function play(kept: KeptPractice, from: "new" | "resumed") {
     if (!manifest || !rules) return;
     phase = "game";
     starting = kept;
@@ -90,10 +94,35 @@
       bot = await startBot("blueprints", manifest, kept.bot.network, loadEngine(), kept.seed);
       const g = (game = new PracticeGame(kept, rules, bot));
       await g.start();
+      if (g.status !== "failed") track("practice_start", { ...gameParams(g), practice_from: from });
+      if (g.status !== "failed" && kept.komi) used("practice komi"); // a game with a komi
     } catch (e) {
       bot?.terminate();
       failed = errorText(e);
+      track("engine_error", { error_kind: "practice" });
     }
+  }
+
+  // What Google Analytics receives (Hedge School's design 17): counts and settings, never a move or the player's name.
+  // A game's settings, with each event about it. Its end, once, by the rules, Resign or Abort. A feature's first use
+  // in a game.
+  const gameParams = (g: PracticeGame) => practiceParams(g.kept, g.mode, navigator.hardwareConcurrency);
+  let endSent: PracticeGame | null = null;
+  function trackEnd(g: PracticeGame, outcome: PracticeOutcome) {
+    if (endSent === g) return;
+    endSent = g;
+    track("practice_end", practiceEndParams(g.kept, g.mode, navigator.hardwareConcurrency, outcome, g.played.length));
+  }
+  $effect(() => {
+    const g = game, status = g?.status;
+    if (!g || (status !== "over" && status !== "failed")) return;
+    untrack(() => {
+      if (status === "failed") { trackOnce(`${g.kept.started} failed`, "engine_error", { error_kind: "practice" }); return; }
+      trackEnd(g, practiceOutcome(g.position!.scores as [number, number], g.human, g.resigned));
+    });
+  });
+  function used(name: string) {
+    if (game) trackOnce(`${game.kept.started} ${name}`, "feature", { feature_name: name });
   }
 
   /** A new game with the settings chosen and the side picked. */
@@ -108,7 +137,7 @@
       moves: [], builds: [], started: new Date().toISOString(),
     };
     keep(kept);
-    void play(kept);
+    void play(kept, "new");
   }
 
   /** Back to the settings card, for the next game. */
@@ -124,6 +153,7 @@
     confirming = null;
     if (!g || !what) return;
     if (what === "resign") return g.resign();
+    trackEnd(g, "aborted");
     g.abort();
     toSettings();
   }
@@ -137,6 +167,7 @@
   function step(to: number) {
     if (!game || last < 0) return;
     const k = Math.max(0, Math.min(last, to));
+    if (k < shown) used("practice look back");
     if (k !== shown) viewAt = k === last ? null : k;
   }
   function onkeydown(ev: KeyboardEvent) {
@@ -265,7 +296,7 @@
     {#snippet board()}
       {#if g && pos}
         <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={taking} {hands}
-               bind:place={panel.place} bind:size={panel.size} notes={notesAt[shown] ?? []} onnotes={n => (notesAt[shown] = n)} />
+               bind:place={panel.place} bind:size={panel.size} notes={notesAt[shown] ?? []} onnotes={n => { if (n.length > (notesAt[shown]?.length ?? 0)) used("note drawn"); notesAt[shown] = n; }} />
       {:else}
         <div class="size-full rounded bg-board"></div>
       {/if}
@@ -321,7 +352,7 @@
     <!-- The game's actions, right of the steps: off while the bot starts, so that the bar keeps its layout. -->
     {#snippet tools()}
       {#if g?.status !== "over"}
-        <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack} onclick={() => { viewAt = null; void g?.takeback(); }}><Icon name="takeback" /></button>
+        <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack} onclick={() => { used("practice takeback"); viewAt = null; void g?.takeback(); }}><Icon name="takeback" /></button>
         <button class={["btn-icon", DANGER]} aria-label="Abort" title="Abort" disabled={!g || g.status === "starting"}
                 onclick={() => (confirming = "abort")}><Icon name="abort" /></button>
         <button class={["btn-icon", DANGER]} aria-label="Resign" title="Resign"

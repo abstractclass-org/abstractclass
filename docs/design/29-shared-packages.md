@@ -69,7 +69,14 @@ edit in the same commit), so their changes still apply.
    (`GameList.svelte`) went into the review's. The question before an action that the player cannot undo
    (`ConfirmDialog.svelte`), one of the site's general controls, went into the site's. The engine's two scripts for
    Node, `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
-   `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
+   `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites. The
+   analytics moved out of Hedge School with Cyanotype's (design 33, "Analytics and consent"): the site's package holds
+   the analytics with each site's services and keys as parameters (`analytics.svelte.ts`), the flag of internal
+   traffic (`internalTraffic.ts`), the ranges (`measure.ts`), the consent banner, the ask to allow Google Analytics in
+   a blocker and their card (`ConsentBanner.svelte`, `AnalyticsAsk.svelte`, `CornerCard.svelte`, with the site's mark
+   as a parameter). The engine settings' changes as events went into the analysis package (`settingChanges.ts`), the
+   exports' event into the review's (`exportEvents.ts`) and a practice game's parameters into the practice's
+   (`practiceEvents.ts`), each with the site's analytics and its networks' names as parameters.
    A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
    its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
    (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site

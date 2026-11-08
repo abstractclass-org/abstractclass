@@ -44,7 +44,7 @@
   import { readPasted } from "#lib/game/paste.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
-  import { EDGE_RANGES, range } from "#lib/measure.ts";
+  import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";

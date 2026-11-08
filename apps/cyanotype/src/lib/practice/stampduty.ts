@@ -2,6 +2,7 @@
 // of @abstractclass/practice (Hedge School's design 24). Its keys in this browser, its networks, the bot's half-life,
 // and the bot's name. Its visits are Hedge School's, 1 to 8,192.
 import { botLabel, choicesStore, keptStore, scoreResult, settingsCommands, type BotSettings } from "@abstractclass/practice/practice.ts";
+import { practiceEvents } from "@abstractclass/practice/practiceEvents.ts";
 import { withKomi } from "@abstractclass/analysis/game.ts";
 import { NETWORKS, networkName, offersNetwork } from "../analysis/engineSettings.ts";
 import type { GamePosition } from "../board/described.ts";
@@ -11,13 +12,19 @@ import { ENGINE_NAME } from "../site.ts";
 export { NETWORKS, networkName, offersNetwork };
 
 /** The game in progress. It does not keep where the bot ran (Hedge School's `form`): only Hedge School's stored games
- *  and analytics read it, and Cyanotype has neither yet (design 33, "The gaps from Hedge School"). */
+ *  read it, and Cyanotype stores none yet (design 33, "The gaps from Hedge School"). The events take the bot's form
+ *  from the bot itself. */
 export type { KeptPractice } from "@abstractclass/practice/practice.ts";
 
 const choices = choicesStore("cyanotype:practice-choices:1", NETWORKS[0].id, offersNetwork);
 export const { load: loadChoices, save: saveChoices } = choices;
 const kept = keptStore("cyanotype:practice-game:1");
 export const { load: loadKept, keep } = kept;
+
+/** What Google Analytics receives about a practice game (Hedge School's design 17,
+ *  @abstractclass/practice/practiceEvents.ts): `practice_start`'s parameters, and `practice_end`'s, with the network by
+ *  its name. */
+export const { practiceParams, practiceEndParams } = practiceEvents(networkName);
 
 /** Variety's half-life: GTP's default of 19 moves, as the engine's practice bot gives it for both games (its README,
  *  "The play settings"). */

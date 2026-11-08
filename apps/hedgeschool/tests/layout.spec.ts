@@ -226,16 +226,22 @@ test("layout of Cyanotype's board editor", async ({ page }) => {
   expect(await sweep(page, "Cyanotype's /editor")).toBe("");
 });
 
+/** The visitor's Decline on both sites, as the consent banner keeps it: Hedge School's key and Cyanotype's. A page
+ *  script (addInitScript): it runs in the page, on either site. */
+const answerConsent = () => {
+  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+  localStorage.setItem("cyanotype:consent:1", JSON.stringify({ analytics: "denied" }));
+};
+
 // The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header
 // shows it, by steps of 10, at the lowest of the sweep's heights: Hedge School's below 1,024 pixels, Cyanotype's below
 // 640. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
-// pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. Hedge School's
-// visitor has answered the consent notice, which would cover the menu until they choose.
+// pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. The visitor has
+// answered the consent notice, which would cover the menu until they choose.
 for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 640]] as const) {
   test(`layout of the site's menu on ${site}`, async ({ page }) => {
     test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
-    await page.addInitScript(() =>
-      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
+    await page.addInitScript(answerConsent);
     await page.goto(base ? new URL("/about", base).href : "/about");
     await page.waitForLoadState("networkidle");
     const header = await page.locator("header nav a").evaluateAll(as => as.map(a => a.getAttribute("href")!));
@@ -284,8 +290,7 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as c
   for (const colorScheme of ["light", "dark"] as const) {
     test(`the Early Access link on ${site}, ${colorScheme}`, async ({ page }) => {
       test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
-      await page.addInitScript(() =>
-        localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
+      await page.addInitScript(answerConsent);
       await page.emulateMedia({ colorScheme });
       const found: string[] = [];
       for (const width of [360, 1280]) {

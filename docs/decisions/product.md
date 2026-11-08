@@ -10180,3 +10180,26 @@ Enclosure, 90,980 for Blueprints).
   module took 5,051.5) and at 5,053 (the module refused it), and `komi 6000` gave "? unacceptable komi". A browser
   test (`tests/komi-limit.spec.ts`) opens a link and an analysis file at komi 6,000 on Hedge School's board, and reads
   both Notation rows.
+
+### Cyanotype's analytics and consent, as Hedge School's (2026-11-08)
+
+- **Decided** (abscls-8tl1.48, the owner's decision of 2026-11-06 on design 33's gaps): Cyanotype measures its visits
+  and events as Hedge School does, after the visitor's consent, from the shared packages, with Hedge School unchanged
+  ([design/33-cyanotype.md](../design/33-cyanotype.md), "Analytics and consent").
+- **Moved into the packages:** the analytics (`packages/site/src/analytics.svelte.ts`, a class with each site's
+  services and keys), the flag of internal traffic, the ranges, the consent banner, the ask to allow Google Analytics
+  in a blocker and their card (with the site's mark as a snippet). The settings' changes went into the analysis
+  package, the exports' event into the review's and a practice game's parameters into the practice's. Hedge School's
+  files keep their names as wrappers, with its keys, so its pages, events and unit tests stay as they were.
+- **The services:** Cyanotype's own Google Analytics property and Cloudflare Web Analytics site, so that the two sites'
+  reports stay apart: their events have the same names. The code reads one pair of names in each build
+  (`VITE_GA_ID`, `VITE_CF_ANALYTICS_TOKEN`). The repository's variables are per site, so the deploy gives Cyanotype's
+  build `CYANOTYPE_GA_ID` and `CYANOTYPE_CF_ANALYTICS_TOKEN` under those names, on `main` only. The owner makes the
+  property and the site ([hosting.md](../hosting.md), "Cyanotype's analytics").
+- **The consent's one purpose** is Google Analytics' cookies: Cyanotype stores no practice games yet (abscls-8tl1.50).
+- **Where the events differ:** design 33, "Analytics and consent", item 4. The import page sends a tool's source to the
+  review's or the board's address as `via`, and that page counts the import: Cyanotype's import page does not keep the
+  game itself.
+- **Checked:** `npm run check:all` passed, all 15 steps. The layout test (headless Chromium, on this branch's
+  previews of both sites) passed 199 cases and skipped 10: the ask's 5 cases for each site, which need a build with
+  a Google tag. With `VITE_GA_ID=G-TEST000000` in both builds, those 10 cases passed.

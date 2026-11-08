@@ -1,6 +1,7 @@
-// What the site measures (design 17): a count sent to Google Analytics goes as a range when its exact value could set a
-// visitor apart or would only scatter the reports, and never holds a game, a player's name or a game's id. These are
-// the ranges, and the settings' names as the events give them.
+// What the sites measure (Hedge School's design 17, and Cyanotype's design 33 for its own): a count sent to Google
+// Analytics goes as a range when its exact value could set a visitor apart or would only scatter the reports, and
+// never holds a game, a player's name or a game's id. These are the ranges, the same on every site, so that the sites'
+// reports compare.
 
 /** A number as the range it falls in: "30-59", or "120+" past the last start. `starts` go up, the first at the least. */
 export function range(n: number, starts: number[]): string {
