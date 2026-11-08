@@ -2,12 +2,12 @@
 // cyanotype-review.json and the others of OTHER_STORED in apps/hedgeschool/tests/cyanotype-review.ts, which
 // apps/hedgeschool/scripts/cyanotype-review-fixture.mjs writes), by move and by turn, in a committed text file for each
 // (apps/hedgeschool/tests/snapshots/review-labels/<file's name less "-review.json">.txt), as Hedge School's label
-// snapshot (apps/hedgeschool/src/lib/review/labels.snapshot.test.ts). The labels come from the code that the review page
-// runs (routes/review/+page.svelte), with no engine search: GameAnalysis with Blueprints' game and the engine's rules
-// (describe_game, the CPU module with no network), the steps of storedReview.ts (openStored: the page takes its first
-// steps, then reads the stored results as it does), then data() and review(). So a change of @abstractclass/analysis,
-// @abstractclass/review or Blueprints' game that moves a quality label of a stored review fails here. The failure
-// names the move and its quality labels, old and new.
+// snapshot (apps/hedgeschool/src/lib/review/labels.snapshot.test.ts). The labels come from the code that the review
+// page runs (routes/review/+page.svelte), with no engine search: GameAnalysis with Blueprints' game and the engine's
+// rules (describe_game, the CPU module with no network), the steps of storedReview.ts (openStored: the page takes its
+// first steps, then reads the stored results as it does), then data() and review(). So a change of
+// @abstractclass/analysis, @abstractclass/review or Blueprints' game that moves a quality label of a stored review fails
+// here. The failure names the move and its quality labels, old and new.
 //
 // The stored reviews, all at Lite (512 visits a position), on games of Stamp Duty against itself, Blue at 4 visits a
 // move and Red at 64 (scripts/selfplay.mjs):
@@ -28,7 +28,7 @@
 // says `over` only where the game ends (blueprints.ts), and the review takes a position with no `over` at the record's
 // end as the game's end (model.ts, review). So the review to the end of turn 20 searches no position after turn 20, and
 // judges the turn by the scores there, as a result (a win for Red). The whole game's review judges it by the search of
-// that position. The review of seed 12 ends in the same way after turn 23.
+// that position. The review of seed 12 ends in the same way after turn 23. The fix of the review is abscls-2pge.
 //
 // After a change that moves labels on purpose, update the label snapshots: run
 //   node --test --test-update-snapshots src/lib/review/labels.snapshot.engine.test.ts
@@ -62,21 +62,26 @@ const { openStored } = await import("./storedReview.ts");
 
 const app = join(import.meta.dirname, "..", "..", "..");
 const snapshots = join(app, "..", "hedgeschool", "tests", "snapshots", "review-labels");
-/** A stored review (cyanotype-review.ts): its file in apps/hedgeschool, its game and the turns that it reviews, and the
- *  first lines of its snapshot's header. Its snapshot file has its file's name, less "-review.json". */
-interface Stored { file: string; game: string; turns: number; title: string[] }
-const [WHOLE, SEED12] = OTHER_STORED;
-const REVIEWS: Stored[] = [
-  { file: STORED, game: TEST_GAME, turns: TURNS,
-    title: [`# Cyanotype's quality labels on apps/hedgeschool/${STORED}, the test game to the end of`,
-            `# turn ${TURNS} (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts).`] },
-  { ...WHOLE, title: [`# Cyanotype's quality labels on apps/hedgeschool/${WHOLE.file}, the whole test game`,
-                      "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."] },
-  { ...SEED12, title: [`# Cyanotype's quality labels on apps/hedgeschool/${SEED12.file}, the game`,
-                       `# apps/cyanotype/src/lib/review/fixtures/${SEED12.game} to the end of turn ${SEED12.turns}`,
-                       "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."] },
-];
+/** A stored review (cyanotype-review.ts): its file in apps/hedgeschool, its game and the turns that it reviews. Its
+ *  label snapshot's file has its file's name, less "-review.json". */
+interface StoredReview { file: string; game: string; turns: number }
+const REVIEWS: readonly StoredReview[] = [{ file: STORED, game: TEST_GAME, turns: TURNS }, ...OTHER_STORED];
 const nameOf = (file: string) => basename(file, "-review.json");
+/** The first lines of each stored review's label snapshot, which name its file and its game. */
+const TITLES: Record<string, string[]> = {
+  [STORED]: [`# Cyanotype's quality labels on apps/hedgeschool/${STORED}, the test game to the end of`,
+             `# turn ${TURNS} (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts).`],
+  "tests/fixtures/cyanotype-whole-review.json": [
+    "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-whole-review.json, the whole test game",
+    "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
+  "tests/fixtures/cyanotype-seed12-review.json": [
+    "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed12-review.json, the game",
+    "# apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed12.txt to the end of turn 23",
+    "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
+};
+/** A stored review's title (TITLES): a stored review of OTHER_STORED with none fails its test, so that each one has
+ *  its label snapshot. */
+const titleOf = ({ file }: StoredReview) => TITLES[file] ?? assert.fail(`TITLES has no title for ${file}`);
 
 const missing = hasEngine(app) ? null : "no engine in static/engine: run `npm run engine` first";
 const skip = missing && !process.env.CI ? missing : false;
@@ -88,7 +93,7 @@ const rules = {
 };
 
 /** A stored review as the review page labels it from the store alone. */
-async function labelled({ file, game, turns }: Stored): Promise<Review<Blueprints>> {
+async function labelled({ file, game, turns }: StoredReview): Promise<Review<Blueprints>> {
   if (missing) throw new Error(`${missing}. In CI, the label snapshot needs the engine and does not skip`);
   const stored = readStored(file), record = parseRecord(testRecord(turns, game));
   // The results go to the store under a search of this review's own, as in Hedge School's label snapshot: the reviews
@@ -115,7 +120,7 @@ async function labelled({ file, game, turns }: Stored): Promise<Review<Blueprint
   return review(blueprints, d, "lead", LABEL_VISITS);
 }
 const reviews = new Map<string, Promise<Review<Blueprints>>>();
-const labelledOnce = (s: Stored) => reviews.get(s.file) ?? reviews.set(s.file, labelled(s)).get(s.file)!;
+const labelledOnce = (s: StoredReview) => reviews.get(s.file) ?? reviews.set(s.file, labelled(s)).get(s.file)!;
 
 /** How many labels of each kind the review has, by move (`edge`) or by turn (`turn`): its summary, which the page
  *  shows, for both players. */
@@ -131,7 +136,7 @@ function reaches(R: Review<Blueprints>) {
   return {
     swapped: R.turns.filter(({ label, edges: [a, b], best }) => label !== null && b && best?.length === 2
       && blueprints.equal(a.edge!, best[1]) && blueprints.equal(b.edge!, best[0])).length,
-    twinPositions: R.data.analysis.flatMap((_, i) => (twins(i).length ? [i] : [])).join(" ") || "none",
+    twinPositions: R.data.analysis.flatMap((_, i) => (twins(i).length ? [i] : [])),
     playedTwins: R.edges.filter(e => e.edge && twins(e.index).some(c => blueprints.equal(c.edge, e.edge!))).length,
   };
 }
@@ -157,20 +162,20 @@ function snapshotOf(R: Review<Blueprints>, title: string[]): string {
     `# Labels by move: ${tally("edge")}`,
     `# Labels by turn: ${tally("turn")}`,
     `# Turns of two moves in the other order than the engine's best turn: ${reached.swapped}`,
-    `# Positions with a twin: ${reached.twinPositions}. Played moves that are a twin: ${reached.playedTwins}`,
+    `# Positions with a twin: ${reached.twinPositions.join(" ") || "none"}. Played moves that are a twin:`
+      + ` ${reached.playedTwins}`,
     "", "[by move]", ...byEdge, "", "[by turn]", ...byTurn, "",
   ].join("\n");
 }
 
 for (const s of REVIEWS) {
   test(`every quality label of ${s.file}, by move and by turn, is the label snapshot's`, { skip }, async t => {
-    t.assert.fileSnapshot(snapshotOf(await labelledOnce(s), s.title), join(snapshots, `${nameOf(s.file)}.txt`),
+    t.assert.fileSnapshot(snapshotOf(await labelledOnce(s), titleOf(s)), join(snapshots, `${nameOf(s.file)}.txt`),
                           { serializers: [text => text] });
   });
-
 }
 
-test("the stored reviews reach each kind of label, the turn order and the twins that the label snapshot is for",
+test("the stored reviews reach each kind of quality label, the turn order and the twins that the label snapshot is for",
      { skip }, async () => {
   const all = await Promise.all(REVIEWS.map(labelledOnce));
   const some = (unit: Unit, l: Label) => all.some(R => counts(R, unit)[l]);
@@ -180,5 +185,10 @@ test("the stored reviews reach each kind of label, the turn order and the twins 
     if (l !== "great") assert.ok(some("turn", l), `no ${l} by turn: the stored reviews no longer reach it`);
   }
   assert.ok(all.some(R => reaches(R).swapped), "no turn plays the engine's best turn in the other order");
-  assert.ok(all.some(R => reaches(R).twinPositions !== "none"), "no position with a twin");
+  assert.ok(all.some(R => reaches(R).twinPositions.length), "no position with a twin");
+  // The turn rule must not take a twin at the start of a turn of two moves as the same turn (Hedge School's
+  // twinStarts). The whole game has two: turns 44 and 48.
+  const twinStart = (R: Review<Blueprints>) => R.turns.some(t => t.label !== null && t.edges.length === 2
+    && R.data.analysis[t.start]?.candidates.some(c => c.twinOf));
+  assert.ok(all.some(twinStart), "no turn of two moves starts at a position with a twin");
 });

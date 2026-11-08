@@ -8651,8 +8651,8 @@ same for Cyanotype's stored review (abscls-h2uq).
   Mistake 1. By turn: Excellent 7, Good 5, Inaccuracy 6, Best 1, Mistake 1. The Mistake is turn 15, the review's first
   note. The last test fails when the stored review stops reaching one of these five kinds, by move or by turn.
 - **What the stored review does not reach:** Great and Blunder, the turns in the other order than the engine's best
-  turn, and the twins (design 33, item 9). Two more stored reviews reach them now: "Two more stored reviews for
-  Cyanotype's label snapshot" (2026-11-08, below).
+  turn, and the twins (design 33, item 9). Two more stored reviews reach them now, but for a Great by turn: "Two more
+  stored reviews for Cyanotype's label snapshot" (2026-11-08, below).
 - **No skip in CI:** without the engine in `apps/cyanotype/static/engine`, the test skips. With the variable `CI`
   set, each of its tests fails, with a message that names the missing engine. The step `cyanotype-engine` of
   `check:all` fetches the engine before `cyanotype-test`, so CI needed no new step.
@@ -9612,12 +9612,14 @@ snapshot has several stored reviews for these rules. Now Cyanotype's has two mor
     Best) and twins at the positions after 85 and 93 moves (before turns 44 and 48). No played move is a twin. It
     reaches no Great.
   - **The game of seed 12** (`src/lib/review/fixtures/stamp-duty-seed12.txt`), new, to the end of turn 23. A screen
-    found it. A search of each position at 32 visits, in Node on the CPU, gave the moves that gained more than 0.05 of
-    win chance since the start of the other player's last turn. A search of those positions at 512 visits kept the
-    moves that were the engine's first choice, with the second choice at least 0.10 worse. The screen found 3 such
-    moves in the game's first 43 moves, and none in the test game's first 38. Its review at Lite reaches a Great by
-    move: move 39, turn 20, Red's capture `2@-27,-17`. The screen stopped after this game. Seeds 13 and 14 were not
-    screened.
+    for a Great found it, with the Great's two limits (`@abstractclass/analysis/labels.ts`). First, a search of each
+    position at 32 visits, in Node on the CPU, gave the moves that gained more than 0.05 of win chance since the start
+    of the other player's last turn (`KEPT_GAIN`). Then a search of those positions at 512 visits kept the moves that
+    were the engine's first choice, with the second choice at least 0.10 worse (`ONLY_MOVE_GAP`). The screen found 3
+    such moves in the game's first 43 moves, and none in the test game's first 38. Its review at Lite reaches a Great
+    by move: move 39, turn 20, Red's capture `2@-27,-17`. The screen stopped after this game, and did not search seeds
+    13 and 14. `selfplay.mjs --seed 12` plays the same game again: the record that it wrote again was the committed
+    one, byte for byte.
 - **The stored reviews:** `apps/hedgeschool/scripts/cyanotype-review-fixture.mjs` writes them after
   `cyanotype-review.json`, at the same visits, in headless Chromium with the layout test's launch options and the
   engine on the CPU (`cyanotype-review.ts`, `OTHER_STORED`). A review of the test game runs in the same page and takes
@@ -9644,7 +9646,7 @@ snapshot has several stored reviews for these rules. Now Cyanotype's has two mor
   (`model.ts`, `review`). So the review to the end of turn 20 searches no position after turn 20, and judges the turn
   by the scores there, as a result: Red's win chance after move 39 is 1.000. The whole game's review searches that
   position (Red's win chance 0.704). Hedge School's position gives `over: false` before the end, so its review of an
-  unfinished game searches the end. abscls-2pge fixes this for Cyanotype. The last test fails when the stored reviews
+  unfinished game searches the end. The fix for Cyanotype is abscls-2pge. The last test fails when the stored reviews
   together stop reaching one of the kinds of label, the turn order or the twins, as Hedge School's last test does.
 - **Not covered:** a Great by turn, and a played move that is a twin. No stored review reaches one. Hedge School's
   label snapshot covers both on Enclosure (`hedgefund-review.json`, `twin-turn-review.json`). A move has one quality

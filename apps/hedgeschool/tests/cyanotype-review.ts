@@ -60,7 +60,8 @@ export function testRecord(turns = TURNS, game: string = TEST_GAME): string {
   const [tags, moves] = text.split(/\r?\n\r?\n/);
   const words = moves.trim().split(/\s+/), next = words.indexOf(`${turns + 1}.`);
   // Without a later turn (next is -1), the moves end before the record's last word, its result
-  return `${tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t)).join("\n")}\n\n${words.slice(0, next).join(" ")}\n`;
+  const kept = tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t));
+  return `${kept.join("\n")}\n\n${words.slice(0, next).join(" ")}\n`;
 }
 
 /** A record that the engine refuses: the test game's first three turns, with an x on 2@1,-5, which captures nothing. */
