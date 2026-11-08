@@ -9899,3 +9899,77 @@ its header reads "Win %" too. Its leads are in points and much shorter than Blue
 Its names are 5 to 7 characters in a slot of 4.1em, drawn down to 70% of their size. Not measured: by arithmetic, at
 360 pixels the cell's room grows from 32 to 48 pixels, which holds a name at 75% of its size (43.4 pixels), where now
 it is cut.
+
+### The Lead column in a wide window, measured on Cyanotype (2026-11-08)
+
+The Win chance column keeps its 4.5rem and its header "Blue wins": the proposal of the entry above is not taken. The
+question now: in a wide window the Lead column looks too narrow, while the Move column has room to spare. Where does
+Move have room, and how wide should Lead be there? The measurement is the same script,
+`apps/hedgeschool/scripts/measure/table-widths.mjs`, which now takes a window as `WxH` (abscls-8tl1.68).
+
+- **What ran:** headless Chromium on Windows, with `playwright.config.ts`'s launch options (off the GPU), on a
+  Cyanotype build of dev at 5cd6b41 (`VITE_EDITION=early`), with the stored review of the test game. The script read
+  the table at each of the 39 positions in Glyphs and in Text, in 16 windows: 390, 768, 1024x768, 1152x864, 1259x800,
+  1260x800, 1280x800, 1366x768, 1376x768, 1376x952, 1440x900, 1536x864, 1600x900, 1680x1050, 1920x960 and
+  1920x1080. Then it read them again with the proposal, from a style sheet of the script's `--lab`, at those windows
+  and 360.
+- **What did not run:** Hedge School's table. Fonts other than Windows' Segoe UI. The script measured the widest
+  possible lead in Arial too, as a stand-in for a wider font. Arial has no semibold, so the first row's semibold
+  comes out as Arial's bold, which is wider than a true semibold: the stand-in errs to the wide side.
+
+**The Lead values.** No lead is cut in Segoe UI, at any window. The widest lead seen is "Blue +104" (62.7 pixels, after
+move 10), in a room of 68 pixels: 5.3 pixels are left. Leads of 100 or more are common in the game's second half: all
+five rows in view after move 36 have them. The widest possible lead is "Blue +1.2k" (65.4 pixels; 69.7 in the Arial
+stand-in, which is cut). A lead from 1,000 on is written short, so a lead never has four digits. The cell shows no
+"±" part. So Lead is not too narrow for its values in Segoe UI, but it is tight: the gap from a lead's end to the
+Visits column's text is 13.3 pixels at least, where Win chance's gap is 32.9. A wider system font can cut it.
+
+**Where the Move column has room.** The panel has three layouts (`ReviewView.svelte`): one column below 800 pixels,
+two columns (board and side) from 800, and three (summary, board and side) from 1,260. In two and three columns the
+side column is 364 to 460 pixels wide. On Cyanotype the board is a square as high as the window allows, so the
+window's height sets the side column's width as much as its width does. The table is the side column less 49
+pixels. Move is what the table leaves after 224 pixels of the other columns. The widest name at full size is 139.9
+pixels in Glyphs and 109.2 in Text. Measured (pixels; "Spare" is the least room that the names leave at full size, a
+negative number where names are drawn smaller):
+
+| Window | Side | Table | Move | Spare, Glyphs | Spare, Text |
+|---|---:|---:|---:|---:|---:|
+| 390 | 343 | 294 | 70 | −77.9 | −47.2 |
+| 768 | 721 | 672 | 448 | 300.6 | 330.8 |
+| 1024x768 | 426 | 377 | 153 | 5.6 | 35.8 |
+| 1152x864, 1259x800 | 460 | 411 | 187 | 39.6 | 69.8 |
+| 1260x800, 1280x800, 1376x952 | 374 | 325 | 101 | −46.8 | −16.2 |
+| 1366x768 | 431 | 382 | 158 | 10.6 | 40.8 |
+| 1376x768 | 436 | 387 | 163 | 15.6 | 45.8 |
+| 1440x900 | 411.5 | 362.5 | 138.5 | −8.4 | 21.8 |
+| 1536x864 to 1920x1080 (5 windows) | 460 | 411 | 187 | 39.6 | 69.8 |
+
+So Move has room to spare where the side column is wide: in one column from about 480 pixels, and in two or three
+columns where the window is wide for its height (such as 1,152 by 864, 1,376 by 768, and 1,536 by 864 or wider). At
+1,024 by 768 and 1,366 by 768 the names leave only 5.6 and 10.6 pixels in Glyphs. A window as tall as 1,376 by
+952 leaves the side column at its least, and its names in Glyphs are already drawn down to 66%: there Move has no
+room to give. One window width can fall on either side (1,376 by 768 has room, 1,376 by 952 has none).
+
+**The proposal (not decided):** the Lead column becomes 5.5rem (88 pixels) where the table is at least 24rem (384
+pixels) wide, and keeps 4.75rem where it is narrower. The rule goes by the table's width, not the window's, since the
+height decides the side column's width too. In the site's code it is a container query: `@container` on the table's
+box and `@min-[24rem]:w-22` on Lead's `col`. 24rem is the four other columns (28, 72, 88 and 48 pixels) and the
+widest name in Glyphs at full size with its cell's padding (148 pixels): above it, every name keeps its full size.
+88 pixels give every lead room: "Blue +104" leaves 17.3 pixels, "Blue +1.2k" 14.6, and the Arial stand-in 10.3. The
+gap from a lead to Visits is then 25.3 pixels at least, nearer Win chance's 32.9. With the proposal (`--lab`):
+
+- Lead is 88 pixels at 768, 1152x864, 1259x800, 1376x768 and from 1536x864 to 1920x1080, and 76 at the other windows.
+  No value of any column is cut.
+- In those windows every name is still at full size, in both notations: in Glyphs the least spare is 27.6 pixels in
+  a side column of 460, and 3.6 at 1376x768.
+- At every other window measured before and after (390, 1024x768, 1260x800, 1280x800, 1366x768, 1376x952 and
+  1440x900) each number of the table is the same as before: the container query changes nothing there. At 360 the
+  numbers are those of the entry above.
+
+**On Hedge School,** the table shares the colgroup, so the rule applies there too. Not measured: by arithmetic, its
+Edge column gives 12 pixels only where it keeps at least 148, far more than its names of 5 to 7 characters need. Its
+leads are in points and short, so they gain only room.
+
+The crops (not committed, `look-8tl1.68/`) show the position after move 36, in Glyphs, light and dark: all five rows
+in view have three-digit leads ("Red +140" to "Red +160") and four have two-move names. At 1,376 by 768 and 1,920 by
+1,080 Lead widens and every name keeps its size. At 1,376 by 952 the before and after crops are the same.

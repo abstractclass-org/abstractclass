@@ -11,15 +11,19 @@
 // - for the Move column: the names at full size, the names made smaller (fitName) and their least size, the names cut,
 //   and the widest name at full size;
 // - the widest value that the column can show, measured in the first row's semibold: "Blue +1.2k" (a lead from 1,000
-//   on), "100.0%" and a 5-digit visit count (the position on screen goes to 16,384 visits: settings.ts).
+//   on), "100.0%" and a 5-digit visit count (the position on screen goes to 16,384 visits: settings.ts). Lead's are
+//   measured in Arial too, a wider font than Segoe UI, as a stand-in for other systems' fonts (not a measure of them);
+// - the table's width and the side column's width, and the position whose Lead value is the widest.
 //
-// With `--lab`, the page takes the proposal (PROPOSAL and PROPOSED_HEAD, below) before it loads: the widths as a style
-// sheet, and the Win chance column's header as text. It is a lab switch in this script, not in the site's code. With
-// `--crops DIR`, the script takes crops of the table instead of the measure: at 390 and 1,376 pixels, light and dark,
-// in Glyphs, at the position after move `--crop-move`.
+// A window is `W` (its height from HEIGHT) or `WxH`: on Cyanotype the board is a square as high as the window allows,
+// so the height sets the side column's width (364 to 460 pixels) and the Move column's.
 //
-//   node scripts/measure/table-widths.mjs [--lab] [--json FILE] [--widths 360,390,...] [--notations glyphs,text]
-//   node scripts/measure/table-widths.mjs [--lab] --crops DIR [--crop-move K]
+// With `--lab`, the page takes the proposal (LAB_CSS, below) before it loads, as a style sheet. It is a lab switch in
+// this script, not in the site's code. With `--crops DIR`, the script takes crops of the table instead of the
+// measure: at the `--crop-sizes` windows, light and dark, in Glyphs, at the position after move `--crop-move`.
+//
+//   node scripts/measure/table-widths.mjs [--lab] [--json FILE] [--widths 360,1376x768,...] [--notations glyphs,text]
+//   node scripts/measure/table-widths.mjs [--lab] --crops DIR [--crop-move K] [--crop-sizes 390,1376]
 //   node scripts/measure/table-widths.mjs --from FILE      the report again, from a run's --json, with no browser
 //
 // Run it in apps/hedgeschool, with CYANOTYPE_BASE_URL at a Cyanotype build that has the engine's files. Headless
@@ -33,9 +37,15 @@ import { CYANOTYPE, DISPLAY, MOVES, noReview, reviewTestGame } from "../../tests
 const arg = name => { const i = process.argv.indexOf(name); return i < 0 ? undefined : process.argv[i + 1]; };
 const LAB = process.argv.includes("--lab");
 const JSON_OUT = arg("--json"), CROPS = arg("--crops"), FROM = arg("--from");
-const WIDTHS = (arg("--widths") ?? "360,390,768,1024,1280,1376,1920").split(",").map(Number);
 /** Each width's window height: a phone's, a tablet's, then computers'. */
 const HEIGHT = { 360: 780, 390: 844, 768: 1024, 1024: 768, 1280: 800, 1376: 952, 1920: 1080 };
+/** The windows: `W` (its height from HEIGHT, else 900) or `WxH`, each with its label as given. */
+const sizes = list => list.split(",").map(s => {
+  const [w, h] = s.split("x").map(Number);
+  return { w, h: h || HEIGHT[w] || 900, label: s };
+});
+const WIDTHS = sizes(arg("--widths") ?? "360,390,768,1024,1280,1376,1920");
+const CROP_SIZES = sizes(arg("--crop-sizes") ?? "390,1376");
 const NOTATIONS = (arg("--notations") ?? "glyphs,text").split(",");
 /** The columns, by short keys, and their names in the glossary (GLOSSARY.md, "The engine's candidates" and "The
  *  engine's numbers"). */
@@ -45,19 +55,19 @@ const NAMES = { "#": "Rank (#)", Move: "Move", "win%": "Win chance", Lead: "Lead
 const WORST = { "#": [], "win%": ["100.0%"], Lead: ["Blue +1.2k", "Blue +999", "Red +1.2k"], Visits: ["16384"] };
 /** Shorter headers for the Win chance column, measured in the header's font. */
 const HEADS = ["Blue wins", "Blue %", "Win %", "Win", "%"];
-/** The proposed widths, as the colgroup's classes would give them (Tailwind's spacing: 0.25rem a step), and the
- *  proposed header of the Win chance column. */
-const PROPOSAL = { "#": "1.75rem", "win%": "3.5rem", Lead: "4.75rem", Visits: "3rem" };
-const PROPOSED_HEAD = "Win %";
+/** The proposal: the Lead column at LEAD_WIDE where the table is at least TABLE_LEAST wide, so that the Move column
+ *  keeps the widest name at full size (Glyphs: 139.4 pixels and the cell's 8 of padding) after the other columns.
+ *  Narrower, Lead keeps its 4.75rem. The table's box is the query's container, as the colgroup's classes would have it
+ *  (`@container` on the box, `@min-[24rem]:w-22` on the col). */
+const LEAD_WIDE = "5.5rem", TABLE_LEAST = "24rem";
+const PROPOSAL = { Lead: `4.75rem; ${LEAD_WIDE} where the table is ${TABLE_LEAST} wide or more` };
+const LAB_CSS = `div:has(> table.table-fixed) { container-type: inline-size; }
+@container (min-width: ${TABLE_LEAST}) { table.table-fixed > colgroup > col:nth-child(4) { width: ${LEAD_WIDE} !important; } }`;
 /** The position of the crops: after this move. After move 7, four of the five names in view are cut at 390 pixels
  *  and smaller at 1,376 pixels, in Glyphs. */
 const CROP_MOVE = Number(arg("--crop-move") ?? 7);
 
 const launchOptions = config.projects.find(p => p.name === "chromium").use.launchOptions;
-const labStyle = () => {
-  const n = { "#": 1, "win%": 3, Lead: 4, Visits: 5 };
-  return Object.entries(PROPOSAL).map(([c, w]) => `table.table-fixed > colgroup > col:nth-child(${n[c]}) { width: ${w} !important; }`).join("\n");
-};
 
 /** In the page: the visible candidates table, read. */
 function readTable({ worst, heads: heads_ }) {
@@ -92,8 +102,10 @@ function readTable({ worst, heads: heads_ }) {
       s.textContent = t;
       td.append(s);
       const w = s.getBoundingClientRect().width;
+      s.style.fontFamily = "Arial";
+      const arial = s.getBoundingClientRect().width;
       s.remove();
-      return { text: t, width: w };
+      return { text: t, width: w, arial };
     });
   }
   probe.heads = heads_.map(t => {
@@ -105,16 +117,17 @@ function readTable({ worst, heads: heads_ }) {
     s.remove();
     return { text: t, width: w };
   });
-  return { head, rows, probe, font: getComputedStyle(table).fontFamily, scroll: box.scrollWidth > box.clientWidth + 1 };
+  return { head, rows, probe, font: getComputedStyle(table).fontFamily, scroll: box.scrollWidth > box.clientWidth + 1,
+           table: table.getBoundingClientRect().width, side: box.closest("section.side")?.getBoundingClientRect().width };
 }
 
 const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : NaN; };
 const r1 = x => (Number.isFinite(x) ? Math.round(x * 10) / 10 : "–");
 
-async function openAt(page, w, notation) {
+async function openAt(page, { w, h }, notation) {
   await page.evaluate(([k, d]) => localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) ?? "{}"), ...d })),
                       [DISPLAY, { notation }]);
-  await page.setViewportSize({ width: w, height: HEIGHT[w] ?? 900 });
+  await page.setViewportSize({ width: w, height: h });
   await page.reload();
   await page.locator("main.review:not([aria-busy])").waitFor({ timeout: 120_000 });
   // The Analysis tab: on a phone, and in a window too narrow for three columns (below 1,260 pixels)
@@ -139,18 +152,12 @@ async function settled(page, k) {
 async function start(browser) {
   const context = await browser.newContext({ viewport: { width: 1376, height: 952 } });
   const page = await context.newPage();
-  // The lab: the proposed widths as a style sheet, and the proposed header, written again each time the page writes
-  // the mover's name there
-  if (LAB) await page.addInitScript(([css, head]) => {
+  // The lab: the proposal as a style sheet
+  if (LAB) await page.addInitScript(css => {
     document.addEventListener("DOMContentLoaded", () => {
       const s = document.createElement("style"); s.textContent = css; document.head.append(s);
-      const rename = () => {
-        for (const th of document.querySelectorAll("table.table-fixed thead th:nth-child(3)"))
-          if (/^(Blue|Red) wins$/.test(th.textContent.trim())) th.textContent = head;
-      };
-      new MutationObserver(rename).observe(document.body, { subtree: true, childList: true, characterData: true });
     });
-  }, [labStyle(), PROPOSED_HEAD]);
+  }, LAB_CSS);
   const why = await noReview(page);
   if (why) throw new Error(why);
   await reviewTestGame(page, {}, { on: true });
@@ -168,25 +175,27 @@ async function* positions(page) {
 }
 
 function summarize(readings) {
-  // readings: [{ w, notation, k, t }]
+  // readings: [{ w, notation, k, t }], w a window's label
   const out = [];
-  for (const notation of NOTATIONS) for (const w of WIDTHS) {
-    const at = readings.filter(r => r.w === w && r.notation === notation);
+  const notations = [...new Set(readings.map(r => r.notation))], windows = [...new Set(readings.map(r => String(r.w)))];
+  for (const notation of notations) for (const w of windows) {
+    const at = readings.filter(r => String(r.w) === w && r.notation === notation);
     if (!at.length) continue;
     for (let c = 0; c < 5; c++) {
       const col = COLUMNS[c];
-      const cells = at.flatMap(r => r.t.rows.map(row => row[c]));
+      const cells = at.flatMap(r => r.t.rows.map(row => ({ ...row[c], k: r.k })));
       const heads = at.map(r => r.t.head[c]);
       const rooms = cells.map(x => x.room - x.width), head = heads.reduce((a, h) => (h.width > a.width ? h : a));
       const value = cells.reduce((a, x) => (x.width > a.width ? x : a));
       const row = { notation, w, col, colWidth: median(heads.map(h => h.col)), contentBox: median(heads.map(h => h.room)),
-                    cells: cells.length, head: { text: head.text, width: head.width }, value: { text: value.text, width: value.width },
+                    cells: cells.length, head: { text: head.text, width: head.width }, value: { text: value.text, width: value.width, k: value.k },
                     cut: c === 1 ? cells.filter(x => x.cut).length : cells.filter(x => x.width > x.room + 0.5).length,
                     headCut: heads.filter(h => h.width > h.room + 0.5).length,
                     roomMedian: median(rooms), roomLeast: Math.min(...rooms) };
       if (c === 1) {
         const sizes = cells.map(x => x.size);
-        Object.assign(row, { full: cells.filter(x => x.size > 0.999 && !x.cut).length,
+        Object.assign(row, { table: median(at.map(r => r.t.table)), side: median(at.map(r => r.t.side)),
+                             full: cells.filter(x => x.size > 0.999 && !x.cut).length,
                              shrunk: cells.filter(x => x.size <= 0.999 && !x.cut).length,
                              leastSize: Math.min(...sizes), medianShrunk: median(sizes.filter(s => s <= 0.999)),
                              widestFull: Math.max(...cells.map(x => x.full + (x.mark ? x.width - x.full * x.size : 0))),
@@ -210,16 +219,18 @@ function markdown(rows) {
   const same = (a, b) => JSON.stringify({ ...a, notation: 0, w: 0 }) === JSON.stringify({ ...b, notation: 0, w: 0 });
   const fixed = rows.filter(r => r.col !== "Move");
   for (const r of fixed.filter((r, i) => !fixed.slice(0, i).some(q => same(q, r)))) {
-    const all = fixed.filter(q => q.col === r.col).every(q => same(q, r));
-    lines.push(`| ${all ? "both" : r.notation} | ${all ? "all" : r.w} | ${NAMES[r.col]} | ${r1(r.colWidth)} | ${r1(r.contentBox)} | ${r1(r.head.width)} (${r.head.text}) | ` +
-               `${r1(r.value.width)} (${r.value.text}) | ${r.cut}${r.headCut ? ` + header ${r.headCut}` : ""} of ${r.cells} | ` +
-               `${r1(r.roomMedian)} / ${r1(r.roomLeast)} | ${r.worst ? `${r1(r.worst.width)} (${r.worst.text})` : "–"} | ${r1(r.fits)} |`);
+    const alike = fixed.filter(q => q.col === r.col && same(q, r)), all = alike.length === fixed.filter(q => q.col === r.col).length;
+    const notations = [...new Set(alike.map(q => q.notation))], windows = [...new Set(alike.map(q => q.w))];
+    lines.push(`| ${all ? "both" : notations.join(", ")} | ${all ? "all" : windows.join(", ")} | ${NAMES[r.col]} | ${r1(r.colWidth)} | ${r1(r.contentBox)} | ${r1(r.head.width)} (${r.head.text}) | ` +
+               `${r1(r.value.width)} (${r.value.text}, after move ${r.value.k}) | ${r.cut}${r.headCut ? ` + header ${r.headCut}` : ""} of ${r.cells} | ` +
+               `${r1(r.roomMedian)} / ${r1(r.roomLeast)} | ` +
+               `${r.worst ? `${r1(r.worst.width)} (${r.worst.text}${r.worst.arial ? `; Arial ${r1(r.worst.arial)}` : ""})` : "–"} | ${r1(r.fits)} |`);
   }
   lines.push("");
-  lines.push("| Notation | Width | Move px | Room px | Names | Full size | Smaller | Least size | Median smaller size | Cut | Widest at full size px | Left over at full size: median / least px |");
-  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+  lines.push("| Notation | Width | Side px | Table px | Move px | Room px | Names | Full size | Smaller | Least size | Median smaller size | Cut | Widest at full size px | Left over at full size: median / least px |");
+  lines.push("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
   for (const r of rows.filter(r => r.col === "Move"))
-    lines.push(`| ${r.notation} | ${r.w} | ${r1(r.colWidth)} | ${r1(r.contentBox)} | ${r.cells} | ${r.full} | ${r.shrunk} | ` +
+    lines.push(`| ${r.notation} | ${r.w} | ${r1(r.side)} | ${r1(r.table)} | ${r1(r.colWidth)} | ${r1(r.contentBox)} | ${r.cells} | ${r.full} | ${r.shrunk} | ` +
                `${Math.floor(100 * r.leastSize)}% | ${Number.isFinite(r.medianShrunk) ? `${Math.floor(100 * r.medianShrunk)}%` : "–"} | ` +
                `${r.cut} | ${r1(r.widestFull)} | ${r1(r.roomMedian)} / ${r1(r.roomLeast)} |`);
   return lines.join("\n");
@@ -227,15 +238,15 @@ function markdown(rows) {
 
 /** The report of a run's readings: its tables, and the Win chance column's headers. */
 function report(readings, lab) {
-  return `${lab ? `With the proposal (${JSON.stringify(PROPOSAL)}, header "${PROPOSED_HEAD}")` : "The current widths"}, ` +
+  return `${lab ? `With the proposal (${JSON.stringify(lab)})` : "The current widths"}, ` +
          `${MOVES} positions a width, font ${readings[0].t.font}\n\n${markdown(summarize(readings))}\n\n` +
          `The Win chance column's header, in its font: ` +
          `${readings[0].t.probe.heads.map(h => `"${h.text}" ${r1(h.width)} px`).join(", ")}`;
 }
 
 if (FROM) {
-  const { lab, readings } = JSON.parse(readFileSync(FROM, "utf8"));
-  console.log(report(readings, lab));
+  const { lab, proposal, readings } = JSON.parse(readFileSync(FROM, "utf8"));
+  console.log(report(readings, lab && proposal));
   process.exit(0);
 }
 if (!CYANOTYPE) throw new Error("Set CYANOTYPE_BASE_URL to the Cyanotype build's address");
@@ -246,26 +257,27 @@ try {
     mkdirSync(CROPS, { recursive: true });
     for (const scheme of ["light", "dark"]) {
       await page.emulateMedia({ colorScheme: scheme });
-      for (const w of [390, 1376]) {
-        await openAt(page, w, "glyphs");
+      for (const size of CROP_SIZES) {
+        await openAt(page, size, "glyphs");
         let found = false;
         for await (const [k] of positions(page)) if (k === CROP_MOVE) { found = true; break; }
         if (!found) throw new Error(`no position after move ${CROP_MOVE}`);
         await page.mouse.move(1, 1);
         const box = page.locator('div:has(> table.table-fixed)').filter({ visible: true }).filter({ has: page.locator("th", { hasText: "Visits" }) }).first();
-        const file = join(CROPS, `table-${w}-${scheme}-${LAB ? "after" : "before"}.png`);
+        const file = join(CROPS, `table-${size.label}-${scheme}-${LAB ? "after" : "before"}.png`);
         await box.screenshot({ path: file });
         console.log(file);
       }
     }
   } else {
     const readings = [];
-    for (const notation of NOTATIONS) for (const w of WIDTHS) {
+    for (const notation of NOTATIONS) for (const size of WIDTHS) {
+      const w = size.label;
       // A slow load can miss a wait: one more try
       for (let attempt = 1; ; attempt++) {
         try {
           const read = [];
-          await openAt(page, w, notation);
+          await openAt(page, size, notation);
           for await (const [k, t] of positions(page)) read.push({ w, notation, k, t });
           readings.push(...read);
           break;
@@ -277,7 +289,7 @@ try {
       console.error(`${notation} ${w}: ${MOVES} positions read`);
     }
     if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ lab: LAB, proposal: LAB ? PROPOSAL : null, readings }));
-    console.log(report(readings, LAB));
+    console.log(report(readings, LAB && PROPOSAL));
   }
   await context.close();
 } finally {
