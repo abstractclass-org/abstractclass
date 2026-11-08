@@ -8,6 +8,8 @@
 @import "@abstractclass/practice/practice.css";
 /* The import page's choice for a tool's game (packages/import): Tailwind finds its classes there. */
 @import "@abstractclass/import/import.css";
+/* The engine measure's page (packages/measure): Tailwind finds its classes there. */
+@import "@abstractclass/measure/measure.css";
 
 /* Cyanotype's accent (design 33, "Consequences"): Hedge School's lavender (apps/hedgeschool/src/app.css), on the
    tokens that the sites share, until Cyanotype's own colour comes with its logo. */

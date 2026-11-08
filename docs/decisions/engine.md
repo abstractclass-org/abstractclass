@@ -1329,3 +1329,89 @@ has 16 logical cores. Three runs of each, the median and the range:
   id is now `engine-d6786eba-terms2`. So the terms have a new path, and a browser does not keep the old file under
   the year's immutable cache (`static/_headers`). Nothing else in the lock changes.
 - **Checked:** requests/29, "Checked here".
+
+### The engine measure on a visitor's device (2026-11-08)
+
+- **What** (abscls-oi93, for abscls-eon and abscls-59x): one page in each site, `/lab/measure`, from
+  `packages/measure`. It measures the review's speed for each pool size and the GPU against a CPU worker, on the
+  visitor's own device, and gives the results as one plain-text block. Hedge School's page uses Enclosure's engine
+  and Cyanotype's page uses Blueprints' engine. No page links to it, and it is noindex.
+- **The positions:** a game's positions, each the moves up to it. Hedge School uses its sample game (v256 against
+  v512, 120 positions). Cyanotype uses the review's test game (`apps/cyanotype/src/lib/review/fixtures/stamp-duty.txt`,
+  Stamp Duty against itself, 120 positions). The workers take the positions in an order that spreads each first
+  part over the whole game (the van der Corput order: 60, 30, 90, 15, …). A short measure then has early, middle and
+  late positions. This matters most for Blueprints, where a late position has more legal placements.
+- **Each pool size,** from 1 worker to the device's logical cores: new workers, so that no worker keeps the network's
+  evaluations of a position from an earlier pool size. Each worker starts the engine, loads the network and searches
+  the first position at the sweep's 32 visits. The time to here is the pool's start. Then each worker searches the
+  same positions in the same order, with the review's query for the label stage: the review's visits, the PV's
+  visits, the ownership and the early slice at 256 visits. A worker starts a new search until 30 seconds pass, and
+  each search goes to its end. The measure counts only whole searches, because Blueprints' check searches come at the
+  end of a search.
+- **The units:**
+  - visits a second: each worker's visits over its time in its searches, and the sum of the workers
+  - searches: the whole searches that the pool made
+  - a review of the game, in minutes: positions × (32 + the review's visits) / the pool's visits a second
+  - the pool's start, in seconds
+  - the workers' memory, in MB: the sum of each worker's largest WebAssembly memory
+  - the GPU part, as in "The GPU in the review": the GPU worker's evaluations a second (16 searches), one CPU
+    worker's visits a second beside it, and their ratio
+- **The GPU part** runs only where the browser can run the GPU module and WebGPU gives an adapter. It is design 15's
+  first-use test (`EnginePool.measureGpu`, 20 seconds of each kind) with the site's default pool. It stops after
+  150 seconds.
+- **The estimate before Start:** 10 s + cores × (3 s + the warm-up + 30 s + one search) + 90 s for the GPU part.
+  The site gives one search's time on a slow device: 20 s for Enclosure and 60 s for Blueprints.
+- **A hidden tab:** the page asks for the screen's wake lock. When the tab is hidden, the page stops the measure in
+  progress, ends its workers and says so. "Run it again" runs the measures that did not end. The block names each
+  stop with its time.
+- **The block:**
+  - the build: the site's commit, the engine module and its build, protocol and search, the GPU module and the network
+  - the device: the logical cores, the memory and the power where the browser gives them, the browser and its version,
+    the system, the user agent, the WebGPU adapter's information, and JSPI present or not
+  - each measure with its unit, the tab's memory and the downloads
+  - the run's time and the stops
+- **The defaults that each page reads,** with no change to them: `defaultEngine()` of the site's
+  `engineSettings.ts`. The network is the first of `NETWORKS`: HedgeFund 0.2 Lite (`b10c128-s89066368-d17827487`) on
+  Hedge School, and the lock's network, Stamp Duty 0.2, on Cyanotype. The review's visits are `reviewVisits` of Lite:
+  512. The default pool is `defaultPoolSize()`, half the logical cores, from 1 to 8. The GPU part's CPU pool has
+  that size. The page does not read Auto's GPU setting or `DEEP_VISITS` (1,024), because it does not search the key
+  moments. Cyanotype's page uses release `engine-91ab0b7d` (protocol 0.7.1), and Hedge School's page uses
+  `engine-d6786eba`.
+- **The tab's memory:** `performance.measureUserAgentSpecificMemory()` gives the whole page's memory, but only in a
+  cross-origin isolated page, and the sites are not. So the block gives the page's JavaScript heap where the browser
+  gives it (Chromium's `performance.memory`), and the workers' WebAssembly memory.
+- **The download:** the manifest's sizes for the CPU workers' files and for the GPU's. Resource Timing gives the bytes
+  that the page itself transferred for the engine's files. A worker's own fetches are not in the page's timeline.
+- **Headless Chromium on this machine** (`apps/hedgeschool/scripts/measure/engine-measure.mjs`, with the layout test's
+  launch options, off the GPU, a device of 4 logical cores, 30 seconds for each pool size). Other jobs ran on the
+  machine at the same time.
+
+  | Workers | Hedge School: visits a second, all workers | A review | Cyanotype: visits a second, all workers | A review |
+  |---|---|---|---|---|
+  | 1 | 76.2 | 14.3 min | 16.0 | 67.9 min |
+  | 2 | 117 | 9.3 min | 23.9 | 45.5 min |
+  | 3 | 184 | 5.9 min | 37.4 | 29.1 min |
+  | 4 | 189 | 5.7 min | 41.9 | 26.0 min |
+
+  - From Start to the end: 2.3 minutes for Hedge School (the page's estimate: 4) and 2.9 for Cyanotype (the
+    estimate: 7). The page's load and its estimate took a few seconds more.
+  - Each pool's start: 0.8 to 0.9 s for Hedge School, 1.9 to 3.1 s for Cyanotype. The workers' memory: about 94 MB a
+    worker for Hedge School and 100 MB for Cyanotype.
+  - The page's JavaScript heap: 13 MB and 10 MB. The download: 7.9 MB and 3.8 MB for the CPU workers, and 13.7 MB and
+    10.0 MB more for the GPU.
+  - A search of Blueprints at 512 visits took 30 to 50 seconds on one worker. So in 30 seconds each worker searched
+    one or two positions, and Cyanotype's numbers come from the middle of the game (after 60 moves) only.
+  - Two earlier runs met a reset of the GPU's driver, and its restart (`wsl --shutdown` and the GPU device restarted).
+    Their times from Start to the end differed by 0.4 minutes at most. One worker of Hedge School gave 65.3 visits
+    a second in the run whose first minute met the restart, against 76.2 here and 75.4 in a short run. The larger
+    pools varied from run to run by up to a third (4 workers: 182, 252 and 189), with the other jobs' load.
+- **On a phone** (not measured): the page's estimate takes a slow device's search of 512 visits to take 20 s for
+  Enclosure and 60 s for Blueprints: 26 and 8.5 visits a second, from a third to two thirds of a worker's speed
+  here. With 4 logical cores, Hedge School's page takes about 4 minutes, and 5.3 with the GPU part. Cyanotype's page
+  takes about 7 minutes, and 8 with the GPU part. Many phones give 8 logical cores: then Hedge School's page takes
+  about 9 minutes with the GPU part, and Cyanotype's about 15. Each pool size adds 30 seconds and one search.
+- **Checked:** the package's unit test of the block (`packages/measure/src/measure.test.ts`). The browser test
+  `apps/hedgeschool/tests/engine-measure.spec.ts` runs each site's page from Start to its end at 2 logical cores and
+  4 seconds for each pool size. It checks that the copied block holds each measure. On Hedge School it also hides the
+  tab during the measure of 2 workers, and "Run it again" ends the run. The GPU part did not run on this machine: the
+  test's Chromium runs off the GPU.

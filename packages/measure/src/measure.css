@@ -1,0 +1,3 @@
+/* The engine measure's page (MeasurePage.svelte) uses Tailwind's classes: a site that shows it imports this file after
+   Tailwind (`@import "@abstractclass/measure/measure.css"`), so that Tailwind finds them. */
+@source ".";

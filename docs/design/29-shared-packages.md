@@ -70,6 +70,10 @@ edit in the same commit), so their changes still apply.
    (`ConfirmDialog.svelte`), one of the site's general controls, went into the site's. The engine's two scripts for
    Node, `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
    `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites.
+   A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
+   its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
+   (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site
+   gives its page at `/lab/measure` with its game's part: its default settings and its game's positions.
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
    imports a site.
@@ -436,6 +440,10 @@ edit in the same commit), so their changes still apply.
   `--blunder-fill`. The site package must not read the view's tokens, so `btn-danger` is not in `site.css`. The
   package's check is `svelte-check`.
   `apps/hedgeschool/src/lib/practice/hedgefund.ts`: Hedge School's part.
+- `packages/measure/` (`@abstractclass/measure`): `measure.ts` (the plan and the results block, with its unit tests),
+  `device.ts` (the device's facts), `run.svelte.ts` (the run: each pool size, then the GPU part), `MeasurePage.svelte`
+  (the page) and `measure.css` (the package's Tailwind source). Each site's `src/routes/lab/measure/+page.svelte`
+  gives its part. The package's check is `svelte-check`.
 - `.github/workflows/tests.yml` and `deploy.yml`: the packages' checks.
 
 ## Log

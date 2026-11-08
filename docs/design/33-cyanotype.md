@@ -1029,8 +1029,8 @@ the module, the GPU module and its library, the practice bot in its three forms 
 ### By page
 
 Both sites have the home page, About, How reviews work, Notation, Notices, Privacy, Tools, Practice, the review, the
-Analysis board, the board editor, the import page, the site map, the bookmarklet and the userscript. Cyanotype lacks
-these pages of Hedge School:
+Analysis board, the board editor, the import page, the site map, the bookmarklet, the userscript and the engine
+measure (`/lab/measure`, `packages/measure`). Cyanotype lacks these pages of Hedge School:
 
 - **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
   18). abscls-8tl1.51. The page describes what Cyanotype takes today, since partner sites are left out (below).
@@ -1278,6 +1278,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   - `position.ts`: the position in strategyjam.org's form and the move as the board draws it. `hex.ts`: the grid's
     geometry. `view.ts`: pan, zoom and fit. `fixtures.ts`: the lab's positions, from `fixtures.json` ("How the board
     takes a move").
+- `apps/cyanotype/src/routes/lab/measure/`: the engine measure's page (`/lab/measure`, `packages/measure`), with
+  Cyanotype's part: its default engine settings and the positions of the review's test game, the whole game.
 - `apps/cyanotype/src/routes/lab/board/`: the board's lab page (`/lab/board`), in the site's frame: the start, a
   middle game with five candidates and their lines, a capture, an edit and an empty blueprint. The board fills the
   page area under the site's header. The address keeps the position and the pinned candidate.
