@@ -15,7 +15,8 @@ import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 
 export const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
-const TURNS = 20;
+/** The turns of the test game that the review's tests review, and STORED holds. */
+export const TURNS = 20;
 export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each other turn two
 /** The turns that the engine reviews live (reviewFirstTurns), and how long the test waits for the review's
  *  end. Turns 1 to 3 have 5 positions before a move, each searched at 32 and at 512 visits. On the owner's machine
@@ -39,7 +40,8 @@ export const TEST_GAME = "stamp-duty.txt";
 /** The other stored reviews: the results of real reviews at the same visits, each with its file, its game (a file in
  *  apps/cyanotype/src/lib/review/fixtures) and the turns that it reviews (Infinity: the whole game). Only Cyanotype's
  *  label snapshot reads them: they reach the kinds of label and the rules that STORED does not reach (the snapshot
- *  test's header names them). scripts/cyanotype-review-fixture.mjs writes them after STORED. */
+ *  test's header names them). So their results hold no ownership, which only the area map reads.
+ *  scripts/cyanotype-review-fixture.mjs writes them after STORED. */
 export const OTHER_STORED = [
   { file: "tests/fixtures/cyanotype-whole-review.json", game: TEST_GAME, turns: Infinity },
   { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
@@ -57,19 +59,8 @@ export function testRecord(turns = TURNS, game: string = TEST_GAME): string {
   const text = readFileSync(new URL(`../../cyanotype/src/lib/review/fixtures/${game}`, import.meta.url), "utf8");
   const [tags, moves] = text.split(/\r?\n\r?\n/);
   const words = moves.trim().split(/\s+/), next = words.indexOf(`${turns + 1}.`);
-  // Without a later turn, the moves end before the record's last word, its result
-  return `${tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t)).join("\n")}\n\n${words.slice(0, next < 0 ? -1 : next).join(" ")}\n`;
-}
-
-/** Whether the key `key` is a result of a review of the record whose moves are `played`: a position of the record,
- *  or a position at most two moves away from one of them. The review searches those to confirm a Great: the position
- *  after the engine's second choice by edge, and after the other candidate by turn (ReviewData's `seconds` and
- *  `others`, in @abstractclass/analysis/model.ts). A position of the Analysis board's SPREAD_BOARD is not. */
-export function ofRecord(key: string, played: readonly string[]): boolean {
-  const moves = readAnalysisKey(key).moves.split(" ").filter(Boolean);
-  let shared = 0;
-  while (shared < moves.length && moves[shared] === played[shared]) shared++;
-  return moves.length - shared <= 2;
+  // Without a later turn (next is -1), the moves end before the record's last word, its result
+  return `${tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t)).join("\n")}\n\n${words.slice(0, next).join(" ")}\n`;
 }
 
 /** A record that the engine refuses: the test game's first three turns, with an x on 2@1,-5, which captures nothing. */

@@ -13,9 +13,10 @@
 //   (@abstractclass/analysis/cache.ts, analysisKey), and the engine that made them: its search, and the network's id
 //   and SHA-256 (STORED).
 // - Then it makes each other stored review at the same visits: it reviews the stored review's game to its turn, and
-//   writes the results of that review. A review of the test game runs in the same page, and takes the results of the
-//   first turns from the store, so that the files give those positions the same results. A review of another game
-//   runs in a new browser context, with a store of its own.
+//   writes the results of that review (@abstractclass/analysis/files.ts, belongs: of a position of the record, or one
+//   move from one), without their ownership, which only the area map reads. A review of the test game runs in the
+//   same page, and takes the results of the first turns from the store, so that the files give those positions the
+//   same results. A review of another game runs in a new browser context, with a store of its own.
 //
 // Run it again when Cyanotype's engine.lock.json takes a new release (another search or network). The stored results
 // name the engine that made them, and the tests that load them fail with a message while the preview serves another
@@ -29,12 +30,14 @@
 import { chromium } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import { readAnalysisKey } from "@abstractclass/analysis/cache.ts";
+import { belongs } from "@abstractclass/analysis/files.ts";
+import { positionKeys } from "@abstractclass/analysis/kept.ts";
 import { moduleOf } from "@abstractclass/engine/client.ts";
 import config from "../playwright.config.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, LITE, OTHER_STORED, SPREAD_BOARD, STORED, TEST_GAME, keptResults, ofRecord, putResults,
-         readStored, testRecord } from "../tests/cyanotype-review.ts";
+import { CYANOTYPE, LITE, OTHER_STORED, SPREAD_BOARD, STORED, TEST_GAME, TURNS, keptResults, putResults, readStored,
+         testRecord } from "../tests/cyanotype-review.ts";
 
 if (!CYANOTYPE) throw new Error("CYANOTYPE_BASE_URL gives no Cyanotype preview");
 const named = process.argv.slice(2);
@@ -46,15 +49,17 @@ const model = manifest.artifacts.find(a => a.kind === "model"), search = moduleO
 if (!model || !search)
   throw new Error("Cyanotype's preview has no engine files: run `npm run engine` in apps/cyanotype before its build");
 
-/** Writes the stored review `path`: the store's results of the preview's network that `keep` keeps, with the engine
- *  that made them. */
-async function write(page, path, keep = () => true) {
-  const analyses = (await keptResults(page, true))
-    .filter(([key]) => readAnalysisKey(key).model === model.sha256 && keep(key));
-  const file = { made: new Date().toISOString(), by: "scripts/cyanotype-review-fixture.mjs", search, network: model.id,
-                 model: model.sha256, visits: LITE.visits, analyses };
-  writeFileSync(path, JSON.stringify(file) + "\n");
-  console.log(`${path}: ${analyses.length} results, ${Math.round(JSON.stringify(file).length / 1024)} KB`);
+const models = new Set([model.sha256]);
+
+/** Writes the stored review `path`: the store's results that `keep` keeps, with the engine that made them. With
+ *  `noOwnership`, each result without its ownership. */
+async function write(page, path, keep, { noOwnership = false } = {}) {
+  const analyses = (await keptResults(page, true)).filter(([key]) => keep(key))
+    .map(([key, value]) => [key, noOwnership ? { ...value, ownership: undefined } : value]);
+  const text = JSON.stringify({ made: new Date().toISOString(), by: "scripts/cyanotype-review-fixture.mjs", search,
+                                network: model.id, model: model.sha256, visits: LITE.visits, analyses }) + "\n";
+  writeFileSync(path, text);
+  console.log(`${path}: ${analyses.length} results, ${Math.round(text.length / 1024)} KB`);
 }
 
 /** Reviews the game `game` to the end of turn `turns` in `page`, and waits for the review's end. */
@@ -62,7 +67,7 @@ async function review(page, turns, game = TEST_GAME) {
   const t0 = Date.now();
   await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(turns, game))}`, CYANOTYPE).href);
   await page.getByText(/^Review done/).waitFor({ timeout: 3 * 60 * 60_000 });
-  const to = Number.isFinite(turns) ? `to turn ${turns ?? 20}` : "to its end";
+  const to = Number.isFinite(turns) ? `to turn ${turns}` : "to its end";
   console.log(`the review of ${game} ${to}: ${Math.round((Date.now() - t0) / 1000)} s`);
 }
 
@@ -88,7 +93,7 @@ try {
       throw new Error(`${STORED} holds the results of another engine: run this script with no file named`);
     await putResults(page, first.analyses);
   } else {
-    await review(page, undefined);
+    await review(page, TURNS);
     // The Analysis board's position: its record's moves, all of them (at the record's end)
     const board = new URLSearchParams(SPREAD_BOARD.split("#")[1]);
     const moves = parseRecord(board.get("record")).moves.join(" ");
@@ -105,14 +110,15 @@ try {
       await page.waitForTimeout(2_000);
     }
     console.log(`the Analysis board's position: ${Math.round((Date.now() - t1) / 1000)} s`);
-    await write(page, STORED);
+    await write(page, STORED, key => models.has(readAnalysisKey(key).model));
   }
 
   for (const { file, game, turns } of others) {
     const p = game === TEST_GAME ? page : await newPage();
     await review(p, turns, game);
-    const played = parseRecord(testRecord(turns, game)).moves;
-    await write(p, file, key => ofRecord(key, played));
+    // The review's results: not the Analysis board's, and no area map
+    const positions = positionKeys(parseRecord(testRecord(turns, game)).moves, null);
+    await write(p, file, key => !readAnalysisKey(key).map && belongs(key, positions, models), { noOwnership: true });
   }
 } finally {
   await browser.close();

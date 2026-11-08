@@ -18,10 +18,17 @@
 //   one position, design 33, item 9) at the positions after 85 and 93 moves (before turns 44 and 48).
 // - cyanotype-seed12-review.json: the game of seed 12 (fixtures/stamp-duty-seed12.txt) to the end of turn 23. It
 //   reaches a Great by move (move 39, turn 20, Red's capture 2@-27,-17).
-// The test for each stored review fails when it stops reaching what it reaches now (REVIEWS). The snapshot's header
-// counts the labels by kind, the turns in the other order and the twins (reaches), so a change shows in its diff. No
-// stored review reaches a Great by turn. Cyanotype's page takes it from the shared review's code
-// (@abstractclass/analysis), and Hedge School's label snapshot covers it on Enclosure.
+// The last test fails when the stored reviews stop reaching one of these. The snapshot's header counts the labels by
+// kind, the turns in the other order and the twins (reaches), so a change shows in its diff. No stored review reaches
+// a Great by turn. Cyanotype's page takes it from the shared review's code (@abstractclass/analysis), and Hedge
+// School's label snapshot covers it on Enclosure.
+//
+// cyanotype.txt and cyanotype-whole.txt have the same labels by move for moves 1 to 39, and the same labels by turn
+// for turns 1 to 19. Turn 20 is Excellent in cyanotype.txt and a Mistake in cyanotype-whole.txt. Blueprints' position
+// says `over` only where the game ends (blueprints.ts), and the review takes a position with no `over` at the record's
+// end as the game's end (model.ts, review). So the review to the end of turn 20 searches no position after turn 20, and
+// judges the turn by the scores there, as a result (a win for Red). The whole game's review judges it by the search of
+// that position. The review of seed 12 ends in the same way after turn 23.
 //
 // After a change that moves labels on purpose, update the label snapshots: run
 //   node --test --test-update-snapshots src/lib/review/labels.snapshot.engine.test.ts
@@ -46,7 +53,8 @@ import { STORES, dbPutMany } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 import { parseRecord, playerNames } from "../game/record.ts";
 import { blueprints, playedText, type Blueprints } from "./blueprints.ts";
-import { OTHER_STORED, STORED, TEST_GAME, readStored, testRecord } from "../../../../hedgeschool/tests/cyanotype-review.ts";
+import { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord }
+  from "../../../../hedgeschool/tests/cyanotype-review.ts";
 
 memoryDb(queueMicrotask); // the store that fromStore reads
 const { GameAnalysis } = await import("@abstractclass/analysis/analysis.svelte.ts");
@@ -54,32 +62,19 @@ const { openStored } = await import("./storedReview.ts");
 
 const app = join(import.meta.dirname, "..", "..", "..");
 const snapshots = join(app, "..", "hedgeschool", "tests", "snapshots", "review-labels");
-/** A stored review: its file in apps/hedgeschool, its game and the turns that it reviews (cyanotype-review.ts), the
- *  first lines of its snapshot's header, and what it reaches now: the kinds of label by move and by turn (`reached`),
- *  the kinds by move alone (`byMove`), and whether it has turns in the other order than the engine's best turn and
- *  positions with a twin. Its snapshot file has its file's name, less "-review.json". */
-interface Stored {
-  file: string; game: string; turns: number | undefined; title: string[];
-  reached: Label[]; byMove: Label[]; swapped: boolean; twins: boolean;
-}
-/** The other stored review whose file is `file` (cyanotype-review.ts, OTHER_STORED). */
-function other(file: string) {
-  const s = OTHER_STORED.find(o => o.file === file);
-  if (!s) throw new Error(`OTHER_STORED has no ${file}`);
-  return { ...s, title: [`# Cyanotype's quality labels on apps/hedgeschool/${file}, the game`,
-                         `# apps/cyanotype/src/lib/review/fixtures/${s.game} to the end of turn ${s.turns}`,
-                         "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."] };
-}
+/** A stored review (cyanotype-review.ts): its file in apps/hedgeschool, its game and the turns that it reviews, and the
+ *  first lines of its snapshot's header. Its snapshot file has its file's name, less "-review.json". */
+interface Stored { file: string; game: string; turns: number; title: string[] }
+const [WHOLE, SEED12] = OTHER_STORED;
 const REVIEWS: Stored[] = [
-  { file: STORED, game: TEST_GAME, turns: undefined, reached: ["best", "excellent", "good", "inaccuracy", "mistake"],
-    byMove: [], swapped: false, twins: false,
-    title: [`# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-review.json, the test game to the end of`,
-            "# turn 20 (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."] },
-  { ...other("tests/fixtures/cyanotype-whole-review.json"),
-    title: ["# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-whole-review.json, the whole test game",
-            "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
-    reached: ["best", "excellent", "good", "inaccuracy", "mistake", "blunder"], byMove: [], swapped: true, twins: true },
-  { ...other("tests/fixtures/cyanotype-seed12-review.json"), reached: [], byMove: ["great"], swapped: false, twins: false },
+  { file: STORED, game: TEST_GAME, turns: TURNS,
+    title: [`# Cyanotype's quality labels on apps/hedgeschool/${STORED}, the test game to the end of`,
+            `# turn ${TURNS} (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts).`] },
+  { ...WHOLE, title: [`# Cyanotype's quality labels on apps/hedgeschool/${WHOLE.file}, the whole test game`,
+                      "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."] },
+  { ...SEED12, title: [`# Cyanotype's quality labels on apps/hedgeschool/${SEED12.file}, the game`,
+                       `# apps/cyanotype/src/lib/review/fixtures/${SEED12.game} to the end of turn ${SEED12.turns}`,
+                       "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."] },
 ];
 const nameOf = (file: string) => basename(file, "-review.json");
 
@@ -97,11 +92,13 @@ async function labelled({ file, game, turns }: Stored): Promise<Review<Blueprint
   if (missing) throw new Error(`${missing}. In CI, the label snapshot needs the engine and does not skip`);
   const stored = readStored(file), record = parseRecord(testRecord(turns, game));
   // The results go to the store under a search of this review's own, as in Hedge School's label snapshot: the reviews
-  // share positions, and the other review's result after this review's last move would answer there.
+  // share positions, and the other review's result after this review's last move would answer there. The labels read
+  // no area map (`map|` keys).
   const search = `labels-${nameOf(file)}`;
   const entries = stored.analyses.map(([key, value]): [string, unknown] => {
     const k = readAnalysisKey(key);
-    return [analysisKey(search, k.model, k.moves.split(" ").filter(Boolean), k.visits, k.shape), value];
+    assert.ok(!k.map, `${file}: the test reads no area map`);
+    return [analysisKey(search, k.model, k.moves.split(" "), k.visits, k.shape), value];
   });
   assert.equal(await dbPutMany(STORES.analysis, entries), entries.length);
   // How the record says the game ended, as the page gives it
@@ -171,14 +168,17 @@ for (const s of REVIEWS) {
                           { serializers: [text => text] });
   });
 
-  test(`${s.file} reaches each kind of label and each rule that the label snapshot is for`, { skip }, async () => {
-    const R = await labelledOnce(s), byEdge = counts(R, "edge"), byTurn = counts(R, "turn"), reached = reaches(R);
-    for (const l of s.reached) {
-      assert.ok(byEdge[l], `no ${l} by move: the stored review no longer reaches it`);
-      assert.ok(byTurn[l], `no ${l} by turn: the stored review no longer reaches it`);
-    }
-    for (const l of s.byMove) assert.ok(byEdge[l], `no ${l} by move: the stored review no longer reaches it`);
-    if (s.swapped) assert.ok(reached.swapped, "no turn in the other order: the stored review no longer reaches one");
-    if (s.twins) assert.notEqual(reached.twinPositions, "none", "no twin: the stored review no longer reaches one");
-  });
 }
+
+test("the stored reviews reach each kind of label, the turn order and the twins that the label snapshot is for",
+     { skip }, async () => {
+  const all = await Promise.all(REVIEWS.map(labelledOnce));
+  const some = (unit: Unit, l: Label) => all.some(R => counts(R, unit)[l]);
+  for (const l of LABELS) {
+    assert.ok(some("edge", l), `no ${l} by move: the stored reviews no longer reach it`);
+    // No stored review reaches a Great by turn (the test's header)
+    if (l !== "great") assert.ok(some("turn", l), `no ${l} by turn: the stored reviews no longer reach it`);
+  }
+  assert.ok(all.some(R => reaches(R).swapped), "no turn plays the engine's best turn in the other order");
+  assert.ok(all.some(R => reaches(R).twinPositions !== "none"), "no position with a twin");
+});
