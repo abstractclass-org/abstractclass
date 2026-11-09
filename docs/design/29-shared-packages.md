@@ -78,15 +78,16 @@ edit in the same commit), so their changes still apply.
    exports' event into the review's (`exportEvents.ts`) and a practice game's parameters into the practice's
    (`practiceEvents.ts`), each with the site's analytics and its networks' names as parameters.
    The review file (Hedge School's design 13) moved out of Hedge School's `src/lib/game/reviewFile.ts` with
-   Cyanotype's review files: its build, its reader, its import and its export from the store went into the analysis
-   package (`reviewFile.ts`), with each site's name, format, record's reader, store of games and import's check as
-   parameters. The way to tell a review file from an analysis file (`fileKind`) went into `files.ts`, and the Export
-   menu's entry for the review file into the review package's `exports.ts`. Hedge School's files, its messages and
-   its tests stayed as they were. The review from the browser's store alone (Hedge School's designs 13 and 20) moved
-   out of Hedge School with Cyanotype's review snapshot: the steps of Hedge School's `src/lib/review/storedReview.ts`,
-   the review snapshot's opening of its review page and the annotated record of a stored game of its `exportText.ts`
-   went into the analysis package (`storedReview.ts`), with each site's step after the rules as a parameter: Hedge
-   School's opening book, Cyanotype's check of the capture marks.
+   Cyanotype's review files. Its build, its reader, its import and its export from the store went into the analysis
+   package (`reviewFile.ts`). Each site gives its name, its format, its record's reader, its store of games and its
+   import's check. The way to tell a review file from an analysis file (`fileKind`) went into `files.ts`. The Export
+   menu's entry for the review file, and the delivery of the review file and of the annotated record, went into the
+   review package's `exports.ts`. Hedge School's files, its messages and its tests stayed as they were.
+   The review from the browser's store alone (Hedge School's designs 13 and 20) moved out of Hedge School with
+   Cyanotype's review snapshot. Three parts went into the analysis package (`storedReview.ts`): the steps of Hedge
+   School's `src/lib/review/storedReview.ts`, the review snapshot's opening from its review page, and the annotated
+   record of a stored game from its `exportText.ts`. Each site gives its step after the rules: Hedge School's opening
+   book, Cyanotype's check of the capture marks.
    A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
    its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
    (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site
@@ -432,8 +433,8 @@ edit in the same commit), so their changes still apply.
   share: the Analysis board's, the review's link, the review file and the annotated record. `src/NewMenu.svelte`: the
   Analysis board's New menu, with the ways that a site has (design 21). `src/PositionCheckStatus.svelte`: what the
   board editor says of its position, the engine's refusal, or whether a game can reach it with the engine's reasons,
-  and each site's word for the places that the board marks (design 21, item 10). `src/howReviews/`: the sections that the two sites'
-  pages "How a review works" share (the searches, the quality labels with their bands, Best and Great, the accuracy,
+  and each site's word for the places that the board marks (design 21, item 10). `src/howReviews/`: the sections that
+  the two sites' pages "How a review works" share (the searches, the quality labels with their bands, Best and Great, the accuracy,
   the hard positions and the meter), with the numbers from the analysis package's code, and each site's words for a move
   ("edges" on Hedge School) and for the other player ("enemy") as props (design 33, "The review and the Analysis
   board", item 13). `src/review.css`: the package's Tailwind source and

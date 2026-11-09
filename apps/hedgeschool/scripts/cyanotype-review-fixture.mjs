@@ -130,12 +130,8 @@ try {
     }
     console.log(`the Analysis board's position: ${Math.round((Date.now() - t1) / 1000)} s`);
 
-    // The board's results: of its position, and of the positions one move from it
-    const fromBoard = (await keptResults(page, true)).filter(([key]) => {
-      const k = readAnalysisKey(key);
-      return k.model === model.sha256 && (k.moves === moves ||
-        (k.moves.startsWith(`${moves} `) && !k.moves.slice(moves.length + 1).includes(" ")));
-    });
+    // The board's results: of its position, and of the positions one move from it, as a file holds them (files.ts)
+    const fromBoard = (await keptResults(page, true)).filter(([key]) => belongs(key, new Set([moves]), models));
     const have = new Set(file.analyses.map(([key]) => key));
     file.analyses.push(...fromBoard.filter(([key]) => !have.has(key)));
     const text = JSON.stringify(file) + "\n";

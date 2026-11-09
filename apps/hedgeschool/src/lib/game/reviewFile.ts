@@ -5,7 +5,7 @@
 // evaluations and labels, is the annotated record (review/annotate.ts).
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
-import { branchNodes, loadGame, saveGame, setGameSettings, type KeptBranches, type ReviewMark } from "./store.ts";
+import { branchNodes, loadGame, saveGame, setGameSettings, type KeptBranches } from "./store.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { ENCLOSURE_CODE, sharedRecord, type SharedReview } from "./share.ts";
@@ -14,9 +14,9 @@ import { importRecord, variantProblem } from "./import.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
 import { mergeBranches, positionKeys } from "@abstractclass/analysis/kept.ts";
 import { shippedModels } from "@abstractclass/analysis/files.ts";
-import { reviewFiles, type ReviewFile } from "@abstractclass/analysis/reviewFile.ts";
+import { reviewFiles } from "@abstractclass/analysis/reviewFile.ts";
 import { download } from "@abstractclass/site/download.ts";
-import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, deliverFileOrRecord, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
 export { REVIEW_FILE_VERSION, gameAnalyses, shippedModules, type FileReview, type ReviewFile } from "@abstractclass/analysis/reviewFile.ts";
@@ -40,10 +40,8 @@ const files = reviewFiles({
 });
 
 /** The review file of a game, its record and its variations, with its results among `entries` (of `models` when
- *  given). `site` is the site's version. `reviewed`: the game's mark. */
-export const buildReviewFile = (record: string, branches: KeptBranches | null, entries: [string, unknown][], site: string,
-                                models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile =>
-  files.build(record, branches, entries, site, models, reviewed, now);
+ *  given), the site's version, and the game's mark. */
+export const buildReviewFile = files.build;
 
 /** Reads a review file (@abstractclass/analysis/files.ts, readSiteFile, for its frame and its results). Throws an Error
  *  that tells the player what is wrong. */
@@ -52,7 +50,7 @@ export const readReviewFile = files.read;
 /** Reads a review file and keeps it in this browser (importReview), with the networks and the engine modules that the
  *  manifest ships. Answers the game's id, and the file for the load's count. Throws an Error that tells the player what
  *  is wrong. */
-export const loadReviewFile = (text: string, manifest: Manifest | null) => files.load(text, manifest);
+export const loadReviewFile = files.load;
 
 /** The variations kept for a game after an import: the shared rule (@abstractclass/analysis/kept.ts). */
 export { mergeBranches } from "@abstractclass/analysis/kept.ts";
@@ -119,14 +117,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
     await navigator.clipboard.writeText(link);
     return { linkLength: link.length, note: shareNote(link.length) };
   }
-  const name = reviewFileName(record, id);
-  if (kind === "review_file") {
-    download(name, JSON.stringify(await exportReview(id, site, shippedModels(manifest))));
-    return;
-  }
-  const text = await annotated();
-  if (kind === "record_copy") await navigator.clipboard.writeText(text);
-  else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+  return deliverFileOrRecord(kind, reviewFileName(record, id), () => exportReview(id, site, shippedModels(manifest)), annotated);
 }
 
 /** Keeps a review file's game, variations and results in this browser (@abstractclass/analysis/reviewFile.ts). `models`

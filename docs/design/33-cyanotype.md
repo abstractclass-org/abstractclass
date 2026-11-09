@@ -953,11 +953,11 @@ settings of its design 09 and the marks of its design 13), in the code that both
    "Review it", and a review file. Each goes through one import (`src/lib/game/import.ts`). The import first refuses
    a game from a set-up start: the review takes games from the standard start only, and says to open it on the
    Analysis board. Then the engine's rules play the record and check its capture marks, in a rules worker of the
-   page's own (`checkRecordMarks`, `src/lib/review/recordCheck.ts`). The import page has checked its game already, so it gives
-   the import that check's answer ("How a game comes in from strategyjam.org", item 7). The list keeps no game that
-   the review refuses: the page says why, in the import page's words ("Cyanotype cannot review this game: …"). The
-   list keeps the record with a capture mark on every move that captures, as Hedge School's adds its cut marks. The
-   review checks the game again when it opens, as Hedge School's does. A record after the review's `#`
+   page's own (`checkRecordMarks`, `src/lib/review/recordCheck.ts`). The import page has checked its game already,
+   so it gives the import that check's answer ("How a game comes in from strategyjam.org", item 7). The list keeps no
+   game that the review refuses: the page says why, in the import page's words ("Cyanotype cannot review this game:
+   …"). The list keeps the record with a capture mark on every move that captures, as Hedge School's adds its cut
+   marks. The review checks the game again when it opens, as Hedge School's does. A record after the review's `#`
    (`/review#record=…`) gets the Review tab, as on Hedge School (its design 22): only the import page takes one.
 3. **The komi:** the review takes a record with a `Komi` tag, and searches at it ("Practice against Stamp Duty",
    "The komi"). A game's id covers its komi, so the same moves at another komi are another game. The Analysis board
@@ -1020,7 +1020,10 @@ the review at once, with no search. The file and its reader are shared (`package
    network, the game keeps the file's network and depth (item 8 of "The player's games"), and the results of the
    shipped networks go to the browser's store. The review then opens at `/review#game=…`.
 4. **A file of an earlier engine:** its review is the game's mark as that engine's, as on Hedge School, so the review
-   opens as a review snapshot (the next section).
+   opens as a review snapshot (the next section). A mark of the site's engine stays over an earlier engine's (Hedge
+   School's designs 13 and 20, item 6). So when the list keeps the game with the site's review, a file of the same
+   game by an earlier engine adds its variations and its results, and the review opens with the site's review, with
+   no review snapshot.
 
 ### The review snapshot and the annotated record from the store
 
@@ -1035,8 +1038,10 @@ labels are the ones that these show.
    mark's depth. A line under the players says "Reviewed on (date) with an earlier version of the engine." The
    review searches nothing, and the Export waits ("Review again to export: this review used an earlier engine.").
    "Review again" reviews the game with the site's engine, and the earlier review stays on the board until the new
-   results replace it. When the store lacks the earlier review's results, or the record's capture marks are wrong, the
-   review runs again at once, with the notice of "The player's games", item 9.
+   results replace it. When the store lacks the earlier review's results, the review runs again at once, with the
+   notice of "The player's games", item 9. When the record's capture marks are wrong, the page opens no review
+   snapshot and reviews nothing. It says why, as for any record with wrong capture marks: "Cyanotype cannot review
+   this game: …".
 2. **The annotated record:** the review's Export menu and the Export beside each game in the Review tab have "Copy the
    annotated record" and "Annotated record as a file", after the review file. The record is the Analysis board's
    (item 12 of "The review and the Analysis board"), with the game's tags, result and clocks, and the note "Reviewed by
@@ -1610,7 +1615,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   store"): `src/routes/review/+page.svelte` (`openSnapshot`, `reviewAgain`), `src/lib/review/storedReview.ts`
   (Cyanotype's step after the rules) and `exportText.ts`, on `packages/analysis/src/storedReview.ts`.
   `apps/hedgeschool/tests/cyanotype-snapshot.spec.ts`: the browser tests of the review snapshot, by move and by turn,
-  of the annotated record from the review and from the store, and of a review file that opens in a new browser.
+  of a file of an earlier engine loaded after the site's review of the game, of the annotated record from the review
+  and from the store, and of a review file that opens in a new browser.
 - The board editor and a position's notation ("The board editor", "Decision", item 10): `src/routes/editor/+page.svelte`
   (the page), `src/lib/editor/position.ts` (a cell put, a hand's cell moved, the count and the scores),
   `src/lib/game/position.ts` (the notation, the engine's form and a start's turn), `src/lib/game/paste.ts` (the

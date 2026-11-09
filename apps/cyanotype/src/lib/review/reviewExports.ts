@@ -9,8 +9,7 @@ import { branchNodes, type KeptBranches } from "@abstractclass/analysis/kept.ts"
 import { shippedModels } from "@abstractclass/analysis/files.ts";
 import { shareNote } from "@abstractclass/analysis/share.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
-import { download } from "@abstractclass/site/download.ts";
-import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, deliverFileOrRecord, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 import { exportReview, reviewFileName } from "../game/reviewFile.ts";
 import { reviewLink } from "../game/share.ts";
 import { loadGame } from "../game/store.ts";
@@ -39,13 +38,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
     await navigator.clipboard.writeText(link);
     return { linkLength: link.length, note: shareNote(link.length) };
   }
-  const name = reviewFileName(record, id);
-  if (kind === "review_file") {
-    download(name, JSON.stringify(await exportReview(id, SITE_VERSION, shippedModels(manifest))));
-    return;
-  }
-  if (kind !== "record_copy" && kind !== "record_file") throw new Error("this export is not ready yet");
-  const text = await annotated();
-  if (kind === "record_copy") await navigator.clipboard.writeText(text);
-  else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+  if (kind !== "review_file" && kind !== "record_copy" && kind !== "record_file") throw new Error("the review has no such export");
+  return deliverFileOrRecord(kind, reviewFileName(record, id), () => exportReview(id, SITE_VERSION, shippedModels(manifest)),
+                             annotated);
 }

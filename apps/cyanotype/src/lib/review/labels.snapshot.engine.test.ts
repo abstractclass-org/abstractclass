@@ -109,9 +109,10 @@ async function labelled({ file, game, turns }: StoredReview): Promise<Review<Blu
   const pool = { rules, cancel() {} } as unknown as EnginePool;
   const g = new GameAnalysis(blueprints, pool, record.moves, search);
   const problem = await openStored(g, record, stored.visits, search, stored.model);
+  assert.notEqual(problem, false, `the rules refused the game: ${g.error}`);
   assert.equal(problem, null, "the record's capture marks are the engine's");
-  const d = g.data(playerNames(record.tags), ending); // none when the rules refuse the game
-  assert.ok(d, `the rules refused the game: ${g.error}`);
+  const d = g.data(playerNames(record.tags), ending);
+  assert.ok(d, "the engine could not read the game");
   // fromStore passes over a position whose result the store lacks: each position that the review searches has its
   // stored result (passCount: each position before a move, and the end of an unfinished game)
   const unread = Array.from({ length: g.passCount }, (_, i) => i)

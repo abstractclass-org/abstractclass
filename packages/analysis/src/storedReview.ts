@@ -13,25 +13,26 @@ import type { ReviewData } from "./model.ts";
 import { EnginePool } from "@abstractclass/engine/pool.ts";
 import { modelOf, type Manifest } from "@abstractclass/engine/client.ts";
 
-/** A site's step after the rules: why the site cannot review the game, or null when it can. */
-export type StoredStep = () => Promise<string | null>;
+/** A site's step after the rules on `g`, the game's analysis: why the site cannot review the game, in a sentence for
+ *  the player, or null when it can. */
+export type StoredStep<G extends GameTypes> = (g: GameAnalysis<G>) => Promise<string | null>;
 
 /** Starts the review of `g`'s game at the review depth `visits`: the rules (GameAnalysis.start), then the site's step
- *  `then`, once the rules take the game. Answers false when the rules refuse it (`g.error` says why), else what `then`
+ *  `step`, once the rules take the game. Answers false when the rules refuse it (`g.error` says why), else what `step`
  *  answers. */
-export async function startStored<G extends GameTypes>(g: GameAnalysis<G>, visits: number, then: StoredStep): Promise<string | null | false> {
+export async function startStored<G extends GameTypes>(g: GameAnalysis<G>, visits: number, step: StoredStep<G>): Promise<string | null | false> {
   g.setReview(visits);
   await g.start();
   if (!g.rulesReady) return false;
-  return then();
+  return step(g);
 }
 
 /** Opens the review of `g`'s game from the store: startStored, then the stored results of the search `search` with the
  *  network `model` (GameAnalysis.fromStore), when the game is taken. Answers as startStored. The site's step comes
  *  first: the stored results that the review reads (the Greats' confirmations) follow what it gives. */
 export async function openStored<G extends GameTypes>(g: GameAnalysis<G>, visits: number, search: string, model: string,
-                                                      then: StoredStep): Promise<string | null | false> {
-  const taken = await startStored(g, visits, then);
+                                                      step: StoredStep<G>): Promise<string | null | false> {
+  const taken = await startStored(g, visits, step);
   if (taken === null) await g.fromStore(search, model);
   return taken;
 }
@@ -39,7 +40,7 @@ export async function openStored<G extends GameTypes>(g: GameAnalysis<G>, visits
 /** What a site gives a review from its store. `open` opens the review of `g`'s game from the store at the review depth
  *  `visits`, with the stored results of the search `search` and the network `model`: the site's openStored. It answers
  *  null when the review opened, else why it did not. */
-export interface StoredGame<G extends GameTypes> {
+export interface ReviewFromStore<G extends GameTypes> {
   game: Game<G>;
   id: string; // the game's id in the store
   moves: string[];
@@ -51,7 +52,7 @@ export interface StoredGame<G extends GameTypes> {
  *  at the review depth `visits`: the ones that the game reviews with. `write` writes it from the review's data and
  *  the game's variations. Loads the engine's rules, not its network. Throws when the store lacks a result of the game's
  *  line: a record without the engine's values would still say that the game was reviewed. */
-export async function annotatedFromStore<G extends GameTypes>(stored: StoredGame<G>, manifest: Manifest | null,
+export async function annotatedFromStore<G extends GameTypes>(stored: ReviewFromStore<G>, manifest: Manifest | null,
                                                               network: string, visits: number,
                                                               players: ReviewData<G>["players"],
                                                               write: (data: ReviewData<G>, branches: GameAnalysis<G>["branches"]) => string): Promise<string> {
@@ -82,12 +83,12 @@ export async function annotatedFromStore<G extends GameTypes>(stored: StoredGame
  *  the mark's search, which hold the game's line at the review's depth. For an older mark, which names no search, the
  *  search that holds it. The start is left out of that test: every game shares it. So are the positions whose values
  *  the site's step gave (Hedge School's opening book, its design 32): the review took their values there, and the
- *  review snapshot takes them as the review did. `start` takes the site's first steps at the mark's depth (its
- *  startStored), and answers whether the game is taken. Answers the review's analysis, frozen (GameAnalysis.freeze),
- *  or null when the store lacks the results or the game is not taken: the caller then ends `rules`. */
-export async function openSnapshot<G extends GameTypes>(stored: Omit<StoredGame<G>, "open">, rules: EnginePool, manifest: Manifest,
+ *  review snapshot takes them as the review did. `step` is the site's step after the rules (startStored, at the mark's
+ *  depth). Answers the review's analysis, frozen (GameAnalysis.freeze), or null when the store lacks the results, the
+ *  rules refuse the game or the site's step does: the caller then ends `rules`. */
+export async function openSnapshot<G extends GameTypes>(stored: Omit<ReviewFromStore<G>, "open">, rules: EnginePool, manifest: Manifest,
                                                         network: string, mark: ReviewMark, why: "engine" | "network",
-                                                        start: (g: GameAnalysis<G>) => Promise<boolean>): Promise<GameAnalysis<G> | null> {
+                                                        step: StoredStep<G>): Promise<GameAnalysis<G> | null> {
   // The store is read while the rules worker starts: an earlier engine's search is not the site's. The positions that
   // the test needs come once the rules give the game's positions and the site's step its values there.
   const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
@@ -97,11 +98,11 @@ export async function openSnapshot<G extends GameTypes>(stored: Omit<StoredGame<
   // An older mark, which names no search, is older than the book: its review searched every position, and the removal
   // of earlier results keeps them by that rule (Hedge School's earlierResults.ts)
   const needed = started.then(async () => {
-    taken = await start(g);
+    taken = (await startStored(g, mark.visits, step)) === null;
     return mark.search === undefined ? line : line.filter((_, i) => !g.bookResults[i + 1]); // line[i]: after i + 1 moves
   });
   const search = await snapshotSearch(mark.search, mark.model, line, mark.visits, started, needed);
-  if (!search || !taken || !g.rulesReady) return null; // without the rules, the review shows why
+  if (!search || !taken) return null; // the review then runs, and shows why the rules or the site's step refused it
   await g.fromStore(search, mark.model);
   g.freeze(search, mark.model); // its maps from the store alone
   return g;

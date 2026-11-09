@@ -10294,7 +10294,7 @@ review files", and design 29).
   home page's replay script (`apps/cyanotype/scripts/home-replay.mjs`) reads the network and the search from the
   file's mark now: on the converted fixture it writes `replay.json` and `still.json` byte for byte as dev's script
   writes them on the fixture before. The committed scenes come from an earlier release (search `3ac5c2fc`), so the
-  script differs from them on dev too: this branch leaves them as they are.
+  script differs from them on dev too: commit `88211cc` leaves them as they are.
   The checks and the browser tests are in the next entry, which ran on both issues' code.
 
 ### Cyanotype's review snapshot and annotated record from the store (2026-11-08)
@@ -10321,24 +10321,51 @@ that the two sites share (design 33, "The review snapshot and the annotated reco
   change.
 - **Cyanotype's review snapshot** is Hedge School's: the engine's rules alone, the record's capture marks checked, and
   the stored results of the mark's search at the mark's depth, with the line "Reviewed on (date) with an earlier
-  version of the engine." and Review again. A record whose capture marks are wrong opens no review snapshot: the review
-  then runs and says why, as before. Cyanotype counts no event of it: it has no analytics yet (abscls-8tl1.48).
+  version of the engine." and Review again. A record whose capture marks are wrong opens no review snapshot: the page
+  says why ("Cyanotype cannot review this game: …"), as before. Cyanotype counts no event of it: it has no analytics
+  yet (abscls-8tl1.48).
 - **Cyanotype's annotated record** follows the review file in the review's Export menu and beside each game in the
   Review tab, copied or as a file. The review page writes it from its review, and the Review tab from the store, with
   the note "Reviewed by Cyanotype with Stamp Duty 0.2 (the network …), at least N visits a position."
-- **Checked,** on this branch with both issues' code: `npm run check:all` passed, all 15 steps. Two earlier runs
+- **Checked,** on both issues' code (commit `4e1bde3`): `npm run check:all` passed, all 15 steps. Two earlier runs
   stopped at the engine step: GitHub's release downloads gave HTTP 504, so the lock's files came through `gh release
   download` into the download cache, each checked by its SHA-256. The whole layout test (`npm run test:layout --
-  --project=chromium`) on this branch's previews, in headless Chromium on the CPU: 206 cases, 200 passed, 5 skipped
+  --project=chromium`) on previews of that code, in headless Chromium on the CPU: 206 cases, 200 passed, 5 skipped
   and 1 failed. The 5 skipped are the analytics ask's (`analytics-ask.spec.ts`), which need a build with the Google
   tag (`VITE_GA_ID`). The failed case was the new test's check of the annotated record's note, which the record wraps
   over two lines. The check now folds the whitespace, and the new `cyanotype-snapshot.spec.ts` then passed alone, 3
   of 3: the review snapshot's move list is the review's, by move and by turn, the annotated record from the review
   and from the store is one text, and the review file that the review exports opens in a new browser with no search.
   The layout test's Cyanotype review, which loads the stored review as a review file, passed.
-- **Hedge School's exports are byte for byte as dev's.** A build of dev at `5cd6b41` and a build of this branch, each
+- **Hedge School's exports are byte for byte as dev's.** A build of dev at `5cd6b41` and a build of `4e1bde3`, each
   served in turn at one address, in a new browser context with the engine off: the layout test's game loaded from its
   review file, then each export taken on the review page and beside the game in the Review tab. The share link, the
   annotated record (copied and as a file) and the files' names were the same bytes. The review file was the same
   bytes but for its time of export (`exported`), the site's version (`site`) and the time that the load marked the
   game (`review.at`).
+
+### The review of Cyanotype's review files and review snapshot (2026-11-09)
+
+abscls-8tl1.34 and abscls-8tl1.35, after the two entries before.
+
+- **A review file of a game that the browser keeps already.** A mark of the site's engine stays over an earlier
+  engine's (design 13, item 6, and design 20, item 6). So a file of an earlier engine, loaded after the site's review
+  of the same game, adds its variations and its results, and the review opens with the site's review, with no review
+  snapshot. A look at the build showed it: the earlier engine's file gave no "Reviewed on …" line after the current
+  file of the same game. Hedge School does the same. Its import kept its own mark in either order of the two files,
+  in a test of its `importReview` that the commit does not keep. Cyanotype's `reviewFile.test.ts` checks both orders.
+  The new case of `cyanotype-snapshot.spec.ts` loads the stored review, then the earlier engine's file of the same
+  game, and expects the site's review. With the import changed to take the file's mark always, the case failed: the
+  page opened the review snapshot. Design 33 ("The review files", item 4) now says this.
+- **The shared code, simpler.** The site's step after the rules takes the game's analysis (`StoredStep`), so the
+  review snapshot (`openSnapshot`) takes the site's step, as `openStored` does. Cyanotype's step
+  (`captureMarksStep`) writes the player's sentence, and the rules' refusal stays `false` for its callers. One
+  function delivers the review file and the annotated record for both sites (`deliverFileOrRecord`,
+  `packages/review/src/exports.ts`). The fixture script takes the Analysis board's results by the files' own rule
+  (`belongs`): on the stored review, it takes the same one result.
+- **Two fixes.** The Review tab's line beside a game of an earlier engine says "open the game, choose Review again,
+  then export", as Hedge School's does. Design 33 now says what a record with wrong capture marks does: the page opens
+  no review snapshot, reviews nothing and says why.
+- **Checked:** `npm run check:all` passed, all 15 steps. The whole layout test (`npm run test:layout --
+  --project=chromium`), in headless Chromium on the CPU: 207 cases, 202 passed and 5 skipped. The 5 skipped are the
+  analytics ask's (`analytics-ask.spec.ts`), which need a build with the Google tag (`VITE_GA_ID`).

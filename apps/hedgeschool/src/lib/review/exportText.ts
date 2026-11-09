@@ -31,7 +31,6 @@ export function annotatedText(R: Review, unit: Unit, record: GameRecord, branche
 export async function annotatedFromStore(id: string, manifest: Manifest | null): Promise<string> {
   const stored = await loadGame(id);
   if (!stored) throw new Error(`This browser has no game ${id}.`);
-  if (!manifest) throw new Error("this site has no engine");
   const { network, visits } = settingsFor(stored.game, loadEngine()), record = stored.record;
   return fromStore({
     game: enclosure, id, moves: record.moves, komi: record.komi,

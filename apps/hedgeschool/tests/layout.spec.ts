@@ -392,11 +392,11 @@ test("layout of a practice game on Cyanotype", async ({ page }) => {
 // with its candidates. Both cases load the stored review (cyanotype-review.ts), and nothing searches here: only
 // cyanotype-review.spec.ts reviews the test game with the engine. The review has the engine off, and loads the stored
 // review as a review file in the Review tab (reviewStoredFile), as a player loads one. The board takes its results in
-// the browser's store (storeReview). The board
-// shows "Not analyzed yet." with the engine off, though the store holds the result of its position. So the board has
-// the engine on, and its search takes the stored result. Each case checks that the page asked the engine for no
-// search (expectNoSearch). Besides the sweep, design 06's window sizes. After the review, its Review tab with the game
-// kept, as Hedge School's: "Continue your last review", and the list of games (design 33, "The player's games").
+// the browser's store (storeReview). The board shows "Not analyzed yet." with the engine off, though the store holds
+// the result of its position. So the board has the engine on, and its search takes the stored result. Each case
+// checks that the page asked the engine for no search (expectNoSearch). Besides the sweep, design 06's window sizes.
+// After the review, its Review tab with the game kept, as Hedge School's: "Continue your last review", and the list of
+// games (design 33, "The player's games").
 for (const [name, path] of [["review", ""], ["Analysis board", SPREAD_BOARD]] as const) {
   test(`layout of Cyanotype's ${name}`, async ({ page }) => {
     const skip = await noReview(page);

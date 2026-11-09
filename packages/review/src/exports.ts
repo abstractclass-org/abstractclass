@@ -1,6 +1,7 @@
 // The Export menu's entries (ExportMenu.svelte, Hedge School's designs 13 and 21): what each export makes, its label,
 // and what it tells the player. Each page lists its own entries: the review's, the Analysis board's. The entries that
-// every site's pages share are here, so that their words stay one.
+// every site's pages share are here, so that their words stay one, with the delivery of the review's files.
+import { download } from "@abstractclass/site/download.ts";
 
 /** What an export makes, by name (Hedge School's design 17): a share link, a review file or an analysis file, the
  *  annotated record copied or as a file, or the review file saved to a partner site. */
@@ -21,6 +22,17 @@ export const REVIEW_LINK: ExportItem =
 /** The review file (Hedge School's design 13): it holds the engine's results, so the review opens at once. */
 export const REVIEW_FILE: ExportItem =
   ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"];
+
+/** Delivers a game's review file or its annotated record, as both sites' reviews do (Hedge School's design 13): the
+ *  file that `file` makes, as a download named `name`; or the annotated record, which `annotated` writes when it is
+ *  asked for, copied (`record_copy`) or as a download (any other kind) whose name is the file's with `.txt`. */
+export async function deliverFileOrRecord(kind: ExportKind, name: string, file: () => Promise<unknown>,
+                                          annotated: () => string | Promise<string>): Promise<void> {
+  if (kind === "review_file") return download(name, JSON.stringify(await file()));
+  const text = await annotated();
+  if (kind === "record_copy") await navigator.clipboard.writeText(text);
+  else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+}
 
 /** The annotated record, copied or as a file: the review's and the Analysis board's last entries. */
 export const RECORD_EXPORTS: ExportItem[] = [

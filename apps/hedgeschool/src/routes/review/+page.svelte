@@ -43,7 +43,7 @@
   import { holdReview } from "@abstractclass/analysis/reviewLock.ts";
   import { giveBook } from "#lib/book/reviewBook.ts";
   import { siteBook } from "#lib/book/place.svelte.ts";
-  import { startWithBook } from "#lib/review/storedReview.ts";
+  import { bookStep } from "#lib/review/storedReview.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { trackExport } from "#lib/game/sources.ts";
@@ -318,9 +318,9 @@
     const mark = markBefore!, manifest = session.manifest!, network = settings.network, rules = new EnginePool(0, session.takeRules());
     try {
       // The rules, then the book's values (storedReview.ts), then the stored results of the mark's search
-      // (@abstractclass/analysis/storedReview.ts, openSnapshot)
+      // (@abstractclass/analysis/storedReview.ts, openSnapshot). The book is asked for once the rules take the game.
       const g = await sharedSnapshot({ game: enclosure, id: kept!.id, moves, komi: gameKomi() }, rules, manifest, network,
-                                     mark, why, g => startWithBook(g, mark.visits, siteReviewBook()));
+                                     mark, why, g => bookStep(siteReviewBook())(g));
       if (!g) { rules.terminate(); return false; } // without the rules, the review shows why
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });

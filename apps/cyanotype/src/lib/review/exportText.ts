@@ -39,7 +39,7 @@ export async function annotatedFromStore(id: string, manifest: Manifest | null):
     // A record whose capture marks the rules refuse: the review says why, and so does the export
     open: async (g, v, search, model) => {
       const problem = await openStored(g, record, v, search, model);
-      return problem ? `${SITE_NAME} cannot review this game: ${problem}` : g.rulesReady ? null : g.error;
+      return problem === false ? g.error : problem;
     },
   }, manifest, network, visits, playerNames(record.tags), (data, branches) =>
     annotatedText(review(blueprints, data, "lead", LABEL_VISITS), loadDisplay().judge, record, branches, network));

@@ -3,10 +3,10 @@
 // Lite (512 visits a move): with the release engine-91ab0b7d, its first note is a Mistake at turn 12. The tests load
 // the stored review of the game (STORED, cyanotype-fixture.ts), the results of a real review in the browser, and search
 // nothing: the layout test's review loads it as a review file in the Review tab (reviewStoredFile), the others put its
-// results in the browser's store (storeReview). A review
-// of the whole game with the engine takes 10 to 20 minutes on the CI runners. So only one test reviews with the
-// engine, on the CPU: the game's first LIVE_TURNS turns. The Tests workflow builds Cyanotype with the engine's files
-// (design 33, "The engine's files"). A test skips, with a message, when the preview has none, and fails in CI.
+// results in the browser's store (storeReview). A review of the whole game with the engine takes 10 to 20 minutes on
+// the CI runners. So only one test reviews with the engine, on the CPU: the game's first LIVE_TURNS turns. The Tests
+// workflow builds Cyanotype with the engine's files (design 33, "The engine's files"). A test skips, with a message,
+// when the preview has none, and fails in CI.
 import { expect, type Page } from "@playwright/test";
 import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
 import { modelOf, moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
@@ -15,6 +15,7 @@ import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord } from "./cyanotype-fixture.ts";
+import { fileInput, type ReviewFileInput } from "./review-file.ts";
 
 // The stored reviews and the games' records: in a module with no Playwright import, for Cyanotype's label snapshot.
 export { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord };
@@ -83,24 +84,29 @@ export async function reviewTestGame(page: Page, display: object = {}, { on = fa
   await openReview(page, TURNS, 120_000);
 }
 
-/** Reviews the test game in `page` from the stored review as a review file, which the Review tab's "Load a review file"
- *  loads (ReviewHome.svelte), with the engine off, and waits for the review's end. The page keeps the game with its
- *  mark, its network and its depth (game/reviewFile.ts), and puts the file's results in the browser's store. Then it
- *  names the game in its address, and reviews it from the store. */
-export async function reviewStoredFile(page: Page) {
-  await loadStoredFile(page);
+/** Reviews the test game in `page` from a review file (`file`, the stored review by default), which the Review tab's
+ *  "Load a review file" loads (ReviewHome.svelte), with the engine off and the display settings `display`, and waits
+ *  for the review's end. The page keeps the game with its mark, its network and its depth (game/reviewFile.ts), and
+ *  puts the file's results in the browser's store. Then it names the game in its address, and reviews it from the
+ *  store. */
+export async function reviewStoredFile(page: Page, file: ReviewFileInput = STORED, display: object = {}) {
+  await loadStoredFile(page, file, display);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
 }
 
 /** Loads the review file `file` (the stored review by default) in the Review tab of `page`, with the engine off and
- *  the display settings `display`, and waits until the page names its game in the address. A file that a test makes
- *  is its name, type and contents (review-file.ts, ReviewFileInput). */
-export async function loadStoredFile(page: Page, file: string | { name: string; mimeType: string; buffer: Buffer } = STORED,
-                                     display: object = {}) {
+ *  the display settings `display` (chooseReviewFile). */
+export async function loadStoredFile(page: Page, file: ReviewFileInput = STORED, display: object = {}) {
   await checkStored(page);
   await keepSettings(page, { on: false, ...LITE }, display);
+  await chooseReviewFile(page, file);
+}
+
+/** Chooses the review file `file` in the Review tab of `page`, with the settings that the page keeps already, and waits
+ *  until the page names its game in the address. */
+export async function chooseReviewFile(page: Page, file: ReviewFileInput) {
   await page.goto(new URL("/review", CYANOTYPE).href);
-  await page.locator('input[type="file"][accept*="json"]').setInputFiles(file);
+  await fileInput(page).setInputFiles(file);
   await page.waitForURL(/#game=/, { timeout: 60_000 });
 }
 

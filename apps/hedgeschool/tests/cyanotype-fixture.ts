@@ -24,15 +24,21 @@ export const OTHER_STORED = [
   { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
 ] as const;
 
+type Stored = { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] };
+const stored = new Map<string, Stored>();
+
 /** A stored review's engine (`search`, `network`, the network's SHA-256 `model`), the review's depth (`visits`) and
  *  its results: of STORED unless `file` gives another, from STORED's review mark, or from the top of another's file.
- *  Read by the file's place, so that it reads from any folder. */
-export function readStored(file: string = STORED):
-  { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] } {
+ *  Read once, by the file's place, so that it reads from any folder. */
+export function readStored(file: string = STORED): Stored {
+  const kept = stored.get(file);
+  if (kept) return kept;
   const json = JSON.parse(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"));
   const { search, network, model, visits } = (json.review ?? json) as
     { search: string; network: string; model: string; visits: number };
-  return { search, network, model, visits, analyses: json.analyses as [string, unknown][] };
+  const read = { search, network, model, visits, analyses: json.analyses as [string, unknown][] };
+  stored.set(file, read);
+  return read;
 }
 
 /** The record of the test game, or of the game `game` (a file in apps/cyanotype/src/lib/review/fixtures), up to the

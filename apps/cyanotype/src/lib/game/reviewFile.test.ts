@@ -94,6 +94,23 @@ test("a review file of an earlier engine keeps its mark as that engine's: its re
   assert.equal((await loadGame(other))?.game.settings, undefined);
 });
 
+test("a mark of the site's engine stays over an earlier engine's, whichever file of the game loads first", async () => {
+  // As on Hedge School (its designs 13 and 20, item 6): the game then opens with the site's review, not a review snapshot
+  const load = async (review: ReviewMark) => {
+    const file = readReviewFile(JSON.stringify(buildReviewFile(RECORD, null, [], "abc1234", null, review)));
+    return (await loadGame((await files.importReview(file, new Set([MODEL]), ["m1"])).id))?.game.reviewed;
+  };
+  const earlier = { ...DONE, module: "m0", search: "earlier" };
+  db.rows(STORES.games).clear();
+  await load(DONE);
+  const kept = await load(earlier);
+  assert.equal(kept?.module, "m1");
+  assert.equal(kept?.search, "91ab0b7d");
+  db.rows(STORES.games).clear();
+  assert.equal((await load(earlier))?.module, "m0");
+  assert.equal((await load(DONE))?.module, "m1"); // the site's review replaces the earlier one
+});
+
 test("the file's name: the site, the players, made safe, and the game's id", () => {
   assert.equal(reviewFileName(RECORD, "review-3-0a1b2c3d"), "cyanotype-Ann-vs-Ben-O-Hara-review-3-0a1b2c3d.json");
 });

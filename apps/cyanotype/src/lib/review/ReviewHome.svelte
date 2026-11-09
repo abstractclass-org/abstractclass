@@ -166,7 +166,7 @@
       exports: { run: kind => exportGame(game.id, game.record, kind), items: REVIEW_EXPORTS, ontrack: trackExport,
         ready: reviewCovers(game.reviewed, want),
         why: !game.reviewed ? "Open the game to review it, then export."
-          : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game to review it again, then export."
+          : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game, choose Review again, then export."
           : "Open the game to finish its review with the engine settings now, then export." },
     };
   }));

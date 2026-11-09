@@ -45,7 +45,7 @@
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { trackExport } from "#lib/game/sources.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "@abstractclass/site/measure.ts";
-  import { startChecked } from "#lib/review/storedReview.ts";
+  import { captureMarksStep, startChecked } from "#lib/review/storedReview.ts";
   import { gamePage, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
@@ -257,7 +257,7 @@
     const g = await session.start(pool => new GameAnalysis(blueprints, pool, moves, kept!.id, null, { komi }), async (g, pool) => {
       // The rules, then the record's capture marks (storedReview.ts, whose steps the label snapshot takes too)
       const problem = await startChecked(g, record, budget);
-      if (problem) { error = `${SITE_NAME} cannot review this game: ${problem}`; return; }
+      if (problem) { error = problem; return; }
       await warm;
       if (g.rulesReady && pool.search && model) await g.fromStore(pool.search, model).catch(() => {});
       preloaded = true;
@@ -278,15 +278,14 @@
   /** Opens the game's last review, by an earlier engine or network file, as it was (Hedge School's design 20): the
    *  engine's rules alone, no network, the record's capture marks checked, and the stored results of the mark's search
    *  (@abstractclass/analysis/storedReview.ts, openSnapshot). False, with nothing kept, when the store lacks them or the
-   *  record's marks are wrong: the review then runs, and says why. True, with nothing kept, when the session ended
-   *  meanwhile (another tab took the game, or the page closed). */
+   *  record's capture marks are wrong: the review then runs, or says why it cannot. True, with nothing kept, when the
+   *  session ended meanwhile (another tab took the game, or the page closed). */
   async function openSnapshot(record: GameRecord, why: "engine" | "network"): Promise<boolean> {
     const mark = markBefore!, manifest = session.manifest!, network = settings.network;
     const rules = new EnginePool(0, session.takeRules());
     try {
       const g = await sharedSnapshot({ game: blueprints, id: kept!.id, moves: record.moves, komi: record.komi }, rules,
-                                     manifest, network, mark, why,
-                                     async g => (await startChecked(g, record, mark.visits)) === null && g.rulesReady);
+                                     manifest, network, mark, why, captureMarksStep(record));
       if (!g) { rules.terminate(); return false; }
       if (session.ended) { rules.terminate(); return true; }
       const date = new Date(mark.at).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
