@@ -14,7 +14,8 @@ Protocol 0.6.2 gives the weak walls (`includeWeakWalls`, the engine repository's
 (beads abscls-jk1c). No release has them yet:
 
 - The site's module, release `engine-d6786eba`, answers protocol 0.6.1. It ignores `includeWeakWalls`: its reply has
-  no `weakWalls`, and `query_version`'s `trained` does not list them. Checked here in Node, with HedgeFund 0.2 Lite.
+  no `weakWalls`, and `query_version`'s `trained` does not list them. This repository checked it in Node, with
+  HedgeFund 0.2 Lite.
 - Both of the release's networks carry the heads (the engine repository's
   games/enclosure/docs/decisions/inputs-and-targets.md, "The weak walls and the future nodes"). So the networks can
   stay as they are. Only the module must change.

@@ -374,9 +374,9 @@
     {/each}
   {/each}
 
-  <!-- The weak walls (design 30, "The weak walls"): a ring of one size round each point, whose colour darkens with the
-       chance, over the edges and their nodes. A halo in the board's colour keeps each ring whole where it meets an
-       edge. -->
+  <!-- The weak walls (design 30, "The weak walls"): a ring of one size round each point, whose colour stands out more
+       from the board as the chance grows, over the edges and their nodes. A halo in the board's colour keeps each ring
+       whole where it meets an edge. -->
   {#if walls}
     <g class="walls" aria-hidden="true">
       {#each walls as w (w.y * N + w.x)}

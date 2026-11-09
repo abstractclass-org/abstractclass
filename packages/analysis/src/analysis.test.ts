@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
 import type { AnalysisQuery, AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/pool.ts";
+import { EngineError } from "@abstractclass/engine/client.ts";
 import { BOARD_ID } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
@@ -1591,4 +1592,23 @@ test("the weak walls: the search that waits for a position that the page left is
   for (const s of searches.filter(s => !s.query.includeWeakWalls)) s.end(MAP_VISITS, false, { ownership: [0.1] });
   await turns();
   assert.deepEqual(searches.filter(s => s.query.includeWeakWalls).map(s => s.query.moves), [["a", "b"]]);
+});
+
+test("the weak walls: the engine's refusal of the field gives none at all, and another engine error is the page's", async () => {
+  const { game, searches } = await noMaps(2, "g-walls5");
+  void game.sweep();
+  await turns();
+  game.askWalls(["a"]);
+  await turns();
+  // An error that names another field: the analysis's error, not the end of the game
+  searches.find(s => s.query.includeWeakWalls)!.fail(new EngineError({ id: "a", error: "the engine failed", field: "moves" }));
+  await turns();
+  assert.match(game.error, /the engine failed/);
+  assert.notEqual(game.wallState(["a"]), "none");
+  // The refusal of the field by its name (a backend that does not give them): none at all
+  game.askWalls(["a", "b"]);
+  await turns();
+  searches.filter(s => s.query.includeWeakWalls).at(-1)!.fail(new EngineError({ id: "a", error: "not on this backend", field: "includeWeakWalls" }));
+  await turns();
+  assert.equal(game.wallState(["a", "b"]), "unsupported");
 });

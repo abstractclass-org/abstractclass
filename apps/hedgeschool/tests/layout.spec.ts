@@ -518,8 +518,8 @@ test("layout of the area map's note in a review snapshot", async ({ page }) => {
 // then their note or their legend. With the site's released engine (protocol 0.6.1) the note says that the engine
 // gives none. With a module of 0.6.2 the marks show, and the legend while the area map is off. Either fits the margin
 // at every width, and its text ends with no ellipsis: a phone shows no title (decisions/product.md, "The review's
-// one-line texts at 360 pixels"). On the review with the area map off and on, and on the Analysis board, at 360 × 700
-// and on a desktop.
+// one-line texts at 360 pixels"). On the review with the area map off and on, on the Analysis board and on the
+// Openings page, at 360 × 700 and on a desktop.
 test("layout of the weak walls", async ({ page }) => {
   /** The walls shown, or their final note: not while their search waits or runs. */
   const settled = () => expect(page.locator("g.walls circle").first()
@@ -550,6 +550,12 @@ test("layout of the weak walls", async ({ page }) => {
   await switchOn();
   await settled();
   reports.push(await sweep(page, "/analysis, the weak walls on", wallsFit, [700, 1000]));
+  // The Openings page takes the site's view, and with it the Analysis board's setting. Its engine waits at a book
+  // position (design 32, item 5), so the note can stay "waiting" there.
+  await page.goto("/openings");
+  await expect(page.getByRole("button", { name: "Weak walls" })).toBeVisible({ timeout: 60_000 });
+  await switchOn();
+  reports.push(await sweep(page, "/openings, the weak walls on", wallsFit, [700]));
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 

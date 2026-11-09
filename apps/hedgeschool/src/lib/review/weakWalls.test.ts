@@ -48,7 +48,7 @@ test("a chance out of the range, or not a number, gets no mark", () => {
   assert.deepEqual(wallMarks(walls), []);
 });
 
-test("a ring's colour: the ramp goes from its light end at the smallest value marked to its dark end at 1", () => {
+test("a ring's colour: the ramp goes from its faint end at the smallest value marked to its bold end at 1", () => {
   assert.equal(wallMix(WALL_MIN), 0);
   assert.equal(wallMix(1), 100);
   assert.equal(wallMix(0.55), 50);

@@ -984,14 +984,15 @@
   // window 360 pixels wide, as the review's other one-line texts do (decisions/product.md, "The review's one-line
   // texts at 360 pixels"): a phone shows no title.
   const wallWork = $derived.by((): { text: string; busy: boolean } | null => {
-    if (!wallsOn || !game) return null;
-    if (mapLine.kind !== "here") return shownMap ? null : { text: "Weak walls: not with a line", busy: false };
+    if (!wallsOn || !game || !view.walls) return null;
+    const name = view.walls.name;
+    if (mapLine.kind !== "here") return shownMap ? null : { text: `${name}: not with a line`, busy: false };
     const st = game.wallState(path);
-    if (st === "searching") return { text: "Weak walls: searching", busy: true };
-    if (st === "waiting") return { text: "Weak walls: waiting", busy: true };
-    if (st === "none") return { text: "Weak walls: the game ends here", busy: false };
-    if (st === "unavailable") return { text: "Weak walls: none in snapshots", busy: false };
-    if (st === "unsupported") return { text: "Weak walls: not in this engine", busy: false };
+    if (st === "searching") return { text: `${name}: searching`, busy: true };
+    if (st === "waiting") return { text: `${name}: waiting`, busy: true };
+    if (st === "none") return { text: `${name}: the game ends here`, busy: false };
+    if (st === "unavailable") return { text: `${name}: none in snapshots`, busy: false };
+    if (st === "unsupported") return { text: `${name}: not in this engine`, busy: false };
     return null;
   });
   // The margin's note: one at a time, the map's first, and none while the map's numbers show under the pointer. The
@@ -1540,7 +1541,7 @@
     [["e", "l"], "Turn the engine on or off"],
     [["x"], "Show or hide the threat: the other player's best turn if you pass"],
     ...(view.map ? MAP_KEYS : []),
-    ...(view.walls ? [[["w"], "Show or hide the weak walls"] as [string[], string]] : []),
+    ...(view.walls ? [[["w"], `Show or hide the ${view.walls.name.toLowerCase()}`] as [string[], string]] : []),
     ...(book?.ready ? BOOK_KEYS : []),
     [["Escape"], `Close the settings, or cancel the ${view.words.move} that you started`],
     [["?"], "This list"],
@@ -2417,7 +2418,7 @@
   </div>
   {#if view.walls}
     <!-- The weak walls' switch, beside the area map's: on or off. Its icon: a wall between two nodes, with a crack. -->
-    <button aria-pressed={wallsOn} aria-label="Weak walls" title="Weak walls (w)" tabindex="-1" onmousedown={e => e.preventDefault()}
+    <button aria-pressed={wallsOn} aria-label={view.walls.name} title="{view.walls.name} (w)" tabindex="-1" onmousedown={e => e.preventDefault()}
             class={["flex-none h-4/5 max-h-6 aspect-square p-0.5 rounded border border-line pointer-events-auto",
                     wallsOn ? "bg-accent text-on-accent" : "bg-panel-2 text-muted hover:text-ink"]}
             onclick={() => setWalls(!wallsOn)}>
@@ -2429,7 +2430,8 @@
     </button>
   {/if}
   <!-- The note stays on one line (design 30, item 9). Where the board is narrower than the note, as in a window 360 pixels
-       wide, the note ends with an ellipsis, with its full text as its title, as the engine header's line does. -->
+       wide, the note ends with an ellipsis, with its full text as its title, as the engine header's line does. The weak
+       walls' notes fit there with no ellipsis (design 30, "The weak walls: a prototype"). -->
   {#if marginNote}
     <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", marginNote.busy && "bar-glider"]}
           role="status" title={marginNote.text}>{marginNote.text}</span>
@@ -2437,7 +2439,7 @@
   {#if shownWalls && view.walls && (wallReading || !shownMap)}
     <!-- The weak walls' legend, or the reading of the point under the pointer. With the area map, the map's legend shows,
          and the walls' reading takes its place under the pointer. -->
-    <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-1 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Weak walls">
+    <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-1 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label={view.walls.name}>
       <span class="min-w-0 truncate">{wallReading ?? view.walls.legend(shownWalls)}</span>
     </div>
   {:else if shownMap && !wallNoteShown}
@@ -2508,7 +2510,7 @@
         </div>
       {/if}
       {#if view.walls && display.weakWalls}
-        {@render toggle("Weak walls", view.walls.help, () => wallsOn, setWalls)}
+        {@render toggle(view.walls.name, view.walls.help, () => wallsOn, setWalls)}
       {/if}
       {#each view.layers.filter(l => l.afterMap) as l (l.key)}{@render layer(l)}{/each}
       {@render choice("Lines on the board", `The engine's line and a variation's preview: one ${view.words.move} at a time, or all at once.`,

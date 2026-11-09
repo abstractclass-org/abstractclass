@@ -347,7 +347,8 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
   goes into a review file.
 - "Learning from mistakes" (beads abscls-7e9) can take the map as its hint: the map of the position before the
   mistake, or of the engine's best candidate there.
-- The weak-wall map (beads abscls-udwl) can later show which wall breaks, beside the map.
+- The weak walls (beads abscls-udwl) show which walls will probably break, beside the map ("The weak walls: a
+  prototype").
 
 ## The weak walls: a prototype
 
@@ -361,8 +362,8 @@ The engine's weak walls (protocol 0.6.2, `includeWeakWalls`: the engine reposito
 "The root's maps") give, for each player, at each lattice point of the player's edges, the chance that an edge of this
 player at the point is cut before the game ends. The points are the edges' ends and the lattice points that the edges
 pass through. The values come from one network evaluation of the position, not from its search, so they are the same
-at any visits. They are calibrated on HedgeFund 0.2's self-play: in every band of 10 percentage points, the mean
-chance is within 1.5 points of the share that was cut, and the AUC is 0.926 (the engine repository's
+at any visits. The engine repository checked them on HedgeFund 0.2's self-play: in every band of 10 percentage
+points, the mean chance is within 1.5 points of the share that was cut, and the AUC is 0.926 (the engine repository's
 games/enclosure/docs/decisions/inputs-and-targets.md, "The weak walls and the future nodes"). People's games give
 weaker evidence.
 
@@ -374,18 +375,21 @@ chance that one of them is cut. So the board marks the points, and names no chan
 
 1. **A display setting beside the area map,** on the review and on the Analysis board: "Weak walls", off by default
    on both pages, each page's own (`weakWalls` in `src/lib/review/display.ts`). A switch in the board's top margin, at
-   the right of the area map's switch, shows or hides them, and so does the key w.
+   the right of the area map's switch, shows or hides them, and so does the key w. The Openings page takes the site's
+   view, and with it the walls and the Analysis board's setting.
 2. **A mark at each point whose chance is 10% or more** (`WALL_MIN` in `src/lib/review/weakWalls.ts`). In HedgeFund
    0.2's self-play, about half of the points on edges are under 10%, and 1.6% of those were cut.
 3. **A ring of one size at each marked point, whose colour gives the chance.** The colour goes from `--wall-low` at
    10% to `--wall-high` at 1 (`wallMix` in `src/lib/review/weakWalls.ts`, the tokens in `src/app.css`): from a light
-   to a dark brown on the light board, and from a dim to a bright amber on the dark board. Its hue is apart from the
-   players' blue and red and the signs' green and yellow. The ring is over the edges and the nodes, with a halo in the
-   board's colour that keeps it whole where it meets an edge. The prototype also drew two other forms for the look: a
-   disc under the edges whose area grew with the chance, which hid chances near 25% under the edges' nodes, and a
-   ring filled from the top as far as the chance.
+   to a dark brown on the light board, and from a dim to a bright amber on the dark board. On both boards, the
+   likelier the cut, the bolder the ring against the board. Its hue is apart from the players' blue and red and the
+   signs' green. It is near the hue of the signs' yellow (about 42° against 43° to 45°), but a ring goes round a
+   point, and a sign fills a point's square. The ring is over the edges and the nodes, with a halo in the board's
+   colour that keeps it whole where it meets an edge. The prototype also drew two other forms for the look: a disc
+   under the edges whose area grew with the chance, which hid a chance of 26% under an edge's end node, and a ring
+   filled from the top as far as the chance.
 4. **The legend and the numbers:** while the weak walls show and the area map does not, the legend's line says
-   "Weak walls: darker means weaker", or "Weak walls: none at 10% or more" where no point is marked. While the mouse's
+   "Weak walls: bolder means weaker", or "Weak walls: none at 10% or more" where no point is marked. While the mouse's
    pointer is on a point of an edge, the line gives its reading in its place, for example "E5 · Blue · cut chance 62%"
    (`wallReading`). With the area map on too, the area map's legend shows, and the reading of a point on an edge
    takes its place under the pointer.
@@ -407,7 +411,7 @@ chance that one of them is cut. So the board marks the points, and names no chan
    do (docs/decisions/product.md, "The review's one-line texts at 360 pixels"): a phone shows no title. At 360 × 700
    the board is 313 pixels wide, and the two switches leave 219 pixels. A note has 207 of them inside its padding, and
    the legend's line 215. In DejaVu Sans at 12 pixels (Linux's `system-ui`, wider than Segoe UI), the longest note,
-   "Weak walls: the game ends here", takes 196 pixels, the legend 205, and the widest reading, "M18 · Blue · cut
+   "Weak walls: the game ends here", takes 196 pixels, the legend 204, and the widest reading, "M18 · Blue · cut
    chance under 1%", 203. The layout test checks that no walls' text ends with an ellipsis, at every width.
 
 ### Still open

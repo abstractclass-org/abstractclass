@@ -202,6 +202,7 @@ export interface MapParts<G extends ViewTypes> {
 /** The weak walls' part that is the board's (Display's weakWalls): the point's chance under the pointer, and the
  *  texts. */
 export interface WallParts<G extends ViewTypes> {
+  name: string; // the layer's name, on its switch, its setting and its notes: "Weak walls"
   reading(point: G["point"], walls: WeakWalls): string | null; // the point's chance, or null where no edge passes
   help: string; // the setting
   legend(walls: WeakWalls): string; // the legend's words while the weak walls show: what the marks mean, or that none shows

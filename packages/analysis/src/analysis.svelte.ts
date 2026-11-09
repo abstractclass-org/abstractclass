@@ -1182,8 +1182,10 @@ export class GameAnalysis<G extends GameTypes> {
     }, { cpu: true })
       .catch(e => {
         if (e instanceof Cancelled || e instanceof Stopped || era !== this.era) { tried = false; return; }
-        if (e instanceof EngineError && /weak/i.test(e.field ?? "")) this.wallsUnsupported = true;
-        else this.wallless = new Set(this.wallless).add(key); // the position: a game that ends there
+        // The engine refuses the field by its name where its backend does not give the walls (the GPU module's)
+        if (e instanceof EngineError && e.field === "includeWeakWalls") this.wallsUnsupported = true;
+        else if (this.known(path)) this.fail(e); // an engine error, as a map's (addMap): the page shows it
+        else this.wallless = new Set(this.wallless).add(key); // a position after a move not in the tree can end the game
       })
       .finally(() => {
         set(null);

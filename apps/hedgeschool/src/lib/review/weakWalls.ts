@@ -38,8 +38,8 @@ export function wallMarks(walls: WeakWalls): WallMark[] {
   return marks.sort((a, b) => a.chance - b.chance);
 }
 
-/** A ring's colour: the place of the chance on the ramp, in percent, from its light end at the smallest chance marked
- *  to its dark end at 1 (the board's color-mix of `--wall-low` and `--wall-high`). */
+/** A ring's colour: the place of the chance on the ramp, in percent, from its faint end at the smallest chance marked
+ *  to its bold end at 1 (the board's color-mix of `--wall-low` and `--wall-high`). */
 export const wallMix = (chance: number) => Math.min(100, Math.max(0, Math.round(((chance - WALL_MIN) / (1 - WALL_MIN)) * 100)));
 
 /** A chance as the readings write it: a whole percentage, and "under 1%" or "over 99%" near the ends. */
@@ -50,7 +50,7 @@ export function chanceText(chance: number): string {
 }
 
 /** The reading of the point under the pointer: whose edges pass there, and the chance that one of them is cut, for
- *  example "E5 · Blue · cut chance 62%". Null where no edge passes. At most 205 pixels in DejaVu Sans, in the
+ *  example "E5 · Blue · cut chance 62%". Null where no edge passes. At most 203 pixels in DejaVu Sans, in the
  *  legend's 215 at a window 360 pixels wide ("M18 · Blue · cut chance under 1%"). */
 export function wallReading([x, y]: [number, number], walls: WeakWalls): string | null {
   const wall = wallAt(walls, y * N + x);
