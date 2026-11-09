@@ -9779,18 +9779,22 @@ on the board showed on two rows: the second move on its own row, and the judgeme
 
 Cyanotype's review of an unfinished game took the position after the last move as the game's end (abscls-2pge).
 Blueprints' position gave `over` only where the game ends (`apps/cyanotype/src/lib/review/blueprints.ts`). The shared
-analysis read a missing `over` in two ways. The analysis searches the end only where `over` is false
-(`analysis.svelte.ts`, `passCount`), so it did not search that position. The review takes a missing `over` as the end
-(`model.ts`, `review`), so it judged the last move and the last turn by the scores there, as a result. Hedge School's
-position always gives `over`, so its review of an unfinished game searched the end.
+analysis takes a position with no `over` as the end, in two places. The analysis searches the end only where `over` is
+false (`analysis.svelte.ts`, `passCount`), so it did not search that position. The review takes a missing `over` as
+the end (`model.ts`, `review`), so it judged the last move and the last turn by the scores there, as a result.
+Blueprints' own ending text takes a missing `over` as no end (`endingText`, `over ?? false`), so the page called the
+game unfinished while its labels took the game as ended. Hedge School's position always gives `over`, so its review of
+an unfinished game searched the end.
 
 - **The fix:** Blueprints' position gives `over: !!outcome`, as Hedge School's gives `over: outcome !== null`.
   `endingText`'s own rule (`over ?? false`) reads the same with it.
 - **`over` is required:** in the game interface's `PositionInfo` (`@abstractclass/analysis/game.ts`, design 29), and
-  in each site's position type (Blueprints' `Position`, Enclosure's in `enclosure.ts`). So no site can leave it out,
-  and the analysis and the review cannot read it in two ways. Two places in Hedge School built a position without it:
-  a lesson's board before the engine draws it (`lessons.ts`, `lineBoard`) and the image caption's test. Both now give
-  `over: false`, as they read before. Both sites build and type-check.
+  in each site's position type (Blueprints' `Position`, Enclosure's in `enclosure.ts`). So a site's code cannot build
+  a position without it. Two places in Hedge School built a position without it: a lesson's board before the engine
+  draws it (`lessons.ts`, `lineBoard`) and the image caption's test. Both now give `over: false`, as they read before.
+  Both sites build and type-check. The type check does not see one input: Hedge School's sample game
+  (`mock/review.json`) has no `over`, and `mock/sample.ts` casts it to the review's data. The review reads its end as
+  the game's end by its default (`over ?? true`), which is right for that finished game.
 - **The test:** `blueprints.engine.test.ts` reviews the test game to move 39 from the engine's positions. Each position
   says `over: false`, and the review takes the end's win chance from its search. On the code before the fix, the
   position said nothing.

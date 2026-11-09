@@ -121,8 +121,8 @@ edit in the same commit), so their changes still apply.
      two a turn. A game of one move a turn numbers each move.
    - **Each position says whether the game ends there** (`over`, from the engine's outcome). The type requires it. The
      analysis searches the position after the last move when that position is not the end (an unfinished game), and
-     the review judges the last move from that search. At the game's end, the review takes the result as the value. A
-     position with no `over` could have one reading in the analysis and another in the review.
+     the review judges the last move from that search. At the game's end, the review takes the result as the value.
+     Code that reads a position with no `over` must choose a default, and two readers can choose two defaults.
    - **A turn has one move or two.** The review judges a turn of two moves by Enclosure's rules: the same two moves in
      either order are one turn, and the engine's best turn is its first choice and the next move of that choice's
      line (`judgeTurn`, and `GameAnalysis`'s turns). A game of longer turns, or one where the order within a turn

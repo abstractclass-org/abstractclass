@@ -15,16 +15,26 @@ import type { DescribeReply, GamePosition } from "../board/described.ts";
 // CPU in Node from the site's static/engine: without its files, this is skipped.
 const app = join(import.meta.dirname, "..", "..", "..");
 const text = readFileSync(join(import.meta.dirname, "fixtures", "stamp-duty.txt"), "utf8");
+const skip = hasEngine(app) ? false : "no engine in static/engine (npm run engine)";
+
+/** The review's data of the game of `moves` from the engine's positions, with no analysis, and the engine's fields of
+ *  each position. */
+function reviewDataOf(call: Awaited<ReturnType<typeof nodeEngine>>["call"], moves: string[]) {
+  const fields: GamePosition[] = call({ id: "g", action: "describe_game", moves }).positions;
+  const positions = fields.map(blueprints.position);
+  const played = moves.map((m, i) => blueprints.played(m, fields[i], fields[i + 1]));
+  const [blue, red] = positions.at(-1)!.scores;
+  const data: ReviewData = { players: { blue: "Blue", red: "Red" }, result: { blue, red }, moves: played, positions, analysis: [] };
+  return { fields, data };
+}
 
 test("the review's game reads each move of a game of Stamp Duty from the engine", {
-  skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",
+  skip,
 }, async () => {
   const { call } = await nodeEngine(app);
   const record = parseRecord(text);
-  const fields = call({ id: "g", action: "describe_game", moves: record.moves }).positions;
+  const { fields, data } = reviewDataOf(call, record.moves), { positions, moves: played } = data;
   assert.equal(fields.length, record.moves.length + 1);
-  const positions = fields.map(blueprints.position);
-  const played = record.moves.map((m, i) => blueprints.played(m, fields[i], fields[i + 1]));
   // Every capture mark of the record is the engine's: the record writes each move as the move list does.
   const effects = played.map(p => ({ captured: Object.keys(p.did.captured).length, points: p.did.points }));
   assert.equal(checkCaptures(record, effects).problem, null);
@@ -34,35 +44,30 @@ test("the review's game reads each move of a game of Stamp Duty from the engine"
   played.forEach((p, i) => assert.equal(p.player, positions[i].player, `move ${i + 1}`));
   // The game ends at its 120th move, with the record's result.
   assert.equal(positions.at(-1)!.over, true);
-  const [blue, red] = positions.at(-1)!.scores;
-  const data = { players: { blue: "Blue", red: "Red" }, result: { blue, red }, moves: played, positions, analysis: [] } as unknown as ReviewData;
+  const { blue, red } = data.result;
   const margin = Math.abs(blue - red).toLocaleString("en");
   assert.equal(endingText(data), `${blue > red ? "Blue" : "Red"} won by ${margin}`);
   assert.equal(record.result, `${blue > red ? "b" : "r"}+${Math.abs(blue - red)}`);
 });
 
-test("the review of an unfinished game searches the position after its last move, and does not take it as the end", {
-  skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",
+test("each position of an unfinished game says that it is not over, and the review judges its end by its search", {
+  skip,
 }, async () => {
   const { call } = await nodeEngine(app);
-  // The test game to the end of turn 20 (move 39), as the review's stored test game (cyanotype-review.json)
-  const moves = parseRecord(text).moves.slice(0, 39);
-  const fields: GamePosition[] = call({ id: "g", action: "describe_game", moves }).positions;
-  const positions = fields.map(blueprints.position);
+  // The game is the test game to the end of turn 20 (move 39), as in the review's stored test game
+  // (cyanotype-review.json).
+  const { data } = reviewDataOf(call, parseRecord(text).moves.slice(0, 39)), n = data.moves.length;
   // Every position says whether the game has ended there. The analysis searches the end where it says "not over"
   // (passCount), and the review judges the last move from that search.
-  positions.forEach((p, i) => assert.equal(p.over, false, `position ${i}`));
-  const played = moves.map((m, i) => blueprints.played(m, fields[i], fields[i + 1]));
-  const [blue, red] = positions.at(-1)!.scores;
-  const analysis = positions.map((_, i) => ({ blueWin: i === moves.length ? 0.3 : 0.5, visits: 100, candidates: [] }));
-  const data: ReviewData = { players: { blue: "Blue", red: "Red" }, result: { blue, red }, moves: played, positions, analysis };
-  const r = review(blueprints, data);
+  data.positions.forEach((p, i) => assert.equal(p.over, false, `position ${i}`));
+  const analysis = data.positions.map((_, i) => ({ blueWin: i === n ? 0.3 : 0.5, visits: 100, candidates: [] }));
+  const r = review(blueprints, { ...data, analysis });
   assert.equal(r.blueWin.at(-1), 0.3, "the end's win chance is its search's, not the scores as a result");
   assert.equal(endingText(data), "Unfinished after move 39");
 });
 
 test("the key of the position after a move (afterKey) groups the legal moves as the engine's positions after them", {
-  skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",
+  skip,
 }, async () => {
   const { call } = await nodeEngine(app);
   const moves = parseRecord(text).moves;
