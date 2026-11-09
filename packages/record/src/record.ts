@@ -92,12 +92,11 @@ export const isKomi = (n: unknown): n is number => typeof n === "number" && komi
 export const komiRange = (max: number): string =>
   `from ${(-max).toLocaleString("en")} to ${max.toLocaleString("en")} points`;
 
-/** Why a komi is beyond the game's limit `max`, either way, or null within it and without a limit: the game's engine
- *  would refuse it, with the engine's own words. `what` names where the komi is: "the Komi tag" for a record and a
- *  board's link, which carry it as a tag. The record's reader, a board's link (boardLink.ts) and an analysis file
- *  (files.ts) refuse it in the same words. */
-export const komiLimitProblem = (komi: number, max: number | undefined, what = "the Komi tag"): string | null =>
-  max !== undefined && Math.abs(komi) > max ? `${what} must be ${komiRange(max)}` : null;
+/** Why a komi is beyond the game's limit `max`, either way, or null within it: the game's engine would refuse it.
+ *  `shown` is the komi as its source writes it, and `what` names the source: "the Komi tag" for a record and a board's
+ *  link, which carry it as a tag. "the Komi tag must be from -5,052 to 5,052 points: 6000". */
+export const komiLimitProblem = (komi: number, max: number, shown: string | number, what = "the Komi tag"): string | null =>
+  Math.abs(komi) > max ? `${what} must be ${komiRange(max)}: ${shown}` : null;
 
 /** The tags of a game's start, in their order: its set-up start's `Position` tag, then its komi's `Komi` tag, each only
  *  where the game has one. No `Komi` tag at 0, so that such a game's record is as it was before the komi. */
@@ -180,8 +179,8 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
         const komi = komiOf(t.value);
         if (komi === null)
           throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
-        const beyond = komiLimitProblem(komi, notation.maxKomi);
-        if (beyond) throw new RecordError(`${beyond}: ${t.value}`, t.at);
+        const beyond = komiLimitProblem(komi, notation.maxKomi ?? Infinity, t.value);
+        if (beyond) throw new RecordError(beyond, t.at);
         record.komi = komi;
       }
       record.tags[t.name] = t.value;

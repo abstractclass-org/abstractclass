@@ -81,10 +81,10 @@ export function analysisFileName(format: string, now = new Date()): string {
 
 /** Reads an analysis file of `site` in `format`. Throws an Error that tells the player what is wrong. Its version rule
  *  is the review file's (Hedge School's design 13). A board's komi is a number of whole or half points, as a record's
- *  `Komi` tag is (Hedge School's design 24), and within the game's limit `maxKomi`, either way (its record's
- *  `MAX_RECORD_KOMI`), which the engine would refuse. A site reads the file before it keeps its results (keepAnalyses),
- *  so a file that the board cannot open puts none in the store. */
-export function readAnalysisFile(text: string, site: string, format: string, maxKomi?: number): AnalysisFile {
+ *  `Komi` tag is (Hedge School's design 24). It is within the game's limit `maxKomi`, either way (its record's
+ *  `MAX_RECORD_KOMI`): the engine would refuse a komi beyond it. A site reads the file before it keeps its results
+ *  (keepAnalyses), so a file that the board cannot open puts none in the store. */
+export function readAnalysisFile(text: string, site: string, format: string, maxKomi: number): AnalysisFile {
   const f = readSiteFile(text, site, format, ANALYSIS_FILE_VERSION, "analysis file") as Partial<AnalysisFile> & { analyses: [string, unknown][] };
   const b = f.board;
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
@@ -92,8 +92,8 @@ export function readAnalysisFile(text: string, site: string, format: string, max
     (b.start === undefined || typeof b.start === "string") &&
     (b.komi === undefined || isKomi(b.komi));
   if (!boardOk) throw new Error(`${site} cannot read the analysis file's lines.`);
-  const beyond = komiLimitProblem(b.komi ?? 0, maxKomi, "the analysis file's komi");
-  if (beyond) throw new Error(`${beyond}: ${b.komi}`);
+  const komi = b.komi ?? 0, beyond = komiLimitProblem(komi, maxKomi, komi, "the analysis file's komi");
+  if (beyond) throw new Error(beyond);
   return { ...f, board: b } as AnalysisFile;
 }
 

@@ -25,15 +25,15 @@ export function boardLink(origin: string, board: KeptBoard, at: number, code: Mo
 
 /** A board from a link's `packed` and `at`. `start` reads the link's `Position` tag as the board's set-up start: none
  *  for the standard start. The `Komi` tag is the board's komi: none for 0. `maxKomi` is the game's komi limit, either
- *  way (its record's `MAX_RECORD_KOMI`), which the link's komi must not pass: the engine would refuse it. Throws an
- *  Error that says what is wrong with the link. */
+ *  way (its record's `MAX_RECORD_KOMI`): the engine would refuse a komi beyond it. Throws an Error that says what is
+ *  wrong with the link. */
 export function readBoardLink(packed: string, at: string | null, code: MoveCode,
                               start: (position: string | undefined) => string | null | undefined,
-                              maxKomi?: number): { board: KeptBoard; at: number } {
+                              maxKomi: number): { board: KeptBoard; at: number } {
   const s = decodeShare(packed, code), from = start(s.tags.Position), komi = komiOf(s.tags.Komi);
   if (komi === null) throw new Error(`the link's komi is not a number of points, whole or half: ${s.tags.Komi}`);
-  const beyond = komiLimitProblem(komi, maxKomi);
-  if (beyond) throw new Error(`${beyond}: ${s.tags.Komi}`);
+  const beyond = komiLimitProblem(komi, maxKomi, s.tags.Komi ?? komi);
+  if (beyond) throw new Error(beyond);
   return { board: { version: 2, main: [], nodes: s.branches, ...(from ? { start: from } : {}), ...(komi ? { komi } : {}) },
            at: Math.max(0, Math.floor(Number(at)) || 0) };
 }

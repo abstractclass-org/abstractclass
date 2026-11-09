@@ -49,6 +49,9 @@ test("a module whose komi cap moved stops the check, with the komi and what to c
   await assert.rejects(checkKomiCap(5052, gtpKomi(6000)), /takes komi 5052\.5, past the site's MAX_RECORD_KOMI 5052/);
   // A module that takes any komi, as GTP's standard says: the check cannot pass
   await assert.rejects(checkKomiCap(5052, async () => "="), /takes komi 5052\.5/);
+  // Another refusal past the limit says nothing about the cap
+  const unknown = async (value: number) => (Math.abs(value) <= 5052 ? "= " : "? unknown command");
+  await assert.rejects(checkKomiCap(5052, unknown), /gives \? unknown command for komi 5052\.5, not KataGo's refusal/);
 });
 
 test("the check asks each komi in turn: the limit either way, then half a point past it", async () => {

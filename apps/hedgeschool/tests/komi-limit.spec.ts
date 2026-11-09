@@ -4,7 +4,9 @@
 // Cyanotype's case runs when CYANOTYPE_BASE_URL gives its running preview. Run:
 // npm run test:layout -- tests/komi-limit.spec.ts --project=chromium, with BASE_URL (and CYANOTYPE_BASE_URL).
 import { expect, test, type Page } from "@playwright/test";
+import { ANALYSIS_FILE_VERSION } from "../../../packages/analysis/src/files.ts";
 import { boardLink } from "../src/lib/game/board.ts";
+import { fileInput } from "./review-file.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
@@ -29,9 +31,8 @@ test("a link at komi 6,000 does not open on the Analysis board, and the notice g
 test("an analysis file at komi 6,000 does not open on the Analysis board, and the notice gives the limit", async ({ page }) => {
   await page.goto("/analysis");
   await expect(page.getByRole("button", { name: "Export" })).toBeVisible({ timeout: 60_000 });
-  const file = { format: "hedge-school-analysis", version: 1, exported: "", site: "x", board: board(6000), analyses: [] };
-  await page.locator('input[type="file"][accept*="json"]')
-    .setInputFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  const file = { format: "hedge-school-analysis", version: ANALYSIS_FILE_VERSION, exported: "", site: "x", board: board(6000), analyses: [] };
+  await fileInput(page).setInputFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
   await expect(notice(page)).toHaveText("The Analysis board cannot load this file: the analysis file's komi must be " +
     "from -5,052 to 5,052 points: 6000.");
 });

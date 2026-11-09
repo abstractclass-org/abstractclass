@@ -185,7 +185,8 @@ for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gp
 console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
 
 // Each practice module, run once in Node: its minPlayoutsPerThread must be 8, and its komi cap the site's
-// MAX_RECORD_KOMI, which each site's record copies from the engine (practice-check.ts).
+// MAX_RECORD_KOMI, which each site's record copies from the engine (practice-check.ts). So the site's record and what
+// it imports must load in Node, with no browser.
 const { MAX_RECORD_KOMI } = await import(pathToFileURL(join(root, "src", "lib", "game", "record.ts")).href);
 await checkPracticeModules(root, manifest, MAX_RECORD_KOMI);
 

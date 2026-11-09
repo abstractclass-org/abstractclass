@@ -39,21 +39,27 @@ export function checkMinPlayoutsPerThread(reply: string): void {
                     `threads at a move and its visits past the setting. Check the item before this release goes in.`);
 }
 
-/** Checks that a module's komi cap is `max`, the site's MAX_RECORD_KOMI: `komi` sends GTP's `komi K` and gives the
+/** Checks that a module's komi cap is `max`, the site's MAX_RECORD_KOMI: `send` sends GTP's `komi K` and gives the
  *  reply. The module must take K = max and -max, and refuse half a point past each, the next komi that a record can
- *  give. An error says which komi the module took or refused, and what to change. */
-export async function checkKomiCap(max: number, komi: (value: number) => string | Promise<string>): Promise<void> {
+ *  give, with KataGo's refusal for a komi past the cap ("? unacceptable komi"). Another refusal there says nothing
+ *  about the cap, so it stops the check too. An error says which komi the module took or refused, and what to
+ *  change. */
+export async function checkKomiCap(max: number, send: (value: number) => string | Promise<string>): Promise<void> {
   const fix = "Make the site's MAX_RECORD_KOMI (src/lib/game/record.ts) the engine's Rules::MAX_USER_KOMI, and check " +
               "the Notation page's Komi row, before this release goes in.";
   for (const value of [max, -max]) {
-    const reply = await komi(value);
+    const reply = await send(value);
     if (!reply.startsWith("="))
       throw new Error(`the practice bot refuses komi ${value}, which the site's MAX_RECORD_KOMI ${max} takes ` +
                       `(${reply.trim()}). ${fix}`);
   }
   for (const value of [max + 0.5, -max - 0.5]) {
-    if ((await komi(value)).startsWith("="))
+    const reply = await send(value);
+    if (reply.startsWith("="))
       throw new Error(`the practice bot takes komi ${value}, past the site's MAX_RECORD_KOMI ${max}. ${fix}`);
+    if (!/^\?\s*unacceptable komi\s*$/.test(reply))
+      throw new Error(`the practice bot gives ${reply.trim()} for komi ${value}, not KataGo's refusal of a komi past ` +
+                      `its cap ("? unacceptable komi"), so the check cannot tell the cap.`);
   }
 }
 

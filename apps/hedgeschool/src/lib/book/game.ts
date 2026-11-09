@@ -87,9 +87,8 @@ export function gameOpening(positions: (BookPosition | null)[], edges: string[])
 
 /** The game's opening as the review takes it (the review's view, `book.opening`): from the book at the notation of each
  *  of the game's positions (`at`, the site's book: lookup.svelte.ts, OpeningBook), once every part that they need has
- *  loaded. Null while one loads or when one failed. The view asks only where the analysis takes the book
- *  (GameAnalysis.takesBook, design 24): the book is the engine's at komi 0, so the review of a game at a komi takes no
- *  opening row, no trap row and no book move from it, and loads none of its parts. */
+ *  loaded. Null while one loads or when one failed. The view asks only where the analysis takes the book (BookParts
+ *  `opening`): at a komi it asks for none, and so loads none of the book's parts. */
 export function reviewOpening(at: (notation: string) => BookAt, notations: (string | undefined)[],
                               edges: string[]): GameOpening | null {
   const found = notations.map((n): BookAt => (n ? at(n) : { state: "out" }));

@@ -10154,16 +10154,16 @@ result. Design 33's departure "A record after the review's `#`" is gone.
 
 ### The komi's limit on links and files, the Notation row, and a check of the copied caps (2026-11-08)
 
-Design 24, item 15 has the decision. The limit (5,052 points either way for Enclosure, 90,980 for Blueprints) came
-before only where a record is read.
+Design 24, item 15 has the decision. Before, only the record's reader checked the limit (5,052 points either way for
+Enclosure, 90,980 for Blueprints).
 
 - **A board's link and an analysis file:** `readBoardLink` (`packages/analysis/src/boardLink.ts`) and
-  `readAnalysisFile` (`files.ts`) take the game's limit, and each site passes its record's `MAX_RECORD_KOMI`. The
-  words are the record's, from one helper (`komiLimitProblem` in `packages/record/src/record.ts`): "the Komi tag
-  must be from -5,052 to 5,052 points: 6000" for a link, "the analysis file's komi must be …" for a file, whose komi
-  is a field and not a tag. A site reads the file before `keepAnalyses`, so a refused file puts no result in the
-  store. Before, a link at komi 6,000 opened on Hedge School and failed at the engine. Cyanotype passes its limit too,
-  before `refuseKomi`, which still refuses any komi there until abscls-8tl1.50.
+  `readAnalysisFile` (`files.ts`) require the game's limit, and each site passes its record's `MAX_RECORD_KOMI`. One
+  helper gives the whole message (`komiLimitProblem` in `packages/record/src/record.ts`). A link gives the record's
+  words: "the Komi tag must be from -5,052 to 5,052 points: 6000". A file gives "the analysis file's komi must be
+  …", because its komi is a field and not a tag. A site reads the file before `keepAnalyses`, so a refused file puts
+  no result in the store. Before, a link at komi 6,000 opened on Hedge School and failed at the engine. Cyanotype
+  passes its limit too, before `refuseKomi`, which still refuses any komi there until abscls-8tl1.50.
 - **The Notation pages:** each Komi row says that the engine takes a komi from -5,052 to 5,052 points (Cyanotype:
   -90,980 to 90,980), so the site does not read a record beyond that. The numbers come from `MAX_RECORD_KOMI`.
 - **One check that a game takes no book:** the review's view asks for the game's opening only where
@@ -10172,8 +10172,9 @@ before only where a record is read.
 - **The copied caps:** the practice modules pass GTP's `komi` to KataGo's handler, which refuses a komi past
   `Rules::MAX_USER_KOMI` with "unacceptable komi". So the engine step (`checkKomiCap` in
   `packages/engine/src/practice-check.ts`) sends each practice module `komi` at the site's limit either way, and
-  half a point past it. It stops when the module refuses the first or takes the second. The step reads the limit
-  from the site's `src/lib/game/record.ts`. No request to the engine repository is needed.
+  half a point past it. It stops when the module refuses the limit, or does not refuse the komi past it with
+  "unacceptable komi". The step reads the limit from the site's `src/lib/game/record.ts`. The engine repository
+  needs no request for it.
 - **Checked:** both engine steps passed with the locked releases: engine-d6786eba's two practice modules at 5,052 and
   engine-91ab0b7d's two at 90,980. Against Hedge School's one-thread module, the check failed at a limit of 5,051 (the
   module took 5,051.5) and at 5,053 (the module refused it), and `komi 6000` gave "? unacceptable komi". A browser

@@ -45,7 +45,7 @@
   export interface ReviewGame<G extends GameTypes> {
     error: string;
     readonly komi: number; // the game's komi, Red's starting score (Hedge School's design 24): 0 for most games
-    readonly takesBook: boolean; // the analysis takes the opening book: not on the board, nor at a komi (design 24)
+    readonly takesBook: boolean; // the analysis takes the opening book: not on the board, nor at a komi (Hedge School's design 24)
     branches: Record<string, BranchNode<G>>; // the variations' positions, by path key (tree.ts), in the order added
     positionAt(path: string[]): G["position"] | undefined; // a position of the tree: the game's, or a variation's
     focusing: string | null; // the path key of the position searched for the player, while it runs
@@ -429,11 +429,10 @@
     return [...gamePositions.slice(0, start.length + 1), ...keys.map(k => branches[k]?.position)]
       .map(p => (p ? view.book?.notation(p) : undefined));
   });
-  // The game's komi (Hedge School's design 24): the book's values are the engine's at komi 0
-  const komi = $derived(game?.komi ?? 0);
-  // The site's book (the game's `book`), on this page: none where the site has none
+  // The site's book (the game's `book`), on this page: none where the site has none. It takes the game's komi: at a
+  // komi, the Book tab says that the book's values are the engine's at komi 0 (Hedge School's design 24).
   const book = untrack(() => view.book?.place(board ? "board" : "review", () => pathNotations, () => unit,
-                                              { path: () => path, used, komi: () => komi })) ?? null;
+                                              { path: () => path, used, komi: () => game?.komi ?? 0 })) ?? null;
   /** The book's place on this page, which the view made from the game's `book.place`: Openings reads its own. */
   export function bookPlace() { return book; }
 

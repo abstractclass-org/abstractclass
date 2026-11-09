@@ -104,11 +104,12 @@ test("the Komi tag: Red's starting score, 0 without it, and an error where it is
 
 test("a komi's limit in the site's numbers, and why a komi passes it", () => {
   assert.equal(komiRange(90_980), "from -90,980 to 90,980 points");
-  assert.equal(komiLimitProblem(5052, 5052), null);
-  assert.equal(komiLimitProblem(-5052, 5052), null);
-  assert.equal(komiLimitProblem(5052.5, 5052), "the Komi tag must be from -5,052 to 5,052 points");
-  assert.equal(komiLimitProblem(-6000, 5052, "the file's komi"), "the file's komi must be from -5,052 to 5,052 points");
-  assert.equal(komiLimitProblem(99_999, undefined), null); // no limit: what a tag can give
+  assert.equal(komiLimitProblem(5052, 5052, "5052"), null);
+  assert.equal(komiLimitProblem(-5052, 5052, "-5052"), null);
+  // The komi as its source writes it
+  assert.equal(komiLimitProblem(5052.5, 5052, "+5052.5"), "the Komi tag must be from -5,052 to 5,052 points: +5052.5");
+  assert.equal(komiLimitProblem(-6000, 5052, -6000, "the file's komi"),
+    "the file's komi must be from -5,052 to 5,052 points: -6000");
 });
 
 test("a game's limit on the komi: a Komi tag beyond it is an error that names the limit, thousands separated", () => {

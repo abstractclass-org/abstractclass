@@ -68,14 +68,17 @@ test("a broken link says so", () => {
   assert.throws(() => readBoardLink("!!", null), /broken/);
 });
 
+/** Reads the link to BOARD at `komi`. */
+const readAtKomi = (komi: number) => {
+  const url = new URL(boardLink("https://example.com", { ...BOARD, komi }, 0));
+  return readBoardLink(new URLSearchParams(url.hash.slice(1)).get("packed")!, null);
+};
+
 test("a link whose board has a komi says that the board cannot open it (Hedge School's design 24)", () => {
   // The board's analysis searches at komi 0 (design 33, "The komi"): it cannot search a link's board at a komi.
-  const url = new URL(boardLink("https://example.com", { ...BOARD, komi: -300 }, 0));
-  assert.throws(() => readBoardLink(new URLSearchParams(url.hash.slice(1)).get("packed")!, null), /komi/);
+  assert.throws(() => readAtKomi(-300), /komi/);
 });
 
 test("a link beyond the komi that a record can give says so first, in the record's words", () => {
-  const url = new URL(boardLink("https://example.com", { ...BOARD, komi: 90_980.5 }, 0));
-  assert.throws(() => readBoardLink(new URLSearchParams(url.hash.slice(1)).get("packed")!, null),
-    (e: Error) => e.message === "the Komi tag must be from -90,980 to 90,980 points: 90980.5");
+  assert.throws(() => readAtKomi(90_980.5), (e: Error) => e.message === "the Komi tag must be from -90,980 to 90,980 points: 90980.5");
 });

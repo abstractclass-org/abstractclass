@@ -25,6 +25,8 @@ test("a komi's start does not belong to a game at komi 0", () => {
 });
 
 const FORMAT = "test-analysis";
+/** A komi limit that the tests do not reach. */
+const NO_LIMIT = Infinity;
 const file = (board: object) => JSON.stringify({ format: FORMAT, version: ANALYSIS_FILE_VERSION, exported: "", site: "x", board, analyses: [] });
 
 test("an analysis file keeps its board's komi, and its results at that komi", async () => {
@@ -35,7 +37,7 @@ test("an analysis file keeps its board's komi, and its results at that komi", as
   const values = (f: AnalysisFile) => f.analyses.map(a => (a[1] as { value: number }).value).sort();
   const out = await exportAnalysis(FORMAT, board, "x", null);
   assert.deepEqual(values(out), [3, 4, 5]);
-  const back = readAnalysisFile(JSON.stringify(out), "Test", FORMAT);
+  const back = readAnalysisFile(JSON.stringify(out), "Test", FORMAT, NO_LIMIT);
   assert.equal(back.board.komi, -300);
   // A board at komi 0 takes its own results, and none at the komi.
   assert.deepEqual(values(await exportAnalysis(FORMAT, { ...board, komi: undefined }, "x", null)), [1, 2]);
@@ -43,9 +45,9 @@ test("an analysis file keeps its board's komi, and its results at that komi", as
 
 test("an analysis file whose komi is not one says so", () => {
   const board = { version: 2, main: [], nodes: [] };
-  assert.equal(readAnalysisFile(file({ ...board, komi: 7.5 }), "Test", FORMAT).board.komi, 7.5);
+  assert.equal(readAnalysisFile(file({ ...board, komi: 7.5 }), "Test", FORMAT, NO_LIMIT).board.komi, 7.5);
   for (const komi of [2.25, "300", null, 1e6])
-    assert.throws(() => readAnalysisFile(file({ ...board, komi }), "Test", FORMAT), /cannot read the analysis file's lines/, String(komi));
+    assert.throws(() => readAnalysisFile(file({ ...board, komi }), "Test", FORMAT, NO_LIMIT), /cannot read the analysis file's lines/, String(komi));
 });
 
 test("an analysis file whose komi is beyond the game's limit says so (Hedge School's design 24)", () => {
@@ -53,5 +55,4 @@ test("an analysis file whose komi is beyond the game's limit says so (Hedge Scho
   assert.equal(readAnalysisFile(file({ ...board, komi: -5000 }), "Test", FORMAT, 5000).board.komi, -5000);
   assert.throws(() => readAnalysisFile(file({ ...board, komi: 5000.5 }), "Test", FORMAT, 5000),
     (e: Error) => e.message === "the analysis file's komi must be from -5,000 to 5,000 points: 5000.5");
-  assert.equal(readAnalysisFile(file({ ...board, komi: 6000 }), "Test", FORMAT).board.komi, 6000); // no limit
 });
