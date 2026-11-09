@@ -24,6 +24,10 @@
      green. Their ramp goes from --wall-low (a tenth) to --wall-high (certain). */
   --wall-high: #6b2a00; /* 9.9:1 against the board */
   --wall-low: #c39a3f; /* 2.2:1: the faintest marks */
+  /* The ramp of three hues of the look's form D (weakWalls.ts, `WALL_FORMS`): yellow, orange, brown */
+  --wall-d-low: #c4a11e; /* 2.1:1 */
+  --wall-d-mid: #a96000; /* 4.0:1 */
+  --wall-d-high: #622b0d; /* 9.4:1 */
   /* The position symbols' shades (the book's table, design 32, item 3): the stronger the position, the farther its
      symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in OKLCH,
      with the side's hue, from --text (its lightness and chroma) to the side's far shade, at 0.45, 0.72 and 1 of the way
@@ -47,6 +51,9 @@
   --area: #d27fbb;
   --wall-high: #ffc94d; /* 8.3:1 against the board */
   --wall-low: #8f7748; /* 2.1:1 */
+  --wall-d-low: #9a6649; /* 2.5:1: brown */
+  --wall-d-mid: #e49324; /* 4.9:1: orange */
+  --wall-d-high: #fce260; /* 9.3:1: yellow */
   --blue-slightly-better: #9cb6e3;
   --blue-better: #7299df;
   --blue-winning: #487ad9;

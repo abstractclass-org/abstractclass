@@ -416,6 +416,12 @@ chance that one of them is cut. So the board marks the points, and names no chan
 
 ### Still open
 
+- **The rings' form:** on the ramp, 70% and 85% are hard to tell apart. Four other forms show only behind a switch
+  for the look, `?walls=B` to `?walls=E` in the address (`WALL_FORMS` and `lookForm` in
+  `src/lib/review/weakWalls.ts`), kept for the tab's visit: four classes of the ramp's hue, the same with wider rings
+  in the higher classes, a ramp of three hues (yellow, orange, brown), and its classes. The classes start at 10, 30, 50
+  and 75%. Each of 30, 50 and 75 lies in a gap between the chances that the two positions below show.
+  `scripts/measure/wall-forms.mjs` draws each form at those positions and gives the colour distances and contrasts.
 - **The walls and the area map:** a setting of its own beside the map, as here, or a style of the map's switch.
 - **A line's walls:** whether the walls follow a line as it is drawn, as the area map does (the decision's item 5).
 - **Stored or not:** whether the walls are kept with the maps (the decision's item 6), for a review file and a
@@ -462,7 +468,8 @@ chance that one of them is cut. So the board marks the points, and names no chan
   `candidate-maps.mjs` (a candidate's map from a short search), `candidate-map-delay.mjs` (its delay in the browser),
   `line-map-lag.mjs` (the maps' lag behind an animated line), `difference-at-best.mjs` (after vs before at the best
   moves), `ownership-maps.mjs` (the change style's share of the board on real games), `map-pass.mjs` (the map stage's
-  time) and `map-wait-check.mjs` (a browser check that the note's states end).
+  time), `map-wait-check.mjs` (a browser check that the note's states end) and `wall-forms.mjs` (the weak walls'
+  ring forms for a look, with their images and numbers).
 
 ## Log entries
 

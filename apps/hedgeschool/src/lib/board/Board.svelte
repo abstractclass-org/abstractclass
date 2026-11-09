@@ -29,7 +29,7 @@
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
   import { signInk, type AreaMark, type SignKind } from "@abstractclass/review/ownership.ts";
   import { brushFor, drawnNote, samePoint, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
-  import { wallMix, type WallMark } from "#lib/review/weakWalls.ts";
+  import { lookForm, wallInk, type WallMark } from "#lib/review/weakWalls.ts";
 
   interface Props {
     position: Position;
@@ -77,6 +77,8 @@
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
+  // The rings' form: A, the page's, unless the look's switch asks for another (weakWalls.ts, `lookForm`)
+  const wallForm = lookForm();
   const uid = $props.id();
   const shadowId = `${uid}-badge-shadow`; // one board's filter: a page can show several boards
   // a map mark's pattern: the change style's by side, a sign by its kind alone
@@ -380,8 +382,9 @@
   {#if walls}
     <g class="walls" aria-hidden="true">
       {#each walls as w (w.y * N + w.x)}
-        <circle cx={w.x} cy={sy(w.y)} r="0.27" class="wall-halo" />
-        <circle cx={w.x} cy={sy(w.y)} r="0.27" class="wall-ring" style:stroke="color-mix(in oklab, var(--wall-high) {wallMix(w.chance)}%, var(--wall-low))" />
+        {@const ink = wallInk(w.chance, wallForm)}
+        <circle cx={w.x} cy={sy(w.y)} r="0.27" class="wall-halo" style:stroke-width={ink.width === null ? undefined : ink.width + 0.08} />
+        <circle cx={w.x} cy={sy(w.y)} r="0.27" class="wall-ring" style:stroke={ink.stroke} style:stroke-width={ink.width ?? undefined} />
       {/each}
     </g>
   {/if}

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
-import { WALL_MIN, chanceText, wallMarks, wallMix, wallReading } from "./weakWalls.ts";
+import { WALL_CLASSES, WALL_MIN, chanceText, lookForm, wallClass, wallInk, wallMarks, wallMix, wallReading } from "./weakWalls.ts";
 
 const N = 19;
 /** The engine's field with these chances, by player and point, and null elsewhere. */
@@ -53,6 +53,41 @@ test("a ring's colour: the ramp goes from its faint end at the smallest value ma
   assert.equal(wallMix(1), 100);
   assert.equal(wallMix(0.55), 50);
   assert.equal(wallMix(0), 0); // under the smallest value, as at it
+});
+
+test("the page's form A draws the ramp as before, at the board's width", () => {
+  assert.deepEqual(wallInk(0.55, "A"), { stroke: "color-mix(in oklab, var(--wall-high) 50%, var(--wall-low))", width: null });
+});
+
+test("the look's classes: each chance in one class, from the smallest marked up", () => {
+  for (const [i, end] of WALL_CLASSES.entries()) {
+    assert.equal(wallClass(end), i);
+    assert.equal(wallClass(end - 0.001), i - 1);
+  }
+  assert.equal(wallClass(1), WALL_CLASSES.length - 1);
+});
+
+test("the look's forms B, C and E: one colour per class, evenly spaced on the ramp; C widens with the class", () => {
+  const last = WALL_CLASSES.length - 1, mid = WALL_CLASSES[1];
+  assert.equal(wallInk(WALL_MIN, "B").stroke, wallInk(mid - 0.001, "B").stroke); // one colour in a class
+  assert.match(wallInk(WALL_MIN, "B").stroke, / 0%,/);
+  assert.match(wallInk(1, "B").stroke, / 100%,/);
+  assert.match(wallInk(mid, "B").stroke, new RegExp(` ${Math.round(100 / last)}%,`));
+  assert.equal(wallInk(mid, "B").width, null);
+  const widths = WALL_CLASSES.map(end => wallInk(end, "C").width!);
+  assert.deepEqual([...widths].sort((a, b) => a - b), widths);
+  assert.equal(new Set(widths).size, WALL_CLASSES.length);
+  assert.match(wallInk(1, "E").stroke, /var\(--wall-d-high\) 100%, var\(--wall-d-mid\)/);
+});
+
+test("the look's form D: a ramp of three hues, through the middle one at its half", () => {
+  assert.match(wallInk(WALL_MIN, "D").stroke, /var\(--wall-d-mid\) 0%, var\(--wall-d-low\)/);
+  assert.match(wallInk(0.55, "D").stroke, /var\(--wall-d-mid\) 100%, var\(--wall-d-low\)/);
+  assert.match(wallInk(1, "D").stroke, /var\(--wall-d-high\) 100%, var\(--wall-d-mid\)/);
+});
+
+test("the look's switch: form A where no address asks for another", () => {
+  assert.equal(lookForm(), "A"); // Node has no location
 });
 
 test("a point's reading: whose wall, and the chance that an edge there is cut, never an edge's chance", () => {
