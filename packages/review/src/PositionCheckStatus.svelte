@@ -4,11 +4,13 @@
   // check (`describe`'s `check`). When no game reaches it, the engine's reasons, each in the engine's words, and the
   // line that says where the board marks the places that they name (`places`: Enclosure's "edges", Blueprints'
   // "hexes"). `refused` is the engine's refusal of the position, as the page shows it. `reading`: the engine has not
-  // answered for the latest position yet. `reachable` replaces the line for a position that a game reaches.
+  // answered for the latest position yet. `children` follow the line for a position that a game reaches (Cyanotype's
+  // line for a game that is over).
   import type { Snippet } from "svelte";
   import type { PositionCheck } from "@abstractclass/engine/protocol.ts";
-  let { refused, check, places, reading = false, reachable }:
-    { refused: string; check: PositionCheck | null; places: string; reading?: boolean; reachable?: Snippet } = $props();
+  let { refused, check, places, reading = false, children }:
+    { refused: string; check: PositionCheck | null; places: "edges" | "hexes"; reading?: boolean; children?: Snippet } =
+    $props();
 </script>
 
 <div role="status">
@@ -17,7 +19,8 @@
   {:else if refused}
     <p class="text-sm text-blunder">The engine cannot read this position: {refused}</p>
   {:else if check?.possible}
-    {#if reachable}{@render reachable()}{:else}<p class="text-sm">A game can reach this position.</p>{/if}
+    <p class="text-sm">A game can reach this position.</p>
+    {@render children?.()}
   {:else if check}
     <p class="text-sm">No game reaches this position:</p>
     <ul class="mt-1 pl-5 list-disc text-sm text-blunder">

@@ -360,8 +360,8 @@ edit in the same commit), so their changes still apply.
   whose engine speaks another names its protocol in its `engine.lock.json`, and the manifest carries it: Cyanotype's
   0.8.0, with the search of the root's views and the position check (design 33, "The engine's files"). The fields of
   `describe` are each game's own: Enclosure's are in Hedge School's `src/lib/engine/position.ts`. The position check
-  is both games' (`PositionCheck`, and its sentence `checkProblem`), and each game's reason names its own places:
-  Enclosure's edges, Blueprints' hexes.
+  is both games' (`PositionCheck`, and `checkProblem`, which gives a site's lead and then each reason as a sentence),
+  and each game's reason names its own places: Enclosure's edges, Blueprints' hexes.
 
 ## Where it is
 

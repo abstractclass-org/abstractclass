@@ -130,6 +130,9 @@ engine does by itself.
    - **The Import takes a position and moves apart,** as Lichess's board takes a FEN and a PGN: a position field
      (empty for the standard start) and the moves from it. With both, the record's own `Position` tag must be the same
      or absent.
+   - **A start that no game reaches does not open** (protocol 0.5's check, as the board editor's): the Import and the
+     board's notice say "No game can reach this position.", then each of the engine's reasons as a sentence of its
+     own (`checkProblem` in `packages/engine/src/protocol.ts`, with Hedge School's words in `src/lib/game/check.ts`).
 10. **The board editor** (`/editor`, Lichess's board editor):
     - **Its entries:** the board's New menu and the Import's link, which start it from the position on screen, as
       Lichess's editor starts from its Analysis board, and a card on the home page. Its address is `/editor#position=…`.

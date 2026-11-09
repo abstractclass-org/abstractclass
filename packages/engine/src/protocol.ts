@@ -67,11 +67,13 @@ export interface EngineTag { protocol: string; build: string; search: string; mo
 export interface CheckReason { code: string; text: string }
 /** describe's `check` of its `position`: whether a game can reach it, and the reasons when none can. */
 export interface PositionCheck<R extends CheckReason = CheckReason> { possible: boolean; reasons: R[] }
-/** Why a position could not occur in a game, in the engine's words, or null when it could (or the engine gave no
- *  check). */
-export function checkProblem(check: PositionCheck | null | undefined): string | null {
+/** Why no game can reach a position, for a notice: `lead`, the site's words that say so, then each reason in the
+ *  engine's words, each a sentence of its own. Each site gives the lead that fits the words before it: a notice that
+ *  starts "cannot open this position:" goes on with "no game can reach it", and a sentence alone says "No game can reach
+ *  this position". Null when a game can reach the position, or when the engine gave no check. */
+export function checkProblem(check: PositionCheck | null | undefined, lead: string): string | null {
   if (!check || check.possible) return null;
-  return `This position cannot occur in a game: ${check.reasons.map(r => r.text.replace(/\.$/, "")).join("; ")}.`;
+  return [lead, ...check.reasons.map(r => r.text)].map(s => s.replace(/\.?$/, ".")).join(" ");
 }
 
 export interface ErrorReply { id: string; error: string; field?: string; reasons?: CheckReason[] }

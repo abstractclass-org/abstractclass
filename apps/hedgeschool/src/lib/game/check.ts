@@ -44,8 +44,9 @@ export async function checkMoves(record: GameRecord): Promise<Checked> {
   return { problem: null, cuts };
 }
 
-/** Why a position could not occur in a game, in the engine's words (protocol 0.5's check), or null when it could. */
-const positionProblem = (d: DescribeReply): string | null => checkProblem(d.check);
+/** Why no game can reach a position, with the engine's reasons (protocol 0.5's check), or null when a game can. Its
+ *  first sentence stands alone, as the Import shows it alone. */
+const positionProblem = (d: DescribeReply): string | null => checkProblem(d.check, "No game can reach this position");
 
 /** Whether a set-up position could occur in a game (protocol 0.5's check, design 21): what is wrong, or null. A
  *  position whose form the engine refuses gets that refusal. Null when the site has no engine. */

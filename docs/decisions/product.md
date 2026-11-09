@@ -10040,19 +10040,19 @@ Hedge School"), design 29 and design 21 changed (abscls-8tl1.59). Cyanotype take
 entry of 2026-11-09). Its board editor, its Import and its starts from a link or a file now check that a game can reach
 a set-up position, as Hedge School's do (its design 21, item 10, with Enclosure's protocol 0.5).
 
-- **The lock** (`apps/cyanotype/engine.lock.json`): the four files that the release changed come from
-  `engine-887be290`: the module and the GPU module (build `887be290`, protocol 0.8.0, search `91ab0b7d`) and the two
-  practice bots (interface 0.1.3). The other nine files have the same SHA-256 in the manifests of `engine-91ab0b7d` and
-  `engine-887be290` (the two libraries, the evaluator and its two libraries, the notices, the terms, the network and
-  its graph), so their entries and their paths stay, and a browser's cache keeps them. No script writes the lock: its
-  entries were edited, as at each earlier move. Each of the 13 entries has its SHA-256 and its size in the manifest of
-  `engine-887be290`, and the lock's `sizes` are the manifest's `engine.sizes`. The release's `settings.cfg` stays out,
-  as before. `npm run engine -- --deploy` fetched the 13 files with the lock's SHA-256, checked the sizes and
-  `maxThreads` against the manifest of `engine-91ab0b7d` (the evaluator's release), and the module answered protocol
-  0.8.0 and the search `91ab0b7d`. Both bots give `minPlayoutsPerThread` 8.
-- **Protocol 0.8.0** breaks a 0.7 client: an analysis of a position that no game reaches is refused, with the error's
-  field `position` and the reasons. `ROOT_VIEWS_PROTOCOL` is 0.8.0, so the engine package refuses a 0.7 module for
-  Cyanotype, as the lock's move needs. `describe` gives `check` for its `position`. describe_game gives none, so the
+- **The lock** (`apps/cyanotype/engine.lock.json`): the four files that the release changed come from `engine-887be290`:
+  the module and the GPU module (build `887be290`, protocol 0.8.0, search `91ab0b7d`) and the two practice bots
+  (interface 0.1.3). The other nine files have the same SHA-256 in the manifests of `engine-91ab0b7d` and
+  `engine-887be290` (the two libraries, the evaluator and its two libraries, the notices, the terms, the network and its
+  graph), so their entries and their paths stay, and a browser's cache keeps them. No script writes the lock: this
+  change edited its entries by hand, as each earlier move did. Each of the 13 entries has its SHA-256 and its size in
+  the manifest of `engine-887be290`, and the lock's `sizes` are the manifest's `engine.sizes`. The release's
+  `settings.cfg` stays out, as before. `npm run engine -- --deploy` fetched the 13 files with the lock's SHA-256,
+  checked the sizes and `maxThreads` against the manifest of `engine-91ab0b7d` (the evaluator's release), and the module
+  answered protocol 0.8.0 and the search `91ab0b7d`. Both bots give `minPlayoutsPerThread` 8.
+- **Protocol 0.8.0** breaks a 0.7 client: the engine refuses an analysis of a position that no game reaches, with the
+  error's field `position` and the reasons. `ROOT_VIEWS_PROTOCOL` is 0.8.0, so the engine package refuses a 0.7 module
+  for Cyanotype, as the lock's move needs. `describe` gives `check` for its `position`. describe_game gives none, so the
   site asks describe.
 - **The stored results stay:** their keys name the search and the network's SHA-256 (`packages/analysis/src/cache.ts`,
   `analysisKey`), not the release. The pool takes the search that the module reports, and the review's first reads
@@ -10061,11 +10061,29 @@ a set-up position, as Hedge School's do (its design 21, item 10, with Enclosure'
   that the page asks for no search (`tests/cyanotype-review.spec.ts`).
 - **The board's lab data** (`src/lib/board/fixtures.json`) made again: only its header changed. Every position, legal
   move and footprint is the same.
-- **The shared parts** (design 29, item 11): the position check's type (`PositionCheck`) and its sentence for a
-  notice (`checkProblem`, "This position cannot occur in a game: …") are in `packages/engine/src/protocol.ts`, and the
-  editor's status (`packages/review/src/PositionCheckStatus.svelte`) in the review package. Hedge School's editor and
-  its Analysis board use them, with the same words and the same markup as before. Each game's reason keeps its own
+- **The shared parts** (design 29, item 11): the position check's type (`PositionCheck`) and its words for a notice
+  (`checkProblem`) are in `packages/engine/src/protocol.ts`, and the editor's status
+  (`packages/review/src/PositionCheckStatus.svelte`) in the review package. Hedge School's editor and its Analysis
+  board use them. Its editor keeps the same words and the same markup as before. Each game's reason keeps its own
   places: Enclosure's `edges` (Hedge School's `EdgeReason`), Blueprints' `hexes` (Cyanotype's `HexReason`).
+- **The notices' words** (the review): the notice read "The Analysis board cannot open this position: This position
+  cannot occur in a game: …", which says the same thing twice, puts a capital after a colon and joins the reasons
+  with semicolons. `checkProblem` now gives the site's lead, then each reason as a sentence of its own, in the
+  engine's words. Cyanotype's lead follows the words that say what cannot open: "The Analysis board cannot open this
+  position: no game can reach it. Blue's cell on 0,-7 touches Red's cell on 0,-8, …", "cannot load this link: no game
+  can reach its start.", and "Cyanotype cannot open these moves: no game can reach their start.". It uses "reach", as
+  the editor does. Hedge School's Import shows the problem alone, so its lead is a sentence: "No game can reach this
+  position.", then the reasons, with no semicolons. Its Analysis board's notice still puts that sentence after a
+  colon ("cannot analyze this position: No game can reach this position."). Hedge School's
+  `src/routes/analysis/+page.svelte` builds that notice.
+- **A kept board whose start no game reaches** (the review): a board kept in the browser before the check can have
+  such a start, and the engine now refuses every analysis of it. Cyanotype's Analysis board checks the kept board's
+  start too. When the check fails, a new board opens with the notice "The Analysis board cannot open your own
+  analysis: no game can reach its start. … A new board is here instead.", as for a kept board with a komi. A
+  browser test keeps such a board and opens the page (`tests/cyanotype-editor.spec.ts`).
+- **The editor's marked hexes** (the review): each hex once, as two reasons can name one hex, and the board's
+  marks are keyed by hex. A reply of describe without its check is an error ("the engine did not check if a game
+  can reach the position"), not a position that passes.
 - **Cyanotype's editor** says "A game can reach this position.", or "No game reaches this position:" with each reason
   in the engine's words, and "The hexes each reason names glow on the board." The board draws each named hex with a
   soft fill and ring in the accent colour, over the cells (`Board.svelte`, `targets`), as Hedge School's board makes
@@ -10077,11 +10095,11 @@ a set-up position, as Hedge School's do (its design 21, item 10, with Enclosure'
   reaches, with the engine's reasons, and the board kept here stays. The Import's words for a refused position are
   now "Cyanotype cannot open this position: …", as for moves, since "cannot read" is wrong for a position that the
   engine reads.
-- **The reasons' words,** from the engine on the CPU in Node (`recordCheck.engine.test.ts`): a cell more on the
+- **The reasons' words,** from the engine on the CPU in Node (`recordCheck.engine.test.ts`): one more cell on the
   standard start with no move played gives `start` and its hex. A Red cell beside a Blue cell that is not a wall, in a
   middle game, gives `touch` and both hexes: "Blue's cell on 0,-7 touches Red's cell on 0,-8, and neither is a wall: a
   placement captures each cell of the opponent that touches it, except walls." A Red cell beside two such Blue cells
-  gets one reason for both pairs ("2 pairs of Blue's and Red's cells touch, …"), with its three hexes. The cell more
+  gets one reason for both pairs ("2 pairs of Blue's and Red's cells touch, …"), with its three hexes. The same cell
   on the start after 3 moves passes.
 - **A game's position goes to the engine as its moves,** and a set-up start keeps its own search: design 33's note
   stays, with request 28's measurement.
@@ -10096,3 +10114,7 @@ a set-up position, as Hedge School's do (its design 21, item 10, with Enclosure'
   1 failed and 5 skipped. The 5 are the analytics cases, which need `VITE_GA_ID`. The failure was the layout case of
   Cyanotype's editor, which waited for the editor's earlier words. Its pattern now takes the new ones, and the case
   passed alone.
+- **Checked again after the review:** `npm run check:all` passed all 15 steps, with no test skipped (the engine's tests
+  in Node on the CPU). The whole layout test on this branch's two previews (Chromium): 205 passed and 5 skipped, of
+  210. The 5 are the analytics cases, which need `VITE_GA_ID`. The 13 cases of `tests/cyanotype-editor.spec.ts`
+  passed, the new case of the kept board too.

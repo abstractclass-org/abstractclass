@@ -29,10 +29,10 @@ test("a module's version is checked against the protocol that the manifest names
   assert.throws(() => checkVersion(version("0.7.1"), ROOT_VIEWS_PROTOCOL), /this site speaks 0.8.0/);
 });
 
-test("a position that no game reaches: the reasons in the engine's words, in one sentence", () => {
-  assert.equal(checkProblem(null), null);
-  assert.equal(checkProblem({ possible: true, reasons: [] }), null);
+test("a position that no game reaches: the site's lead, then each reason in the engine's words, each a sentence", () => {
+  assert.equal(checkProblem(null, "no game can reach it"), null);
+  assert.equal(checkProblem({ possible: true, reasons: [] }, "no game can reach it"), null);
   const reasons = [{ code: "start", text: "No move has been played." }, { code: "touch", text: "Two cells touch" }];
-  assert.equal(checkProblem({ possible: false, reasons }),
-               "This position cannot occur in a game: No move has been played; Two cells touch.");
+  assert.equal(checkProblem({ possible: false, reasons }, "no game can reach it"),
+               "no game can reach it. No move has been played. Two cells touch.");
 });

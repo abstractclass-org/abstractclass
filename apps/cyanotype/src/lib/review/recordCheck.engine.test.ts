@@ -3,13 +3,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
-import { sitePosition, type DescribeReply, type GamePosition } from "../board/described.ts";
+import type { Timed } from "@abstractclass/engine/channel.ts";
+import type { DescribeGameReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
+import { sitePosition } from "../board/described.ts";
 import { hexKey, parseHex, shift, TOUCHING } from "../board/hex.ts";
-import { enginePosition, readPosition, STANDARD_START, writePosition } from "../game/position.ts";
+import { readPosition, STANDARD_START, writePosition } from "../game/position.ts";
 import { parseRecord, writeRecord } from "../game/record.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import { EngineError } from "@abstractclass/engine/client.ts";
-import { engineProblem, recordProblem, startChecked, startProblem, type Rules } from "./recordCheck.ts";
+import { engineProblem, recordProblem, rulesBy, startChecked, startProblem, type Rules } from "./recordCheck.ts";
 
 // A record's check by the engine's rules (recordCheck.ts), which the import page and the Analysis board make before
 // they open a record: on the review's test game (fixtures/stamp-duty.txt, Stamp Duty against itself), on that game
@@ -24,7 +26,6 @@ test("the engine's rules confirm a record, or say what is wrong with it", {
   skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",
 }, async () => {
   const rules = await nodeRules();
-  const describe = rules.describeGame;
   assert.equal(await recordProblem(rules, parseRecord(text)), null);
   // The first three turns, with an x on 2@1,-5, which captures nothing
   const marked = parseRecord("1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *");
@@ -36,7 +37,7 @@ test("the engine's rules confirm a record, or say what is wrong with it", {
   // The same game from a set-up start: its position after 40 moves, then the rest of its moves with their marks, as
   // the record numbers them from the start (a pasted position and moves on the Analysis board).
   const record = parseRecord(text), k = 40;
-  const at = (await describe(record.moves.slice(0, k)))[k];
+  const at = (await rules.describeGame(record.moves.slice(0, k)))[k];
   const start = writePosition(sitePosition(at));
   const withMarks = record.moves.map((m, i) => `${m}${record.marked[i] ? (record.marked[i]!.points ? `x+${record.marked[i]!.points}` : "x") : ""}`);
   const turns: { number: number; moves: number; second?: boolean }[] = [];
@@ -60,7 +61,11 @@ test("the engine's rules confirm a record, or say what is wrong with it", {
     .find(h => !p.cells[h] && near(h).filter(blue).length === 1)!;
   const touching = writePosition({ ...p, cells: { ...p.cells, [beside]: [1, "plain"] } });
   const unreached = await recordProblem(rules, parseRecord(`[Position "${touching}"]\n\n${withMarks[k]}`));
-  assert.match(unreached ?? "", new RegExp(`^This position cannot occur in a game: Blue's cell on \\S+ touches Red's cell on ${beside}`));
+  assert.match(unreached ?? "", new RegExp(`^no game can reach its start\\. Blue's cell on \\S+ touches Red's cell on ${beside}, `
+    + "and neither is a wall: a placement captures each cell of the opponent that touches it, except walls\\.$"));
+  // The Import's moves name their start
+  assert.match(await recordProblem(rules, parseRecord(`[Position "${touching}"]\n\n${withMarks[k]}`), "their start") ?? "",
+               /^no game can reach their start\. Blue's cell/);
 });
 
 test("a start alone: the engine's refusal, or whether a game can reach it, with the hexes that each reason names", {
@@ -74,7 +79,10 @@ test("a start alone: the engine's refusal, or whether a game can reach it, with 
   assert.equal(read.refused, null);
   assert.equal(read.check?.possible, false);
   assert.deepEqual(read.check?.reasons.map(r => [r.code, r.hexes]), [["start", ["0,9"]]]);
-  assert.equal(await startProblem(rules, added), `This position cannot occur in a game: ${read.check!.reasons[0].text.replace(/\.$/, "")}.`);
+  // The words that follow "cannot open this position:", and those that follow "cannot load this link:"
+  const why = "No move has been played, so the position is the standard start: its cells, both hands and the scores 0/0.";
+  assert.equal(await startProblem(rules, added), `no game can reach it. ${why}`);
+  assert.equal(await startProblem(rules, added, "its start"), `no game can reach its start. ${why}`);
   // The same cell after 3 moves: a game can reach it
   assert.equal(await startProblem(rules, writePosition({ ...readPosition(added), ply: 3 })), null);
   // A start that the engine cannot read: its refusal, and no check
@@ -85,19 +93,19 @@ test("a start alone: the engine's refusal, or whether a game can reach it, with 
   assert.match(cut.refused ?? "", /Blue's blueprints hold 20 cells, not 21/);
 });
 
-/** The site's rules on the engine in Node, as the rules worker answers: an error reply refuses (channel.ts). */
+/** The site's rules (rulesBy) on the engine in Node, which answers as the rules worker does: an error reply refuses
+ *  (channel.ts). */
 async function nodeRules(): Promise<Rules> {
   const { call } = await nodeEngine(app);
-  const send = (request: object) => {
+  const send = async <T>(request: object): Promise<Timed<T>> => {
     const reply = call(request);
     if (reply.error) throw new EngineError(reply);
-    return reply;
+    return { reply, ms: 0, memory: 0 };
   };
-  return {
-    describeGame: async (moves, start) =>
-      send({ id: "g", action: "describe_game", moves, ...(start ? { position: enginePosition(start) } : {}) }).positions as GamePosition[],
-    checkStart: async start => (send({ id: "d", action: "describe", position: enginePosition(start), moves: [] }) as DescribeReply).check!,
-  };
+  return rulesBy({
+    describe: <D>(q: PositionQuery) => send<D>({ id: "d", action: "describe", ...q }),
+    describeGame: <F>(q: PositionQuery, from = 0) => send<DescribeGameReply<F>>({ id: "g", action: "describe_game", ...q, from }),
+  });
 }
 
 test("an engine's refusal shows its words, with the players' names and no field's name", () => {

@@ -3,9 +3,11 @@
 // engine's position check, protocol 0.8.0), and Analyze opens the board from it. A position that no game reaches gets
 // the engine's reasons, with their hexes marked, and Analyze waits. A drag with Shift puts cells along it, or removes
 // them. The Import takes a position and the moves from it. A link and an analysis file with a set-up start open from
-// it, and a start that the rules refuse or that no game reaches leaves the board kept here, with a notice. Each way in refuses a komi, which the board does not take yet (design 33, "The komi"), and the review
-// refuses a game from a set-up start. The board's engine is off, so nothing
-// searches: the engine's rules check what comes in. The positions are Stamp Duty's own (the lab's games,
+// it, and a start that the rules refuse or that no game reaches leaves the board kept here, with a notice. A board
+// kept here whose start no game reaches gives way to a new board, with a notice. Each way in
+// refuses a komi, which the board does not take yet (design 33, "The komi"), and the review refuses a game from a
+// set-up start. The board's engine is off, so nothing searches: the engine's rules check what comes in. The positions
+// are Stamp Duty's own (the lab's games,
 // apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves there. Each test opens a
 // fresh browser context, so its store starts empty. The tests skip, with a message, when the preview has no engine
 // files. Run: npx playwright test tests/cyanotype-editor.spec.ts, with CYANOTYPE_BASE_URL.
@@ -14,8 +16,11 @@ import { readFileSync } from "node:fs";
 import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
 import { writePosition } from "../../cyanotype/src/lib/game/position.ts";
 import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
+import { hexKey, parseHex, shift, TOUCHING } from "../../cyanotype/src/lib/board/hex.ts";
 import { EDITOR_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, LITE, noReview } from "./cyanotype-review.ts";
+import { NAME, STORES } from "../../../packages/storage/src/db.ts";
+import { BOARD_ID } from "../../../packages/analysis/src/kept.ts";
 
 const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as
   { name: string; moves: string[]; position: SitePosition; legal: string[] }[];
@@ -27,10 +32,7 @@ const MOVE = middle.legal[0]; // a legal move there, from the engine
  *  cell beside two such Blue cells gets the engine's words for two pairs.) */
 const [UNREACHED, BLUE_HEX, RED_HEX] = (() => {
   const cells = middle.position.cells;
-  const beside = (hex: string) => {
-    const [q, r] = hex.split(",").map(Number);
-    return [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]].map(([dq, dr]) => `${q + dq},${r + dr}`);
-  };
+  const beside = (hex: string) => TOUCHING.map(d => hexKey(shift([parseHex(hex)], d)[0]));
   const blue = (hex: string) => cells[hex]?.[0] === 0 && cells[hex][1] !== "wall";
   for (const hex of Object.keys(cells).filter(blue)) {
     const free = beside(hex).find(h => !cells[h] && beside(h).filter(blue).length === 1);
@@ -42,7 +44,9 @@ const NO_GAME = "No game reaches this position:";
 /** The reason of UNREACHED, in the engine's words, as a pattern. */
 const TOUCH = "Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a wall: a placement captures each cell "
   + "of the opponent that touches it, except walls\\.";
-const WHY = `This position cannot occur in a game: ${TOUCH}`;
+/** The site's words before it, by what cannot open: a position alone, a link's or a file's start, or the moves' start. */
+const WHY = { it: `no game can reach it\\. ${TOUCH}`, its: `no game can reach its start\\. ${TOUCH}`,
+              their: `no game can reach their start\\. ${TOUCH}` };
 
 const at = (path: string) => new URL(path, CYANOTYPE).href;
 /** The board kept in this browser (the `branches` store, under `board`), or null. */
@@ -221,14 +225,15 @@ test("the Analysis board does not open a position that no game reaches: from the
   // The editor's address, as its Analyze opens the board
   await page.goto(at(`/analysis#${new URLSearchParams({ position: UNREACHED, via: "editor" })}`));
   await expect(page.getByRole("alert"))
-    .toHaveText(new RegExp(`^The Analysis board cannot open this position: ${WHY} Your own analysis is here instead\\.$`),
+    .toHaveText(new RegExp(`^The Analysis board cannot open this position: ${WHY.it} Your own analysis is here instead\\.$`),
                 { timeout: 120_000 });
   expect((await keptBoard(page))?.start).toBeUndefined();
   // A link with a move from that start
   await page.goto("about:blank"); // else the link changes only the address's hash, and the board does not read it
   await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [MOVE], nodes: [[MOVE, -1]], start: UNREACHED }, 1));
-  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^The Analysis board cannot load this link: ${WHY}`),
-                                                   { timeout: 120_000 });
+  await expect(page.getByRole("alert"))
+    .toHaveText(new RegExp(`^The Analysis board cannot load this link: ${WHY.its} Your own analysis is here instead\\.$`),
+                { timeout: 120_000 });
   // An analysis file with that start
   const file = { format: "cyanotype-analysis", version: 1, exported: "2026-11-09T00:00:00.000Z", site: "test",
                  board: { version: 2, main: [], nodes: [], start: UNREACHED }, analyses: [] };
@@ -236,20 +241,44 @@ test("the Analysis board does not open a position that no game reaches: from the
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("menuitem", { name: /Load an analysis file/ }).click();
   await (await chooser).setFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
-  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^The Analysis board cannot load this file: ${WHY}`),
-                                                   { timeout: 120_000 });
+  await expect(page.getByRole("alert"))
+    .toHaveText(new RegExp(`^The Analysis board cannot load this file: ${WHY.its} Your own analysis is here instead\\.$`),
+                { timeout: 120_000 });
   expect((await keptBoard(page))?.start).toBeUndefined();
   // The Import: the position alone, then with a move from it
   await newMenu(page, /Import a position or moves/);
   const dialog = page.getByRole("dialog", { name: "Import a position or moves" });
   await dialog.getByLabel("Position").fill(UNREACHED);
   await dialog.getByRole("button", { name: "Import" }).click();
-  await expect(dialog.getByRole("alert")).toHaveText(new RegExp(`^Cyanotype cannot open this position: ${WHY}$`),
+  await expect(dialog.getByRole("alert")).toHaveText(new RegExp(`^Cyanotype cannot open this position: ${WHY.it}$`),
                                                      { timeout: 120_000 });
   await dialog.getByLabel("Moves").fill(MOVE);
   await dialog.getByRole("button", { name: "Import" }).click();
-  await expect(dialog.getByRole("alert")).toHaveText(new RegExp(`^Cyanotype cannot open these moves: ${WHY}$`),
+  await expect(dialog.getByRole("alert")).toHaveText(new RegExp(`^Cyanotype cannot open these moves: ${WHY.their}$`),
                                                      { timeout: 120_000 });
+});
+
+test("the Analysis board does not open a kept board whose start no game reaches: a new board, with a notice", async ({ page }) => {
+  // A board kept before the position check, with one move from that start: a defence, as for a kept board with a komi
+  await page.goto(at("/about"));
+  await page.evaluate(([name, stores, store, id, kept]) => new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open(name);
+    open.onupgradeneeded = () => { for (const s of stores) open.result.createObjectStore(s); };
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const tx = open.result.transaction(store, "readwrite");
+      tx.objectStore(store).put(kept, id);
+      tx.oncomplete = () => { open.result.close(); resolve(); };
+      tx.onerror = tx.onabort = () => reject(tx.error);
+    };
+  }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID,
+       { version: 2, main: [MOVE], nodes: [[MOVE, 0]], start: UNREACHED }] as const);
+  await page.goto(at("/analysis"));
+  await expect(page.getByRole("alert"))
+    .toHaveText(new RegExp(`^The Analysis board cannot open your own analysis: ${WHY.its} A new board is here instead\\.$`),
+                { timeout: 120_000 });
+  await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible({ timeout: 120_000 }); // ready
+  await expect(page.locator(".movelist button[data-path]")).toHaveCount(0);
 });
 
 test("the Import: a position and the moves from it, then a position alone", async ({ page }) => {

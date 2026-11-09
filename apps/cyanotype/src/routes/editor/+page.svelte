@@ -9,8 +9,8 @@
   // The engine reads it at each change, as the Analysis board reads a start (startChecked), and says what is wrong with
   // it: the rules' checks, and whether a game can reach it (protocol 0.8.0's check), with the hexes that each reason
   // names marked on the board. Analyze opens the board from a position that a game can reach. Its way in:
-  // `#position=`, from the Analysis board's New menu and Import (the position on screen) or another page. The position leaves the address at once. The position being
-  // made is kept in this browser, so that a reload keeps it.
+  // `#position=`, from the Analysis board's New menu and Import (the position on screen) or another page. The position
+  // leaves the address at once. The position being made is kept in this browser, so that a reload keeps it.
   import { onDestroy, onMount } from "svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
@@ -20,13 +20,11 @@
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import PositionCheckStatus from "@abstractclass/review/PositionCheckStatus.svelte";
-  import type { PositionCheck } from "@abstractclass/engine/protocol.ts";
-  import type { HexReason } from "#lib/board/described.ts";
   import { hexKey, parseHex, type Hex } from "#lib/board/hex.ts";
   import { PLAYER_NAMES, type HandHex, type Kind, type SitePosition } from "#lib/board/position.ts";
   import { readPosition, STANDARD_START, writePosition } from "#lib/game/position.ts";
   import { hasCell, moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
-  import { rulesBy, startChecked } from "#lib/review/recordCheck.ts";
+  import { rulesBy, startChecked, type StartChecked } from "#lib/review/recordCheck.ts";
   import { EDITOR_KEY, SITE_NAME } from "#lib/site.ts";
 
   let made = $state.raw<SitePosition>(readPosition(STANDARD_START)); // the position as the player made it
@@ -35,9 +33,8 @@
   let kind = $state<Kind>("plain"); // the tool's kind
   let chosen = $state.raw<({ player: Player } & HandHex) | null>(null); // a hand's cell, chosen to move
   let hint = $state(""); // why the last click did nothing
-  let formError = $state(""); // the engine refused the position
-  let check = $state.raw<PositionCheck<HexReason> | null>(null); // whether a game can reach it
-  let checked = $state(false); // the engine has read the latest position
+  // The engine's answer on the latest position: its refusal, or whether a game can reach it. Null until it answers.
+  let read = $state.raw<StartChecked | null>(null);
   let field = $state(""); // the position field, as the player types it
   let fieldError = $state("");
   let engine = $state.raw<EngineWorker | null>(null);
@@ -45,9 +42,9 @@
 
   const notation = $derived(writePosition(made));
   const mover = $derived(moverOf(made.ply));
-  const analyzable = $derived(checked && !formError && !!check?.possible && mover.left > 0);
-  // The hexes that the reasons name, once the engine has read the latest position
-  const targets = $derived(checked ? (check?.reasons ?? []).flatMap(r => r.hexes.map(parseHex)) : []);
+  const analyzable = $derived(!!read?.check?.possible && mover.left > 0);
+  // The hexes that the reasons name, each once: two reasons can name one hex
+  const targets = $derived([...new Set(read?.check?.reasons.flatMap(r => r.hexes))].map(parseHex));
   const other = (p: Player): Player => (p ? 0 : 1);
 
   onMount(() => {
@@ -80,16 +77,12 @@
     field = n;
     fieldError = "";
     writeLocal(EDITOR_KEY, n);
-    checked = false;
+    read = null;
     if (engine) void askEngine(engine, n);
   });
   async function askEngine(e: EngineWorker, n: string) {
-    const mine = ++asked, read = await startChecked(rulesBy(e), n);
-    if (mine === asked) {
-      formError = read.refused ?? "";
-      check = read.check;
-      checked = true;
-    }
+    const mine = ++asked, answer = await startChecked(rulesBy(e), n);
+    if (mine === asked) read = answer;
   }
 
   /** A whole position: the board fits its view again, and no cell is chosen. */
@@ -121,7 +114,7 @@
       const p = right ? other(player) : player;
       stroke = { player: p, remove: hasCell(made, hex, p, kind), seen: new Set() };
       hint = "";
-      checked = false;
+      read = null;
     }
     if (stroke.seen.has(key)) return;
     stroke.seen.add(key);
@@ -270,12 +263,9 @@
         {#if fieldError}<p class="text-xs text-blunder" role="alert">{fieldError}</p>{/if}
       </div>
 
-      <PositionCheckStatus reading={!engine || !checked} refused={formError && formError.replace(/\.?$/, ".")} {check}
+      <PositionCheckStatus reading={!read} refused={read?.refused?.replace(/\.?$/, ".") ?? ""} check={read?.check ?? null}
                            places="hexes">
-        {#snippet reachable()}
-          <p class="text-sm">A game can reach this position.{#if !mover.left} The game is over at this position: all
-            {LAST_COUNT} moves are played.{/if}</p>
-        {/snippet}
+        {#if !mover.left}<p class="text-sm">The game is over at this position: all {LAST_COUNT} moves are played.</p>{/if}
       </PositionCheckStatus>
 
       <div class="flex flex-wrap items-center gap-2">

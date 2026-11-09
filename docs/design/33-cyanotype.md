@@ -205,22 +205,29 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       engine's `describe` says whether a game can reach its `position`, with the reasons when none can. Each reason
       has a code, words that a player reads, and the hexes that it names, in the board's coordinates. The check reads
       what the notation holds: the cells, both hands, the scores and the moves played. It refuses only what every
-      game makes certain: with no move played, the position is the standard start, the start's walls stay, no two
-      cells of the players that are not walls touch, a player's cells and walls are no more than its moves can put,
-      a hand holds the start's cells, and a player who has made no move has no points (the engine repository's
-      games/blueprints/README.md, "The position check"). Every position of the archive's games passes. An analysis of
-      a position that no game reaches is refused, and a finished one gets the game's end first. So the board editor,
-      the Import and a start from a link or a file take the check before they open the Analysis board, as Hedge
-      School's do (its design 21). A record from a set-up start takes it before its moves. describe_game gives no
-      check: the site asks describe for it (`src/lib/review/recordCheck.ts`, `startChecked`).
+      game makes certain (the engine repository's games/blueprints/README.md, "The position check"):
+      - With no move played, the position is the standard start.
+      - The start's walls stay on their hexes.
+      - No cell of Blue's that is not a wall touches a cell of Red's that is not a wall.
+      - A player's cells and walls are no more than its moves can put.
+      - Each hand holds the start's cells.
+      - A player who has made no move has no points.
+
+      Every position of the archive's games passes. The engine refuses an analysis of a position that no game
+      reaches, and gives a finished one the game's end first. So the board editor, the Import and a start from a
+      link or a file take the check before they open the Analysis board, as Hedge School's do (its design 21). A
+      record from a set-up start takes it before its moves. A board kept in the browser whose start fails the check
+      (one kept before the check) gives way to a new board, with a notice, as a kept board with a komi does.
+      describe_game gives no check: the site asks describe for it (`src/lib/review/recordCheck.ts`, `startChecked`).
     - Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
       back from its notation as the same position, with the same legal moves (`position.engine.test.ts`, at
       `engine-3ac5c2fc`, at `engine-91ab0b7d` and at `engine-887be290`).
     - **A position cut or changed:** the reader refuses a position with a field missing or a field it cannot read, and
       a mover field that the moves played do not give. A cut inside the moves played can still give another position
       that reads, when the shorter count gives the same mover (`r1 0/0 22` cut to `r1 0/0 2`), as a cut FEN can. The
-      notation has no checksum, as a link has none, and the engine's reading checks the hands and the frames, not the
-      history. Every cut of the lab's positions says what is wrong (`position.test.ts`).
+      notation has no checksum, as a link has none. The engine's reading checks the hands and the frames, and its
+      position check refuses only a position that no game reaches, not every change. Every cut of the lab's positions
+      says what is wrong (`position.test.ts`).
 11. **The early access, as Hedge School's** (design 11, "The header" and "One build switch"). The header shows "Early
     Access" beside the name, in the accent colour, at every width down to 360 pixels. It leads to the About page's
     section on the early access (`#early-access`). That section says first that everything can change (the pages and
@@ -390,7 +397,7 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
 2. **Protocol 0.8.** Blueprints' build speaks 0.8.0, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
    passes find no candidate gives its first pass's policy move. 0.8.0 brought the position check, and breaks a 0.7
-   client, as Enclosure's 0.5 broke a 0.4 client: an analysis of a position that no game reaches is refused. The
+   client, as Enclosure's 0.5 broke a 0.4 client: the engine refuses an analysis of a position that no game reaches. The
    lock's `protocol` names the protocol that Cyanotype's code is written for (0.8.0, `ROOT_VIEWS_PROTOCOL`), and the
    manifest carries it, so `packages/engine` refuses a module of another minor version for each site: 0.6.x for Hedge
    School, 0.8.x for Cyanotype. The types take request 24's fields: the query's `rootViews`, a candidate's
@@ -890,8 +897,11 @@ in "Set up a position".
    position.", or "No game reaches this position:" with each reason in the engine's words. The hexes that the reasons
    name glow on the board, as Hedge School's editor makes the reasons' edges glow. Analyze needs a position that the
    engine reads, that a game can reach, and that has moves left. The status and its words are Hedge School's
-   (`packages/review/src/PositionCheckStatus.svelte`), and the check's sentence for the Analysis board's notices too
-   (`checkProblem`, `packages/engine/src/protocol.ts`).
+   (`packages/review/src/PositionCheckStatus.svelte`). A notice of the Analysis board or the Import says what cannot
+   open, then why, in one sentence, then each reason in the engine's words: "The Analysis board cannot open this
+   position: no game can reach it.", and "its start" for a record, a link or a file, "their start" for the Import's
+   moves (`checkProblem`, `packages/engine/src/protocol.ts`, with Cyanotype's words in
+   `src/lib/review/recordCheck.ts`).
 7. **The position in the notation** is a field with a Copy button, as Hedge School's: a position pasted there replaces
    the one being made. The browser keeps the position being made (`cyanotype:editor:1`). The address
    `/editor#position=` brings one, and the position leaves the address at once.

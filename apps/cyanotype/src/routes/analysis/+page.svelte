@@ -8,7 +8,8 @@
   // confirms each capture mark (design 33, item 6). It reads a start, brought alone or as a record's, and checks that a
   // game can reach it (protocol 0.8.0's check), so it analyzes no position that no game reaches. A record or a start
   // that fails leaves the board kept here, with a notice. One that passes asks first when the board kept here has
-  // moves, as Hedge School's board does ("Replace your analysis?").
+  // moves, as Hedge School's board does ("Replace your analysis?"). A board kept here whose start fails the check (one
+  // kept before the check) gives way to a new board, with a notice.
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and the
@@ -141,11 +142,21 @@
       // a record's moves from its start, or a start alone. Only a board that they accept replaces the board kept here.
       const g = await session.start(async pool => {
         const chosen = await opening, b = chosen.brought, rules = rulesBy(pool.rules);
+        // A kept board whose start no game reaches (kept before protocol 0.8.0's check) does not open, as a kept board
+        // with a komi does not (chooseBoard): a new board opens, and replaces it in the store at its first change.
+        let kept = chosen.kept;
+        const keptProblem = kept?.start ? await startProblem(rules, kept.start, "its start") : null;
+        if (keptProblem) {
+          notice = `The Analysis board cannot open your own analysis: ${sentence(keptProblem)} A new board is here instead.`;
+          kept = null;
+        }
+        // The notice says what cannot open, so the problem names the start by it: "this position: no game can reach
+        // it", "this link: no game can reach its start".
         const problem = !b ? null : b.record ? await recordProblem(rules, b.record)
-          : b.board.start ? await startProblem(rules, b.board.start) : null;
+          : b.board.start ? await startProblem(rules, b.board.start, b.kind === "position" ? "it" : "its start") : null;
         if (b && problem) refuse(problem, b.kind);
-        brought = b && !problem && (!chosen.kept?.nodes.length || await question.ask()) ? b : undefined;
-        board = brought?.board ?? chosen.kept;
+        brought = b && !problem && (!kept?.nodes.length || await question.ask()) ? b : undefined;
+        board = brought?.board ?? kept;
         keptAt = chosen.at;
         return new GameAnalysis(blueprints, pool, [], BOARD_ID, board?.start ?? null);
       }, async (g, pool) => {
@@ -196,7 +207,7 @@
       return;
     }
     const read = readPasted(pasted, position || null);
-    const problem = recordKomiProblem(read.record) ?? await checkRecord(read.record);
+    const problem = recordKomiProblem(read.record) ?? await checkRecord(read.record, "their start");
     if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${sentence(problem)}`);
     importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}) }));
   }
