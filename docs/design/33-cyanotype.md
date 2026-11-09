@@ -1192,12 +1192,12 @@ both sites share (design 29), with Cyanotype's own services and keys.
    compare. The layout starts the analytics, unless the address holds a game: then the page that takes the game out
    of the address starts them (the review, the import page, the Analysis board and the board editor). The pages send
    these events:
-   - the review: `review_open`, `review_done`, `game_missing`, `engine_error`, `setting_change`, `feature`, `export`,
-     and `import_game` or `import_failed` for a record after the `#`.
+   - the review: `review_open`, `review_done`, `game_missing`, `engine_error`, `setting_change`, `feature`, `export`.
    - the Review tab: `import_game`, `import_failed`, `load_failed`, `game_delete`, `game_delete_cancel`, `export`, and
      the visitor's property `games_stored`.
    - a shared review: `review_share_open`, `load_saved`, `load_failed`.
-   - the import page: `tool_out_of_date`, and `import_failed` for a game that it cannot read or open.
+   - the import page: `tool_out_of_date`, `import_game` for a game that it keeps for its review, and `import_failed`
+     for a game that it cannot read, open or keep.
    - the Analysis board: `analysis_open`, `import_game`, `import_failed`, `load_saved`, `load_failed`,
      `engine_error`, `setting_change`, `feature`, `export`.
    - the board editor: `editor_open`, `editor_analyze`.
@@ -1209,10 +1209,6 @@ both sites share (design 29), with Cyanotype's own services and keys.
      and `strategyjam_userscript`. Cyanotype has no meaf.us tools (`bookmarklet`, `userscript`, `older_tool`) and no
      Constellation export (`pasted_constellation`): both are Enclosure's. Its tools always send their version, so
      `stale_tool` is never `older`.
-   - **Where the import counts:** Cyanotype's import page sends the game to the review's or the board's address, with
-     the tool's source as `via`, and that page counts the import when it keeps the game. Hedge School's import page
-     keeps the game for the review itself, and counts it there. A record after `/review#record=` or
-     `/analysis#record=` with no `via` is a link's (`site_link`).
    - **Its saved work** (`load_source`): `review_share_link`, `analysis_share_link` and `analysis_file`. Cyanotype has
      no review files (abscls-8tl1.34) and no partner sites.
    - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the

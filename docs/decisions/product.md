@@ -10198,9 +10198,9 @@ Enclosure, 90,980 for Blueprints).
   `VITE_CF_ANALYTICS_TOKEN` as it is, on `main` only ([hosting.md](../hosting.md), "Cyanotype's analytics"). The
   owner chose PostHog in place of Google Analytics (abscls-xb0k), so the property's setup waits for that work.
 - **The consent's one purpose** is Google Analytics' cookies: Cyanotype stores no practice games yet (abscls-8tl1.50).
-- **Where the events differ:** design 33, "Analytics and consent", item 4. The import page sends a tool's source to the
-  review's or the board's address as `via`, and that page counts the import: Cyanotype's import page does not keep the
-  game itself.
+- **Where the events differ:** design 33, "Analytics and consent", item 4. The import page counts the review's import
+  once it keeps the game, as Hedge School's does, and sends a tool's source to the board's address as `via`: the board
+  counts the import by it.
 - **Checked:** `npm run check:all` passed, all 15 steps. The layout test (headless Chromium, on this branch's
   previews of both sites) passed 199 cases and skipped 10: the ask's 5 cases for each site, which need a build with
   a Google tag. With `VITE_GA_ID=G-TEST000000` in both builds, those 10 cases passed.

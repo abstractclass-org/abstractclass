@@ -16,7 +16,7 @@ export type { ImportFailure, ImportTo, LoadFailure, LoadSource } from "@abstract
 export const IMPORT_SOURCES = [
   "pasted_record", // a record pasted in a page's box: the Review tab's, the Analysis board's Import
   "pasted_position", // a position pasted in the Analysis board's Import, with or without moves
-  "site_link", // a link with a record or a position (`/review#record=`, `/analysis#record=`, `#position=`)
+  "site_link", // a link with a record or a position (`/import#record=`, `/analysis#record=`, `#position=`)
   "strategyjam_bookmarklet", // the bookmarklet (tools.ts) on strategyjam.org
   "strategyjam_userscript", // the userscript (tools.ts) on strategyjam.org
 ] as const;
