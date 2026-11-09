@@ -43,6 +43,7 @@
            type LoadSource } from "#lib/game/sources.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
+  import { practiceHref as practiceAddress } from "@abstractclass/practice/practice.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -216,11 +217,7 @@
   const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
   // Practice from the position on screen (design 24): the board's set-up start when it has one, and the moves from the
   // start to the position on screen, as a record.
-  const practiceHref = $derived.by(() => {
-    if (!game) return null;
-    const p = new URLSearchParams({ ...(game.startPosition ? { position: game.startPosition } : {}), ...(current.length ? { record: current.join(" ") } : {}) });
-    return p.size ? `/practice#${p}` : "/practice";
-  });
+  const practiceHref = $derived(game ? practiceAddress(game.startPosition, current) : null);
   /** The New menu's standard start: a new analysis, after the board asks when it has moves. */
   function newBoard() {
     importAddress(String(new URLSearchParams({ position: STANDARD_START, via: "new" })));
@@ -291,8 +288,7 @@
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
       {#snippet tools(unit)}
         <!-- Practice from the position on screen (design 24), as Lichess's "Continue from here": not a new board, so
-             beside New, not in it. A robot's head, since the forward triangle is the step forward (design 06, item 4).
-             Off on a set-up start, which the bot cannot take yet (request 20). -->
+             beside New, not in it. A robot's head, since the forward triangle is the step forward (design 06, item 4). -->
         <button class="btn-icon" disabled={!practiceHref} onclick={() => practiceHref && location.assign(practiceHref)}
                 aria-label="Play the bot from here" title="Play the bot from here"><Icon name="bot" /></button>
         <NewMenu site={SITE_NAME} editor={editorHref} onstart={newBoard} onload={loadFile}

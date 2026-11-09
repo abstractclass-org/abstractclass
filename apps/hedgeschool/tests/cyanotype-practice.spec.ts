@@ -9,9 +9,17 @@
 // Tests workflow does (design 33, "The engine's files"). In CI, they fail instead. A last test keeps a game whose
 // network the site does not ship: the page drops it and shows the settings card. In a game, the confirm button of
 // Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility itself (`btn-danger`),
-// so that it runs without the engine's files too. Run:
+// so that it runs without the engine's files too. The last tests start Practice from a position: the Analysis board's
+// "Play the bot from here" on a game's position and on a set-up start, a start that no game reaches, and the question
+// when a start comes while a game is in progress. Run:
 // npm run test:layout -- tests/cyanotype-practice.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
+import { writePosition } from "../../cyanotype/src/lib/game/position.ts";
+import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
+import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
+import { LITE } from "./cyanotype-review.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 const STATUS = '[data-testid="practice-status"]';
@@ -188,4 +196,174 @@ test("btn-danger has the blunder's red in Cyanotype's style, in both themes", as
   await page.evaluate(() => document.body.append(Object.assign(document.createElement("button"),
                                                                { className: "btn-danger", textContent: "Resign" })));
   await expectDangerStyle(page.locator("body > button.btn-danger"));
+});
+
+// Practice from a position (Hedge School's design 24, item 4): the Analysis board's "Play the bot from here" opens
+// Practice at the position on screen. A game's position goes to the bot as its moves from the standard start, and a
+// set-up start as its own position, with the moves after it played. The moves brought are the game's start: a
+// takeback stops there. A start that no game reaches starts no game, and the card gives the engine's reason. The
+// positions are Stamp Duty's own (the lab's games, apps/cyanotype/src/lib/board/fixtures.json). The board's engine is
+// off, and the bot runs on the CPU (LITE: the GPU off).
+const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as
+  { name: string; moves: string[]; position: SitePosition; legal: string[] }[];
+const middle = fixtures.find(f => f.name === "A middle game")!; // Red's first move of turn 6, after 9 moves
+const MIDDLE = writePosition(middle.position);
+/** MIDDLE with a Red cell beside a Blue cell that is not a wall: a placement would have captured one of the two, so no
+ *  game reaches it (cyanotype-editor.spec.ts makes the same position). */
+const UNREACHED = (() => {
+  const cells = middle.position.cells;
+  const beside = (hex: string) => {
+    const [q, r] = hex.split(",").map(Number);
+    return [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]].map(([dq, dr]) => `${q + dq},${r + dr}`);
+  };
+  const blue = (hex: string) => cells[hex]?.[0] === 0 && cells[hex][1] !== "wall";
+  for (const hex of Object.keys(cells).filter(blue)) {
+    const free = beside(hex).find(h => !cells[h] && beside(h).filter(blue).length === 1);
+    if (free) return writePosition({ ...middle.position, cells: { ...cells, [free]: [1, "plain"] } });
+  }
+  throw new Error("no empty hex beside one Blue cell");
+})();
+/** The game in progress, kept in this browser. */
+const kept = (page: Page) => page.evaluate(() =>
+  JSON.parse(localStorage.getItem("cyanotype:practice-game:1") ?? "null") as
+    { moves: string[]; start?: string; brought?: number } | null);
+const PLAY_HERE = { name: "Play the bot from here" };
+const at = (path: string) => new URL(path, CYANOTYPE).href;
+
+/** The settings of a test from a position, for each page that opens: the board's engine off, the bot on the CPU, and
+ *  the bot's choices at 8 visits, the player Red. */
+async function fromPosition(page: Page) {
+  const manifest = await botManifest(page);
+  const network = manifest.artifacts.find((a: { kind: string }) => a.kind === "model")!.id;
+  await page.setViewportSize({ width: 1376, height: 952 });
+  await page.addInitScript(([key, settings, choices]) => {
+    try {
+      localStorage.setItem(key, settings);
+      localStorage.setItem("cyanotype:practice-choices:1", choices);
+    } catch { /* about:blank has no storage */ }
+  }, [ENGINE_KEY, JSON.stringify({ ...LITE, on: false }),
+      JSON.stringify({ bot: { network, visits: 8, variety: "low" }, side: "red", name: "" })]);
+}
+
+/** The player's turn, played whole by the seeded clicks: the moves that the status line gives, each kept before the
+ *  next, then the bot's reply. */
+async function playTurn(page: Page, player: 0 | 1, random: () => number) {
+  const left = Number(/^Your turn: (\d) move/.exec(await turn(page))![1]);
+  for (let k = 0; k < left; k++) {
+    const n = (await kept(page))!.moves.length;
+    await humanMove(page, player, random);
+    await expect.poll(async () => (await kept(page))!.moves.length).toBeGreaterThan(n);
+    await turn(page);
+  }
+}
+/** The player's clicks, the same for each run (mulberry32). */
+const seeded = (s: number) => () => {
+  s = (s + 0x6d2b79f5) | 0;
+  let t = Math.imul(s ^ (s >>> 15), 1 | s);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
+};
+
+test("Play the bot from here, on a game's position: its moves are the game's start, and a takeback stops at them", async ({ page }) => {
+  await fromPosition(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(at(`/analysis#${new URLSearchParams({ record: middle.moves.join(" ") })}`));
+  await page.getByRole("button", PLAY_HERE).click({ timeout: 120_000 });
+  await expect(page).toHaveURL(/\/practice$/); // the start leaves the address
+  await expect(page.getByText("The game starts after the record's 9 moves.")).toBeVisible({ timeout: 120_000 });
+  await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
+  expect(await turn(page)).toMatch(/^Your turn: 2 moves\./); // Red's turn 6, the position on screen
+  expect(await listed(page)).toHaveLength(9); // the record's moves, from the standard start
+  expect(await kept(page)).toMatchObject({ moves: middle.moves, brought: 9 });
+  expect((await kept(page))!.start).toBeUndefined();
+  await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled(); // nothing of the player's yet
+  // The player's turn, then the bot's reply: a takeback undoes both, back to the start, and no further.
+  await playTurn(page, 1, seeded(3));
+  expect(await turn(page)).toMatch(/^Your turn/);
+  expect((await kept(page))!.moves).toHaveLength(13);
+  await page.getByRole("button", { name: "Take back" }).click();
+  await expect.poll(async () => (await kept(page))!.moves).toEqual(middle.moves);
+  expect(await turn(page)).toMatch(/^Your turn: 2 moves\./);
+  await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
+test("Play the bot from here, on a set-up start: the bot starts from it, and the game numbers its turns from it", async ({ page }) => {
+  await fromPosition(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  // The board from the editor's position, with Red's first move of turn 6 played from it
+  const move = middle.legal[0];
+  await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [move], nodes: [[move, -1]], start: MIDDLE }, 1));
+  await page.getByRole("button", PLAY_HERE).click({ timeout: 120_000 });
+  await expect(page.getByText("The game starts from the Analysis board's set-up position, after the record's 1 move."))
+    .toBeVisible({ timeout: 120_000 });
+  await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
+  expect(await turn(page)).toMatch(/^Your turn: 1 move\./);
+  expect(await kept(page)).toMatchObject({ start: MIDDLE, moves: [move], brought: 1 });
+  await expect(page.locator(".movelist").getByText("6.", { exact: true })).toBeVisible(); // the start's own turn
+  await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled();
+  await playTurn(page, 1, seeded(5));
+  expect(await turn(page)).toMatch(/^Your turn/);
+  expect((await kept(page))!.moves).toHaveLength(4); // the move brought, the player's one, and the bot's two
+  // A reload keeps the game: the bot starts from the set-up start again, with the moves played after it.
+  const before = await listed(page);
+  await page.reload();
+  expect(await turn(page)).toMatch(/^Your turn/);
+  expect(await listed(page)).toEqual(before);
+  await page.getByRole("button", { name: "Take back" }).click();
+  await expect.poll(async () => (await kept(page))!.moves).toEqual([move]);
+  expect(await turn(page)).toMatch(/^Your turn: 1 move\./);
+  await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
+test("a start that no game reaches starts no practice game, and the card gives the engine's reason", async ({ page }) => {
+  await fromPosition(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  const why = "This position cannot occur in a game: Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a wall";
+  await page.goto(at(`/practice#${new URLSearchParams({ position: UNREACHED })}`));
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^Practice cannot start from this position: ${why}`),
+                                                   { timeout: 120_000 });
+  await expect(page.getByText(/^The game starts/)).toHaveCount(0);
+  // A record from that start: refused too
+  await page.goto("about:blank");
+  await page.goto(at(`/practice#${new URLSearchParams({ position: UNREACHED, record: middle.legal[0] })}`));
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^Practice cannot start from this record: ${why}`),
+                                                   { timeout: 120_000 });
+  expect(await kept(page)).toBeNull();
+  // The card's game then starts from the standard start.
+  await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
+  expect(await turn(page)).toMatch(/^Your turn/);
+  const game = await kept(page);
+  expect(game?.start).toBeUndefined();
+  expect(game?.brought).toBeUndefined();
+  expect(game?.moves).toHaveLength(1); // the bot's first move, as Blue
+  expect(errors).toEqual([]);
+});
+
+test("a start brought while a game is in progress: the player chooses, and Go on with mine keeps the game", async ({ page }) => {
+  await fromPosition(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(at("/practice"));
+  await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
+  expect(await turn(page)).toMatch(/^Your turn/); // after the bot's first move, as Blue
+  const inProgress = (await kept(page))!.moves;
+  const bring = at(`/practice#${new URLSearchParams({ record: middle.moves.join(" ") })}`);
+  await page.goto("about:blank");
+  await page.goto(bring);
+  const question = page.getByRole("dialog", { name: "Play from this position?" });
+  await question.getByRole("button", { name: "Go on with mine" }).click({ timeout: 120_000 });
+  expect(await turn(page)).toMatch(/^Your turn/);
+  expect((await kept(page))!.moves).toEqual(inProgress);
+  // Again, and Play from the position: the card, with the start brought, and no game in progress
+  await page.goto("about:blank");
+  await page.goto(bring);
+  await question.getByRole("button", { name: "Play from the position" }).click({ timeout: 120_000 });
+  await expect(page.getByText("The game starts after the record's 9 moves.")).toBeVisible();
+  expect(await kept(page)).toBeNull();
+  expect(errors).toEqual([]);
 });

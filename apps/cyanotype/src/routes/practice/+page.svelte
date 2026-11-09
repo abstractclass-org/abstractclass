@@ -10,6 +10,10 @@
   // forms that this browser runs, as on Hedge School's Practice: on the GPU or on the CPU workers through the threaded
   // bot, else on one thread (@abstractclass/practice/botForms.ts), with the engine settings' GPU and workers. The page
   // counts a game's start and end, the engine's errors and the features used, as Hedge School's does (its design 17).
+  // Its way in from a position, which the Analysis board's "Play the bot from here" gives (Hedge School's design 24,
+  // item 4): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address at once.
+  // The engine's rules check them as the Analysis board checks a record or a start (recordCheck.ts): a start that no
+  // game reaches, or a move that the rules refuse, starts no game, and the page says why.
   import { onDestroy, onMount, untrack } from "svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -21,6 +25,7 @@
   import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton } from "@abstractclass/review/moveList.ts";
   import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
+  import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
   import type { PracticeBot } from "@abstractclass/practice/bot.ts";
   import { BOT_WHERE, startBot } from "@abstractclass/practice/botForms.ts";
   import { EngineWorker, loadManifest, megabytes, type Manifest } from "@abstractclass/engine/client.ts";
@@ -32,12 +37,17 @@
   import { handsAt, keptPanel, ONE_COLUMN_HEIGHT } from "#lib/board/keptPanel.svelte.ts";
   import { PLAYER_NAMES, STARS, starsOf, type Player } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
+  import { readPasted } from "#lib/game/paste.ts";
+  import { setUpStart, startTurn } from "#lib/game/position.ts";
+  import type { GameRecord } from "#lib/game/record.ts";
+  import { recordProblem, rulesBy, startProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine } from "#lib/analysis/engineSettings.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
   import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, practiceEndParams, practiceParams, saveChoices,
            type KeptPractice }
     from "#lib/practice/stampduty.ts";
-  import { komiLine, komiSide, practiceOutcome, type PracticeOutcome } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, komiLine, newPractice, practiceOutcome, type Brought, type PracticeOutcome }
+    from "@abstractclass/practice/practice.ts";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
@@ -57,13 +67,35 @@
   let confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
   let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
   let notesAt = $state<Record<number, BoardNote[]>>({}); // the player's notes on the board, by position (design 33)
+  let notice = $state(""); // a start brought that cannot be played
+  // The next game's start, from the Analysis board's Play, once the engine's rules have checked it: a set-up start
+  // (null: the standard start), and a record's moves from it.
+  let brought = $state.raw<Brought | null>(null);
+  let replacing = $state(false); // the question before a start brought sets the game in progress aside
+  const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
+
+  /** The start after the `#`, read: a record's moves from its start (its `Position` tag, or `position` beside it), or
+   *  a set-up start alone. It leaves the address. Null for none, and a notice for a record that cannot be read. */
+  function readBrought(): { record: GameRecord | null; start: string | null } | null {
+    const hash = new URLSearchParams(location.hash.slice(1)), text = hash.get("record"), position = hash.get("position");
+    history.replaceState(null, "", location.pathname); // the start is kept below, not in the address
+    if (text === null && position === null) return null;
+    try {
+      const record = text === null ? null : readPasted(text, position).record;
+      return { record, start: setUpStart(record ? record.tags.Position : position) ?? null };
+    } catch (e) {
+      notice = `Practice cannot start from this record: ${sentence(errorText(e))}`;
+      return null;
+    }
+  }
 
   onMount(() => {
     // A game kept with a network that the site no longer ships cannot go on: its bot has no network to start with.
     // The site ships only its lock's networks (design 33), so a new build can drop the game's network.
     const kept = loadKept();
     if (kept && !offersNetwork(kept.bot.network)) { keep(null); dropped = true; }
-    phase = loadKept() ? "game" : "settings";
+    const bringing = readBrought();
+    phase = loadKept() && !bringing ? "game" : "settings";
     void (async () => {
       try {
         manifest = await loadManifest().catch(() => null);
@@ -71,19 +103,39 @@
         const w = new EngineWorker();
         await w.init(manifest);
         rules = w;
+        // The start brought, checked by the rules: a record's start and moves, or a start alone.
+        if (bringing) {
+          const r = rulesBy(w), problem = bringing.record ? await recordProblem(r, bringing.record)
+            : bringing.start ? await startProblem(r, bringing.start) : null;
+          if (problem) notice = `Practice cannot start from this ${bringing.record ? "record" : "position"}: ${sentence(problem)}`;
+          else brought = { start: bringing.start, moves: bringing.record?.moves ?? [] };
+        }
         ready = true;
         const resume = loadKept();
-        if (phase === "game" && !game && resume) await play(resume, "resumed");
+        // The player chooses between the game in progress and the start brought. A start that the rules refuse leaves
+        // the game in progress, which goes on.
+        if (brought && resume?.moves.length) replacing = true;
+        else if (!brought && resume && !game) await play(resume, "resumed");
       } catch (e) {
         failed = errorText(e);
       }
     })();
   });
+
+  /** The question's answer: play from the start brought (the game in progress ends), or go on with the game in
+   *  progress. */
+  async function answerReplace(fromBrought: boolean) {
+    replacing = false;
+    if (fromBrought) { keep(null); return; }
+    brought = null;
+    const kept = loadKept();
+    if (kept) await play(kept, "resumed");
+  }
   onDestroy(() => { game?.end(); rules?.terminate(); });
 
   /** Starts the bot for a game, and the game: a new one, or one kept from an earlier visit (`from`, for
    *  `practice_start`). */
-  async function play(kept: KeptPractice, from: "new" | "resumed") {
+  async function play(kept: KeptPractice, from: "new" | "analysis_board" | "set_up_start" | "resumed") {
     if (!manifest || !rules) return;
     phase = "game";
     starting = kept;
@@ -125,19 +177,17 @@
     if (game) trackOnce(`${game.kept.started} ${name}`, "feature", { feature_name: name });
   }
 
-  /** A new game with the settings chosen and the side picked. */
+  /** A new game with the settings chosen and the side picked, from the standard start or the start brought. */
   function newGame(side: "blue" | "red" | "random") {
     choices.side = side;
     dropped = false;
+    notice = "";
     saveChoices($state.snapshot(choices));
-    const human: Player = side === "blue" ? 0 : side === "red" ? 1 : Math.random() < 0.5 ? 0 : 1;
-    const kept: KeptPractice = {
-      version: 1, bot: { ...choices.bot }, human, name: choices.name.trim(), seed: Math.floor(Math.random() * 2 ** 31),
-      ...(choices.komi ? { komi: komiSide(choices.komi, human) } : {}), // the player's head start, as Red's komi
-      moves: [], builds: [], started: new Date().toISOString(),
-    };
+    const kept: KeptPractice = newPractice($state.snapshot(choices), brought);
+    const from = brought?.start ? "set_up_start" : brought ? "analysis_board" : "new";
+    brought = null;
     keep(kept);
-    void play(kept, "new");
+    void play(kept, from);
   }
 
   /** Back to the settings card, for the next game. */
@@ -145,6 +195,7 @@
     game?.end();
     game = null;
     confirming = null;
+    notice = "";
     phase = "settings";
   }
 
@@ -229,7 +280,8 @@
   });
 
   // The move list: one move a line, as Blueprints' moves are long, each turn's number at its first move, and each move a
-  // step to its position.
+  // step to its position. Its numbers start at the start's own turn.
+  const firstTurn = $derived(startTurn(game?.kept.start));
   const turns = $derived.by(() => {
     const out: { player: Player; moves: { text: string; at: number }[] }[] = [];
     (game?.played ?? []).forEach((m, i) => {
@@ -258,6 +310,8 @@
     {#snippet intro()}A game against {ENGINE_NAME}, the engine, in your browser, with no clock: it searches each move to
       the visits you set. This browser keeps the game until it ends.{/snippet}
     {#snippet notes()}
+      {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
+      {#if brought}<p class="mb-1 text-sm">{broughtLine(brought, ["move", "moves"])}</p>{/if}
       {#if dropped}<p class="mb-1 text-sm" role="status">This site does not have the network of your last game. You cannot
         continue that game.</p>{/if}
     {/snippet}
@@ -303,6 +357,8 @@
     {/snippet}
     {#snippet side()}
       <h1 class="text-lg font-bold">Practice</h1>
+      <!-- A start brought that the rules refused, while the game in progress goes on. -->
+      {#if notice}<p class="mt-1 text-xs text-blunder" role="alert">{notice}</p>{/if}
       {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, {BOT_WHERE[g.mode]}.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
       <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
         {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
@@ -318,7 +374,8 @@
         {#each turns as t, k (k)}
           {#each t.moves as m, i (m.at)}
             <div class="grid grid-cols-[2.2rem_minmax(0,1fr)] items-baseline gap-x-1">
-              <span class={TURN_NUMBER}>{i === 0 ? `${k + 1}.` : ""}</span>
+              <!-- A set-up start at a turn's second move: its first move was played before the start ("51..."). -->
+              <span class={TURN_NUMBER}>{i === 0 ? `${firstTurn.turn + k}${k === 0 && !firstTurn.first ? "..." : "."}` : ""}</span>
               <button type="button" class={[moveButton(t.player, shown === m.at ? MOVE_HERE : undefined), "justify-self-start"]} tabindex="-1"
                       aria-current={shown === m.at ? "step" : undefined} onclick={() => step(m.at)}>{m.text}</button>
             </div>
@@ -376,3 +433,8 @@
   <ShareBar upright={false} share={total > 0 ? scores[0] / total : NaN} sub={null}
             title={`Points: Blue ${scores[0]}, Red ${scores[1]}`} />
 {/snippet}
+
+<!-- A start brought while a game is in progress: the player chooses, once the rules have checked the start. -->
+<ReplaceGame open={replacing} {ready} title="Play from this position?" play="Play from the position"
+             description="Your game in progress stops. You cannot continue it. This browser keeps one game in progress."
+             onanswer={b => void answerReplace(b)} />

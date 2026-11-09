@@ -97,7 +97,7 @@ export interface KeptPractice<Form extends string = string> {
   moves: string[];
   builds: string[];
   started: string; // ISO date and time
-  start?: string; // a set-up start, in the game's position notation (Hedge School: the Analysis board's Play)
+  start?: string; // a set-up start, in the game's position notation (the Analysis board's Play)
   komi?: number; // the engine's komi, Red's starting score (below 0, Blue's): the record's Komi tag. None: 0
   brought?: number; // the moves that came with a record: the game's start, not played against the bot
   takebacks?: number;
@@ -109,6 +109,41 @@ export interface KeptPractice<Form extends string = string> {
   form?: Form;
   undone?: Takeback[];
   ms?: (number | null)[];
+}
+
+/** A game's start brought to Practice (design 24, item 4): a set-up start in the game's notation (null: the standard
+ *  start), and the moves of a record from it. The moves are the game's start: they were not played against the bot. */
+export interface Brought { start: string | null; moves: string[] }
+
+/** Practice's address from a position, as the Analysis board's "Play the bot from here" opens it (design 24, item 4):
+ *  the board's set-up start when it has one (`position`), and the moves from the start to the position on screen, as
+ *  a record (`record`). */
+export function practiceHref(start: string | null | undefined, moves: readonly string[]): string {
+  const p = new URLSearchParams({ ...(start ? { position: start } : {}), ...(moves.length ? { record: moves.join(" ") } : {}) });
+  return p.size ? `/practice#${p}` : "/practice";
+}
+
+/** The settings card's line on a start brought: from a set-up start, after a record's moves, or both. `word` is the
+ *  game's word for a move, singular then plural ("edge", "edges"). */
+export function broughtLine(brought: { start: string | null | undefined; moves: readonly unknown[] },
+                            word: readonly [string, string]): string {
+  const n = brought.moves.length, moves = `${n} ${n === 1 ? word[0] : word[1]}`;
+  return brought.start ? `The game starts from the Analysis board's set-up position${n ? `, after the record's ${moves}` : ""}.`
+    : `The game starts after the record's ${moves}.`;
+}
+
+/** A new game with the player's choices: the side picked (Random by `random`), the bot's settings, the name, and the
+ *  card's komi, the player's head start, as the engine's (Red's starting score). From a start brought, the game keeps
+ *  the set-up start and the record's moves, and counts those moves as its start (`brought`): a takeback stops there. */
+export function newPractice<Form extends string = string>(choices: PracticeChoices, brought: Brought | null,
+                                                          random: () => number = Math.random): KeptPractice<Form> {
+  const side = choices.side, human: Player = side === "blue" ? 0 : side === "red" ? 1 : random() < 0.5 ? 0 : 1;
+  return {
+    version: 1, bot: { ...choices.bot }, human, name: choices.name.trim(), seed: Math.floor(random() * 2 ** 31),
+    ...(choices.komi ? { komi: komiSide(choices.komi, human) } : {}),
+    moves: brought ? [...brought.moves] : [], builds: [], started: new Date().toISOString(),
+    ...(brought?.start ? { start: brought.start } : {}), ...(brought?.moves.length ? { brought: brought.moves.length } : {}),
+  };
 }
 
 /** The game in progress, kept under a site's key. */

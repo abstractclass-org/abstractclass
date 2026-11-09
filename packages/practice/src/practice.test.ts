@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  botLabel, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, practiceOutcome, resignResult, scoreResult,
-  settingsCommands, takebackCount, visitsStop, visitsTaken, type KeptPractice,
+  botLabel, broughtLine, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, newPractice, practiceHref,
+  practiceOutcome, resignResult, scoreResult, settingsCommands, takebackCount, visitsStop, visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -101,4 +101,38 @@ test("the komi: any whole number from -3,000 to 3,000 on the card, from the play
   assert.equal(komiLine({ komi: -300, human: 0 }, "Stamp Duty"), "You start 300 points ahead.");
   assert.equal(komiLine({ komi: -300, human: 1 }, "Stamp Duty"), "Stamp Duty starts 300 points ahead.");
   assert.equal(komiLine({ human: 1 }), "");
+});
+
+// Practice from a position (design 24, item 4): the Analysis board's way in, and the game that starts from it.
+test("Practice's address from a position: the set-up start, and the moves from it, as a record", () => {
+  assert.equal(practiceHref(null, []), "/practice");
+  assert.equal(practiceHref(undefined, ["north", "east"]), "/practice#record=north+east");
+  assert.equal(practiceHref("a b 1", []), "/practice#position=a+b+1");
+  assert.equal(practiceHref("a b 1", ["north"]), "/practice#position=a+b+1&record=north");
+});
+
+test("the settings card's line on a start brought, in the game's word for a move", () => {
+  const edge: [string, string] = ["edge", "edges"];
+  assert.equal(broughtLine({ start: null, moves: ["a"] }, edge), "The game starts after the record's 1 edge.");
+  assert.equal(broughtLine({ start: "s", moves: [] }, edge), "The game starts from the Analysis board's set-up position.");
+  assert.equal(broughtLine({ start: "s", moves: ["a", "b"] }, ["move", "moves"]),
+               "The game starts from the Analysis board's set-up position, after the record's 2 moves.");
+});
+
+test("a new game: the choices, the player's side, and a start brought, whose moves the game counts as its start", () => {
+  const choices = { bot: { network: "new", visits: 16, variety: "low" as const }, komi: 300, side: "red" as const, name: " Ada " };
+  const plain = newPractice(choices, null);
+  assert.equal(plain.human, 1);
+  assert.equal(plain.name, "Ada");
+  assert.equal(plain.komi, 300); // the player's head start, as Red's komi
+  assert.deepEqual(plain.moves, []);
+  assert.equal("start" in plain || "brought" in plain, false);
+  const from = newPractice({ ...choices, komi: 0, side: "blue" }, { start: "s", moves: ["north", "east"] });
+  assert.equal(from.human, 0);
+  assert.equal("komi" in from, false);
+  assert.deepEqual([from.start, from.moves, from.brought], ["s", ["north", "east"], 2]);
+  // A start alone: no moves brought. Random takes the side from the random number.
+  const alone = newPractice({ ...choices, side: "random" }, { start: "s", moves: [] }, () => 0.7);
+  assert.deepEqual([alone.human, alone.start, alone.brought], [1, "s", undefined]);
+  assert.equal(newPractice({ ...choices, side: "random" }, null, () => 0.2).human, 0);
 });

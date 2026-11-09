@@ -9,7 +9,6 @@
   // gives (design 22): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address
   // at once, then the analytics start.
   import { onDestroy, onMount, untrack } from "svelte";
-  import { Dialog } from "bits-ui";
   import Board from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
   import type { BoardNote } from "@abstractclass/review/notes.ts";
@@ -24,6 +23,8 @@
   import PlayerCardSkeleton, { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
   import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
+  import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
+  import { broughtLine, newPractice, type Brought } from "@abstractclass/practice/practice.ts";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
@@ -40,7 +41,7 @@
   import { sendPractice } from "#lib/practice/send.ts";
   import { BOT_WHERE, startBot } from "@abstractclass/practice/botForms.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
-  import { BOT_NAME, botName, keep, komiLine, komiSide, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
+  import { BOT_NAME, botName, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
            practiceTurn, saveChoices, type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
@@ -78,13 +79,8 @@
   let aborted = $state(false); // the last game was aborted, and is in Your games
   // The next game's start, from the Analysis board's Play: a set-up start (null: the standard start), and a record's
   // moves from it.
-  let brought = $state.raw<{ start: string | null; moves: string[] } | null>(null);
-  const broughtText = $derived.by(() => {
-    if (!brought) return "";
-    const n = brought.moves.length, edges = `${n} ${n === 1 ? "edge" : "edges"}`;
-    return brought.start ? `The game starts from the Analysis board's set-up position${n ? `, after the record's ${edges}` : ""}.`
-      : `The game starts after the record's ${edges}.`;
-  });
+  let brought = $state.raw<Brought | null>(null);
+  const broughtText = $derived(brought ? broughtLine(brought, ["edge", "edges"]) : "");
   let ready = $state(false); // the rules are loaded: a game can start
   let replacing = $state(false); // the dialog that asks before a record brought sets the game in progress aside
   let confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
@@ -152,13 +148,7 @@
   function newGame(side: "blue" | "red" | "random") {
     choices.side = side;
     saveChoices($state.snapshot(choices));
-    const human: Player = side === "blue" ? 0 : side === "red" ? 1 : Math.random() < 0.5 ? 0 : 1;
-    const kept: KeptPractice = {
-      version: 1, bot: { ...choices.bot }, human, name: choices.name.trim(), seed: Math.floor(Math.random() * 2 ** 31),
-      ...(choices.komi ? { komi: komiSide(choices.komi, human) } : {}),
-      moves: brought ? [...brought.moves] : [], builds: [], started: new Date().toISOString(),
-      ...(brought?.start ? { start: brought.start } : {}), ...(brought?.moves.length ? { brought: brought.moves.length } : {}),
-    };
+    const kept: KeptPractice = newPractice($state.snapshot(choices), brought);
     const from = brought?.start ? "set_up_start" : brought ? "analysis_board" : "new";
     brought = null;
     keep(kept);
@@ -511,19 +501,6 @@
 {/snippet}
 
 <!-- A record brought while a game is in progress: the player chooses, once the rules are loaded. -->
-<Dialog.Root open={replacing} onOpenChange={open => { if (!open && replacing && ready) void answerReplace(false); }}>
-  <Dialog.Portal>
-    <Dialog.Overlay class="dialog-overlay" />
-    <Dialog.Content class="dialog-box w-[min(94vw,28rem)]">
-      <Dialog.Title class="mb-2 font-semibold">Play from this record?</Dialog.Title>
-      <Dialog.Description class="text-sm">
-        Your game in progress goes into Your games, unfinished, so you can still review it. This browser keeps one game in
-        progress.
-      </Dialog.Description>
-      <div class="flex justify-end gap-2 mt-4">
-        <button type="button" class="px-4 py-1 text-sm" disabled={!ready} onclick={() => answerReplace(false)}>Go on with mine</button>
-        <button type="button" class="btn-primary px-4 py-1 text-sm" disabled={!ready} onclick={() => answerReplace(true)}>Play from the record</button>
-      </div>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+<ReplaceGame open={replacing} {ready} title="Play from this record?" play="Play from the record"
+             description="Your game in progress goes into Your games, unfinished, so you can still review it. This browser keeps one game in progress."
+             onanswer={b => void answerReplace(b)} />

@@ -13,7 +13,9 @@ has the GPU module and the practice bot's three forms, so the engine runs on the
 Practice against Stamp Duty (`/practice`) is built ("Practice against Stamp Duty"). The review and the Analysis board
 are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet. A position's notation, the board
 editor and starts from a set-up position are built (abscls-8tl1.39, "Decision", item 10, and "The board editor"), with
-the engine's check that a game can reach a position (abscls-8tl1.59). The early access is built, as Hedge School's
+the engine's check that a game can reach a position (abscls-8tl1.59). The Analysis board's "Play the bot from here"
+and Practice from a set-up start are built (abscls-8tl1.40, "Practice against Stamp Duty", "From a position"). The
+early access is built, as Hedge School's
 ("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
 player's games"), with their review files (abscls-8tl1.34, "The review files"), the review snapshot and the
 annotated record from the store (abscls-8tl1.35). Partner sites are designed, not built ("Partner sites"). The
@@ -28,7 +30,7 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
 notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07. Partner sites:
 2026-11-08. The import page keeps the game: 2026-11-08. The review files: 2026-11-08. The position check: 2026-11-09.
-The analytics and the consent: 2026-11-06.
+The analytics and the consent: 2026-11-06. Practice from a position: 2026-11-09.
 
 ## Context
 
@@ -382,7 +384,8 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    bot (`blueprints-bot-batched.wasm`, interface 0.1.3) with its CPU evaluator (`blueprints-eval.wasm`,
    `cpu_evaluator.mjs` and `cpu_eval_worker.mjs`), `NOTICES.txt`, `LICENSE.txt` and bpj5's network
    `b6c96-s47076224-d3087660`, whose name in the release is Stamp Duty 0.2. Interface 0.1.3 adds
-   `blueprints-set-position`, the bot from a set-up start, which abscls-8tl1.40 takes. Each entry of the lock takes its
+   `blueprints-set-position`, the bot from a set-up start, which Practice takes ("Practice against Stamp Duty").
+   Each entry of the lock takes its
    file from a release (a source of kind `release`), with the SHA-256 and the size of the release's manifest. The
    four files that the release changed (the two modules and the two bots) come from `engine-887be290`. The other
    nine have the same bytes in both releases (the same SHA-256 in both manifests), so they keep their entries of
@@ -462,6 +465,34 @@ none at 0), then `play`, `genmove` and `undo` with the site's strings. Its visit
 protocol 0.7.1 (abscls-csmy) its genmove gives a legal move at every visit count, also on a position of more views,
 where the earlier build failed with 2n visits or fewer for a cover of n views. A reload sets the bot's game to the
 kept moves with `blueprints-set-game`: `undo` then takes them back as any others, so a takeback works after a reload.
+A game from a set-up start sets it again with `blueprints-set-position`, then plays the kept moves after it.
+
+**From a position** (design 24, item 4): the Analysis board's "Play the bot from here", beside New, opens Practice at
+the position on screen, as Hedge School's does. The address after the `#` gives the board's set-up start when it has
+one (`position`), and the moves from the start to the position on screen as a record (`record`)
+(`@abstractclass/practice/practice.ts`, `practiceHref`). They leave the address at once.
+
+1. **The check:** the engine's rules check the start brought as the Analysis board checks it (`recordCheck.ts`): a
+   record's start and its moves (`recordProblem`), or a start alone (`startProblem`). A start that no game reaches, or
+   a move that the rules refuse, starts no game. The settings card says why, with the position check's first reason
+   ("Practice cannot start from this position: This position cannot occur in a game: ..."), and its game starts from
+   the standard start. The bot refuses such a start too, with the same reason (`blueprints-set-position`), so the
+   page's check is not the only one.
+2. **A game's position goes to the bot as its moves:** a board from the standard start sends its moves with
+   `blueprints-set-game`. That is the game's search exactly. A position with no history searches differently from
+   its game ("Decision", item 10, request 28's measurement), so the page never sends the position on screen as a
+   set-up start.
+3. **A board editor's start keeps its own position:** a board with a set-up start sends it with
+   `blueprints-set-position`, in the engine's one-line form (`enginePosition`), then the moves after it with `play`,
+   as the Analysis board searches it.
+4. **The moves brought are the game's start:** a takeback stops at them, so the bot gets no `undo` past the start, as
+   on Hedge School's Practice (`brought`, the kept game's count of them). The move list numbers the turns from the
+   start's own (`startTurn`), with `51...` when the start is at a turn's second move. The settings card says where the
+   game starts ("The game starts from the Analysis board's set-up position, after the record's 3 moves.").
+5. **A game in progress:** the page asks first, once the rules have checked the start ("Play from this position?",
+   `@abstractclass/practice/ReplaceGame.svelte`, Hedge School's question). Cyanotype keeps no practice game, so the
+   game in progress ends ("Practice against Stamp Duty", item 2 of the departures). A start that the rules refuse
+   leaves the game in progress, which goes on with the notice in the side column.
 
 **Below 16 visits,** Practice plays the threaded bot, as Hedge School's Practice does at every setting (design 24,
 item 14). KataGo's play settings give each search thread at least 8 of a move's new playouts, so a move below 16
@@ -506,8 +537,8 @@ its practice games are not kept. The board takes a komi as Hedge School's does w
    lock's networks, so a new build can drop a kept game's network. Such a game cannot go on: the page drops it, and the
    settings card says so.
 3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
-   page has no sounds. The player's notes are on the board ("The player's notes"). No game comes from a record or a
-   set-up start. These are gaps too ("The gaps from Hedge School").
+   page has no sounds. The player's notes are on the board ("The player's notes"). These are gaps too ("The gaps from
+   Hedge School").
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
 
@@ -1360,9 +1391,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The removal of earlier engine results after a release** (`game/earlierResults.ts`, design 20). abscls-8tl1.30.
 - **The area map** (`review/enclosureMap.ts`, design 30). abscls-8tl1.17 decides whether Blueprints has one ("No
   area map yet").
-- **"Play the bot from here"** on the Analysis board, and a Practice game from a set-up start (design 24). The
-  practice bot starts only from the standard start: abscls-8tl1.40 takes `blueprints-set-position` of request 28
-  (`docs/requests/28-blueprints-set-up-start.md`), which the lock's release `engine-887be290` has.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
   `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
   ("Practice against Stamp Duty", item 2). abscls-8tl1.50.
@@ -1545,7 +1573,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `Board.svelte`, its prop `hands`: the hands in the board's box ("box", the lab's), in the panel ("panel") or under
   the field ("under"), with the panel's `place` and `size`. Tests: `panel.test.ts` and `view.test.ts`.
 - `apps/cyanotype/src/routes/practice/+page.svelte`: Practice. `src/lib/practice/game.svelte.ts`: the game, with
-  the rules' worker and the bot. `stampduty.ts`: the site's part of `@abstractclass/practice` (its keys, its networks,
+  the rules' worker and the bot, from the standard start or a start brought ("From a position"). `stampduty.ts`: the
+  site's part of `@abstractclass/practice` (its keys, its networks,
   the half-life, the bot's name). The bot's forms and its worker are `@abstractclass/practice`'s (`botForms.ts`,
   `botFormsWorker.ts`). `bot.engine.test.ts`, in Node: the one-thread bot at 1 and 2 visits on a position of more
   views, and on that position the threaded bot on its CPU evaluator with the manifest's sizes, which plays the
@@ -1705,6 +1734,6 @@ Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with
 games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
 (2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), "Cyanotype's How a review works page"
 (2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), "Cyanotype's analytics and consent, as Hedge
-School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach the position" (2026-11-09), and
-"Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09). The earlier entries name the site by its
-first name, Drawing Board.
+School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach the position" (2026-11-09),
+"Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), and "Cyanotype's Play the bot from here, and
+Practice from a set-up start" (2026-11-09). The earlier entries name the site by its first name, Drawing Board.

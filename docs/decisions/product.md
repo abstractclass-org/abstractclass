@@ -10396,3 +10396,37 @@ Hedge School's").
   test ID had two changes: the review page sent `review_open` after Review again too, and the Review tab sent no
   `load_saved` for a review file. On that build, the review file's case and the review snapshot's case failed, and
   the case of a file that cannot load passed. On the build without the changes, the 3 cases passed.
+
+### Cyanotype's Play the bot from here, and Practice from a set-up start (2026-11-09)
+
+Design 33 ("Practice against Stamp Duty", its new part "From a position", and "The gaps from Hedge School"), design 24
+and design 29 changed (abscls-8tl1.40). Cyanotype's Analysis board has Hedge School's "Play the bot from here", and
+its Practice starts from the position that it brings, on the practice bot of `engine-887be290` (interface 0.1.3,
+`blueprints-set-position`, request 28). The gap's line in design 33 goes.
+
+- **Which way each start goes to the bot:** a board from the standard start sends the moves to the position on
+  screen with `blueprints-set-game`, as a reload does: the game's search exactly (request 28's measurement: the moves
+  gave the game's best move at 10 of 10 positions, a start with no history at 4). A board with a board editor's
+  set-up start sends that start with `blueprints-set-position`, in the engine's one-line form, then the moves after it
+  with `play`, as the Analysis board searches it. A reload of such a game does the same.
+- **The check:** the page checks the start brought with the engine's rules before it offers it, as the Analysis board
+  does (`recordCheck.ts`: `recordProblem` for a record and its start, `startProblem` for a start alone). A start that
+  no game reaches starts no game: the settings card gives the position check's first reason, and its game starts from
+  the standard start. The bot refuses such a start too, with the same reason.
+- **The start's moves are the game's start:** the kept game counts them (`brought`), a takeback stops there, and the
+  bot gets no `undo` past the start. The move list numbers the turns from the start's own.
+- **A game in progress:** the page asks first ("Play from this position?"), as Hedge School's does. Cyanotype keeps no
+  practice game, so the game in progress stops. A refused start leaves the game in progress, with the notice in the
+  side column.
+- **The shared parts** (design 29, item 11), moved from Hedge School's pages into `@abstractclass/practice`: the
+  address from a position (`practiceHref`), the card's line on the start brought (`broughtLine`, with each game's word
+  for a move), the new game from the choices and the start (`newPractice`), and the question
+  (`ReplaceGame.svelte`). Hedge School's Analysis board and Practice use them, with the same words and the same
+  markup as before.
+- **Checked:** `npm run check:all` passed every step, with no unit test skipped (the practice package's new tests: the
+  address, the card's line and the new game). The new browser tests (`tests/cyanotype-practice.spec.ts`), with the bot
+  at 8 visits on the CPU: the board's button on a game's position (a takeback stops at the record's 9 moves), on a
+  set-up start with a move after it (the move list starts at turn 6, a reload keeps the game, a takeback stops at the
+  start), a start that no game reaches (refused alone and as a record's start), and the question while a game is in
+  progress. The whole layout test on the two previews (Chromium): 208 passed and 5 skipped, the analytics cases, which
+  need `VITE_GA_ID`. Hedge School's practice tests passed unchanged.

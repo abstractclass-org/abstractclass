@@ -16,7 +16,8 @@
   // GPU worker joins as it does there (Hedge School's design 15). The New menu starts the board again: from the
   // standard start, the board editor, a position or moves imported, or an analysis file. The Export menu shares the
   // board by link, or saves it as an analysis file or as an annotated record (Hedge School's design 21, item 7), with
-  // the board's set-up start.
+  // the board's set-up start. "Play the bot from here", beside New, opens Practice at the position on screen (Hedge
+  // School's design 24, item 4): the board's set-up start when it has one, and the moves from the start to it.
   // The page counts its events as Hedge School's board does (its design 17): the board's open, a line brought (an
   // import, or a load of saved work) and its failure, the engine's errors, the settings changed, the features used and
   // the exports. The analytics start once a line brought has left the address.
@@ -41,6 +42,8 @@
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
+  import { practiceHref as practiceAddress } from "@abstractclass/practice/practice.ts";
   import { blueprints, type Blueprints, type ReviewData } from "#lib/review/blueprints.ts";
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
@@ -221,6 +224,10 @@
     return p ? writePosition(p) : null;
   });
   const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
+  // Practice from the position on screen (Hedge School's design 24, item 4): the board's set-up start when it has one,
+  // and the moves from the start to the position on screen, as a record. Practice gives a game's position to the bot as
+  // its moves, and a set-up start as its own position (practice/game.svelte.ts).
+  const practiceHref = $derived(game ? practiceAddress(game.startPosition, current) : null);
 
   // The board's Import (Hedge School's design 21, item 5): a position, moves or both pasted, checked here by the
   // engine's rules in a worker of their own, as an import is. Then they go after the `#`, and the page loads again, so
@@ -298,6 +305,10 @@
               onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
     {#snippet tools(unit)}
+      <!-- Practice from the position on screen, as Lichess's "Continue from here": not a new board, so beside New, not
+           in it. A robot's head, as on Hedge School's board. -->
+      <button class="btn-icon" disabled={!practiceHref} onclick={() => practiceHref && location.assign(practiceHref)}
+              aria-label="Play the bot from here" title="Play the bot from here"><Icon name="bot" /></button>
       <!-- New (Hedge School's design 21): the standard start, the board editor from the position on screen, a
            position or moves imported, or an analysis file. -->
       <NewMenu site={SITE_NAME} editor={editorHref} onstart={newBoard} onload={loadFile}
