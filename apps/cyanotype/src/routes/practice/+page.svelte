@@ -265,8 +265,9 @@
   // next. Strict Simplified Technical English (CLAUDE.md, "Writing the site's text").
   const statusText = $derived.by(() => {
     const g = game, p = g?.position;
+    // A game that fails as it starts has no position yet: it says why, not that it starts.
+    if (g?.status === "failed") return `The game stopped: ${g.error}`;
     if (!g || g.status === "starting" || !p) return `${ENGINE_NAME} starts…`;
-    if (g.status === "failed") return `The game stopped: ${g.error}`;
     if (g.status === "over") {
       if (g.resigned) return `You resigned. ${ENGINE_NAME} wins.`;
       const won = /^([br])\+(.+)$/.exec(g.result ?? ""); // the rules' result: the winner and the margin

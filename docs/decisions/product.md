@@ -10411,8 +10411,10 @@ its Practice starts from the position that it brings, on the practice bot of `en
   with `play`, as the Analysis board searches it. A reload of such a game does the same.
 - **The check:** the page checks the start brought with the engine's rules before it offers it, as the Analysis board
   does (`recordCheck.ts`: `recordProblem` for a record and its start, `startProblem` for a start alone). A start that
-  no game reaches starts no game: the settings card gives the position check's first reason, and its game starts from
-  the standard start. The bot refuses such a start too, with the same reason.
+  no game reaches starts no game: the settings card says why, in the Analysis board's words (`checkProblem`, "no game
+  can reach it.", then the position check's reasons, its first reason first), and its game starts from the standard
+  start. A game kept in this browser does not come through the page's check, so the game checks its own start before
+  the bot gets it, and stops with the same words. The bot refuses such a start too, with the check's first reason.
 - **The start's moves are the game's start:** the kept game counts them (`brought`), a takeback stops there, and the
   bot gets no `undo` past the start. The move list numbers the turns from the start's own.
 - **A game in progress:** the page asks first ("Play from this position?"), as Hedge School's does. Cyanotype keeps no
@@ -10430,3 +10432,11 @@ its Practice starts from the position that it brings, on the practice bot of `en
   start), a start that no game reaches (refused alone and as a record's start), and the question while a game is in
   progress. The whole layout test on the two previews (Chromium): 208 passed and 5 skipped, the analytics cases, which
   need `VITE_GA_ID`. Hedge School's practice tests passed unchanged.
+- **On the position check's final form** (abscls-8tl1.59's review): the branch moved onto it. The notices use its
+  words: the site's lead, then each reason as a sentence of its own, as on the Analysis board. The check of a kept
+  game's start is new, with a browser test: a kept game from a start that no game reaches stops before the bot plays,
+  and the bot plays no move. That test found a fault: the status line read "Stamp Duty starts…" for good when a game
+  failed before its first position (the check, or the bot's refusal of its start). It now gives the failure first.
+  Hedge School's Practice has the same order (`apps/hedgeschool/src/routes/practice/+page.svelte`), unchanged here.
+  Checked on that base: `npm run check:all` passed every step, with no unit test skipped. The whole layout test on
+  the two previews (Chromium): 226 cases, 221 passed and 5 skipped, the analytics cases, which need `VITE_GA_ID`.

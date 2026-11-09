@@ -23,6 +23,7 @@ import type { InputRules } from "../board/input.ts";
 import type { BoardMove, Player, SitePosition } from "../board/position.ts";
 import { moveText } from "../game/notation.ts";
 import { enginePosition } from "../game/position.ts";
+import { rulesBy, startProblem } from "../review/recordCheck.ts";
 import { ENGINE_NAME } from "../site.ts";
 import { botCommands, endResult, keep, type KeptPractice } from "./stampduty.ts";
 
@@ -77,10 +78,13 @@ export class PracticeGame {
   }
 
   /** Gives the bot the game's settings and its komi, sets its game to the game's start and the moves kept (a start
-   *  brought, a game from an earlier visit), notes a new build, and takes the turn up. The bot refuses a set-up start
-   *  that no game reaches, with the position check's first reason. */
+   *  brought, a game from an earlier visit), notes a new build, and takes the turn up. A set-up start that no game
+   *  reaches stops the game first, in the words of the card's notice (startProblem): the page checks a start brought,
+   *  but not a game kept in this browser. The bot refuses such a start too, with the position check's first reason. */
   async start() {
     try {
+      const unreached = this.kept.start ? await startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
+      if (unreached) throw new Error(unreached);
       const info = JSON.parse(await this.bot.command("blueprints-bot-info")) as { build: string };
       if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build); // a new build continues the game
       for (const line of botCommands(this.kept.bot, this.kept.komi)) await this.bot.command(line);

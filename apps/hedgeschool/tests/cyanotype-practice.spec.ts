@@ -223,6 +223,10 @@ const UNREACHED = (() => {
   }
   throw new Error("no empty hex beside one Blue cell");
 })();
+/** Why no game reaches UNREACHED, in the notices' words (checkProblem): the site's lead, then the engine's reason. */
+const TOUCH = "Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a wall: a placement captures each cell "
+  + "of the opponent that touches it, except walls\\.";
+const WHY = { it: `no game can reach it\\. ${TOUCH}`, its: `no game can reach its start\\. ${TOUCH}` };
 /** The game in progress, kept in this browser. */
 const kept = (page: Page) => page.evaluate(() =>
   JSON.parse(localStorage.getItem("cyanotype:practice-game:1") ?? "null") as
@@ -323,15 +327,14 @@ test("a start that no game reaches starts no practice game, and the card gives t
   await fromPosition(page);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  const why = "This position cannot occur in a game: Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a wall";
   await page.goto(at(`/practice#${new URLSearchParams({ position: UNREACHED })}`));
-  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^Practice cannot start from this position: ${why}`),
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^Practice cannot start from this position: ${WHY.it}$`),
                                                    { timeout: 120_000 });
   await expect(page.getByText(/^The game starts/)).toHaveCount(0);
   // A record from that start: refused too
   await page.goto("about:blank");
   await page.goto(at(`/practice#${new URLSearchParams({ position: UNREACHED, record: middle.legal[0] })}`));
-  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^Practice cannot start from this record: ${why}`),
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^Practice cannot start from this record: ${WHY.its}$`),
                                                    { timeout: 120_000 });
   expect(await kept(page)).toBeNull();
   // The card's game then starts from the standard start.
@@ -341,6 +344,23 @@ test("a start that no game reaches starts no practice game, and the card gives t
   expect(game?.start).toBeUndefined();
   expect(game?.brought).toBeUndefined();
   expect(game?.moves).toHaveLength(1); // the bot's first move, as Blue
+  expect(errors).toEqual([]);
+});
+
+test("a kept game from a start that no game reaches stops before the bot plays, in the card's words", async ({ page }) => {
+  await fromPosition(page);
+  const network = (await botManifest(page)).artifacts.find((a: { kind: string }) => a.kind === "model")!.id;
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  // The page checks a start brought, not a game kept in this browser: the game checks its own start before the bot.
+  await page.goto(at("/practice"));
+  await page.evaluate(([start, network]) => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify({
+    version: 1, bot: { network, visits: 8, variety: "low" }, human: 1, name: "", seed: 1, moves: [], builds: [],
+    started: new Date().toISOString(), start,
+  })), [UNREACHED, network]);
+  await page.reload();
+  expect(await turn(page)).toMatch(new RegExp(`^The game stopped: ${WHY.its}$`));
+  expect((await kept(page))?.moves).toEqual([]); // the bot played no move
   expect(errors).toEqual([]);
 });
 

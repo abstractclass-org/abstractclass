@@ -15,12 +15,11 @@ are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map
 editor and starts from a set-up position are built (abscls-8tl1.39, "Decision", item 10, and "The board editor"), with
 the engine's check that a game can reach a position (abscls-8tl1.59). The Analysis board's "Play the bot from here"
 and Practice from a set-up start are built (abscls-8tl1.40, "Practice against Stamp Duty", "From a position"). The
-early access is built, as Hedge School's
-("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
-player's games"), with their review files (abscls-8tl1.34, "The review files"), the review snapshot and the
-annotated record from the store (abscls-8tl1.35). Partner sites are designed, not built ("Partner sites"). The
-analytics and the consent banner are built as Hedge School's (abscls-8tl1.48, "Analytics and consent"). No build
-measures yet: PostHog replaces Google Analytics first (abscls-xb0k).
+early access is built, as Hedge School's ("Decision", item 11). The player's games, kept in this browser, are built as
+Hedge School's (abscls-8tl1.38, "The player's games"), with their review files (abscls-8tl1.34, "The review files"), the
+review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are designed, not built
+("Partner sites"). The analytics and the consent banner are built as Hedge School's (abscls-8tl1.48, "Analytics and
+consent"). No build measures yet: PostHog replaces Google Analytics first (abscls-xb0k).
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -474,10 +473,13 @@ one (`position`), and the moves from the start to the position on screen as a re
 
 1. **The check:** the engine's rules check the start brought as the Analysis board checks it (`recordCheck.ts`): a
    record's start and its moves (`recordProblem`), or a start alone (`startProblem`). A start that no game reaches, or
-   a move that the rules refuse, starts no game. The settings card says why, with the position check's first reason
-   ("Practice cannot start from this position: This position cannot occur in a game: ..."), and its game starts from
-   the standard start. The bot refuses such a start too, with the same reason (`blueprints-set-position`), so the
-   page's check is not the only one.
+   a move that the rules refuse, starts no game. The settings card says why, in the words of the Analysis board's
+   notice (`checkProblem`): "Practice cannot start from this position: no game can reach it.", then each of the
+   position check's reasons, its first reason first ("this record: no game can reach its start." for a record). Its
+   game starts from the standard start. A game kept in this browser does not come through the page's check, so the
+   game checks its own start before the bot gets it, and stops with the same words ("The game stopped: no game can
+   reach its start. ..."). The bot refuses such a start too, with the check's first reason
+   (`blueprints-set-position`), so the site's check is not the only one.
 2. **A game's position goes to the bot as its moves:** a board from the standard start sends its moves with
    `blueprints-set-game`. That is the game's search exactly. A position with no history searches differently from
    its game ("Decision", item 10, request 28's measurement), so the page never sends the position on screen as a
