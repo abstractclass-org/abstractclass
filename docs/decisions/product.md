@@ -10457,3 +10457,21 @@ its Practice starts from the position that it brings, on the practice bot of `en
   - Checked after the review: `npm run check:all` passed all 15 steps, with no unit test skipped. The whole layout
     test on the two previews (Chromium, on the CPU): 232 cases, 222 passed and 10 skipped, the analytics cases of
     both sites, which need `VITE_GA_ID`. The 12 cases of `tests/cyanotype-practice.spec.ts` passed.
+
+### Hedge School's kept Analysis board keeps the komi limit (2026-11-09)
+
+- **Decided** (abscls-4g8f, the owner's look of 2026-11-09): a board kept in this browser with a komi beyond the
+  record's limit does not open. A new board opens in its place, with the notice "The Analysis board cannot open your
+  own analysis: its komi must be from -5,052 to 5,052 points: 6000. A new board is here instead." So every way onto
+  the board keeps one limit: a link, an analysis file and the kept board ([design/24-practice.md](../design/24-practice.md),
+  item 15). Cyanotype's board does the same for a kept board that it cannot open (design 33).
+- **Measured before the change** (the build of dev with abscls-14vt, headless Chromium, the engine on CPU workers
+  only): a board kept at komi 6000 opened, and engine-d6786eba's analysis module searched it with no error. Its
+  numbers meant nothing: every candidate gave Blue 0.0%, and the lead was about Red +4,300 at 544 of 1,024 visits.
+  Only a practice module refuses a komi beyond its cap. Such a board comes only from a link opened before the link's
+  check (abscls-zdbo), and it cannot be shared or exported and opened again.
+- **The shared check:** `keptKomiProblem` in `packages/analysis/src/kept.ts` runs the kept board's komi through the
+  record's `komiLimitProblem`. The kept board stays stored until the first change on the new board, so the notice
+  shows again on each visit until then.
+- **Checked:** on dev 4c35db72 with this branch, `npm run check:all` passed all 16 steps, and the layout test
+  (headless Chromium) passed 230 cases and skipped 13: the analytics cases that need `VITE_GA_ID`.
