@@ -371,9 +371,8 @@ network changes.
 ## The engine's files
 
 Cyanotype takes the engine's files as Hedge School does (design 03): `apps/cyanotype/engine.lock.json` pins each
-file by its SHA-256, and `npm run engine` puts them in `static/engine/` with their manifest. It runs the site's
-`scripts/engine.mjs`, which runs the engine package's step (`packages/engine/src/fetch-engine.mjs`, which both sites
-use) with Cyanotype's komi limit. The page loads the files from there.
+file by its SHA-256, and `npm run engine` (`apps/cyanotype/scripts/engine.mjs`) puts them in `static/engine/` with
+their manifest. The page loads them from there.
 
 1. **The release:** `engine-887be290` (Stamp Duty 0.2), in the public repository
    [abstractclass-org/blueprints-engine](https://github.com/abstractclass-org/blueprints-engine), with its manifest.
@@ -1071,10 +1070,11 @@ checks the record's capture marks against them (`src/lib/review/storedReview.ts`
 rest. Hedge School's step gives its opening book's values. The label snapshot takes the same steps, so its quality
 labels are the ones that these show.
 
-1. **The review snapshot:** a game whose mark names an earlier engine module or another file of its network opens as
-   that review was, with the engine's rules alone and no network: the stored results of the mark's search, at the
-   mark's depth. A line under the players says "Reviewed on (date) with an earlier version of the engine." The
-   review searches nothing, and the Export waits ("Review again to export: this review used an earlier engine.").
+1. **The review snapshot:** a game whose mark names the CPU module of an earlier search or another file of its
+   network opens as that review was, with the engine's rules alone and no network: the stored results of the mark's
+   search, at the mark's depth. A line under the players says "Reviewed on (date) with an earlier version of the
+   engine." The review searches nothing, and the Export waits ("Review again to export: this review used an earlier
+   engine.").
    "Review again" reviews the game with the site's engine, and the earlier review stays on the board until the new
    results replace it. When the store lacks the earlier review's results, the review runs again at once, with the
    notice of "The player's games", item 9. When the record's capture marks are wrong, the page opens no review

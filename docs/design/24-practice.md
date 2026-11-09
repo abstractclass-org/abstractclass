@@ -384,9 +384,9 @@ How strong each setting plays against people is not measured yet.
   `PracticeFrame.svelte` (the game's layout: the row, the square board, the side column and the step bar), which
   Cyanotype's practice shares (design 33). The page gives their content. `ReplaceGame.svelte`: the question when a
   start comes while a game is in progress, with each site's words.
-- **The files:** the release's practice files in `engine.lock.json`, which `npm run engine` (the
-  site's `scripts/engine.mjs`, with the engine package's step) puts in `static/engine/engine-54486cd-lib/` and the
-  bot's module folders.
+- **The files:** the release's practice files in `engine.lock.json`, which `npm run engine` (`scripts/engine.mjs`)
+  puts in `static/engine/`: the libraries in the folder that the lock gives them (`dir`), and the bot's two modules
+  and its evaluator each in a folder of its own.
 - **The ways in:** the header, the sitemap, and the Analysis board's Play button (`src/routes/analysis/+page.svelte`).
 - **The komi:** its range, the choice, the kept game's field, the turn between the player's side and Red's
   (`komiSide`), its words (`komiHelp`, `komiLine`) and the GTP command in `packages/practice/src/practice.ts`, its

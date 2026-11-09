@@ -42,14 +42,15 @@ searching it again, and to share it as text that others can read.
    the Review tab.
    - **The mark of a finished review:** when a review ends, the browser keeps it with the game
      (`StoredGame.reviewed` in `src/lib/game/store.ts`): the CPU module's and the network's SHA-256 (from the site's
-     manifest), the module's search, the network's id, the review's depth, and the time. The CPU module is the engine
-     module that names the analysis's search. The mark names it when the GPU module searched too, since the page keeps
-     the GPU's results under the CPU module's build (design 15, item 5). A review snapshot reads the results of the
-     mark's search by their keys (design 20). An older mark, kept before marks held their search, has none.
+     manifest), the module's search, the network's id, the review's depth, and the time. The mark names the CPU module
+     also when the GPU module searched. The store keeps each result under its search, and the page takes the GPU
+     module only when its search is the CPU workers' (`packages/analysis/src/gpu.svelte.ts`). A review snapshot reads
+     the results of the mark's search by their keys (design 20). An older mark, kept before marks held their search,
+     has none.
      The home page reads the marks, so it needs no engine to know which games can export. A game exports when its
-     mark names a CPU module of the site's search (the site's own, or an earlier one of the same search, design 20,
-     item 7) and the network set now, at the review depth set now or deeper. A deeper mark for the same engine and
-     network stays.
+     mark names a CPU module of the site's search and the network set now, at the review depth set now or deeper.
+     The CPU modules of the site's search are the site's own and the earlier ones that search as it does
+     (design 20, item 7). A deeper mark for the same engine and network stays.
    - **A safety net:** the home page's annotated record also refuses a game whose positions lack a stored result
      ("open the game to review it first", or "to finish its review first"). Every game shares the start, so the start
      does not count. A position that the opening book holds counts as having a result: the record takes the book's

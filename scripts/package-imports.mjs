@@ -12,7 +12,7 @@
 // Tests: node --test "scripts/*.test.mjs"
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { sites as allSites } from "./sites.mjs";
+import { gameSites } from "./sites.mjs";
 
 const CODE = /\.(?:ts|mts|js|mjs|svelte)$/;
 /** An import's or an export's path: `… from "P"`, `import "P"` and `import("P")`. */
@@ -77,7 +77,7 @@ function codeFiles(dir) {
  *  null) in a file that COMPUTED_PATHS does not name. */
 export function check(root) {
   const apps = join(root, "apps");
-  const sites = new Set(allSites(root).map(s => s.name));
+  const sites = new Set(gameSites(root).map(s => s.name));
   return codeFiles(join(root, "packages")).flatMap(path => {
     const file = relative(root, path).replaceAll("\\", "/"), text = readFileSync(path, "utf8");
     const ofSites = specifiers(text).filter(({ specifier }) => importsSite(path, specifier, apps, sites))
