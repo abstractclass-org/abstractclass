@@ -1861,16 +1861,17 @@
        at its full size, the column as wide as the widest name, and the table wider than its box, which then scrolls
        to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
        (`glyphs`) sit on the middle of its line: their Label sets that (game.ts, `Label`).
-       The box is a container, as wide as the closed table. Where it is 24rem wide or more, the Lead column takes
-       5.5rem in place of 4.75rem, so that a lead has room to spare beside the visits. 24rem is the four other columns
-       and Cyanotype's widest name at its full size: from there every name keeps its full size. The rule goes by the
+       The box is a named container (`candidates`), as wide as the closed table: its content width leaves out the
+       scroll bar's room. Where it is 24rem wide or more, the Lead column takes 5.5rem in place of 4.75rem, so that a
+       lead has room to spare beside the visits. 24rem is the four other columns and the widest name of Cyanotype's
+       test game at its full size, in Glyphs: from there that game's names keep their full size. The rule goes by the
        box, not the window, since the window's height sets the side column's width too (docs/decisions/product.md,
        "The Lead column in a wide window, measured on Cyanotype"). -->
-  <div class="@container flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
+  <div class="@container/candidates flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
   <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"
          bind:this={table} style:width={movesOpen ? `max(100%, ${nameFit.open}px)` : undefined}>
-    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]:w-22" /><col class="w-12" /></colgroup>
+    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" /><col class="w-12" /></colgroup>
     <thead>
       <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
         <!-- The Move header, while it can open or close the column: a button, its mark after the word. A click does not

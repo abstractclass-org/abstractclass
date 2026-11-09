@@ -9833,8 +9833,8 @@ its end. Both sites share the colgroup. The measurement is `apps/hedgeschool/scr
   +1.2k"), so a lead never has more than three digits before its letter. The position on screen takes up to 16,384
   visits, so Visits can have five digits. Win chance runs to "100.0%".
 
-The fixed columns, the same at every width and in both notations (pixels; "Room" is the cell less its padding of
-4 pixels a side; "Fits all" is the widest of the header, the values seen and the values possible, with the padding):
+The fixed columns, the same at every width and in both notations, in pixels. "Room" is the cell less its padding of
+4 pixels a side. "Fits all" is the widest of the header, the values seen and the values possible, with the padding.
 
 | Column | Column | Room | Header | Widest value seen | Cut | Left over: median / least | Widest possible | Fits all |
 |---|---:|---:|---|---|---:|---|---|---:|
@@ -9843,7 +9843,7 @@ The fixed columns, the same at every width and in both notations (pixels; "Room"
 | Lead | 76 | 68 | 30 (Lead) | 62.7 (Blue +104) | 0 of 666 | 16 / 5.3 | 65.4 (Blue +1.2k) | 73.4 |
 | Visits | 48 | 40 | 33.4 (Visits) | 23.7 (394) | 0 of 666 | 32.5 / 16.3 | 37.1 (16384) | 45.1 |
 
-The Move column (pixels; "Smaller" is a name drawn below its full size and not cut, down to the least size of 65%):
+The Move column, in pixels. "Smaller" is a name drawn below its full size and not cut, down to the least size of 65%.
 
 | Notation | Width | Move | Room | Full size | Smaller | Least size | Median smaller size | Cut | Widest at full size |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -9919,7 +9919,7 @@ Move have room, and how wide should Lead be there? The measurement is the same s
 
 **The Lead values.** No lead is cut in Segoe UI, at any window. The widest lead seen is "Blue +104" (62.7 pixels, after
 move 10), in a room of 68 pixels: 5.3 pixels are left. Leads of 100 or more are common in the game's second half: all
-five rows in view after move 36 have them. The widest possible lead is "Blue +1.2k" (65.4 pixels; 69.7 in the Arial
+five rows in view after move 36 have them. The widest possible lead is "Blue +1.2k" (65.4 pixels, and 69.7 in the Arial
 stand-in, which is cut). A lead from 1,000 on is written short, so a lead never has four digits. The cell shows no
 "±" part. So Lead is not too narrow for its values in Segoe UI, but it is tight: the gap from a lead's end to the
 Visits column's text is 13.3 pixels at least, where Win chance's gap is 32.9. A wider system font can cut it.
@@ -9929,8 +9929,8 @@ two columns (board and side) from 800, and three (summary, board and side) from 
 side column is 364 to 460 pixels wide. On Cyanotype the board is a square as high as the window allows, so the
 window's height sets the side column's width as much as its width does. The table is the side column less 49
 pixels. Move is what the table leaves after 224 pixels of the other columns. The widest name at full size is 139.9
-pixels in Glyphs and 109.2 in Text. Measured (pixels; "Spare" is the least room that the names leave at full size, a
-negative number where names are drawn smaller):
+pixels in Glyphs and 109.2 in Text. Measured, in pixels. "Spare" is the least room that the names leave at full size, a
+negative number where names are drawn smaller.
 
 | Window | Side | Table | Move | Spare, Glyphs | Spare, Text |
 |---|---:|---:|---:|---:|---:|
@@ -9954,9 +9954,12 @@ room to give. One window width can fall on either side (1,376 by 768 has room, 1
 pixels) wide, and keeps 4.75rem where it is narrower. The rule goes by the table's width, not the window's, since the
 height decides the side column's width too. In the site's code it is a container query: `@container` on the table's
 box and `@min-[24rem]:w-22` on Lead's `col`. 24rem is the four other columns (28, 72, 88 and 48 pixels) and the
-widest name in Glyphs at full size with its cell's padding (148 pixels): above it, every name keeps its full size.
-88 pixels give every lead room: "Blue +104" leaves 17.3 pixels, "Blue +1.2k" 14.6, and the Arial stand-in 10.3. The
-gap from a lead to Visits is then 25.3 pixels at least, nearer Win chance's 32.9. With the proposal (`--lab`):
+test game's widest name in Glyphs at full size with its cell's padding (148 pixels): above it, every name of the test
+game keeps its full size. A longer name can still be drawn smaller there: the longest edit of the strategyjam.org
+archive is 142.8 pixels in Text (`apps/cyanotype/src/lib/review/table.ts`), and at 24rem the Move column has 140
+pixels of room. 88 pixels give every lead room: "Blue +104" leaves 17.3 pixels, "Blue +1.2k" 14.6, and the Arial
+stand-in 10.3. The gap from a lead to Visits is then 25.3 pixels at least, nearer Win chance's 32.9. With the
+proposal (`--lab`):
 
 - Lead is 88 pixels at 768, 1152x864, 1259x800, 1376x768 and from 1536x864 to 1920x1080, and 76 at the other windows.
   No value of any column is cut.
@@ -9970,21 +9973,24 @@ gap from a lead to Visits is then 25.3 pixels at least, nearer Win chance's 32.9
 Edge column gives 12 pixels only where it keeps at least 148, far more than its names of 5 to 7 characters need. Its
 leads are in points and short, so they gain only room.
 
-The crops (not committed, `look-8tl1.68/`) show the position after move 36, in Glyphs, light and dark: all five rows
-in view have three-digit leads ("Red +140" to "Red +160") and four have two-move names. At 1,376 by 768 and 1,920 by
-1,080 Lead widens and every name keeps its size. At 1,376 by 952 the before and after crops are the same.
+The crops (the script's `--crops`, not committed) show the position after move 36, in Glyphs, light and dark: all
+five rows in view have three-digit leads ("Red +140" to "Red +160") and four have two-move names. At 1,376 by 768
+and 1,920 by 1,080 Lead widens and every name keeps its size. At 1,376 by 952 the before and after crops are the
+same.
 
 **Built.** The proposal is taken as it stands: Lead is 5.5rem where the candidates table is at least 24rem wide, and
 4.75rem where it is narrower. Win chance and the other columns keep their widths. In the shared colgroup
-(`packages/review/src/ReviewView.svelte`, `engineTable`), the table's box is the container (`@container`), and Lead's
-`col` has `w-19 @min-[24rem]:w-22`. The box keeps room for its scroll bar at all times, and a container query reads
-the box's content width, which leaves that room out. So the query reads the table's own width. Measured in the built
-site (headless Chromium, `playwright.config.ts`'s launch options, off the GPU), the box's content width and the table's
-width are the same at every window, on both sites. The query takes the box as meant: at 1,024 by 768 (a table of 377
-pixels) and 1,366 by 768 (382) Lead stays 76 pixels, and at 1,376 by 768 (387) it is 88. A query on the box with its
-scroll bar's room (392 and 397 pixels) would widen Lead at the first two.
+(`packages/review/src/ReviewView.svelte`, `engineTable`), the table's box is a named container
+(`@container/candidates`), and Lead's `col` has `w-19 @min-[24rem]/candidates:w-22`. The name keeps the query on
+the box, also if a container is added later between the box and the `col`. The box keeps room for its scroll bar
+at all times, and a container query reads the box's content width, which leaves that room out. So the query reads
+the table's own width. Measured in the built site (headless Chromium, `playwright.config.ts`'s launch options, off
+the GPU), the box's content width and the table's width are the same at every window, on both sites. The query
+takes the box as meant: at 1,024 by 768 (a table of 377 pixels) and 1,366 by 768 (382) Lead stays 76 pixels, and at
+1,376 by 768 (387) it is 88. A query on the box with its scroll bar's room (392 and 397 pixels) would widen Lead at
+the first two.
 
-**Cyanotype, measured in the built site.** The script ran on a Cyanotype build of the branch on dev at a2f5be8
+**Cyanotype, measured in the built site.** The script ran on a Cyanotype build of the change on dev at a2f5be8
 (`VITE_EDITION=early`), at the windows of the measurement above and 360, in Glyphs and Text. Each number is the same as
 in the `--lab` run. Lead is 88 pixels at 768, 1152x864, 1259x800, 1376x768 and from 1536x864 to 1920x1080, and 76 at
 360, 390, 1024x768, 1260x800, 1280x800, 1366x768, 1376x952 and 1440x900. No value of any column is cut. Where Lead
@@ -9994,14 +10000,14 @@ same as in a build of dev.
 
 **Hedge School, measured.** The script now also opens Hedge School's review (`--site hedgeschool`): the review file of
 the layout test (`tests/fixtures/hedgefund-review.json`, 120 edges), read at every position in the default edge
-notation, at the same windows, on a build of dev and on a build of the branch. Hedge School's side column is as wide as
+notation, at the same windows, on a build of dev and on a build of the change. Hedge School's side column is as wide as
 Cyanotype's at most windows (447 pixels at 1680x1050, 458 at 1152x864, 402 at 1440x900). Lead widens at the same
 windows as on Cyanotype. Its leads are in points, and in the second half of this game they have three digits (the
 widest, "Blue +114", 62.7 pixels). No Lead value is cut: they leave 5.3 pixels at least at 76 pixels, and 17.3 at 88.
 The Edge column's names are 5 to 7 characters (62.7 pixels at most), and they keep their full size at every window
 from 768 on, before and after. The least room that they leave, in pixels:
 
-| Window | Lead | Edge column, dev | Edge column, branch |
+| Window | Lead | Edge column, dev | Edge column, with the change |
 |---|---:|---:|---:|
 | 360 | 76 | −28.9 (names at 70%) | −28.9 (names at 70%) |
 | 390 | 76 | 1.1 (names at 97%) | 1.1 (names at 97%) |
@@ -10017,6 +10023,11 @@ Two cuts on Hedge School do not come from the column widths, and are the same on
 or later ("100" to "103", at the game's last position) is 3.8 pixels wider than the Rank column's room, and 28 names
 with wide letters (such as "M10-N11", 58.8 pixels) are wider than the name's slot at every window.
 
-The crops (not committed, `look-8tl1.68/round3/`) show the table at 1,376 by 768 and 1,920 by 1,080, light and dark,
-on Cyanotype after move 36 in Glyphs and on Hedge School after edge 36. Each is from a build: "before" from dev and
-"after" from the branch.
+**The named container, measured again.** The numbers above are from a build in which the box is a container with no
+name. The script ran again on a build with the named container (`@container/candidates`), on both sites, at the same
+windows. Each number is the same. The run also measured two phones held sideways, 740 by 360 and 844 by 390: Lead is
+88 pixels there, no Lead value is cut, and Cyanotype's names keep their full size.
+
+The crops (the script's `--crops`, not committed) show the table at 1,376 by 768 and 1,920 by 1,080, light and
+dark, on Cyanotype after move 36 in Glyphs and on Hedge School after edge 36. Each is from a build: "before" from a
+build without the wide Lead column, and "after" from a build with it.
