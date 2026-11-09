@@ -89,7 +89,8 @@ engine does by itself.
        Cyanotype shows too (`setUpRefusal` in `packages/record`), and sends the player to the Analysis board, which
        takes the game. A game of other rules turns off both ways, each with its own reason. The review's reason says
        that Hedge School reviews games of the online rules only. The board's reason says that the Analysis board shows
-       only those games.
+       only those games. Each reason is the one that its page gives after the click (`variantProblem`), so the card
+       and the page cannot say different things.
      - **A partner's link** (design 18) goes straight to the review. Its button says "Review".
    - **The board's New menu,** beside its Export: every way to start the board again. Each replaces the analysis kept
      here, after the board asks (item 6).
@@ -128,7 +129,8 @@ engine does by itself.
    - **The record carries the start:** the notation's `[Position "…"]` tag (engine design 04, as PGN's `FEN` tag),
      with the moves after it. The board reads it, and its record export writes it. A review refuses such a record,
      and says to open it on the board (`variantProblem` in `src/lib/game/import.ts`): a review is of a game played
-     from the standard start.
+     from the standard start. The board takes the record. It refuses a record of other rules, in its own words: "The
+     Analysis board shows games of the online rules only."
    - **A link and a file carry it:** the board's link packs it in its tags as `Position`, as a record carries it, and
      the analysis file keeps it in its board (`start`). A record's komi goes the same way (design 24): `Komi` in the
      link's tags, and `komi` in the file's board.

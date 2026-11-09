@@ -28,7 +28,8 @@ test("a game of other rules, or from another start, is refused; the online rules
   assert.equal(variantProblem(game('[Event "?"]')), null);
   assert.match(variantProblem(rulesGame) ?? "", /other rules \(Race to 2000\)/);
   assert.match(variantProblem(setUp) ?? "", /another position/);
-  assert.equal(variantProblem(setUp, true), null); // the Analysis board takes it
+  assert.equal(variantProblem(setUp, "analysis"), null); // the Analysis board takes it
+  assert.equal(variantProblem(setUp, "practice"), null); // and Practice
   assert.equal(variantProblem(game('[Position "A10-D10 Q10-T10 b1 0/0 0"]')), null); // the standard start, written out
   assert.equal(variantProblem(game('[Rules "?"]')), null);
 });
@@ -41,6 +42,14 @@ test("the arrival's ways: a set-up start turns off the review only, and other ru
     analyze: "This game uses other rules (Race to 2000). The Analysis board shows games of the online rules only.",
   });
   assert.deepEqual(wayRefusals(game('[Event "?"]')), { review: null, analyze: null });
+});
+
+test("each page refuses a game of other rules in its own words", () => {
+  const uses = "This game uses other rules (Race to 2000). ";
+  assert.equal(variantProblem(rulesGame), uses + "Hedge School reviews games of the online rules only.");
+  assert.equal(variantProblem(rulesGame, "analysis"), uses + "The Analysis board shows games of the online rules only.");
+  assert.equal(variantProblem(rulesGame, "practice"), uses + "Practice plays games of the online rules only.");
+  assert.equal(wayRefusals(rulesGame).analyze, variantProblem(rulesGame, "analysis")); // the arrival's card, the board's page
 });
 
 test("the game's own page comes from a web address in Site, and from nothing else", () => {

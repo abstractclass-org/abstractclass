@@ -99,6 +99,9 @@ How strong each setting plays against people is not measured yet.
    Practice at the position on screen, as Lichess's "Continue from here" plays the computer from a position: the
    board's set-up start when it has one, and the moves from the start to the position on screen. It is not in the New
    menu: New makes a new board.
+   - **A record of other rules is refused** (its `Rules` tag), in Practice's own words (`variantProblem` in
+     `src/lib/game/import.ts`): "Practice cannot start from this record: This game uses other rules (X). Practice
+     plays games of the online rules only." The bot plays the online rules only. A set-up start is no refusal.
    - **The bot from a set-up start:** `enclosure-set-position` (the bot's interface 0.1.1, request 20), before the
      record's moves. The bot refuses a position that no game reaches, as the position check does.
    - **The record's edges are the game's start:** a takeback stops at them, as they were not played against the bot.

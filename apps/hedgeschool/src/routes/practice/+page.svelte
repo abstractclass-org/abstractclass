@@ -98,7 +98,7 @@
     if (record !== null || position !== null) {
       try {
         // A record's own Position tag, or the start given beside it (withStart), with its turns numbered from there.
-        const r = record ? parseRecord(withStart(record, position)) : null, problem = r && variantProblem(r, true);
+        const r = record ? parseRecord(withStart(record, position)) : null, problem = r && variantProblem(r, "practice");
         if (problem) throw new Error(problem);
         brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
       } catch (e) {

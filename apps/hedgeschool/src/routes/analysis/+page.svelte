@@ -146,7 +146,7 @@
     const mismatch = givenStartProblem(record.tags, position, setUpStart);
     if (mismatch) throw new RecordProblem(mismatch, "rejected");
     if (position) record = { ...record, tags: { ...record.tags, Position: position } };
-    const variant = variantProblem(record, true);
+    const variant = variantProblem(record, "analysis");
     if (variant) throw new RecordProblem(variant, "rejected");
     const { problem } = await checkMoves(record);
     if (problem) throw new RecordProblem(problem, "rejected");
