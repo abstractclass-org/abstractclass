@@ -516,14 +516,21 @@ test("layout of the area map's note in a review snapshot", async ({ page }) => {
 
 // The weak walls (design 30, "The weak walls"), a prototype: their switch in the board's margin beside the area map's,
 // then their note or their legend. With the site's released engine (protocol 0.6.1) the note says that the engine
-// gives none, and is cut at 360 pixels. With a module of 0.6.2 the marks show, and the legend while the area map is
-// off. Either fits the margin at every width: on the review with the area map off and on, and on the Analysis board,
-// at 360 × 700 and on a desktop.
+// gives none. With a module of 0.6.2 the marks show, and the legend while the area map is off. Either fits the margin
+// at every width, and its text ends with no ellipsis: a phone shows no title (decisions/product.md, "The review's
+// one-line texts at 360 pixels"). On the review with the area map off and on, and on the Analysis board, at 360 × 700
+// and on a desktop.
 test("layout of the weak walls", async ({ page }) => {
   /** The walls shown, or their final note: not while their search waits or runs. */
   const settled = () => expect(page.locator("g.walls circle").first()
-    .or(page.getByRole("status").filter({ hasText: /^No weak walls/ }))).toBeVisible({ timeout: 120_000 });
+    .or(page.getByRole("status").filter({ hasText: /^Weak walls: not in this engine$/ }))).toBeVisible({ timeout: 120_000 });
   const switchOn = () => expect(page.getByRole("button", { name: "Weak walls" })).toHaveAttribute("aria-pressed", "true");
+  /** The walls' note, legend or reading that its line cuts with an ellipsis. */
+  const wallsFit: OwnRules = p => p.locator(".map-margin").evaluate(m =>
+    [...m.querySelectorAll<HTMLElement>('[role="status"], div[aria-label="Weak walls"] > span')]
+      .filter(e => e.textContent!.startsWith("Weak walls") || e.parentElement!.matches('[aria-label="Weak walls"]'))
+      .filter(e => e.scrollWidth > e.clientWidth)
+      .map(e => `the weak walls' text "${e.textContent}" is cut: ${e.scrollWidth} pixels in ${e.clientWidth}`));
   const reports: string[] = [];
   await reviewedGame(page);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
@@ -532,15 +539,17 @@ test("layout of the weak walls", async ({ page }) => {
   await page.keyboard.press("w");
   await switchOn();
   await settled();
-  reports.push(await sweep(page, "/review, the weak walls on", undefined, [700, 1000]));
-  await page.keyboard.press("t"); // the area map too: its legend shows, beside the two switches
-  reports.push(await sweep(page, "/review, the weak walls and the area map", undefined, [700]));
+  reports.push(await sweep(page, "/review, the weak walls on", wallsFit, [700, 1000]));
+  // The area map too: its legend shows beside the two switches, or the walls' note in its place
+  await page.keyboard.press("t");
+  reports.push(await sweep(page, "/review, the weak walls and the area map", wallsFit, [700]));
   // The Analysis board keeps its own setting, and its area map is on by default
   await page.goto("/analysis");
   await expect(page.getByRole("button", { name: "Weak walls" })).toBeVisible({ timeout: 60_000 });
   await page.keyboard.press("w");
   await switchOn();
-  reports.push(await sweep(page, "/analysis, the weak walls on", undefined, [700, 1000]));
+  await settled();
+  reports.push(await sweep(page, "/analysis, the weak walls on", wallsFit, [700, 1000]));
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 

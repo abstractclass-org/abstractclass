@@ -29,8 +29,7 @@
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
   import { signInk, type AreaMark, type SignKind } from "@abstractclass/review/ownership.ts";
   import { brushFor, drawnNote, samePoint, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
-  import type { WallForm } from "@abstractclass/review/game.ts";
-  import { gaugePath, wallMix, wallRadius, type WallMark } from "#lib/review/weakWalls.ts";
+  import { wallMix, type WallMark } from "#lib/review/weakWalls.ts";
 
   interface Props {
     position: Position;
@@ -62,9 +61,8 @@
     // The area map (design 30), when it shows: by point (index y * 19 + x), its mark (ownership.ts)
     areaMap?: (AreaMark | null)[] | null;
     // The weak walls (design 30, "The weak walls"), when they show: a mark at each lattice point of a player's edges
-    // by the chance that an edge there is cut, in one of the forms to compare (weakWalls.ts)
+    // by the chance that an edge there is cut (weakWalls.ts)
     walls?: WallMark[] | null;
-    wallForm?: WallForm;
     // The lattice point under a mouse's pointer, or null when it leaves the board: the page shows its numbers. Touch
     // gives none, as a touch is edge input.
     onpointat?: (point: [number, number] | null) => void;
@@ -75,7 +73,7 @@
     layers: layersSet = {},
     pending = null, ends = null, active = null, view = [0, 0, 18, 18], targets = [], onpoint, rightClicks = false, onlyActive = false,
     oncandidate, oncandidateclick, oncandidatedblclick, notes = [], onnotes,
-    areaMap = null, onpointat, walls = null, wallForm = "size",
+    areaMap = null, onpointat, walls = null,
   }: Props = $props();
 
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
@@ -346,16 +344,6 @@
     {/each}
   {/if}
 
-  <!-- The weak walls' size form (design 30, "The weak walls"): a disc under the edges, whose area grows with the
-       chance, so that the wall and its nodes stay on top of it -->
-  {#if walls && wallForm === "size"}
-    <g class="walls" aria-hidden="true">
-      {#each walls as w (w.y * N + w.x)}
-        <circle cx={w.x} cy={sy(w.y)} r={wallRadius(w.chance)} class="wall-disc" />
-      {/each}
-    </g>
-  {/if}
-
   {#each points as [x, y] (x * N + y)}
     <circle cx={x} cy={sy(y)} r="0.07" class="dot" />
   {/each}
@@ -386,21 +374,14 @@
     {/each}
   {/each}
 
-  <!-- The weak walls' ring forms (design 30, "The weak walls"), over the edges and their nodes, with a halo in the
-       board's colour that keeps each ring whole where it meets an edge: a ring of one size whose colour darkens with the
-       chance (colour), or a ring filled from the top as far as it (gauge). -->
-  {#if walls && wallForm !== "size"}
+  <!-- The weak walls (design 30, "The weak walls"): a ring of one size round each point, whose colour darkens with the
+       chance, over the edges and their nodes. A halo in the board's colour keeps each ring whole where it meets an
+       edge. -->
+  {#if walls}
     <g class="walls" aria-hidden="true">
       {#each walls as w (w.y * N + w.x)}
-        {@const cx = w.x}
-        {@const cy = sy(w.y)}
-        <circle {cx} {cy} r="0.27" class="wall-halo" />
-        {#if wallForm === "colour"}
-          <circle {cx} {cy} r="0.27" class="wall-ring" style:stroke="color-mix(in oklab, var(--wall-high) {wallMix(w.chance)}%, var(--wall-low))" />
-        {:else}
-          <circle {cx} {cy} r="0.27" class="wall-track" />
-          <path d={gaugePath(cx, cy, 0.27, w.chance)} class="wall-gauge" />
-        {/if}
+        <circle cx={w.x} cy={sy(w.y)} r="0.27" class="wall-halo" />
+        <circle cx={w.x} cy={sy(w.y)} r="0.27" class="wall-ring" style:stroke="color-mix(in oklab, var(--wall-high) {wallMix(w.chance)}%, var(--wall-low))" />
       {/each}
     </g>
   {/if}
@@ -545,12 +526,9 @@
 <style>
   .board { width: 100%; height: auto; display: block; user-select: none; }
   .bg { fill: var(--board-bg); }
-  /* The weak walls' marks: the size form's disc under the edges, the ring forms with a halo in the board's colour */
-  .wall-disc { fill: var(--wall-high); fill-opacity: 0.55; }
+  /* The weak walls' rings, each on a halo in the board's colour */
   .wall-halo { fill: none; stroke: var(--board-bg); stroke-width: 0.18; }
   .wall-ring { fill: none; stroke-width: 0.1; }
-  .wall-track { fill: none; stroke: var(--wall-low); stroke-width: 0.04; stroke-opacity: 0.7; }
-  .wall-gauge { fill: none; stroke: var(--wall-high); stroke-width: 0.11; stroke-linecap: butt; }
   .coord { font-size: 0.42px; fill: var(--muted); text-anchor: middle; font-family: system-ui, sans-serif; }
   .dot { fill: var(--board-dot); }
   .region { stroke: none; }

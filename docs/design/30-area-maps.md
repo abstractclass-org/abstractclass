@@ -4,7 +4,8 @@
 position that the board shows, the maps that a stored review lacks added on demand, the map's state, the map stage, and
 the maps of a review snapshot. 2026-11-04: the signs of after vs before in green and yellow, by good and bad for the
 player who chose. 2026-11-08: a prototype of the weak walls, for a look before a decision ("The weak walls: a
-prototype").
+prototype"). 2026-11-09: the weak walls in one form, a ring whose colour gives the chance, and the margin's texts
+that fit a window 360 pixels wide.
 
 ## The players and their questions
 
@@ -350,8 +351,8 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 
 ## The weak walls: a prototype
 
-**Status:** a prototype, built for a look on the page. It decides nothing yet. The look decides the points below
-("What the look decides").
+**Status:** a prototype, built for a look on the page. The look kept the weak walls in one form: a ring of one size,
+from a light to a dark brown, at each point from 10% up. The points in "Still open" are not decided.
 
 ### What the engine gives
 
@@ -376,45 +377,50 @@ chance that one of them is cut. So the board marks the points, and names no chan
    the right of the area map's switch, shows or hides them, and so does the key w.
 2. **A mark at each point whose chance is 10% or more** (`WALL_MIN` in `src/lib/review/weakWalls.ts`). In HedgeFund
    0.2's self-play, about half of the points on edges are under 10%, and 1.6% of those were cut.
-3. **Three forms to compare** (the display setting "Weak walls' form"). Each mark is in one colour, a brown on the
-   light board and an amber on the dark board, apart from the players' blue and red and the signs' green and yellow
-   (`--wall-high` and `--wall-low` in `src/app.css`):
-   - **Size:** a disc under the edges, whose area grows with the chance (radius 0.36 at 1, 0.11 at 10%). The wall
-     and its nodes stay on top of it, so the disc shows round the node as a band.
-   - **Colour:** a ring of one size whose colour goes from `--wall-low` at 10% to `--wall-high` at 1.
-   - **Gauge:** a ring filled from the top, clockwise, as far as the chance: a quarter of the ring is 25%.
-
-   The two rings are over the edges and the nodes, with a halo in the board's colour that keeps each ring whole where
-   it meets an edge.
+3. **A ring of one size at each marked point, whose colour gives the chance.** The colour goes from `--wall-low` at
+   10% to `--wall-high` at 1 (`wallMix` in `src/lib/review/weakWalls.ts`, the tokens in `src/app.css`): from a light
+   to a dark brown on the light board, and from a dim to a bright amber on the dark board. Its hue is apart from the
+   players' blue and red and the signs' green and yellow. The ring is over the edges and the nodes, with a halo in the
+   board's colour that keeps it whole where it meets an edge. The prototype also drew two other forms for the look: a
+   disc under the edges whose area grew with the chance, which hid chances near 25% under the edges' nodes, and a
+   ring filled from the top as far as the chance.
 4. **The legend and the numbers:** while the weak walls show and the area map does not, the legend's line says
-   "Weak walls: the chance that an edge at each point is cut", or "Weak walls: no point of an edge at 10% or more"
-   where no point is marked. While the mouse's pointer is on a point of an edge, the line gives its reading in its
-   place, for example "E5 · Blue's wall here: cut chance 62%" (`wallReading`). With the area map on too, the area
-   map's legend shows, and the reading of a point on an edge takes its place under the pointer.
+   "Weak walls: darker means weaker", or "Weak walls: none at 10% or more" where no point is marked. While the mouse's
+   pointer is on a point of an edge, the line gives its reading in its place, for example "E5 · Blue · cut chance 62%"
+   (`wallReading`). With the area map on too, the area map's legend shows, and the reading of a point on an edge
+   takes its place under the pointer.
 5. **The position on screen only.** While a line or a preview shows, the board shows another position, and the
-   walls hide. The legend's slot then says "Weak walls: for the position on screen only".
+   walls hide. The legend's slot then says "Weak walls: not with a line". With the area map on, it says nothing: the
+   map's legend names the line's position.
 6. **From the CPU engine.** The GPU module refuses the field, so the search runs on a CPU worker (`askWalls` in
    `packages/analysis/src/analysis.svelte.ts`, and the pool's `cpu` task in `packages/engine/src/pool.ts`), also while
    the GPU searches. It has one visit and the priority of a map's short search.
-7. **The work is visible,** as the area map's (item 9): "Weak walls: waiting for the engine", "Weak walls: searching",
-   "No weak walls: the game ends here", and in a review snapshot "No weak walls: review snapshots do no searches".
-   A module before protocol 0.6.2 ignores the field, and the slot says "No weak walls: this engine version does not
-   give them". The site's release `engine-d6786eba` answers 0.6.1, so the walls need a release of 0.6.2
+7. **The work is visible,** as the area map's (the decision's item 9): "Weak walls: waiting", "Weak walls:
+   searching", "Weak walls: the game ends here", and in a review snapshot "Weak walls: none in snapshots". A module
+   before protocol 0.6.2 ignores the field, and the slot says "Weak walls: not in this engine". The site's release
+   `engine-d6786eba` answers 0.6.1, so the walls need a release of 0.6.2
    ([requests/30-weak-walls-release.md](../requests/30-weak-walls-release.md)).
+   One note shows at a time, the map's first. While the walls' note shows, it takes the place of the map's legend:
+   the two do not fit side by side in a window 360 pixels wide.
 8. **Kept for the page's visit only:** not in the store, in a review file or in a review snapshot.
+9. **Each text fits the margin of a window 360 pixels wide,** with no ellipsis, as the review's other one-line texts
+   do (docs/decisions/product.md, "The review's one-line texts at 360 pixels"): a phone shows no title. At 360 × 700
+   the board is 313 pixels wide, and the two switches leave 219 pixels. A note has 207 of them inside its padding, and
+   the legend's line 215. In DejaVu Sans at 12 pixels (Linux's `system-ui`, wider than Segoe UI), the longest note,
+   "Weak walls: the game ends here", takes 196 pixels, the legend 205, and the widest reading, "M18 · Blue · cut
+   chance under 1%", 203. The layout test checks that no walls' text ends with an ellipsis, at every width.
 
-### What the look decides
+### Still open
 
-- **The form:** Size, Colour or Gauge, or none of them.
 - **The walls and the area map:** a setting of its own beside the map, as here, or a style of the map's switch.
-- **The smallest chance marked:** a fixed 10%, or the player's own, as the map's smallest value marked (item 3).
-- **A line's walls:** whether the walls follow a line as it is drawn, as the area map does (item 5).
-- **Stored or not:** whether the walls are kept with the maps (item 6), for a review file and a review snapshot.
+- **A line's walls:** whether the walls follow a line as it is drawn, as the area map does (the decision's item 5).
+- **Stored or not:** whether the walls are kept with the maps (the decision's item 6), for a review file and a
+  review snapshot.
 
 ### Positions that show them
 
 - **The review fixture** (`apps/hedgeschool/tests/fixtures/hedgefund-review.json`, by "Load a review file"): Home,
-  then → 40 times. Four points are marked, and the pointer on G10 reads "G10 · Blue's wall here: cut chance 26%".
+  then → 40 times. Four points are marked, and the pointer on G10 reads "G10 · Blue · cut chance 26%".
   In this game few points reach 10%: after 30 edges none does, and the legend says so.
 - **The Analysis board:** from the start, Space six times (the engine's first choice each time). The opening's long
   walls are marked at 14 to 29 points, from 10% to above 50%, on both sides.
@@ -442,12 +448,12 @@ chance that one of them is cut. So the board marks the points, and names no chan
   at the positions that a review snapshot reads),
   `src/lib/game/reviewFile.ts` and `src/lib/game/analysisFile.ts` (the files at shape 5),
   `packages/engine/src/protocol.ts` (the fields).
-- The weak walls' prototype: `src/lib/review/weakWalls.ts` (`wallMarks`, `wallRadius`, `wallMix`, `gaugePath`,
-  `wallReading`, `WALL_MIN`; tests: `weakWalls.test.ts`), the marks in `src/lib/board/Board.svelte` (the props
-  `walls` and `wallForm`), `askWalls`, `wallsAt` and `wallState` in `packages/analysis/src/analysis.svelte.ts`, the
-  pool's `cpu` task in `packages/engine/src/pool.ts` (tests: `pool.test.ts`), `weakWalls` in
-  `packages/engine/src/protocol.ts`, and the switch, the legend, the setting and the key w in
-  `packages/review/src/ReviewView.svelte` (`wallsOn`, `shownWalls`, `wallWork`, `wallReading`).
+- The weak walls' prototype: `src/lib/review/weakWalls.ts` (`wallMarks`, `wallMix`, `wallReading`, `WALL_MIN`;
+  tests: `weakWalls.test.ts`), the rings in `src/lib/board/Board.svelte` (the prop `walls`), `askWalls`, `wallsAt`
+  and `wallState` in `packages/analysis/src/analysis.svelte.ts`, the pool's `cpu` task in
+  `packages/engine/src/pool.ts` (tests: `pool.test.ts`), `weakWalls` in `packages/engine/src/protocol.ts`, the
+  switch, the legend, the setting and the key w in `packages/review/src/ReviewView.svelte` (`wallsOn`, `shownWalls`,
+  `wallWork`, `marginNote`, `wallReading`), and the layout test's case "layout of the weak walls".
 - The measurements, in `scripts/measure/`: `review-ownership.mjs` (the maps' size and time in a whole review),
   `candidate-maps.mjs` (a candidate's map from a short search), `candidate-map-delay.mjs` (its delay in the browser),
   `line-map-lag.mjs` (the maps' lag behind an animated line), `difference-at-best.mjs` (after vs before at the best

@@ -144,7 +144,7 @@
   import AdvantageChart from "./AdvantageChart.svelte";
   import DifficultyChart from "./DifficultyChart.svelte";
   import { DIGITS, fmtScore, GLYPH_SEPARATOR, inGlyphs, type BoardCandidate, type BoardMark, type BookJudgment,
-           type Display, type LayerSetting, type LineMove, type NotePart, type ViewGame, WALL_FORMS, type WallForm } from "./game.ts";
+           type Display, type LayerSetting, type LineMove, type NotePart, type ViewGame } from "./game.ts";
   import { askOrder, changeMap, differenceMap, differenceReading, mapStep, ownershipMap, signInk, valueText, type AreaMark,
            type MapStyle } from "./ownership.ts";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
@@ -979,18 +979,25 @@
     untrack(() => game?.askWalls(p));
   });
   const shownWalls = $derived(wallsOn && mapLine.kind === "here" ? game?.wallsAt(path) ?? null : null);
-  // The walls' work, in the legend's slot, as the map's (mapWork): nothing once they show
+  // The walls' note, in the legend's slot, as the map's (mapWork): nothing once they show. While a line shows with the
+  // area map, the map's legend names the line's position, and the walls need no note. Each text fits the margin of a
+  // window 360 pixels wide, as the review's other one-line texts do (decisions/product.md, "The review's one-line
+  // texts at 360 pixels"): a phone shows no title.
   const wallWork = $derived.by((): { text: string; busy: boolean } | null => {
     if (!wallsOn || !game) return null;
-    if (mapLine.kind !== "here") return { text: "Weak walls: for the position on screen only", busy: false };
+    if (mapLine.kind !== "here") return shownMap ? null : { text: "Weak walls: not with a line", busy: false };
     const st = game.wallState(path);
     if (st === "searching") return { text: "Weak walls: searching", busy: true };
-    if (st === "waiting") return { text: "Weak walls: waiting for the engine", busy: true };
-    if (st === "none") return { text: "No weak walls: the game ends here", busy: false };
-    if (st === "unavailable") return { text: "No weak walls: review snapshots do no searches", busy: false };
-    if (st === "unsupported") return { text: "No weak walls: this engine version does not give them", busy: false };
+    if (st === "waiting") return { text: "Weak walls: waiting", busy: true };
+    if (st === "none") return { text: "Weak walls: the game ends here", busy: false };
+    if (st === "unavailable") return { text: "Weak walls: none in snapshots", busy: false };
+    if (st === "unsupported") return { text: "Weak walls: not in this engine", busy: false };
     return null;
   });
+  // The margin's note: one at a time, the map's first, and none while the map's numbers show under the pointer. The
+  // walls' note takes the map legend's place: the two do not fit side by side at 360 pixels.
+  const marginNote = $derived(mapReading ? null : mapWork ?? wallWork);
+  const wallNoteShown = $derived(!!wallWork && marginNote === wallWork);
   // The point under the pointer: whose edges pass there, and the chance that one of them is cut
   const wallReading = $derived(mapPoint !== null && shownWalls && view.walls ? view.walls.reading(mapPoint, shownWalls) : null);
 
@@ -2423,21 +2430,17 @@
   {/if}
   <!-- The note stays on one line (design 30, item 9). Where the board is narrower than the note, as in a window 360 pixels
        wide, the note ends with an ellipsis, with its full text as its title, as the engine header's line does. -->
-  {#if mapWork && !mapReading}
-    <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", mapWork.busy && "bar-glider"]}
-          role="status" title={mapWork.text}>{mapWork.text}</span>
-  {/if}
-  {#if wallWork && !wallReading && !mapReading}
-    <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", wallWork.busy && "bar-glider"]}
-          role="status" title={wallWork.text}>{wallWork.text}</span>
+  {#if marginNote}
+    <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", marginNote.busy && "bar-glider"]}
+          role="status" title={marginNote.text}>{marginNote.text}</span>
   {/if}
   {#if shownWalls && view.walls && (wallReading || !shownMap)}
     <!-- The weak walls' legend, or the reading of the point under the pointer. With the area map, the map's legend shows,
          and the walls' reading takes its place under the pointer. -->
     <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-1 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Weak walls">
-      <span class="min-w-0 truncate" title={wallReading ? undefined : view.walls.forms[display.wallForm ?? "size"].help}>{wallReading ?? view.walls.legend(shownWalls)}</span>
+      <span class="min-w-0 truncate">{wallReading ?? view.walls.legend(shownWalls)}</span>
     </div>
-  {:else if shownMap}
+  {:else if shownMap && !wallNoteShown}
     <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-3 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label="Area map">
       {#if mapReading}
         <span>{mapReading}</span>
@@ -2505,10 +2508,7 @@
         </div>
       {/if}
       {#if view.walls && display.weakWalls}
-        {@const walls = view.walls}
-        {@render toggle("Weak walls", walls.help, () => wallsOn, setWalls)}
-        {@render choice("Weak walls' form", WALL_FORMS.map(f => `${walls.forms[f].name}: ${walls.forms[f].help}`).join(" "),
-          WALL_FORMS.map((f): [string, string] => [f, walls.forms[f].name]), () => display.wallForm ?? "size", v => (display.wallForm = v as WallForm))}
+        {@render toggle("Weak walls", view.walls.help, () => wallsOn, setWalls)}
       {/if}
       {#each view.layers.filter(l => l.afterMap) as l (l.key)}{@render layer(l)}{/each}
       {@render choice("Lines on the board", `The engine's line and a variation's preview: one ${view.words.move} at a time, or all at once.`,
@@ -2792,7 +2792,6 @@
           areaMap={shownMap}
           areaOf={shownMap ? shownOwnership ?? null : null}
           walls={shownWalls}
-          wallForm={display.wallForm ?? "size"}
           onpointat={p => (mapPoint = p)}
           oncandidate={numbers.point}
           notes={previewing ? [] : notesAt[here] ?? []}

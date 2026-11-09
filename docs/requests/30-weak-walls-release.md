@@ -25,8 +25,8 @@ Protocol 0.6.2 gives the weak walls (`includeWeakWalls`, the engine repository's
 ## Why
 
 - **The weak walls' prototype** (beads abscls-udwl, design 30, "The weak walls") asks the CPU module for them. With
-  the released module, the board says "No weak walls: this engine version does not give them". So the preview of a
-  push to `dev` shows nothing, and the prototype shows the walls only in a local build with the candidate module.
+  the released module, the board says "Weak walls: not in this engine". So the preview of a push to `dev` shows no
+  walls, and the prototype shows them only in a local build with the candidate module.
 - **The search stays the same.** The release can name `search` `fdfe5ad` (request 17), so the site's stored results
   stay valid.
 

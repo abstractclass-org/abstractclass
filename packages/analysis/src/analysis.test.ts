@@ -1574,3 +1574,21 @@ test("the weak walls: a search that the engine off dropped is asked for again wh
   await turns();
   assert.equal(game.wallState(["a"]), "ready");
 });
+
+test("the weak walls: the search that waits for a position that the page left is dropped", async () => {
+  const { game, searches } = await noMaps(1, "g-walls4");
+  void game.sweep();
+  await turns();
+  game.askOwnership([["a"]]); // its short search holds the one engine
+  await turns();
+  game.askWalls(["a"]);
+  await turns();
+  assert.equal(game.wallState(["a"]), "waiting");
+  game.askWalls(["a", "b"]); // the next position: the first one's search, still waiting, is dropped
+  await turns();
+  assert.equal(game.wallState(["a"]), "unasked");
+  assert.equal(game.wallState(["a", "b"]), "waiting");
+  for (const s of searches.filter(s => !s.query.includeWeakWalls)) s.end(MAP_VISITS, false, { ownership: [0.1] });
+  await turns();
+  assert.deepEqual(searches.filter(s => s.query.includeWeakWalls).map(s => s.query.moves), [["a", "b"]]);
+});

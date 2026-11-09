@@ -3,7 +3,7 @@
 // Cyanotype's). Storage can be blocked (a private window, blocked site data), so every read and write may fail, and the
 // defaults then hold. A kept value that is not one of the setting's values gives way to the default.
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
-import { WALL_FORMS, type Display } from "./game.ts";
+import type { Display } from "./game.ts";
 import type { MapStyle } from "./ownership.ts";
 
 /** The display settings kept under `key`, with the site's defaults. `isSound`: whether a kept set of move sounds is one
@@ -42,10 +42,7 @@ export function displayStore<D extends Display>(key: string, defaults: D, isSoun
       moveSound: isSound(kept.moveSound) ? kept.moveSound : defaults.moveSound,
       volume: typeof kept.volume === "number" ? Math.min(1, Math.max(0, kept.volume)) : defaults.volume,
       // A game with weak walls has them in its defaults
-      ...(defaults.weakWalls ? {
-        weakWalls: { ...defaults.weakWalls, ...kept.weakWalls },
-        wallForm: WALL_FORMS.find(f => f === kept.wallForm) ?? defaults.wallForm,
-      } : {}),
+      ...(defaults.weakWalls && { weakWalls: { ...defaults.weakWalls, ...kept.weakWalls } }),
     };
   }
 

@@ -20,8 +20,8 @@
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
-  /* The weak walls' marks (a prototype, design 30): one brown, apart from the players' blue and red and the signs'
-     green and yellow. The colour form's ramp goes from --wall-low (a tenth) to --wall-high (certain). */
+  /* The weak walls' rings (a prototype, design 30): one brown, apart from the players' blue and red and the signs'
+     green and yellow. Their ramp goes from --wall-low (a tenth) to --wall-high (certain). */
   --wall-high: #6b2a00; /* 9.9:1 against the board */
   --wall-low: #c39a3f; /* 2.2:1: the faintest marks */
   /* The position symbols' shades (the book's table, design 32, item 3): the stronger the position, the farther its

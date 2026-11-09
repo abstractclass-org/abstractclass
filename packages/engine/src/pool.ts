@@ -265,6 +265,11 @@ export class EnginePool {
     for (const t of this.running) if (t.stop && !t.stopped) t.stop();
   }
 
+  /** Whether `engine` can run `task`: a task for the CPU alone runs on a CPU worker only. */
+  private static takes(engine: SearchEngine | undefined, task: Task) {
+    return !task.cpu || engine?.kind === "cpu";
+  }
+
   private enqueue(task: Task) {
     this.queue.push(task);
     this.queue.sort((a, b) => b.priority - a.priority);
@@ -273,8 +278,7 @@ export class EnginePool {
   private dispatch() {
     while (this.free.length && this.queue.length) {
       const k = Math.max(0, this.free.findIndex(e => e.kind === "cpu")); // a CPU worker first
-      // The most urgent task that the engine can take: a GPU slot takes no task for the CPU alone
-      const t = this.free[k].kind === "cpu" ? 0 : this.queue.findIndex(q => !q.cpu);
+      const t = this.queue.findIndex(q => EnginePool.takes(this.free[k], q)); // the most urgent that it can take
       if (t < 0) break;
       const engine = this.free.splice(k, 1)[0], task = this.queue.splice(t, 1)[0];
       task.engine = engine;
@@ -318,9 +322,9 @@ export class EnginePool {
    *  the CPU alone finds no worker in a free GPU slot, and stops a task on a CPU worker. */
   private giveWay() {
     const first = this.queue[0];
-    if (!first || this.free.some(e => !first.cpu || e.kind === "cpu")) return;
+    if (!first || this.free.some(e => EnginePool.takes(e, first))) return;
     const victim = [...this.running]
-      .filter(t => t.stop && !t.stopped && t.priority < first.priority && (!first.cpu || t.engine?.kind === "cpu"))
+      .filter(t => t.stop && !t.stopped && t.priority < first.priority && EnginePool.takes(t.engine, first))
       .sort((a, b) => a.priority - b.priority)[0];
     if (!victim) return;
     victim.stopped = true;

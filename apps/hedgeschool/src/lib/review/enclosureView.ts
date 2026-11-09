@@ -118,17 +118,11 @@ export const enclosureView: ViewGame<Enclosure> = {
   },
 
   // The weak walls (a prototype, design 30, "The weak walls"): the engine's chance at each lattice point of the
-  // players' edges, which the board marks in one of three forms to compare
+  // players' edges, which the board marks by a ring's colour
   walls: {
     reading: wallReading,
-    help: "Marks each point of the players' edges by the chance that an edge there is cut before the game ends, from 10% up. The marks are on points, not on edges: an edge is cut at most as often as its weakest point. The engine gives them on its CPU workers, for the position on screen only.",
-    forms: {
-      size: { name: "Size", help: "A disc: the larger, the likelier a cut." },
-      colour: { name: "Colour", help: "A ring: the darker, the likelier a cut." },
-      gauge: { name: "Gauge", help: "A ring filled from the top as far as the chance: a quarter is 25%." },
-    },
-    legend: walls => (wallMarks(walls).length ? "Weak walls: the chance that an edge at each point is cut"
-      : `Weak walls: no point of an edge at ${WALL_MIN * 100}% or more`),
+    help: `Rings each point of the players' edges by the chance that an edge there is cut before the game ends, from ${WALL_MIN * 100}% up: the darker the ring, the likelier the cut. The rings are on points, not on edges: an edge's chance is at most the smallest chance on its points. The engine gives them on its CPU workers, for the position on screen only.`,
+    legend: walls => (wallMarks(walls).length ? "Weak walls: darker means weaker" : `Weak walls: none at ${WALL_MIN * 100}% or more`),
   },
 
   image: {

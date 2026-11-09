@@ -1154,8 +1154,10 @@ export class GameAnalysis<G extends GameTypes> {
    *  gives them. Only the CPU module gives them: the search runs on a CPU worker (the pool's `cpu`), also while the GPU
    *  searches. A module before 0.6.2 ignores the field: its reply has no weak walls, and the engine then gives none
    *  (wallState, `unsupported`). Asked for while the engine is not ready or off, they are asked for again then
-   *  (askAgain). */
+   *  (askAgain). One position at a time: the search that waits for another position is dropped, as the threat's
+   *  (dropThreat), so that stepping through a game leaves no searches behind. */
   askWalls(path: string[] | null) {
+    if (this.wallsAsked && (!path || pathKey(path) !== pathKey(this.wallsAsked))) this.pool.cancel(t => t === "walls");
     this.wallsAsked = path;
     if (!path || this.frozen || this.wallsUnsupported || this.idle) return;
     const key = pathKey(path);
