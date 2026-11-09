@@ -28,7 +28,7 @@ export async function lockManifests(lock: Lock, cacheDir: string, download: Down
       return { tag, manifest: kept };
     }
     const bytes = await download(id, tag, "manifest.json");
-    const manifest = parse(Buffer.from(bytes).toString("utf8"));
+    const manifest = parse(new TextDecoder().decode(bytes));
     if (!manifest) throw new Error(`${id}: the file is not JSON`);
     mkdirSync(dir, { recursive: true });
     writeFileSync(cached, bytes);

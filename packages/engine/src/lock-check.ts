@@ -66,23 +66,32 @@ export function releasesToCheck(lock: Lock): { tags: string[]; unchecked: string
 /** The ids of the files from this machine (a source that is not a release). */
 const localFiles = (artifacts: Lock["artifacts"]) => artifacts.filter(a => !a.source.release).map(a => a.id);
 
-/** The lock's files from release `tag`, each with its asset's name in the release and its entry in the manifest. */
-const fromRelease = (lock: Lock, tag: string, release: ReleaseManifest) =>
+type Entry = NonNullable<ReleaseManifest["assets"]>[number];
+
+/** The lock's files from release `tag` (from any release when `tag` is null), each with its release's tag, its asset's
+ *  name in the release and its entry in `release`'s manifest. */
+const fromRelease = (lock: Lock, tag: string | null, release: ReleaseManifest) =>
   lock.artifacts.flatMap(a => {
-    const asset = a.source.release?.tag === tag ? a.source.release.asset : null;
-    return asset === null ? [] : [{ a, asset, entry: release.assets?.find(r => r.file === asset) }];
+    const from = a.source.release;
+    return from && (tag === null || from.tag === tag)
+      ? [{ a, tag: from.tag, asset: from.asset, entry: release.assets?.find(r => r.file === from.asset) }] : [];
   });
 const show = (value: unknown) => (value === undefined ? "none" : JSON.stringify(value));
+/** Whether the manifest's entry gives the file the lock's SHA-256 and size. */
+const sameEntry = (a: Lock["artifacts"][number], entry: Entry | undefined) =>
+  entry?.sha256 === a.sha256 && entry.bytes === a.bytes;
+/** An entry's SHA-256 and size, the lock's or a manifest's, for a message. */
+const entryText = (e: { sha256?: string; bytes?: number }) =>
+  `the SHA-256 ${show(e.sha256)} and ${show(e.bytes)} bytes`;
 
 /** Why `release` is not the manifest of release `tag` for this lock: it gives another tag, or it does not list a file
  *  that the lock takes from the release with the lock's SHA-256 and size. Null when it is that manifest. */
 export function whyNotTheRelease(lock: Lock, tag: string, release: ReleaseManifest): string | null {
   if (release.tag !== tag) return `it gives the tag ${show(release.tag)}`;
   for (const { a, asset, entry } of fromRelease(lock, tag, release)) {
-    if (entry?.sha256 !== a.sha256 || entry.bytes !== a.bytes)
-      return `it gives ${asset} ` +
-             (entry ? `the SHA-256 ${show(entry.sha256)} and ${show(entry.bytes)} bytes` : "no entry") +
-             `, but engine.lock.json gives ${a.id} the SHA-256 "${a.sha256}" and ${a.bytes} bytes`;
+    if (!sameEntry(a, entry))
+      return `it gives ${asset} ${entry ? entryText(entry) : "no entry"}, but engine.lock.json gives ${a.id} ` +
+             entryText(a);
   }
   return null;
 }
@@ -137,29 +146,25 @@ export interface LockRelease { tag: string; manifest: ReleaseManifest }
  *  files with the lock's entries, and each file that it does not, with both entries. */
 export function checkOneReleaseSet(lock: Lock, releases: LockRelease[]):
   { release: string | null; unchecked: string[] } {
-  const ofLock = lockReleases(lock).map(tag => {
+  // The files of the lock from a release that each of its releases does not name with the lock's entry.
+  const missed = lockReleases(lock).map(tag => {
     const release = releases.find(r => r.tag === tag);
     if (!release)
       throw new Error(`the check has no manifest of release ${tag}, which engine.lock.json takes files from`);
     assertTheRelease(lock, tag, release.manifest);
-    return release;
+    return { tag, files: fromRelease(lock, null, release.manifest).filter(f => !sameEntry(f.a, f.entry)) };
   });
-  const released = lock.artifacts.flatMap(a => (a.source.release ? [{ a, asset: a.source.release.asset }] : []));
-  const missed = ofLock.map(release => ({ release, files: released.flatMap(({ a, asset }) => {
-    const entry = release.manifest.assets?.find(e => e.file === asset);
-    return entry?.sha256 === a.sha256 && entry.bytes === a.bytes ? [] : [{ a, asset, entry }];
-  }) }));
-  const closest = missed.reduce<(typeof missed)[number] | null>(
-    (best, m) => (best === null || m.files.length < best.files.length ? m : best), null);
-  if (closest && closest.files.length)
+  // The fewest misses. The sort is stable, so the first in the lock's order on a tie.
+  const [closest] = missed.toSorted((x, y) => x.files.length - y.files.length);
+  const unchecked = localFiles(lock.artifacts);
+  if (closest?.files.length)
     throw new Error(`engine.lock.json's files are not one release's set: no release of the lock names all its ` +
-                    `${released.length} files from releases with the lock's SHA-256 and size. The closest, ` +
-                    `${closest.release.tag}, does not name ` + closest.files.map(({ a, asset, entry }) =>
-                      `${a.id} (${asset}, from release ${a.source.release!.tag}, the SHA-256 "${a.sha256}" and ` +
-                      `${a.bytes} bytes): ` + (entry ? `it gives the SHA-256 ${show(entry.sha256)} and ` +
-                      `${show(entry.bytes)} bytes` : "it has no entry")).join("; ") +
+                    `${lock.artifacts.length - unchecked.length} files from releases with the lock's SHA-256 and ` +
+                    `size. The closest, ${closest.tag}, does not name ` + closest.files.map(f =>
+                      `${f.a.id} (${f.asset}, from release ${f.tag}, ${entryText(f.a)}): ` +
+                      (f.entry ? `it gives ${entryText(f.entry)}` : "it has no entry")).join("; ") +
                     `. Take the files from one release, with the entries of its manifest.`);
-  return { release: closest?.release.tag ?? null, unchecked: localFiles(lock.artifacts) };
+  return { release: closest?.tag ?? null, unchecked };
 }
 
 // Whether each kind is an engine module: one that plays the game's rules. A kind that ArtifactKind gains must be added
