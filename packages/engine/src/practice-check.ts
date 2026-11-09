@@ -16,12 +16,25 @@
 // Each module starts a session (the network, then its game's start command) and answers kata-get-params. The threaded
 // module's start evaluates no position, so its evaluator here refuses any use but its sizes: the check needs no CPU
 // workers.
+//
+// Then the step plays Practice's CPU form (checkThreadedBot): the threaded bot with its network on the CPU evaluator's
+// workers, as the page starts it on the CPU (packages/practice/src/botForms.ts). The lock takes the bot, the evaluator
+// and the evaluator's two libraries as separate files, and its `sizes` by hand, so a bot and an evaluator that do not
+// compute the same network could pass every other check: a wrong size traps or plays another move with no message
+// (lock-check.ts). The one-thread bot runs the network in its own module, so it is the reference. At 1 visit, with the
+// same seed, both bots play the network's own move, and they played the same moves on both sites' locks from the
+// standard start and from a set-up start. From 4 visits they part at some moves with the right files, so the check
+// plays 1 visit. With the other site's sizes, Cyanotype's threaded bot played another move from the first, and Hedge
+// School's evaluator trapped. One policy channel too few made Hedge School's bot play another move from the set-up
+// start.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { Worker } from "node:worker_threads";
 import type { Artifact, ArtifactKind, Manifest } from "./client.ts";
 import { errorText } from "./errors.ts";
-import type { NetworkSizes, PracticeLibrary } from "./library.ts";
+import { sizesOption, type CpuEvaluatorLibrary, type NetworkSizes, type PracticeLibrary } from "./library.ts";
+import { positionQuery } from "./protocol.ts";
 
 const MIN_PLAYOUTS_PER_THREAD = 8;
 
@@ -75,23 +88,36 @@ export const noEvaluator = (sizes?: NetworkSizes) => new Proxy({}, {
   },
 });
 
+/** The game's start command, from a practice bot's own list (list_commands' reply): enclosure-start, blueprints-start.
+ *  An error when the list names none. */
+function startCommand(reply: string): string {
+  const start = answer("list_commands", reply).split(/\s+/).find(c => c.endsWith("-start"));
+  if (!start) throw new Error("list_commands names no start command");
+  return start;
+}
+
+/** The practice library and the smallest network of a site's static/engine, with `read`, which reads a file of it. */
+async function practiceFiles(root: string, manifest: Manifest) {
+  const ofKind = (kind: ArtifactKind) => manifest.artifacts.filter(a => a.kind === kind);
+  const read = (a: Artifact) => readFileSync(join(root, "static", a.url));
+  const [library] = ofKind("practice-library"), [model] = ofKind("model").sort((a, b) => a.bytes - b.bytes);
+  if (!library || !model) throw new Error("static/engine has practice modules but no practice library or network");
+  const lib = await import(pathToFileURL(join(root, "static", library.url)).href) as PracticeLibrary;
+  return { ofKind, read, lib, model, network: read(model) };
+}
+
 /** Checks each practice module of a site's static/engine (the one-thread and the threaded bot) with
  *  checkMinPlayoutsPerThread, and with checkKomiCap against `maxKomi` (the site's MAX_RECORD_KOMI), from the site's
  *  folder (`root`) and its manifest, and logs a line for each. With no practice module, it logs that it checked
  *  neither. An error names the module. The threaded module needs JSPI (Node 24.21 has it with no flag). */
 export async function checkPracticeModules(root: string, manifest: Manifest, maxKomi: number): Promise<void> {
-  const ofKind = (kind: ArtifactKind) => manifest.artifacts.filter(a => a.kind === kind);
-  const read = (a: Artifact) => readFileSync(join(root, "static", a.url));
-  const modules = [...ofKind("practice-module"), ...ofKind("practice-threaded-module")];
+  const modules = manifest.artifacts.filter(a => a.kind === "practice-module" || a.kind === "practice-threaded-module");
   if (modules.length === 0) {
     console.log("static/engine has no practice modules: the step checked no komi cap and no minPlayoutsPerThread");
     return;
   }
   // The smallest network, since the setting does not depend on the network.
-  const [library] = ofKind("practice-library"), [model] = ofKind("model").sort((a, b) => a.bytes - b.bytes);
-  if (!library || !model) throw new Error("static/engine has practice modules but no practice library or network");
-  const lib = await import(pathToFileURL(join(root, "static", library.url)).href) as PracticeLibrary;
-  const network = read(model);
+  const { read, lib, network } = await practiceFiles(root, manifest);
   for (const m of modules) {
     try {
       const module = await WebAssembly.compile(read(m));
@@ -99,10 +125,7 @@ export async function checkPracticeModules(root: string, manifest: Manifest, max
       const threads = m.kind === "practice-threaded-module" ? 2 : 1;
       const bot = threads > 1 ? await lib.createBatchedPracticeBot(module, noEvaluator(manifest.sizes), { maxBatch: threads })
         : await lib.createPracticeBot(module);
-      // The game's start command, from the module's own list: enclosure-start, blueprints-start.
-      const commands = answer("list_commands", await bot.command("list_commands")).split(/\s+/);
-      const start = commands.find(c => c.endsWith("-start"));
-      if (!start) throw new Error("list_commands names no start command");
+      const start = startCommand(await bot.command("list_commands"));
       await bot.setModel(network);
       answer(start, await bot.command(`${start} 1 ${threads}`)); // SEED THREADS
       checkMinPlayoutsPerThread(await bot.command("kata-get-params"));
@@ -112,5 +135,122 @@ export async function checkPracticeModules(root: string, manifest: Manifest, max
     }
     console.log(`${m.id}: minPlayoutsPerThread ${MIN_PLAYOUTS_PER_THREAD}, as design 24, item 14 needs, and the komi ` +
                 `cap ${maxKomi}, the site's MAX_RECORD_KOMI`);
+  }
+}
+
+/** A position as the rules give it (the CPU module's describe): the mover, the legal moves, the game's end, and the
+ *  position in the engine's one-line form. An error when the rules refuse the query. */
+export interface Described { mover?: string; legal?: string[]; outcome?: unknown; position?: string; error?: string }
+
+/** The two bots of one check, each new: GTP lines in, replies out. `one` is the one-thread bot, `threaded` the threaded
+ *  bot with THREADS search threads on the CPU evaluator. `release` stops the evaluator's workers. */
+export interface BotPair {
+  one(line: string): Promise<string>;
+  threaded(line: string): Promise<string>;
+  release(): void;
+}
+
+/** The threaded bot's search threads: Practice's CPU form with one worker, two threads for each (botForms.ts). */
+export const THREADS = 2;
+const SEED = 1, VISITS = 1, MOVES = 6;
+
+/** Checks that the threaded bot plays the one-thread bot's moves at 1 visit with the same seed: MOVES moves from the
+ *  standard start, then MOVES from a set-up start, the position after the first moves. Each start has a new pair of
+ *  bots (`makePair`), since a session keeps its seed. `game` is the bots' name of the game (`enclosure`,
+ *  `blueprints`), and `describe` the rules' position after `moves` from `start` (null: the standard start). Each move
+ *  must be legal. An error names the start, the move's number and both bots' moves. */
+export async function checkBotsAgree(game: string, makePair: () => Promise<BotPair>,
+                                     describe: (start: string | null, moves: string[]) => Described): Promise<void> {
+  const rules = (start: string | null, moves: string[]) => {
+    const d = describe(start, moves);
+    if (d.error) throw new Error(`the rules refuse the position after ${moves.length} moves: ${d.error}`);
+    return d;
+  };
+  const play = async (start: string | null) => {
+    const where = start ? `the set-up start ${start}` : "the standard start";
+    const pair = await makePair();
+    try {
+      answer(`${game}-start`, await pair.one(`${game}-start ${SEED}`));
+      answer(`${game}-start`, await pair.threaded(`${game}-start ${SEED} ${THREADS}`));
+      for (const send of [pair.one, pair.threaded]) {
+        answer("kata-set-param", await send(`kata-set-param maxVisits ${VISITS}`));
+        if (start) answer(`${game}-set-position`, await send(`${game}-set-position ${start}`));
+      }
+      const moves: string[] = [];
+      for (let d = rules(start, moves); moves.length < MOVES && !d.outcome; d = rules(start, moves)) {
+        const genmove = `genmove ${d.mover === "b" ? "b" : "w"}`;
+        const one = answer(genmove, await pair.one(genmove)), threaded = answer(genmove, await pair.threaded(genmove));
+        if (!d.legal?.includes(one))
+          throw new Error(`the one-thread bot played ${one}, which the rules do not allow, at move ` +
+                          `${moves.length + 1} from ${where}`);
+        if (threaded !== one)
+          throw new Error(`at move ${moves.length + 1} from ${where}, at ${VISITS} visit with the seed ${SEED}, the ` +
+                          `threaded bot on the CPU evaluator played ${threaded}, and the one-thread bot ${one}. The ` +
+                          `one-thread bot runs the network in its own module, so the evaluator does not compute the ` +
+                          `bot's network: take the threaded bot, the practice evaluator and its two libraries from ` +
+                          `one release, with that release's sizes.`);
+        moves.push(one);
+      }
+      return moves;
+    } finally {
+      pair.release();
+    }
+  };
+  const moves = await play(null);
+  const start = rules(null, moves).position;
+  if (!start)
+    throw new Error(`the rules give no position after ${moves.length} moves, so the check has no set-up start`);
+  await play(start);
+}
+
+/** Checks Practice's CPU form in a site's static/engine with checkBotsAgree: the threaded bot on the CPU evaluator
+ *  (the practice evaluator, cpu_evaluator.mjs and cpu_eval_worker.mjs) with the manifest's sizes, against the
+ *  one-thread bot, on the smallest network. `call` sends a request to the CPU module (node-engine.mjs), for the
+ *  rules. Logs a line. Without a threaded bot, it logs that it checked no CPU form. An error names the files. */
+export async function checkThreadedBot(root: string, manifest: Manifest, call: (request: object) => Described):
+    Promise<void> {
+  const [threaded] = manifest.artifacts.filter(a => a.kind === "practice-threaded-module");
+  if (!threaded) {
+    console.log("static/engine has no threaded practice bot: the step checked no CPU form of the bot");
+    return;
+  }
+  const { ofKind, read, lib, model, network } = await practiceFiles(root, manifest);
+  const library = (name: string) => ofKind("cpu-evaluator-library").find(a => a.url.endsWith(`/${name}`));
+  const [one] = ofKind("practice-module"), [evaluator] = ofKind("practice-evaluator");
+  const pool = library("cpu_evaluator.mjs"), worker = library("cpu_eval_worker.mjs");
+  if (!one || !evaluator || !pool || !worker)
+    throw new Error(`${threaded.id}: static/engine lacks the one-thread bot or a file of the CPU evaluator ` +
+                    `(practice-evaluator, cpu_evaluator.mjs, cpu_eval_worker.mjs), which the check of the CPU form ` +
+                    `needs`);
+  const files = [threaded, evaluator, pool, worker, one].map(a => a.id).join(", ");
+  try {
+    const url = (a: Artifact) => pathToFileURL(join(root, "static", a.url));
+    const cpu = await import(url(pool).href) as CpuEvaluatorLibrary;
+    const [oneModule, threadedModule, evaluatorModule] =
+      await Promise.all([one, threaded, evaluator].map(a => WebAssembly.compile(read(a))));
+    const game = startCommand((await lib.createPracticeBot(oneModule)).command("list_commands")).replace(/-start$/, "");
+    const makePair = async (): Promise<BotPair> => {
+      const single = await lib.createPracticeBot(oneModule);
+      single.setModel(network);
+      const workers = await cpu.createCpuEvaluator(evaluatorModule, network, {
+        workers: 1, maxRows: THREADS, makeWorker: () => new Worker(url(worker)) as unknown as globalThis.Worker,
+        ...sizesOption(manifest) });
+      try {
+        const bot = await lib.createBatchedPracticeBot(threadedModule, workers, { maxBatch: THREADS });
+        await bot.setModel(network);
+        return { one: async line => single.command(line), threaded: line => bot.command(line),
+                 release: () => workers.release() };
+      } catch (e) {
+        workers.release();
+        throw e;
+      }
+    };
+    await checkBotsAgree(game, makePair, (start, moves) =>
+      call({ id: "practice-check", action: "describe", ...positionQuery(start, moves) }));
+    console.log(`${threaded.id} on the CPU evaluator (${evaluator.id}, ${THREADS} threads, the sizes ` +
+                `${JSON.stringify(manifest.sizes ?? "of Enclosure")}): the one-thread bot's moves at ${VISITS} visit ` +
+                `with ${model.id}, ${MOVES} from the standard start and ${MOVES} from a set-up start`);
+  } catch (e) {
+    throw new Error(`${files}: ${errorText(e)}`, { cause: e });
   }
 }

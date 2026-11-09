@@ -465,9 +465,10 @@ edit in the same commit), so their changes still apply.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files (`fetchEngine`). Each site runs it in its own folder (`npm run engine`) by its `scripts/engine.mjs`, which
   gives the step its record's komi limit. `practice-check.ts`: the engine step's check of the practice modules'
-  `minPlayoutsPerThread` (design 24, item 14) and of their komi cap against the site's limit (design 24, item 15).
-  `lock-check.ts`: the engine step's checks of the lock, its numbers against the releases' manifests and its engine
-  modules from one engine commit (design 03, "The engine's artifacts"). `protocol.ts`: the protocol that each site's
+  `minPlayoutsPerThread` (design 24, item 14), of their komi cap against the site's limit (design 24, item 15), and
+  of Practice's CPU form against the one-thread bot (design 24, item 14). `lock-check.ts`: the engine step's checks
+  of the lock, its numbers against the releases' manifests, its files as one release's set and its engine modules
+  from one engine commit (design 03, "The engine's artifacts"). `protocol.ts`: the protocol that each site's
   code is written for (Hedge School 0.6.x, Cyanotype 0.8.x with the root's views and the position check), from the
   site's `engine.lock.json` and its manifest.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, the way in from a

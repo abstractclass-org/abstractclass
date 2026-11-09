@@ -64,7 +64,18 @@ new builds arrive often.
   - **The lock does not pin the release's manifest.** The manifest must give the release's tag. It must also list each
     file that the lock takes from the release, with the lock's SHA-256 and size. So a new release changes no other
     entry of the lock. A file from this machine has no release's manifest, so the step names it and does not check
-    it. A lock with neither number, Hedge School's, reads no manifest.
+    it. A lock with neither number, Hedge School's, has no number to check.
+  - **The lock's files are one release's set.** The lock takes each file from the release that first shipped its
+    bytes, so that a browser's cache keeps a file that a new release did not change. A release's manifest names every
+    file of the release, the unchanged ones too. So each file must have the SHA-256 and the size that the newest of the
+    lock's releases whose manifest names it gives. Otherwise the lock pairs a file of a new release with an older
+    file that the new release replaced, such as a new threaded bot with the evaluator of an earlier release. The step
+    reads the manifest of each release of the lock, and stops at such a file. Its message names the file, its release
+    and the newest release that names it (`checkOneReleaseSet` in `packages/engine/src/lock-check.ts`). The step orders
+    the releases by the time that each manifest was uploaded, which the download gives (its `Last-Modified`), seconds
+    before the release is published. GitHub's API gives the release's own time, but without a token it answers only
+    60 requests an hour from one address, and the machines that run the step share one. A file that no newer release
+    names keeps its own release's entry, such as Hedge School's earlier networks.
   - **The engine modules come from one engine commit.** The engine modules are the modules that play the game's
     rules: the CPU and the GPU module, and the practice bot's two modules. A release's tag gives its commit:
     `engine-<commit>`, with or without a suffix. The step stops when the lock's engine modules come from two commits
@@ -73,7 +84,8 @@ new builds arrive often.
     same commit. The other files do not count, since they hold no rules. The practice evaluator and the libraries run
     the network. The networks, their graphs, the terms and the notices are data. So a lock can take them from other
     releases (`checkOneEngineCommit` in `packages/engine/src/lock-check.ts`). This rule does not show that a module
-    works with an evaluator or a library of another commit. `lock-check.ts` marks each kind of file as an engine module
+    works with an evaluator or a library of another commit. The step's play of the threaded bot on its CPU evaluator
+    shows it for Practice's CPU form (design 24, item 14). `lock-check.ts` marks each kind of file as an engine module
     or not, so a new kind does not compile until it is marked.
   - **Development may use local sources,** to try a build in the engine repository's `runs/` before it is released.
     The lock file in Git points at a release.

@@ -11,8 +11,15 @@
 // lock takes from the release with the lock's SHA-256 and size. So the numbers are compared with the release of the
 // files that the lock pins, and a new release changes no other entry of the lock. A file from this machine (a source
 // that is not a release) has no release's manifest, so the step names it and does not check it: a deploy refuses such
-// a file. A lock that gives neither number is not checked, and the step reads no manifest: Hedge School's lock gives
-// neither.
+// a file. A lock that gives neither number has no numbers to check: Hedge School's lock gives neither.
+//
+// The lock's files must also be one release's set (checkOneReleaseSet): each file must have the SHA-256 that the
+// newest of the lock's releases whose manifest names it gives. The lock takes each file from the release that first
+// shipped its bytes, so that a browser's cache keeps a file that a release did not change (design 33, "The engine's
+// files"). A newer release's manifest names every file of the release, the unchanged ones too. So when the newest
+// release names a file with other bytes, the lock pairs a file of that release with an older one that it replaced:
+// for one, the threaded bot of a new release with the evaluator of an older release, which the new release changed.
+// The step reads the manifest of every release of the lock, and when it was uploaded, for this.
 //
 // The step also takes the lock's engine modules from one engine commit (checkOneEngineCommit, design 03, "The engine's
 // artifacts"). The engine modules are the WebAssembly modules that play the game's rules: the CPU and the GPU module
@@ -76,14 +83,19 @@ export function whyNotTheRelease(lock: Lock, tag: string, release: ReleaseManife
   return null;
 }
 
-/** Compares the lock's numbers with the manifest of release `tag`: its sizes when a network comes from the release,
- *  and the maxThreads of each file from the release. The manifest must be the release's first (whyNotTheRelease). An
- *  error names the field, the lock's value and the release's, for the first difference. */
-export function checkLockAgainstRelease(lock: Lock, tag: string, release: ReleaseManifest): void {
+/** An error when `release` is not the manifest of release `tag` for this lock (whyNotTheRelease). */
+function assertTheRelease(lock: Lock, tag: string, release: ReleaseManifest): void {
   const wrong = whyNotTheRelease(lock, tag, release);
   if (wrong)
     throw new Error(`The manifest.json of release ${tag} does not describe the files that engine.lock.json takes ` +
                     `from it: ${wrong}. Copy the release's entries into engine.lock.json.`);
+}
+
+/** Compares the lock's numbers with the manifest of release `tag`: its sizes when a network comes from the release,
+ *  and the maxThreads of each file from the release. The manifest must be the release's first (whyNotTheRelease). An
+ *  error names the field, the lock's value and the release's, for the first difference. */
+export function checkLockAgainstRelease(lock: Lock, tag: string, release: ReleaseManifest): void {
+  assertTheRelease(lock, tag, release);
   const difference = (field: string, locked: unknown, released: unknown, where: string, why: string) =>
     new Error(`engine.lock.json gives ${field} ${show(locked)}, but the manifest of release ${tag} gives ` +
               `${show(released)} (${where}). ${why} Copy the release's value into engine.lock.json.`);
@@ -101,6 +113,48 @@ export function checkLockAgainstRelease(lock: Lock, tag: string, release: Releas
       throw difference(`${a.id} the maxThreads`, a.maxThreads, entry?.maxThreads, `assets, ${asset}, maxThreads`,
                        "More search threads than the evaluator allows make it trap.");
   }
+}
+
+/** The tags of the releases that the lock's files come from, each once, in the lock's order: the releases whose
+ *  manifests checkOneReleaseSet reads. */
+export const lockReleases = (lock: Lock): string[] =>
+  [...new Set(lock.artifacts.flatMap(a => (a.source.release ? [a.source.release.tag] : [])))];
+
+/** One of the lock's releases: its tag, its manifest, and when it was published (`published`, ISO 8601: the step takes
+ *  the time its manifest was uploaded, fetch-engine.mjs, releaseManifest). */
+export interface PublishedRelease { tag: string; published: string; manifest: ReleaseManifest }
+
+/** Checks that the lock's files are one release's set: each file from a release has the SHA-256 and the size that the
+ *  newest of `releases` whose manifest names the file gives (the asset's name). So a lock cannot take a file from an
+ *  older release when a newer release of the lock replaced it: the threaded bot of a new release with an earlier
+ *  release's evaluator, for one. A file that no newer release names keeps its own release's entry. `releases` must be
+ *  the lock's releases (lockReleases), and each manifest its release's (whyNotTheRelease): an error otherwise. Gives
+ *  the files from this machine (`unchecked`, their ids), which no release's manifest describes. An error names the
+ *  file, its release, the newest release that names it, and both entries. */
+export function checkOneReleaseSet(lock: Lock, releases: PublishedRelease[]): { unchecked: string[] } {
+  const ofLock = lockReleases(lock).map(tag => {
+    const release = releases.find(r => r.tag === tag);
+    if (!release)
+      throw new Error(`the check has no manifest of release ${tag}, which engine.lock.json takes files from`);
+    if (!Number.isFinite(Date.parse(release.published)))
+      throw new Error(`release ${tag}: the time it was published is ${show(release.published)}, not a time`);
+    assertTheRelease(lock, tag, release.manifest);
+    return release;
+  });
+  const byAge = ofLock.toSorted((a, b) => Date.parse(b.published) - Date.parse(a.published));
+  for (const a of lock.artifacts) {
+    if (!a.source.release) continue;
+    const { tag, asset } = a.source.release;
+    const newest = byAge.find(r => r.manifest.assets?.some(e => e.file === asset))!; // its own release names it
+    const entry = newest.manifest.assets!.find(e => e.file === asset)!;
+    if (entry.sha256 !== a.sha256 || entry.bytes !== a.bytes)
+      throw new Error(`engine.lock.json takes ${a.id} (${asset}) from release ${tag}, with the SHA-256 "${a.sha256}" ` +
+                      `and ${a.bytes} bytes, but the newest of its releases that names the file, ${newest.tag} ` +
+                      `(published ${newest.published}), gives the SHA-256 ${show(entry.sha256)} and ` +
+                      `${show(entry.bytes)} bytes. The lock's files must be one release's set: take the file from ` +
+                      `${newest.tag}, with its entry from that release's manifest.`);
+  }
+  return { unchecked: lock.artifacts.filter(a => !a.source.release).map(a => a.id) };
 }
 
 // Whether each kind is an engine module: one that plays the game's rules. A kind that ArtifactKind gains must be added

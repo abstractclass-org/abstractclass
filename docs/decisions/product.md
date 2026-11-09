@@ -10475,3 +10475,51 @@ its Practice starts from the position that it brings, on the practice bot of `en
   shows again on each visit until then.
 - **Checked:** on dev 4c35db72 with this branch, `npm run check:all` passed all 16 steps, and the layout test
   (headless Chromium) passed 230 cases and skipped 13: the analytics cases that need `VITE_GA_ID`.
+
+### The engine step: Practice's CPU form, and each lock as one release's set (2026-11-09)
+
+The step checked each lock's numbers and its engine modules' commit, and started each practice module. Two gaps
+stayed. No check ran the threaded bot with its real evaluator, so a bot and an evaluator that do not compute the same
+network would pass. And no check held a lock's files to one release's set: the step read only the manifests of the
+releases that give a size or a maxThreads, each for its own files. It read no manifest for Hedge School's lock, and
+not engine-887be290's for Cyanotype's.
+
+- **Where the check of the CPU form runs:** in the engine step (`checkThreadedBot` in
+  `packages/engine/src/practice-check.ts`), not in a browser test. The step runs for both sites, from the package
+  (design 29, item 11), at each engine update and before the build, on the exact files of the lock, in Node on the
+  CPU. A browser test would need a preview, and the page chooses the bot's form by the browser: on the GPU where it
+  has one. Cyanotype's unit test (`apps/cyanotype/src/lib/practice/bot.engine.test.ts`) plays the threaded bot on its
+  CPU evaluator at one position of more views, and Hedge School has no such test.
+- **What it plays:** the threaded bot with 2 search threads on one evaluator worker, with the manifest's sizes, as
+  Practice's CPU form starts it (`botForms.ts`), against the one-thread bot, on the smallest network. The one-thread
+  bot runs the network in its own module, so it is the reference. Each start has new bots with the seed 1: a session
+  keeps its seed. Both play 6 moves at 1 visit from the standard start, and 6 from a set-up start, the position after
+  those moves (`<game>-set-position`, with the rules' one-line position). Each move must be legal by the CPU module's
+  `describe`, and the two bots' moves must be the same. Each site's step takes about 5 seconds more.
+- **Why 1 visit:** measured on the CPU with both locks, 8 moves a start, new bots for each setting. At 1 visit the
+  two bots played the same moves from both starts on both sites. At 4, 8 and 15 visits they parted at some moves with
+  the right files, at moves 1 to 6 of a start. A move below 16 visits searches with one thread (design 24, item 14),
+  so the difference is not the threads' number. The check compares the network's own moves, which hold.
+- **What it catches:** with Enclosure's sizes given to Cyanotype's evaluator, the threaded bot played `2@-9,1` at the
+  first move, and the one-thread bot `1:1,1>2:-2,3`. Hedge School's evaluator trapped ("memory access out of bounds")
+  with Blueprints' sizes. With a board of 18 it played `A10-D8` at the first move, and the one-thread bot `A10-D9`.
+  One policy channel too few (47) passed the check's 12 moves. In the measurement, from a set-up start after 10
+  moves, the bots parted at its fifth move. Hedge School's lock with engine-d6786eba's evaluator and
+  engine-c43233eb's bot passed this check: that evaluator computes the same network. The check of the release's set
+  stops that lock.
+- **One release's set** (`checkOneReleaseSet` in `packages/engine/src/lock-check.ts`, design 03): each file of the
+  lock must have the SHA-256 and the size that the newest of the lock's releases whose manifest names the file gives.
+  The step now reads the manifest of every release of the lock: 5 for Hedge School, 2 for Cyanotype. Both locks pass.
+  Every file of Cyanotype's lock has engine-887be290's entry, and every file of Hedge School's lock has
+  engine-c43233eb's entry, its earlier networks too.
+- **The releases' order:** the time that each manifest was uploaded, from its download's `Last-Modified`. For the
+  seven releases of both locks, each was 1 to 10 seconds before GitHub's time of publication (engine-887be290:
+  22:03:56 and 22:03:58), and their order was GitHub's. GitHub's API refused this machine (HTTP 403, its 60 requests
+  an hour without a token) on the step's first run with it. The cache keeps each time beside its manifest
+  (`releases/<tag>/manifest.time`).
+- **A limit of the rule:** a new release of an earlier commit, such as a release that changes only the terms, is the
+  newest, and its manifest names that commit's modules. A lock that takes its terms from such a release and its
+  modules from a later commit would stop the step, though its files are right. Hedge School's engine-d6786eba-terms2
+  came before engine-c43233eb, so it does not happen now. The message names both releases.
+- **Checked:** the unit tests of both checks (fake bots and rules, fake manifests in the real manifests' shape), both
+  sites' engine steps on the locked releases, and the mutations above, each put back.

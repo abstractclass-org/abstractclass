@@ -20,7 +20,8 @@
 // The practice evaluator's `maxThreads`, from the release's manifest too, caps the threaded bot's search threads on
 // its CPU workers.
 // The step checks these numbers against the manifests of the releases that the files come from, and stops at a
-// difference (lock-check.ts).
+// difference. It also stops when the lock's files are not one release's set: a file whose SHA-256 is not the one that
+// the newest of the lock's releases that names it gives (lock-check.ts).
 //
 // Cloudflare Pages serves no file over 25 MiB (docs/hosting.md). A file over 24 MiB is stored compressed with gzip,
 // and the compressed bytes are split into parts of 24 MiB or less when they are larger still: `model.onnx.gz.0`,
@@ -35,8 +36,9 @@ import { dirname, join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
-import { checkPracticeModules } from "./practice-check.ts";
-import { checkLockAgainstRelease, checkOneEngineCommit, releasesToCheck, whyNotTheRelease } from "./lock-check.ts";
+import { checkPracticeModules, checkThreadedBot } from "./practice-check.ts";
+import { checkLockAgainstRelease, checkOneEngineCommit, checkOneReleaseSet, lockReleases, releasesToCheck,
+         whyNotTheRelease } from "./lock-check.ts";
 
 const root = process.cwd();
 const lock = JSON.parse(readFileSync(join(root, "engine.lock.json"), "utf8"));
@@ -68,22 +70,35 @@ async function get(artifact) {
 
 const parse = text => { try { return JSON.parse(text); } catch { return null; } };
 
-/** The manifest of release `tag` (its manifest.json): from the download cache when it is that release's manifest for
- *  this lock (lock-check.ts, whyNotTheRelease), else from the release, and then into the cache. Logs which. */
+/** Release `tag` for checkOneReleaseSet (lock-check.ts): its manifest (manifest.json), and when the release was
+ *  published, as the time the manifest was uploaded (`published`, ISO 8601). The download of a release's file gives
+ *  that time (its Last-Modified), seconds before GitHub publishes the release, and it has no limit of requests.
+ *  GitHub's API gives the release's own time, but it answers 60 requests an hour from one address without a token,
+ *  and the machines that run the step share one. Both come from the download cache when the manifest there is that
+ *  release's manifest for this lock (whyNotTheRelease) and has its time (`releases/<tag>/manifest.time`), else from
+ *  the release, and then into the cache. Logs which. */
 async function releaseManifest(tag) {
-  const id = `release ${tag} manifest.json`, cached = join(cacheDir, "releases", tag, "manifest.json");
+  const id = `release ${tag} manifest.json`, dir = join(cacheDir, "releases", tag);
+  const cached = join(dir, "manifest.json"), cachedTime = join(dir, "manifest.time");
   const kept = existsSync(cached) ? parse(readFileSync(cached, "utf8")) : null;
-  if (kept && whyNotTheRelease(lock, tag, kept) === null) {
+  const keptTime = existsSync(cachedTime) ? readFileSync(cachedTime, "utf8").trim() : null;
+  if (kept && keptTime && whyNotTheRelease(lock, tag, kept) === null) {
     console.log(`${id}: up to date`);
-    return kept;
+    return { tag, manifest: kept, published: keptTime };
   }
-  const bytes = await get({ id, source: { release: { tag, asset: "manifest.json" } } });
+  const url = `https://github.com/${lock.repository}/releases/download/${tag}/manifest.json`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${id}: ${url} gave HTTP ${response.status}`);
+  const bytes = Buffer.from(await response.arrayBuffer()), modified = response.headers.get("last-modified");
   const release = parse(bytes.toString("utf8"));
   if (!release) throw new Error(`${id}: the file is not JSON`);
-  mkdirSync(dirname(cached), { recursive: true });
+  const published = modified && Number.isFinite(Date.parse(modified)) ? new Date(modified).toISOString() : null;
+  if (!published) throw new Error(`${id}: the download gives no time of upload (Last-Modified ${modified})`);
+  mkdirSync(dir, { recursive: true });
   writeFileSync(cached, bytes);
-  console.log(`${id}: ${bytes.length} bytes from release ${tag}`);
-  return release;
+  writeFileSync(cachedTime, published + "\n");
+  console.log(`${id}: ${bytes.length} bytes from release ${tag}, uploaded ${published}`);
+  return { tag, manifest: release, published };
 }
 
 /** Writes a file under static/engine/<id>/: compressed when asked or when it is too large to serve, and in parts when
@@ -123,11 +138,22 @@ export async function fetchEngine({ maxKomi }) {
     console.log(`engine modules not checked for their commit, since they are files on this machine: ` +
                 engine.unchecked.join(", "));
 
+  // The lock's files as one release's set: each file against the newest of its releases that names it (lock-check.ts,
+  // checkOneReleaseSet).
+  const releases = [];
+  for (const tag of lockReleases(lock)) releases.push(await releaseManifest(tag));
+  const set = checkOneReleaseSet(lock, releases);
+  console.log(`the lock's files are one release's set: each has the entry of the newest of its ${releases.length} ` +
+              `release(s) that names it`);
+  if (set.unchecked.length)
+    console.log(`not checked against a release's set, since they are files on this machine: ` +
+                set.unchecked.join(", "));
+
   // The lock's sizes and maxThreads against its releases' manifests (lock-check.ts). A lock that gives neither, Hedge
-  // School's, reads no manifest and prints nothing more.
+  // School's, prints nothing more.
   const toCheck = releasesToCheck(lock);
   for (const tag of toCheck.tags) {
-    checkLockAgainstRelease(lock, tag, await releaseManifest(tag));
+    checkLockAgainstRelease(lock, tag, releases.find(r => r.tag === tag).manifest);
     console.log(`release ${tag}: the lock's sizes and maxThreads are the release's`);
   }
   if (toCheck.unchecked.length)
@@ -202,8 +228,10 @@ export async function fetchEngine({ maxKomi }) {
   console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
 
   // Each practice module, run once in Node: its minPlayoutsPerThread must be 8, and its komi cap the site's
-  // MAX_RECORD_KOMI, which each site's record copies from the engine (practice-check.ts).
+  // MAX_RECORD_KOMI, which each site's record copies from the engine (practice-check.ts). Then Practice's CPU form:
+  // the threaded bot on the CPU evaluator must play the one-thread bot's moves (checkThreadedBot).
   await checkPracticeModules(root, manifest, maxKomi);
+  await checkThreadedBot(root, manifest, call);
 }
 
 function source(artifact) {
