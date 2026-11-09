@@ -1,8 +1,8 @@
-// The owner's own visits, kept out of Google Analytics' reports (Hedge School's design 17). Its "Internal Traffic"
-// filter drops the events whose `traffic_type` is "internal". A browser keeps a flag under the site's key, and the
-// Google tag marks its events while the flag is set (analytics.svelte.ts). Any page sets it with `?internal=on` and
-// removes it with `?internal=off`, as the site starts (each site's hooks.client.ts). The flag changes only this
-// browser's own events, as a Decline does, so it needs no secret.
+// The owner's own visits, kept out of PostHog's reports (Hedge School's design 17). A browser keeps a flag under the
+// site's key, and every PostHog event of the page has the property `internal: true` while the flag is set
+// (analytics.svelte.ts), for the project's filter "Filter out internal and test users". Any page sets it with
+// `?internal=on` and removes it with `?internal=off`, as the site starts (each site's hooks.client.ts). The flag changes
+// only this browser's own events, so it needs no secret.
 import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
 
 /** The flag of a site that keeps it under `key`. */

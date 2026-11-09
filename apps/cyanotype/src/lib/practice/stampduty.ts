@@ -21,7 +21,7 @@ export const { load: loadChoices, save: saveChoices } = choices;
 const kept = keptStore("cyanotype:practice-game:1");
 export const { load: loadKept, keep } = kept;
 
-/** What Google Analytics receives about a practice game (Hedge School's design 17,
+/** What PostHog receives about a practice game (Hedge School's design 17,
  *  @abstractclass/practice/practiceEvents.ts): `practice_start`'s parameters, and `practice_end`'s, with the network by
  *  its name. */
 export const { practiceParams, practiceEndParams } = practiceEvents(networkName);

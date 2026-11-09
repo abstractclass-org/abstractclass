@@ -1,4 +1,4 @@
-// What Google Analytics receives about a practice game (Hedge School's design 17): its settings, the network by its
+// What PostHog receives about a practice game (Hedge School's design 17): its settings, the network by its
 // name, with `cores` and the bot's form (gpu, cpu, single), as `practice_start` and `practice_end` both carry them.
 // Never a move or the player's name. A site gives its networks' names.
 import { BOT_SECOND_RANGES, CORE_RANGES, EDGE_RANGES, TAKEBACK_RANGES, range } from "@abstractclass/site/measure.ts";

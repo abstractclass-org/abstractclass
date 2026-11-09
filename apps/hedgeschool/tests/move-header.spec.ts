@@ -12,7 +12,7 @@ const FIXTURE = "tests/fixtures/hedgefund-review.json";
 test("the Edge header opens the table's Edge column on Hedge School", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
   });
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/review");

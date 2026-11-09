@@ -34,7 +34,7 @@ async function openTab(page: Page, judge: string) {
   // The visitor has answered the consent notice, which covers the page until they choose: a build that stores
   // practice games, as CI's, asks for it
   await page.addInitScript(j => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
     localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
     localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: j }));
   }, judge);

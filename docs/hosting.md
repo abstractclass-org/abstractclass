@@ -16,7 +16,7 @@ entries before it).
 | The deploy | GitHub Actions (`.github/workflows/deploy.yml`) | On each push: builds the site and uploads it to Pages with Wrangler. `main` goes to production, another branch to a preview (section 3). A site that is not launched yet deploys previews only ("The launch switch"). |
 | The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
-| Visit counts | Google Analytics (the property's measurement ID `G-C5RY6DWGWN`) and Cloudflare Web Analytics | Counted in the browser (`src/lib/analytics.svelte.ts`). Cyanotype has its own (section 9). |
+| Visit counts | PostHog (one project for all the sites, section 4) and Cloudflare Web Analytics, both with no cookies | Counted in the browser (`src/lib/analytics.svelte.ts`). Cyanotype uses the same two (section 9). |
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout test on Windows ("Deploy, check and roll back"). |
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
@@ -51,7 +51,7 @@ Cloudflare's onboarding also suggests:
 - **Bot Fight Mode:** off. On the free plan it cannot be tuned or skipped by rules, and it can challenge real visitors.
   Bots cost the site nothing: Pages serves static files free and without a limit on requests.
 - **Client-side security:** free in its monitoring form, which only lists the scripts the pages run (the site's own,
-  Google's tag and Cloudflare's beacon). It blocks nothing. Optional.
+  and Cloudflare's beacon). It blocks nothing. Optional.
 
 ## 2. The repository
 
@@ -167,7 +167,7 @@ from that file, not from the project's settings.
 | `CLOUDFLARE_ACCOUNT_ID` | variable | The Cloudflare account's ID |
 | `VITE_EDITION` | variable | `early` |
 | `VITE_STORE_PRACTICE_GAMES` | variable | `on` |
-| `VITE_GA_ID` | variable | The Google Analytics measurement ID (section 4) |
+| `POSTHOG_KEY` | variable | PostHog's project token, given to the builds as `VITE_POSTHOG_KEY` (section 4) |
 | `VITE_CF_ANALYTICS_TOKEN` | variable | Cloudflare Web Analytics' token (section 5) |
 
 To make the token: in the Cloudflare dashboard, **Account API tokens → Create Token → Custom token**. Give it a name,
@@ -182,7 +182,7 @@ Deploy → Run workflow** on the branch. The workflow gives production and the p
 | Variable | Production (`main`) | Preview (another branch) |
 |---|---|---|
 | `VITE_EDITION` | `early` | `early` |
-| `VITE_GA_ID` | the measurement ID | none, so that previews are not counted |
+| `VITE_POSTHOG_KEY` | `POSTHOG_KEY` | none, so that previews are not counted |
 | `VITE_CF_ANALYTICS_TOKEN` | the token | none |
 | `VITE_STORE_PRACTICE_GAMES` | `on` | `on`, so that the previews store games too, in their own database (section 7) |
 
@@ -197,65 +197,37 @@ Worker: the free plan's daily request limit would apply, and `_headers` does not
 unlisted (`noindex`, design 23), while the live address is indexed. **Preview access** in the project's settings can
 put them behind a sign-in (Cloudflare Access).
 
-## 4. Google Analytics
+## 4. PostHog
 
-- The property's web stream gives the measurement ID (`G-…`), set as `VITE_GA_ID`. The property is Hedge School's.
-- **The stream's name and website URL are labels:** they name the stream (edit them with the pencil in the stream's
-  details), and change nothing that is counted. Google Analytics counts every page that runs a tag with the stream's
-  ID. Only Hedge School's production build has the ID, so the property counts Hedge School. Its reports separate
-  hostnames by the Hostname dimension. To drop a hostname's visits, the property has data filters (**Admin → Data
-  collection and modification → Data filters**, a filter on the web host name, which can only exclude). A filter acts
-  on new data only.
-- **Builds on a developer's machine leave `VITE_GA_ID` unset,** so that test visits are not counted. The early-access
-  trials of the consent banner did set it: their visits are in the property, under the hostnames `127.0.0.1` and the
-  owner's tailnet address.
-- In the stream's enhanced measurement, keep **"Page changes based on browser history events"** on: it counts the
-  site's page changes, which happen without a page load.
-- **The site's events** (design 17): register each parameter as a custom dimension or metric, mark the key events, and
-  set the data retention to 14 months, as design 17's "The setup in Google Analytics" lists them. Without the
-  registration, the events show in Realtime only. The early-access test of the events used a made-up ID
-  (`G-TEST000000`), so none of its events are in the property.
-- The site loads the Google tag itself, in Google's consent mode, advanced form: Google's own snippet is not pasted
-  anywhere. A build without `VITE_GA_ID` has no Google code.
-- **The owner's own visits** (design 17): the property's data filter **Internal Traffic** drops the events whose
-  `traffic_type` is `internal`, but only in the state **Active**. In the state **Testing**, Google's default, it drops
-  nothing. A browser with the site's flag of internal traffic gives every event that value. Do these steps once, after
-  a release that has the flag:
-  1. **Set the flag in each browser** that visits the site: each browser and each browser profile, on each device.
-     Open `https://hedgeschool.abstractclass.org/?internal=on`. The address loses `?internal=on` at once. The flag holds
-     for all pages of the live site in that browser, and not for a preview's address. It stays until someone clears
-     the browser's data for the site. A private window forgets it when it closes. To remove the flag, open a page of
-     the site with `?internal=off`.
-  2. **Check the flag:** keep the site open in that browser. In Google Analytics, open **Reports → Realtime**, click
-     **Add comparison**, then **Create new**. Choose the dimension **Test data filter name** and the match type
-     **contains**, type **Internal Traffic**, and click **Apply**. The match type **exactly matches** offers only the
-     values in its list, and the list can stay empty while the data has the value. The browser's visit shows in that
-     comparison. A visit without the flag does not.
-  3. **Set the filter to Active:** in **Admin → Data collection and modification → Data filters**, click **Internal
-     Traffic**, set its state to **Active**, and click **Save**. From then on, Google Analytics drops these events, and
-     nothing can get them back.
-  4. **Delete the two IP rules:** in **Admin → Data collection and modification → Data streams**, click the web
-     stream, then **Configure tag settings → Show more → Define internal traffic**, and delete both rules. They miss
-     the owner's visits when WARP's address changes, and they catch other WARP users' visits.
-
-  Done on 2026-10-17: the filter is Active, and the stream has no IP rules.
-- **Tag diagnostics says "Urgent": "Verify consent mode set up as 0% consent rate detected".** This is expected. The
-  site sends the three signals for ads (`ad_storage`, `ad_user_data`, `ad_personalization`) as denied for every
-  visitor, because it shows no ads and asks for no consent to them. `analytics_storage` follows the visitor's choice:
-  a visitor who accepts sends `gcs=G101` (ads denied, analytics granted). The diagnostic counts the signals for ads,
-  so it finds all of them denied. It is for sites that use Google Ads. Dismiss it.
-- **One property for Hedge School.** Other sites on the domain, from other repositories, can have their own properties:
-  each site's reports stay apart, with their own settings, and a site can be handed over or closed alone. Or they can
-  share Hedge School's ID, for one report of the whole domain, split by hostname: a visitor who moves between the
-  subdomains is then one user, because Google's cookie is set on `abstractclass.org`. A page can also send to two
-  properties, its own and one for the whole domain (two `config` commands), which needs a list of IDs in
-  `src/lib/analytics.svelte.ts`. Each site asks its own consent: the choice is kept per address. Cyanotype has a
-  property of its own (section 9, "Cyanotype's analytics").
+- **One project for all the sites,** in PostHog's US region: the app at `https://us.posthog.com`, the events to
+  `https://us.i.posthog.com`. Each event names its site's host (`$host`), so a report splits the sites. The project's
+  token is the repository variable `POSTHOG_KEY`. The deploy gives it to each site's build as `VITE_POSTHOG_KEY`, on
+  `main` only. A project token is public: it goes into the pages' code, and it can only send events.
+- **The project's settings** (Settings → Project, `https://us.posthog.com/settings/project`):
+  - **Web analytics → Enable cookieless tracking:** on. The sites run PostHog in its cookieless mode, and without this
+    setting PostHog drops their events. Done on 2026-11-09.
+  - **Filter out internal and test users:** a filter on the event property `internal`, so that the events where it is
+    `true` drop out. Set it once, after the release that sends the property (design 17, "The setup in PostHog").
+- **Builds on a developer's machine leave `VITE_POSTHOG_KEY` unset,** so that test visits are not counted, and the
+  build holds none of PostHog's code. check:all gives Hedge School's build a made-up key, for the browser tests, and
+  the tests' browser resolves none of PostHog's addresses.
+- **The site loads PostHog itself:** posthog-js from npm, in its slim bundle with no external loading
+  (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
+- **The owner's own visits** (design 17): a browser with the site's flag of internal traffic gives every event the
+  property `internal: true`. Set the flag once in each browser that visits a site: each browser and each browser
+  profile, on each device. Open `https://hedgeschool.abstractclass.org/?internal=on` (and Cyanotype's address with the
+  same parameter: each site keeps its own flag). The address loses `?internal=on` at once. The flag holds for all
+  pages of that site in that browser, and not for a preview's address. It stays until someone clears the browser's
+  data for the site. A private window forgets it when it closes. To remove the flag, open a page of the site with
+  `?internal=off`. To check it, open PostHog's **Activity**: the browser's events show the property `internal`.
+- **Google Analytics, before PostHog:** Hedge School's property (`G-C5RY6DWGWN`) counted the site until the release
+  of 2026-11-09's change. No build sends to it after that release. The repository variables `VITE_GA_ID` and
+  `CYANOTYPE_GA_ID` are deleted once the change is on `main`.
 
 ## 5. Cloudflare Web Analytics
 
 1. In the Cloudflare dashboard, **Web Analytics → Add a site**, and choose the domain, `abstractclass.org`. One site
-   covers all its subdomains, as one Google Analytics property does: Cloudflare accepts a site's beacon from any
+   covers all its subdomains, as one PostHog project does: Cloudflare accepts a site's beacon from any
    hostname that ends with the site's name (`hedgeschool.abstractclass.org` ends with `abstractclass.org`), and its
    dashboard separates them by the **Host** dimension. A site for each subdomain is needed only for separate
    dashboards.
@@ -297,8 +269,8 @@ rows reached 7 in one interval of 5 minutes, so an alert on the edge status woul
 an origin status of 500 or more.
 
 A deployment that succeeds sends no email: each push to `dev` deploys a preview, and those emails would be noise. The
-weekly Web Analytics summary stays off: Cloudflare's Web Analytics and Google Analytics show the same visits, pages and
-speed ([design 17](design/17-measurement.md)), so the email would only repeat them.
+weekly Web Analytics summary stays off: Cloudflare's Web Analytics shows the visits, pages and speed, and PostHog the
+same visits and pages ([design 17](design/17-measurement.md)), so the email would only repeat them.
 
 **The dashboard "Error monitoring"** (**Observability → Dashboards**, from Cloudflare's template): the 4xx and 5xx
 answers over time, the origin's errors, the status codes, and the top paths of 4xx and 5xx answers. It reads
@@ -481,22 +453,21 @@ Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
 
 ### Cyanotype's analytics
 
-Cyanotype counts its visits and events as Hedge School does ([design 33](design/33-cyanotype.md), "Analytics and
-consent"): Google Analytics after the visitor's consent, and Cloudflare Web Analytics, without cookies. The job
-`cyanotype` gives the build two repository variables under the names that the code reads. Only a push to `main` gives
-them, so previews are not counted. Until Cyanotype's launch, the job deploys previews only, so no build has them. A
-build without them measures nothing and shows no consent banner.
+Cyanotype counts its visits and events as Hedge School does ([design 33](design/33-cyanotype.md), "Analytics"):
+PostHog and Cloudflare Web Analytics, both without cookies, so it asks for no consent. The job `cyanotype` gives the
+build two repository variables under the names that the code reads. Only a push to `main` gives them, so previews are
+not counted. Until Cyanotype's launch, the job deploys previews only, so no build has them. A build without them
+measures nothing.
 
 | Name in the build | Repository variable | Value |
 |---|---|---|
-| `VITE_GA_ID` | `CYANOTYPE_GA_ID` | The measurement ID (`G-…`) of Cyanotype's own Google Analytics web stream |
+| `VITE_POSTHOG_KEY` | `POSTHOG_KEY` | The token of the one PostHog project of all the sites (section 4), as for Hedge School |
 | `VITE_CF_ANALYTICS_TOKEN` | `VITE_CF_ANALYTICS_TOKEN` | The token of the domain's Web Analytics site (section 5), as for Hedge School |
 
-- **Cloudflare Web Analytics needs no step.** The account's one site, `abstractclass.org` (section 5), takes the
-  beacon of every subdomain, and its dashboard splits the visits by host. Cyanotype uses its token.
-- **Google Analytics has no owner's step here.** Both sites move to PostHog in its place (abscls-xb0k), and that work
-  gives the owner's steps. The variable `CYANOTYPE_GA_ID` holds a Google Tag Manager container ID (`GTM-…`), not a
-  measurement ID: before Cyanotype's launch, it gets the replacement's value or is deleted.
+- **Neither service needs a step of Cyanotype's own.** The account's one Web Analytics site, `abstractclass.org`
+  (section 5), takes the beacon of every subdomain, and its dashboard splits the visits by host. The PostHog project
+  takes the events of every site, and each event names its host. The flag of internal traffic is Cyanotype's own: set
+  it in each browser with `?internal=on` on Cyanotype's address (section 4).
 
 ## The launch switch
 

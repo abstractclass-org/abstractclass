@@ -157,7 +157,7 @@
     }
   }
 
-  // What Google Analytics receives (Hedge School's design 17): counts and settings, never a move or the player's name.
+  // What PostHog receives (Hedge School's design 17): counts and settings, never a move or the player's name.
   // A game's settings, with each event about it. Its end, once, by the rules, Resign or Abort. A feature's first use
   // in a game.
   const gameParams = (g: PracticeGame) => practiceParams(g.kept, g.mode, navigator.hardwareConcurrency);

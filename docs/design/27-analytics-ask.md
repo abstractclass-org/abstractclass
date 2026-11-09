@@ -1,6 +1,28 @@
 # A request to the visitors whose blocker stops Google Analytics
 
-**Status:** in force, and built. **Decided:** 2026-10-18.
+**Status:** withdrawn on 2026-11-09, and removed from the code. **Decided:** 2026-10-18.
+
+## Withdrawn
+
+PostHog replaced Google Analytics on both sites (design 11), with no cookies and no consent. The request went with it,
+for these reasons:
+
+- **No visitor accepts the counts now.** The request asked only the visitors who accepted Google Analytics' cookies:
+  they agreed to be counted (item 3). Without a consent, a request to allow PostHog would go to every visitor with a
+  blocker, and press against a choice that the site never offered. This document rejected that alternative ("Ask every
+  visitor with a blocker").
+- **uBlock Origin's default lists do not stop PostHog's client.** The site bundles posthog-js from npm (design 11), so
+  no script comes from PostHog. Its events go to `https://us.i.posthog.com/e/`, with no `ip=` parameter. The PostHog
+  rules of EasyPrivacy and uBlock Origin's own lists match PostHog's snippet (`/static/array.js`), the `/i/` address
+  and addresses with `ip=` (the lists as read on 2026-11-09). AdGuard's tracking protection list (`||i.posthog.com^`)
+  and Firefox's strict tracking protection (Disconnect's list, PostHog under Analytics) do stop it.
+- **No signal from the client.** posthog-js reports a failed request only when the server answers with a status of
+  400 or more (`on_request_error`). A blocked request has no answer, so the page could not know of it without a check
+  of blockers, which item 2 rejects.
+
+The card (`packages/site/src/CornerCard.svelte`) stays for the consent banner. The key `hedge-school:analytics-ask:1`
+and Cyanotype's `cyanotype:analytics-ask:1` stay in the browsers that set them, unread. The rest of this document is
+the decision as it was.
 
 ## Context
 

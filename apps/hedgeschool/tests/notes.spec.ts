@@ -32,7 +32,7 @@ test("Practice: a ring, a line, the colours, the same note again, and the notes 
     .replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
   await page.goto("/practice");
   await page.evaluate(kept => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
     localStorage.setItem("hedge-school:practice-game:1", JSON.stringify(kept));
   }, { version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "",
        seed: 1, moves, builds: [], started: new Date().toISOString() });

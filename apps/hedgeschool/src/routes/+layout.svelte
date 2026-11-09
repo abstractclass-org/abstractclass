@@ -4,12 +4,11 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { EARLY_ACCESS, ENGINE_FILES, OPENINGS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
-	import { ASKS_CONSENT, analytics, asksToAllow, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
+	import { ASKS_CONSENT, analytics, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
 	import { earlierRemovalDue, removeOlderShapes } from '@abstractclass/analysis/cache.ts';
 	import { holdsGame } from '@abstractclass/import/importHash.ts';
 	import ConsentBanner from '@abstractclass/site/ConsentBanner.svelte';
-	import AnalyticsAsk from '@abstractclass/site/AnalyticsAsk.svelte';
 	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
 	import SiteMenu from '@abstractclass/site/SiteMenu.svelte';
 	import SupportDialog from '#lib/SupportDialog.svelte';
@@ -48,8 +47,7 @@
 	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
 	// of the address starts them then (design 22). The import page alone goes to the tools, and counts nothing: with a
 	// game, its arrival step starts them, as the review's does (Arrival.svelte). The banner shows in the browser only,
-	// never in the prerendered page. After the banner, in its place, the ask to allow Google Analytics in a blocker shows
-	// when the visitor accepted Google Analytics and its tag did not run (design 27).
+	// never in the prerendered page.
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
@@ -113,5 +111,4 @@
 
 <!-- The card's collie, at 48 pixels: its head and chest (design 12). -->
 {#snippet collie()}<Collie size={48} />{/snippet}
-{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner {analytics} site={SITE_NAME} title="Help the school get better" mark={collie} />
-{:else if asksToAllow()}<AnalyticsAsk {analytics} site={SITE_NAME} mark={collie} />{/if}
+{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner {analytics} site={SITE_NAME} title="Help the school get better" mark={collie} />{/if}

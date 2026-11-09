@@ -30,7 +30,7 @@ async function keepGame(page: Page, komi: number, moves: string[]) {
 /** A context's script before each page: the visitor has answered the consent notice, which covers the page's foot until
  *  they choose. The engine's GPU is off, and so is the review's engine. */
 const answeredAndOff = () => {
-  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
   localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
 };
 test.beforeEach(({ context }) => context.addInitScript(answeredAndOff));

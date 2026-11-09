@@ -22,7 +22,7 @@ test("a Decline in another tab: the practice tab's game goes with no number, and
     .replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
   await practice.evaluate(([number, kept]) => {
     localStorage.clear();
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: null, games: "granted" }));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "granted" }));
     localStorage.setItem("hedge-school:browser-number:1", number as string);
     localStorage.setItem("hedge-school:practice-game:1", JSON.stringify(kept));
   }, [NUMBER, { version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0,

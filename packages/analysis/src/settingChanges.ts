@@ -1,7 +1,7 @@
 // The engine settings' changes as events (Hedge School's design 17): the defaults' test. Each setting by its name, its
 // new value, and where it applies: this browser, or one game (a game that keeps its own network and depth). The value
-// goes as `setting_value`: Google Analytics reads a parameter called `value` as the event's worth, a number. A site
-// gives its analytics' events and its networks' names (settingEvents).
+// goes as `setting_value`, the name that Google Analytics needed (it read `value` as the event's worth), kept so that
+// the reports keep one name. A site gives its analytics' events and its networks' names (settingEvents).
 import { reviewVisits, type EngineSettings } from "./settings.ts";
 
 const SETTING_NAMES: Record<string, string> = { on: "engine_on", visits: "depth_on_screen", seconds: "time_limit", review: "depth_per_move",

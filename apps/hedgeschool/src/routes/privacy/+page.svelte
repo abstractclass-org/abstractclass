@@ -1,6 +1,7 @@
 <script lang="ts">
-  // What the site keeps, and where (design 11), with the practice games that it stores (design 25), and a switch for
-  // each purpose of the consent. The switches show in the browser only: the prerendered page cannot know the choices.
+  // What the site keeps, and where (design 11), with the practice games that it stores (design 25), and the switch of
+  // the consent's one purpose, the games' link. The switch shows in the browser only: the prerendered page cannot know
+  // the choice.
   import { onMount } from "svelte";
   import { Switch } from "bits-ui";
   import { PROSE } from "@abstractclass/site/prose.ts";
@@ -17,7 +18,6 @@
   onMount(() => { mounted = true; number = keptNumber(); });
   const LABEL: Record<Purpose, string> = {
     games: "Group my games against bots with a random ID in this browser",
-    analytics: "Let Google Analytics set cookies that tell my visits apart",
   };
   // The delete asks first (ConfirmDialog, design 25): the player cannot undo it.
   let asking = $state(false);
@@ -83,12 +83,19 @@
   <ul>
     <li><strong>Cloudflare</strong> serves the site's files. Like any web host, it receives each request: your IP
       address and your browser's name. Its Web Analytics counts visits without cookies.</li>
-    <li><strong>Google Analytics</strong> counts visits in Google's consent mode. Until you accept, it sets no cookies.
-      Google still receives each page you open: its address, the time, your browser and screen size, and your IP
-      address. Google says that it does not keep the IP address. If you accept, it also sets cookies that distinguish
-      your visits from other people's visits.</li>
+    <li><strong>PostHog</strong> counts visits. It receives each page that you open: its address without the part
+      after the <code>#</code>, its title, the time, and the page that sent you here. It also receives your browser
+      and its language, your operating system, your time zone, your screen size and your IP address. PostHog stores
+      this data in the United States.</li>
   </ul>
-  <p>Google Analytics also receives counts of what you do here, so that we can tell what to improve:</p>
+  <p>Neither service sets cookies or keeps data in your browser, so the site does not ask for your consent to them.
+    To count visitors without cookies, PostHog makes a code from your IP address, your browser and a random value of
+    the day, on its own servers. The code changes each day, and it cannot give back your IP address. PostHog removes
+    your IP address before it keeps a visit.</p>
+  <p>PostHog takes part in the EU-U.S. Data Privacy Framework, its UK Extension and the Swiss-U.S. Data Privacy
+    Framework. With these, it can receive the data of visitors from the EU, the UK and Switzerland in the United States
+    (<a href="https://posthog.com/privacy">PostHog's privacy policy</a>).</p>
+  <p>PostHog also receives counts of what you do here, so that we can tell what to improve:</p>
   <ul>
     <li>the games you import, load and delete</li>
     <li>your reviews, and your visits to the Analysis board and the board editor</li>
@@ -99,15 +106,12 @@
       update</li>
   </ul>
   <p>The counts hold ranges, such as a game's length. They also hold how your computer runs the engine: its number of
-    cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Until you accept the
-    cookies, nothing links one count to another.</p>
-  <p>If you accept the cookies and a blocker stops Google Analytics, the site asks you to allow it in your blocker. To
-    know this, the site checks only whether its own Google Analytics ran in the page.</p>
+    cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Only PostHog's code of
+    the day links one count to another.</p>
 
   {#if ASKS_CONSENT}
     <h2 id="consent">Your choices</h2>
-    <p>Each choice is separate. The banner's Accept and Decline set them all. When you change one switch here, the site
-      also keeps each switch that you have not set yet as off.</p>
+    <p>The banner's Accept and Decline set this choice. You can change it here at any time.</p>
     {#if mounted}
       <div class="grid gap-3">
         {#each PURPOSES as p (p)}

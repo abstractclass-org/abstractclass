@@ -20,6 +20,10 @@ if (process.env.CI && !process.env.CYANOTYPE_BASE_URL) {
 }
 
 const showScrollBars = { ignoreDefaultArgs: ["--hide-scrollbars"] };
+// No test reaches PostHog: the browser resolves none of its addresses, so a build with a PostHog key (check:all gives
+// Hedge School's a made-up one) sends nothing out. Playwright's routes still answer them, before the browser resolves
+// the address (tests/analytics.spec.ts).
+const NO_POSTHOG = ["--host-resolver-rules=MAP posthog.com ~NOTFOUND, MAP *.posthog.com ~NOTFOUND"];
 const OFF_THE_GPU = process.platform === "win32"
   ? ["--disable-gpu", "--disable-d3d11", "--disable-gpu-process-for-dx12-info-collection", "--disable-software-rasterizer"]
   : [];
@@ -32,9 +36,9 @@ export default defineConfig({
   reporter: [["list"]],
   use: { baseURL: process.env.BASE_URL ?? "http://127.0.0.1:4173", screenshot: "only-on-failure" },
   projects: [
-    { name: "chromium", use: { browserName: "chromium", launchOptions: { ...showScrollBars, args: OFF_THE_GPU } } },
+    { name: "chromium", use: { browserName: "chromium", launchOptions: { ...showScrollBars, args: [...OFF_THE_GPU, ...NO_POSTHOG] } } },
     ...(withEdge()
-      ? [{ name: "edge", use: { browserName: "chromium" as const, channel: "msedge", launchOptions: showScrollBars } }]
+      ? [{ name: "edge", use: { browserName: "chromium" as const, channel: "msedge", launchOptions: { ...showScrollBars, args: NO_POSTHOG } } }]
       : []),
   ],
 });

@@ -229,11 +229,10 @@ test("layout of Cyanotype's board editor", async ({ page }) => {
   expect(await sweep(page, "Cyanotype's /editor")).toBe("");
 });
 
-/** The visitor's Decline on both sites, as the consent banner keeps it: Hedge School's key and Cyanotype's. A page
- *  script (addInitScript): it runs in the page, on either site. */
+/** The visitor's Decline, as Hedge School's consent banner keeps it (Cyanotype asks for no consent). A page script
+ *  (addInitScript): it runs in the page, on either site. */
 const answerConsent = () => {
-  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
-  localStorage.setItem("cyanotype:consent:1", JSON.stringify({ analytics: "denied" }));
+  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
 };
 
 // The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header
@@ -586,7 +585,7 @@ test("layout of the book's table in a review", async ({ page }) => {
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
   // The visitor has answered the consent notice, which would cover the Report's row on a phone
   await page.addInitScript(() =>
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" })));
   await page.goto("/review");
   test.skip(!(await page.getByRole("link", { name: "Early Access" }).count()), "not the early edition");
   await reviewedGame(page);
@@ -669,7 +668,7 @@ test("layout of /openings", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
   await page.addInitScript(() => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
     localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
   });
   await page.goto("/about");
@@ -695,7 +694,7 @@ test("the sentence under the book's table keeps the move list in place", async (
       const served = await page.request.get("/test-book/prototype/index.json");
       if (!served.ok() || !(served.headers()["content-type"] ?? "").includes("json")) { await context.close(); test.skip(true, "the site serves no test book"); }
       await page.addInitScript(([d]) => {
-        localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+        localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
         localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
         localStorage.setItem("learn-enclosure:review-display:1", d);
       }, [JSON.stringify({ judge })]);
@@ -766,7 +765,7 @@ function stepBarProblems(page: Page) {
 test("the step bar on a phone", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
   await context.addInitScript(() =>
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" })));
   const page = await context.newPage();
   const record = fixtureRecord();
   const found: string[] = [];

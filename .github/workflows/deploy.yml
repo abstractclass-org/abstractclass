@@ -59,13 +59,14 @@ jobs:
         run: npm run check --workspace=packages && npm test --workspace=packages
         working-directory: .
 
-      # The build's variables (repository variables). Previews have no Google Analytics and no Web Analytics, so that
-      # their visits are not counted.
+      # The build's variables (repository variables). PostHog's project key, POSTHOG_KEY, under the name that the code
+      # reads: one project for all the sites. Previews have no PostHog and no Web Analytics, so that their visits are
+      # not counted, and a build without the key holds none of PostHog's code.
       - run: npm run build:cloudflare
         env:
           VITE_EDITION: ${{ vars.VITE_EDITION }}
           VITE_STORE_PRACTICE_GAMES: ${{ vars.VITE_STORE_PRACTICE_GAMES }}
-          VITE_GA_ID: ${{ github.ref_name == 'main' && vars.VITE_GA_ID || '' }}
+          VITE_POSTHOG_KEY: ${{ github.ref_name == 'main' && vars.POSTHOG_KEY || '' }}
           VITE_CF_ANALYTICS_TOKEN: ${{ github.ref_name == 'main' && vars.VITE_CF_ANALYTICS_TOKEN || '' }}
 
       # Wrangler, pinned. It uploads build/ and the Pages Function in functions/. It takes functions/ from the folder
@@ -169,13 +170,13 @@ jobs:
         run: npm run check --workspace=packages && npm test --workspace=packages
         working-directory: .
       # The build's edition: the repository variable VITE_EDITION, as for the site's build. Its analytics
-      # (docs/hosting.md, "Cyanotype's analytics"): Cyanotype's own Google Analytics ID, CYANOTYPE_GA_ID, under the
-      # name that the code reads, and the domain's one Cloudflare Web Analytics site, VITE_CF_ANALYTICS_TOKEN, as for
-      # the site's build. Only the live site has them: previews are not counted.
+      # (docs/hosting.md, "Cyanotype's analytics"): the one PostHog project of all the sites, POSTHOG_KEY, and the
+      # domain's one Cloudflare Web Analytics site, VITE_CF_ANALYTICS_TOKEN, as for the site's build. Only the live site
+      # has them: previews are not counted.
       - run: npm run engine -- --deploy && npm run check && npm test && npm run build
         env:
           VITE_EDITION: ${{ vars.VITE_EDITION }}
-          VITE_GA_ID: ${{ github.ref_name == 'main' && vars.CYANOTYPE_GA_ID || '' }}
+          VITE_POSTHOG_KEY: ${{ github.ref_name == 'main' && vars.POSTHOG_KEY || '' }}
           VITE_CF_ANALYTICS_TOKEN: ${{ github.ref_name == 'main' && vars.VITE_CF_ANALYTICS_TOKEN || '' }}
 
       - name: Upload to Cloudflare Pages

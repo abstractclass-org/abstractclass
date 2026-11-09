@@ -10541,3 +10541,73 @@ not engine-887be290's for Cyanotype's.
   `checkThreadedBot` with each wrong size above in the manifest that a script gave it, with no change to a file. A
   failed manifest download (HTTP 504 and 403, no network, no `Last-Modified`), with a fetch that a script replaced:
   each stopped the step with the release, the URL and the cause.
+
+### PostHog in place of Google Analytics (2026-11-09)
+
+- **Decided** (abscls-xb0k; the owner's decision of 2026-11-09, on cyanotype-coord's recommendation): both sites
+  measure with PostHog in place of Google Analytics, in one project for all the sites, in cookieless mode always.
+  Cloudflare Web Analytics stays as it is ([design/11-early-access.md](../design/11-early-access.md), item 7).
+- **Why:** the setup that design 17 needed in Google Analytics (43 custom dimensions, 3 custom metrics, 3 calculated
+  metrics, 4 key events and 6 explorations, all by hand) and a consent banner for its cookies were too much, and the
+  owner paused it. PostHog's event properties "are used for filtering, breakdowns, cohorts, targeting, and more", with
+  no step to register them. Its free plan has 1,000,000 events a month, 1 project and 1 year of data
+  (posthog.com/pricing.md, read 2026-11-09). Cloudflare counted about 900 page loads in 350 visits on Hedge School
+  from 2026-10-10 to 11-08. With `cookieless_mode: 'always'`, PostHog "never stores PostHog data in cookies or
+  local/session storage" and "doesn't require a cookie banner (unless something else on your website uses cookies)"
+  (posthog.com/docs/privacy/data-collection.md).
+- **The region:** PostHog's US region, which the owner picked at signup: the events go to `https://us.i.posthog.com`.
+  The privacy pages say that PostHog stores the data in the US, and name the basis for the data of visitors from the
+  EU, the UK and Switzerland: PostHog's DPA, section 10.3, "Processor confirms that it participates in the EU-US Data
+  Privacy Framework, the UK Extension to this Framework and the Swiss-U.S. Data Privacy Framework", with the Standard
+  Contractual Clauses of its section 10.4 beside them (posthog.com/dpa and posthog.com/privacy, read 2026-11-09).
+-  **The client:** posthog-js 1.447.4 from npm, in its slim bundle with no external loading
+  (`posthog-js/dist/module.slim.no-external`, with `AnalyticsExtensions` for the page views), not PostHog's snippet. The
+  build-sizes check passes either way (no file is near 25 MiB). The snippet loads PostHog's latest `array.js` from
+  PostHog's address, and EasyPrivacy, one of uBlock Origin's default lists, blocks it
+  (`||i.posthog.com/static/array.js`). The npm client's version is the lockfile's, it loads no script from PostHog, and
+  its events' address (`/e/`, with no `ip=`) matches none of the PostHog rules of uBlock Origin's default lists. A site
+  imports the client only in a build with the key, so a build without it holds none of PostHog's code.
+- **The options** (`packages/site/src/posthog.ts`, each from posthog.com/docs/libraries/js/config.md):
+  `api_host: 'https://us.i.posthog.com'`, `defaults: '2026-08-30'`, `cookieless_mode: 'always'`,
+  `person_profiles: 'never'` (PostHog's advice for cookieless mode: `identify()` does nothing),
+  `capture_pageview: 'history_change'` (the site's pages change without a reload), `disable_capture_url_hashes: true`
+  (the review's address names its game's id after the `#`), `autocapture: false`, `disable_session_recording: true`,
+  `capture_heatmaps: false` (cookieless mode keeps heatmaps on), `disable_surveys: true`, `capture_dead_clicks: false`,
+  `rageclick: false`, `capture_performance: false` (no web vitals: Cloudflare measures the speed),
+  `capture_exceptions: false`, `disable_product_tours: true`, `disable_conversations: true`,
+  `advanced_disable_flags: true` (no request for feature flags or for the project's remote settings), and
+  `internal_or_test_user_hostname: null` (the defaults mark a visit to `localhost` or `127.0.0.1` as a test user,
+  which sets a person property: the site makes no persons, and only the live site has the key).
+- **What PostHog receives** with each event, as a page view on this branch's build showed it: the address without
+  its `#` part, the path, the host, the page's title, the referrer, the browser, its version and language, the
+  operating system, the device's type, the time zone, the screen's and the window's sizes, and `$cookieless_mode`
+  with the distinct ID `$posthog_cookieless`. The privacy pages name these. No page's title names a game or a player.
+- **The events:** design 17's and design 33's, with the same names and parameters, as event properties. The visitor's
+  `games_stored` is a super property of the page (`register`): every later event of the page carries it. Cookieless
+  mode keeps no person, so it is no person property.
+- **The owner's visits:** `?internal=on` stays. A browser with the flag gives every event `internal: true`, the first
+  page view too (`register` in `loaded`, which runs before it). The project's filter of internal and test users is
+  the owner's step.
+- **The consent:** the analytics purpose goes from both sites. Hedge School keeps the games' purpose (design 25: the
+  owner's answer of 2026-11-09, "let's keep the consent for ID, then"), under its key `hedge-school:consent:2`, and
+  its banner names that purpose only, with no "Choose each". Cyanotype asks for no consent: no banner, and no "Your
+  choices" on its Privacy page.
+- **The ask to allow the measuring in a blocker** (design 27) goes. No visitor accepts PostHog's counts, so a request
+  would go to every visitor with a blocker. uBlock Origin's default lists (EasyList, EasyPrivacy, uBlock filters,
+  uBlock filters - Privacy, Peter Lowe's list, read 2026-11-09) do not stop the npm client's events. AdGuard's
+  tracking protection list (`||i.posthog.com^`) and Firefox's strict tracking protection (Disconnect's Analytics) do.
+  posthog-js calls `on_request_error` only for a status of 400 or more, so the page cannot see a blocked request
+  without a check of blockers, which design 27 rejects. This departs from the issue's text, which kept the ask if a
+  blocker stops PostHog as it stopped Google's tag: the owner can bring it back.
+- **The tests:** the layout test's analytics cases (`tests/analytics.spec.ts`, which replaces
+  `tests/analytics-ask.spec.ts`) run on check:all's builds: Hedge School's with a made-up key, Cyanotype's without
+  one. The tests' Chromium resolves none of PostHog's addresses (`--host-resolver-rules`), and Playwright's routes
+  answer them in PostHog's place. posthog-js sends nothing from a browser that looks like a bot: a name or a brand
+  with "HeadlessChrome", or `navigator.webdriver`. The analytics cases give their pages a desktop Chrome's name, no
+  brands and no webdriver flag. The first run without them received no page view.
+- **Not in this change:** the six reports of design 17 as PostHog insights (a later issue, by PostHog's API), and
+  Hedge School's release.
+- **Checked** (on dev at a96f9776): `npm run check:all` passed, all 16 steps. The layout test (headless Chromium, on
+  this branch's previews of both sites) passed all 220 cases, with none skipped: the 4 analytics cases among them.
+  Cyanotype's build, with no key, has no file that names PostHog. In Hedge School's build with the made-up key,
+  PostHog's client is one chunk of 201,604 bytes (64,697 gzipped), which loads after the page starts.

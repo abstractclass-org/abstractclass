@@ -37,7 +37,7 @@ export const botName = (bot: BotSettings) => botLabel(networkName(bot.network), 
  *  whether that move opens its turn (the engine repository's design 04, "The turns after a set-up start"). */
 export const practiceTurn = (k: Pick<KeptPractice, "start">) => turnFromCount(k.start ? Number(k.start.split(" ")[4]) : 0);
 
-/** What Google Analytics receives about a practice game (design 17, @abstractclass/practice/practiceEvents.ts):
+/** What PostHog receives about a practice game (design 17, @abstractclass/practice/practiceEvents.ts):
  *  `practice_start`'s parameters, and `practice_end`'s, with the network by its name. */
 export const { practiceParams, practiceEndParams } = practiceEvents(networkName);
 

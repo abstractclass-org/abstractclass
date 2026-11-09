@@ -276,7 +276,7 @@
     if (g.status === "bot") return `HedgeFund is thinking… ${g.thinkingSince === null ? "" : seconds(Math.max(0, now - g.thinkingSince))}`;
     return `Your turn: ${p.movesLeft} ${p.movesLeft === 1 ? "edge" : "edges"} to play.`;
   });
-  // What Google Analytics receives (design 17): counts and settings, never a move or the player's name. A game's
+  // What PostHog receives (design 17): counts and settings, never a move or the player's name. A game's
   // settings, with each event about it. Its end, once, by the rules, Resign or Abort. A feature's first use in a game.
   const gameParams = (g: PracticeGame) => practiceParams(g.kept, g.mode, navigator.hardwareConcurrency);
   let endSent: PracticeGame | null = null;

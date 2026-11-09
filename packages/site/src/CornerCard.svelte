@@ -1,8 +1,7 @@
 <script lang="ts">
-  // The card at the window's lower left, with the site's mark at 48 pixels (Hedge School's collie, Cyanotype's logo):
-  // the consent banner (Hedge School's design 25), and in its place, after it, the ask to allow Google Analytics in a
-  // blocker (Hedge School's design 27). A region, named by its title. It stops nothing on the page: the page under it
-  // still scrolls and takes clicks.
+  // The card at the window's lower left, with the site's mark at 48 pixels (Hedge School's collie): the consent banner
+  // (Hedge School's design 25). A region, named by its title. It stops nothing on the page: the page under it still
+  // scrolls and takes clicks.
   import type { Snippet } from "svelte";
 
   let { title, mark, children, actions }: { title: string; mark: Snippet; children: Snippet; actions: Snippet } = $props();

@@ -41,25 +41,26 @@ Lichess and chess.com keep every game played on them:
 4. **No switch to keep games out:** a game with no number and no name identifies no one, as Lichess's anonymous
    games. For the linked games, the consent is the way out: Decline stops the link, and the privacy page deletes the
    games that went with this browser's number.
-5. **The consent banner asks for both purposes, and is open about them** (design 11's banner, replaced): a visitor who
-   declines most often does not read the banner, so it says, in a few lines, what each purpose does for the site.
-   Accept and Decline cover both, and stay alike, so that declining is as easy as accepting. "Choose each" leads to
-   the privacy page, which has a switch for each purpose, as consent must be given for each purpose on its own. The
-   banner promises only what holds whatever the site adds later (accounts, ads, a donation link): it says the site
-   is free, and that it never sells data. The banner, with the collie (the site's schoolmaster, design 12):
+5.  **The consent banner asks for the games' link, and is open about it** (design 11's banner, replaced): a visitor who
+   declines most often does not read the banner, so it says, in a few lines, what the purpose does for the site. Accept
+   and Decline stay alike, so that declining is as easy as accepting. The privacy page has a switch for each purpose.
+   With more than one purpose, the banner's "Choose each" leads to them. The banner promises only what holds whatever
+   the site adds later (accounts, ads, a donation link): it says the site is free, and that it never sells data. The
+   banner, with the collie (the site's schoolmaster, design 12):
 
    > **Help the school get better**
-   > Hedge School is free. If you accept, two things help us improve it:
+   > Hedge School is free. If you accept, this helps us improve it:
    > - A random ID in this browser groups your games against bots, so we can tell how hard each setting is for real
    >   players.
-   > - Google Analytics' cookies show which pages and tools you come back to, so that we work on those.
    >
    > Your games against bots are kept either way, never with your name. We never sell your data.
-   > [Accept] [Decline] Choose each · Privacy
+   > [Accept] [Decline] Privacy
 
-   The banner ships with the games' storage: a consent covers the purposes that it named, so a banner for Google
-   Analytics alone, now, would ask everyone again then. The new banner asks every visitor once, the earlier choices
-   included (a new key).
+   Until 2026-11-09, the banner also asked for Google Analytics' cookies, a second purpose with its own switch. The
+   site's visit counts now set no cookies (PostHog's cookieless mode, design 11), so the banner asks for the games'
+   link only. The consent keeps its key (`hedge-school:consent:2`): the games' choice that a visitor made then keeps
+   its words, so it stays valid. A build that stores no practice games asks for no consent. Cyanotype asks for none
+   (its design 33, "Analytics").
 6. **The use:** the bot's levels (design 24), what players find hard, and an open dataset, without names, as Lichess
    publishes its games (CC0). The privacy page says so before the first game is stored.
 7. **Where:** a Cloudflare Pages Function and a D1 database, on the site's own Cloudflare project (design 19, item
@@ -85,8 +86,9 @@ Lichess and chess.com keep every game played on them:
 - **A number for every browser, with no consent:** better data, but a number for research alone, without consent, is
   not allowed in the EU.
 - **No number:** no consent needed, but the calibration cannot tell a strong player from a weak setting.
-- **One Accept with no choice for each purpose:** a smaller page, but consent must be given for each purpose on its
-  own. The banner's Accept and Decline cover both, and the privacy page holds the choice for each.
+- **One Accept with no choice for each purpose** (while the banner had two purposes): a smaller page, but consent must
+  be given for each purpose on its own. The banner's Accept and Decline covered both, and the privacy page held the
+  choice for each.
 - **A switch in Practice to keep the games out:** more control, but gaps in the data, for games that identify no one.
 - **Games kept for the project only, never published:** simpler to promise, but no open dataset without everyone's
   consent again.
@@ -123,11 +125,10 @@ Lichess and chess.com keep every game played on them:
 - **The kept game** (`KeptPractice`) gains its id, where the bot ran, each takeback (the edges played before it, and
   the edges it undid) and each move's time: the player's from the moment the move was theirs, the bot's for its
   search of that edge. A move from before a visit's resumption has no time (null).
-- **The consent** (`src/lib/analytics.svelte.ts`): a choice for each purpose, `analytics` and `games`, under a new key
-  (`hedge-school:consent:2`). The banner's Accept and Decline set both. The privacy page has a switch for each. A
-  change to one switch also keeps each purpose not chosen yet as declined, as its switch shows it off: a visitor can
-  accept one purpose and decline the other without granting it first. The
-  random number (`hedge-school:browser-number:1`) is made on the first game sent with consent. After a Decline it
+- **The consent** (`src/lib/analytics.svelte.ts`): a choice for each purpose, now the one purpose `games`, under the
+  key `hedge-school:consent:2`. The banner's Accept and Decline set it, and the privacy page's switch. A change to one
+  switch also keeps each purpose not chosen yet as declined, as its switch shows it off, for a purpose added later.
+  The random number (`hedge-school:browser-number:1`) is made on the first game sent with consent. After a Decline it
   is no longer sent, and stays in the browser only so that the privacy page can still delete its games. "Delete my
   practice games" deletes them, and the number with them. It asks first, in the same dialog as a game's delete
   (`packages/site/src/ConfirmDialog.svelte`, design 11). The dialog's text on the privacy page says what goes and
@@ -137,13 +138,14 @@ Lichess and chess.com keep every game played on them:
   statement, so that a delete cannot come between them. Each tab follows a choice made in another tab (the browser's
   `storage` event), and a game takes the number, and goes with it, only as the browser keeps the choice at that moment.
 - **The banner** (`packages/site/src/ConsentBanner.svelte`, shown by `src/routes/+layout.svelte`): item 5's text, with
-  the collie, for the purposes that the build has: a build without Google Analytics, as the previews, does not name its
-  cookies. The banner's card (`packages/site/src/CornerCard.svelte`) also holds the request to allow Google Analytics in
-  a blocker, which shows after the banner, in the same place (design 27).
+  the collie, for the purposes that the build has, in its card (`packages/site/src/CornerCard.svelte`). The check in a
+  browser: `tests/analytics.spec.ts` (the banner's one purpose) and `tests/practice-games.spec.ts` (the consent across
+  tabs).
 - **Tests:** `src/lib/practice/stored.test.ts` checks the stored game, and the Function on the real schema in Node's
   own SQLite, behind the part of D1's binding that the Function uses.
 
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "Practice games stored" (2026-10-15), "A question before the
-  practice games' delete, and the cancelled deletes counted" (2026-10-17).
+  practice games' delete, and the cancelled deletes counted" (2026-10-17), "PostHog in place of Google Analytics"
+  (2026-11-09): the banner asks for the games' link only.

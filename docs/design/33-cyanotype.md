@@ -18,8 +18,8 @@ and Practice from a set-up start are built (abscls-8tl1.40, "Practice against St
 early access is built, as Hedge School's ("Decision", item 11). The player's games, kept in this browser, are built as
 Hedge School's (abscls-8tl1.38, "The player's games"), with their review files (abscls-8tl1.34, "The review files"), the
 review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are designed, not built
-("Partner sites"). The analytics and the consent banner are built as Hedge School's (abscls-8tl1.48, "Analytics and
-consent"). No build measures yet: PostHog replaces Google Analytics first (abscls-xb0k).
+("Partner sites"). The analytics are built as Hedge School's (abscls-8tl1.48), with PostHog in place of Google
+Analytics and no consent (abscls-xb0k, "Analytics").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -29,7 +29,7 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
 notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07. Partner sites:
 2026-11-08. The import page keeps the game: 2026-11-08. The review files: 2026-11-08. The position check: 2026-11-09.
-The analytics and the consent: 2026-11-06. Practice from a position: 2026-11-09.
+The analytics: 2026-11-06, with PostHog and no consent: 2026-11-09. Practice from a position: 2026-11-09.
 
 ## Context
 
@@ -651,7 +651,7 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    "Analyze on the board" opens the board by its own address with the record (`/analysis#record=…&at=`), which takes it
    out of the address again and checks it, as a link to the board does. The page counts the review's import once it
    keeps the game. The board's address names the tool's source (`via`), and the board counts the import by it
-   ("Analytics and consent", item 4). A reload of the page after the game left its address goes to the tools page. A
+   ("Analytics", item 4). A reload of the page after the game left its address goes to the tools page. A
    partner's links (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design 18): the page refuses
    `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites". A link's record
    (`/import#record=…`) gets the same choice as a tool's.
@@ -1252,33 +1252,32 @@ corner (`hex.ts`). A cell's body has the radius 0.93, so that a gap shows betwee
 
 `apps/cyanotype/src/lib/board/Cell.svelte` draws a cell, and `cellMarks.ts` gives the two marks' shapes.
 
-## Analytics and consent
+## Analytics
 
-Cyanotype measures its visits and its events as Hedge School does (its designs 11, 17, 25 and 27), in the code that
-both sites share (design 29), with Cyanotype's own services and keys.
+Cyanotype measures its visits and its events as Hedge School does (its designs 11 and 17), in the code that both sites
+share (design 29). It asks for no consent: its visit counts set no cookies, and it stores no practice games.
 
 1. **The shared parts,** moved from Hedge School: in `packages/site`, the analytics (`analytics.svelte.ts`: one
    `Analytics` for each site, with its build's two services and its keys), the flag of internal traffic
    (`internalTraffic.ts`), the ranges (`measure.ts`), the card at the window's lower left with the site's mark
-   (`CornerCard.svelte`), the consent banner (`ConsentBanner.svelte`) and the ask to allow Google Analytics in a
-   blocker (`AnalyticsAsk.svelte`). The engine settings' changes (`packages/analysis/src/settingChanges.ts`), the
+   (`CornerCard.svelte`) and the consent banner (`ConsentBanner.svelte`), which Cyanotype does not show, and PostHog's
+   client (`posthog.ts`). The engine settings' changes (`packages/analysis/src/settingChanges.ts`), the
    exports (`packages/review/src/exportEvents.ts`) and a practice game's parameters
    (`packages/practice/src/practiceEvents.ts`), beside the import's events (`packages/import/src/importEvents.ts`).
    Each site's `src/lib/analytics.svelte.ts` makes its analytics. Its other files give the events the site's names of
    its networks and its sources. Hedge School's behaviour, events and keys stay as they were.
-2. **The services:** a Google Analytics property of Cyanotype's own, so that its reports stay apart from Hedge
-   School's: the two sites' events have the same names. Cloudflare Web Analytics is the domain's one site,
-   `abstractclass.org`, which takes the beacon of every subdomain and splits the visits by host. The build reads Hedge
-   School's variable names, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN`. The deploy gives Cyanotype's repository
-   variable `CYANOTYPE_GA_ID` as `VITE_GA_ID`, and the domain's token `VITE_CF_ANALYTICS_TOKEN` as it is, for `main`
-   only. Without them, as in development and on the previews, nothing is measured and no banner shows.
-   [docs/hosting.md](../hosting.md), "Cyanotype's analytics", gives the setup.
-3. **The consent has one purpose,** Google Analytics' cookies: Cyanotype stores no practice games yet
-   (abscls-8tl1.50), so it has no random number that links them. The banner is Hedge School's, with the logo at 48
-   pixels (the full print, "The logo") and its own title, "Help Cyanotype get better". The Privacy page says what is
-   measured, in Hedge School's words, and has the purpose's switch under "Your choices". The browser keeps the choice
-   under `cyanotype:consent:1`, the closed ask under `cyanotype:analytics-ask:1` and the flag of internal traffic
-   under `cyanotype:internal-traffic:1`. Each site keeps its own: a visitor chooses on each.
+2. **The services:** the one PostHog project of all the sites (Hedge School's design 11). The two sites' events have
+   the same names, and each event names its host (`$host`), so that a report splits them. Cloudflare Web Analytics is
+   the domain's one site, `abstractclass.org`, which takes the beacon of every subdomain and splits the visits by host.
+   The build reads Hedge School's variable names, `VITE_POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN`. The deploy gives
+   the repository variable `POSTHOG_KEY` as `VITE_POSTHOG_KEY`, and the domain's token `VITE_CF_ANALYTICS_TOKEN` as it
+   is, for `main` only. Without them, as in development and on the previews, nothing is measured, and the build holds
+   none of PostHog's code. [docs/hosting.md](../hosting.md), "Cyanotype's analytics", gives the setup.
+3. **No consent:** PostHog's cookieless mode sets no cookies and keeps nothing in the browser, and Cyanotype stores no
+   practice games yet (abscls-8tl1.50), so it has no random number that links them. So Cyanotype shows no banner, and
+   its Privacy page has no "Your choices". The Privacy page says what is measured, in Hedge School's words. The
+   browser keeps the flag of internal traffic under `cyanotype:internal-traffic:1`: each site keeps its own. No
+   build of Cyanotype measured with Google Analytics, so no visitor gave the consent that it asked for.
 4. **The events have Hedge School's names and parameters** where the thing is the same, so that the two sites' reports
    compare. The layout starts the analytics, unless the address holds a game: then the page that takes the game out
    of the address starts them (the review, the import page, the Analysis board and the board editor). The pages send
@@ -1314,11 +1313,15 @@ both sites share (design 29), with Cyanotype's own services and keys.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
    - **No event of a part that Cyanotype lacks:** Support Us (`support_open`, abscls-8tl1.49) and Openings
      (abscls-8tl1.53).
-5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics-ask.spec.ts`) run on both sites,
-   each on a build with a made-up measurement ID. They skip on a build without it, as Hedge School's do.
-   `tests/cyanotype-events.spec.ts` checks the events of the review files and the review snapshot on such a build. It
-   checks a review file loaded and a file that cannot load. It checks the exports of the review file and of the
-   annotated record, from the review and from the Review tab. It checks the review snapshot's open and Review again.
+5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's
+   builds of both sites, each with a made-up PostHog key. Playwright's routes answer PostHog's addresses in its place
+   and keep the events that the pages sent. Cyanotype's case checks its page views, with `internal` after
+   `?internal=on`, and that it asks for no consent and keeps nothing in the browser. `tests/cyanotype-events.spec.ts`
+   checks the events of the review files and the review snapshot in the same way. It checks a review file loaded and a
+   file that cannot load. It checks the exports of the review file and of the annotated record, from the review and
+   from the Review tab. It checks the review snapshot's open and Review again. A build without the key holds none of
+   PostHog's code: check:all builds Cyanotype without the key first, and its step `cyanotype-no-posthog` refuses a
+   script of that build that names PostHog's address or its client's extensions.
 
 ## The logo
 
@@ -1504,12 +1507,12 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `src/lib/SiteFooter.svelte`: the footer, with How reviews work, Privacy and Notices. `src/app.css`: the accent
   (Hedge School's lavender) and the board's colour tokens, after the shared style and the view's
   (`@abstractclass/review/review.css`).
-- `apps/cyanotype/src/lib/analytics.svelte.ts`: Cyanotype's analytics ("Analytics and consent"), on
-  `packages/site/src/analytics.svelte.ts`, with the flag of internal traffic (`src/lib/internalTraffic.ts`, read as
-  the site starts in `src/hooks.client.ts`), the sources and the imports' and exports' events
-  (`src/lib/game/sources.ts`), the settings' changes (`src/lib/analysis/settingChanges.ts`) and a practice game's
-  parameters (`src/lib/practice/stampduty.ts`). The layout shows the banner and the ask, and the Privacy page has the
-  switch. The deploy's two variables: the job `cyanotype` of `.github/workflows/deploy.yml`.
+-  `apps/cyanotype/src/lib/analytics.svelte.ts`: Cyanotype's analytics ("Analytics"), on
+  `packages/site/src/analytics.svelte.ts`, with the flag of internal traffic (`src/lib/internalTraffic.ts`, read as the
+  site starts in `src/hooks.client.ts`), the sources and the imports' and exports' events (`src/lib/game/sources.ts`),
+  the settings' changes (`src/lib/analysis/settingChanges.ts`) and a practice game's parameters
+  (`src/lib/practice/stampduty.ts`). The layout starts the analytics. The deploy's two variables: the job `cyanotype` of
+  `.github/workflows/deploy.yml`.
 - `apps/cyanotype/src/lib/brand/`: the logo ("The logo"). `logo.ts` (the drawings), `Logo.svelte` (the logo at a size),
   `card.ts` (the link preview picture) and `logo.test.ts`. `scripts/brand.mjs` draws the files from them:
   `src/lib/assets/favicon.svg`, `static/favicon.ico`, `static/apple-touch-icon.png` and `static/brand/card.png`.
@@ -1741,5 +1744,6 @@ games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before
 (2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), "Cyanotype's How a review works page"
 (2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), "Cyanotype's analytics and consent, as Hedge
 School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach the position" (2026-11-09),
-"Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), and "Cyanotype's Play the bot from here, and
-Practice from a set-up start" (2026-11-09). The earlier entries name the site by its first name, Drawing Board.
+"Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), "Cyanotype's Play the bot from here, and
+Practice from a set-up start" (2026-11-09), and "PostHog in place of Google Analytics" (2026-11-09). The earlier
+entries name the site by its first name, Drawing Board.

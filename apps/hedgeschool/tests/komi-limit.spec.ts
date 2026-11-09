@@ -17,7 +17,7 @@ const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
 /** A context's script before each page: the visitor has answered the consent notice, and the engine is off. */
 test.beforeEach(({ context }) => context.addInitScript(() => {
-  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
   localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
 }));
 

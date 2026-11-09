@@ -1,4 +1,4 @@
-// Cyanotype's ways in, as events (design 33, "Analytics and consent"; Hedge School's designs 17 and 22): the sources
+// Cyanotype's ways in, as events (design 33, "Analytics"; Hedge School's designs 17 and 22): the sources
 // of its imports, and the import's events (@abstractclass/import's importEvents.ts) and the exports' event
 // (@abstractclass/review's exportEvents.ts) with Cyanotype's analytics. The sources have Hedge School's names: the
 // ways in that both sites have are the same. Cyanotype lacks Hedge School's others: meaf.us's tools and

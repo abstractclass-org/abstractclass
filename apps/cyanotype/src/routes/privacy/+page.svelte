@@ -1,26 +1,14 @@
 <script lang="ts">
   // What the site keeps, and where (Hedge School's design 11), in Hedge School's words: what the browser keeps, the
-  // games that come in an address, the visits and what Google Analytics receives (design 33, "Analytics and consent"),
-  // and the switch of the consent's one purpose, Google Analytics' cookies. The switch shows in the browser only: the
-  // prerendered page cannot know the choice. Cyanotype stores no practice games and has no Support Us yet, so the page
+  // games that come in an address, the visits and what PostHog receives (design 33, "Analytics"). Cyanotype asks for
+  // no consent: it stores no practice games, and its visit counts set no cookies. It has no Support Us yet, so the page
   // has neither part of Hedge School's. The section on addresses follows Cyanotype's code: the tools' import address
   // (@abstractclass/import/bookmarklet.ts and userscript.ts), the import page's version check (routes/import), and the
   // share links (game/share.ts, game/board.ts).
-  import { onMount } from "svelte";
-  import { Switch } from "bits-ui";
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-  import { SWITCH, SWITCH_THUMB } from "@abstractclass/site/settings.ts";
-  import { ASKS_CONSENT, PURPOSES, chooseShown, consent, type Purpose } from "#lib/analytics.svelte.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-
-  let mounted = $state(false);
-  onMount(() => (mounted = true));
-  const LABEL: Record<Purpose, string> = {
-    games: "Group my games against bots with a random ID in this browser",
-    analytics: "Let Google Analytics set cookies that tell my visits apart",
-  };
 </script>
 
 <PageMeta title="Privacy · {SITE_NAME}" description="What Cyanotype keeps, where it keeps it, and what it measures." />
@@ -52,12 +40,19 @@
   <ul>
     <li><strong>Cloudflare</strong> serves the site's files. Like any web host, it receives each request: your IP
       address and your browser's name. Its Web Analytics counts visits without cookies.</li>
-    <li><strong>Google Analytics</strong> counts visits in Google's consent mode. Until you accept, it sets no cookies.
-      Google still receives each page you open: its address, the time, your browser and screen size, and your IP
-      address. Google says that it does not keep the IP address. If you accept, it also sets cookies that distinguish
-      your visits from other people's visits.</li>
+    <li><strong>PostHog</strong> counts visits. It receives each page that you open: its address without the part
+      after the <code>#</code>, its title, the time, and the page that sent you here. It also receives your browser
+      and its language, your operating system, your time zone, your screen size and your IP address. PostHog stores
+      this data in the United States.</li>
   </ul>
-  <p>Google Analytics also receives counts of what you do here, so that we can tell what to improve:</p>
+  <p>Neither service sets cookies or keeps data in your browser, so the site does not ask for your consent to them.
+    To count visitors without cookies, PostHog makes a code from your IP address, your browser and a random value of
+    the day, on its own servers. The code changes each day, and it cannot give back your IP address. PostHog removes
+    your IP address before it keeps a visit.</p>
+  <p>PostHog takes part in the EU-U.S. Data Privacy Framework, its UK Extension and the Swiss-U.S. Data Privacy
+    Framework. With these, it can receive the data of visitors from the EU, the UK and Switzerland in the United States
+    (<a href="https://posthog.com/privacy">PostHog's privacy policy</a>).</p>
+  <p>PostHog also receives counts of what you do here, so that we can tell what to improve:</p>
   <ul>
     <li>the games you import, load and delete</li>
     <li>your reviews, and your visits to the Analysis board and the board editor</li>
@@ -67,27 +62,9 @@
       update</li>
   </ul>
   <p>The counts hold ranges, such as a game's length. They also hold how your computer runs the engine: its number of
-    cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Until you accept the
-    cookies, nothing links one count to another.</p>
-  <p>If you accept the cookies and a blocker stops Google Analytics, the site asks you to allow it in your blocker. To
-    know this, the site checks only whether its own Google Analytics ran in the page.</p>
+    cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Only PostHog's code of
+    the day links one count to another.</p>
 
-  {#if ASKS_CONSENT}
-    <h2 id="consent">Your choices</h2>
-    <p>The banner's Accept and Decline set this choice. You can change it here at any time.</p>
-    {#if mounted}
-      <div class="grid gap-3">
-        {#each PURPOSES as p (p)}
-          <label class="flex items-center gap-3 text-sm">
-            <Switch.Root class={SWITCH} checked={consent[p] === "granted"} onCheckedChange={on => chooseShown(p, on ? "granted" : "denied")}>
-              <Switch.Thumb class={SWITCH_THUMB} />
-            </Switch.Root>
-            <span>{LABEL[p]}{consent[p] === null ? " (not chosen yet)" : ""}</span>
-          </label>
-        {/each}
-      </div>
-    {/if}
-  {/if}
 </main>
 
 <SiteFooter />

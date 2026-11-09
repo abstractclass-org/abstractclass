@@ -51,8 +51,8 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      The workflow installs the dependencies first (`npm ci`, at the repository's root), and builds in the site's
      folder, `apps/hedgeschool` (design 26).
    - **Node 24** (`.node-version`): Node 22 cannot run the tests' TypeScript without a flag.
-   - **The build's variables:** `VITE_EDITION=early`, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN` (item 7). The footer
-     shows the commit that the build runs from.
+   -  **The build's variables:** `VITE_EDITION=early`, `VITE_POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN` (item 7). The
+     footer shows the commit that the build runs from.
    - **The headers** (`static/_headers`): `noindex` on Cloudflare's preview addresses (design 23), and a year's cache,
      never checked again, for the build's hashed code (`/_app/immutable/`) and the engine's files
      (`/engine/<id>/<file>`): their paths name their content, so a file there never changes. `/engine/manifest.json`
@@ -74,16 +74,21 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      `src/lib/game/store.ts`): a dialog says that the engine was updated, once in a visit for each game and build, and a
      line under the review's progress says it while the review runs. In the Review tab, the game's Export, off until the
      review is done, says it too. A network or a depth that the player chose is not an update, and has no notice.
-7. **Analytics: Cloudflare's and Google's.** Cloudflare's sets no cookies. Google Analytics runs in Google's consent
-   mode, advanced form: the Google tag loads on every page with its cookies denied, and sends cookieless pings until
-   the visitor accepts. A banner asks once, with Accept and Decline alike. The privacy page shows the choice, can
-   change it, and names the kinds of events that the pings hold. The banner now asks for the practice games' link
-   too, with a choice for each purpose on the privacy page (design 25, which replaces this item's banner). Neither
-   service sees a game: the bookmarklet hands a game to the import page in the address's fragment (after `#`), and
-   that page removes it before it starts them. Every other page starts them from the layout, and the review page
-   names its game after the `#` too (`/review#game=ID`). Google Analytics also takes events, in counts and ranges,
-   for the decisions that wait on data (design 17). The build names the services (`VITE_GA_ID`,
-   `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development, nothing loads.
+7. **Analytics: Cloudflare's and PostHog's.** Neither sets cookies or keeps data in the browser, so neither asks for
+   consent. PostHog runs in its cookieless mode (`cookieless_mode: 'always'`): it counts visitors by a hash of the
+   IP address, the browser and a salt of the day, on its servers. One PostHog project, in PostHog's US region, takes
+   the events of all the sites, and each event names its site's host. The client is posthog-js from npm, in its slim
+   bundle with no external loading: it sends only page views, page leaves and the site's own events, and loads no
+   script from PostHog (`packages/site/src/posthog.ts` names each option and why). The privacy page names what
+   PostHog receives, that it stores the data in the US, and the transfer basis for visitors from the EU, the UK and
+   Switzerland: PostHog's certification under the EU-U.S. Data Privacy Framework, its UK Extension and the Swiss-U.S.
+   Data Privacy Framework. The banner asks only for the practice games' link (design 25). Neither service sees a
+   game: the bookmarklet hands a game to the import page in the address's fragment (after `#`), and that page removes
+   it before it starts them. Every other page starts them from the layout, and the review page names its game after
+   the `#` too (`/review#game=ID`): PostHog receives each address without its `#` part
+   (`disable_capture_url_hashes`). PostHog also takes events, in counts and ranges, for the decisions that wait on
+   data (design 17). The build names the services (`VITE_POSTHOG_KEY`, `VITE_CF_ANALYTICS_TOKEN`). Without them, as
+   in development and in the previews, nothing loads, and a build without PostHog's key holds none of its code.
 8. **The notation page:** a full description of the position notation and the game record notation, written so that
    other developers can follow it, as PGN's standard describes PGN. The notations are decided in the engine
    repository's design (its `docs/design/04-notation-and-protocol.md`). That repository is private, so this page is
@@ -302,8 +307,14 @@ read the game from the player's own page.
 - **A note that the labels may change:** not needed, since a change reaches stored games by itself.
 - **No Review link:** a bare link led to a review with no game. The Review tab gives the link a use: it imports a
   game, and the last review is a click away. Before design 22, the link opened the last game reviewed.
-- **Google's consent mode, basic form:** no Google tag until the visitor accepts. The advanced form's modeling needs
-  1,000 events a day from visitors who decline and 1,000 daily users who accept, so a small site gains little from it.
+- **Google Analytics in Google's consent mode** (the site's analytics until 2026-11-09): its reports needed 43 custom
+  dimensions, 3 custom metrics, 3 calculated metrics, 4 key events and 6 explorations, each set up by hand, and a
+  consent banner for its cookies. PostHog's event properties need no setup, and its cookieless mode needs no banner.
+- **PostHog's snippet** in place of posthog-js from npm: it loads PostHog's latest `array.js` from PostHog's address,
+  which EasyPrivacy (one of uBlock Origin's default lists) blocks. The npm client's version is the lockfile's, and
+  its events' address is not in uBlock Origin's default lists.
+- **PostHog's cookieless mode `on_reject`,** with a consent for cookies: more exact counts of returning visitors, for
+  a banner on every site. The daily hash answers the questions of design 17.
 - **Cloudflare's automatic Web Analytics** (one click on a Pages project): it adds the beacon to every page as it is
   served, so the beacon would start before a page removes a game from its address (design 22).
 
@@ -331,9 +342,10 @@ read the game from the player's own page.
   Cyanotype's page shows too. It holds the site's terms, the engine's terms, the works in the engine's modules and the
   icon of the quality label Excellent. `packages/site/src/LibraryNotices.svelte` gives its sections on the pages'
   libraries, ONNX Runtime Web and the font Fira Code. Hedge School's page gives it the sounds.
-- Analytics: `src/lib/analytics.svelte.ts` (on `packages/site/src/analytics.svelte.ts`), the banner
-  `packages/site/src/ConsentBanner.svelte`, started in `src/routes/+layout.svelte`, or,
-  when the address holds a game, by the page that removes it (design 22).
+- Analytics: `src/lib/analytics.svelte.ts` (on `packages/site/src/analytics.svelte.ts`, and PostHog's client in
+  `packages/site/src/posthog.ts`), the banner `packages/site/src/ConsentBanner.svelte`, started in
+  `src/routes/+layout.svelte`, or, when the address holds a game, by the page that removes it (design 22). The check
+  in a browser: `tests/analytics.spec.ts`.
 - Hosting: `package.json` (`build:cloudflare`), `.node-version` (at the root), `static/_headers`, `vite.config.ts`
   (the 404 page and the version). The setup, step by step, and how to deploy: [hosting.md](../hosting.md).
 
@@ -344,5 +356,6 @@ read the game from the player's own page.
   (2026-10-12), "Deleting a game, and the browser's storage" (2026-10-12), "A question before a delete replaces the
   Undo" (2026-10-16), "strategyjam.org games through the bookmarklet and the userscript" (2026-10-18), "A meaf.us
   game's review links back to its game" (2026-10-21), "The Privacy page says what goes where, in less detail"
-  (2026-10-22), "Cyanotype's early access, as Hedge School's" (2026-11-07).
+  (2026-10-22), "Cyanotype's early access, as Hedge School's" (2026-11-07), "PostHog in place of Google Analytics"
+  (2026-11-09).
 - [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17).

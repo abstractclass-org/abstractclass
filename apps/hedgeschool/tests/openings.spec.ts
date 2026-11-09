@@ -17,7 +17,7 @@ const MAIN = ["A10-D9", "N11-Q10", "L10-N11", "D10-G12", "G12-J15"];
  *  engine's (off by default) and the display's. */
 async function setUp(page: Page, engine: Record<string, unknown> = { on: false }, display: Record<string, unknown> = {}) {
   await page.addInitScript(([e, d, ek, dk]) => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
     localStorage.setItem(ek, e);
     localStorage.setItem(dk, d);
   }, [JSON.stringify(engine), JSON.stringify(display), ENGINE_KEY, DISPLAY_KEY]);

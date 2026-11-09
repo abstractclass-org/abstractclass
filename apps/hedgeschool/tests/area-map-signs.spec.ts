@@ -50,7 +50,7 @@ for (const judge of ["edge", "turn"] as const) {
     // or its note, in the place of the numbers of the point
     await page.addInitScript(display => {
       localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" }));
+      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
       localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify(display));
     }, { judge, areaMap: { review: true, board: true }, mapStyle: "difference",
          layers: { regions: true, protected: true, candidates: false, marks: false, coordinates: true } });

@@ -1,14 +1,12 @@
 <script lang="ts">
   // The site's frame (design 33): Hedge School's header, page area, theme, page metadata and site menu
-  // (packages/site), with Cyanotype's name, links and keys. The analytics and the consent banner, as Hedge School's
-  // (design 33, "Analytics and consent").
+  // (packages/site), with Cyanotype's name, links and keys. The analytics, as Hedge School's (design 33, "Analytics"),
+  // with no consent banner: Cyanotype asks for no consent.
   import "../app.css";
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
-  import ConsentBanner from "@abstractclass/site/ConsentBanner.svelte";
-  import AnalyticsAsk from "@abstractclass/site/AnalyticsAsk.svelte";
-  import { ASKS_CONSENT, analytics, asksToAllow, consentChosen, startAnalytics } from "#lib/analytics.svelte.ts";
+  import { startAnalytics } from "#lib/analytics.svelte.ts";
   import favicon from "#lib/assets/favicon.svg";
   import Logo from "#lib/brand/Logo.svelte";
   import { PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
@@ -29,12 +27,8 @@
 
   // The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
   // of the address starts them then (Hedge School's design 22). The import page always takes its game out first, and
-  // starts them itself. The banner shows in the browser only, never in the prerendered page. After the banner, in its
-  // place, the ask to allow Google Analytics in a blocker shows when the visitor accepted Google Analytics and its tag
-  // did not run (Hedge School's design 27).
-  let mounted = $state(false);
+  // starts them itself.
   onMount(() => {
-    mounted = true;
     if (page.route.id !== "/import" && !holdsGame(location.hash)) startAnalytics();
   });
 </script>
@@ -75,7 +69,3 @@
   {@render children()}
 </SiteFrame>
 
-<!-- The card's logo at 48 pixels: the full print (design 33, "The logo"). -->
-{#snippet logo()}<Logo size={48} />{/snippet}
-{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner {analytics} site={SITE_NAME} title="Help Cyanotype get better" mark={logo} />
-{:else if asksToAllow()}<AnalyticsAsk {analytics} site={SITE_NAME} mark={logo} />{/if}
