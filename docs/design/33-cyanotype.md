@@ -390,8 +390,8 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    `engine-91ab0b7d` and their paths, and a browser's cache keeps them, as Hedge School's lock keeps the files that a
    release did not change. The lock also copies the manifest's networks' sizes (`sizes`: a board of 67
    and 6 policy channels, item 4) and the evaluator's `maxThreads` (128). `npm run engine` compares these numbers
-   with the release's manifest, and stops at a difference ([design 03](03-stack.md)). It also stops when a file of the
-   lock does not have the entry that the newest of the lock's releases that names it gives: engine-887be290's
+   with the release's manifest, and stops at a difference ([design 03](03-stack.md)). It also holds the lock's files
+   to one release's set: each file must have the entry of the newest release that names it. engine-887be290's
    manifest names all 13 files with the lock's SHA-256. And it plays the threaded bot on its CPU evaluator against the
    one-thread bot (design 24, item 14). The release's `settings.cfg` is
    the text of the search's settings, which the module embeds: the site does not read it, so the lock does not take

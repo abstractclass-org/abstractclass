@@ -180,12 +180,15 @@ How strong each setting plays against people is not measured yet.
     - **The CPU form is checked at each engine update:** the lock takes the threaded bot, the practice evaluator and
       the evaluator's two libraries as separate files, and the networks' sizes by hand. A bot and an evaluator that do
       not compute the same network trap, or play other moves with no message. So `npm run engine` plays the CPU form
-      in Node, on the CPU only: the threaded bot with two search threads on one evaluator worker, with the manifest's
-      sizes, against the one-thread bot, which runs the network in its own module. Both bots play 6 moves at 1 visit
-      with the same seed, from the standard start and then from a set-up start (the position after those moves). The
-      step stops when a move differs or is not legal (`checkThreadedBot` in `practice-check.ts`). From 4 visits the
-      two bots part at some moves with the right files, so the check plays 1 visit. With the other game's sizes, the
-      check stops at the first move on both sites.
+      in Node, on the CPU only. The threaded bot has two search threads on one evaluator worker, with the manifest's
+      sizes. It plays against the one-thread bot, which runs the network in its own module. Both bots play 6 moves at
+      1 visit with the same seed, from the standard start and then from a set-up start (the position after those
+      moves). The step stops when a move differs or is not legal (`checkThreadedBot` in `practice-check.ts`). From 4
+      visits the two bots part at some moves with the right files, so the check plays 1 visit. With the other game's
+      sizes, the check stops at the first move on both sites. At 1 visit the bot sends the evaluator one position at a
+      time, so its moves miss a size that moves each later position of a batch, such as one policy channel too many.
+      So the evaluator also evaluates the bot's first batch again with each position twice, and the step stops when
+      the two copies give other outputs (`checkingRows`).
     - **The visits that a move completes:** a thread checks the completed playouts against the setting before it
       starts a playout, and the playouts in flight then finish. So from a new tree, a move at a setting of N
       completes at most N + T - 1 visits. Below 16 visits it completes at most N, as the one-thread bot does. From 16

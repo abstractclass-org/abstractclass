@@ -10503,10 +10503,19 @@ not engine-887be290's for Cyanotype's.
 - **What it catches:** with Enclosure's sizes given to Cyanotype's evaluator, the threaded bot played `2@-9,1` at the
   first move, and the one-thread bot `1:1,1>2:-2,3`. Hedge School's evaluator trapped ("memory access out of bounds")
   with Blueprints' sizes. With a board of 18 it played `A10-D8` at the first move, and the one-thread bot `A10-D9`.
-  One policy channel too few (47) passed the check's 12 moves. In the measurement, from a set-up start after 10
-  moves, the bots parted at its fifth move. Hedge School's lock with engine-d6786eba's evaluator and
-  engine-c43233eb's bot passed this check: that evaluator computes the same network. The check of the release's set
-  stops that lock.
+  Hedge School's lock with engine-d6786eba's evaluator and engine-c43233eb's bot passed this check: that evaluator
+  computes the same network. The check of the release's set stops that lock.
+- **What the moves miss:** a wrong number of policy channels. One too few on Hedge School (47) passed the check's 12
+  moves, and the bots parted at move 11 of one longer game. One too many passed 30 moves of one game on both sites
+  (49 for Hedge School, 7 for Cyanotype). At 1 visit the bot sends the evaluator one position at a time, and a move
+  shows only the policy. The practice bots answer no `kata-raw-nn`: their commands are the start, the position,
+  `play`, `genmove`, `undo`, `komi` and the settings, so the check cannot compare the network's raw outputs.
+- **The check of a batch's rows** (`checkingRows`): the evaluator evaluates the bot's first batch again with each
+  position twice. Each copy must give the position's outputs, within 1e-3. The bot and the evaluator
+  place each position of a batch by the evaluator's sizes, so a wrong size moves the second copy. With the right
+  files, the copies differed by at most 2e-6 on both sites. With 47 and 49 channels on Hedge School, 7 on Cyanotype
+  and a board of 66 on Cyanotype, the policy differed by 15 to 29, and the step stopped. The check costs one
+  evaluation of two positions.
 - **One release's set** (`checkOneReleaseSet` in `packages/engine/src/lock-check.ts`, design 03): each file of the
   lock must have the SHA-256 and the size that the newest of the lock's releases whose manifest names the file gives.
   The step now reads the manifest of every release of the lock: 5 for Hedge School, 2 for Cyanotype. Both locks pass.
@@ -10520,6 +10529,15 @@ not engine-887be290's for Cyanotype's.
 - **A limit of the rule:** a new release of an earlier commit, such as a release that changes only the terms, is the
   newest, and its manifest names that commit's modules. A lock that takes its terms from such a release and its
   modules from a later commit would stop the step, though its files are right. Hedge School's engine-d6786eba-terms2
-  came before engine-c43233eb, so it does not happen now. The message names both releases.
+  came before engine-c43233eb, so it does not happen now. The message names both releases. A manifest that is
+  uploaded again to an earlier release, to correct it, makes that release the newest too. A machine whose cache keeps
+  the earlier time orders the releases as before: the step does not read a cached time again.
+- **On CI:** the Tests workflow keeps each lock's download cache by the lock's hash, and a cache that its key finds is
+  not saved again. So until a lock changes, the cache has no `manifest.time`, and each run downloads the lock's
+  manifests: 5 for Hedge School and 2 for Cyanotype in each job. A failed download stops the step, with the URL and
+  the HTTP status or the network's error.
 - **Checked:** the unit tests of both checks (fake bots and rules, fake manifests in the real manifests' shape), both
-  sites' engine steps on the locked releases, and the mutations above, each put back.
+  sites' engine steps on the locked releases, and the mutations above, each put back. The check of a batch's rows:
+  `checkThreadedBot` with each wrong size above in the manifest that a script gave it, with no change to a file. A
+  failed manifest download (HTTP 504 and 403, no network, no `Last-Modified`), with a fetch that a script replaced:
+  each stopped the step with the release, the URL and the cause.

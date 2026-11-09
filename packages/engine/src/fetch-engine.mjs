@@ -59,13 +59,23 @@ async function get(artifact) {
     if (!engines) throw new Error(`${artifact.id}: no engine repository's checkout beside this repository's`);
     return readFileSync(join(engines, source.engines));
   }
-  if (source.release) {
-    const url = `https://github.com/${lock.repository}/releases/download/${source.release.tag}/${source.release.asset}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`${artifact.id}: ${url} gave HTTP ${response.status}`);
-    return Buffer.from(await response.arrayBuffer());
-  }
+  if (source.release) return (await download(artifact.id, source.release.tag, source.release.asset)).bytes;
   throw new Error(`${artifact.id}: the source must be "local", "engines" or "release"`);
+}
+
+/** Downloads `asset` of release `tag` of the lock's repository: its bytes, and the time it was uploaded (`modified`,
+ *  the download's Last-Modified, or null). A failed download stops the step with an error that names `id`, the URL
+ *  and the HTTP status or the network's error. */
+async function download(id, tag, asset) {
+  const url = `https://github.com/${lock.repository}/releases/download/${tag}/${asset}`;
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (e) {
+    throw new Error(`${id}: ${url} gave no answer (${e.cause?.code ?? e.cause?.message ?? e.message})`, { cause: e });
+  }
+  if (!response.ok) throw new Error(`${id}: ${url} gave HTTP ${response.status}`);
+  return { bytes: Buffer.from(await response.arrayBuffer()), modified: response.headers.get("last-modified") };
 }
 
 const parse = text => { try { return JSON.parse(text); } catch { return null; } };
@@ -81,18 +91,16 @@ async function releaseManifest(tag) {
   const id = `release ${tag} manifest.json`, dir = join(cacheDir, "releases", tag);
   const cached = join(dir, "manifest.json"), cachedTime = join(dir, "manifest.time");
   const kept = existsSync(cached) ? parse(readFileSync(cached, "utf8")) : null;
-  const keptTime = existsSync(cachedTime) ? readFileSync(cachedTime, "utf8").trim() : null;
+  const time = text => (text && Number.isFinite(Date.parse(text)) ? new Date(text).toISOString() : null);
+  const keptTime = existsSync(cachedTime) ? time(readFileSync(cachedTime, "utf8").trim()) : null;
   if (kept && keptTime && whyNotTheRelease(lock, tag, kept) === null) {
     console.log(`${id}: up to date`);
     return { tag, manifest: kept, published: keptTime };
   }
-  const url = `https://github.com/${lock.repository}/releases/download/${tag}/manifest.json`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${id}: ${url} gave HTTP ${response.status}`);
-  const bytes = Buffer.from(await response.arrayBuffer()), modified = response.headers.get("last-modified");
+  const { bytes, modified } = await download(id, tag, "manifest.json");
   const release = parse(bytes.toString("utf8"));
   if (!release) throw new Error(`${id}: the file is not JSON`);
-  const published = modified && Number.isFinite(Date.parse(modified)) ? new Date(modified).toISOString() : null;
+  const published = time(modified);
   if (!published) throw new Error(`${id}: the download gives no time of upload (Last-Modified ${modified})`);
   mkdirSync(dir, { recursive: true });
   writeFileSync(cached, bytes);
@@ -140,8 +148,7 @@ export async function fetchEngine({ maxKomi }) {
 
   // The lock's files as one release's set: each file against the newest of its releases that names it (lock-check.ts,
   // checkOneReleaseSet).
-  const releases = [];
-  for (const tag of lockReleases(lock)) releases.push(await releaseManifest(tag));
+  const releases = await Promise.all(lockReleases(lock).map(releaseManifest));
   const set = checkOneReleaseSet(lock, releases);
   console.log(`the lock's files are one release's set: each has the entry of the newest of its ${releases.length} ` +
               `release(s) that names it`);

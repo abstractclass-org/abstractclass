@@ -6,12 +6,13 @@
 // compares them with the release's own numbers and stops at a difference (design 03, "The engine's artifacts"). A
 // number that the release gives and the lock leaves out is a difference too.
 //
-// The lock does not pin the manifest. The step reads the manifest of each release that a network or a file with a
-// maxThreads comes from (its source's tag). That manifest must give the release's tag, and list each file that the
-// lock takes from the release with the lock's SHA-256 and size. So the numbers are compared with the release of the
-// files that the lock pins, and a new release changes no other entry of the lock. A file from this machine (a source
-// that is not a release) has no release's manifest, so the step names it and does not check it: a deploy refuses such
-// a file. A lock that gives neither number has no numbers to check: Hedge School's lock gives neither.
+// The lock does not pin the manifest. The step compares the numbers with the manifest of each release that a network
+// or a file with a maxThreads comes from (its source's tag). That manifest must give the release's tag, and list each
+// file that the lock takes from the release with the lock's SHA-256 and size. So the numbers are compared with the
+// release of the files that the lock pins, and a new release changes no other entry of the lock. A file from this
+// machine (a source that is not a release) has no release's manifest, so the step names it and does not check it: a
+// deploy refuses such a file. A lock that gives neither number has no numbers to check: Hedge School's lock gives
+// neither.
 //
 // The lock's files must also be one release's set (checkOneReleaseSet): each file must have the SHA-256 that the
 // newest of the lock's releases whose manifest names it gives. The lock takes each file from the release that first
@@ -51,16 +52,18 @@ const SIZE_FIELDS = Object.keys({ board: 0, policyChannels: 0 } satisfies Record
   (keyof NetworkSizes)[];
 const NETWORKS: ReadonlySet<ArtifactKind> = new Set(["model", "graph"]);
 
-/** The releases whose manifests the step reads (`tags`), and the files with numbers from this machine, which no
- *  release's manifest describes (`unchecked`, their ids). For a lock that gives sizes or a maxThreads, the files with
- *  numbers are the networks (a model or its graph) and each file with a maxThreads. A lock with neither number has
- *  none, so both lists are empty. */
+/** The releases whose manifests the step compares the lock's numbers with (`tags`), and the files with numbers from
+ *  this machine, which no release's manifest describes (`unchecked`, their ids). For a lock that gives sizes or a
+ *  maxThreads, the files with numbers are the networks (a model or its graph) and each file with a maxThreads. A lock
+ *  with neither number has none, so both lists are empty. */
 export function releasesToCheck(lock: Lock): { tags: string[]; unchecked: string[] } {
   const givesNumbers = lock.sizes !== undefined || lock.artifacts.some(a => a.maxThreads !== undefined);
   const numbered = givesNumbers ? lock.artifacts.filter(a => NETWORKS.has(a.kind) || a.maxThreads !== undefined) : [];
-  return { tags: [...new Set(numbered.flatMap(a => (a.source.release ? [a.source.release.tag] : [])))],
-           unchecked: numbered.filter(a => !a.source.release).map(a => a.id) };
+  return { tags: lockReleases({ artifacts: numbered }), unchecked: localFiles(numbered) };
 }
+
+/** The ids of the files from this machine (a source that is not a release). */
+const localFiles = (artifacts: Lock["artifacts"]) => artifacts.filter(a => !a.source.release).map(a => a.id);
 
 /** The lock's files from release `tag`, each with its asset's name in the release and its entry in the manifest. */
 const fromRelease = (lock: Lock, tag: string, release: ReleaseManifest) =>
@@ -154,7 +157,7 @@ export function checkOneReleaseSet(lock: Lock, releases: PublishedRelease[]): { 
                       `${show(entry.bytes)} bytes. The lock's files must be one release's set: take the file from ` +
                       `${newest.tag}, with its entry from that release's manifest.`);
   }
-  return { unchecked: lock.artifacts.filter(a => !a.source.release).map(a => a.id) };
+  return { unchecked: localFiles(lock.artifacts) };
 }
 
 // Whether each kind is an engine module: one that plays the game's rules. A kind that ArtifactKind gains must be added

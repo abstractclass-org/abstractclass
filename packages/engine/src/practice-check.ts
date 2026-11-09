@@ -25,8 +25,12 @@
 // same seed, both bots play the network's own move, and they played the same moves on both sites' locks from the
 // standard start and from a set-up start. From 4 visits they part at some moves with the right files, so the check
 // plays 1 visit. With the other site's sizes, Cyanotype's threaded bot played another move from the first, and Hedge
-// School's evaluator trapped. One policy channel too few made Hedge School's bot play another move from the set-up
-// start.
+// School's evaluator trapped. But at 1 visit the bot sends the evaluator one position at a time, and the moves show
+// only the policy: one policy channel too many passed 30 moves on both sites, and one too few on Hedge School passed
+// 10. So the evaluator also evaluates the bot's first batch again with each row twice (checkingRows). The bot and the
+// evaluator place each row by the evaluator's sizes, so a wrong size gives the second copy other outputs. With the
+// right files the copies differed by at most 2e-6. With each wrong size tried, a board one too small or one channel
+// too few or too many, the policy differed by 15 to 29.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -96,14 +100,16 @@ function startCommand(reply: string): string {
   return start;
 }
 
-/** The practice library and the smallest network of a site's static/engine, with `read`, which reads a file of it. */
+/** The practice library and the smallest network of a site's static/engine, with `read`, which reads a file of it, and
+ *  `url`, its file URL. */
 async function practiceFiles(root: string, manifest: Manifest) {
   const ofKind = (kind: ArtifactKind) => manifest.artifacts.filter(a => a.kind === kind);
   const read = (a: Artifact) => readFileSync(join(root, "static", a.url));
+  const url = (a: Artifact) => pathToFileURL(join(root, "static", a.url));
   const [library] = ofKind("practice-library"), [model] = ofKind("model").sort((a, b) => a.bytes - b.bytes);
   if (!library || !model) throw new Error("static/engine has practice modules but no practice library or network");
-  const lib = await import(pathToFileURL(join(root, "static", library.url)).href) as PracticeLibrary;
-  return { ofKind, read, lib, model, network: read(model) };
+  const lib = await import(url(library).href) as PracticeLibrary;
+  return { ofKind, read, url, lib, model, network: read(model) };
 }
 
 /** Checks each practice module of a site's static/engine (the one-thread and the threaded bot) with
@@ -145,9 +151,9 @@ export interface Described { mover?: string; legal?: string[]; outcome?: unknown
 /** The two bots of one check, each new: GTP lines in, replies out. `one` is the one-thread bot, `threaded` the threaded
  *  bot with THREADS search threads on the CPU evaluator. `release` stops the evaluator's workers. */
 export interface BotPair {
-  one(line: string): Promise<string>;
-  threaded(line: string): Promise<string>;
-  release(): void;
+  one(line: string): string | Promise<string>;
+  threaded(line: string): string | Promise<string>;
+  release(): unknown;
 }
 
 /** The threaded bot's search threads: Practice's CPU form with one worker, two threads for each (botForms.ts). */
@@ -156,10 +162,10 @@ const SEED = 1, VISITS = 1, MOVES = 6;
 
 /** Checks that the threaded bot plays the one-thread bot's moves at 1 visit with the same seed: MOVES moves from the
  *  standard start, then MOVES from a set-up start, the position after the first moves. Each start has a new pair of
- *  bots (`makePair`), since a session keeps its seed. `game` is the bots' name of the game (`enclosure`,
- *  `blueprints`), and `describe` the rules' position after `moves` from `start` (null: the standard start). Each move
- *  must be legal. An error names the start, the move's number and both bots' moves. */
-export async function checkBotsAgree(game: string, makePair: () => Promise<BotPair>,
+ *  bots (`makePair`), since a session keeps its seed. The one-thread bot's list_commands gives the game's start
+ *  command (enclosure-start, blueprints-start). `describe` gives the rules' position after `moves` from `start` (null:
+ *  the standard start). Each move must be legal. An error names the start, the move's number and both bots' moves. */
+export async function checkBotsAgree(makePair: () => Promise<BotPair>,
                                      describe: (start: string | null, moves: string[]) => Described): Promise<void> {
   const rules = (start: string | null, moves: string[]) => {
     const d = describe(start, moves);
@@ -170,8 +176,9 @@ export async function checkBotsAgree(game: string, makePair: () => Promise<BotPa
     const where = start ? `the set-up start ${start}` : "the standard start";
     const pair = await makePair();
     try {
-      answer(`${game}-start`, await pair.one(`${game}-start ${SEED}`));
-      answer(`${game}-start`, await pair.threaded(`${game}-start ${SEED} ${THREADS}`));
+      const gameStart = startCommand(await pair.one("list_commands")), game = gameStart.replace(/-start$/, "");
+      answer(gameStart, await pair.one(`${gameStart} ${SEED}`));
+      answer(gameStart, await pair.threaded(`${gameStart} ${SEED} ${THREADS}`));
       for (const send of [pair.one, pair.threaded]) {
         answer("kata-set-param", await send(`kata-set-param maxVisits ${VISITS}`));
         if (start) answer(`${game}-set-position`, await send(`${game}-set-position ${start}`));
@@ -193,7 +200,7 @@ export async function checkBotsAgree(game: string, makePair: () => Promise<BotPa
       }
       return moves;
     } finally {
-      pair.release();
+      await pair.release();
     }
   };
   const moves = await play(null);
@@ -203,10 +210,74 @@ export async function checkBotsAgree(game: string, makePair: () => Promise<BotPa
   await play(start);
 }
 
+/** A batch of positions for an evaluator, as the threaded bot's batch runner gives it (gpu_engine.mjs,
+ *  createBatchRunner): `rows` positions, each row's inputs after the last, and the network's shapes. */
+export interface Batch { rows: number; C: number; G: number; P: number; spatial: Float32Array; global: Float32Array }
+/** An evaluator's outputs for a batch: each output's values, row after row. */
+export type Outputs = Record<string, Float32Array>;
+/** The CPU evaluator (cpu_evaluator.mjs), as the threaded bot uses it. library.ts's CpuEvaluatorLibrary gives only its
+ *  release. */
+interface CpuEvaluator {
+  sizes?: NetworkSizes;
+  evaluate(batch: Batch): Promise<Outputs>;
+  release(): Promise<unknown>;
+}
+
+/** The most that a value of a row and of its copy in one batch may differ. With the right files, they differed by at
+ *  most 2e-6 on both sites. With a wrong size, the policy differed by 15 to 29. */
+const ROW_TOLERANCE = 1e-3;
+
+/** Compares an evaluator's outputs for a batch (`once`) with its outputs for the same batch with each row twice
+ *  (`twice`): each copy of each row must give the row's values, within ROW_TOLERANCE. Gives the first difference, or
+ *  null. */
+export function rowsDiffer(once: Outputs, twice: Outputs): string | null {
+  for (const [name, values] of Object.entries(once)) {
+    const copies = twice[name];
+    if (copies?.length !== 2 * values.length)
+      return `the batch with each row twice gives ${copies?.length ?? 0} values of ${name}, not ${2 * values.length}`;
+    for (let i = 0; i < copies.length; i++) {
+      const k = i % values.length;
+      if (!(Math.abs(copies[i] - values[k]) <= ROW_TOLERANCE))
+        return `value ${k} of ${name} is ${values[k]}, and ${copies[i]} in the copy ${i < values.length ? 1 : 2}`;
+    }
+  }
+  return null;
+}
+
+/** `evaluator` for the threaded bot, with a check of its first batch: it evaluates the batch again with each row twice,
+ *  and compares the outputs (rowsDiffer). `difference` gives the difference, null when there is none, and undefined
+ *  before the first batch. The bot and the evaluator place each row by the evaluator's sizes, so a wrong size moves
+ *  each row after the first. At 1 visit the bot sends one row at a time, so its moves alone never show it. A batch's
+ *  inputs must hold its rows and nothing after them, as the bot's batch runner gives them (createBatchRunner). */
+export function checkingRows(evaluator: Pick<CpuEvaluator, "sizes" | "evaluate">) {
+  let difference: string | null | undefined;
+  const twice = (a: Float32Array) => {
+    const both = new Float32Array(2 * a.length);
+    both.set(a);
+    both.set(a, a.length);
+    return both;
+  };
+  return {
+    evaluator: {
+      sizes: evaluator.sizes,
+      async evaluate(batch: Batch) {
+        const once = await evaluator.evaluate(batch);
+        if (difference === undefined)
+          difference = rowsDiffer(once, await evaluator.evaluate({ ...batch, rows: 2 * batch.rows,
+                                                               spatial: twice(batch.spatial),
+                                                               global: twice(batch.global) }));
+        return once;
+      },
+    },
+    difference: () => difference,
+  };
+}
+
 /** Checks Practice's CPU form in a site's static/engine with checkBotsAgree: the threaded bot on the CPU evaluator
  *  (the practice evaluator, cpu_evaluator.mjs and cpu_eval_worker.mjs) with the manifest's sizes, against the
- *  one-thread bot, on the smallest network. `call` sends a request to the CPU module (node-engine.mjs), for the
- *  rules. Logs a line. Without a threaded bot, it logs that it checked no CPU form. An error names the files. */
+ *  one-thread bot, on the smallest network. The evaluator also checks the bot's first batch with each row twice
+ *  (checkingRows). `call` sends a request to the CPU module (node-engine.mjs), for the rules. Logs a line. Without a
+ *  threaded bot, it logs that it checked no CPU form. An error names the files. */
 export async function checkThreadedBot(root: string, manifest: Manifest, call: (request: object) => Described):
     Promise<void> {
   const [threaded] = manifest.artifacts.filter(a => a.kind === "practice-threaded-module");
@@ -214,7 +285,7 @@ export async function checkThreadedBot(root: string, manifest: Manifest, call: (
     console.log("static/engine has no threaded practice bot: the step checked no CPU form of the bot");
     return;
   }
-  const { ofKind, read, lib, model, network } = await practiceFiles(root, manifest);
+  const { ofKind, read, url, lib, model, network } = await practiceFiles(root, manifest);
   const library = (name: string) => ofKind("cpu-evaluator-library").find(a => a.url.endsWith(`/${name}`));
   const [one] = ofKind("practice-module"), [evaluator] = ofKind("practice-evaluator");
   const pool = library("cpu_evaluator.mjs"), worker = library("cpu_eval_worker.mjs");
@@ -223,33 +294,47 @@ export async function checkThreadedBot(root: string, manifest: Manifest, call: (
                     `(practice-evaluator, cpu_evaluator.mjs, cpu_eval_worker.mjs), which the check of the CPU form ` +
                     `needs`);
   const files = [threaded, evaluator, pool, worker, one].map(a => a.id).join(", ");
+  const sizes = manifest.sizes ? JSON.stringify(manifest.sizes) : "the library's default";
   try {
-    const url = (a: Artifact) => pathToFileURL(join(root, "static", a.url));
     const cpu = await import(url(pool).href) as CpuEvaluatorLibrary;
     const [oneModule, threadedModule, evaluatorModule] =
       await Promise.all([one, threaded, evaluator].map(a => WebAssembly.compile(read(a))));
-    const game = startCommand((await lib.createPracticeBot(oneModule)).command("list_commands")).replace(/-start$/, "");
+    const rowChecks: (() => string | null | undefined)[] = [];
     const makePair = async (): Promise<BotPair> => {
       const single = await lib.createPracticeBot(oneModule);
       single.setModel(network);
-      const workers = await cpu.createCpuEvaluator(evaluatorModule, network, {
-        workers: 1, maxRows: THREADS, makeWorker: () => new Worker(url(worker)) as unknown as globalThis.Worker,
-        ...sizesOption(manifest) });
+      // The CPU form with one worker, as the page starts it (botFormsWorker.ts). The page gives maxRows the form's
+      // threads. The check gives twice that, for the first batch with each row twice (checkingRows).
+      const cpuEvaluator = await cpu.createCpuEvaluator(evaluatorModule, network, {
+        workers: 1, maxRows: 2 * THREADS, makeWorker: () => new Worker(url(worker)) as unknown as globalThis.Worker,
+        ...sizesOption(manifest) }) as unknown as CpuEvaluator;
       try {
-        const bot = await lib.createBatchedPracticeBot(threadedModule, workers, { maxBatch: THREADS });
+        const checked = checkingRows(cpuEvaluator);
+        const bot = await lib.createBatchedPracticeBot(threadedModule, checked.evaluator, { maxBatch: THREADS });
         await bot.setModel(network);
-        return { one: async line => single.command(line), threaded: line => bot.command(line),
-                 release: () => workers.release() };
+        rowChecks.push(checked.difference);
+        return { one: line => single.command(line), threaded: line => bot.command(line),
+                 release: () => cpuEvaluator.release() };
       } catch (e) {
-        workers.release();
+        await cpuEvaluator.release();
         throw e;
       }
     };
-    await checkBotsAgree(game, makePair, (start, moves) =>
+    await checkBotsAgree(makePair, (start, moves) =>
       call({ id: "practice-check", action: "describe", ...positionQuery(start, moves) }));
-    console.log(`${threaded.id} on the CPU evaluator (${evaluator.id}, ${THREADS} threads, the sizes ` +
-                `${JSON.stringify(manifest.sizes ?? "of Enclosure")}): the one-thread bot's moves at ${VISITS} visit ` +
-                `with ${model.id}, ${MOVES} from the standard start and ${MOVES} from a set-up start`);
+    for (const difference of rowChecks.map(check => check())) {
+      if (difference === undefined)
+        throw new Error("the threaded bot evaluated no position, so the check of a batch's rows did not run");
+      if (difference !== null)
+        throw new Error(`the CPU evaluator gave another row's outputs when the bot's batch had each row twice: ` +
+                        `${difference}. The bot and the evaluator place each row by the evaluator's sizes ` +
+                        `(${sizes}), so these are not the network's sizes: take the lock's sizes from the release's ` +
+                        `manifest (engine.sizes), and the threaded bot, the evaluator and its libraries from one ` +
+                        `release.`);
+    }
+    console.log(`${threaded.id} on the CPU evaluator (${evaluator.id}, ${THREADS} threads, sizes: ${sizes}): the ` +
+                `one-thread bot's moves at ${VISITS} visit with ${model.id}, ${MOVES} from the standard start and ` +
+                `${MOVES} from a set-up start, and the same outputs for each row of a batch with each row twice`);
   } catch (e) {
     throw new Error(`${files}: ${errorText(e)}`, { cause: e });
   }
