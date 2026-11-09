@@ -65,6 +65,13 @@ new builds arrive often.
     file that the lock takes from the release, with the lock's SHA-256 and size. So a new release changes no other
     entry of the lock. A file from this machine has no release's manifest, so the step names it and does not check
     it. A lock with neither number, Hedge School's, reads no manifest.
+  - **The engine modules come from one engine commit.** The engine modules are the modules that play the game's
+    rules: the CPU and the GPU module, and the practice bot's two modules. A release's tag gives its commit:
+    `engine-<commit>`, with or without a suffix. The step stops when the lock's engine modules come from releases of
+    two commits or more, or from a release whose tag gives no commit. The step checks the komi cap of the practice
+    modules only (design 24, item 15), so the analysis modules have the same rules only from the same commit. The
+    other files do not count: the practice evaluator and the libraries hold no rules, and the networks, the terms and
+    the notices come from releases of their own (`checkOneEngineCommit` in `packages/engine/src/lock-check.ts`).
   - **Development may use local sources,** to try a build in the engine repository's `runs/` before it is released.
     The lock file in Git points at a release.
   - **A deploy uses releases only.** The deploy refuses a local source. Data that ships (precomputed analyses,

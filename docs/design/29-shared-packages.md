@@ -83,7 +83,9 @@ edit in the same commit), so their changes still apply.
    gives its page at `/lab/measure` with its game's part: its default settings and its game's positions.
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
-   imports a site.
+   imports a site. A site gives a package what is its own as a parameter: each site's `scripts/engine.mjs` gives its
+   record's komi limit to the engine step, for example. A check of `npm run check:all` refuses an import of a site's
+   file or package in `packages/` (`scripts/package-imports.mjs`).
 2. **The game interface** (`packages/analysis/src/game.ts`): what a site gives the analysis about its game.
 
    ```ts
@@ -443,11 +445,13 @@ edit in the same commit), so their changes still apply.
   kept (the import page's, a shared review's, a partner's), by the game's id. `apps/hedgeschool/src/lib/game/tools.ts`
   and `sources.ts`: Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
-  files, which each site runs in its own folder (`npm run engine`). `practice-check.ts`: the engine step's check of
-  the practice modules' `minPlayoutsPerThread` (design 24, item 14). `protocol.ts`: the protocol that each site's code
-  is written for (Hedge School 0.6.x, Cyanotype 0.8.x with the root's views and the position check), from the site's
-  `engine.lock.json`
-  and its manifest.
+  files (`fetchEngine`). Each site runs it in its own folder (`npm run engine`) by its `scripts/engine.mjs`, which
+  gives the step its record's komi limit. `practice-check.ts`: the engine step's check of the practice modules'
+  `minPlayoutsPerThread` (design 24, item 14) and of their komi cap against the site's limit (design 24, item 15).
+  `lock-check.ts`: the engine step's checks of the lock, its numbers against the releases' manifests and its engine
+  modules from one engine commit (design 03, "The engine's artifacts"). `protocol.ts`: the protocol that each site's
+  code is written for (Hedge School 0.6.x, Cyanotype 0.8.x with the root's views and the position check), from the
+  site's `engine.lock.json` and its manifest.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
   words), `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one
   that fills the room), `bot.ts`, `botWorker.ts` and `botMessages.ts` (the page's side of the practice bot and its

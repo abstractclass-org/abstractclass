@@ -5,7 +5,12 @@
 // to name them in its results. Both sites run it, each in its own folder (its `npm run engine`): Hedge School's lock
 // has Enclosure's engine, Cyanotype's Blueprints'.
 //
-//   node ../../packages/engine/src/fetch-engine.mjs [--deploy]      in the site's folder
+//   node scripts/engine.mjs [--deploy]      in the site's folder
+//
+// The step is fetchEngine. Each site's scripts/engine.mjs calls it with the site's own komi limit, its record's
+// MAX_RECORD_KOMI, since no package imports a site (design 29, item 1). The step then checks each practice module's
+// komi cap against that limit (practice-check.ts). It also takes the lock's engine modules from one engine commit, so
+// that the analysis modules have the practice modules' rules (lock-check.ts, checkOneEngineCommit).
 //
 // A source is { "local": PATH } (a file, from the site's folder), { "engines": PATH } (a file in the engine
 // repository's checkout beside this repository's, for a build that is on this machine only), or
@@ -29,12 +34,11 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { findPackageJSON } from "node:module";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
 import { checkPracticeModules } from "./practice-check.ts";
-import { checkLockAgainstRelease, releasesToCheck, whyNotTheRelease } from "./lock-check.ts";
+import { checkLockAgainstRelease, checkOneEngineCommit, releasesToCheck, whyNotTheRelease } from "./lock-check.ts";
 
 const root = process.cwd();
 const lock = JSON.parse(readFileSync(join(root, "engine.lock.json"), "utf8"));
@@ -108,87 +112,99 @@ function store(id, file, bytes, compress = false) {
   return { url, encoding: "gzip", parts, download: gz.length };
 }
 
-// The lock's sizes and maxThreads against its releases' manifests (lock-check.ts). A lock that gives neither, Hedge
-// School's, reads no manifest and prints nothing more.
-const toCheck = releasesToCheck(lock);
-for (const tag of toCheck.tags) {
-  checkLockAgainstRelease(lock, tag, await releaseManifest(tag));
-  console.log(`release ${tag}: the lock's sizes and maxThreads are the release's`);
-}
-if (toCheck.unchecked.length)
-  console.log(`not checked against a release's manifest, since they are files on this machine: ` +
-              toCheck.unchecked.join(", "));
+/** The engine step, in the site's folder: gets, checks and stores the lock's files, then checks the modules in Node.
+ *  `maxKomi` is the site's MAX_RECORD_KOMI, which each practice module's komi cap must be. */
+export async function fetchEngine({ maxKomi }) {
+  // The lock's engine modules come from one engine commit, so the analysis modules have the practice modules' rules,
+  // whose komi cap the last check reads (lock-check.ts, checkOneEngineCommit).
+  const engine = checkOneEngineCommit(lock);
+  console.log(engine.commit ? `the engine modules: engine commit ${engine.commit}` : "no engine module from a release");
+  if (engine.unchecked.length)
+    console.log(`engine modules not checked for their commit, since they are files on this machine: ` +
+                engine.unchecked.join(", "));
 
-// The folder holds only what this run writes: it is generated (and ignored by Git), and the downloads stay in the cache.
-rmSync(outDir, { recursive: true, force: true });
-const manifest = { ...(lock.protocol ? { protocol: lock.protocol } : {}), ...(lock.sizes ? { sizes: lock.sizes } : {}),
-                   artifacts: [] };
-for (const artifact of lock.artifacts) {
-  if (deploy && !artifact.source.release)
-    throw new Error(`${artifact.id}: a deploy needs a released build, not a file on this machine`);
-  const cached = join(cacheDir, artifact.sha256);
-  let bytes = existsSync(cached) ? readFileSync(cached) : null;
-  if (!bytes || sha256(bytes) !== artifact.sha256) {
-    bytes = await get(artifact);
-    const hash = sha256(bytes);
-    if (hash !== artifact.sha256)
-      throw new Error(`${artifact.id}: SHA-256 ${hash} is not the locked ${artifact.sha256}. ` +
-                      `If the build changed on purpose, update engine.lock.json.`);
-    mkdirSync(cacheDir, { recursive: true });
-    writeFileSync(cached, bytes);
-    console.log(`${artifact.id}: ${bytes.length} bytes from ${source(artifact)}`);
-  } else {
-    console.log(`${artifact.id}: up to date`);
+  // The lock's sizes and maxThreads against its releases' manifests (lock-check.ts). A lock that gives neither, Hedge
+  // School's, reads no manifest and prints nothing more.
+  const toCheck = releasesToCheck(lock);
+  for (const tag of toCheck.tags) {
+    checkLockAgainstRelease(lock, tag, await releaseManifest(tag));
+    console.log(`release ${tag}: the lock's sizes and maxThreads are the release's`);
   }
-  // A file that imports another by a relative path (the engine's JavaScript libraries) shares its folder (`dir`).
-  const stored = store(artifact.dir ?? artifact.id, artifact.file, bytes, artifact.kind === "graph");
-  if (stored.parts) console.log(`  stored as ${stored.parts.length} gzip part(s) of ${bytes.length} bytes`);
-  manifest.artifacts.push({
-    id: artifact.id, kind: artifact.kind, interface: artifact.interface ?? null, ...stored,
-    sha256: artifact.sha256, bytes: artifact.bytes, released: Boolean(artifact.source.release),
-    ...(artifact.displayName ? { displayName: artifact.displayName } : {}),
-    ...(artifact.graphOf ? { graphOf: artifact.graphOf } : {}),
-    ...(artifact.search ? { search: artifact.search } : {}),
-    ...(artifact.sameSearchAs ? { sameSearchAs: artifact.sameSearchAs } : {}),
-    ...(artifact.maxThreads ? { maxThreads: artifact.maxThreads } : {}),
-  });
-}
+  if (toCheck.unchecked.length)
+    console.log(`not checked against a release's manifest, since they are files on this machine: ` +
+                toCheck.unchecked.join(", "));
 
-// ONNX Runtime Web's WebGPU build, in its form that loads the WebAssembly given to it (the package's
-// `onnxruntime-web-use-extern-wasm` condition, Hedge School's vite.config.ts): the glue script by URL, and the
-// WebAssembly as bytes. Only for a lock with a GPU module: a site whose engine runs on the CPU alone needs neither.
-if (lock.artifacts.some(a => a.kind === "gpu-module")) {
-  const ortPackageJson = findPackageJSON("onnxruntime-web", import.meta.url), ort = dirname(ortPackageJson);
-  const ortVersion = JSON.parse(readFileSync(ortPackageJson, "utf8")).version;
-  for (const [kind, file] of [["ort-glue", "ort-wasm-simd-threaded.asyncify.mjs"], ["ort-wasm", "ort-wasm-simd-threaded.asyncify.wasm"]]) {
-    const bytes = readFileSync(join(ort, "dist", file));
-    const stored = store(`ort-${ortVersion}`, file, bytes);
-    manifest.artifacts.push({ id: `ort-${ortVersion}`, kind, interface: null, ...stored, sha256: sha256(bytes), bytes: bytes.length, released: true });
-    console.log(`ort-${ortVersion} ${file}: ${bytes.length} bytes${stored.parts ? `, stored as ${stored.parts.length} gzip part(s)` : ""}`);
+  // The folder holds only what this run writes: it is generated (and ignored by Git), and the downloads stay in the
+  // cache.
+  rmSync(outDir, { recursive: true, force: true });
+  const manifest = { ...(lock.protocol ? { protocol: lock.protocol } : {}),
+                     ...(lock.sizes ? { sizes: lock.sizes } : {}), artifacts: [] };
+  for (const artifact of lock.artifacts) {
+    if (deploy && !artifact.source.release)
+      throw new Error(`${artifact.id}: a deploy needs a released build, not a file on this machine`);
+    const cached = join(cacheDir, artifact.sha256);
+    let bytes = existsSync(cached) ? readFileSync(cached) : null;
+    if (!bytes || sha256(bytes) !== artifact.sha256) {
+      bytes = await get(artifact);
+      const hash = sha256(bytes);
+      if (hash !== artifact.sha256)
+        throw new Error(`${artifact.id}: SHA-256 ${hash} is not the locked ${artifact.sha256}. ` +
+                        `If the build changed on purpose, update engine.lock.json.`);
+      mkdirSync(cacheDir, { recursive: true });
+      writeFileSync(cached, bytes);
+      console.log(`${artifact.id}: ${bytes.length} bytes from ${source(artifact)}`);
+    } else {
+      console.log(`${artifact.id}: up to date`);
+    }
+    // A file that imports another by a relative path (the engine's JavaScript libraries) shares its folder (`dir`).
+    const stored = store(artifact.dir ?? artifact.id, artifact.file, bytes, artifact.kind === "graph");
+    if (stored.parts) console.log(`  stored as ${stored.parts.length} gzip part(s) of ${bytes.length} bytes`);
+    manifest.artifacts.push({
+      id: artifact.id, kind: artifact.kind, interface: artifact.interface ?? null, ...stored,
+      sha256: artifact.sha256, bytes: artifact.bytes, released: Boolean(artifact.source.release),
+      ...(artifact.displayName ? { displayName: artifact.displayName } : {}),
+      ...(artifact.graphOf ? { graphOf: artifact.graphOf } : {}),
+      ...(artifact.search ? { search: artifact.search } : {}),
+      ...(artifact.sameSearchAs ? { sameSearchAs: artifact.sameSearchAs } : {}),
+      ...(artifact.maxThreads ? { maxThreads: artifact.maxThreads } : {}),
+    });
   }
-}
-writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
-// The CPU module, run once in Node: its protocol must be one the site speaks, and the lock must give its own protocol
-// and search, for the CPU and the GPU module of the release. The page reads the lock's search before the module answers
-// (@abstractclass/analysis/cache.ts, warmCache), so a wrong one would read no stored result, and say nothing.
-const { module, call } = await nodeEngine(root);
-const version = call({ id: "v", action: "query_version" });
-const site = lock.protocol ?? PROTOCOL;
-if (!speaksProtocol(version.protocol, site))
-  throw new Error(`${module.id}: protocol ${version.protocol}, but the site's code is written for ${site} (protocol.ts, speaksProtocol)`);
-for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gpu-module")) {
-  if (a.interface !== `engine-protocol-${version.protocol}` || a.search !== version.search)
-    throw new Error(`${a.id}: engine.lock.json gives ${a.interface} and the search ${a.search}, but the module reports ` +
-                    `protocol ${version.protocol} and the search ${version.search}`);
-}
-console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
+  // ONNX Runtime Web's WebGPU build, in its form that loads the WebAssembly given to it (the package's
+  // `onnxruntime-web-use-extern-wasm` condition, Hedge School's vite.config.ts): the glue script by URL, and the
+  // WebAssembly as bytes. Only for a lock with a GPU module: a site whose engine runs on the CPU alone needs neither.
+  if (lock.artifacts.some(a => a.kind === "gpu-module")) {
+    const ortPackageJson = findPackageJSON("onnxruntime-web", import.meta.url), ort = dirname(ortPackageJson);
+    const ortVersion = JSON.parse(readFileSync(ortPackageJson, "utf8")).version;
+    for (const [kind, file] of [["ort-glue", "ort-wasm-simd-threaded.asyncify.mjs"], ["ort-wasm", "ort-wasm-simd-threaded.asyncify.wasm"]]) {
+      const bytes = readFileSync(join(ort, "dist", file));
+      const stored = store(`ort-${ortVersion}`, file, bytes);
+      manifest.artifacts.push({ id: `ort-${ortVersion}`, kind, interface: null, ...stored, sha256: sha256(bytes), bytes: bytes.length, released: true });
+      console.log(`ort-${ortVersion} ${file}: ${bytes.length} bytes${stored.parts ? `, stored as ${stored.parts.length} gzip part(s)` : ""}`);
+    }
+  }
+  writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
-// Each practice module, run once in Node: its minPlayoutsPerThread must be 8, and its komi cap the site's
-// MAX_RECORD_KOMI, which each site's record copies from the engine (practice-check.ts). So the site's record and what
-// it imports must load in Node, with no browser.
-const { MAX_RECORD_KOMI } = await import(pathToFileURL(join(root, "src", "lib", "game", "record.ts")).href);
-await checkPracticeModules(root, manifest, MAX_RECORD_KOMI);
+  // The CPU module, run once in Node: its protocol must be one the site speaks, and the lock must give its own
+  // protocol and search, for the CPU and the GPU module of the release. The page reads the lock's search before the
+  // module answers (@abstractclass/analysis/cache.ts, warmCache), so a wrong one would read no stored result, and say
+  // nothing.
+  const { module, call } = await nodeEngine(root);
+  const version = call({ id: "v", action: "query_version" });
+  const site = lock.protocol ?? PROTOCOL;
+  if (!speaksProtocol(version.protocol, site))
+    throw new Error(`${module.id}: protocol ${version.protocol}, but the site's code is written for ${site} (protocol.ts, speaksProtocol)`);
+  for (const a of lock.artifacts.filter(a => a.kind === "module" || a.kind === "gpu-module")) {
+    if (a.interface !== `engine-protocol-${version.protocol}` || a.search !== version.search)
+      throw new Error(`${a.id}: engine.lock.json gives ${a.interface} and the search ${a.search}, but the module ` +
+                      `reports protocol ${version.protocol} and the search ${version.search}`);
+  }
+  console.log(`${module.id}: protocol ${version.protocol}, search ${version.search}, as engine.lock.json gives`);
+
+  // Each practice module, run once in Node: its minPlayoutsPerThread must be 8, and its komi cap the site's
+  // MAX_RECORD_KOMI, which each site's record copies from the engine (practice-check.ts).
+  await checkPracticeModules(root, manifest, maxKomi);
+}
 
 function source(artifact) {
   return artifact.source.local ?? (artifact.source.engines ? `engines/${artifact.source.engines}` : `release ${artifact.source.release.tag}`);

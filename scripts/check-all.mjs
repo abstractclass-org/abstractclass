@@ -19,6 +19,8 @@ const steps = [
   // Each jam site's engine lock has every kind of Hedge School's, or an exception that names the gap's issue (design
   // 29, "Consequences").
   { name: "engine-kinds", cwd: root, command: "node scripts/engine-kinds.mjs" },
+  // No package imports a site (design 29, item 1).
+  { name: "package-imports", cwd: root, command: "node scripts/package-imports.mjs" },
   { name: "engine", cwd: site, command: "npm run engine -- --deploy", stopsOnFailure: true },
   { name: "site-check", cwd: site, command: "npm run check" },
   { name: "site-test", cwd: site, command: "npm test" },

@@ -1,9 +1,10 @@
-// Checks how the engine step compares a lock's sizes and maxThreads with the release's manifest (lock-check.ts). The
-// manifest here is a fake with the fields of engine-91ab0b7d's real manifest.json: no network. Run: npm test.
+// Checks how the engine step compares a lock's sizes and maxThreads with the release's manifest (lock-check.ts), and
+// that it takes the lock's engine modules from one engine commit. The manifest here is a fake with the fields of
+// engine-91ab0b7d's real manifest.json: no network. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkLockAgainstRelease, releasesToCheck, whyNotTheRelease, type Lock, type ReleaseManifest }
-  from "./lock-check.ts";
+import { checkLockAgainstRelease, checkOneEngineCommit, releasesToCheck, whyNotTheRelease, type Lock,
+  type ReleaseManifest } from "./lock-check.ts";
 
 const TAG = "engine-91ab0b7d";
 const release: ReleaseManifest = {
@@ -92,4 +93,65 @@ test("a file with numbers from this machine is named, not checked", () => {
   const local = lock();
   local.artifacts[1].source = {};
   assert.deepEqual(releasesToCheck(local), { tags: [TAG], unchecked: ["net"] });
+});
+
+// The engine modules of one engine commit (checkOneEngineCommit). A lock with the kinds and the tags of each site's.
+const file = (id: string, kind: Lock["artifacts"][number]["kind"], tag: string | null): Lock["artifacts"][number] =>
+  ({ id, kind, source: tag === null ? {} : from(`${id}.bin`, tag), sha256: id, bytes: 1 });
+const hedgeSchool = (commit = "d6786eba"): Lock => ({
+  artifacts: [
+    file("module", "module", `engine-${commit}`),
+    file("notices", "notices", "wasm-v2-engine-54486cd"),
+    file("terms", "terms", `engine-${commit}-terms2`),
+    file("gpu", "gpu-module", `engine-${commit}`),
+    file("bot", "practice-module", `engine-${commit}`),
+    file("bot-batched", "practice-threaded-module", `engine-${commit}`),
+    file("eval", "practice-evaluator", `engine-${commit}`),
+    file("old-net", "model", "wasm-v2-engine-632f2a0"),
+  ],
+});
+
+test("a lock whose engine modules all come from one engine commit passes, with that commit", () => {
+  assert.deepEqual(checkOneEngineCommit(hedgeSchool()), { commit: "d6786eba", unchecked: [] });
+  assert.deepEqual(checkOneEngineCommit(hedgeSchool("c43233eb")), { commit: "c43233eb", unchecked: [] });
+  // A suffix of the tag names the same commit: engine-d6786eba-gpu is engine-d6786eba's.
+  const suffixed = hedgeSchool();
+  suffixed.artifacts[3] = file("gpu", "gpu-module", "engine-d6786eba-gpu");
+  assert.equal(checkOneEngineCommit(suffixed).commit, "d6786eba");
+  // Cyanotype's: the modules from engine-887be290, the libraries, the evaluator, the terms and the network from
+  // engine-91ab0b7d. The evaluator and the libraries hold no rules, so they are not engine modules here.
+  const cyanotype: Lock = { artifacts: [
+    file("module", "module", "engine-887be290"), file("gpu", "gpu-module", "engine-887be290"),
+    file("lib", "gpu-library", "engine-91ab0b7d"), file("practice", "practice-library", "engine-91ab0b7d"),
+    file("bot", "practice-module", "engine-887be290"), file("bot-batched", "practice-threaded-module", "engine-887be290"),
+    file("eval", "practice-evaluator", "engine-91ab0b7d"), file("net", "model", "engine-91ab0b7d"),
+  ] };
+  assert.deepEqual(checkOneEngineCommit(cyanotype), { commit: "887be290", unchecked: [] });
+});
+
+test("a lock with engine modules of two engine commits stops the step, with each commit and its modules", () => {
+  const two = hedgeSchool();
+  two.artifacts[4] = file("bot", "practice-module", "engine-c43233eb");
+  two.artifacts[5] = file("bot-batched", "practice-threaded-module", "engine-c43233eb-bot");
+  assert.throws(() => checkOneEngineCommit(two), (e: Error) =>
+    /more than one engine commit/.test(e.message) &&
+    /d6786eba \(module, gpu\)/.test(e.message) && /c43233eb \(bot, bot-batched\)/.test(e.message));
+  // The analysis modules against the practice modules: the GPU module from another commit stops it too.
+  const gpu = hedgeSchool();
+  gpu.artifacts[3] = file("gpu", "gpu-module", "engine-c43233eb-gpu");
+  assert.throws(() => checkOneEngineCommit(gpu), /more than one engine commit/);
+});
+
+test("an engine module from a release whose tag gives no engine commit stops the step", () => {
+  const old = hedgeSchool();
+  old.artifacts[0] = file("module", "module", "wasm-v2-engine-632f2a0");
+  assert.throws(() => checkOneEngineCommit(old), /module: the release "wasm-v2-engine-632f2a0" .*engine-<commit>/);
+});
+
+test("an engine module from this machine is named, not checked", () => {
+  const local = hedgeSchool();
+  local.artifacts[4] = file("bot", "practice-module", null);
+  assert.deepEqual(checkOneEngineCommit(local), { commit: "d6786eba", unchecked: ["bot"] });
+  const allLocal: Lock = { artifacts: [file("module", "module", null)] };
+  assert.deepEqual(checkOneEngineCommit(allLocal), { commit: null, unchecked: ["module"] });
 });

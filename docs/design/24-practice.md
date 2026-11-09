@@ -389,7 +389,10 @@ How strong each setting plays against people is not measured yet.
   A board's link and an analysis file take it too (`readBoardLink` in `packages/analysis/src/boardLink.ts`,
   `readAnalysisFile` in `files.ts`). Their words are the record's (`komiLimitProblem` in
   `packages/record/src/record.ts`). The Notation page's Komi row states the limit. The engine step checks the limit
-  against each practice module's GTP `komi` (`checkKomiCap` in `packages/engine/src/practice-check.ts`).
+  against each practice module's GTP `komi` (`checkKomiCap` in `packages/engine/src/practice-check.ts`). Each site
+  gives the step its limit (its `scripts/engine.mjs`). The analysis modules share the practice modules' cap, because
+  the step takes every engine module of the lock from one engine commit (design 03, "The engine's artifacts"). A site
+  with no practice modules has no cap checked, and the step says so.
   The komi is in the game's id (`src/lib/game/store.ts`, `gameId`, and Cyanotype's
   `apps/cyanotype/src/lib/game/store.ts`, with `komiPrefix`), in the keys of the review file and of the removal
   of earlier results (`reviewFile.ts` and `earlierResults.ts`, with `positionKeys` in

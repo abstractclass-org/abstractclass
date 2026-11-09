@@ -10218,3 +10218,26 @@ Enclosure, 90,980 for Blueprints).
 - **Checked:** `npm run check:all` passed, all 15 steps. On the branch rebased onto dev 40f2ee0e, the layout test
   (headless Chromium) passed 216 cases and skipped 10: the analytics ask's 5 cases for each site, which need a build
   with a Google tag.
+
+### The engine step: one engine commit, and each site's komi limit (2026-11-09)
+
+The review of the komi check found three gaps. The step probed the komi cap of the practice modules only, nothing
+held the analysis modules to the same rules, and the engine package imported Hedge School's record for the limit.
+
+- **One engine commit:** the step stops when the lock's engine modules come from releases of two engine commits or
+  more (`checkOneEngineCommit` in `packages/engine/src/lock-check.ts`, design 03). The engine modules are the CPU and
+  the GPU module and the practice bot's two modules: the modules that play the rules. The practice evaluator and the
+  libraries are not, since they hold no rules. The rule must also pass both locks as they are: Cyanotype takes its
+  modules from engine-887be290 and its evaluator, libraries and network from engine-91ab0b7d, and Hedge School's
+  earlier networks come from wasm-v2-engine-632f2a0. The step logs the commit: d6786eba for Hedge School, 887be290
+  for Cyanotype.
+- **No practice modules:** the step logs that it checked no komi cap and no `minPlayoutsPerThread`. Both locks have
+  practice modules now, so only a unit test gives the line.
+- **Each site's limit:** the step is a function, `fetchEngine({ maxKomi })`. Each site's `npm run engine` runs its
+  own `scripts/engine.mjs`, which imports its record's `MAX_RECORD_KOMI` and calls the step. An argument of the npm
+  script would copy the number into `package.json`, a second source. The site's script keeps the record as the one
+  source, and the package imports no site (design 29, item 1).
+- **A check of design 29, item 1:** `scripts/package-imports.mjs`, a step of `npm run check:all`, refuses an import
+  in `packages/` of a file in `apps/` or of a site's package. It reads literal paths only. The earlier import of the
+  record by a computed path was one that it cannot read.
+- **Checked:** `npm run check:all` passed, with both engine steps on the locked releases.

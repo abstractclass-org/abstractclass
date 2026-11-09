@@ -3,7 +3,7 @@
 // MAX_RECORD_KOMI. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkKomiCap, checkMinPlayoutsPerThread, noEvaluator } from "./practice-check.ts";
+import { checkKomiCap, checkMinPlayoutsPerThread, checkPracticeModules, noEvaluator } from "./practice-check.ts";
 
 // Replies of kata-get-params as the practice modules give them (release engine-d6786eba: `= {"...":...}`).
 const reply = (minPlayoutsPerThread: unknown) =>
@@ -58,4 +58,14 @@ test("the check asks each komi in turn: the limit either way, then half a point 
   const asked: number[] = [];
   await checkKomiCap(5052, async v => { asked.push(v); return gtpKomi(5052)(v); });
   assert.deepEqual(asked, [5052, -5052, 5052.5, -5052.5]);
+});
+
+test("a site with no practice modules logs that the step checked no komi cap", async t => {
+  const log = t.mock.method(console, "log", () => {});
+  const manifest = { artifacts: [{ id: "module", kind: "module" as const, interface: null, url: "/engine/m/m.wasm",
+                                   sha256: "aa", bytes: 1, download: 1, released: true }] };
+  // No practice module: the check reads no file, so the folder does not need to exist.
+  await checkPracticeModules("no-such-folder", manifest, 5052);
+  assert.equal(log.mock.callCount(), 1);
+  assert.match(String(log.mock.calls[0].arguments[0]), /no practice modules.*no komi cap.*minPlayoutsPerThread/);
 });

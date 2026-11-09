@@ -10,6 +10,9 @@
 // repository's katagame/cpp/game/rules.h). The site's reader refuses a record, a board's link or an analysis file
 // beyond it. The module's GTP `komi` (KataGo's) takes a komi from -MAX_USER_KOMI to MAX_USER_KOMI in whole or half
 // points, and refuses any other. So the module must take the site's limit either way, and refuse half a point past it.
+// Each site gives its limit to the step: its `npm run engine` runs its own scripts/engine.mjs, which passes its
+// record's MAX_RECORD_KOMI to fetchEngine. The analysis modules (the CPU and the GPU module) are not run here: the step
+// takes them from the practice modules' engine commit, so they have the same cap (lock-check.ts, checkOneEngineCommit).
 //
 // Each module starts a session (the network, then its game's start command) and answers kata-get-params. The threaded
 // module's start evaluates no position, so its evaluator here refuses any use but its sizes: the check needs no CPU
@@ -75,13 +78,16 @@ export const noEvaluator = (sizes?: NetworkSizes) => new Proxy({}, {
 
 /** Checks each practice module of a site's static/engine (the one-thread and the threaded bot) with
  *  checkMinPlayoutsPerThread, and with checkKomiCap against `maxKomi` (the site's MAX_RECORD_KOMI), from the site's
- *  folder (`root`) and its manifest, and logs a line for each. An error names the module. The threaded module needs
- *  JSPI (Node 24.21 has it with no flag). */
+ *  folder (`root`) and its manifest, and logs a line for each. With no practice module, it logs that it checked
+ *  neither. An error names the module. The threaded module needs JSPI (Node 24.21 has it with no flag). */
 export async function checkPracticeModules(root: string, manifest: Manifest, maxKomi: number): Promise<void> {
   const ofKind = (kind: ArtifactKind) => manifest.artifacts.filter(a => a.kind === kind);
   const read = (a: Artifact) => readFileSync(join(root, "static", a.url));
   const modules = [...ofKind("practice-module"), ...ofKind("practice-threaded-module")];
-  if (modules.length === 0) return;
+  if (modules.length === 0) {
+    console.log("static/engine has no practice modules: the step checked no komi cap and no minPlayoutsPerThread");
+    return;
+  }
   // The smallest network, since the setting does not depend on the network.
   const [library] = ofKind("practice-library"), [model] = ofKind("model").sort((a, b) => a.bytes - b.bytes);
   if (!library || !model) throw new Error("static/engine has practice modules but no practice library or network");
