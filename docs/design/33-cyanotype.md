@@ -371,8 +371,9 @@ network changes.
 ## The engine's files
 
 Cyanotype takes the engine's files as Hedge School does (design 03): `apps/cyanotype/engine.lock.json` pins each
-file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs`, which both sites run) puts them in
-`static/engine/` with their manifest. The page loads them from there.
+file by its SHA-256, and `npm run engine` puts them in `static/engine/` with their manifest. It runs the site's
+`scripts/engine.mjs`, which runs the engine package's step (`packages/engine/src/fetch-engine.mjs`, which both sites
+use) with Cyanotype's komi limit. The page loads the files from there.
 
 1. **The release:** `engine-887be290` (Stamp Duty 0.2), in the public repository
    [abstractclass-org/blueprints-engine](https://github.com/abstractclass-org/blueprints-engine), with its manifest.

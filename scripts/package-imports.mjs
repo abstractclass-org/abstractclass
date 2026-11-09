@@ -10,8 +10,9 @@
 // It prints each import that it refuses, with its file and line, and exits 1 when there is one. ROOT is the
 // repository's root (the default: this script's). npm run check:all runs it (scripts/check-all.mjs).
 // Tests: node --test "scripts/*.test.mjs"
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { sites as allSites } from "./sites.mjs";
 
 const CODE = /\.(?:ts|mts|js|mjs|svelte)$/;
 /** An import's or an export's path: `… from "P"`, `import "P"` and `import("P")`. */
@@ -76,10 +77,7 @@ function codeFiles(dir) {
  *  null) in a file that COMPUTED_PATHS does not name. */
 export function check(root) {
   const apps = join(root, "apps");
-  const sites = new Set(readdirSync(apps, { withFileTypes: true }).flatMap(entry => {
-    const json = join(apps, entry.name, "package.json");
-    return entry.isDirectory() && existsSync(json) ? [JSON.parse(readFileSync(json, "utf8")).name] : [];
-  }));
+  const sites = new Set(allSites(root).map(s => s.name));
   return codeFiles(join(root, "packages")).flatMap(path => {
     const file = relative(root, path).replaceAll("\\", "/"), text = readFileSync(path, "utf8");
     const ofSites = specifiers(text).filter(({ specifier }) => importsSite(path, specifier, apps, sites))

@@ -1,10 +1,10 @@
 // A jam game's site has everything that Hedge School has (design 29, "Consequences"). This check compares each jam
 // site's engine lock with Hedge School's, by artifact kind: the module, the GPU module, the threaded practice bot and
-// the rest. A jam site is each folder of `apps/` with a `package.json`, but Hedge School's (the hub has none). A kind
-// that Hedge School's lock has and the jam site's lacks must be in the jam site's exceptions file beside its lock,
-// `engine.lock.exceptions.json`: an object with each kind and the issue that holds the decision about it, as text
-// that names the issue's id ({ "gpu-module": "abscls-8tl1.29: ..." }). Its site's design lists the same gaps with
-// their issues.
+// the rest. A jam site is each site but Hedge School (scripts/sites.mjs: each folder of `apps/` with a `package.json`,
+// which the hub lacks). A kind that Hedge School's lock has and the jam site's lacks must be in the jam site's
+// exceptions file beside its lock, `engine.lock.exceptions.json`: an object with each kind and the issue that holds
+// the decision about it, as text that names the issue's id ({ "gpu-module": "abscls-8tl1.29: ..." }). Its site's
+// design lists the same gaps with their issues.
 //
 //   node scripts/engine-kinds.mjs [ROOT]
 //
@@ -14,9 +14,10 @@
 // file, since JSON keeps only the last one. It prints each site's result, and exits 1 on a failure. ROOT is the
 // repository's root (the default: this script's).
 // Tests: node --test "scripts/*.test.mjs"
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { duplicateKeys } from "./json-keys.mjs";
+import { sites as allSites } from "./sites.mjs";
 
 const REFERENCE = "hedgeschool";
 const LOCK = "engine.lock.json";
@@ -110,9 +111,7 @@ export function check(root) {
   if (!existsSync(join(apps, REFERENCE, LOCK))) return { ok: false, lines: [`apps/${REFERENCE}/${LOCK}: not found.`] };
   return orUnreadable(() => {
     const reference = lockKinds(apps, REFERENCE);
-    const sites = readdirSync(apps, { withFileTypes: true })
-      .filter(d => d.isDirectory() && d.name !== REFERENCE && existsSync(join(apps, d.name, "package.json")))
-      .map(d => d.name).sort();
+    const sites = allSites(root).map(s => s.folder).filter(folder => folder !== REFERENCE);
     if (sites.length === 0) return { ok: true, lines: ["No jam site in apps/."] };
     const results = sites.map(name => orUnreadable(() => {
       const result = compare(`apps/${name}`, reference, lockKinds(apps, name), exceptionsOf(apps, name));

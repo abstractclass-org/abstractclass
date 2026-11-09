@@ -41,13 +41,15 @@ searching it again, and to share it as text that others can read.
    review is done." on the review page, and "Open the game to review it, then export." (or "to finish its review") in
    the Review tab.
    - **The mark of a finished review:** when a review ends, the browser keeps it with the game
-     (`StoredGame.reviewed` in `src/lib/game/store.ts`): the engine module's and the network's SHA-256 (from the
-     site's manifest), the module's search, the network's id, the review's depth, and the time. A review snapshot reads
-     the results of the mark's search by their keys (design 20). An older mark, kept before marks held their search, has
-     none.
+     (`StoredGame.reviewed` in `src/lib/game/store.ts`): the CPU module's and the network's SHA-256 (from the site's
+     manifest), the module's search, the network's id, the review's depth, and the time. The CPU module is the engine
+     module that names the analysis's search. The mark names it when the GPU module searched too, since the page keeps
+     the GPU's results under the CPU module's build (design 15, item 5). A review snapshot reads the results of the
+     mark's search by their keys (design 20). An older mark, kept before marks held their search, has none.
      The home page reads the marks, so it needs no engine to know which games can export. A game exports when its
-     mark names the site's engine module and the network set now, at the review depth set now or deeper. A deeper
-     mark for the same engine and network stays.
+     mark names a CPU module of the site's search (the site's own, or an earlier one of the same search, design 20,
+     item 7) and the network set now, at the review depth set now or deeper. A deeper mark for the same engine and
+     network stays.
    - **A safety net:** the home page's annotated record also refuses a game whose positions lack a stored result
      ("open the game to review it first", or "to finish its review first"). Every game shares the start, so the start
      does not count. A position that the opening book holds counts as having a result: the record takes the book's
@@ -74,11 +76,11 @@ searching it again, and to share it as text that others can read.
 5. **A load:** the site reads and checks the file: its format, version, record and variations. It drops an entry that
    is not a result. It keeps the game as it keeps a pasted record. The file's variations join the browser's own for that
    game: the browser's first, in their order, then the file's new ones. It keeps the results of the networks that this
-   site ships, and leaves out the others. When the file's review ran with this site's engine module and a network it
-   ships, the game keeps its mark too, so that it exports at once. When the file's review ran with a network that the
-   site ships, **the game keeps that network and review depth** (`StoredGame.settings`, `setGameSettings` in
-   `src/lib/game/store.ts`), as a shared link's game does (item 8), so that its review opens as it was made. Then the
-   review opens.
+   site ships, and leaves out the others. When the file's review ran with a CPU module of this site's search and a
+   network it ships, the game keeps its mark too, so that it exports at once. When the file's review ran with a
+   network that the site ships, **the game keeps that network and review depth** (`StoredGame.settings`,
+   `setGameSettings` in `src/lib/game/store.ts`), as a shared link's game does (item 8), so that its review opens as it
+   was made. Then the review opens.
    - **Only that game:** its review uses its own network and depth, and the settings kept in the browser serve every
      other game. The rest of the engine settings (on or off, the position on screen, the workers, the GPU) serve it too.
    - **Its engine settings** say that the game keeps the settings it came with, and show its own network and depth.
@@ -100,7 +102,7 @@ searching it again, and to share it as text that others can read.
    everywhere in the importer's review. Design 16 has every depth, and what a file and a link carry, with examples.
    So a file searched to 1,024 visits opens at once in a browser whose review depth is 512.
 8. **A link that shares a review** (the Export menu's first entry but for item 9's, "Copy a link to share the review",
-   `src/lib/game/share.ts`): the game's record, the player's variations, and what the review ran with (the engine
+   `src/lib/game/share.ts`): the game's record, the player's variations, and what the review ran with (the CPU
    module's and the network's SHA-256, their first 4 bytes, and the review's visits), after the review's `#`
    (`/review#packed=…`, design 22). The browser never sends that part of an address to a server.
    - **It holds no results:** the recipient's browser reviews the game again. So it does not carry the sender's deeper
