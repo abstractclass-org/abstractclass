@@ -67,15 +67,15 @@ new builds arrive often.
     it. A lock with neither number, Hedge School's, has no number to check.
   - **The lock's files are one release's set.** The lock takes each file from the release that first shipped its bytes,
     so that a browser's cache keeps a file that a new release did not change. A release's manifest names every file of
-    the release, the unchanged ones too. So each file must have the SHA-256 and the size of its entry in the newest
-    release of the lock whose manifest names the file. Otherwise the lock pairs a file of a new release with an older
-    file that the new release replaced, such as a new threaded bot with the evaluator of an earlier release. The step
-    reads the manifest of each release of the lock, and stops at such a file. Its message names the file, its release
-    and the newest release that names it (`checkOneReleaseSet` in `packages/engine/src/lock-check.ts`). The step orders
-    the releases by the time that each manifest was uploaded, which the download gives (its `Last-Modified`), seconds
-    before the release is published. GitHub's API gives the release's own time, but without a token it answers only 60
-    requests an hour from one address, and the machines that run the step share one. A file that no newer release names
-    keeps its own release's entry.
+    the release, the unchanged ones too. So one release of the lock must name every file of the lock, with the lock's
+    SHA-256 and size: for a right lock, its newest release. Otherwise the lock pairs a file of a new release with an
+    older file that the new release replaced, such as a new threaded bot with the evaluator of an earlier release. A
+    lock that keeps a file that its newest release dropped stops too. The rule needs no order of the releases, so it
+    reads no time. The step reads the manifest of each release of the lock, and stops when no release names every
+    file. Its message names the release that names the most files, and each file that it does not name, with both
+    entries (`checkOneReleaseSet` in `packages/engine/src/lock-check.ts`). The download cache keeps each manifest by
+    its release's tag, so a warm cache reads no network (`packages/engine/src/release-manifests.ts`). A manifest that
+    cannot download stops the step, with the release, the URL and the cause.
   - **The engine modules come from one engine commit.** The engine modules are the modules that play the game's
     rules: the CPU and the GPU module, and the practice bot's two modules. A release's tag gives its commit:
     `engine-<commit>`, with or without a suffix. The step stops when the lock's engine modules come from two commits

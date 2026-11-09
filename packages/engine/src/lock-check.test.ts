@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkLockAgainstRelease, checkOneEngineCommit, checkOneReleaseSet, lockReleases, releasesToCheck,
-  whyNotTheRelease, type Lock, type PublishedRelease, type ReleaseManifest } from "./lock-check.ts";
+  whyNotTheRelease, type Lock, type LockRelease, type ReleaseManifest } from "./lock-check.ts";
 
 const TAG = "engine-91ab0b7d";
 const release: ReleaseManifest = {
@@ -98,15 +98,15 @@ test("a file with numbers from this machine is named, not checked", () => {
 // The lock's files as one release's set (checkOneReleaseSet), on Cyanotype's case: a new release changed the bot, and
 // the lock keeps the evaluator and the network of the older release, which the new release ships with the same bytes.
 const OLD = "engine-91ab0b7d", NEW = "engine-887be290";
-const setRelease = (tag: string, published: string, bot: string, evaluator = "e1"): PublishedRelease => ({
-  tag, published, manifest: { tag, assets: [
+const setRelease = (tag: string, bot: string, evaluator = "e1"): LockRelease => ({
+  tag, manifest: { tag, assets: [
     { file: "blueprints-bot-batched.wasm", sha256: bot, bytes: 1 },
     { file: "blueprints-eval.wasm", sha256: evaluator, bytes: 2 },
     { file: "net.model-float16.bin", sha256: "n1", bytes: 3 },
   ] },
 });
-const oldRelease = setRelease(OLD, "2026-11-07T02:29:01.000Z", "b1");
-const newRelease = setRelease(NEW, "2026-11-08T22:03:56.000Z", "b2");
+const oldRelease = setRelease(OLD, "b1");
+const newRelease = setRelease(NEW, "b2");
 const setLock = (): Lock => ({ artifacts: [
   { id: "bot-batched", kind: "practice-threaded-module", source: from("blueprints-bot-batched.wasm", NEW), sha256: "b2",
     bytes: 1 },
@@ -121,46 +121,68 @@ test("the step reads the manifest of each release of the lock, once, in the lock
   assert.deepEqual(lockReleases(local), [OLD]);
 });
 
-test("a lock whose files the newest release that names them ships with the same bytes passes", () => {
-  assert.deepEqual(checkOneReleaseSet(setLock(), [newRelease, oldRelease]), { unchecked: [] });
-  // The order of the list does not count: the time of each release does.
-  assert.deepEqual(checkOneReleaseSet(setLock(), [oldRelease, newRelease]), { unchecked: [] });
+test("a lock whose files one of its releases names with the lock's entries passes, with that release", () => {
+  assert.deepEqual(checkOneReleaseSet(setLock(), [newRelease, oldRelease]), { release: NEW, unchecked: [] });
+  // The rule reads no time and no order: the order of the list does not count. So a manifest uploaded again to the
+  // earlier release, which a rule by upload time took for the newest, changes nothing.
+  assert.deepEqual(checkOneReleaseSet(setLock(), [oldRelease, newRelease]), { release: NEW, unchecked: [] });
+  // A lock from one release passes with that release.
+  const one = setLock();
+  one.artifacts[0] = { ...one.artifacts[0], source: from("blueprints-bot-batched.wasm", OLD), sha256: "b1" };
+  assert.deepEqual(checkOneReleaseSet(one, [oldRelease]), { release: OLD, unchecked: [] });
 });
 
-test("a file of an older release that the newest one replaced stops the step, with both releases and entries", () => {
-  // The new release ships another evaluator, and the lock keeps the old one with the new bot.
-  assert.throws(() => checkOneReleaseSet(setLock(), [setRelease(NEW, newRelease.published, "b2", "e2"), oldRelease]),
-    (e: Error) => /takes eval \(blueprints-eval\.wasm\) from release engine-91ab0b7d, with the SHA-256 "e1"/
+test("a lock that mixes two releases' entries stops the step, with the closest release and each file it misses", () => {
+  // The new release ships another evaluator, and the lock keeps the old one with the new bot. The new release names
+  // two of the three files with the lock's entries, the old one names two too: the first in the lock's order is named.
+  const replaced = setRelease(NEW, "b2", "e2");
+  assert.throws(() => checkOneReleaseSet(setLock(), [oldRelease, replaced]),
+    (e: Error) => /not one release's set: no release of the lock names all its 3 files/.test(e.message)
+                  && /The closest, engine-887be290, does not name eval \(blueprints-eval\.wasm, from release /
                     .test(e.message)
-                  && /newest of its releases that names the file, engine-887be290 \(published 2026-11-08T22/
+                  && /engine-91ab0b7d, the SHA-256 "e1" and 2 bytes\): it gives the SHA-256 "e2" and 2 bytes\./
                     .test(e.message)
-                  && /gives the SHA-256 "e2" and 2 bytes/.test(e.message) && /one release's set/.test(e.message));
-  // The same entries with the old release published last: the bot is now the file of an older release.
-  assert.throws(() => checkOneReleaseSet(setLock(), [newRelease, { ...oldRelease, published: "2026-11-09T00:00:00Z" }]),
-    /takes bot-batched \(blueprints-bot-batched\.wasm\) from release engine-887be290.*engine-91ab0b7d.*"b1"/);
+                  && !/bot-batched \(/.test(e.message) && !/net \(/.test(e.message));
+  // The closest release is the one that misses the fewest files, not the first in the lock's order. The new release
+  // adds the notices, which the lock takes from it: the old release misses the bot and the notices, the new one the
+  // evaluator only.
+  const withNotices = (r: LockRelease): LockRelease => ({ ...r, manifest: { ...r.manifest,
+    assets: [...r.manifest.assets!, { file: "NOTICES.txt", sha256: "t2", bytes: 4 }] } });
+  const lockWithNotices = setLock();
+  lockWithNotices.artifacts.reverse().push(
+    { id: "notices", kind: "notices", source: from("NOTICES.txt", NEW), sha256: "t2", bytes: 4 });
+  assert.deepEqual(lockReleases(lockWithNotices), [OLD, NEW]);
+  assert.throws(() => checkOneReleaseSet(lockWithNotices, [oldRelease, withNotices(replaced)]),
+    (e: Error) => /names all its 4 files/.test(e.message)
+                  && /The closest, engine-887be290, does not name eval \(blueprints-eval\.wasm, .*"e2"/.test(e.message)
+                  && !/notices \(/.test(e.message));
+  assert.deepEqual(checkOneReleaseSet(lockWithNotices, [oldRelease, withNotices(newRelease)]),
+    { release: NEW, unchecked: [] });
 });
 
-test("a file that no newer release names keeps its own release's entry", () => {
+test("a lock that keeps a file that the newest release dropped stops the step", () => {
   const dropped = { ...newRelease, manifest: { ...newRelease.manifest,
     assets: newRelease.manifest.assets!.filter(a => a.file !== "net.model-float16.bin") } };
-  assert.deepEqual(checkOneReleaseSet(setLock(), [dropped, oldRelease]), { unchecked: [] });
+  assert.throws(() => checkOneReleaseSet(setLock(), [dropped, oldRelease]),
+    /The closest, engine-887be290, does not name net \(net\.model-float16\.bin, .*\): it has no entry\./);
 });
 
-test("a release without its manifest, its time or its own entries stops the step", () => {
+test("a release without its manifest or its own entries stops the step", () => {
   assert.throws(() => checkOneReleaseSet(setLock(), [newRelease]), /no manifest of release engine-91ab0b7d/);
-  assert.throws(() => checkOneReleaseSet(setLock(), [newRelease, { ...oldRelease, published: "" }]),
-    /release engine-91ab0b7d: the time it was published is "", not a time/);
-  assert.throws(() => checkOneReleaseSet(setLock(), [newRelease, setRelease(OLD, oldRelease.published, "b1", "e9")]),
+  assert.throws(() => checkOneReleaseSet(setLock(), [newRelease, setRelease(OLD, "b1", "e9")]),
     /manifest\.json of release engine-91ab0b7d does not describe.*blueprints-eval\.wasm the SHA-256 "e9"/);
-  // A release that the lock does not take files from does not count, however new.
-  const other = setRelease("engine-other", "2026-12-01T00:00:00Z", "b9", "e9");
-  assert.deepEqual(checkOneReleaseSet(setLock(), [newRelease, oldRelease, other]), { unchecked: [] });
+  // A release that the lock does not take files from does not count, though it names every file.
+  const other = setRelease("engine-other", "b2", "e1");
+  const replaced = setRelease(NEW, "b2", "e2");
+  assert.throws(() => checkOneReleaseSet(setLock(), [replaced, oldRelease, other]), /not one release's set/);
 });
 
 test("a file from this machine is named, not checked", () => {
   const local = setLock();
   local.artifacts[1].source = {};
-  assert.deepEqual(checkOneReleaseSet(local, [newRelease, oldRelease]), { unchecked: ["eval"] });
+  assert.deepEqual(checkOneReleaseSet(local, [newRelease, oldRelease]), { release: NEW, unchecked: ["eval"] });
+  const allLocal: Lock = { artifacts: setLock().artifacts.map(a => ({ ...a, source: {} })) };
+  assert.deepEqual(checkOneReleaseSet(allLocal, []), { release: null, unchecked: ["bot-batched", "eval", "net"] });
 });
 
 // The engine modules of one engine commit (checkOneEngineCommit), on locks with the kinds, the releases and the assets

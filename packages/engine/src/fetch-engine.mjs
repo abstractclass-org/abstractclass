@@ -20,8 +20,8 @@
 // The practice evaluator's `maxThreads`, from the release's manifest too, caps the threaded bot's search threads on
 // its CPU workers.
 // The step checks these numbers against the manifests of the releases that the files come from, and stops at a
-// difference. It also stops when the lock's files are not one release's set: a file whose SHA-256 is not the one that
-// the newest of the lock's releases that names it gives (lock-check.ts).
+// difference. It also stops when the lock's files are not one release's set: when no release of the lock names every
+// file of the lock with the lock's SHA-256 and size (lock-check.ts).
 //
 // Cloudflare Pages serves no file over 25 MiB (docs/hosting.md). A file over 24 MiB is stored compressed with gzip,
 // and the compressed bytes are split into parts of 24 MiB or less when they are larger still: `model.onnx.gz.0`,
@@ -37,8 +37,8 @@ import { gzipSync } from "node:zlib";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
 import { checkPracticeModules, checkThreadedBot } from "./practice-check.ts";
-import { checkLockAgainstRelease, checkOneEngineCommit, checkOneReleaseSet, lockReleases, releasesToCheck,
-         whyNotTheRelease } from "./lock-check.ts";
+import { checkLockAgainstRelease, checkOneEngineCommit, checkOneReleaseSet, releasesToCheck } from "./lock-check.ts";
+import { lockManifests } from "./release-manifests.ts";
 
 const root = process.cwd();
 const lock = JSON.parse(readFileSync(join(root, "engine.lock.json"), "utf8"));
@@ -59,13 +59,12 @@ async function get(artifact) {
     if (!engines) throw new Error(`${artifact.id}: no engine repository's checkout beside this repository's`);
     return readFileSync(join(engines, source.engines));
   }
-  if (source.release) return (await download(artifact.id, source.release.tag, source.release.asset)).bytes;
+  if (source.release) return download(artifact.id, source.release.tag, source.release.asset);
   throw new Error(`${artifact.id}: the source must be "local", "engines" or "release"`);
 }
 
-/** Downloads `asset` of release `tag` of the lock's repository: its bytes, and the time it was uploaded (`modified`,
- *  the download's Last-Modified, or null). A failed download stops the step with an error that names `id`, the URL
- *  and the HTTP status or the network's error. */
+/** Downloads `asset` of release `tag` of the lock's repository. A failed download stops the step with an error that
+ *  names `id`, the URL and the HTTP status or the network's error. */
 async function download(id, tag, asset) {
   const url = `https://github.com/${lock.repository}/releases/download/${tag}/${asset}`;
   let response;
@@ -75,38 +74,7 @@ async function download(id, tag, asset) {
     throw new Error(`${id}: ${url} gave no answer (${e.cause?.code ?? e.cause?.message ?? e.message})`, { cause: e });
   }
   if (!response.ok) throw new Error(`${id}: ${url} gave HTTP ${response.status}`);
-  return { bytes: Buffer.from(await response.arrayBuffer()), modified: response.headers.get("last-modified") };
-}
-
-const parse = text => { try { return JSON.parse(text); } catch { return null; } };
-
-/** Release `tag` for checkOneReleaseSet (lock-check.ts): its manifest (manifest.json), and when the release was
- *  published, as the time the manifest was uploaded (`published`, ISO 8601). The download of a release's file gives
- *  that time (its Last-Modified), seconds before GitHub publishes the release, and it has no limit of requests.
- *  GitHub's API gives the release's own time, but it answers 60 requests an hour from one address without a token,
- *  and the machines that run the step share one. Both come from the download cache when the manifest there is that
- *  release's manifest for this lock (whyNotTheRelease) and has its time (`releases/<tag>/manifest.time`), else from
- *  the release, and then into the cache. Logs which. */
-async function releaseManifest(tag) {
-  const id = `release ${tag} manifest.json`, dir = join(cacheDir, "releases", tag);
-  const cached = join(dir, "manifest.json"), cachedTime = join(dir, "manifest.time");
-  const kept = existsSync(cached) ? parse(readFileSync(cached, "utf8")) : null;
-  const time = text => (text && Number.isFinite(Date.parse(text)) ? new Date(text).toISOString() : null);
-  const keptTime = existsSync(cachedTime) ? time(readFileSync(cachedTime, "utf8").trim()) : null;
-  if (kept && keptTime && whyNotTheRelease(lock, tag, kept) === null) {
-    console.log(`${id}: up to date`);
-    return { tag, manifest: kept, published: keptTime };
-  }
-  const { bytes, modified } = await download(id, tag, "manifest.json");
-  const release = parse(bytes.toString("utf8"));
-  if (!release) throw new Error(`${id}: the file is not JSON`);
-  const published = time(modified);
-  if (!published) throw new Error(`${id}: the download gives no time of upload (Last-Modified ${modified})`);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(cached, bytes);
-  writeFileSync(cachedTime, published + "\n");
-  console.log(`${id}: ${bytes.length} bytes from release ${tag}, uploaded ${published}`);
-  return { tag, manifest: release, published };
+  return Buffer.from(await response.arrayBuffer());
 }
 
 /** Writes a file under static/engine/<id>/: compressed when asked or when it is too large to serve, and in parts when
@@ -146,12 +114,13 @@ export async function fetchEngine({ maxKomi }) {
     console.log(`engine modules not checked for their commit, since they are files on this machine: ` +
                 engine.unchecked.join(", "));
 
-  // The lock's files as one release's set: each file against the newest of its releases that names it (lock-check.ts,
-  // checkOneReleaseSet).
-  const releases = await Promise.all(lockReleases(lock).map(releaseManifest));
+  // The lock's files as one release's set: one release of the lock names every file with the lock's entry
+  // (lock-check.ts, checkOneReleaseSet). A warm cache holds the manifests (release-manifests.ts).
+  const releases = await lockManifests(lock, cacheDir, download);
   const set = checkOneReleaseSet(lock, releases);
-  console.log(`the lock's files are one release's set: each has the entry of the newest of its ${releases.length} ` +
-              `release(s) that names it`);
+  if (set.release)
+    console.log(`the lock's files are one release's set: release ${set.release} names each of them with the lock's ` +
+                `entry (${releases.length} release(s) read)`);
   if (set.unchecked.length)
     console.log(`not checked against a release's set, since they are files on this machine: ` +
                 set.unchecked.join(", "));

@@ -1,0 +1,38 @@
+// The manifests of a lock's releases, which the engine step reads for its checks of the lock (fetch-engine.mjs,
+// lock-check.ts): one manifest.json for each release that the lock takes files from. The step keeps each in its
+// download cache by the release's tag (`releases/<tag>/manifest.json`). A cached manifest that is the release's for
+// this lock (whyNotTheRelease) is read from there, so a warm cache reads no network. Else the step downloads it, and
+// a download that fails stops the step.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { lockReleases, whyNotTheRelease, type Lock, type LockRelease, type ReleaseManifest } from "./lock-check.ts";
+
+/** Downloads `asset` of release `tag` of the lock's repository. A failed download is an error that names `id`, the
+ *  URL and the HTTP status or the network's error (fetch-engine.mjs, download). */
+export type Download = (id: string, tag: string, asset: string) => Promise<Uint8Array>;
+
+const parse = (text: string): ReleaseManifest | null => {
+  try { return JSON.parse(text); } catch { return null; }
+};
+
+/** The manifest of each release of the lock (lockReleases), in the lock's order: from the cache in `cacheDir` when
+ *  it holds the release's manifest for this lock, else by `download`, and then into the cache. Logs which. */
+export async function lockManifests(lock: Lock, cacheDir: string, download: Download,
+                                    log: (line: string) => void = console.log): Promise<LockRelease[]> {
+  return Promise.all(lockReleases(lock).map(async tag => {
+    const id = `release ${tag} manifest.json`, dir = join(cacheDir, "releases", tag);
+    const cached = join(dir, "manifest.json");
+    const kept = existsSync(cached) ? parse(readFileSync(cached, "utf8")) : null;
+    if (kept && whyNotTheRelease(lock, tag, kept) === null) {
+      log(`${id}: up to date`);
+      return { tag, manifest: kept };
+    }
+    const bytes = await download(id, tag, "manifest.json");
+    const manifest = parse(Buffer.from(bytes).toString("utf8"));
+    if (!manifest) throw new Error(`${id}: the file is not JSON`);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(cached, bytes);
+    log(`${id}: ${bytes.length} bytes from release ${tag}`);
+    return { tag, manifest };
+  }));
+}

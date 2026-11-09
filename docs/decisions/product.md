@@ -10826,3 +10826,35 @@ its full import already ("Cyanotype's review files, as Hedge School's").
   "layout of the weak walls" among them, and skipped none. The walls' unit tests check D's colour at 10%, 55% and 1
   on both boards against the tokens in `src/app.css`, and its distance from the players' red and the signs' green at
   every whole percentage. `wall-rings.mjs`, run on the build of that check, gave the numbers above.
+
+### The engine step: one release of the lock names every file (2026-11-10)
+
+- **Decided** (abscls-8tl1.84): the check of each lock as one release's set changes its rule. One release of the lock
+  must name every file of the lock from a release, with the lock's SHA-256 and size (`checkOneReleaseSet` in
+  `packages/engine/src/lock-check.ts`, design 03). It replaces the rule "each file has the entry of the newest of the
+  lock's releases that names it", which ordered the releases by each manifest download's `Last-Modified`, and the
+  cached time of each manifest (`releases/<tag>/manifest.time`).
+- **Why:** the rule needs no order of the releases, so it needs no time.
+  - Upload order is not release order. A manifest that is uploaded again to an earlier release, to correct it, made
+    that release the newest, and the old rule then refused a right lock. The new rule reads no time, so such a
+    manifest changes nothing.
+  - A warm cache with no `manifest.time` downloaded every manifest again. The new rule reads the cached manifests
+    only, so a warm cache reads no network (`packages/engine/src/release-manifests.ts`).
+  - A release of an earlier commit that changes only the terms, after a release of a later commit, is the limit
+    that both rules share. A lock with those terms and the later commit's modules has no release that names all its
+    files, so the new rule refuses it too. Such a release must name the later files, or come from the later commit.
+  - The new rule refuses a lock that keeps a file that its newest release dropped. The old rule passed such a file
+    with its own release's entry.
+- **The message:** when no release names every file, the step names the release that names the most files, and
+  each file that it does not name, with the lock's entry and the release's (or "no entry").
+- **On CI:** the Tests workflow keeps each lock's download cache by the lock's hash, and a cache that its key finds
+  is not saved again. The caches saved before the check of the release's set hold no manifests. The four keys now
+  start with `engine-v2-` and `cyanotype-engine-v2-`, so each job saves a new cache with the manifests once.
+- **Checked:** both locks pass on their releases: engine-c43233eb names all 19 files of Hedge School's lock, and
+  engine-887be290 all 13 of Cyanotype's. With an empty cache, each step downloaded the manifests of the lock's
+  releases once (5 and 2). Run again with a fetch that a script made fail, both steps passed from the cache. With no
+  cached manifests, no network, HTTP 504 and HTTP 403 each stopped the step with the release, the URL and the cause.
+  Hedge School's lock with engine-d6786eba's `enclosure-eval.wasm` stopped the step: the closest release,
+  engine-c43233eb, gives that file another SHA-256. Cyanotype's lock with engine-3ac5c2fc's `LICENSE.txt` stopped it
+  the same way, with engine-887be290 as the closest. The unit tests use fake manifests in the real manifests' shape,
+  and a fake download for the cache.

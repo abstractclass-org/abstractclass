@@ -52,18 +52,21 @@ jobs:
       # The engine's release files (engine.lock.json), kept between runs in the download cache that `npm run engine`
       # reads by SHA-256 (packages/engine/src/fetch-engine.mjs). Not static/engine: the script empties that folder on
       # each run. After npm ci, which removes node_modules. The script checks each file's SHA-256, cached or downloaded.
+      # The cache also keeps the manifest of each release of the lock (releases/<tag>/manifest.json), which the step's
+      # check of the lock reads (packages/engine/src/release-manifests.ts). A cache that its key finds is not saved
+      # again, so the keys' "v2" names the caches that hold the manifests: the caches saved before had none.
       - name: Cache the engine's files
         uses: actions/cache@v6
         with:
           path: apps/hedgeschool/node_modules/.cache/engine
-          key: engine-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
+          key: engine-v2-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
       # Cyanotype's engine files (apps/cyanotype/engine.lock.json), in Cyanotype's own download cache, for its step
       # cyanotype-engine in check:all.
       - name: Cache Cyanotype's engine files
         uses: actions/cache@v6
         with:
           path: apps/cyanotype/node_modules/.cache/engine
-          key: cyanotype-engine-${{ hashFiles('apps/cyanotype/engine.lock.json') }}
+          key: cyanotype-engine-v2-${{ hashFiles('apps/cyanotype/engine.lock.json') }}
 
       # The checks before the browser tests, in the one command that people run too. Its list of steps, each with its
       # flags and environment, is in scripts/check-all.mjs.
@@ -116,7 +119,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: apps/hedgeschool/node_modules/.cache/engine
-          key: engine-windows-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
+          key: engine-v2-windows-${{ hashFiles('apps/hedgeschool/engine.lock.json') }}
       - run: npm run engine -- --deploy
 
       - run: npm run build
@@ -130,7 +133,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: apps/cyanotype/node_modules/.cache/engine
-          key: cyanotype-engine-windows-${{ hashFiles('apps/cyanotype/engine.lock.json') }}
+          key: cyanotype-engine-v2-windows-${{ hashFiles('apps/cyanotype/engine.lock.json') }}
       - run: npm run engine -- --deploy
         working-directory: apps/cyanotype
       - run: npm run build
