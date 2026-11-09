@@ -10682,3 +10682,35 @@ tag queue, and "PostHog in place of Google Analytics".
     `retry_count`, which EasyPrivacy stops. uBlock Origin's own lists and Peter Lowe's list have no PostHog rule.
   - **The owner's step of the filter** gives its operator: the event property `internal`, **is not set**. Each entry
     keeps the events that match it (posthog.com/docs/data/test-accounts.md).
+
+### Hedge School's GPU-path check, off the GPU (2026-11-10)
+
+- **What:** Hedge School had no check of its GPU paths, and the release engine-c43233eb (abscls-tdbr) brought a new
+  GPU module that nothing had run in the site (abscls-bp3a). `scripts/hedgeschool-gpu-check.mjs` checks the GPU On,
+  then Auto, each in a new browser context: the review, the Analysis board with the GPU beside its one worker, and
+  Practice's bot, as Cyanotype's check does. With On it also checks the weak walls (design 30, "The weak walls"): the
+  Analysis board from the start, 1 worker and the threat on, Space six times, then the key w. The rings must show, no
+  request for the walls (`includeWeakWalls`) may reach a GPU worker, one must reach another worker, and the console
+  must show no error. The release's GPU module refuses the field (the engine repository's design 19).
+- **One module for both sites:** `scripts/gpu-check.mjs` holds the parts, the waits' limits, the run's limit and the
+  watchdog of "Cyanotype's GPU-path checks on this machine's GPU". Each site's script gives its preview, its settings'
+  key, its test game, its Review tab's paste, its bot's name, its waits and its own parts (design 29: no copies
+  between sites). `tests/records.ts` cuts a record to its first turns for both.
+- **Two facts of Hedge School that the check takes:**
+  - The early edition's test book holds the test game's first 3 turns (positions 0 to 5), and the review takes their
+    values from the book with no search. A review of 3 turns took 1 s and searched nothing, so it would give the GPU
+    no backlog. The review of On reviews 5 turns: positions 6 to 9 and the game's end are searched.
+  - Hedge School's Analysis board opens a record's link at the start unless the link gives `at`, and Cyanotype's opens
+    it at the end. Hedge School's script gives the record's edge count as `at`.
+- **The run off the GPU** (`--cpu`, the job `abscls-bp3a-cpu-check2`, 2 threads, the headless shell with the layout
+  test's flags, a preview of the branch with engine-c43233eb's files): PASS in 91 s. Every part said "This browser
+  cannot use the GPU: it has no GPU for WebGPU.", and no GPU worker started. With On, the review of 5 turns took 24 s,
+  the board 28 s (5 candidates at the game's position 10), the weak walls 12 s (14 rings, after A10-D9 N11-Q10
+  K10-N11 D10-G12 G12-J13 H7-K10, 1 request for them to a CPU worker and none to the GPU), and Practice 3 s (the bot
+  "on the CPU workers.", a turn of 1.1 s). With Auto, the review took 2 s (it waits for the GPU's line only), the
+  board 21 s, and Practice 2 s.
+- **Cyanotype's check on the shared module** (`--cpu`, the job `abscls-bp3a-cy-cpu-check`): PASS in 291 s, as before
+  it: with On, the review 143 s, the board 63 s and Practice 7 s, and with Auto, the review 1 s, the board 67 s and
+  Practice 8 s.
+- **Not done yet:** the run on this machine's GPU. It waits for jam-coord's and eng-coord's yes, through
+  `scripts/machine run --gpu` (abscls-bp3a).

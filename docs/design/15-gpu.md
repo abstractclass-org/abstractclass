@@ -117,6 +117,12 @@ which Chrome and Edge have from version 137.
 - `packages/analysis/src/session.svelte.ts`: a `GpuControl` for each pool (`EngineSession`).
 - `packages/engine/src/fetch-engine.mjs`: the GPU's files, ONNX Runtime's two files, and the compressed storage.
 - `vite.config.ts`: ONNX Runtime's build that takes its WebAssembly from the page, and module workers.
+- `scripts/hedgeschool-gpu-check.mjs`: the check of the GPU paths on Hedge School's preview: the review, the Analysis
+  board with the GPU beside its one worker, Practice's bot, and the weak walls with the GPU On (the rings show, and no
+  request for them reaches a GPU worker). One run checks On, then Auto. It runs only as a GPU-path check, in
+  Playwright's full Chromium ([working-notes.md](../working-notes.md), "The GPU in Playwright's Chromium"). With
+  `--cpu`, it checks the same pages off the GPU. `scripts/gpu-check.mjs` holds the parts and the limits that it shares
+  with Cyanotype's check (`scripts/cyanotype-gpu-check.mjs`).
 
 ## Log
 

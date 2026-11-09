@@ -1711,7 +1711,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   searches make the backlog at which the GPU joins (Hedge School's design 15, item 1). The check then counts the
   searches that go to the GPU worker. It runs only as a GPU-path check, in Playwright's full Chromium
   ([working-notes.md](../working-notes.md), "The GPU in Playwright's Chromium"). With `--cpu`, it checks the same
-  pages off the GPU, where the board starts no GPU worker and the bot starts on the CPU workers.
+  pages off the GPU, where the board starts no GPU worker and the bot starts on the CPU workers. Its parts, its waits'
+  limits and its watchdog are in `apps/hedgeschool/scripts/gpu-check.mjs`, which Hedge School's check shares.
 - `apps/hedgeschool/scripts/cyanotype-gpu-diagnose.mjs`: a diagnosis of the GPU worker's start on Cyanotype's preview,
   for a GPU that does not start. It prints the adapters, the device that ONNX Runtime asks for, and each step of the
   start, in Playwright's full Chromium and in its headless shell, the control. It is a GPU-path run too

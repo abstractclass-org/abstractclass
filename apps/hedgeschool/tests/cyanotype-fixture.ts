@@ -2,6 +2,7 @@
 // import: the browser tests take them through cyanotype-review.ts, and Cyanotype's label snapshot
 // (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) takes them here, under Node's test runner.
 import { readFileSync } from "node:fs";
+import { firstTurns } from "./records.ts";
 
 /** The turns of the test game that the review's tests review, and STORED holds. */
 export const TURNS = 20;
@@ -44,10 +45,5 @@ export function readStored(file: string = STORED): Stored {
 /** The record of the test game, or of the game `game` (a file in apps/cyanotype/src/lib/review/fixtures), up to the
  *  end of turn `turns`, or to its end when the game has no later turn: its tags, but not its result, and its moves. */
 export function testRecord(turns = TURNS, game: string = TEST_GAME): string {
-  const text = readFileSync(new URL(`../../cyanotype/src/lib/review/fixtures/${game}`, import.meta.url), "utf8");
-  const [tags, moves] = text.split(/\r?\n\r?\n/);
-  const words = moves.trim().split(/\s+/), next = words.indexOf(`${turns + 1}.`);
-  // Without a later turn (next is -1), the moves end before the record's last word, its result
-  const kept = tags.split(/\r?\n/).filter(t => !/^\[(Result|Scores) /.test(t));
-  return `${kept.join("\n")}\n\n${words.slice(0, next).join(" ")}\n`;
+  return firstTurns(readFileSync(new URL(`../../cyanotype/src/lib/review/fixtures/${game}`, import.meta.url), "utf8"), turns);
 }
