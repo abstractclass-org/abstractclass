@@ -2,7 +2,8 @@
 // the workflow and people both run: `npm run check:all` at the root, after `npm ci`. One list of steps, here.
 // Each step runs with the environment that the workflow gave it. Each site's engine step takes --deploy: it refuses a
 // local engine file, as the deploy does. Each site's build is the production build of the browser tests, in the early
-// edition (VITE_EDITION=early), and Hedge School's has the practice games' storage on and a made-up PostHog key. A
+// edition (VITE_EDITION=early), with a made-up PostHog key, and Hedge School's has the practice games' storage on.
+// Cyanotype is also built once without the key, for the check that such a build holds none of PostHog's code. A
 // failed step does not stop the steps after it, except an engine step: the others need its files.
 // The output ends with one line: `check:all: PASS` or `check:all: FAIL`, then each step with PASS, FAIL or SKIP.
 import { spawnSync } from "node:child_process";
@@ -33,22 +34,32 @@ const steps = [
   // The hub's board is the one that its script writes from Hedge School's home board, and its colours are Hedge
   // School's (apps/hub/scripts/enclosure-board.mjs).
   { name: "hub-board", cwd: root, command: "node apps/hub/scripts/enclosure-board.mjs --check" },
-  // Hedge School's build has a made-up PostHog key, so that the browser tests run the measuring
-  // (tests/analytics.spec.ts), and Cyanotype's has none, so that they check a build without it. No test reaches
-  // PostHog: the browser tests' Chromium resolves none of its addresses (playwright.config.ts).
+  // Each site's build has a made-up PostHog key, so that the browser tests check the measuring and the events
+  // (tests/analytics.spec.ts, tests/cyanotype-events.spec.ts). No test reaches PostHog: the browser tests' Chromium
+  // resolves none of its addresses (playwright.config.ts), and the tests answer them in PostHog's place.
   {
     name: "build", cwd: site, command: "npm run build",
     env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on", VITE_POSTHOG_KEY: TEST_POSTHOG_KEY },
   },
   // No file of a build over 25 MiB: Cloudflare Pages refuses the upload of a larger file (docs/hosting.md, section 2).
   { name: "build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/hedgeschool/build" },
-  // Cyanotype, Blueprints' site (design 33): its engine's release files, its type check, its unit tests, its build and
-  // its build's file sizes.
+  // Cyanotype, Blueprints' site (design 33): its engine's release files, its type check, its unit tests, its build
+  // without the key and the check that it holds none of PostHog's code, its build for the browser tests and its build's
+  // file sizes.
   // Cyanotype's steps come last, so that a failure of its engine step skips only Cyanotype's steps.
   { name: "cyanotype-engine", cwd: cyanotype, command: "npm run engine -- --deploy", stopsOnFailure: true },
   { name: "cyanotype-check", cwd: cyanotype, command: "npm run check" },
   { name: "cyanotype-test", cwd: cyanotype, command: "npm test" },
-  { name: "cyanotype-build", cwd: cyanotype, command: "npm run build", env: { VITE_EDITION: "early" } },
+  // A build without the key, as the previews' (design 33, "Analytics"): the next build replaces it.
+  {
+    name: "cyanotype-build-no-key", cwd: cyanotype, command: "npm run build",
+    env: { VITE_EDITION: "early", VITE_POSTHOG_KEY: "" },
+  },
+  { name: "cyanotype-no-posthog", cwd: root, command: "node scripts/no-posthog.mjs apps/cyanotype/build" },
+  {
+    name: "cyanotype-build", cwd: cyanotype, command: "npm run build",
+    env: { VITE_EDITION: "early", VITE_POSTHOG_KEY: TEST_POSTHOG_KEY },
+  },
   { name: "cyanotype-build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/cyanotype/build" },
 ];
 

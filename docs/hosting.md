@@ -209,8 +209,9 @@ put them behind a sign-in (Cloudflare Access).
   - **Filter out internal and test users:** a filter on the event property `internal`, so that the events where it is
     `true` drop out. Set it once, after the release that sends the property (design 17, "The setup in PostHog").
 - **Builds on a developer's machine leave `VITE_POSTHOG_KEY` unset,** so that test visits are not counted, and the
-  build holds none of PostHog's code. check:all gives Hedge School's build a made-up key, for the browser tests, and
-  the tests' browser resolves none of PostHog's addresses.
+  build holds none of PostHog's code. check:all gives both sites' builds a made-up key, for the browser tests, and
+  the tests' browser resolves none of PostHog's addresses. It also builds Cyanotype once without the key, and its
+  step `cyanotype-no-posthog` refuses a script of that build that holds PostHog's code.
 - **The site loads PostHog itself:** posthog-js from npm, in its slim bundle with no external loading
   (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
 - **The owner's own visits** (design 17): a browser with the site's flag of internal traffic gives every event the

@@ -10611,3 +10611,43 @@ not engine-887be290's for Cyanotype's.
   this branch's previews of both sites) passed all 220 cases, with none skipped: the 4 analytics cases among them.
   Cyanotype's build, with no key, has no file that names PostHog. In Hedge School's build with the made-up key,
   PostHog's client is one chunk of 201,604 bytes (64,697 gzipped), which loads after the page starts.
+
+### Cyanotype's events, tested with PostHog (2026-11-09)
+
+abscls-xb0k, after "Cyanotype counts its review files and review snapshot" (abscls-8tl1.34), whose test read Google's
+tag queue, and "PostHog in place of Google Analytics".
+
+- **The test of Cyanotype's events** (`tests/cyanotype-events.spec.ts`) now reads what the pages send to PostHog, as
+  `tests/analytics.spec.ts` does, with the shared part in `tests/posthog.ts`. Its 3 cases check the same events with
+  the same parameters: a review file loaded, with its exports from the review and from the Review tab; a file that
+  cannot load; the review snapshot's open and Review again. It no longer reads `window.dataLayer` on a build with
+  `G-TEST000000`, and it no longer skips on a build without the Google tag. On a build without PostHog's key it
+  fails: the Review tab's page view does not come.
+- **Both sites' builds of check:all have the made-up PostHog key.** Cyanotype's events need a build that sends them.
+  The check that a build without the key holds none of PostHog's code moved out of the browser test into check:all:
+  it builds Cyanotype without the key first, and its step `cyanotype-no-posthog` (`scripts/no-posthog.mjs`) refuses a
+  script of that build that names `i.posthog.com` (the client's address in `posthog.ts`) or
+  `__PosthogExtensions__`. Then it builds Cyanotype with the key for the browser tests. The extra build took 7 s
+  on the owner's machine. The browser test of a page served without the key needed a third preview, and a worker has
+  two ports. The
+  Cyanotype case of `tests/analytics.spec.ts` now checks the keyed build: page views with `internal: true` after
+  `?internal=on`, no banner, no "Your choices", and nothing kept in the browser.
+- **A page's last events go in a beacon.** The Review tab loads the page again once it keeps a review file, so
+  `load_saved` goes out as the page goes: posthog-js sends the events that it still holds with
+  `navigator.sendBeacon` on `pagehide`. Neither Playwright's routes and request events nor Chromium's CDP Network
+  events saw those beacons, though `sendBeacon` returned true. So `tests/posthog.ts` keeps each body that a page gives
+  PostHog's beacon in the tab's session storage, and the test adds those events, each once by its `uuid`. A Blob
+  cannot be read at once, so the test pages' `Blob` keeps the parts that it was made of.
+- **Playwright's browser name does not hold as a page goes.** At `pagehide`, `navigator.userAgent` gave
+  "HeadlessChrome" again, though the context set a desktop Chrome's name: posthog-js then dropped the page leave and
+  every event that it still held, as a bot's (its debug log: "was not captured because the user agent looks like a
+  bot"). The test pages now read the name from an init script too. A visitor's browser keeps its name, so the site
+  loses no event there.
+- **Other code that read Google's tag:** none in Cyanotype's review files, review snapshot and Practice from a
+  position (abscls-8tl1.34, .35, .40) but this test. The ranges' module (`packages/site/src/measure.ts`) named Google
+  Analytics in its header: it names PostHog now.
+- **Checked** (on dev at 4c35db72): `npm run check:all` passed, all 18 steps. Cyanotype's build without the key had
+  70 scripts, none with PostHog's code. The layout test (headless Chromium, on this branch's previews of both sites)
+  passed all 233 cases, with none skipped: the 4 analytics cases and the 3 of Cyanotype's events among them. A
+  Cyanotype build with the key and two changes, no `load_saved` for a review file and no feature "review again",
+  failed the review file's case and the review snapshot's case, and passed the case of a file that cannot load.

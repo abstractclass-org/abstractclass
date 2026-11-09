@@ -73,9 +73,10 @@ edit in the same commit), so their changes still apply.
    analytics moved out of Hedge School with Cyanotype's (design 33, "Analytics"): the site's package holds the
    analytics with each site's services and keys as parameters (`analytics.svelte.ts`), PostHog's client
    (`posthog.ts`), the flag of internal traffic (`internalTraffic.ts`), the ranges (`measure.ts`), and the consent
-   banner and its card (`ConsentBanner.svelte`, `CornerCard.svelte`, with the site's mark as a parameter). The engine settings' changes as events went into the analysis package (`settingChanges.ts`), the
-   exports' event into the review's (`exportEvents.ts`) and a practice game's parameters into the practice's
-   (`practiceEvents.ts`), each with the site's analytics and its networks' names as parameters.
+   banner and its card (`ConsentBanner.svelte`, `CornerCard.svelte`, with the site's mark as a parameter). The engine
+   settings' changes as events went into the analysis package (`settingChanges.ts`), the exports' event into the
+   review's (`exportEvents.ts`) and a practice game's parameters into the practice's (`practiceEvents.ts`), each with
+   the site's analytics and its networks' names as parameters.
    The review file (Hedge School's design 13) moved out of Hedge School's `src/lib/game/reviewFile.ts` with
    Cyanotype's review files. Its build, its reader, its import and its export from the store went into the analysis
    package (`reviewFile.ts`). Each site gives its name, its format, its record's reader, its store of games and its

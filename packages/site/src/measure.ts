@@ -1,5 +1,5 @@
-// What the sites measure (Hedge School's design 17, and Cyanotype's design 33 for its own): a count sent to Google
-// Analytics goes as a range when its exact value could set a visitor apart or would only scatter the reports, and
+// What the sites measure (Hedge School's design 17, and Cyanotype's design 33 for its own): a count sent to PostHog
+// goes as a range when its exact value could set a visitor apart or would only scatter the reports, and
 // never holds a game, a player's name or a game's id. These are the ranges, the same on every site, so that the sites'
 // reports compare.
 
