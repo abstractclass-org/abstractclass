@@ -23,7 +23,7 @@ test("at a komi and from a set-up start, the keys name them before the moves (ca
 });
 
 test("a kept board's komi beyond the game's limit, either way, is a problem in the record's words; within it, none", () => {
-  // Hedge School's design 24: a board kept from a link before the limit's check, which the engine would refuse
+  // Hedge School's design 24: a board kept from a link before the limit's check
   assert.equal(keptKomiProblem(boardOfLine(["ab"], undefined, 6000), 5052), "its komi must be from -5,052 to 5,052 points: 6000");
   assert.equal(keptKomiProblem(boardOfLine([], undefined, -5052.5), 5052), "its komi must be from -5,052 to 5,052 points: -5052.5");
   assert.equal(keptKomiProblem(boardOfLine(["ab"], undefined, 5052), 5052), null);

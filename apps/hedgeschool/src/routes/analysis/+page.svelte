@@ -104,14 +104,15 @@
   async function chooseBoard(): Promise<Opening> {
     let kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
     // A kept board beyond the komi's limit (design 24), kept from a link before the link's check, does not open: the
-    // engine would refuse its komi. A new board opens, as Cyanotype's does for a kept board that it cannot open (its
-    // design 33), and replaces it in the store at its first change.
+    // engine's numbers mean nothing beyond its cap, and a link or a file of the board would not open again. A new board
+    // opens, as Cyanotype's does for a kept board that it cannot open (its design 33), and replaces it in the store at
+    // its first change.
     const keptProblem = keptKomiProblem(kept);
     if (keptProblem) {
       notice = `The Analysis board cannot open your own analysis: ${sentence(keptProblem)} A new board is here instead.`;
       kept = null;
     }
-    const at = readLocal(AT_KEY), keptAt = at && kept ? at.split(" ") : [];
+    const at = readLocal(AT_KEY), keptAt = at ? at.split(" ") : [];
     const hash = location.hash.slice(1);
     if (!holdsGame(hash)) { startAnalytics(); return { board: kept, at: keptAt }; }
     const p = new URLSearchParams(hash), record = p.get("record"), position = p.get("position"), via = p.get("via");

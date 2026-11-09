@@ -28,9 +28,10 @@ export const boardOfLine = (main: string[], start?: string, komi = 0): KeptBoard
      ...(komi ? { komi } : {}) });
 
 /** Why the board kept here cannot open at its komi, or null: a komi beyond the game's limit `maxKomi`, either way (its
- *  record's `MAX_RECORD_KOMI`), which the engine would refuse. A link kept a board before the link's check of the limit
- *  (boardLink.ts, readBoardLink). The record's words name the komi as the board's: "its komi must be from -5,052 to
- *  5,052 points: 6000". */
+ *  record's `MAX_RECORD_KOMI`, its engine's cap). Enclosure's analysis module searches beyond the cap with no error,
+ *  but its numbers there mean nothing (Hedge School's design 24). A link kept a board before the link's check of the
+ *  limit (boardLink.ts, readBoardLink). The record's words name the komi as the board's: "its komi must be from -5,052
+ *  to 5,052 points: 6000". */
 export const keptKomiProblem = (board: KeptBoard | null, maxKomi: number): string | null =>
   board?.komi ? komiLimitProblem(board.komi, maxKomi, board.komi, "its komi") : null;
 

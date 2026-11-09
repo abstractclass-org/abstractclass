@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { ANALYSIS_FILE_VERSION } from "../../../packages/analysis/src/files.ts";
-import { BOARD_ID } from "../../../packages/analysis/src/kept.ts";
+import { BOARD_ID, boardOfLine, type KeptBoard } from "../../../packages/analysis/src/kept.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { boardLink } from "../src/lib/game/board.ts";
 import { fileInput } from "./review-file.ts";
@@ -23,17 +23,18 @@ test.beforeEach(({ context }) => context.addInitScript(() => {
 
 /** A board of one move at `komi`. */
 const board = (komi: number) => ({ version: 2 as const, main: ["D10-G10"], nodes: [["D10-G10", -1]] as [string, number][], komi });
-/** The same board as this browser keeps it, its node first among its parent's (kept.ts). */
-const kept = (komi: number) => ({ ...board(komi), nodes: [["D10-G10", 0]] });
+/** The same board as this browser keeps it (kept.ts). */
+const kept = (komi: number) => boardOfLine(["D10-G10"], undefined, komi);
 /** The board's notice. */
 const notice = (page: Page) => page.getByRole("alert");
 /** The limit, in the record's words, with the komi beyond it. */
 const LIMIT = "must be from -5,052 to 5,052 points: 6000.";
 const KEPT_REFUSED = `The Analysis board cannot open your own analysis: its komi ${LIMIT} A new board is here instead.`;
 
-/** Keeps `kept` as this browser's Analysis board, as the page keeps it (@abstractclass/storage/db.ts). */
-async function keep(page: Page, kept: object) {
-  await page.goto("/about");
+/** Keeps `board` as this browser's Analysis board, as the page keeps it (@abstractclass/storage/db.ts). It writes from
+ *  a static file of the site's origin, where none of the site's code opens the database meanwhile. */
+async function keep(page: Page, board: KeptBoard) {
+  await page.goto("/robots.txt");
   await page.evaluate(([name, stores, store, id, board]) => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open(name);
     open.onupgradeneeded = () => { for (const s of stores) open.result.createObjectStore(s); };
@@ -44,7 +45,7 @@ async function keep(page: Page, kept: object) {
       tx.oncomplete = () => { open.result.close(); resolve(); };
       tx.onerror = tx.onabort = () => reject(tx.error);
     };
-  }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID, kept] as const);
+  }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID, board] as const);
 }
 /** The board on screen, as its analysis file keeps it: every search asks at its komi. */
 async function savedBoard(page: Page): Promise<{ komi?: number; nodes: unknown[] }> {
@@ -57,7 +58,7 @@ async function savedBoard(page: Page): Promise<{ komi?: number; nodes: unknown[]
 const moves = (page: Page) => page.locator("button.mv[data-path]");
 
 test("a kept board at komi 6,000 does not open: a new board, with the notice, and no search at that komi", async ({ page }) => {
-  // Before, the board opened it, and the engine refused the komi
+  // Before, the board opened it, and the engine searched at that komi with no error: its numbers meant nothing
   await keep(page, kept(6000));
   await page.goto("/analysis");
   await expect(notice(page)).toHaveText(KEPT_REFUSED, { timeout: 60_000 });
@@ -66,6 +67,19 @@ test("a kept board at komi 6,000 does not open: a new board, with the notice, an
   const saved = await savedBoard(page);
   expect(saved.komi).toBeUndefined();
   expect(saved.nodes).toEqual([]);
+  // A look changes nothing: the kept board stays in the store until the new board's first change, as on Cyanotype
+  await page.reload();
+  await expect(notice(page)).toHaveText(KEPT_REFUSED, { timeout: 60_000 });
+});
+
+test("a kept board at komi 6,000 and a link within the limit: the link's board opens, with no question", async ({ page }) => {
+  // The kept board cannot open, so the board does not ask to replace it, as on Cyanotype
+  await keep(page, kept(6000));
+  await page.goto(boardLink("", board(300), 0));
+  await expect(notice(page)).toHaveText(KEPT_REFUSED, { timeout: 60_000 });
+  await expect(moves(page)).toHaveCount(1, { timeout: 60_000 });
+  await expect(page.getByRole("dialog", { name: "Replace your analysis?" })).toHaveCount(0);
+  expect((await savedBoard(page)).komi).toBe(300);
 });
 
 test("a kept board at komi 6,000 and a link beyond the limit: both notices, the kept board's first", async ({ page }) => {
@@ -85,7 +99,7 @@ test("a kept board at the limit, komi 5,052, opens as before", async ({ page }) 
 });
 
 test("a link at komi 6,000 does not open on the Analysis board, and the notice gives the limit", async ({ page }) => {
-  // Before, the board opened it, and the engine refused the komi
+  // Before, the board opened it
   await page.goto(boardLink("", board(6000), 0));
   await expect(notice(page)).toHaveText(`The Analysis board cannot load this link: the Komi tag ${LIMIT} Your own analysis ` +
     "is here instead.", { timeout: 60_000 });

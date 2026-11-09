@@ -27,10 +27,10 @@ export const boardLink = (origin: string, board: KeptBoard, at: number, via?: st
   shared.boardLink(origin, board, at, ENCLOSURE_CODE, via);
 
 /** A board from a link's `packed` and `at`. Throws an Error that says what is wrong with the link, also for a komi
- *  beyond the one that a record can give (MAX_RECORD_KOMI, design 24), which the engine would refuse. */
+ *  beyond the one that a record can give (MAX_RECORD_KOMI, the engine's cap, design 24). */
 export const readBoardLink = (code: string, at: string | null): { board: KeptBoard; at: number } =>
   shared.readBoardLink(code, at, ENCLOSURE_CODE, setUpStart, MAX_RECORD_KOMI);
 
 /** Why the board kept here cannot open at its komi, or null: a komi beyond the one that a record can give
- *  (MAX_RECORD_KOMI, design 24), which the engine would refuse. A link kept such a board before the link's check. */
+ *  (MAX_RECORD_KOMI, the engine's cap, design 24). */
 export const keptKomiProblem = (board: KeptBoard | null): string | null => sharedKeptKomiProblem(board, MAX_RECORD_KOMI);

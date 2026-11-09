@@ -195,11 +195,12 @@ How strong each setting plays against people is not measured yet.
       names the limit. Enclosure's engine takes up to 5,052 points either way, its score target cap (the engine
       repository's `Rules::MAX_USER_KOMI`). Blueprints' engine takes up to 90,980 points (its board's area and KataGo's
       margin, at its score scale). The engine repository's design 04 gives the tag no limit. Without the site's check,
-      a larger komi fails at the engine, with the engine's own message. The card's range stays ±3,000 (item 2). A
-      board's link and an analysis file beyond the limit do not open either. Their message is the record's, and the
-      file's results do not go to the store. A board kept in the browser beyond the limit (kept from a link before
-      the link's check) does not open: a new board opens, with the record's message as a notice, as Cyanotype opens a
-      new board for a kept board that it cannot open (design 33). Each Notation page's Komi row states the limit.
+      a practice module refuses a larger komi with its own message. Enclosure's analysis module searches at it with no
+      error, but its numbers there mean nothing. The card's range stays ±3,000 (item 2). A board's link and an analysis
+      file beyond the limit do not open either. Their message is the record's, and the file's results do not go to the
+      store. A board kept in the browser beyond the limit (kept from a link before the link's check) does not open. A
+      new board opens in its place, with the record's message as a notice. Cyanotype does the same for a kept board
+      that it cannot open (design 33). Each Notation page's Komi row states the limit.
     - **The limit is a copy:** each site's record copies its engine's cap. A release that moves the cap would make
       the site refuse a komi that the engine takes, or pass one that it refuses. So each engine update checks it.
       `npm run engine` sends each practice module GTP's `komi` at the site's limit either way, and at half a point
