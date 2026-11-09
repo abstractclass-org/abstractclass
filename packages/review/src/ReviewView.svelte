@@ -995,12 +995,13 @@
     if (st === "unsupported") return { text: `${name}: not in this engine`, busy: false };
     return null;
   });
-  // The margin's note: one at a time, the map's first, and none while the map's numbers show under the pointer. The
-  // walls' note takes the map legend's place: the two do not fit side by side at 360 pixels.
-  const marginNote = $derived(mapReading ? null : mapWork ?? wallWork);
-  const wallNoteShown = $derived(!!wallWork && marginNote === wallWork);
   // The point under the pointer: whose edges pass there, and the chance that one of them is cut
   const wallReading = $derived(mapPoint !== null && shownWalls && view.walls ? view.walls.reading(mapPoint, shownWalls) : null);
+  // The margin's note: one at a time, the map's first, and none while the map's numbers or a weak wall's reading show
+  // under the pointer. The walls' note takes the map legend's place, and the map's note the walls' legend: two texts do
+  // not fit side by side at 360 pixels.
+  const marginNote = $derived(mapReading || wallReading ? null : mapWork ?? wallWork);
+  const wallNoteShown = $derived(!!wallWork && marginNote === wallWork);
 
   // The players' second numbers in their cards (the game's `second`: Enclosure's areas): now, or, while a line shows,
   // after its last drawn move (from the rules).
@@ -2436,9 +2437,9 @@
     <span class={["min-w-0 px-1.5 py-px rounded bg-panel-2 text-xs text-muted truncate", marginNote.busy && "bar-glider"]}
           role="status" title={marginNote.text}>{marginNote.text}</span>
   {/if}
-  {#if shownWalls && view.walls && (wallReading || !shownMap)}
-    <!-- The weak walls' legend, or the reading of the point under the pointer. With the area map, the map's legend shows,
-         and the walls' reading takes its place under the pointer. -->
+  {#if shownWalls && view.walls && (wallReading || (!shownMap && !marginNote))}
+    <!-- The weak walls' legend, or the reading of the point under the pointer. With the area map, the map's legend or
+         its note shows, and the walls' reading takes its place under the pointer. -->
     <div class="map-legend flex flex-1 min-w-0 justify-center items-center gap-1 pr-1 text-xs text-muted whitespace-nowrap overflow-hidden" aria-label={view.walls.name}>
       <span class="min-w-0 truncate">{wallReading ?? view.walls.legend(shownWalls)}</span>
     </div>

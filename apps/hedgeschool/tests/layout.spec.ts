@@ -520,15 +520,15 @@ test("layout of the area map's note in a review snapshot", async ({ page }) => {
 });
 
 // The weak walls (design 30, "The weak walls"), a prototype: their switch in the board's margin beside the area map's,
-// then their note or their legend. With the site's released engine (protocol 0.6.1) the note says that the engine
-// gives none. With a module of 0.6.2 the marks show, and the legend while the area map is off. Either fits the margin
-// at every width, and its text ends with no ellipsis: a phone shows no title (decisions/product.md, "The review's
-// one-line texts at 360 pixels"). On the review with the area map off and on, on the Analysis board and on the
-// Openings page, at 360 × 700 and on a desktop.
+// then their note or their legend. The site's engine (protocol 0.6.2) gives them, so the rings show, and the legend
+// while the area map is off. The note or the legend fits the margin at every width, and its text ends with no
+// ellipsis: a phone shows no title (decisions/product.md, "The review's one-line texts at 360 pixels"). On the review
+// with the area map off and on, on the Analysis board and on the Openings page, at 360 × 700 and on a desktop. The
+// review and the Analysis board show the fixture's position after 40 edges, which has rings (design 30, "Positions
+// that show them"). The early edition's test book does not hold it.
 test("layout of the weak walls", async ({ page }) => {
-  /** The walls shown, or their final note: not while their search waits or runs. */
-  const settled = () => expect(page.locator("g.walls circle").first()
-    .or(page.getByRole("status").filter({ hasText: /^Weak walls: not in this engine$/ }))).toBeVisible({ timeout: 120_000 });
+  /** The walls' rings, once their search has run. */
+  const settled = () => expect(page.locator("g.walls circle").first()).toBeVisible({ timeout: 120_000 });
   const switchOn = () => expect(page.getByRole("button", { name: "Weak walls" })).toHaveAttribute("aria-pressed", "true");
   /** The walls' note, legend or reading that its line cuts with an ellipsis. */
   const wallsFit: OwnRules = p => p.locator(".map-margin").evaluate(m =>
@@ -539,8 +539,8 @@ test("layout of the weak walls", async ({ page }) => {
   const reports: string[] = [];
   await reviewedGame(page);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
-  // Turn 10's start: a middle game, with edges on the board. The early edition's test book does not hold it.
-  for (let k = 0; k < 18; k++) await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Home");
+  for (let k = 0; k < 40; k++) await page.keyboard.press("ArrowRight");
   await page.keyboard.press("w");
   await switchOn();
   await settled();
@@ -549,7 +549,8 @@ test("layout of the weak walls", async ({ page }) => {
   await page.keyboard.press("t");
   reports.push(await sweep(page, "/review, the weak walls and the area map", wallsFit, [700]));
   // The Analysis board keeps its own setting, and its area map is on by default
-  await page.goto("/analysis");
+  const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record as string;
+  await page.goto("/analysis#" + new URLSearchParams({ record, at: "40" }));
   await expect(page.getByRole("button", { name: "Weak walls" })).toBeVisible({ timeout: 60_000 });
   await page.keyboard.press("w");
   await switchOn();

@@ -32,7 +32,7 @@ the game's score over the points. It is not who holds a point at the end, as in 
 long, and each turn end scores. The protocol gives the root's ownership (`includeOwnership`), and each candidate's
 too, the mean over the candidate's subtree (the engine repository's
 [docs/design/04-notation-and-protocol.md](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md),
-"What a reply holds"). The WebAssembly module of release `engine-d6786eba`, which the site uses, returns both. The
+"What a reply holds"). The WebAssembly module of release `engine-c43233eb`, which the site uses, returns both. The
 site asks for the root's alone (item 6).
 
 ## Decision
@@ -391,8 +391,9 @@ chance that one of them is cut. So the board marks the points, and names no chan
 4. **The legend and the numbers:** while the weak walls show and the area map does not, the legend's line says
    "Weak walls: bolder means weaker", or "Weak walls: none at 10% or more" where no point is marked. While the mouse's
    pointer is on a point of an edge, the line gives its reading in its place, for example "E5 · Blue · cut chance 62%"
-   (`wallReading`). With the area map on too, the area map's legend shows, and the reading of a point on an edge
-   takes its place under the pointer.
+   (`wallReading`). With the area map on too, the area map's legend or its note shows, and the reading of a point
+   on an edge takes its place under the pointer. So the map's note, such as "Map: waiting for the engine", never
+   shows beside the walls' legend: the two do not fit side by side in a window 360 pixels wide.
 5. **The position on screen only.** While a line or a preview shows, the board shows another position, and the
    walls hide. The legend's slot then says "Weak walls: not with a line". With the area map on, it says nothing: the
    map's legend names the line's position.
@@ -401,9 +402,8 @@ chance that one of them is cut. So the board marks the points, and names no chan
    the GPU searches. It has one visit and the priority of a map's short search.
 7. **The work is visible,** as the area map's (the decision's item 9): "Weak walls: waiting", "Weak walls:
    searching", "Weak walls: the game ends here", and in a review snapshot "Weak walls: none in snapshots". A module
-   before protocol 0.6.2 ignores the field, and the slot says "Weak walls: not in this engine". The site's release
-   `engine-d6786eba` answers 0.6.1, so the walls need a release of 0.6.2
-   ([requests/30-weak-walls-release.md](../requests/30-weak-walls-release.md)).
+   before protocol 0.6.2 ignores the field, and the slot says "Weak walls: not in this engine". The site's release,
+   `engine-c43233eb`, answers 0.6.2 ([requests/30-weak-walls-release.md](../requests/30-weak-walls-release.md)).
    One note shows at a time, the map's first. While the walls' note shows, it takes the place of the map's legend:
    the two do not fit side by side in a window 360 pixels wide.
 8. **Kept for the page's visit only:** not in the store, in a review file or in a review snapshot.

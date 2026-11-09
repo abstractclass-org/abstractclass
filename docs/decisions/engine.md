@@ -1431,3 +1431,49 @@ has 16 logical cores. Three runs of each, the median and the range:
   the copied block holds each measure. It also hides the tab during the measure of 2 workers, and "Run it again" ends
   the run. On a device of 16 logical cores, it checks the plan before Start: 1, 2, 3, 4, 6, 8, 12 and 16 workers. The
   GPU part did not run on the development machine: the test's Chromium runs off the GPU.
+
+### The release c43233eb: protocol 0.6.2 and the weak walls (2026-11-09)
+
+- **What:** the engine repository's release `engine-c43233eb` of `enclosure-engine`, for request 30 (beads
+  abscls-0rls). Its modules answer protocol 0.6.2, so the CPU module gives the weak walls (`includeWeakWalls`, design
+  30, "The weak walls"). The build is c43233eb, and the search stays `fdfe5ad`. The engine repository's record of the
+  release, with its files' SHA-256 and its checks, is its games/enclosure/docs/decisions/build.md, "Release
+  engine-c43233eb" (engines `a4f60627`).
+- **The search is still `fdfe5ad`:** the engine repository found the new modules' replies equal to those of
+  `engine-d6786eba` with each of the four networks (66 of 66 on the CPU, 20 of 20 on the GPU). The lock lists
+  d6786eba's CPU module in `sameSearchAs`, so a mark, a review file or a share link of it is the site's engine's
+  (design 20, item 7). A visitor's reviews and analyses stored with it stay valid, and the removal of earlier results
+  keeps them: they are of the site's search, with networks that it ships.
+- **The lock:** the five modules, `gpu_engine.mjs`, `practice_bot.mjs`, `cpu_evaluator.mjs` and
+  `cpu_eval_worker.mjs` take the release, each with the tag, asset, SHA-256 and size of its manifest. The libraries'
+  folder is now `engine-c43233eb-lib`. The CPU and GPU modules name `engine-protocol-0.6.2`, and the practice modules
+  keep `practice-0.1.1`. The release carries the four networks, their graphs and `NOTICES.txt` with the bytes of the
+  lock's entries, and its `LICENSE.txt` has the bytes of `engine-d6786eba-terms2`. So those entries stay as they are,
+  and a browser keeps their cached files. The release's `settings.cfg` needs no entry: the module embeds the settings.
+- **The GPU module refuses `includeWeakWalls`** with an error that names the field (the engine repository's
+  games/enclosure/docs/design/19-webgpu-module.md, "No training-only outputs"). The page asks a CPU worker for the
+  walls (the pool's `cpu` task), so the GPU module gets no such request.
+- **Checked,** on the CPU only (Chromium off the GPU, no WebGPU flag). The GPU module did not run here.
+  - `npm run engine` fetched every file with the lock's size and SHA-256. The CPU module answered protocol 0.6.2 and
+    the search `fdfe5ad`. Every engine entry from `engine-c43233eb` matched the release's manifest, and the manifest
+    lists each other entry of the lock with the same SHA-256.
+  - `npm run check:all` passed every step: the site's 313 tests, with a new test of `earlierResults.test.ts`. It
+    takes the lock itself and a review of `engine-d6786eba`'s module with HedgeFund 0.2 Lite: its results, its
+    variations' results, its added maps and a deeper result all stay, its mark covers the site's review with no
+    review again, and a review file or a share link of that module is the site's search.
+  - In Playwright's Chromium (headless, the layout test's launch options), the review fixture
+    (`tests/fixtures/hedgefund-review.json`, a review by `engine-d6786eba`'s module) opened with its results in
+    under 1 s: "Review done", no review snapshot. Opened again from its address, it opened the same way. After 40 edges,
+    the weak walls showed four rings and the legend "Weak walls: bolder means weaker" (design 30, "Positions that
+    show them").
+  - The layout test's case "layout of the weak walls" now needs the rings, on the review and on the Analysis board,
+    at the fixture's position after 40 edges. With the earlier engine it took the note "Weak walls: not in this
+    engine" too.
+- **The margin at 360 pixels:** the first run of the whole layout test with the new engine failed in that case. On
+  the Analysis board the walls came before the area map, so "Map: waiting for the engine" (158 pixels) and the walls'
+  legend (53 pixels, cut) showed side by side at 360 × 700. No earlier engine gave the walls, so no test saw the
+  legend. Now the walls' legend shows only while no margin note does, and a weak wall's reading under the pointer
+  takes the note's place, as the map's reading does (design 30, "The weak walls", item 4;
+  `packages/review/src/ReviewView.svelte`, `marginNote`).
+- **The whole layout test** in Chromium, after that change: 216 passed and 5 skipped (the 5 cases of
+  `analytics-ask.spec.ts`, which need a build with `VITE_GA_ID`). "Layout of the weak walls" passed in 1.2 minutes.

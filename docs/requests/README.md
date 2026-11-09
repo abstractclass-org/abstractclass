@@ -39,4 +39,4 @@ accepted, done (with the engine repository's commit, tag or document), or declin
 | 27 | [The record's `Komi` tag](27-komi-tag.md) | done (engine repository commit `612a8458`, design 04's tag "The komi"), checked here against `komiOf` |
 | 28 | [Blueprints: the practice bot from a set-up start, and a position's check](28-blueprints-set-up-start.md) | done (release `engine-887be290`, protocol 0.8.0, the same search). Cyanotype has the check. The bot from a set-up start is abscls-8tl1.40 |
 | 29 | [The engine terms' list of the engine's own files](29-engine-terms-file-list.md) | done (the engine repository's commit `35b75fb1`, release `engine-d6786eba-terms2`), checked here and pinned |
-| 30 | [A release of Enclosure's engine with the weak walls](30-weak-walls-release.md) | open |
+| 30 | [A release of Enclosure's engine with the weak walls](30-weak-walls-release.md) | done (release `engine-c43233eb`, protocol 0.6.2, the same search), pinned here |

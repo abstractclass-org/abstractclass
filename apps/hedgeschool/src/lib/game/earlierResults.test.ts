@@ -3,8 +3,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { READ_SHAPES, SHAPE, analysisKey, mapKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
+import { moduleOf, sameSearch, type Manifest } from "@abstractclass/engine/client.ts";
+import lock from "../../../engine.lock.json" with { type: "json" };
 import { unneededResults } from "./earlierResults.ts";
-import type { KeptBranches, ReviewMark } from "./store.ts";
+import { shippedModels, shippedModules } from "./reviewFile.ts";
+import { reviewAgainWhy, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
 
 // The site's engine: its CPU module "m2" searches as "s2" (as the earlier build "m1" did), and it ships the network
 // "lite" as the file "b2".
@@ -165,6 +168,30 @@ test("the results of a shape that no reader reads are not this removal's", () =>
   const older = results("s1", "b2", 512, line(MOVES)).map(k => k.replace(/^\d+\|/, `${SHAPE - 1}|`));
   const newer = older.map(k => k.replace(/^\d+\|/, `${Math.max(...READ_SHAPES) + 1}|`));
   assert.deepEqual(unneededResults([...older, ...newer, "85c2adb|b2|512|D10-G10"], [], ENGINE), []);
+});
+
+test("after the site's lock left engine-d6786eba, a visitor's reviews and analyses of it stay the site's engine's", () => {
+  // engine-d6786eba's CPU module and HedgeFund 0.2 Lite's file (b10c128-s89066368-d17827487): its results are keyed by
+  // the search fdfe5ad, which the later release keeps (request 30), and its marks name its module.
+  const d6786eba = "29c7c0afb3984d88bb5f1bb21b0a056fb0fd5a5e1fc454c5c8e5232d9cd0b766";
+  const lite = "000126bf7f28eeb05280e16aafa7055c6b9e9f4dc38739b67406ce0da3d2e950";
+  const site = lock as unknown as Manifest, module = moduleOf(site)!;
+  assert.notEqual(module.sha256, d6786eba, "the lock has moved to a later release");
+  assert.equal(module.search, "fdfe5ad");
+  assert.equal(shippedModels(site)!.has(lite), true);
+  // A review and its variations, the maps added to them, and an Analysis board's deeper results
+  const stored = [...results("fdfe5ad", lite, 512, line(MOVES)), ...results("fdfe5ad", lite, 512, [["D10-G10", "N11-Q11"]]),
+                  ...line(MOVES).map(m => mapKey("fdfe5ad", lite, m)), ...results("fdfe5ad", lite, 4096, [["D10-G10"]])];
+  const reviewed = mark(d6786eba, lite, "b10c128-s89066368-d17827487");
+  assert.deepEqual(unneededResults(stored, [{ moves: MOVES, branches: BRANCHES, mark: reviewed }], site), []);
+  assert.deepEqual(unneededResults(stored, [], site), []);
+  // The game's review counts as done: it opens with its results, with no review snapshot and no review again
+  const want = reviewMark(site, reviewed.network, 512);
+  assert.equal(reviewCovers(reviewed, want), true);
+  assert.equal(reviewAgainWhy(reviewed, want), null);
+  // A review file of it and a share link of it, which name its module (a link by its first hex digits)
+  assert.equal(shippedModules(site)!.includes(d6786eba), true);
+  assert.equal(sameSearch(site, d6786eba.slice(0, 12)), true);
 });
 
 test("the results of an older shape that the readers read are kept or removed as this shape's", () => {
