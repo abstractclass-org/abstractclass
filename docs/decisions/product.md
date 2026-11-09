@@ -10599,8 +10599,8 @@ not engine-887be290's for Cyanotype's.
   tracking protection list (`||i.posthog.com^`) and Firefox's strict tracking protection (Disconnect's Analytics) do.
   posthog-js calls `on_request_error` only for a status of 400 or more, so the page cannot see a blocked request
   without a check of blockers, which design 27 rejects. This departs from the issue's text, which kept the ask if a
-  blocker stops PostHog as it stopped Google's tag. The departure waits for a confirmation (abscls-xb0k). The ask can
-  come back with a check of its own.
+  blocker stops PostHog as it stopped Google's tag. The removal is confirmed. The ask can come back with a check of
+  its own.
 - **The tests:** the layout test's analytics cases (`tests/analytics.spec.ts`, which replaces
   `tests/analytics-ask.spec.ts`) run on check:all's builds: Hedge School's with a made-up key, Cyanotype's without
   one. The tests' Chromium resolves none of PostHog's addresses (`--host-resolver-rules`), and Playwright's routes
@@ -10665,8 +10665,8 @@ tag queue, and "PostHog in place of Google Analytics".
     the referrer, the browser, its version and language, the operating system, the device's type, the time zone, the
     screen's and the window's sizes, and an id for each page view. After a page change by the site's router, it also
     has the page before and how long that page stayed open (`$prev_pageview_duration`). It has no session id, and
-    PostHog kept nothing in the cookies or the browser's storage. The privacy pages do not name the window's size or
-    how long a page stayed open: a change of their text is proposed in abscls-xb0k. On a page change by the router,
+    PostHog kept nothing in the cookies or the browser's storage. The privacy pages did not name the window's size or
+    how long a page stayed open: now they name both. On a page change by the router,
     the page view has the title of the page before: PostHog reads it as the address changes, before the page sets its
     own. The reports use the path.
   - **The privacy pages' facts,** read again on posthog.com on 2026-11-09: the US region's data stays in the US

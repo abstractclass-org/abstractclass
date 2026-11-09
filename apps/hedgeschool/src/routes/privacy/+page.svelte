@@ -84,9 +84,9 @@
     <li><strong>Cloudflare</strong> serves the site's files. Like any web host, it receives each request: your IP
       address and your browser's name. Its Web Analytics counts visits without cookies.</li>
     <li><strong>PostHog</strong> counts visits. It receives each page that you open: its address without the part
-      after the <code>#</code>, its title, the time, and the page that sent you here. It also receives your browser
-      and its language, your operating system, your time zone, your screen size and your IP address. PostHog stores
-      this data in the United States.</li>
+      after the <code>#</code>, its title, the time, how long the page before it stayed open, and the page that sent
+      you here. It also receives your browser and its language, your operating system, your time zone, your screen
+      and window sizes and your IP address. PostHog stores this data in the United States.</li>
   </ul>
   <p>Neither service sets cookies or keeps data in your browser, so the site does not ask for your consent to them.
     To count visitors without cookies, PostHog makes a code from your IP address, your browser and a random value of
