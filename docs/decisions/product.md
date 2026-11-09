@@ -10683,7 +10683,7 @@ tag queue, and "PostHog in place of Google Analytics".
   - **The owner's step of the filter** gives its operator: the event property `internal`, **is not set**. Each entry
     keeps the events that match it (posthog.com/docs/data/test-accounts.md).
 
-### Hedge School's GPU-path check, off the GPU (2026-11-10)
+### Hedge School's GPU-path check (2026-11-10)
 
 - **What:** Hedge School had no check of its GPU paths, and the release engine-c43233eb (abscls-tdbr) brought a new
   GPU module that nothing had run in the site (abscls-bp3a). `scripts/hedgeschool-gpu-check.mjs` checks the GPU On,
@@ -10721,5 +10721,17 @@ tag queue, and "PostHog in place of Google Analytics".
   wrapper with `--cpu`, PASS in 91 s: with On, the review 26 s, the board 21 s, the weak walls 13 s and Practice 3 s,
   and with Auto, the review 2 s, the board 23 s and Practice 2 s. Cyanotype's PASS in 284 s: with On, the review 136 s,
   the board 65 s and Practice 8 s, and with Auto, the review 1 s, the board 64 s and Practice 8 s.
-- **Not done yet:** the run on this machine's GPU. It waits for jam-coord's and eng-coord's yes, through
-  `scripts/machine run --gpu` (abscls-bp3a).
+- **The runs on this machine's GPU** (`scripts/machine run --gpu`, 2 threads, Playwright's full Chromium with WebGPU,
+  "nvidia blackwell"):
+  - The first run (the job `abscls-bp3a-gpu`, on the review's head) failed at On's review alone. The 5 turns ended on
+    the default CPU workers ("Review done: 512 visits a move."), and the GPU's line stayed "Waiting: it starts when
+    there is more work than the workers can take." The GPU starts only when more searches wait than the workers take
+    (design 15, item 1), and the 5 turns made no such backlog. Every other part passed on the GPU, and Auto's test
+    gave "7.1 times a worker's speed."
+  - The check now reviews On's turns on 1 worker (the site's option `reviewWorkers`), as the board's part does.
+    Cyanotype's check keeps its default workers. The run off the GPU (the job `abscls-bp3a-cpu2`) passed in 109 s.
+  - The second run (the job `abscls-bp3a-gpu2`) passed in 88 s. With On, the review took 13 s ("In use, nvidia
+    blackwell." at its end), the board 13 s (5 candidates, 1 GPU worker, 4 searches on the GPU), the weak walls 8 s
+    (14 rings, 1 request for them to a CPU worker and none to the GPU, 12 searches on the GPU), and Practice 3 s (the
+    bot "on the GPU.", a turn of 0.9 s). With Auto, the GPU's test gave "7.8 times a worker's speed.", the review took
+    33 s, the board 15 s and Practice 3 s (a turn of 0.8 s).

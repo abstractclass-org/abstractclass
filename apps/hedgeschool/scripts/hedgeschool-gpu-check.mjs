@@ -96,9 +96,10 @@ await gpuCheck({
   /** On the default workers, the GPU run of abscls-bp3a reviewed the 5 turns with no backlog: the GPU stayed
    *  "Waiting", which design 15, item 1 gives. One worker makes the backlog, as the board's part does. */
   reviewWorkers: 1,
-  /** Cyanotype's (cyanotype-gpu-check.mjs), until a run on the GPU measures Hedge School's. Off the GPU (--cpu, 2
-   *  threads, abscls-bp3a): the review of 5 turns took 24 s, the board 21 to 28 s, the weak walls 12 s, and the bot's
-   *  first turn 1.0 to 1.1 s. The whole run took 91 s. */
+  /** Cyanotype's (cyanotype-gpu-check.mjs). Off the GPU (--cpu, 2 threads, abscls-bp3a): the review of 5 turns took
+   *  24 s, the board 21 to 28 s, the weak walls 12 s, and the bot's first turn 1.0 to 1.1 s. The whole run took 91 s.
+   *  On the GPU (abscls-bp3a's second run): On's review of 5 turns on 1 worker took 13 s, the board 13 to 15 s, the
+   *  weak walls 8 s, Auto's review 33 s, and the bot's turn 0.8 to 0.9 s. The whole run took 88 s. */
   waits: {
     cpu: { autoTest: 60_000, review: 300_000, board: 180_000, practice: 120_000 },
     gpu: { autoTest: 120_000, review: 90_000, board: 60_000, practice: 60_000 },
