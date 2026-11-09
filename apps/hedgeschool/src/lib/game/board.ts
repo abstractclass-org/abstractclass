@@ -4,7 +4,7 @@
 // them.
 import { edgeName, parseEdge, setUpStart } from "#lib/engine/notation.ts";
 import * as shared from "@abstractclass/analysis/boardLink.ts";
-import { boardOfLine } from "@abstractclass/analysis/kept.ts";
+import { boardOfLine, keptKomiProblem as sharedKeptKomiProblem } from "@abstractclass/analysis/kept.ts";
 import { ENCLOSURE_CODE } from "./share.ts";
 import { MAX_RECORD_KOMI, type GameRecord } from "./record.ts";
 import type { KeptBoard } from "./store.ts";
@@ -30,3 +30,7 @@ export const boardLink = (origin: string, board: KeptBoard, at: number, via?: st
  *  beyond the one that a record can give (MAX_RECORD_KOMI, design 24), which the engine would refuse. */
 export const readBoardLink = (code: string, at: string | null): { board: KeptBoard; at: number } =>
   shared.readBoardLink(code, at, ENCLOSURE_CODE, setUpStart, MAX_RECORD_KOMI);
+
+/** Why the board kept here cannot open at its komi, or null: a komi beyond the one that a record can give
+ *  (MAX_RECORD_KOMI, design 24), which the engine would refuse. A link kept such a board before the link's check. */
+export const keptKomiProblem = (board: KeptBoard | null): string | null => sharedKeptKomiProblem(board, MAX_RECORD_KOMI);

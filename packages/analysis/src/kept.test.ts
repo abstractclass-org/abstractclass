@@ -2,7 +2,7 @@
 // a game or a board. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { positionKeys, type KeptBranches } from "./kept.ts";
+import { boardOfLine, keptKomiProblem, positionKeys, type KeptBranches } from "./kept.ts";
 
 const MOVES = ["ab", "cd", "ef"];
 const BRANCHES: KeptBranches = { version: 2, nodes: [["ab gh", 0], ["ab gh ef", 1, 1]] };
@@ -20,4 +20,13 @@ test("at a komi and from a set-up start, the keys name them before the moves (ca
   assert.deepEqual([...positionKeys(MOVES, BRANCHES, -300)].slice(0, 2), ["komi=-300", "komi=-300 ab"]);
   assert.deepEqual([...positionKeys(["ab"], null, 0, "a set-up start")], ["@a_set-up_start", "@a_set-up_start ab"]);
   assert.deepEqual([...positionKeys(["ab"], null, 120.5, "s")], ["@s komi=120.5", "@s komi=120.5 ab"]);
+});
+
+test("a kept board's komi beyond the game's limit, either way, is a problem in the record's words; within it, none", () => {
+  // Hedge School's design 24: a board kept from a link before the limit's check, which the engine would refuse
+  assert.equal(keptKomiProblem(boardOfLine(["ab"], undefined, 6000), 5052), "its komi must be from -5,052 to 5,052 points: 6000");
+  assert.equal(keptKomiProblem(boardOfLine([], undefined, -5052.5), 5052), "its komi must be from -5,052 to 5,052 points: -5052.5");
+  assert.equal(keptKomiProblem(boardOfLine(["ab"], undefined, 5052), 5052), null);
+  assert.equal(keptKomiProblem(boardOfLine(["ab"]), 5052), null);
+  assert.equal(keptKomiProblem(null, 5052), null);
 });

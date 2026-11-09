@@ -27,7 +27,7 @@
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
-  import { boardLink, boardOfRecord, readBoardLink } from "#lib/game/board.ts";
+  import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
   import { download, shippedModels, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { BOARD_EXPORTS } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
@@ -56,7 +56,7 @@
 
   let game = $state<GameAnalysis<Enclosure> | null>(null);
   let error = $state("");
-  let notice = $state(""); // a line brought that could not open: the board kept here opens
+  let notice = $state(""); // a line brought, or the kept board (keptKomiProblem), that could not open
   const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
   let start = $state<string[] | null>(null); // where the view opens
   let current = $state<string[]>([]); // the position on screen
@@ -102,8 +102,16 @@
    *  kept one, after the player agrees when the kept one has moves. It leaves the address at once, then the analytics
    *  start (design 22), and a reload keeps the analysis's own state. */
   async function chooseBoard(): Promise<Opening> {
-    const kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
-    const at = readLocal(AT_KEY), keptAt = at ? at.split(" ") : [];
+    let kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
+    // A kept board beyond the komi's limit (design 24), kept from a link before the link's check, does not open: the
+    // engine would refuse its komi. A new board opens, as Cyanotype's does for a kept board that it cannot open (its
+    // design 33), and replaces it in the store at its first change.
+    const keptProblem = keptKomiProblem(kept);
+    if (keptProblem) {
+      notice = `The Analysis board cannot open your own analysis: ${sentence(keptProblem)} A new board is here instead.`;
+      kept = null;
+    }
+    const at = readLocal(AT_KEY), keptAt = at && kept ? at.split(" ") : [];
     const hash = location.hash.slice(1);
     if (!holdsGame(hash)) { startAnalytics(); return { board: kept, at: keptAt }; }
     const p = new URLSearchParams(hash), record = p.get("record"), position = p.get("position"), via = p.get("via");
@@ -120,17 +128,22 @@
         : readBoardLink(p.get("packed") ?? "", p.get("at"));
     } catch (e) {
       if (brings) {
-        notice = `The Analysis board cannot ${OWN.includes(via ?? "") ? "analyze" : "import"} this ${record !== null ? "record" : "position"}: ${sentence(errorText(e))} Your own analysis is here instead.`;
+        refuse(`The Analysis board cannot ${OWN.includes(via ?? "") ? "analyze" : "import"} this ${record !== null ? "record" : "position"}: ${sentence(errorText(e))}`);
         if (imported)
           trackImportFailed("analysis", imported, e instanceof RecordProblem ? e.failure : "link");
       } else {
-        notice = `The Analysis board cannot load this ${loaded === "analysis_file" ? "file" : "link"}: ${sentence(errorText(e))} Your own analysis is here instead.`;
+        refuse(`The Analysis board cannot load this ${loaded === "analysis_file" ? "file" : "link"}: ${sentence(errorText(e))}`);
         trackLoadFailed(loaded!, loaded === "analysis_file" ? "file" : "link");
       }
       return { board: kept, at: keptAt };
     }
     if (kept?.nodes.length && !(await question.ask())) return { board: kept, at: keptAt };
     return { board: brought.board, atMain: brought.at, imported, loaded };
+  }
+  /** The notice of a line brought that cannot open: the board kept here opens. Where the kept board could not open
+   *  either (chooseBoard's notice), that notice stays first and names the new board, as on Cyanotype. */
+  function refuse(why: string) {
+    notice = notice ? `${notice} ${why}` : `${why} Your own analysis is here instead.`;
   }
   /** A record that cannot be imported: unreadable (`record`), or refused by the rules or as a variant (`rejected`). */
   class RecordProblem extends Error {

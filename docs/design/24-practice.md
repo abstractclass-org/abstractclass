@@ -197,7 +197,9 @@ How strong each setting plays against people is not measured yet.
       margin, at its score scale). The engine repository's design 04 gives the tag no limit. Without the site's check,
       a larger komi fails at the engine, with the engine's own message. The card's range stays ±3,000 (item 2). A
       board's link and an analysis file beyond the limit do not open either. Their message is the record's, and the
-      file's results do not go to the store. Each Notation page's Komi row states the limit.
+      file's results do not go to the store. A board kept in the browser beyond the limit (kept from a link before
+      the link's check) does not open: a new board opens, with the record's message as a notice, as Cyanotype opens a
+      new board for a kept board that it cannot open (design 33). Each Notation page's Komi row states the limit.
     - **The limit is a copy:** each site's record copies its engine's cap. A release that moves the cap would make
       the site refuse a komi that the engine takes, or pass one that it refuses. So each engine update checks it.
       `npm run engine` sends each practice module GTP's `komi` at the site's limit either way, and at half a point
@@ -389,7 +391,8 @@ How strong each setting plays against people is not measured yet.
   the komi in `src/lib/book/place.svelte.ts` (`study`). Each game's limit is its record's `MAX_RECORD_KOMI`
   (`src/lib/game/record.ts`, Cyanotype's `apps/cyanotype/src/lib/game/record.ts`), the shared reader's `maxKomi`.
   A board's link and an analysis file take it too (`readBoardLink` in `packages/analysis/src/boardLink.ts`,
-  `readAnalysisFile` in `files.ts`). Their words are the record's (`komiLimitProblem` in
+  `readAnalysisFile` in `files.ts`), and so does the Analysis board's kept board (`keptKomiProblem` in `kept.ts`,
+  in `chooseBoard` of `src/routes/analysis/+page.svelte`). Their words are the record's (`komiLimitProblem` in
   `packages/record/src/record.ts`). The Notation page's Komi row states the limit. The engine step checks the limit
   against each practice module's GTP `komi` (`checkKomiCap` in `packages/engine/src/practice-check.ts`). Each site
   gives the step its limit (its `scripts/engine.mjs`). The analysis modules share the practice modules' cap, because

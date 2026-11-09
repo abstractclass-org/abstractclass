@@ -1,6 +1,7 @@
 // The tree of a game's analysis as the browser keeps it (analysis.svelte.ts): a game's variations under the game's id,
 // and the Analysis board's tree under BOARD_ID, both in the `branches` store (@abstractclass/storage/db.ts). A site's
 // store of games re-exports these (Hedge School's src/lib/game/store.ts).
+import { komiLimitProblem } from "@abstractclass/record/record.ts";
 import { keyMoves } from "./cache.ts";
 import { pathKey, prefixKeys } from "./tree.ts";
 
@@ -25,6 +26,13 @@ export const BOARD_ID = "board";
 export const boardOfLine = (main: string[], start?: string, komi = 0): KeptBoard =>
   ({ version: 2, main, nodes: prefixKeys(main).slice(1).map((k): KeptNode => [k, 0]), ...(start ? { start } : {}),
      ...(komi ? { komi } : {}) });
+
+/** Why the board kept here cannot open at its komi, or null: a komi beyond the game's limit `maxKomi`, either way (its
+ *  record's `MAX_RECORD_KOMI`), which the engine would refuse. A link kept a board before the link's check of the limit
+ *  (boardLink.ts, readBoardLink). The record's words name the komi as the board's: "its komi must be from -5,052 to
+ *  5,052 points: 6000". */
+export const keptKomiProblem = (board: KeptBoard | null, maxKomi: number): string | null =>
+  board?.komi ? komiLimitProblem(board.komi, maxKomi, board.komi, "its komi") : null;
 
 /** The kept variations as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */
 export const branchNodes = (b: KeptBranches | null): KeptNode[] =>
