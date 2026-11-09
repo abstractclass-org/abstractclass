@@ -10454,3 +10454,6 @@ its Practice starts from the position that it brings, on the practice bot of `en
     first and takes the start out of the address. Now the page starts them, as Hedge School's Practice does.
   - The takeback's stop at the moves brought is now in the shared `takebackCount` (its `brought`), with unit tests.
     Hedge School's game still cuts its moves itself.
+  - Checked after the review: `npm run check:all` passed all 15 steps, with no unit test skipped. The whole layout
+    test on the two previews (Chromium, on the CPU): 232 cases, 222 passed and 10 skipped, the analytics cases of
+    both sites, which need `VITE_GA_ID`. The 12 cases of `tests/cyanotype-practice.spec.ts` passed.
