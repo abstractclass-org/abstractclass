@@ -13,7 +13,7 @@ import { writePosition } from "../../cyanotype/src/lib/game/position.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
 import { BOARD_AT_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, MOVES, REFUSED, noReview, testRecord, toolLink } from "./cyanotype-review.ts";
+import { CYANOTYPE, MOVES, REFUSED, keptGame, noReview, testRecord, toolLink } from "./cyanotype-review.ts";
 
 const PLAYERS = "Stamp Duty, 4 visits against Stamp Duty, 64 visits";
 /** The moves of a record up to `at`, as the board keeps the position on screen (its path's key). */
@@ -38,7 +38,19 @@ test.describe("with the engine's files", () => {
     // Each address of the tab: after the import page, none holds the record
     const addresses: string[] = [];
     page.on("framenavigated", frame => { if (frame === page.mainFrame()) addresses.push(frame.url()); });
-    await page.goto(toolLink({ at: 5 }));
+    // The workers that each page starts, counted in the tab's session storage, which the review's reload keeps
+    await page.addInitScript(() => {
+      const Base = window.Worker;
+      window.Worker = class extends Base {
+        constructor(...args: ConstructorParameters<typeof Worker>) {
+          super(...args);
+          const key = `test-workers:${location.pathname}`;
+          sessionStorage.setItem(key, String(Number(sessionStorage.getItem(key) ?? 0) + 1));
+        }
+      };
+    });
+    // The test game without its capture marks: the import page's check gives them, and the game keeps them
+    await page.goto(toolLink({ at: 5, record: testRecord().replace(/(?<=\d)x(\+\d+)?(?=\s)/g, "") }));
     await noHash(page);
     await expect(page.getByRole("heading", { name: "A game from strategyjam.org" })).toBeVisible();
     await expect(page.getByText(PLAYERS)).toBeVisible();
@@ -54,8 +66,16 @@ test.describe("with the engine's files", () => {
     await expect.poll(() => local(page, LAST_REVIEW_KEY).catch(() => null), { timeout: 60_000 })
       .toMatch(new RegExp(`^review-${MOVES}-`));
     await expect(page.getByRole("alert")).toHaveCount(0);
-    expect(addresses.filter(a => new URL(a).pathname !== "/import" && /record=/.test(new URL(a).hash)),
-           "no address after the import page holds the record").toEqual([]);
+    const holdsRecord = (address: string) => {
+      const url = new URL(address);
+      return url.pathname !== "/import" && url.hash.includes("record=");
+    };
+    expect(addresses.filter(holdsRecord), "no address after the import page holds the record").toEqual([]);
+    // The rules checked the game once on the import page, in one worker, and the kept record has the check's marks
+    const workers = await page.evaluate(() => sessionStorage.getItem("test-workers:/import"));
+    expect(workers, "the import page's workers").toBe("1");
+    const id = new URLSearchParams(new URL(page.url()).hash.slice(1)).get("game")!;
+    expect(parseRecord(String((await keptGame(page, id)).record)).marked).toEqual(parseRecord(testRecord()).marked);
     // The game is in the Review tab's list of the player's games, once, as on Hedge School
     await page.goto(new URL("/review", CYANOTYPE).href);
     const games = page.getByRole("region", { name: "Review a game" }).locator("li");
@@ -107,13 +127,15 @@ test.describe("with the engine's files", () => {
     await noHash(page);
     await expect(page.getByRole("alert")).toHaveText("Cyanotype cannot open this game: Move 5 (2@1,-5x) has the mark x, "
                                                      + "but the move captures no opponent cells.", { timeout: 120_000 });
+    // An old tool can send such a record: the page offers the newest
+    await expect(page.getByText("The newest bookmarklet and userscript")).toBeVisible();
     for (const name of ["Review the game", "Analyze on the board"]) await expect(page.getByRole("button", { name })).toHaveCount(0);
     await expect(page).toHaveURL(url => url.pathname === "/import");
     expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
     expect(await local(page, BOARD_AT_KEY)).toBeNull();
   });
 
-  test("a game that this browser cannot keep: the import page says why, and opens nothing", async ({ page }) => {
+  test("a game that this browser cannot keep: the page says why, and offers no tools", async ({ page }) => {
     // Blocked site data: the browser opens no database (the engine's check runs in its worker, as before)
     await page.addInitScript(() => {
       IDBFactory.prototype.open = () => { throw new DOMException("blocked", "SecurityError"); };
@@ -122,6 +144,8 @@ test.describe("with the engine's files", () => {
     await page.getByRole("button", { name: "Review the game" }).click({ timeout: 120_000 });
     await expect(page.getByRole("alert")).toHaveText("This browser does not let the site keep games (a private window, or "
                                                      + "blocked site data).", { timeout: 60_000 });
+    // Newer tools do not help a browser that keeps no games
+    await expect(page.getByText("The newest bookmarklet and userscript")).toHaveCount(0);
     await expect(page).toHaveURL(url => url.pathname === "/import" && !url.hash);
     expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
   });

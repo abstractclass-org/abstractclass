@@ -5,17 +5,17 @@ header, the footer, the Home, About, Notation, Privacy and Notices pages, and th
 record, with the import of a strategyjam.org game as a record. The owner's step for the address is left
 (abscls-8tl1.3). The board and the player's own moves are built, on positions that the engine's early build gave.
 The review's view is in a package, on Hedge School's board and on Blueprints' (design 29, item 9). The tools for
-strategyjam.org and the import page are built: the page opens the game that a tool sends in the review, which it keeps
-first, as Hedge School's does, or on the Analysis board ("How a game comes in from strategyjam.org"). Their test on
-strategyjam.org waits for the owner (abscls-8tl1.12). The site fetches Blueprints' release `engine-887be290` (Stamp Duty
-0.2, protocol 0.8.0), as Hedge School fetches its own ("The engine's files"). It has the GPU module and the practice
-bot's three forms, so the engine runs on the visitor's GPU as Hedge School's does. Practice against Stamp Duty
-(`/practice`) is built ("Practice against Stamp Duty"). The review and the Analysis board are built (abscls-8tl1.7, "The
-review and the Analysis board"), with no area map yet. A position's notation, the board editor and starts from a set-up
-position are built (abscls-8tl1.39, "Decision", item 10, and "The board editor"), with the engine's check that a game
-can reach a position (abscls-8tl1.59). The early access is built, as Hedge School's ("Decision", item 11). The player's
-games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The player's games"). Partner sites are
-designed, not built ("Partner sites").
+strategyjam.org and the import page are built: the page opens the game that a tool sends in the review or on the
+Analysis board. For the review, it keeps the game first, as Hedge School's does ("How a game comes in from
+strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The site fetches Blueprints'
+release `engine-887be290` (Stamp Duty 0.2, protocol 0.8.0), as Hedge School fetches its own ("The engine's files"). It
+has the GPU module and the practice bot's three forms, so the engine runs on the visitor's GPU as Hedge School's does.
+Practice against Stamp Duty (`/practice`) is built ("Practice against Stamp Duty"). The review and the Analysis board
+are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet. A position's notation, the board
+editor and starts from a set-up position are built (abscls-8tl1.39, "Decision", item 10, and "The board editor"), with
+the engine's check that a game can reach a position (abscls-8tl1.59). The early access is built, as Hedge School's
+("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
+player's games"). Partner sites are designed, not built ("Partner sites").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -597,17 +597,19 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    so the page opens nothing there either. Hedge School's import page opens the game without its engine, since its
    review checks the game later.
 7. **The import page keeps the game for its review,** as Hedge School's does. "Review the game" keeps the game in the
-   player's games through the one import (`src/lib/game/import.ts`) with the answer of the page's check, so the rules
-   check the game once on its way in. The game keeps its capture marks. Then the page opens the review by the game's id
-   (`/review#game=…`, `openReview` in `@abstractclass/import`, which Hedge School's import page and both sites' shared
-   reviews use too). Back then leads to the game's page. A game that the browser cannot keep (a private window, or
-   blocked site data) stays on the import page, with why. "Analyze on the board" opens the board by its own address with
-   the record (`/analysis#record=…&at=`), which takes it out of the address again and checks it, as a link to the board
-   does. Cyanotype has no analytics yet, so the import counts no event: the board's address names no source (`via`). A
-   reload of the page after the game left its address goes to the tools page. A partner's links (`from=`, `packed=`, a
-   partner's `save=`) are Hedge School's (its design 18): the page refuses `from=` and a link with no record, and reads
-   no `save=`, until the steps of "Partner sites". A link's record (`/import#record=…`) gets the same choice as a
-   tool's.
+   player's games through the one import (`src/lib/game/import.ts`, `keepChecked`) with the answer of the page's check,
+   so the rules check the game once on its way in. The game keeps its capture marks. Then the page opens the review by
+   the game's id (`/review#game=…`, `openReview` in `@abstractclass/import`, which Hedge School's import page and both
+   sites' shared reviews use too). The review takes the import page's place in the history, so Back leads to the page
+   before it. A game that the browser cannot keep (a private window, or blocked site data) stays on the import page,
+   with why, and with no line about the tools page: newer tools do not help that browser. A record that the page cannot
+   read or that the rules refuse keeps that line, since an old tool can send one. "Analyze on the board" opens the board
+   by its own address with the record (`/analysis#record=…&at=`), which takes it out of the address again and checks it,
+   as a link to the board does. Cyanotype has no analytics yet, so the import counts no event: the board's address names
+   no source (`via`). A reload of the page after the game left its address goes to the tools page. A partner's links
+   (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design 18): the page refuses `from=` and a link
+   with no record, and reads no `save=`, until the steps of "Partner sites". A link's record (`/import#record=…`) gets
+   the same choice as a tool's.
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the header from a tablet's width, and in the footer on
    a phone, as Hedge School's (design 22).
@@ -1565,6 +1567,7 @@ Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with
 (2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), "Cyanotype's variations in
 "Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
 games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
-(2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), "Cyanotype's How a review
-works page" (2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), and "Cyanotype's board editor checks
-that a game can reach the position" (2026-11-09). The earlier entries name the site by its first name, Drawing Board.
+(2026-11-08), "Cyanotype's cells: striped walls and six-point stars" (2026-11-08), "Cyanotype's How a review works page"
+(2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), "Cyanotype's board editor checks that a game can
+reach the position" (2026-11-09), and "Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09). The
+earlier entries name the site by its first name, Drawing Board.

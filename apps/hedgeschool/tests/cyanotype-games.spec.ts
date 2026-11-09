@@ -13,7 +13,8 @@ import { reviewLink } from "../../cyanotype/src/lib/game/share.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { STANDARD_START } from "../../cyanotype/src/lib/game/position.ts";
 import { ENGINE_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, REFUSED, noReview, readStored, storeReview, testRecord } from "./cyanotype-review.ts";
+import { CYANOTYPE, REFUSED, keptGame, noReview, openReviewTab, pasteRecord, readStored, storeReview,
+         testRecord } from "./cyanotype-review.ts";
 
 /** The test game up to the end of turn `turns`, with the players `blue` and `red`. */
 const game = (blue: string, red: string, turns: number) => testRecord(turns)
@@ -26,19 +27,11 @@ const GAMES = [
 ];
 
 const local = (page: Page, key: string) => page.evaluate(k => localStorage.getItem(k), key);
-/** The Review tab, once its games are read: its footer shows then. */
-async function openTab(page: Page) {
-  await page.goto(new URL("/review", CYANOTYPE).href);
-  await expect(page.getByRole("heading", { name: "Review your Blueprints game" })).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator("footer")).toBeVisible();
-}
 /** Pastes `record` in the Review tab and reviews it: the engine's rules check it, the list keeps it, and its review
  *  opens at its own address. Waits for the review's end, and for the game's mark of it in the store: the engine is
  *  off, and the stored review gives every result. */
 async function paste(page: Page, record: string) {
-  await openTab(page);
-  await page.getByLabel("A game record").fill(record);
-  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await pasteRecord(page, record);
   await page.waitForURL(url => url.hash.startsWith("#game=review-"), { timeout: 120_000 });
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
   const id = new URLSearchParams(new URL(page.url()).hash.slice(1)).get("game")!;
@@ -53,14 +46,6 @@ const keptIds = (page: Page) => page.evaluate(([name, store]) => new Promise<str
     keys.onsuccess = () => { open.result.close(); resolve(keys.result.map(String)); };
   };
 }), [NAME, STORES.games] as const);
-/** A game in the site's store, by its id. */
-const keptGame = (page: Page, id: string) => page.evaluate(([name, store, key]) => new Promise<Record<string, unknown>>(resolve => {
-  const open = indexedDB.open(name);
-  open.onsuccess = () => {
-    const get = open.result.transaction(store, "readonly").objectStore(store).get(key);
-    get.onsuccess = () => { open.result.close(); resolve(get.result); };
-  };
-}), [NAME, STORES.games, id] as const);
 const rows = (page: Page) => page.getByRole("region", { name: "Review a game" }).locator("li");
 
 test.describe("with the engine's files", () => {
@@ -72,11 +57,11 @@ test.describe("with the engine's files", () => {
 
   test("a pasted record is kept and reviewed, and the Review tab lists the games, newest first", async ({ page }) => {
     test.setTimeout(6 * 60_000); // three games, each checked by the engine's rules and reviewed from the store
-    await openTab(page);
+    await openReviewTab(page);
     await expect(page.getByRole("heading", { name: "Your games" })).toHaveCount(0);
     await expect(page.getByText("Continue your last review")).toHaveCount(0);
     for (const g of GAMES) await paste(page, g.record);
-    await openTab(page);
+    await openReviewTab(page);
     await expect(page.getByRole("heading", { name: "Your games" })).toBeVisible();
     const newest = [...GAMES].reverse();
     await expect(rows(page).getByRole("link")).toHaveText(newest.map(g => g.title));
@@ -101,7 +86,7 @@ test.describe("with the engine's files", () => {
 
   test("the list keeps no game that the review refuses, and the page says why", async ({ page }) => {
     test.setTimeout(4 * 60_000);
-    await openTab(page);
+    await openReviewTab(page);
     const box = page.getByLabel("A game record"), review = page.getByRole("button", { name: "Review", exact: true });
     // A capture mark that the engine's rules do not confirm
     await box.fill(REFUSED);
@@ -123,17 +108,17 @@ test.describe("with the engine's files", () => {
     await page.goto("about:blank");
     await page.goto(new URL(`/review#record=${encodeURIComponent(REFUSED)}`, CYANOTYPE).href);
     await expect(page.getByRole("heading", { name: "Review your Blueprints game" })).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator("footer")).toBeVisible(); // the tab has read its games
     await expect(page.getByRole("alert")).toHaveCount(0);
     expect(await keptIds(page)).toEqual([]);
     expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
-    await openTab(page);
     await expect(page.getByRole("heading", { name: "Your games" })).toHaveCount(0);
   });
 
   test("a game's Delete asks first: Cancel keeps the game, and Delete deletes it and its row", async ({ page }) => {
     test.setTimeout(4 * 60_000);
     for (const g of GAMES.slice(0, 2)) await paste(page, g.record);
-    await openTab(page);
+    await openReviewTab(page);
     await expect(rows(page)).toHaveCount(2);
     const question = page.getByRole("alertdialog", { name: "Delete this game?" });
     await page.getByRole("button", { name: `Delete ${GAMES[1].title}` }).click();
@@ -172,7 +157,7 @@ test.describe("with the engine's files", () => {
       }, answer);
       await paste(page, GAMES[0].record);
       expect(await local(page, "test:asked")).toBe("1"); // when the game was kept
-      await openTab(page);
+      await openReviewTab(page);
       await expect(page.getByText(line)).toBeVisible();
       // The Review tab asks again only when the browser does not keep the games
       await expect.poll(() => local(page, "test:asked")).toBe(answer ? "1" : "2");

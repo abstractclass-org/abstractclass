@@ -3,11 +3,11 @@
 // engine's position check, protocol 0.8.0), and Analyze opens the board from it. A position that no game reaches gets
 // the engine's reasons, with their hexes marked, and Analyze waits. A drag with Shift puts cells along it, or removes
 // them. The Import takes a position and the moves from it. A link and an analysis file with a set-up start open from
-// it, and a start that the rules refuse or that no game reaches leaves the board kept here, with a notice. A board
-// kept here whose start no game reaches gives way to a new board, with a notice. Each way in
-// refuses a komi, which the board does not take yet (design 33, "The komi"), and the review refuses a game from a
-// set-up start. The board's engine is off, so nothing searches: the engine's rules check what comes in. The positions
-// are Stamp Duty's own (the lab's games,
+// it, and a start that the rules refuse or that no game reaches leaves the board kept here, with a notice. A board kept
+// here whose start no game reaches gives way to a new board, with a notice. Each way in refuses a komi, which the board
+// does not take yet (design 33, "The komi"). The review's refusal of a game from a set-up start is in
+// cyanotype-games.spec.ts. The board's engine is off, so nothing searches: the engine's rules check what comes in. The
+// positions are Stamp Duty's own (the lab's games,
 // apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves there. Each test opens a
 // fresh browser context, so its store starts empty. The tests skip, with a message, when the preview has no engine
 // files. Run: npx playwright test tests/cyanotype-editor.spec.ts, with CYANOTYPE_BASE_URL.
@@ -359,13 +359,4 @@ test("the Import, a link and an analysis file with a komi: the board says that i
   await field.fill(`[Komi "300"] ${MIDDLE}`);
   await field.press("Enter");
   await expect(page.getByRole("alert")).toHaveText(/^a position has seven fields/);
-});
-
-test("the review refuses a game from a set-up start, and says where it opens", async ({ page }) => {
-  // The Review tab's paste: the import page offers such a game to the board alone (cyanotype-import.spec.ts)
-  await page.goto(at("/review"));
-  await page.getByLabel("A game record").fill(`[Position "${MIDDLE}"]\n\n${MOVE} *`);
-  await page.getByRole("button", { name: "Review", exact: true }).click();
-  await expect(page.getByRole("alert")).toHaveText("This game starts from another position. Cyanotype reviews games from the "
-    + "standard start only: open it on the Analysis board.", { timeout: 120_000 });
 });

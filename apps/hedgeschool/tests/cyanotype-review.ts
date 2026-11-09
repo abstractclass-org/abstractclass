@@ -123,11 +123,33 @@ export async function reviewFirstTurns(page: Page) {
 /** Opens the review of the test game up to the end of turn `turns`, and waits `timeout` ms for "Review done": the
  *  Review tab's paste keeps the game, then its review opens. */
 async function openReview(page: Page, turns: number, timeout: number) {
-  await page.goto(new URL("/review", CYANOTYPE).href);
-  await page.getByLabel("A game record").fill(testRecord(turns));
-  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await pasteRecord(page, testRecord(turns));
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout });
 }
+
+/** The Review tab, once its games are read: its footer shows then. */
+export async function openReviewTab(page: Page) {
+  await page.goto(new URL("/review", CYANOTYPE).href);
+  await expect(page.getByRole("heading", { name: "Review your Blueprints game" })).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("footer")).toBeVisible();
+}
+
+/** Pastes `record` in the Review tab and clicks Review: the import checks the record, and keeps it or says why not. */
+export async function pasteRecord(page: Page, record: string) {
+  await openReviewTab(page);
+  await page.getByLabel("A game record").fill(record);
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+}
+
+/** A game in the site's store, by its id. */
+export const keptGame = (page: Page, id: string) => page.evaluate(([name, store, key]) =>
+  new Promise<Record<string, unknown>>(resolve => {
+    const open = indexedDB.open(name);
+    open.onsuccess = () => {
+      const get = open.result.transaction(store, "readonly").objectStore(store).get(key);
+      get.onsuccess = () => { open.result.close(); resolve(get.result); };
+    };
+  }), [NAME, STORES.games, id] as const);
 
 /** The stored review's results for the test game's first `turns` turns, in the order of their keys: each position
  *  before a move and the position after the last, at each depth of the review. The review of an unfinished game

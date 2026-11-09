@@ -10129,9 +10129,13 @@ result. Design 33's departure "A record after the review's `#`" is gone.
   the record to `/review#record=…`, and the review imported it: the rules checked the same record again, in a second
   worker, before the list kept it. A failure there (blocked site data) showed on the review page.
 - **Now:** the import page checks the record once, with each move's capture mark (`checkRecordMarks`). "Review the
-  game" keeps the game through the one import (`src/lib/game/import.ts`) and gives it that check's answer, so the
-  rules do not run again. Then the review opens by the game's id. A failure to keep the game stays on the import page,
-  with why. The review checks its game again when it opens, as Hedge School's does: that check is the review's own.
+  game" keeps the game through the one import (`src/lib/game/import.ts`, `keepChecked`) with that check's answer, so
+  the rules do not run again. Then the review opens by the game's id. A failure to keep the game stays on the import
+  page, with why. The review checks its game again when it opens, as Hedge School's does: that check is the review's
+  own.
+- **The failure to keep the game** shows no line about the tools page. Newer tools do not help a browser that keeps
+  no games. In the same state, Hedge School's import page says "You can paste a game record in the Review tab, or
+  bring games from other sites with the tools." That line does not help either: the paste uses the same store.
 - **The review's `#record=`** gets the Review tab, as on Hedge School (its design 22). Only the import page took the
   game there, and the review took it out of the address at once, so no player holds such a link.
 - **A link's record** (`/import#record=…`) keeps the choice of a tool's game. Hedge School opens a partner's link in

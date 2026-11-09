@@ -5,8 +5,9 @@
   // School. The engine's rules then check the record once, with each move's capture mark (recordCheck.ts, design 33,
   // item 11): a record that they refuse shows why, and opens nothing. Else the player chooses the review or the
   // Analysis board. The review's choice keeps the game in this browser here, as Hedge School's import page does
-  // (game/import.ts, with this page's check), then opens its review by the game's id (openReview). A failure there
-  // stays on this page, with why. The Analysis board opens by its own address with the record, at the position that the
+  // (game/import.ts, keepChecked, with this page's check), then opens its review by the game's id (openReview). A
+  // browser that cannot keep the game stays on this page, with why: the tools page does not help it, so the page does
+  // not offer it there. The Analysis board opens by its own address with the record, at the position that the
   // game's page showed, and asks before the game replaces the board kept here. A game from a set-up start offers the
   // board only: the review refuses it, so the choice says so before the click (setUpProblem). For an out-of-date tool,
   // the page also says how to update it. Cyanotype has no analytics yet, so the import counts no event. The page alone
@@ -21,7 +22,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import type { Checked } from "#lib/game/check.ts";
-  import { importRecord } from "#lib/game/import.ts";
+  import { keepChecked } from "#lib/game/import.ts";
   import { turnFromCount } from "#lib/game/notation.ts";
   import { parseRecord, playerNames, setUpProblem, type GameRecord } from "#lib/game/record.ts";
   import { checkRecordMarks } from "#lib/review/recordCheck.ts";
@@ -31,10 +32,11 @@
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
   // What the page shows: the game while the engine checks it, then the choice with the check's answer, the review's
-  // wait while the game is kept, or why the page opens nothing.
+  // wait while the game is kept, or why the page opens nothing. `keeping`: the failure came while the page kept the
+  // game, not while it read or checked it.
   type Phase = { at: "reading" } | { at: "checking"; sent: ImportHash; record: GameRecord }
     | { at: "choose"; sent: ImportHash; record: GameRecord; checked: Checked } | { at: "keeping" }
-    | { at: "failed"; message: string };
+    | { at: "failed"; message: string; keeping: boolean };
   let phase = $state.raw<Phase>({ at: "reading" });
   let stale = $state<Tool | null>(null); // the tool, when it is out of date
   const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
@@ -54,16 +56,18 @@
       stale = old === "older" ? null : old;
       record = parseRecord(sent.record);
     } catch (e) {
-      phase = { at: "failed", message: `${SITE_NAME} could not read the game: ${sentence(errorText(e))}` };
+      phase = { at: "failed", keeping: false,
+                message: `${SITE_NAME} could not read the game: ${sentence(errorText(e))}` };
       return;
     }
     phase = { at: "checking", sent, record };
     const checked = await checkRecordMarks(record);
-    phase = checked.problem ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${sentence(checked.problem)}` }
+    phase = checked.problem
+      ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${sentence(checked.problem)}`, keeping: false }
       : { at: "choose", sent, record, checked };
   });
 
-  // Each choice replaces this page in the history: Back then leads to the game's page.
+  // Each choice replaces this page in the history: Back then leads to the page before it.
   /** The review: the game kept with this page's check, then its review. A failure says why, in the import's own
    *  words (game/import.ts), in whole sentences. */
   async function reviewChosen() {
@@ -71,9 +75,9 @@
     const { sent, record, checked } = phase;
     phase = { at: "keeping" };
     try {
-      openReview(await importRecord(sent.record, record, async () => checked));
+      openReview(await keepChecked(sent.record, record, checked));
     } catch (e) {
-      phase = { at: "failed", message: errorText(e) };
+      phase = { at: "failed", message: errorText(e), keeping: true };
     }
   }
   const analyzeChosen = (sent: ImportHash, record: GameRecord) =>
@@ -116,7 +120,7 @@
     <p class="text-muted">Loading the review…</p>
   {:else if phase.at === "failed"}
     <p class="text-blunder" role="alert">{phase.message}</p>
-    <p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>
+    {#if !phase.keeping}<p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>{/if}
   {:else}
     {@const { sent, record } = phase}
     {@const names = playerNames(record.tags)}
