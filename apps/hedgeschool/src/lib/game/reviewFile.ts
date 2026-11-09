@@ -27,8 +27,8 @@ export { positionKeys };
 // Which results belong to a file, and the networks a manifest ships: the shared ones (@abstractclass/analysis/files.ts).
 export { belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
-/** Hedge School's review files. A file's game is kept as an imported record is (import.ts), but for its check of a
- *  start: a variant is refused, and a set-up start is kept. */
+/** Hedge School's review files. A file's game gets the review's check (variantProblem): the review refuses a game of
+ *  other rules (design 18) or from a set-up start (design 21). */
 const files = reviewFiles({
   name: "Hedge School", format: REVIEW_FORMAT, prefix: "hedge-school", parse: parseRecord,
   players: r => playerNames(r.tags), networkName, loadGame,

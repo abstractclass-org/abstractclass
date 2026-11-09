@@ -11,7 +11,6 @@ import { createInterface } from "node:readline";
 import { isDeepStrictEqual } from "node:util";
 import { meafRecord } from "../../src/lib/game/meaf.ts";
 import { parseRecord } from "../../src/lib/game/record.ts";
-import { variantProblem } from "../../src/lib/game/import.ts";
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 
@@ -67,8 +66,7 @@ for await (const line of createInterface({ input: createReadStream(file) })) {
   seen.add(g.gameID);
   let moves;
   try {
-    const record = parseRecord(meafRecord(g));
-    moves = variantProblem(record, "review") ? [] : record.moves;
+    moves = parseRecord(meafRecord(g)).moves; // meafRecord throws for every variant but the online one
   } catch {
     moves = [];
   }
