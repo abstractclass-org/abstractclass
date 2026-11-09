@@ -21,7 +21,7 @@ const onlineRulesSentence: Record<RulesPage, string> = {
  *  page). The engine plays the online rules only, so a game of other rules is refused, never reviewed or played by the
  *  wrong rules (design 18). The review refuses a set-up start too: a review is of a game from the standard start
  *  (design 21). The Analysis board and Practice take a set-up start (design 21, design 24). */
-export function variantProblem(record: GameRecord, page: RulesPage = "review"): string | null {
+export function variantProblem(record: GameRecord, page: RulesPage): string | null {
   const rules = otherRules(record);
   if (rules) return `This game uses other rules (${rules}). ${onlineRulesSentence[page]}`;
   return page === "review" && setUpStart(record.tags.Position) ? setUpRefusal("Hedge School") : null;
@@ -36,12 +36,12 @@ function otherRules(record: GameRecord): string | null {
 /** Why each of the arrival's two ways (ToolChoice.svelte, design 21) refuses a tool's game before its click, or null
  *  for a way that takes the game. Each way's reason is the one that its page gives after the click. */
 export function wayRefusals(record: GameRecord): { review: string | null; analyze: string | null } {
-  return { review: variantProblem(record), analyze: variantProblem(record, "analysis") };
+  return { review: variantProblem(record, "review"), analyze: variantProblem(record, "analysis") };
 }
 
 /** Imports a read record. Returns the game's id, or throws an Error whose message tells the player what is wrong. */
 export async function importRecord(text: string, record: GameRecord): Promise<string> {
-  const variant = variantProblem(record);
+  const variant = variantProblem(record, "review");
   if (variant) throw new Error(variant);
   const { problem, cuts } = await checkMoves(record);
   if (problem) throw new Error(problem);

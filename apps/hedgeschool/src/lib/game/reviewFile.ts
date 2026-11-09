@@ -33,7 +33,7 @@ const files = reviewFiles({
   name: "Hedge School", format: REVIEW_FORMAT, prefix: "hedge-school", parse: parseRecord,
   players: r => playerNames(r.tags), networkName, loadGame,
   async keep(text, record) {
-    const variant = variantProblem(record);
+    const variant = variantProblem(record, "review");
     if (variant) throw new Error(variant);
     return (await saveGame(text, record)).id;
   },

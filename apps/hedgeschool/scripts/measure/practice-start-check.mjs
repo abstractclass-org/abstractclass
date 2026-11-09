@@ -90,7 +90,7 @@ for await (const line of createInterface({ input: createReadStream(file) })) {
   let moves;
   try {
     const record = parseRecord(meafRecord(g));
-    moves = variantProblem(record) ? [] : record.moves;
+    moves = variantProblem(record, "review") ? [] : record.moves;
   } catch { moves = []; }
   if (moves.length < 20) continue;
   games += 1;
