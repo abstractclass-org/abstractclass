@@ -10204,3 +10204,17 @@ Enclosure, 90,980 for Blueprints).
 - **Checked:** `npm run check:all` passed, all 15 steps. The layout test (headless Chromium, on this branch's
   previews of both sites) passed 199 cases and skipped 10: the ask's 5 cases for each site, which need a build with
   a Google tag. With `VITE_GA_ID=G-TEST000000` in both builds, those 10 cases passed.
+
+### The Analysis board and Practice refuse other rules in their own words (2026-11-09)
+
+- **Decided** (abscls-14vt, the owner's look of 2026-11-09: "lgtm"): a record with a `Rules` tag is refused in the
+  words of the place that refuses it. The arrival's card for the board already said what the board does
+  (abscls-464q, the owner's "good" of 2026-11-09). Now the Analysis board's page says "The Analysis board shows games
+  of the online rules only." and Practice says "Practice plays games of the online rules only." The review keeps
+  "Hedge School reviews games of the online rules only."
+- **One source:** `variantProblem(record, page)` in `apps/hedgeschool/src/lib/game/import.ts` gives both the card's
+  reason and the page's notice for each page, so the two cannot differ
+  ([design/21-analysis.md](../design/21-analysis.md), items 5 and 9; [design/24-practice.md](../design/24-practice.md)).
+- **Checked:** `npm run check:all` passed, all 15 steps. On the branch rebased onto dev 40f2ee0e, the layout test
+  (headless Chromium) passed 216 cases and skipped 10: the analytics ask's 5 cases for each site, which need a build
+  with a Google tag.
