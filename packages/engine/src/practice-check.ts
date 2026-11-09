@@ -10,9 +10,8 @@
 // repository's katagame/cpp/game/rules.h). The site's reader refuses a record, a board's link or an analysis file
 // beyond it. The module's GTP `komi` (KataGo's) takes a komi from -MAX_USER_KOMI to MAX_USER_KOMI in whole or half
 // points, and refuses any other. So the module must take the site's limit either way, and refuse half a point past it.
-// Each site gives its limit to the step: its `npm run engine` runs its own scripts/engine.mjs, which passes its
-// record's MAX_RECORD_KOMI to fetchEngine. The analysis modules (the CPU and the GPU module) are not run here: the step
-// takes them from the practice modules' engine commit, so they have the same cap (lock-check.ts, checkOneEngineCommit).
+// The analysis modules (the CPU and the GPU module) are not run here: the step takes them from the practice modules'
+// engine commit, so they have the same cap (lock-check.ts, checkOneEngineCommit).
 //
 // Each module starts a session (the network, then its game's start command) and answers kata-get-params. The threaded
 // module's start evaluates no position, so its evaluator here refuses any use but its sizes: the check needs no CPU

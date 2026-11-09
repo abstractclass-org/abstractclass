@@ -84,8 +84,10 @@ edit in the same commit), so their changes still apply.
 
    The engine package knows no game. The analysis package knows a game only through the game interface. No package
    imports a site. A site gives a package what is its own as a parameter: each site's `scripts/engine.mjs` gives its
-   record's komi limit to the engine step, for example. A check of `npm run check:all` refuses an import of a site's
-   file or package in `packages/` (`scripts/package-imports.mjs`).
+   record's komi limit to the engine step, for example. A check of `npm run check:all` (`scripts/package-imports.mjs`)
+   refuses an import in `packages/` of a site's file or package. It also refuses SvelteKit's `$lib`: a site's build
+   reads that alias as the site's own `src/lib`. A dynamic import of a computed path is refused too, but in the files
+   that the check names with what they load.
 2. **The game interface** (`packages/analysis/src/game.ts`): what a site gives the analysis about its game.
 
    ```ts

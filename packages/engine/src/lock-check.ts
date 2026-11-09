@@ -14,15 +14,14 @@
 // a file. A lock that gives neither number is not checked, and the step reads no manifest: Hedge School's lock gives
 // neither.
 //
-// The step also takes the lock's engine modules from one engine commit (checkOneEngineCommit). The engine modules are
-// the WebAssembly modules that play the game's rules: the CPU and the GPU module (the analysis), and the practice
-// bot's two modules. The step checks the komi cap of the practice modules only (practice-check.ts), and the analysis
-// modules have the same rules only when they come from the same commit. A release's tag gives its commit:
-// `engine-<commit>`, with or without a suffix (`engine-d6786eba`, `engine-d6786eba-terms2`). The other files do not
-// count. The practice evaluator and the JavaScript libraries run the network and hold no rules. The networks, the
-// terms and the notices come from releases of their own: Hedge School's earlier networks come from
-// `wasm-v2-engine-632f2a0`, and Cyanotype's libraries and evaluator from `engine-91ab0b7d`, with its modules from
-// `engine-887be290`.
+// The step also takes the lock's engine modules from one engine commit (checkOneEngineCommit, design 03, "The engine's
+// artifacts"). The engine modules are the WebAssembly modules that play the game's rules: the CPU and the GPU module
+// (the analysis), and the practice bot's two modules. The step checks the komi cap of the practice modules only
+// (practice-check.ts), and the analysis modules have the same rules only when they come from the same commit. A
+// release's tag gives its commit: `engine-<commit>`, with or without a suffix (`engine-d6786eba`,
+// `engine-d6786eba-terms2`). The other files do not count, since they hold no rules: the practice evaluator and the
+// JavaScript libraries run the network, and a lock can take its networks, its terms and its notices from other releases
+// (Hedge School's earlier networks come from wasm-v2-engine-632f2a0).
 import type { ArtifactKind } from "./client.ts";
 import type { NetworkSizes } from "./library.ts";
 
@@ -104,31 +103,37 @@ export function checkLockAgainstRelease(lock: Lock, tag: string, release: Releas
   }
 }
 
-/** The engine modules: the kinds that play the game's rules. */
-const ENGINE_MODULES: ReadonlySet<ArtifactKind> =
-  new Set(["module", "gpu-module", "practice-module", "practice-threaded-module"]);
+// Whether each kind is an engine module: one that plays the game's rules. A kind that ArtifactKind gains must be added
+// here, or this file does not compile.
+const IS_ENGINE_MODULE = {
+  "module": true, "gpu-module": true, "practice-module": true, "practice-threaded-module": true,
+  "gpu-library": false, "practice-library": false, "cpu-evaluator-library": false, "practice-evaluator": false,
+  "model": false, "graph": false, "notices": false, "terms": false, "ort-glue": false, "ort-wasm": false,
+} satisfies Record<ArtifactKind, boolean>;
 /** A release's tag with an engine commit: `engine-<commit>`, with or without a suffix. */
 const ENGINE_TAG = /^engine-([0-9a-f]+)(?:-|$)/;
+
+/** The engine commit of an engine module (`id`) from release `tag`. An error when the tag gives none. */
+function commitOf({ id, tag }: { id: string; tag: string }): string {
+  const commit = ENGINE_TAG.exec(tag)?.[1];
+  if (!commit)
+    throw new Error(`${id}: the release ${show(tag)} gives no engine commit. An engine module must come from a ` +
+                    `release whose tag is engine-<commit>, with or without a suffix.`);
+  return commit;
+}
 
 /** Checks that the lock's engine modules from releases all come from one engine commit, and gives it (null when no
  *  engine module comes from a release), with the engine modules from this machine (`unchecked`, their ids), which no
  *  tag describes. An error when a module's tag gives no commit, or when the tags give two commits or more: it names
  *  each commit with its modules. */
 export function checkOneEngineCommit(lock: Lock): { commit: string | null; unchecked: string[] } {
-  const modules = lock.artifacts.filter(a => ENGINE_MODULES.has(a.kind));
-  const byCommit = new Map<string, string[]>();
-  for (const a of modules) {
-    if (!a.source.release) continue;
-    const commit = ENGINE_TAG.exec(a.source.release.tag)?.[1];
-    if (!commit)
-      throw new Error(`${a.id}: the release ${show(a.source.release.tag)} gives no engine commit. An engine module ` +
-                      `must come from a release whose tag is engine-<commit>, with or without a suffix.`);
-    byCommit.set(commit, [...(byCommit.get(commit) ?? []), a.id]);
-  }
+  const modules = lock.artifacts.filter(a => IS_ENGINE_MODULE[a.kind]);
+  const byCommit = Map.groupBy(
+    modules.flatMap(a => (a.source.release ? [{ id: a.id, tag: a.source.release.tag }] : [])), commitOf);
   if (byCommit.size > 1)
     throw new Error(`engine.lock.json takes its engine modules from more than one engine commit: ` +
-                    [...byCommit].map(([commit, ids]) => `${commit} (${ids.join(", ")})`).join(", ") + `. The step ` +
-                    `checks the practice modules' komi cap only, and the analysis modules have the same rules only ` +
-                    `from the same commit. Take every engine module from one engine commit's releases.`);
+                    [...byCommit].map(([commit, of]) => `${commit} (${of.map(m => m.id).join(", ")})`).join(", ") +
+                    `. The step checks the practice modules' komi cap only, and the analysis modules have the same ` +
+                    `rules only from the same commit. Take every engine module from one engine commit's releases.`);
   return { commit: [...byCommit.keys()][0] ?? null, unchecked: modules.filter(a => !a.source.release).map(a => a.id) };
 }

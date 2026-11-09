@@ -95,63 +95,72 @@ test("a file with numbers from this machine is named, not checked", () => {
   assert.deepEqual(releasesToCheck(local), { tags: [TAG], unchecked: ["net"] });
 });
 
-// The engine modules of one engine commit (checkOneEngineCommit). A lock with the kinds and the tags of each site's.
-const file = (id: string, kind: Lock["artifacts"][number]["kind"], tag: string | null): Lock["artifacts"][number] =>
-  ({ id, kind, source: tag === null ? {} : from(`${id}.bin`, tag), sha256: id, bytes: 1 });
-const hedgeSchool = (commit = "d6786eba"): Lock => ({
-  artifacts: [
-    file("module", "module", `engine-${commit}`),
-    file("notices", "notices", "wasm-v2-engine-54486cd"),
-    file("terms", "terms", `engine-${commit}-terms2`),
-    file("gpu", "gpu-module", `engine-${commit}`),
-    file("bot", "practice-module", `engine-${commit}`),
-    file("bot-batched", "practice-threaded-module", `engine-${commit}`),
-    file("eval", "practice-evaluator", `engine-${commit}`),
-    file("old-net", "model", "wasm-v2-engine-632f2a0"),
-  ],
+// The engine modules of one engine commit (checkOneEngineCommit), on locks with the kinds, the releases and the assets
+// of each site's.
+type Entry = Lock["artifacts"][number];
+/** A lock of `entries` ([id, kind, asset, tag]), with the tag of an entry changed by its id (`tags`, null for a file
+ *  from this machine). */
+const lockOf = (entries: [string, Entry["kind"], string, string][], tags: Record<string, string | null>): Lock => ({
+  artifacts: entries.map(([id, kind, asset, tag]) => {
+    const t = id in tags ? tags[id] : tag;
+    return { id, kind, source: t === null ? {} : from(asset, t), sha256: id, bytes: 1 };
+  }),
 });
+/** Hedge School's lock on dev: the files of engine-d6786eba, its terms and earlier networks from their own releases. */
+const hedgeSchool = (tags: Record<string, string | null> = {}) => lockOf([
+  ["module", "module", "enclosure-engine.wasm", "engine-d6786eba"],
+  ["notices", "notices", "NOTICES.txt", "wasm-v2-engine-54486cd"],
+  ["terms", "terms", "LICENSE.txt", "engine-d6786eba-terms2"],
+  ["gpu", "gpu-module", "enclosure-engine-gpu.wasm", "engine-d6786eba"],
+  ["gpulib", "gpu-library", "gpu_engine.mjs", "engine-d6786eba"],
+  ["practice", "practice-library", "practice_bot.mjs", "engine-d6786eba"],
+  ["bot", "practice-module", "enclosure-bot.wasm", "engine-d6786eba"],
+  ["bot-batched", "practice-threaded-module", "enclosure-bot-batched.wasm", "engine-d6786eba"],
+  ["eval", "practice-evaluator", "enclosure-eval.wasm", "engine-d6786eba"],
+  ["net", "model", "b10c128-s89066368-d17827487.model-float16.bin", "engine-d6786eba"],
+  ["old-net", "model", "b10c128-s66625408-d13350730.model-float16.bin", "wasm-v2-engine-632f2a0"],
+], tags);
 
 test("a lock whose engine modules all come from one engine commit passes, with that commit", () => {
   assert.deepEqual(checkOneEngineCommit(hedgeSchool()), { commit: "d6786eba", unchecked: [] });
-  assert.deepEqual(checkOneEngineCommit(hedgeSchool("c43233eb")), { commit: "c43233eb", unchecked: [] });
+  // Hedge School's lock with engine-c43233eb (abscls-tdbr): its modules, libraries and evaluator from that release,
+  // whose assets have the same names, and its networks still from engine-d6786eba. A network holds no rules.
+  const c43233eb = hedgeSchool(Object.fromEntries(
+    ["module", "gpu", "gpulib", "practice", "bot", "bot-batched", "eval"].map(id => [id, "engine-c43233eb"])));
+  assert.deepEqual(checkOneEngineCommit(c43233eb), { commit: "c43233eb", unchecked: [] });
   // A suffix of the tag names the same commit: engine-d6786eba-gpu is engine-d6786eba's.
-  const suffixed = hedgeSchool();
-  suffixed.artifacts[3] = file("gpu", "gpu-module", "engine-d6786eba-gpu");
-  assert.equal(checkOneEngineCommit(suffixed).commit, "d6786eba");
-  // Cyanotype's: the modules from engine-887be290, the libraries, the evaluator, the terms and the network from
-  // engine-91ab0b7d. The evaluator and the libraries hold no rules, so they are not engine modules here.
-  const cyanotype: Lock = { artifacts: [
-    file("module", "module", "engine-887be290"), file("gpu", "gpu-module", "engine-887be290"),
-    file("lib", "gpu-library", "engine-91ab0b7d"), file("practice", "practice-library", "engine-91ab0b7d"),
-    file("bot", "practice-module", "engine-887be290"), file("bot-batched", "practice-threaded-module", "engine-887be290"),
-    file("eval", "practice-evaluator", "engine-91ab0b7d"), file("net", "model", "engine-91ab0b7d"),
-  ] };
+  assert.equal(checkOneEngineCommit(hedgeSchool({ gpu: "engine-d6786eba-gpu" })).commit, "d6786eba");
+  // Cyanotype's: the modules from engine-887be290, and the libraries, the evaluator and the network from
+  // engine-91ab0b7d. The evaluator and the libraries hold no rules, so they are not engine modules.
+  const cyanotype = lockOf([
+    ["module", "module", "blueprints-engine.wasm", "engine-887be290"],
+    ["gpu", "gpu-module", "blueprints-engine-gpu.wasm", "engine-887be290"],
+    ["gpulib", "gpu-library", "gpu_engine.mjs", "engine-91ab0b7d"],
+    ["practice", "practice-library", "practice_bot.mjs", "engine-91ab0b7d"],
+    ["bot", "practice-module", "blueprints-bot.wasm", "engine-887be290"],
+    ["bot-batched", "practice-threaded-module", "blueprints-bot-batched.wasm", "engine-887be290"],
+    ["eval", "practice-evaluator", "blueprints-eval.wasm", "engine-91ab0b7d"],
+    ["net", "model", "b6c96-s47076224-d3087660.model-float16.bin", "engine-91ab0b7d"],
+  ], {});
   assert.deepEqual(checkOneEngineCommit(cyanotype), { commit: "887be290", unchecked: [] });
 });
 
 test("a lock with engine modules of two engine commits stops the step, with each commit and its modules", () => {
-  const two = hedgeSchool();
-  two.artifacts[4] = file("bot", "practice-module", "engine-c43233eb");
-  two.artifacts[5] = file("bot-batched", "practice-threaded-module", "engine-c43233eb-bot");
+  const two = hedgeSchool({ bot: "engine-c43233eb", "bot-batched": "engine-c43233eb-bot" });
   assert.throws(() => checkOneEngineCommit(two), (e: Error) =>
     /more than one engine commit/.test(e.message) &&
     /d6786eba \(module, gpu\)/.test(e.message) && /c43233eb \(bot, bot-batched\)/.test(e.message));
   // The analysis modules against the practice modules: the GPU module from another commit stops it too.
-  const gpu = hedgeSchool();
-  gpu.artifacts[3] = file("gpu", "gpu-module", "engine-c43233eb-gpu");
-  assert.throws(() => checkOneEngineCommit(gpu), /more than one engine commit/);
+  assert.throws(() => checkOneEngineCommit(hedgeSchool({ gpu: "engine-c43233eb-gpu" })), /more than one engine commit/);
 });
 
 test("an engine module from a release whose tag gives no engine commit stops the step", () => {
-  const old = hedgeSchool();
-  old.artifacts[0] = file("module", "module", "wasm-v2-engine-632f2a0");
-  assert.throws(() => checkOneEngineCommit(old), /module: the release "wasm-v2-engine-632f2a0" .*engine-<commit>/);
+  assert.throws(() => checkOneEngineCommit(hedgeSchool({ module: "wasm-v2-engine-632f2a0" })),
+    /module: the release "wasm-v2-engine-632f2a0" .*engine-<commit>/);
 });
 
 test("an engine module from this machine is named, not checked", () => {
-  const local = hedgeSchool();
-  local.artifacts[4] = file("bot", "practice-module", null);
-  assert.deepEqual(checkOneEngineCommit(local), { commit: "d6786eba", unchecked: ["bot"] });
-  const allLocal: Lock = { artifacts: [file("module", "module", null)] };
+  assert.deepEqual(checkOneEngineCommit(hedgeSchool({ bot: null })), { commit: "d6786eba", unchecked: ["bot"] });
+  const allLocal = lockOf([["module", "module", "enclosure-engine.wasm", "engine-d6786eba"]], { module: null });
   assert.deepEqual(checkOneEngineCommit(allLocal), { commit: null, unchecked: ["module"] });
 });

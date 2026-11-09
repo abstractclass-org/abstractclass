@@ -10221,14 +10221,15 @@ Enclosure, 90,980 for Blueprints).
 
 ### The engine step: one engine commit, and each site's komi limit (2026-11-09)
 
-The review of the komi check found three gaps. The step probed the komi cap of the practice modules only, nothing
-held the analysis modules to the same rules, and the engine package imported Hedge School's record for the limit.
+The review of the komi check found three gaps. The step probed the komi cap of the practice modules only. Nothing
+held the analysis modules to the same rules. The engine package read the limit from the running site's record, by a
+path in the site's folder.
 
 - **One engine commit:** the step stops when the lock's engine modules come from releases of two engine commits or
   more (`checkOneEngineCommit` in `packages/engine/src/lock-check.ts`, design 03). The engine modules are the CPU and
   the GPU module and the practice bot's two modules: the modules that play the rules. The practice evaluator and the
-  libraries are not, since they hold no rules. The rule must also pass both locks as they are: Cyanotype takes its
-  modules from engine-887be290 and its evaluator, libraries and network from engine-91ab0b7d, and Hedge School's
+  libraries are not, since they hold no rules. The rule must also pass both locks as they are. Cyanotype takes its
+  modules from engine-887be290, and its evaluator, libraries and network from engine-91ab0b7d. Hedge School's
   earlier networks come from wasm-v2-engine-632f2a0. The step logs the commit: d6786eba for Hedge School, 887be290
   for Cyanotype.
 - **No practice modules:** the step logs that it checked no komi cap and no `minPlayoutsPerThread`. Both locks have
@@ -10241,3 +10242,17 @@ held the analysis modules to the same rules, and the engine package imported Hed
   in `packages/` of a file in `apps/` or of a site's package. It reads literal paths only. The earlier import of the
   record by a computed path was one that it cannot read.
 - **Checked:** `npm run check:all` passed, with both engine steps on the locked releases.
+- **The review added:**
+  - The import check refuses SvelteKit's `$lib` in `packages/` too. A site's build reads that alias as the site's
+    own `src/lib`, so a package could import a site's file by it.
+  - The import check also refuses a dynamic import of a computed path, the form of the earlier import of the record.
+    Four files load the engine's libraries from a site's `static/engine` that way, and one test loads its own module
+    again. `COMPUTED_PATHS` in the script names each of these files with what it loads.
+  - `fetch-engine.mjs` run alone stops with an error. A site's `package.json` with the earlier command, from a branch
+    made before this change, would otherwise do nothing and exit 0. `fetchEngine` also refuses a missing limit.
+  - `lock-check.ts` marks every kind of file as an engine module or not, so a new kind does not compile until it is
+    marked.
+  - The unit tests use the real locks' tags and asset names. One test has Hedge School's lock with engine-c43233eb's
+    modules and engine-d6786eba's networks, as abscls-tdbr's branch has it, and that lock passes.
+  - Nothing in `packages/` imports a file of `apps/` by any path, a computed one included. `static/engine` is not
+    the site's code: the step writes it from the releases.

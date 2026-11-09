@@ -67,11 +67,14 @@ new builds arrive often.
     it. A lock with neither number, Hedge School's, reads no manifest.
   - **The engine modules come from one engine commit.** The engine modules are the modules that play the game's
     rules: the CPU and the GPU module, and the practice bot's two modules. A release's tag gives its commit:
-    `engine-<commit>`, with or without a suffix. The step stops when the lock's engine modules come from releases of
-    two commits or more, or from a release whose tag gives no commit. The step checks the komi cap of the practice
-    modules only (design 24, item 15), so the analysis modules have the same rules only from the same commit. The
-    other files do not count: the practice evaluator and the libraries hold no rules, and the networks, the terms and
-    the notices come from releases of their own (`checkOneEngineCommit` in `packages/engine/src/lock-check.ts`).
+    `engine-<commit>`, with or without a suffix. The step stops when the lock's engine modules come from two commits
+    or more. It also stops at an engine module from a release whose tag gives no commit. The step checks the komi
+    cap of the practice modules only (design 24, item 15). So the analysis modules have the same rules only from the
+    same commit. The other files do not count, since they hold no rules. The practice evaluator and the libraries run
+    the network. The networks, their graphs, the terms and the notices are data. So a lock can take them from other
+    releases (`checkOneEngineCommit` in `packages/engine/src/lock-check.ts`). This rule does not show that a module
+    works with an evaluator or a library of another commit. `lock-check.ts` marks each kind of file as an engine module
+    or not, so a new kind does not compile until it is marked.
   - **Development may use local sources,** to try a build in the engine repository's `runs/` before it is released.
     The lock file in Git points at a release.
   - **A deploy uses releases only.** The deploy refuses a local source. Data that ships (precomputed analyses,
@@ -126,7 +129,8 @@ new builds arrive often.
   `packages/practice/src/practice.css`: the utility `btn-danger`, which reads the view's `--blunder-fill`.
   `src/app.css`: Hedge School's own tokens (the accent, the board's, the area line's and the position symbols' shades)
   and the utility `board-points`.
-- `engine.lock.json` and `packages/engine/src/fetch-engine.mjs` (`npm run engine`): the engine's artifacts.
+- `engine.lock.json` and `packages/engine/src/fetch-engine.mjs` (`npm run engine`, which runs the site's
+  `scripts/engine.mjs`): the engine's artifacts.
 
 ## Log entries
 

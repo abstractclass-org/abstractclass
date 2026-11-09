@@ -7,10 +7,8 @@
 //
 //   node scripts/engine.mjs [--deploy]      in the site's folder
 //
-// The step is fetchEngine. Each site's scripts/engine.mjs calls it with the site's own komi limit, its record's
-// MAX_RECORD_KOMI, since no package imports a site (design 29, item 1). The step then checks each practice module's
-// komi cap against that limit (practice-check.ts). It also takes the lock's engine modules from one engine commit, so
-// that the analysis modules have the practice modules' rules (lock-check.ts, checkOneEngineCommit).
+// The step is fetchEngine, which each site's scripts/engine.mjs calls with the site's komi limit: no package imports
+// a site (design 29, item 1). This file run alone stops with an error.
 //
 // A source is { "local": PATH } (a file, from the site's folder), { "engines": PATH } (a file in the engine
 // repository's checkout beside this repository's, for a build that is on this machine only), or
@@ -113,10 +111,12 @@ function store(id, file, bytes, compress = false) {
 }
 
 /** The engine step, in the site's folder: gets, checks and stores the lock's files, then checks the modules in Node.
- *  `maxKomi` is the site's MAX_RECORD_KOMI, which each practice module's komi cap must be. */
+ *  `maxKomi` is the site's MAX_RECORD_KOMI, which each practice module's komi cap must be (practice-check.ts). The
+ *  lock's engine modules must come from one engine commit (lock-check.ts, checkOneEngineCommit). */
 export async function fetchEngine({ maxKomi }) {
-  // The lock's engine modules come from one engine commit, so the analysis modules have the practice modules' rules,
-  // whose komi cap the last check reads (lock-check.ts, checkOneEngineCommit).
+  if (!(Number.isFinite(maxKomi) && maxKomi > 0))
+    throw new Error(`fetchEngine needs the site's komi limit, its record's MAX_RECORD_KOMI (a number above 0), not ` +
+                    `${maxKomi}. Run the step by the site's npm run engine (its scripts/engine.mjs).`);
   const engine = checkOneEngineCommit(lock);
   console.log(engine.commit ? `the engine modules: engine commit ${engine.commit}` : "no engine module from a release");
   if (engine.unchecked.length)
@@ -209,3 +209,10 @@ export async function fetchEngine({ maxKomi }) {
 function source(artifact) {
   return artifact.source.local ?? (artifact.source.engines ? `engines/${artifact.source.engines}` : `release ${artifact.source.release.tag}`);
 }
+
+// Run alone, as a site's `npm run engine` ran it before each site had its scripts/engine.mjs, the file would do nothing
+// and exit 0: a site whose package.json still runs it would build with the engine files of an earlier run, or none.
+if (import.meta.main)
+  throw new Error("packages/engine/src/fetch-engine.mjs runs no step alone. The site's package.json must run the " +
+                  `site's scripts/engine.mjs ("engine": "node scripts/engine.mjs"), which calls fetchEngine with the ` +
+                  "site's komi limit.");

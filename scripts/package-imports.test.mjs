@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { check, specifiers } from "./package-imports.mjs";
+import { check, COMPUTED_PATHS, computedImports, specifiers } from "./package-imports.mjs";
 
 const script = join(import.meta.dirname, "package-imports.mjs");
 
@@ -60,6 +60,8 @@ test("an import of a site's file or of a site's package stops the check, with it
       'import { MAX_RECORD_KOMI } from "../../../apps/hedgeschool/src/lib/game/record.ts";\n',
     "packages/review/src/View.svelte": '<script lang="ts">\n  import { tools } from "hedgeschool/src/lib/game/tools.ts";\n',
     "packages/analysis/src/load.ts": 'const record = await import("../../../apps/cyanotype/src/lib/game/record.ts");\n',
+    // SvelteKit's alias: a site's build reads it as that site's src/lib.
+    "packages/site/src/Page.svelte": '<script lang="ts">\n  import { tools } from "$lib/game/tools";\n</script>\n',
     // A package's own node_modules is not the package's code.
     "packages/engine/node_modules/dep/index.js": 'import "../../../../apps/hedgeschool/x.js";\n',
   });
@@ -67,7 +69,25 @@ test("an import of a site's file or of a site's package stops the check, with it
     { file: "packages/analysis/src/load.ts", line: 1, specifier: "../../../apps/cyanotype/src/lib/game/record.ts" },
     { file: "packages/engine/src/step.mjs", line: 2, specifier: "../../../apps/hedgeschool/src/lib/game/record.ts" },
     { file: "packages/review/src/View.svelte", line: 2, specifier: "hedgeschool/src/lib/game/tools.ts" },
+    { file: "packages/site/src/Page.svelte", line: 2, specifier: "$lib/game/tools" },
   ]);
+});
+
+test("a dynamic import of a computed path stops the check, but in a file that COMPUTED_PATHS names", t => {
+  // The engine step's earlier import of the site's record: a join of the site's folder, which no path shows.
+  const step = 'const { MAX_RECORD_KOMI } = await import(pathToFileURL(join(root, "src", "lib", "game", "record.ts")).href);';
+  assert.deepEqual(computedImports(step), [1]);
+  // A literal path, a template with no part computed, a comment's line and prose are not computed imports.
+  assert.deepEqual(computedImports([
+    'await import("./a.ts");', "await import(`./b.ts`);", "// The page's import(url) loads the library.",
+    " * after an import (a review file).",
+  ].join("\n")), []);
+  const root = repository(t, {
+    "packages/engine/src/step.mjs": `import { join } from "node:path";\n${step}\n`,
+    "packages/engine/src/library.ts": "export const loadLibrary = (url: string) => import(/* @vite-ignore */ url);\n",
+  });
+  assert.ok(COMPUTED_PATHS.has("packages/engine/src/library.ts"));
+  assert.deepEqual(check(root), [{ file: "packages/engine/src/step.mjs", line: 2, specifier: null }]);
 });
 
 test("the script exits 1 and names the import, or exits 0", t => {
