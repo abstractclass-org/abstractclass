@@ -38,62 +38,23 @@ export function wallMarks(walls: WeakWalls): WallMark[] {
   return marks.sort((a, b) => a.chance - b.chance);
 }
 
-/** A ring's colour: the place of the chance on the ramp, in percent, from its faint end at the smallest chance marked
- *  to its bold end at 1 (the board's color-mix of `--wall-low` and `--wall-high`). */
+/** The place of a chance on the rings' ramp, in percent: from its faint end at the smallest chance marked to its bold
+ *  end at 1. */
 export const wallMix = (chance: number) => Math.min(100, Math.max(0, Math.round(((chance - WALL_MIN) / (1 - WALL_MIN)) * 100)));
 
-/** The rings' forms for a look before a choice (design 30, "The weak walls", item 3): A, the ramp above, is the page's
- *  form. The others show only behind the look's switch (`lookForm`):
- *  - B: classes of the ramp's hue (`WALL_CLASSES`), their colours evenly spaced on the ramp, which is a straight line in
- *    OKLab, so that each class is as far from the next in lightness.
- *  - C: B's classes, the ring wider with each class (`CLASS_WIDTH`).
- *  - D: a ramp of three hues, yellow, orange and brown (`--wall-d-low`, `--wall-d-mid` and `--wall-d-high`), as
- *    ColorBrewer's YlOrBr, apart from the players' blue and red and the signs' green.
- *  - E: B's classes on D's ramp: steps of hue and lightness together. */
-export const WALL_FORMS = ["A", "B", "C", "D", "E"] as const;
-export type WallForm = (typeof WALL_FORMS)[number];
-
-/** The classes' lower ends, for the forms B, C and E: a class takes the chances from its end up to the next. Each end
- *  lies in a gap between the chances that the positions of design 30 show (the review fixture after 40 edges: 19 to
- *  26%; the Analysis board after Space six times: 24, 41 to 50, 59 to 72, and 80%): 30, so that 24% and 25% stay
- *  together; 50, even odds; 75, between 72 and 80, which puts 70% and 85% apart. */
-export const WALL_CLASSES = [WALL_MIN, 0.3, 0.5, 0.75];
-/** The ring's width in each class, in the form C: today's ring, 0.1, at the second class. */
-const CLASS_WIDTH = [0.06, 0.1, 0.14, 0.18];
-
-/** The class of a chance: the index of the last class end at or under it. */
-export const wallClass = (chance: number) => WALL_CLASSES.findLastIndex(end => chance >= end);
-
-/** A place on D's ramp, from 0 (`--wall-d-low`) to 100 (`--wall-d-high`), through `--wall-d-mid` at 50. */
-const threeHues = (mix: number) => mix <= 50
-  ? `color-mix(in oklab, var(--wall-d-mid) ${mix * 2}%, var(--wall-d-low))`
-  : `color-mix(in oklab, var(--wall-d-high) ${mix * 2 - 100}%, var(--wall-d-mid))`;
-
-/** A ring's ink in the form `form`: its colour, and its width where the form sets one (null: the board's 0.1). */
-export function wallInk(chance: number, form: WallForm): { stroke: string; width: number | null } {
-  const cls = wallClass(chance), steps = WALL_CLASSES.length - 1;
-  const classMix = Math.round((Math.max(0, cls) / steps) * 100);
-  const mix = form === "A" || form === "D" ? wallMix(chance) : classMix;
-  const stroke = form === "D" || form === "E" ? threeHues(mix)
-    : `color-mix(in oklab, var(--wall-high) ${mix}%, var(--wall-low))`;
-  return { stroke, width: form === "C" ? CLASS_WIDTH[Math.max(0, cls)] : null };
+/** A ring's colour: a ramp of three hues, from `--wall-low` at the ramp's faint end through `--wall-mid` at its half
+ *  to `--wall-high` at its bold end (the tokens in src/app.css): yellow, orange and brown on the light board, as
+ *  ColorBrewer's YlOrBr, and brown, orange and yellow on the dark board, so that a bolder ring means a likelier cut
+ *  on both. Two parts mixed in OKLab, each a straight line. A change of hue between the parts keeps near chances
+ *  further apart than one hue does (design 30, "The weak walls", item 3). */
+export function wallInk(chance: number): string {
+  const mix = wallMix(chance);
+  return mix <= 50
+    ? `color-mix(in oklab, var(--wall-mid) ${mix * 2}%, var(--wall-low))`
+    : `color-mix(in oklab, var(--wall-high) ${mix * 2 - 100}%, var(--wall-mid))`;
 }
 
-const LOOK_KEY = "hedge-school:wall-form";
-/** The look's switch: the form that the address asks for (`?walls=B`), kept for the tab's visit, as the pages drop
- *  the address's query. Read when this module loads, before a page replaces its address. A for any other value. */
-const lookAsked: WallForm = (() => {
-  if (typeof location === "undefined") return "A";
-  try {
-    const asked = new URLSearchParams(location.search).get("walls");
-    if (asked) sessionStorage.setItem(LOOK_KEY, asked);
-    const form = asked ?? sessionStorage.getItem(LOOK_KEY);
-    return (WALL_FORMS as readonly string[]).includes(form ?? "") ? (form as WallForm) : "A";
-  } catch { return "A"; }
-})();
-export const lookForm = (): WallForm => lookAsked;
-
-/** A chance as the readings write it:a whole percentage, and "under 1%" or "over 99%" near the ends. */
+/** A chance as the readings write it: a whole percentage, and "under 1%" or "over 99%" near the ends. */
 export function chanceText(chance: number): string {
   if (chance > 0 && chance < 0.005) return "under 1%";
   if (chance >= 0.995 && chance < 1) return "over 99%";

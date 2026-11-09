@@ -20,14 +20,12 @@
   --board-bg: #f3ead7;
   --board-dot: #b9ab8d;
   --area: #a8508f; /* the Advantage chart's area line: magenta, apart from the players' blue and red and the labels' hues */
-  /* The weak walls' rings (a prototype, design 30): one brown, apart from the players' blue and red and the signs'
-     green. Their ramp goes from --wall-low (a tenth) to --wall-high (certain). */
-  --wall-high: #6b2a00; /* 9.9:1 against the board */
-  --wall-low: #c39a3f; /* 2.2:1: the faintest marks */
-  /* The ramp of three hues of the look's form D (weakWalls.ts, `WALL_FORMS`): yellow, orange, brown */
-  --wall-d-low: #c4a11e; /* 2.1:1 */
-  --wall-d-mid: #a96000; /* 4.0:1 */
-  --wall-d-high: #622b0d; /* 9.4:1 */
+  /* The weak walls' rings (a prototype, design 30): a ramp of three hues, apart from the players' blue and red and the
+     signs' green. It goes from --wall-low (a tenth) through --wall-mid (55%) to --wall-high (certain), mixed in OKLab
+     (weakWalls.ts, `wallInk`). The contrasts are WCAG 2.2's ratio against --board-bg. */
+  --wall-low: #c4a11e; /* yellow, 2.07:1: the faintest marks */
+  --wall-mid: #a96000; /* orange, 4.03:1 */
+  --wall-high: #622b0d; /* brown, 9.39:1 */
   /* The position symbols' shades (the book's table, design 32, item 3): the stronger the position, the farther its
      symbol's shade from the text's colour, which = and ∞ take. A side's three shades lie on a straight line in OKLCH,
      with the side's hue, from --text (its lightness and chroma) to the side's far shade, at 0.45, 0.72 and 1 of the way
@@ -49,11 +47,10 @@
   --board-bg: #3a362e;
   --board-dot: #6d6555;
   --area: #d27fbb;
-  --wall-high: #ffc94d; /* 8.3:1 against the board */
-  --wall-low: #8f7748; /* 2.1:1 */
-  --wall-d-low: #9a6649; /* 2.5:1: brown */
-  --wall-d-mid: #e49324; /* 4.9:1: orange */
-  --wall-d-high: #fce260; /* 9.3:1: yellow */
+  /* The weak walls' ramp the other way, so that the likelier cut is still the bolder ring on the dark board */
+  --wall-low: #9a6649; /* brown, 2.50:1 against --board-bg */
+  --wall-mid: #e49324; /* orange, 4.86:1 */
+  --wall-high: #fce260; /* yellow, 9.27:1 */
   --blue-slightly-better: #9cb6e3;
   --blue-better: #7299df;
   --blue-winning: #487ad9;

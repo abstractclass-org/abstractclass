@@ -1,26 +1,25 @@
-// The weak walls' ring forms for a look before a choice (design 30, "The weak walls", item 3; weakWalls.ts,
-// `WALL_FORMS`): each form drawn in the real page, at the positions that show the walls (design 30, "Positions that
-// show them"), with the strips and the numbers beside them.
-// - The chances that the two positions show, read from form A's rings (their place on the ramp, to half a point).
-// - A board image per form, position, window width (1400 and 390 pixels) and board (light, dark), by the look's switch
-//   (`?walls=`): the Analysis board after Space six times from the start, and the review fixture after 40 edges.
-// - A strip per form and board: a ring at 10, 20, ... 100% on a Blue and on a Red edge, with its number, at the board's
-//   scale in a window 1400 pixels wide.
-// - The numbers: for each form and board, the colour distance in OKLab (ΔE, × 100) between 70% and 85% and between 20%
-//   and 35%, and each ring's contrast against the board (WCAG 2.2's ratio).
+// The weak walls' rings (design 30, "The weak walls", item 3; weakWalls.ts, `wallInk`): drawn in the real page, at the
+// positions that show the walls (design 30, "Positions that show them"), with a strip and the numbers beside them.
+// - The chances that the two positions show, read from the rings' strokes (their place on the ramp, to half a point).
+// - A board image per position, window width (1400 and 390 pixels) and board (light, dark): the Analysis board after
+//   Space six times from the start, and the review fixture after 40 edges.
+// - A strip per board: a ring at 10, 20, ... 100% on a Blue and on a Red edge, with its number, at the board's scale in
+//   a window 1400 pixels wide.
+// - The numbers: for each board, the colour distance in OKLab (ΔE, × 100) between 70% and 85% and between 20% and 35%,
+//   and each ring's contrast against the board (WCAG 2.2's ratio).
 // In Playwright's Chromium, headless, with the layout test's launch options (off the GPU), and the engine's GPU off:
 // the walls come from a CPU worker. The browser takes the build from the script, at an address that no server holds
 // (ORIGIN), as a preview serves it (speed.mjs, `preview`): no port, so no other server can answer in its place. Run it
 // in apps/hedgeschool, after a build:
 //
-//   node scripts/measure/wall-forms.mjs <build dir> <out dir> [workers]
+//   node scripts/measure/wall-rings.mjs <build dir> <out dir> [workers]
 import { chromium } from "@playwright/test";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import config from "../../playwright.config.ts";
 import { checkLaunch } from "../edge.mjs";
 import { FIXTURE, headerRules, stepTo, watchSweep } from "./speed.mjs";
-import { WALL_CLASSES, WALL_FORMS, wallInk } from "../../src/lib/review/weakWalls.ts";
+import { WALL_MIN, wallInk } from "../../src/lib/review/weakWalls.ts";
 
 const [dir, out, workersArg = "2"] = process.argv.slice(2);
 const workers = Number(workersArg);
@@ -49,15 +48,15 @@ function rgbOf([L, a, b]) {
 const luminance = rgb => { const [r, g, b] = rgb.map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const contrast = (x, y) => { const [a, b] = [luminance(x), luminance(y)].sort((p, q) => q - p); return (a + 0.05) / (b + 0.05); };
 const hexOf = rgb => "#" + rgb.map(c => Math.round(c * 255).toString(16).padStart(2, "0")).join("");
+const STROKE = /var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)/;
 /** A ring's stroke, a color-mix of two tokens in OKLab, as an OKLab colour: `tokens` gives each token's hex. */
 function inkLab(stroke, tokens) {
-  const [, hi, p, lo] = stroke.match(/var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)/);
+  const [, hi, p, lo] = stroke.match(STROKE);
   const [x, y] = [oklab(rgbOfHex(tokens[hi])), oklab(rgbOfHex(tokens[lo]))];
   return y.map((v, i) => v + (x[i] - v) * (Number(p) / 100));
 }
 const dE = (x, y) => 100 * Math.hypot(...x.map((v, i) => v - y[i]));
-const TOKENS = ["--board-bg", "--board-dot", "--blue", "--red", "--wall-low", "--wall-high", "--wall-d-low", "--wall-d-mid",
-                "--wall-d-high", "--text"];
+const TOKENS = ["--board-bg", "--board-dot", "--blue", "--red", "--wall-low", "--wall-mid", "--wall-high", "--text"];
 const THEMES = ["light", "dark"];
 const WIDTHS = [[1400, 900], [390, 844]];
 
@@ -68,7 +67,6 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", "
                 ".json": "application/json", ".wasm": "application/wasm", ".svg": "image/svg+xml", ".png": "image/png",
                 ".ico": "image/x-icon", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml" };
 const rules = headerRules(dir), isFile = p => (existsSync(p) && statSync(p).isFile() ? p : undefined);
-const server = { url: ORIGIN };
 const browser = await chromium.launch(launchOptions);
 const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 const unserved = [];
@@ -92,7 +90,7 @@ await context.addInitScript(() => {
 const page = await context.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
-await page.goto(server.url);
+await page.goto(ORIGIN);
 if (!/Hedge School/.test(await page.title())) throw new Error(`the build serves "${await page.title()}"`);
 
 const ended = () => page.waitForFunction(() => window.__searches.every(s => s.ended !== undefined), null, { timeout: 300_000 })
@@ -103,10 +101,12 @@ async function ringsShown() {
   await rings.first().waitFor({ timeout: 180_000 });
   for (let last = -1, now = await rings.count(); now !== last; last = now, now = await rings.count()) await page.waitForTimeout(1000);
 }
-/** The chances of the rings on the page, read from form A's strokes (the place on the ramp from 10% to 1, in whole
- *  percent): to half a point. */
-const chancesShown = () => rings.evaluateAll(cs => cs.map(c => Number(c.getAttribute("style").match(/ (\d+)%,/)[1])))
-  .then(ms => ms.map(m => Math.round((0.1 + (0.9 * m) / 100) * 1000) / 1000).sort((a, b) => a - b));
+/** The chances of the rings on the page, read from their strokes (the place on the ramp from 10% to 1, in whole
+ *  percent, which the stroke gives in one of its two parts): to half a point. */
+const chancesShown = () => rings.evaluateAll((cs, source) => cs.map(c => {
+  const [, hi, p] = c.getAttribute("style").match(new RegExp(source));
+  return hi === "--wall-high" ? 50 + Number(p) / 2 : Number(p) / 2;
+}), STROKE.source).then(ms => ms.map(m => Math.round((WALL_MIN + ((1 - WALL_MIN) * m) / 100) * 1000) / 1000).sort((a, b) => a - b));
 /** The board with its top margin (the switches and the legend), as an image. */
 async function boardShot(file) {
   await page.mouse.move(0, 0);
@@ -120,7 +120,7 @@ async function boardShot(file) {
 const unit = () => page.locator("svg.board").first().evaluate(s => s.getBoundingClientRect().width / s.viewBox.baseVal.width);
 
 // The positions. The Analysis board: Home, then Space six times, each after the search ends, so that Space plays the
-// engine's first choice. The board keeps its place, so each form's page opens there again.
+// engine's first choice. The board keeps its place, so its page opens there again.
 const POSITIONS = {
   analysis6: { path: "/analysis", ready: async () => { await page.locator("svg.board").first().waitFor(); } },
   review40: { path: "/review", ready: async () => {
@@ -128,7 +128,7 @@ const POSITIONS = {
     await stepTo(page, 40);
   } },
 };
-await page.goto(`${server.url}/analysis?walls=A`);
+await page.goto(`${ORIGIN}/analysis`);
 await page.locator("svg.board").first().waitFor({ timeout: 60_000 });
 await page.locator("body").click({ position: { x: 1, y: 1 } });
 await page.keyboard.press("Home");
@@ -147,8 +147,8 @@ for (let k = 1; k <= 6; k++) {
 }
 const analysisMoves = await page.locator(".mv").allTextContents();
 console.log(`Analysis board: ${analysisMoves.map(t => t.trim()).join(" ")}`);
-// The review fixture, imported once: each form's page opens the stored review
-await page.goto(`${server.url}/review?walls=A`);
+// The review fixture, imported once: its page then opens the stored review
+await page.goto(`${ORIGIN}/review`);
 await page.locator('input[type="file"][accept*="json"]').and(page.locator("[data-ready]")).first().setInputFiles(FIXTURE);
 await page.waitForURL(/#game=/, { timeout: 60_000 });
 POSITIONS.review40.hash = new URL(page.url()).hash;
@@ -156,85 +156,80 @@ POSITIONS.analysis6.hash = "";
 
 const chances = {}, tokens = {}, images = [];
 let scale = 0;
-for (const form of WALL_FORMS) {
-  for (const [name, position] of Object.entries(POSITIONS)) {
-    await page.setViewportSize({ width: 1400, height: 900 });
-    await page.goto(`${server.url}${position.path}?walls=${form}${position.hash}`);
-    await position.ready();
-    if (name === "analysis6") await page.locator("body").click({ position: { x: 1, y: 1 } });
-    await ended();
-    await ringsShown();
-    if (form === "A") chances[name] = await chancesShown();
-    for (const [width, height] of WIDTHS) {
-      await page.setViewportSize({ width, height });
-      for (const theme of THEMES) {
-        await page.evaluate(t => (document.documentElement.dataset.theme = t), theme);
-        await page.waitForTimeout(400);
-        if (!tokens[theme]) {
-          tokens[theme] = await page.evaluate(names => Object.fromEntries(names.map(n =>
-            [n, getComputedStyle(document.documentElement).getPropertyValue(n).trim()])), TOKENS);
-        }
-        if (width === 1400 && !scale) scale = await unit();
-        const file = `walls-${form}-${name}-${width}-${theme}.png`;
-        await boardShot(file);
-        images.push(file);
+for (const [name, position] of Object.entries(POSITIONS)) {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  // A navigation of the page before (the review's import replaces its address) can abort this one: then once again
+  await page.goto(`${ORIGIN}${position.path}${position.hash}`).catch(async e => {
+    if (!/ERR_ABORTED/.test(e.message)) throw e;
+    await page.waitForTimeout(1000);
+    await page.goto(`${ORIGIN}${position.path}${position.hash}`);
+  });
+  await position.ready();
+  if (name === "analysis6") await page.locator("body").click({ position: { x: 1, y: 1 } });
+  await ended();
+  await ringsShown();
+  chances[name] = await chancesShown();
+  for (const [width, height] of WIDTHS) {
+    await page.setViewportSize({ width, height });
+    for (const theme of THEMES) {
+      await page.evaluate(t => (document.documentElement.dataset.theme = t), theme);
+      await page.waitForTimeout(400);
+      if (!tokens[theme]) {
+        tokens[theme] = await page.evaluate(names => Object.fromEntries(names.map(n =>
+          [n, getComputedStyle(document.documentElement).getPropertyValue(n).trim()])), TOKENS);
       }
+      if (width === 1400 && !scale) scale = await unit();
+      const file = `walls-${name}-${width}-${theme}.png`;
+      await boardShot(file);
+      images.push(file);
     }
-    console.log(`form ${form}, ${name}: ${await rings.count()} rings`);
   }
+  console.log(`${name}: ${await rings.count()} rings`);
 }
 
 // The strips, at the board's scale in a window 1400 pixels wide
 const STEPS = Array.from({ length: 10 }, (_, i) => (i + 1) / 10);
 const strip = await context.newPage();
-for (const form of WALL_FORMS) {
-  for (const theme of THEMES) {
-    const t = tokens[theme], ink = s => s.replace(/var\((--[\w-]+)\)/g, (_, n) => t[n]);
-    const cells = STEPS.map((c, i) => {
-      const { stroke, width } = wallInk(c, form), w = width ?? 0.1, x = 1 + i * 1.6;
-      return [0, 1].map(p => {
-        const y = 0.9 + p * 1.1, edge = p ? t["--red"] : t["--blue"];
-        return `<line x1="${x - 0.7}" y1="${y}" x2="${x + 0.7}" y2="${y}" stroke="${edge}" stroke-width="0.13" stroke-linecap="round"/>` +
-          `<circle cx="${x}" cy="${y}" r="0.16" fill="${edge}"/>` +
-          `<circle cx="${x}" cy="${y}" r="0.27" fill="none" stroke="${t["--board-bg"]}" stroke-width="${w + 0.08}"/>` +
-          `<circle cx="${x}" cy="${y}" r="0.27" fill="none" stroke="${ink(stroke)}" stroke-width="${w}"/>`;
-      }).join("") + `<text x="${x}" y="3" text-anchor="middle" font-size="0.42" fill="${t["--text"]}">${Math.round(c * 100)}%</text>`;
-    }).join("");
-    const W = 2 + 9 * 1.6, H = 3.4;
-    await strip.setViewportSize({ width: Math.ceil(W * scale), height: Math.ceil(H * scale) });
-    await strip.setContent(`<html><body style="margin:0;background:${t["--board-bg"]};font-family:system-ui,sans-serif">` +
-      `<svg width="${W * scale}" height="${H * scale}" viewBox="0 0 ${W} ${H}">${cells}</svg></body></html>`);
-    const file = `strip-${form}-${theme}.png`;
-    await strip.screenshot({ path: join(out, file) });
-    images.push(file);
-  }
+for (const theme of THEMES) {
+  const t = tokens[theme], ink = s => s.replace(/var\((--[\w-]+)\)/g, (_, n) => t[n]);
+  const cells = STEPS.map((c, i) => {
+    const x = 1 + i * 1.6;
+    return [0, 1].map(p => {
+      const y = 0.9 + p * 1.1, edge = p ? t["--red"] : t["--blue"];
+      return `<line x1="${x - 0.7}" y1="${y}" x2="${x + 0.7}" y2="${y}" stroke="${edge}" stroke-width="0.13" stroke-linecap="round"/>` +
+        `<circle cx="${x}" cy="${y}" r="0.16" fill="${edge}"/>` +
+        `<circle cx="${x}" cy="${y}" r="0.27" fill="none" stroke="${t["--board-bg"]}" stroke-width="0.18"/>` +
+        `<circle cx="${x}" cy="${y}" r="0.27" fill="none" stroke="${ink(wallInk(c))}" stroke-width="0.1"/>`;
+    }).join("") + `<text x="${x}" y="3" text-anchor="middle" font-size="0.42" fill="${t["--text"]}">${Math.round(c * 100)}%</text>`;
+  }).join("");
+  const W = 2 + 9 * 1.6, H = 3.4;
+  await strip.setViewportSize({ width: Math.ceil(W * scale), height: Math.ceil(H * scale) });
+  await strip.setContent(`<html><body style="margin:0;background:${t["--board-bg"]};font-family:system-ui,sans-serif">` +
+    `<svg width="${W * scale}" height="${H * scale}" viewBox="0 0 ${W} ${H}">${cells}</svg></body></html>`);
+  const file = `strip-${theme}.png`;
+  await strip.screenshot({ path: join(out, file) });
+  images.push(file);
 }
 
 // The numbers
 const numbers = {};
-for (const form of WALL_FORMS) {
-  numbers[form] = {};
-  for (const theme of THEMES) {
-    const t = tokens[theme], lab = c => inkLab(wallInk(c, form).stroke, t), bg = rgbOfHex(t["--board-bg"]);
-    numbers[form][theme] = {
-      dE70_85: dE(lab(0.7), lab(0.85)), dE20_35: dE(lab(0.2), lab(0.35)),
-      rings: STEPS.map(c => ({ chance: c, ink: hexOf(rgbOf(lab(c))), contrast: contrast(rgbOf(lab(c)), bg),
-                               width: wallInk(c, form).width ?? 0.1 })),
-    };
-  }
+for (const theme of THEMES) {
+  const t = tokens[theme], lab = c => inkLab(wallInk(c), t), bg = rgbOfHex(t["--board-bg"]);
+  numbers[theme] = {
+    dE70_85: dE(lab(0.7), lab(0.85)), dE20_35: dE(lab(0.2), lab(0.35)),
+    rings: STEPS.map(c => ({ chance: c, ink: hexOf(rgbOf(lab(c))), contrast: contrast(rgbOf(lab(c)), bg) })),
+  };
 }
 const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
-const lines = ["| Form | Board | ΔE 70–85% | ΔE 20–35% | " + STEPS.map(c => `${Math.round(c * 100)}%`).join(" | ") + " |",
-               "|---|---|---|---|" + STEPS.map(() => "---").join("|") + "|"];
-for (const form of WALL_FORMS) for (const theme of THEMES) {
-  const n = numbers[form][theme];
-  lines.push(`| ${form} | ${theme} | ${f1(n.dE70_85)} | ${f1(n.dE20_35)} | ${n.rings.map(r => f2(r.contrast)).join(" | ")} |`);
+const lines = ["| Board | ΔE 70–85% | ΔE 20–35% | " + STEPS.map(c => `${Math.round(c * 100)}%`).join(" | ") + " |",
+               "|---|---|---|" + STEPS.map(() => "---").join("|") + "|"];
+for (const theme of THEMES) {
+  const n = numbers[theme];
+  lines.push(`| ${theme} | ${f1(n.dE70_85)} | ${f1(n.dE20_35)} | ${n.rings.map(r => f2(r.contrast)).join(" | ")} |`);
 }
-const count = cs => WALL_CLASSES.map((lo, i) => [lo, WALL_CLASSES[i + 1] ?? 1.01])
-  .map(([lo, hi]) => `${Math.round(lo * 100)}–${Math.min(100, Math.round(hi * 100))}%: ${cs.filter(c => c >= lo && c < hi).length}`).join(", ");
 const summary = [
   `Analysis board's moves: ${analysisMoves.map(t => t.trim()).join(" ")}`,
-  ...Object.entries(chances).map(([n, cs]) => `${n}: ${cs.length} rings, chances ${cs.map(c => Math.round(c * 1000) / 10).join(" ")} (${count(cs)})`),
+  ...Object.entries(chances).map(([n, cs]) => `${n}: ${cs.length} rings, chances ${cs.map(c => Math.round(c * 1000) / 10).join(" ")}`),
   `tokens: ${JSON.stringify(tokens)}`,
   `the board's scale at 1400 pixels: ${f1(scale)} pixels per lattice unit`,
   "", ...lines, "",

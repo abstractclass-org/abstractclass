@@ -379,15 +379,27 @@ chance that one of them is cut. So the board marks the points, and names no chan
    view, and with it the walls and the Analysis board's setting.
 2. **A mark at each point whose chance is 10% or more** (`WALL_MIN` in `src/lib/review/weakWalls.ts`). In HedgeFund
    0.2's self-play, about half of the points on edges are under 10%, and 1.6% of those were cut.
-3. **A ring of one size at each marked point, whose colour gives the chance.** The colour goes from `--wall-low` at
-   10% to `--wall-high` at 1 (`wallMix` in `src/lib/review/weakWalls.ts`, the tokens in `src/app.css`): from a light
-   to a dark brown on the light board, and from a dim to a bright amber on the dark board. On both boards, the
-   likelier the cut, the bolder the ring against the board. Its hue is apart from the players' blue and red and the
-   signs' green. It is near the hue of the signs' yellow (about 42° against 43° to 45°), but a ring goes round a
-   point, and a sign fills a point's square. The ring is over the edges and the nodes, with a halo in the board's
-   colour that keeps it whole where it meets an edge. The prototype also drew two other forms for the look: a disc
-   under the edges whose area grew with the chance, which hid a chance of 26% under an edge's end node, and a ring
-   filled from the top as far as the chance.
+3. **A ring of one size at each marked point, whose colour gives the chance.** The colour is a ramp of three hues
+   (`wallInk` and `wallMix` in `src/lib/review/weakWalls.ts`, the tokens in `src/app.css`). It goes from `--wall-low`
+   at 10% through `--wall-mid` at 55% to `--wall-high` at 1, in two straight parts in OKLab. On the light board it
+   goes from yellow through orange to brown, as ColorBrewer's YlOrBr. On the dark board it goes the other way, from
+   brown through orange to yellow. So on both boards, the likelier the cut, the bolder the ring against the board:
+   from 2.07:1 to 9.39:1 on the light board, and from 2.50:1 to 9.27:1 on the dark board (WCAG 2.2's contrast).
+   - **Why three hues:** the first ramp had one hue, a brown from light to dark (an amber from dim to bright on the
+     dark board). On real positions, its 70% and 85% looked almost the same. In OKLab they are 0.055 apart on the
+     light board and 0.047 on the dark board. A change of hue adds distance that one hue cannot give. On the ramp of
+     three hues, 70% and 85% are 0.066 and 0.063 apart, and 20% and 35% are 0.059 and 0.064 apart (one hue: 0.058 and
+     0.050). Five forms were drawn at the positions below (docs/decisions/product.md, "The weak walls' colour: a ramp
+     of three hues"). Classes of colour gave larger steps between classes, but each class shows its chances in one
+     colour.
+   - **Its hues** are apart from the players' blue and red and the signs' green. At every chance, the ring's colour
+     is at least 0.10 from the players' red in OKLab, and at least 0.147 from the signs' green. Near the middle it
+     comes within 0.035 of the signs' yellow (at 42% on the light board and 63% on the dark board), but a ring goes
+     round a point, and a sign fills a point's square.
+   - **The ring** is over the edges and the nodes, with a halo in the board's colour that keeps it whole where it
+     meets an edge. The prototype also drew two other forms for the look: a disc under the edges whose area grew with
+     the chance, which hid a chance of 26% under an edge's end node, and a ring filled from the top as far as the
+     chance.
 4. **The legend and the numbers:** while the weak walls show and the area map does not, the legend's line says
    "Weak walls: bolder means weaker", or "Weak walls: none at 10% or more" where no point is marked. While the mouse's
    pointer is on a point of an edge, the line gives its reading in its place, for example "E5 · Blue · cut chance 62%"
@@ -416,12 +428,6 @@ chance that one of them is cut. So the board marks the points, and names no chan
 
 ### Still open
 
-- **The rings' form:** on the ramp, 70% and 85% are hard to tell apart. Four other forms show only behind a switch
-  for the look, `?walls=B` to `?walls=E` in the address (`WALL_FORMS` and `lookForm` in
-  `src/lib/review/weakWalls.ts`), kept for the tab's visit: four classes of the ramp's hue, the same with wider rings
-  in the higher classes, a ramp of three hues (yellow, orange, brown), and its classes. The classes start at 10, 30, 50
-  and 75%. Each of 30, 50 and 75 lies in a gap between the chances that the two positions below show.
-  `scripts/measure/wall-forms.mjs` draws each form at those positions and gives the colour distances and contrasts.
 - **The walls and the area map:** a setting of its own beside the map, as here, or a style of the map's switch.
 - **A line's walls:** whether the walls follow a line as it is drawn, as the area map does (the decision's item 5).
 - **Stored or not:** whether the walls are kept with the maps (the decision's item 6), for a review file and a
@@ -458,8 +464,9 @@ chance that one of them is cut. So the board marks the points, and names no chan
   at the positions that a review snapshot reads),
   `src/lib/game/reviewFile.ts` and `src/lib/game/analysisFile.ts` (the files at shape 5),
   `packages/engine/src/protocol.ts` (the fields).
-- The weak walls' prototype: `src/lib/review/weakWalls.ts` (`wallMarks`, `wallMix`, `wallReading`, `WALL_MIN`;
-  tests: `weakWalls.test.ts`), the rings in `src/lib/board/Board.svelte` (the prop `walls`), `askWalls`, `wallsAt`
+- The weak walls' prototype: `src/lib/review/weakWalls.ts` (`wallMarks`, `wallMix`, `wallInk`, `wallReading`,
+  `WALL_MIN`; tests: `weakWalls.test.ts`), the rings' tokens `--wall-low`, `--wall-mid` and `--wall-high` in
+  `src/app.css`, the rings in `src/lib/board/Board.svelte` (the prop `walls`), `askWalls`, `wallsAt`
   and `wallState` in `packages/analysis/src/analysis.svelte.ts`, the pool's `cpu` task in
   `packages/engine/src/pool.ts` (tests: `pool.test.ts`), `weakWalls` in `packages/engine/src/protocol.ts`, the
   switch, the legend, the setting and the key w in `packages/review/src/ReviewView.svelte` (`wallsOn`, `shownWalls`,
@@ -468,8 +475,8 @@ chance that one of them is cut. So the board marks the points, and names no chan
   `candidate-maps.mjs` (a candidate's map from a short search), `candidate-map-delay.mjs` (its delay in the browser),
   `line-map-lag.mjs` (the maps' lag behind an animated line), `difference-at-best.mjs` (after vs before at the best
   moves), `ownership-maps.mjs` (the change style's share of the board on real games), `map-pass.mjs` (the map stage's
-  time), `map-wait-check.mjs` (a browser check that the note's states end) and `wall-forms.mjs` (the weak walls'
-  ring forms for a look, with their images and numbers).
+  time), `map-wait-check.mjs` (a browser check that the note's states end) and `wall-rings.mjs` (the weak walls'
+  rings at the "Positions that show them", with a strip of their colours, the colour distances and the contrasts).
 
 ## Log entries
 
@@ -479,6 +486,6 @@ chance that one of them is cut. So the board marks the points, and names no chan
   candidate's map from a short search, on a close game", "The map follows the line as drawn", "After vs before: the
   third style", "The marks of After vs before, and 0.05", "The map's work made visible, and the map stage", "\"Map:
   waiting for the engine\" did not end", "The area map's review", "The map's bookkeeping in edge cases" and "The
-  review of the map's bookkeeping".
+  review of the map's bookkeeping". 2026-11-10: "The weak walls' colour: a ramp of three hues".
 - [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21), and
   "The release c43233eb: protocol 0.6.2 and the weak walls" (2026-11-09).

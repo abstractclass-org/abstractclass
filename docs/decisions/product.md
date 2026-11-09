@@ -10771,3 +10771,56 @@ its full import already ("Cyanotype's review files, as Hedge School's").
   whose network the site does not ship gives way to the settings card"): its status line did not show within 5 s
   after a reload. This change does not touch Cyanotype. The case passed three times of three alone, and in the final
   run.
+
+### The weak walls' colour: a ramp of three hues (2026-11-10)
+
+- **The problem** (abscls-npaa): in a try of the weak walls on dev, the rings' colours of high chances, such as 70%
+  and 85%, looked almost the same, and so did some middle and low chances. The ramp had one hue, a straight line in
+  OKLab from #c39a3f at 10% to #6b2a00 at 1 on the light board, and from #8f7748 to #ffc94d on the dark board. On it,
+  70% and 85% are 0.055 apart in OKLab on the light board and 0.047 on the dark board.
+- **Five forms,** drawn in the real page at design 30's two positions ("Positions that show them"): the Analysis
+  board after Space six times (14 rings, from 24% to 80%) and the review fixture after 40 edges (4 rings, from 19% to
+  26%). Each form was drawn on the light and the dark board, at 1400 and 390 pixels, with a strip of rings at 10, 20,
+  ... 100%. The browser was headless Chromium with the layout test's launch options, and the walls came from a CPU
+  worker.
+  - **A:** the ramp of one hue.
+  - **B:** four classes of A's hue, from 10, 30, 50 and 75%, their colours at 0, 1/3, 2/3 and 1 of A's ramp. Each
+    class's lower end lies in a gap between the chances of the two positions, and 75% puts 70% and 85% in two
+    classes.
+  - **C:** B, with a wider ring in each higher class (0.06, 0.10, 0.14 and 0.18 of a lattice unit).
+  - **D:** a ramp of three hues: yellow #c4a11e, orange #a96000 and brown #622b0d on the light board, as
+    ColorBrewer's YlOrBr. On the dark board it goes the other way, brown #9a6649, orange #e49324 and yellow #fce260,
+    so that a bolder ring still means a likelier cut.
+  - **E:** B's classes on D's ramp.
+- **The numbers:** the distance between two chances' colours in OKLab (ΔE, × 100), and WCAG 2.2's contrast of each
+  ring against the board (#f3ead7 light, #3a362e dark). C's colours are B's.
+
+  | Form | Board | ΔE 70–85% | ΔE 20–35% | 10% | 20% | 30% | 40% | 50% | 60% | 70% | 80% | 90% | 100% |
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | A | light | 5.5 | 5.8 | 2.19 | 2.53 | 2.93 | 3.41 | 3.98 | 4.73 | 5.56 | 6.54 | 7.68 | 8.98 |
+  | A | dark | 4.7 | 5.0 | 2.80 | 3.18 | 3.59 | 4.05 | 4.55 | 5.15 | 5.75 | 6.40 | 7.10 | 7.85 |
+  | B, C | light | 11.3 | 11.3 | 2.19 | 2.19 | 3.41 | 3.41 | 5.56 | 5.56 | 5.56 | 8.98 | 8.98 | 8.98 |
+  | B, C | dark | 9.6 | 9.6 | 2.80 | 2.80 | 4.05 | 4.05 | 5.75 | 5.75 | 5.75 | 7.85 | 7.85 | 7.85 |
+  | D | light | 6.6 | 5.9 | 2.07 | 2.38 | 2.75 | 3.18 | 3.70 | 4.46 | 5.38 | 6.50 | 7.84 | 9.39 |
+  | D | dark | 6.3 | 6.4 | 2.50 | 2.92 | 3.39 | 3.92 | 4.51 | 5.29 | 6.13 | 7.08 | 8.12 | 9.27 |
+  | E | light | 13.6 | 11.5 | 2.07 | 2.07 | 3.18 | 3.18 | 5.38 | 5.38 | 5.38 | 9.39 | 9.39 | 9.39 |
+  | E | dark | 13.0 | 12.4 | 2.50 | 2.50 | 3.92 | 3.92 | 6.13 | 6.13 | 6.13 | 9.27 | 9.27 | 9.27 |
+
+- **Decided:** D, from the look of the five forms. Its steps are smaller than the classes' steps, but each chance
+  keeps a colour of its own. With classes, the Analysis board's nine rings from 59% to 72% showed in one colour. D is
+  now the only form: the look's switch (`?walls=`) and the forms A, B, C and E are gone. Its tokens take the walls'
+  names, `--wall-low`, `--wall-mid` and `--wall-high` (design 30, "The weak walls", item 3). The ring's width stays
+  0.1 of a lattice unit.
+- **The contrast comments:** `src/app.css` gave the one-hue ramp's bold end 9.9:1 on the light board and 8.3:1 on the
+  dark board, and its faint end 2.1:1 on the dark board. WCAG's formula gives 8.98, 7.85 and 2.80. The comments now
+  give D's tokens' values by the formula: 2.07, 4.03 and 9.39 on the light board, and 2.50, 4.86 and 9.27 on the dark
+  board.
+- **Near the signs' yellow:** at every chance, D's colour is at least 0.10 from the players' red in OKLab, and at
+  least 0.147 from the signs' green. Near its middle it comes within 0.035 of the signs' yellow (at 42% on the light
+  board and 63% on the dark board). A ring goes round a point, and a sign fills a point's square.
+- **The measurement:** `scripts/measure/wall-rings.mjs` draws the rings at the two positions, the strip and the
+  numbers. It serves the build by Playwright's request routing, so it uses no port.
+- **Checked:** `npm run check:all` passed, all 16 steps. The whole layout test (headless Chromium) passed 216 cases,
+  "layout of the weak walls" among them, and skipped 10: the analytics ask's 5 cases for each site, which need a
+  build with a Google tag. The walls' unit tests check D's colour at 10%, 55% and 1 on both boards against the tokens
+  in `src/app.css`.
