@@ -1113,8 +1113,7 @@ Enclosure's alone.
    own first day. Its promises are Hedge School's: lenient reading, additions only, a versioned handshake, the review
    file as the site's own.
 10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
-    a partner. Cyanotype has no analytics yet (abscls-8tl1.48). The step that comes second, the analytics or the
-    partner parts, adds these events.
+    a partner. Cyanotype's analytics are built ("Analytics and consent"), so the partner parts add these events.
 11. **Buttons as a kit, not a widget:** four labels (choice 3), the site's head as a file, a sample style and the
     markup. **Blueprints' own part:** Cyanotype's head is the logo's simple drawing, at `/brand/cyanotype.svg`
     ("The logo", item 6), and the sample style is in Cyanotype's colours, white on the dark ground of its tools'
@@ -1264,7 +1263,8 @@ both sites share (design 29), with Cyanotype's own services and keys.
      Constellation export (`pasted_constellation`): both are Enclosure's. Its tools always send their version, so
      `stale_tool` is never `older`.
    - **Its saved work** (`load_source`): `review_file`, `review_share_link`, `analysis_share_link` and
-     `analysis_file`. Cyanotype has no partner sites yet.
+     `analysis_file`. Cyanotype has no partner sites yet, so it sends no `partner_review` and no `export_kind`
+     `partner_save`.
    - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the
      reports have one dimension for a game's length.
    - **`network`** names Stamp Duty's networks (Stamp Duty 0.2).
@@ -1278,9 +1278,9 @@ both sites share (design 29), with Cyanotype's own services and keys.
      (abscls-8tl1.53).
 5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics-ask.spec.ts`) run on both sites,
    each on a build with a made-up measurement ID. They skip on a build without it, as Hedge School's do.
-   `tests/cyanotype-events.spec.ts` checks, on such a build, the events of the review files and the review snapshot:
-   a review file loaded and a file that cannot load, the exports of the review file and the annotated record from the
-   review and the Review tab, the review snapshot's open and Review again.
+   `tests/cyanotype-events.spec.ts` checks the events of the review files and the review snapshot on such a build. It
+   checks a review file loaded and a file that cannot load. It checks the exports of the review file and of the
+   annotated record, from the review and from the Review tab. It checks the review snapshot's open and Review again.
 
 ## The logo
 

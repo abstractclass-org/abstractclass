@@ -7,6 +7,7 @@
 // the CI runners. So only one test reviews with the engine, on the CPU: the game's first LIVE_TURNS turns. The Tests
 // workflow builds Cyanotype with the engine's files (design 33, "The engine's files"). A test skips, with a message,
 // when the preview has none, and fails in CI.
+import { readFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
 import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
 import { modelOf, moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
@@ -131,6 +132,14 @@ export async function openReviewTab(page: Page, timeout?: number) {
   await expect(page.getByRole("heading", { name: "Review your Blueprints game" }))
     .toBeVisible({ timeout: timeout ?? 60_000 });
   await expect(page.locator("footer")).toBeVisible({ timeout });
+}
+
+/** Chooses the entry `entry` of the page's first Export menu (the review's, or the first game's in the Review tab), and
+ *  answers the text of the file that it saves. */
+export async function exportedFile(page: Page, entry: RegExp): Promise<string> {
+  await page.getByRole("button", { name: "Export" }).first().click();
+  const [file] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: entry }).click()]);
+  return readFileSync((await file.path())!, "utf8");
 }
 
 /** Pastes `record` in the Review tab and clicks Review: the import checks the record, and keeps it or says why not.

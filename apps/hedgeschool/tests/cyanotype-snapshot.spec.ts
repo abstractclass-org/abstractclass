@@ -11,14 +11,13 @@
 // - The exports: the annotated record from the review page and from the store (the Review tab's Export) are one text,
 //   and the review file that the review page exports opens the review in a new browser with no search.
 // The tests skip, with a message, when the preview has no engine files, and fail in CI.
-import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 import { belongs } from "../../../packages/analysis/src/files.ts";
 import { positionKeys } from "../../../packages/analysis/src/kept.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { EARLIER_REVIEWED, earlierReview } from "./review-file.ts";
-import { CYANOTYPE, STORED, chooseReviewFile, expectNoSearch, loadStoredFile, noReview, readStored, reviewStoredFile }
-  from "./cyanotype-review.ts";
+import { STORED, chooseReviewFile, expectNoSearch, exportedFile, loadStoredFile, noReview, openReviewTab, readStored,
+         reviewStoredFile } from "./cyanotype-review.ts";
 
 /** The move list once it holds still: each button's text and title (by turn, a turn's quality label is on its own
  *  button). */
@@ -33,13 +32,6 @@ async function moveList(page: Page): Promise<string[]> {
     return still;
   }, { intervals: [1_000], timeout: 60_000 }).toBe(true);
   return JSON.parse(list) as string[];
-}
-
-/** The text of the file that an entry of the Export menu that `button` opens saves. */
-async function exported(page: Page, button: () => ReturnType<Page["getByRole"]>, entry: RegExp): Promise<string> {
-  await button().click();
-  const [file] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: entry }).click()]);
-  return readFileSync((await file.path())!, "utf8");
 }
 
 test.beforeEach(async ({ page }) => {
@@ -76,12 +68,10 @@ test("a review file of an earlier engine, loaded after the site's review of the 
 test("the annotated record from the review and from the store is one text, and the review file opens elsewhere", async ({ page, browser }) => {
   test.setTimeout(240_000);
   await reviewStoredFile(page);
-  const exportButton = () => page.getByRole("button", { name: "Export" });
-  const fromReview = await exported(page, () => exportButton().first(), /^Annotated record as a file/);
-  const file = JSON.parse(await exported(page, () => exportButton().first(), /^Review file/));
-  await page.goto(new URL("/review", CYANOTYPE).href);
-  await expect(page.getByRole("heading", { name: "Your games" })).toBeVisible({ timeout: 60_000 });
-  const fromStore = await exported(page, () => exportButton().first(), /^Annotated record as a file/);
+  const fromReview = await exportedFile(page, /^Annotated record as a file/);
+  const file = JSON.parse(await exportedFile(page, /^Review file/));
+  await openReviewTab(page);
+  const fromStore = await exportedFile(page, /^Annotated record as a file/);
   expect(fromStore).toBe(fromReview);
   const { network } = readStored();
   expect(fromReview).toContain('[Annotator "Cyanotype"]');

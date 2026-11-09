@@ -10376,11 +10376,11 @@ abscls-8tl1.34 and abscls-8tl1.35, on Cyanotype's analytics (abscls-8tl1.48, "Cy
 Hedge School's").
 
 - **The events are Hedge School's** (its design 17), with its names and parameters. The Review tab sends `load_saved`
-  for a review file that it keeps (`load_source` `review_file`, the game's length as `edges`, and `with_results`),
-  and `load_failed` for a review file that it cannot load (`review_file`, `file`). The Export menus of the review and
+  for a review file that it keeps: `load_source` `review_file`, the game's length as `edges`, and `with_results`. It
+  sends `load_failed` for a review file that it cannot load (`review_file`, `file`). The Export menus of the review and
   of each game in the Review tab send `export` with `export_kind` `review_file`, `record_copy` or `record_file`. The
-  review snapshot's open sends `review_open` with `done_before` true and the feature "snapshot opened", and Review
-  again the feature "review again". The review that Review again starts sends no second `review_open`.
+  review snapshot's open sends `review_open` with `done_before` true and the feature "snapshot opened". Review again
+  sends the feature "review again". The review that Review again starts sends no second `review_open`.
 - **Design 33** ("Analytics and consent", item 4) lists them, and its list of what Cyanotype lacks no longer names the
   review files and the review snapshot.
 - **The test:** `tests/cyanotype-events.spec.ts`, on a build with a made-up measurement ID, as the analytics ask's
@@ -10389,3 +10389,10 @@ Hedge School's").
   Google tag.
 - **Checked:** both sites built with `VITE_GA_ID=G-TEST000000`, in headless Chromium on the CPU:
   `analytics-ask.spec.ts` passed its 10 cases, and `cyanotype-events.spec.ts` its 3.
+- **The test fails when an event is wrong.** The review snapshot's case waits for the new review's line "Engine off.
+  The review is paused." after Review again. The page shows it once the new review's sweep starts, after the check
+  that sends no second `review_open`. A first form of the case read the events as soon as the feature "review again"
+  came. That was before the check ran, so the case could not see a second `review_open`. A Cyanotype build with the
+  test ID had two changes: the review page sent `review_open` after Review again too, and the Review tab sent no
+  `load_saved` for a review file. On that build, the review file's case and the review snapshot's case failed, and
+  the case of a file that cannot load passed. On the build without the changes, the 3 cases passed.
