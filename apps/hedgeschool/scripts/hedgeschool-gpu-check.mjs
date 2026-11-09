@@ -25,10 +25,11 @@ const LIVE_TURNS = 5;
 const BASE = process.env.BASE_URL;
 /** The test game's record. */
 const GAME = JSON.parse(readFileSync(new URL("../tests/fixtures/hedgefund-review.json", import.meta.url), "utf8")).record;
-/** The Analysis board's link to the record `record`, at its end: a link with no place opens at the start
- *  (src/routes/analysis/+page.svelte, recordBoard). The place is its edge count. */
+/** The Analysis board's link to the record `record` (firstTurns'), at its end: a link with no place opens at the start
+ *  (src/routes/analysis/+page.svelte, recordBoard). The place is its edge count: the words of its moves that are not
+ *  a turn's number. */
 const boardLink = record => "/analysis#" + new URLSearchParams({
-  record, at: String(record.replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^([A-T]\d+-[A-T]\d+x?|pass)$/.test(t)).length),
+  record, at: String(record.split("\n\n")[1].split(/\s+/).filter(w => w && !/^\d+\.$/.test(w)).length),
 });
 /** The Analysis board's position on screen in local storage, its edges with a space between
  *  (src/routes/analysis/+page.svelte, AT_KEY). */
@@ -47,9 +48,10 @@ async function paste(page, record, timeout) {
 }
 
 /** The weak walls with the GPU On, on the Analysis board (the file's header). */
-async function weakWalls({ newPage, at, upTo, waits, cpu }, { say, fail, show }) {
-  const board = await newPage(), { page } = board;
+async function weakWalls({ newPage, at, upTo, waits }, { say, fail, show }) {
+  const board = await newPage(), { page } = board, consoleErrors = [];
   show(board);
+  page.on("console", m => { if (m.type() === "error") consoleErrors.push(m.text()); });
   await board.keep({ workers: 1 });
   await page.goto(at("/analysis"));
   await page.getByRole("button", { name: "Show threat" }).click({ timeout: upTo(waits.board) });
@@ -73,18 +75,18 @@ async function weakWalls({ newPage, at, upTo, waits, cpu }, { say, fail, show })
   await blur();
   await page.keyboard.press("w");
   await page.getByRole("button", { name: "Weak walls", pressed: true }).waitFor({ timeout: upTo(60_000) });
+  // The rings, or the note that says why none show (an engine that refuses the walls: "not in this engine")
   const rings = page.locator("g.walls circle.wall-ring");
-  await rings.first().waitFor({ timeout: upTo(waits.board) });
-  const unsupported = page.getByText(/^Weak walls: not in this engine/);
-  if (await unsupported.count()) fail(`the board says "${await unsupported.first().innerText()}"`);
-  const work = await page.evaluate(() => window.gpuWork);
-  say(`${await rings.count()} rings; requests for the walls: ${work.gpuWalls} to the GPU, ${work.cpuWalls} to the ` +
-      `CPU workers; ${work.workers} GPU workers, ${work.searches} searches on the GPU`);
+  const none = page.getByText(/^Weak walls: (not in this engine|none at|the game ends here)/);
+  await rings.or(none).first().waitFor({ timeout: upTo(waits.board) });
+  const count = await rings.count();
+  if (!count) fail(`no rings: the board says "${await none.first().innerText()}"`);
+  const work = await board.gpuWork(status, fail);
+  say(`${count} rings; requests for the walls: ${work.gpuWalls} to the GPU, ${work.cpuWalls} to the CPU workers; ` +
+      `${work.workers} GPU workers, ${work.searches} searches on the GPU`);
   if (work.gpuWalls) fail(`${work.gpuWalls} requests for the walls reached the GPU module`);
   if (!work.cpuWalls) fail("no request for the walls reached a CPU worker");
-  if (cpu ? work.workers : status.startsWith("In use") && !work.searches)
-    fail(`${work.workers} GPU workers and ${work.searches} searches on the GPU, with "${status}"`);
-  for (const error of board.consoleErrors) fail(`the console: ${error}`);
+  for (const error of consoleErrors) fail(`the console: ${error}`);
 }
 
 await gpuCheck({

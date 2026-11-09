@@ -10712,5 +10712,14 @@ tag queue, and "PostHog in place of Google Analytics".
 - **Cyanotype's check on the shared module** (`--cpu`, the job `abscls-bp3a-cy-cpu-check`): PASS in 291 s, as before
   it: with On, the review 143 s, the board 63 s and Practice 7 s, and with Auto, the review 1 s, the board 67 s and
   Practice 8 s.
+- **The review's changes:** the browser contexts that a part opens close at the part's end, so that the weak walls'
+  board does not search beside Practice's bot. The weak walls' part waits for the rings or for the note that says why
+  none show ("Weak walls: not in this engine"), so that a refusal fails with its reason, not at the wait's limit. The
+  part's position is not fixed: Space plays the engine's first choice, and the sixth edge was H7-K10 in one run and
+  K10-M11 in the next, with 14 rings in both.
+- **The runs after the review** (`--cpu`, the job `abscls-bp3a-rv-cpu`): Hedge School's, through the GPU run's
+  wrapper with `--cpu`, PASS in 91 s: with On, the review 26 s, the board 21 s, the weak walls 13 s and Practice 3 s,
+  and with Auto, the review 2 s, the board 23 s and Practice 2 s. Cyanotype's PASS in 284 s: with On, the review 136 s,
+  the board 65 s and Practice 8 s, and with Auto, the review 1 s, the board 64 s and Practice 8 s.
 - **Not done yet:** the run on this machine's GPU. It waits for jam-coord's and eng-coord's yes, through
   `scripts/machine run --gpu` (abscls-bp3a).

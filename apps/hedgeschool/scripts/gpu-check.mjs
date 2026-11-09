@@ -5,11 +5,12 @@
 // on this machine. One run checks the engine settings' GPU On, then Auto, each in a new browser context of one
 // browser, so that one job of `scripts/machine run --gpu` covers both. Each takes these parts:
 // - The review. With On, the review of the test game's first turns (the site's `liveTurns`) at Lite: the engine
-//   settings say that the GPU is in use ("In use, ..."), and the review ends. With Auto, the review of the whole test
-//   game, so that the GPU's first-use test (Hedge School's design 15) has its 20 seconds of work on the GPU and on the
-//   workers: the engine settings then give the GPU's speed against a worker's ("In use, ...: N times a worker's
-//   speed."), or say that it is slower and off. The check does not wait for that review's end. A review of 3 turns
-//   took 34 s on the GPU (Cyanotype's), too short for the test, which then waits for more work.
+//   settings say that the GPU is in use ("In use, ..."), and the review ends. With Auto, the review of more of the test
+//   game (the site's `record()`: Hedge School's whole game, Cyanotype's first 20 turns), so that the GPU's first-use
+//   test (Hedge School's design 15) has its 20 seconds of work on the GPU and on the workers: the engine settings then
+//   give the GPU's speed against a worker's ("In use, ...: N times a worker's speed."), or say that it is slower and
+//   off. The check does not wait for that review's end. A review of 3 turns took 34 s on the GPU (Cyanotype's), too
+//   short for the test, which then waits for more work.
 // - The Analysis board, which takes the review's session GPU control: the GPU joins its one worker when more searches
 //   wait than the worker takes (Hedge School's design 15, item 1). The board opens at the end of the test game's next
 //   turn, which the review did not search, with 1 worker and the threat on: the position's search and the threat's make
@@ -65,9 +66,9 @@ const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  *  - `engineKey`: the key of the engine's settings in local storage, and `lite`, the settings of the review other than
  *    `on` and `gpu`. `local`: other keys that each page keeps, such as an answered consent notice.
  *  - `liveTurns` and `record(turns)`: the turns that the review of On reviews, and the test game's record up to the end
- *    of a turn (with no turns, the whole game). `paste(page, record, timeout)`: brings the record in by the Review
- *    tab's paste, which keeps the game and opens its review. `boardLink(record)`: the Analysis board's address at the
- *    record's end (by default, the record alone: Cyanotype's board opens a record at its end).
+ *    of a turn (with no turns, the record that the review of Auto reviews). `paste(page, record, timeout)`: brings the
+ *    record in by the Review tab's paste, which keeps the game and opens its review. `boardLink(record)`: the Analysis
+ *    board's address at the record's end (by default, the record alone: Cyanotype's board opens a record at its end).
  *  - `bot`: the practice bot's name, which starts its line ("Stamp Duty 0.1, ..., on the GPU.").
  *  - `waits`: by `cpu` and by `gpu`, the longest wait of each step in ms: `autoTest`, `review`, `board` and
  *    `practice`, and those of the site's own parts. `budget`: by `cpu` and by `gpu`, the whole run's limit in minutes.
@@ -119,17 +120,18 @@ export async function gpuCheck(site) {
        *  - `settingsButton` and `settingsLine`: the engine settings' button, and the GPU's line in them.
        *  - `gpuLine(ms, report)`: the GPU's line once it has settled, checked against the expected one. Throws when it
        *    does not settle.
+       *  - `gpuWork(status, fail)`: the GPU's work on the page (countGpuWork), checked against the GPU's line `status`:
+       *    no GPU worker off the GPU, and searches on the GPU where it is in use.
        *  - `state()`: the page's state, for a part whose wait ended: its address, the GPU's line, and the bot's line
        *    or the review's progress where they show.
-       *  - `consoleErrors`: the console's errors, in the order they came. */
+       *  A context that a part opens closes at the part's end. */
       async function newPage() {
         const context = await browser.newContext({ viewport: { width: 1376, height: 952 } });
         contexts.push(context);
         context.setDefaultTimeout(60_000);
         await context.addInitScript(countGpuWork);
-        const page = await context.newPage(), consoleErrors = [];
+        const page = await context.newPage();
         page.on("pageerror", e => failures.push(`${gpu}: page error: ${e}`));
-        page.on("console", m => { if (m.type() === "error") consoleErrors.push(m.text()); });
         const keep = (more = {}) => page.evaluate(([key, engine, others]) => {
           localStorage.setItem(key, JSON.stringify(engine));
           for (const [k, v] of Object.entries(others)) localStorage.setItem(k, JSON.stringify(v));
@@ -142,6 +144,12 @@ export async function gpuCheck(site) {
           if (!expected.status.test(status)) fail(`the GPU: "${status}", not ${expected.status}`);
           return status;
         }
+        async function gpuWork(status, fail) {
+          const work = await page.evaluate(() => window.gpuWork);
+          if (cpu ? work.workers : status.startsWith("In use") && !work.searches)
+            fail(`${work.workers} GPU workers and ${work.searches} searches on the GPU, with "${status}"`);
+          return work;
+        }
         async function state() {
           const text = locator => locator.first().innerText({ timeout: 1000 }).then(t => t.replace(/\s+/g, " "), () => null);
           const parts = [`at ${new URL(page.url()).pathname}`];
@@ -152,21 +160,23 @@ export async function gpuCheck(site) {
           return parts.join(", ");
         }
         await page.goto(at("/about"));
-        return { page, keep, settingsButton, settingsLine, gpuLine, state, consoleErrors };
+        return { page, keep, settingsButton, settingsLine, gpuLine, gpuWork, state };
       }
-      const main = await newPage(), { page, keep, settingsButton, settingsLine, gpuLine } = main;
+      const main = await newPage(), { page, keep, settingsButton, settingsLine, gpuLine, gpuWork } = main;
       /** Runs a part, timed, with its own `say` and `fail`. A part whose wait ends prints the state of the page that
-       *  the part names (`main`'s by default), and the next part runs. */
+       *  the part names (`main`'s by default), and the next part runs. The contexts that the part opened then close,
+       *  so that their searches do not take the next part's GPU and workers. */
       async function part(partName, body) {
         const label = `${gpu}, ${partName}`, fail = line => failures.push(`${label}: ${line}`);
         if (Date.now() >= deadline) { fail("not run: the run's limit has passed"); return; }
-        const t0 = Date.now();
+        const t0 = Date.now(), opened = contexts.length;
         let shown = main;
         try {
           await body({ say: line => console.log(`${label}: ${line}`), fail, show: p => (shown = p) });
         } catch (e) {
           fail(`${(e instanceof Error ? e.message : String(e)).split("\n")[0]}; the page's state: ${await shown.state()}`);
         }
+        for (const context of contexts.splice(opened)) await context.close();
         const s = seconds(t0);
         times.push([label, s]);
         console.log(`${label}: ${s} s`);
@@ -208,10 +218,8 @@ export async function gpuCheck(site) {
         const count = await rows.count();
         const first = count ? (await rows.first().innerText()).replace(/\s+/g, " ") : null;
         if (!first) fail("the position's search ended with no candidates");
-        const work = await page.evaluate(() => window.gpuWork);
+        const work = await gpuWork(status, fail);
         say(`${count} candidates, the first "${first}"; ${work.workers} GPU workers, ${work.searches} searches on the GPU`);
-        if (cpu ? work.workers : status.startsWith("In use") && !work.searches)
-          fail(`${work.workers} GPU workers and ${work.searches} searches on the GPU, with "${status}"`);
       });
 
       // The site's own parts
