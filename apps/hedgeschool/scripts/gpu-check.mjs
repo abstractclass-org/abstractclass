@@ -4,13 +4,15 @@
 // Chromium"). Playwright's headless shell, the browser of a headless launch without a channel, makes no WebGPU device
 // on this machine. One run checks the engine settings' GPU On, then Auto, each in a new browser context of one
 // browser, so that one job of `scripts/machine run --gpu` covers both. Each takes these parts:
-// - The review. With On, the review of the test game's first turns (the site's `liveTurns`) at Lite: the engine
-//   settings say that the GPU is in use ("In use, ..."), and the review ends. With Auto, the review of more of the test
-//   game (the site's `record()`: Hedge School's whole game, Cyanotype's first 20 turns), so that the GPU's first-use
-//   test (Hedge School's design 15) has its 20 seconds of work on the GPU and on the workers: the engine settings then
-//   give the GPU's speed against a worker's ("In use, ...: N times a worker's speed."), or say that it is slower and
-//   off. The check does not wait for that review's end. A review of 3 turns took 34 s on the GPU (Cyanotype's), too
-//   short for the test, which then waits for more work.
+// - The review. With On, the review of the test game's first turns (the site's `liveTurns`) at Lite, on the site's
+//   `reviewWorkers` where it gives them: the engine settings say that the GPU is in use ("In use, ..."), and the review
+//   ends. The GPU starts only when more searches wait than the workers take (Hedge School's design 15, item 1): on the
+//   default workers, Hedge School's 5 turns made no such backlog, and the review ended with the GPU "Waiting". With
+//   Auto, the review of more of the test game (the site's `record()`: Hedge School's whole game, Cyanotype's first 20
+//   turns), so that the GPU's first-use test (Hedge School's design 15) has its 20 seconds of work on the GPU and on
+//   the workers: the engine settings then give the GPU's speed against a worker's ("In use, ...: N times a worker's
+//   speed."), or say that it is slower and off. The check does not wait for that review's end. A review of 3 turns
+//   took 34 s on the GPU (Cyanotype's), too short for the test, which then waits for more work.
 // - The Analysis board, which takes the review's session GPU control: the GPU joins its one worker when more searches
 //   wait than the worker takes (Hedge School's design 15, item 1). The board opens at the end of the test game's next
 //   turn, which the review did not search, with 1 worker and the threat on: the position's search and the threat's make
@@ -69,6 +71,8 @@ const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  *    of a turn (with no turns, the record that the review of Auto reviews). `paste(page, record, timeout)`: brings the
  *    record in by the Review tab's paste, which keeps the game and opens its review. `boardLink(record)`: the Analysis
  *    board's address at the record's end (by default, the record alone: Cyanotype's board opens a record at its end).
+ *    `reviewWorkers`: the CPU workers of On's review, where the site's default workers take its turns with no backlog
+ *    (by default, the site's default workers).
  *  - `bot`: the practice bot's name, which starts its line ("Stamp Duty 0.1, ..., on the GPU.").
  *  - `waits`: by `cpu` and by `gpu`, the longest wait of each step in ms: `autoTest`, `review`, `board` and
  *    `practice`, and those of the site's own parts. `budget`: by `cpu` and by `gpu`, the whole run's limit in minutes.
@@ -79,6 +83,7 @@ const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  *    ends prints. */
 export async function gpuCheck(site) {
   const { name, variable, base, engineKey, lite, local = {}, liveTurns, record, paste, bot, parts = [] } = site;
+  const { reviewWorkers } = site;
   const boardLink = site.boardLink ?? (text => `/analysis#record=${encodeURIComponent(text)}`);
   if (!base) throw new Error(`${variable} gives no ${name} preview`);
   const cpu = process.argv.includes("--cpu");
@@ -186,7 +191,7 @@ export async function gpuCheck(site) {
       // The review: the GPU joins the workers at the sweep's backlog. Auto's test needs the whole game's work. The game
       // comes in by the Review tab's paste, as the tests' does.
       await part("the review", async report => {
-        await keep();
+        await keep(auto || !reviewWorkers ? {} : { workers: reviewWorkers });
         await paste(page, record(auto ? undefined : liveTurns), upTo(60_000));
         await settingsButton.click();
         tested = await gpuLine(auto ? waits.autoTest : waits.gpuLine, report);

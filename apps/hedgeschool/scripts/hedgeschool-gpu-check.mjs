@@ -93,6 +93,9 @@ await gpuCheck({
   name: "Hedge School", variable: "BASE_URL", base: BASE, engineKey: "learn-enclosure:engine:2",
   lite: { review: "lite", visits: 512 }, local: { "hedge-school:consent:2": { analytics: "denied", games: "denied" } },
   liveTurns: LIVE_TURNS, record: turns => firstTurns(GAME, turns ?? Infinity), paste, boardLink, bot: "HedgeFund",
+  /** On the default workers, the GPU run of abscls-bp3a reviewed the 5 turns with no backlog: the GPU stayed
+   *  "Waiting", which design 15, item 1 gives. One worker makes the backlog, as the board's part does. */
+  reviewWorkers: 1,
   /** Cyanotype's (cyanotype-gpu-check.mjs), until a run on the GPU measures Hedge School's. Off the GPU (--cpu, 2
    *  threads, abscls-bp3a): the review of 5 turns took 24 s, the board 21 to 28 s, the weak walls 12 s, and the bot's
    *  first turn 1.0 to 1.1 s. The whole run took 91 s. */
