@@ -9771,5 +9771,6 @@ on the board showed on two rows: the second move on its own row, and the judgeme
 - **The order:** abscls-8tl1.71 (the import page keeps the game) and abscls-8tl1.34 (review files) first, then
   abscls-8tl1.74 (the move), abscls-8tl1.75 (the link and the save), abscls-8tl1.76 (a kept review opened again) and
   abscls-8tl1.77 (the buttons and the partner sections of /developers, after abscls-8tl1.51).
-- **The owner's choices, open:** the first partner (none yet, recommended), the messages' names (each site's own,
-  recommended) and the buttons' labels (Hedge School's form, recommended).
+- **The three choices, decided 2026-11-09 as recommended:** no first partner yet (the list starts empty), each
+  site's own messages' names (`cyanotype:*`), and the buttons' labels in Hedge School's form. Design 33's "The three
+  choices" gives each with its reason.

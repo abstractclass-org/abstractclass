@@ -979,7 +979,7 @@ Enclosure's alone.
    each site's list as a parameter. The stored game's `partner` and `setGamePartner` move to the shared store
    (`packages/analysis/src/games.ts`). The menu's entry moves to `packages/review/src/exports.ts`. **Each site's:**
    its list, in its `src/lib/game/partners.ts`. Hedge School's holds enclosuregame.com, which is Enclosure's alone.
-   Cyanotype's is empty until the owner names a partner (choice 1, below).
+   Cyanotype's is empty until a site asks to be a partner (choice 1, below).
 5. **The review file is what goes back,** not the annotated record. **Shared:** the review file is in
    `packages/analysis/src/reviewFile.ts`, and Cyanotype's format is `cyanotype-review` (abscls-8tl1.34).
 6. **Window messages, in the player's browser, at the player's click.** The site opens the save page in a new tab,
@@ -1058,20 +1058,20 @@ abscls-8tl1.51 does not wait for the partner parts: the page is useful without t
 its link alone. It builds the shared frame with all of Hedge School's sections, so that abscls-8tl1.77 only adds the
 partner sections on Cyanotype.
 
-### The owner's choices
+### The three choices
 
-1. **The first partner.** (a) None yet: the list starts empty, and the partners' test runs every part. A partner
-   that asks is then one line and a release, as enclosuregame.com was for Hedge School. (b) Ask strategyjam.org to be
-   the first partner, outside this repository: it would add a button to its game page and, to keep reviews, a save
-   page. **Recommended: (a).** The build is the same for both, and (b) can follow at any time.
-2. **The messages' names.** (a) Each site's own: `cyanotype:ready`, `cyanotype:review`, `cyanotype:saved`,
+1. **No first partner yet.** The list starts empty, and the partners' test runs every part. A partner that asks is
+   then one line and a release, as enclosuregame.com was for Hedge School. strategyjam.org can become a partner at any
+   time, outside this repository: it would add a button to its game page and, to keep reviews, a save page. The
+   build is the same either way.
+2. **Each site names its own messages:** `cyanotype:ready`, `cyanotype:review`, `cyanotype:saved`,
    `cyanotype:failed`. A partner of both sites then tells the two apart, as each site's review file has its own
-   format. (b) Hedge School's names on both sites: one handler for both, but the messages name a site that did not
-   send them. Neither changes Hedge School. **Recommended: (a).**
-3. **The buttons' labels.** (a) Hedge School's form: "Review in Cyanotype" and "Review" for a finished game, "Open in
+   format. Hedge School's names on both sites would need one handler less, but the messages would name a site that
+   did not send them. Hedge School's names stay as they are.
+3. **The buttons' labels have Hedge School's form:** "Review in Cyanotype" and "Review" for a finished game, "Open in
    Cyanotype" and "Open" for a saved review. "Open in Cyanotype" is also the bookmarklet's name, and both open a game
-   here. (b) Another label for the saved review, such as "Open your review in Cyanotype": longer, and unlike Hedge
-   School's. **Recommended: (a).**
+   here. A longer label for the saved review, such as "Open your review in Cyanotype", would differ from Hedge
+   School's.
 
 ## The cells' marks
 
