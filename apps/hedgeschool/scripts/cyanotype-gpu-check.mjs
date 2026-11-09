@@ -36,7 +36,7 @@ import { chromium } from "@playwright/test";
 import { checkLaunch } from "./edge.mjs";
 import config from "../playwright.config.ts";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, LITE, LIVE_TURNS, testRecord } from "../tests/cyanotype-review.ts";
+import { CYANOTYPE, LITE, LIVE_TURNS, pasteRecord, testRecord } from "../tests/cyanotype-review.ts";
 
 if (!CYANOTYPE) throw new Error("CYANOTYPE_BASE_URL gives no Cyanotype preview");
 const cpu = process.argv.includes("--cpu");
@@ -139,10 +139,11 @@ try {
     await page.goto(new URL("/about", CYANOTYPE).href);
     let tested = null; // the review's GPU line, which gives Auto's test
 
-    // The review: the GPU joins the workers at the sweep's backlog. Auto's test needs the whole game's work.
+    // The review: the GPU joins the workers at the sweep's backlog. Auto's test needs the whole game's work. The game
+    // comes in by the Review tab's paste, as the tests' does.
     await part("the review", async report => {
       await keep();
-      await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(auto ? undefined : LIVE_TURNS))}`, CYANOTYPE).href);
+      await pasteRecord(page, testRecord(auto ? undefined : LIVE_TURNS), upTo(60_000));
       await settingsButton.click();
       tested = await gpuLine(auto ? WAITS.autoTest : WAITS.gpuLine, report);
       if (auto) return; // the review of the whole game goes on: the board's page ends it

@@ -142,8 +142,9 @@ test.describe("with the engine's files", () => {
     });
     await page.goto(toolLink({ at: 5 }));
     await page.getByRole("button", { name: "Review the game" }).click({ timeout: 120_000 });
-    await expect(page.getByRole("alert")).toHaveText("This browser does not let the site keep games (a private window, or "
-                                                     + "blocked site data).", { timeout: 60_000 });
+    await expect(page.getByRole("alert")).toHaveText("Cyanotype could not import the game: This browser does not let "
+                                                     + "the site keep games (a private window, or blocked site data).",
+                                                     { timeout: 60_000 });
     // Newer tools do not help a browser that keeps no games
     await expect(page.getByText("The newest bookmarklet and userscript")).toHaveCount(0);
     await expect(page).toHaveURL(url => url.pathname === "/import" && !url.hash);

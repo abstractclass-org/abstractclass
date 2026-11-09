@@ -68,8 +68,8 @@
   });
 
   // Each choice replaces this page in the history: Back then leads to the page before it.
-  /** The review: the game kept with this page's check, then its review. A failure says why, in the import's own
-   *  words (game/import.ts), in whole sentences. */
+  /** The review: the game kept with this page's check, then its review. A failure says why in Hedge School's words
+   *  ("… could not import the game:"), then the import's own (game/import.ts), in whole sentences. */
   async function reviewChosen() {
     if (phase.at !== "choose") return;
     const { sent, record, checked } = phase;
@@ -77,7 +77,8 @@
     try {
       openReview(await keepChecked(sent.record, record, checked));
     } catch (e) {
-      phase = { at: "failed", message: errorText(e), keeping: true };
+      phase = { at: "failed", keeping: true,
+                message: `${SITE_NAME} could not import the game: ${sentence(errorText(e))}` };
     }
   }
   const analyzeChosen = (sent: ImportHash, record: GameRecord) =>
@@ -117,7 +118,7 @@
   {#if phase.at === "reading"}
     <p class="text-muted">Opening the game…</p>
   {:else if phase.at === "keeping"}
-    <p class="text-muted">Loading the review…</p>
+    <p class="text-muted">Importing the game…</p>
   {:else if phase.at === "failed"}
     <p class="text-blunder" role="alert">{phase.message}</p>
     {#if !phase.keeping}<p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>{/if}

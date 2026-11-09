@@ -6,8 +6,9 @@
 // (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) reads them all. This script makes the files from real
 // reviews:
 // - In Playwright's headless Chromium, with the layout test's launch options (playwright.config.ts), it reviews the
-//   test game to the end of turn 20 on Cyanotype's preview as cyanotype-review.ts does (Lite, 512 visits a position,
-//   on the CPU).
+//   test game to the end of turn 20 on Cyanotype's preview as cyanotype-review.ts does: the game comes in by the
+//   Review tab's paste (pasteRecord), and the review runs at Lite, 512 visits a position, on the CPU. The script prints
+//   the review's first line of progress once the engine has searched a position.
 // - Then it searches the Analysis board's position of more views (cyanotype-review.ts, SPREAD_BOARD) to 512 visits.
 // - It writes each result that the browser's store of analyses then holds, under its key
 //   (@abstractclass/analysis/cache.ts, analysisKey), and the engine that made them: its search, and the network's id
@@ -36,8 +37,8 @@ import { moduleOf } from "@abstractclass/engine/client.ts";
 import config from "../playwright.config.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, LITE, OTHER_STORED, SPREAD_BOARD, STORED, TEST_GAME, TURNS, keptResults, putResults, readStored,
-         testRecord } from "../tests/cyanotype-review.ts";
+import { CYANOTYPE, LITE, OTHER_STORED, SPREAD_BOARD, STORED, TEST_GAME, TURNS, keptResults, pasteRecord, putResults,
+         readStored, testRecord } from "../tests/cyanotype-review.ts";
 
 if (!CYANOTYPE) throw new Error("CYANOTYPE_BASE_URL gives no Cyanotype preview");
 const named = process.argv.slice(2);
@@ -62,12 +63,20 @@ async function write(page, path, keep, { noOwnership = false } = {}) {
   console.log(`${path}: ${analyses.length} results, ${Math.round(text.length / 1024)} KB`);
 }
 
-/** Reviews the game `game` to the end of turn `turns` in `page`, and waits for the review's end. */
+/** Reviews the game `game` to the end of turn `turns` in `page`, and waits for the review's end. The game comes in by
+ *  the Review tab's paste. A game that the import refuses, or a review that searches no position in 5 minutes, stops
+ *  the run with the page's message. */
 async function review(page, turns, game = TEST_GAME) {
-  const t0 = Date.now();
-  await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(turns, game))}`, CYANOTYPE).href);
+  const t0 = Date.now(), to = Number.isFinite(turns) ? `to turn ${turns}` : "to its end";
+  await pasteRecord(page, testRecord(turns, game));
+  // A searched position, or the review's end at once when the store holds every result
+  const started = page.getByText(/^Reviewing: .*, [1-9]\d* of \d+|^Review done/).first();
+  const line = await started.innerText({ timeout: 5 * 60_000 }).catch(async () => {
+    const why = await page.getByRole("alert").first().innerText({ timeout: 1000 }).catch(() => "no message");
+    throw new Error(`the review of ${game} ${to} searched no position in 5 minutes, at ${page.url()}: ${why}`);
+  });
+  console.log(`the review of ${game} ${to} runs: ${line}`);
   await page.getByText(/^Review done/).waitFor({ timeout: 3 * 60 * 60_000 });
-  const to = Number.isFinite(turns) ? `to turn ${turns}` : "to its end";
   console.log(`the review of ${game} ${to}: ${Math.round((Date.now() - t0) / 1000)} s`);
 }
 

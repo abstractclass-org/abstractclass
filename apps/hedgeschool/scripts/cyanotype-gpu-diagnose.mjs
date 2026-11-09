@@ -41,7 +41,7 @@ import { readFileSync } from "node:fs";
 import config from "../playwright.config.ts";
 import { checkLaunch } from "./edge.mjs";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, LITE, LIVE_TURNS, testRecord } from "../tests/cyanotype-review.ts";
+import { CYANOTYPE, LITE, LIVE_TURNS, pasteRecord, testRecord } from "../tests/cyanotype-review.ts";
 
 if (!CYANOTYPE) throw new Error("CYANOTYPE_BASE_URL gives no Cyanotype preview");
 const NOTE = ["--enable-unsafe-webgpu", "--use-angle=d3d11", "--enable-features=Vulkan"]; // the working note's flags
@@ -230,11 +230,11 @@ for (const { label, channel, args, review } of RUNS) {
     say(done);
 
     if (review) {
-      // The site's own start: the review with the GPU On, until the engine settings' GPU line settles
+      // The site's own start: the review with the GPU On, until the engine settings' GPU line settles. The game comes
+      // in by the Review tab's paste, as the tests' does.
       await page.evaluate(([key, engine]) => localStorage.setItem(key, JSON.stringify(engine)),
                           [ENGINE_KEY, { on: true, ...LITE, gpu: "on" }]);
-      await page.goto(new URL(`/review#record=${encodeURIComponent(testRecord(LIVE_TURNS))}`, CYANOTYPE).href,
-                      { timeout: upTo(30_000) });
+      await pasteRecord(page, testRecord(LIVE_TURNS), upTo(30_000));
       await page.getByRole("button", { name: "Engine settings" }).click({ timeout: upTo(30_000) });
       const line = page.getByRole("region", { name: "Engine settings" }).locator("p[aria-live]");
       await line.filter({ hasText: /^(This browser cannot|In use|The GPU did not start)/ }).first()

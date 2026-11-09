@@ -10133,11 +10133,16 @@ result. Design 33's departure "A record after the review's `#`" is gone.
   the rules do not run again. Then the review opens by the game's id. A failure to keep the game stays on the import
   page, with why. The review checks its game again when it opens, as Hedge School's does: that check is the review's
   own.
-- **The failure to keep the game** shows no line about the tools page. Newer tools do not help a browser that keeps
-  no games. In the same state, Hedge School's import page says "You can paste a game record in the Review tab, or
-  bring games from other sites with the tools." That line does not help either: the paste uses the same store.
+- **The failure to keep the game** starts "Cyanotype could not import the game:", and the page says "Importing the
+  game…" while it keeps the game: Hedge School's words, since a jam game's site has what Hedge School has. The failure
+  shows no line about the tools page. Newer tools do not help a browser that keeps no games. In the same state, Hedge
+  School's import page says "You can paste a game record in the Review tab, or bring games from other sites with the
+  tools." That line does not help either: the paste uses the same store.
 - **The review's `#record=`** gets the Review tab, as on Hedge School (its design 22). Only the import page took the
-  game there, and the review took it out of the address at once, so no player holds such a link.
+  game there, and the review took it out of the address at once, so no player holds such a link. The three scripts that
+  opened the review there (`scripts/cyanotype-review-fixture.mjs`, `cyanotype-gpu-check.mjs` and
+  `cyanotype-gpu-diagnose.mjs` in `apps/hedgeschool`) now paste the game in the Review tab, as the tests do
+  (`tests/cyanotype-review.ts`, `pasteRecord`).
 - **A link's record** (`/import#record=…`) keeps the choice of a tool's game. Hedge School opens a partner's link in
   the review at once. abscls-8tl1.75 brings the partners' links to Cyanotype.
 - **Shared code (design 29, item 11):** the review's opening of a kept game (Hedge School's `Arrival.svelte`, its

@@ -127,18 +127,22 @@ async function openReview(page: Page, turns: number, timeout: number) {
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout });
 }
 
-/** The Review tab, once its games are read: its footer shows then. */
-export async function openReviewTab(page: Page) {
-  await page.goto(new URL("/review", CYANOTYPE).href);
-  await expect(page.getByRole("heading", { name: "Review your Blueprints game" })).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator("footer")).toBeVisible();
+/** The Review tab, once its games are read: its footer shows then. `timeout`: the longest wait of each step, else
+ *  Playwright's own, and 60 s for the tab's heading. */
+export async function openReviewTab(page: Page, timeout?: number) {
+  await page.goto(new URL("/review", CYANOTYPE).href, { timeout });
+  await expect(page.getByRole("heading", { name: "Review your Blueprints game" }))
+    .toBeVisible({ timeout: timeout ?? 60_000 });
+  await expect(page.locator("footer")).toBeVisible({ timeout });
 }
 
-/** Pastes `record` in the Review tab and clicks Review: the import checks the record, and keeps it or says why not. */
-export async function pasteRecord(page: Page, record: string) {
-  await openReviewTab(page);
-  await page.getByLabel("A game record").fill(record);
-  await page.getByRole("button", { name: "Review", exact: true }).click();
+/** Pastes `record` in the Review tab and clicks Review: the import checks the record, and keeps it or says why not.
+ *  `timeout` as openReviewTab's. The scripts that review a game on Cyanotype (scripts/cyanotype-*.mjs) bring it in
+ *  here too. */
+export async function pasteRecord(page: Page, record: string, timeout?: number) {
+  await openReviewTab(page, timeout);
+  await page.getByLabel("A game record").fill(record, { timeout });
+  await page.getByRole("button", { name: "Review", exact: true }).click({ timeout });
 }
 
 /** A game in the site's store, by its id. */

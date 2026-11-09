@@ -601,15 +601,16 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    so the rules check the game once on its way in. The game keeps its capture marks. Then the page opens the review by
    the game's id (`/review#game=…`, `openReview` in `@abstractclass/import`, which Hedge School's import page and both
    sites' shared reviews use too). The review takes the import page's place in the history, so Back leads to the page
-   before it. A game that the browser cannot keep (a private window, or blocked site data) stays on the import page,
-   with why, and with no line about the tools page: newer tools do not help that browser. A record that the page cannot
-   read or that the rules refuse keeps that line, since an old tool can send one. "Analyze on the board" opens the board
-   by its own address with the record (`/analysis#record=…&at=`), which takes it out of the address again and checks it,
-   as a link to the board does. Cyanotype has no analytics yet, so the import counts no event: the board's address names
-   no source (`via`). A reload of the page after the game left its address goes to the tools page. A partner's links
-   (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design 18): the page refuses `from=` and a link
-   with no record, and reads no `save=`, until the steps of "Partner sites". A link's record (`/import#record=…`) gets
-   the same choice as a tool's.
+   before it. While the page keeps the game, it says "Importing the game…", as Hedge School's does. A game that the
+   browser cannot keep (a private window, or blocked site data) stays on the import page, with why, in Hedge School's
+   words ("Cyanotype could not import the game: …"), and with no line about the tools page: newer tools do not help that
+   browser. A record that the page cannot read or that the rules refuse keeps that line, since an old tool can send one.
+   "Analyze on the board" opens the board by its own address with the record (`/analysis#record=…&at=`), which takes it
+   out of the address again and checks it, as a link to the board does. Cyanotype has no analytics yet, so the import
+   counts no event: the board's address names no source (`via`). A reload of the page after the game left its address
+   goes to the tools page. A partner's links (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design
+   18): the page refuses `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites". A
+   link's record (`/import#record=…`) gets the same choice as a tool's.
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the header from a tablet's width, and in the footer on
    a phone, as Hedge School's (design 22).
