@@ -60,6 +60,10 @@ test("a takeback undoes the bot's turn after the player's last turn, then that t
   assert.equal(takebackCount([0, 0, 1, 1], 0), 4); // the bot's turn, then the player's
   assert.equal(takebackCount([1, 1], 0), 0); // nothing of the player's yet
   assert.equal(takebackCount([], 1), 0);
+  // The moves brought are the game's start (design 24, item 4): a takeback stops at them.
+  assert.equal(takebackCount([0, 0, 1, 1], 0, 4), 0); // nothing played against the bot yet
+  assert.equal(takebackCount([0, 0, 1, 1, 0, 0, 1, 1], 0, 4), 4);
+  assert.equal(takebackCount([0, 0, 1, 1], 0, 1), 3); // the start at a turn's second move: not the move before it
 });
 
 test("the results and the player's outcome", () => {

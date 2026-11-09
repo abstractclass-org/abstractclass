@@ -383,8 +383,7 @@ file by its SHA-256, and `npm run engine` (`packages/engine/src/fetch-engine.mjs
    bot (`blueprints-bot-batched.wasm`, interface 0.1.3) with its CPU evaluator (`blueprints-eval.wasm`,
    `cpu_evaluator.mjs` and `cpu_eval_worker.mjs`), `NOTICES.txt`, `LICENSE.txt` and bpj5's network
    `b6c96-s47076224-d3087660`, whose name in the release is Stamp Duty 0.2. Interface 0.1.3 adds
-   `blueprints-set-position`, the bot from a set-up start, which Practice takes ("Practice against Stamp Duty").
-   Each entry of the lock takes its
+   `blueprints-set-position`, the bot from a set-up start, which Practice takes. Each entry of the lock takes its
    file from a release (a source of kind `release`), with the SHA-256 and the size of the release's manifest. The
    four files that the release changed (the two modules and the two bots) come from `engine-887be290`. The other
    nine have the same bytes in both releases (the same SHA-256 in both manifests), so they keep their entries of
@@ -469,17 +468,19 @@ A game from a set-up start sets it again with `blueprints-set-position`, then pl
 **From a position** (design 24, item 4): the Analysis board's "Play the bot from here", beside New, opens Practice at
 the position on screen, as Hedge School's does. The address after the `#` gives the board's set-up start when it has
 one (`position`), and the moves from the start to the position on screen as a record (`record`)
-(`@abstractclass/practice/practice.ts`, `practiceHref`). They leave the address at once.
+(`@abstractclass/practice/practice.ts`, `practiceHref`). They leave the address at once, then the page starts the
+analytics, as Hedge School's Practice does: the layout does not start them while the address holds a start. A
+`position` alone that is the standard start brings nothing.
 
 1. **The check:** the engine's rules check the start brought as the Analysis board checks it (`recordCheck.ts`): a
-   record's start and its moves (`recordProblem`), or a start alone (`startProblem`). A start that no game reaches, or
-   a move that the rules refuse, starts no game. The settings card says why, in the words of the Analysis board's
-   notice (`checkProblem`): "Practice cannot start from this position: no game can reach it.", then each of the
-   position check's reasons, its first reason first ("this record: no game can reach its start." for a record). Its
-   game starts from the standard start. A game kept in this browser does not come through the page's check, so the
-   game checks its own start before the bot gets it, and stops with the same words ("The game stopped: no game can
-   reach its start. ..."). The bot refuses such a start too, with the check's first reason
-   (`blueprints-set-position`), so the site's check is not the only one.
+   record's start and its moves (`recordProblem`), or a start alone (`startProblem`). A start that no game reaches, or a
+   move that the rules refuse, starts no game. The settings card says why, in the words of the Analysis board's notice
+   (`checkProblem`): "Practice cannot start from this position: no game can reach it.", then each of the position
+   check's reasons, its first reason first ("this record: no game can reach its start." for a record). Its game starts
+   from the standard start. A game kept in this browser does not come through the page's check, so the game checks its
+   own start before the bot gets it, and stops with the same words ("The game stopped: no game can reach its start.
+   ..."). The bot refuses such a start too, with the check's first reason (`blueprints-set-position`), so the site's
+   check is not the only one.
 2. **A game's position goes to the bot as its moves:** a board from the standard start sends its moves with
    `blueprints-set-game`. That is the game's search exactly. A position with no history searches differently from
    its game ("Decision", item 10, request 28's measurement), so the page never sends the position on screen as a
@@ -1574,16 +1575,15 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   the fit's choice of corner (`fitWithPanel`). `view.ts`, `fitAround`: the fit that keeps the hexes out from under it.
   `Board.svelte`, its prop `hands`: the hands in the board's box ("box", the lab's), in the panel ("panel") or under
   the field ("under"), with the panel's `place` and `size`. Tests: `panel.test.ts` and `view.test.ts`.
-- `apps/cyanotype/src/routes/practice/+page.svelte`: Practice. `src/lib/practice/game.svelte.ts`: the game, with
-  the rules' worker and the bot, from the standard start or a start brought ("From a position"). `stampduty.ts`: the
-  site's part of `@abstractclass/practice` (its keys, its networks,
-  the half-life, the bot's name). The bot's forms and its worker are `@abstractclass/practice`'s (`botForms.ts`,
-  `botFormsWorker.ts`). `bot.engine.test.ts`, in Node: the one-thread bot at 1 and 2 visits on a position of more
-  views, and on that position the threaded bot on its CPU evaluator with the manifest's sizes, which plays the
-  one-thread bot's moves at 1, 4 and 8 visits. `scripts/practice-forms.mjs`: whole games of the threaded bot against
-  the one-thread bot's from one seed, below 16 visits ("Practice against Stamp Duty").
-  `src/lib/board/described.ts`: the engine's describe and describe_game as the board draws them, for the lab and
-  Practice.
+- `apps/cyanotype/src/routes/practice/+page.svelte`: Practice. `src/lib/practice/game.svelte.ts`: the game, with the
+  rules' worker and the bot, from the standard start or a start brought ("From a position"). `stampduty.ts`: the site's
+  part of `@abstractclass/practice` (its keys, its networks, the half-life, the bot's name). The bot's forms and its
+  worker are `@abstractclass/practice`'s (`botForms.ts`, `botFormsWorker.ts`). `bot.engine.test.ts`, in Node: the
+  one-thread bot at 1 and 2 visits on a position of more views, and on that position the threaded bot on its CPU
+  evaluator with the manifest's sizes, which plays the one-thread bot's moves at 1, 4 and 8 visits.
+  `scripts/practice-forms.mjs`: whole games of the threaded bot against the one-thread bot's from one seed, below 16
+  visits ("Practice against Stamp Duty"). `src/lib/board/described.ts`: the engine's describe and describe_game as the
+  board draws them, for the lab and Practice.
 - `apps/hedgeschool/tests/cyanotype-practice.spec.ts`: whole games against the bot, with each side to start, and a
   reload in the middle. `layout.spec.ts`: the layout of `/practice` and of a game in progress. Both run with
   `CYANOTYPE_BASE_URL`, and the games skip when the site has no bot.

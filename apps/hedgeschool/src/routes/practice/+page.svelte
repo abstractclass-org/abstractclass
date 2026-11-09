@@ -81,7 +81,6 @@
   // The next game's start, from the Analysis board's Play: a set-up start (null: the standard start), and a record's
   // moves from it.
   let brought = $state.raw<Brought | null>(null);
-  const broughtText = $derived(brought ? broughtLine(brought, ["edge", "edges"]) : "");
   let ready = $state(false); // the rules are loaded: a game can start
   let replacing = $state(false); // the dialog that asks before a record brought sets the game in progress aside
   let confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
@@ -148,8 +147,9 @@
    *  card's komi, the player's head start, becomes the engine's, Red's starting score, by the side (design 24). */
   function newGame(side: "blue" | "red" | "random") {
     choices.side = side;
-    saveChoices($state.snapshot(choices));
-    const kept: KeptPractice = newPractice($state.snapshot(choices), brought);
+    const chosen = $state.snapshot(choices);
+    saveChoices(chosen);
+    const kept: KeptPractice = newPractice(chosen, brought);
     const from = practiceFrom(brought);
     brought = null;
     keep(kept);
@@ -341,7 +341,7 @@
     {#snippet notes()}
       {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
       {#if aborted}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
-      {#if brought}<p class="mb-1 text-sm">{broughtText}</p>{/if}
+      {#if brought}<p class="mb-1 text-sm">{broughtLine(brought, ["edge", "edges"])}</p>{/if}
     {/snippet}
   </PracticeCard>
 {/snippet}
@@ -504,4 +504,4 @@
 <!-- A record brought while a game is in progress: the player chooses, once the rules are loaded. -->
 <ReplaceGame open={replacing} {ready} title="Play from this record?" play="Play from the record"
              description="Your game in progress goes into Your games, unfinished, so you can still review it. This browser keeps one game in progress."
-             onanswer={b => void answerReplace(b)} />
+             onanswer={answerReplace} />

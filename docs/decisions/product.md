@@ -10420,11 +10420,10 @@ its Practice starts from the position that it brings, on the practice bot of `en
 - **A game in progress:** the page asks first ("Play from this position?"), as Hedge School's does. Cyanotype keeps no
   practice game, so the game in progress stops. A refused start leaves the game in progress, with the notice in the
   side column.
-- **The shared parts** (design 29, item 11), moved from Hedge School's pages into `@abstractclass/practice`: the
-  address from a position (`practiceHref`), the card's line on the start brought (`broughtLine`, with each game's word
-  for a move), the new game from the choices and the start (`newPractice`), and the question
-  (`ReplaceGame.svelte`). Hedge School's Analysis board and Practice use them, with the same words and the same
-  markup as before.
+- **The shared parts** (design 29, item 11), moved from Hedge School's pages into `@abstractclass/practice`: the address
+  from a position (`practiceHref`), the card's line on the start brought (`broughtLine`, with each game's word for a
+  move), the new game from the choices and the start (`newPractice`), and the question (`ReplaceGame.svelte`). Hedge
+  School's Analysis board and Practice use them, with the same words and the same markup as before.
 - **Checked:** `npm run check:all` passed every step, with no unit test skipped (the practice package's new tests: the
   address, the card's line and the new game). The new browser tests (`tests/cyanotype-practice.spec.ts`), with the bot
   at 8 visits on the CPU: the board's button on a game's position (a takeback stops at the record's 9 moves), on a
@@ -10445,3 +10444,13 @@ its Practice starts from the position that it brings, on the practice bot of `en
   `set_up_start` for a game from a set-up start, beside `new` and `resumed`. Both sites take the value from one shared
   function, `practiceFrom` in `@abstractclass/practice/practice.ts`, with a unit test of each value. Design 33's
   "Where Cyanotype's events differ" no longer lists `practice_from`.
+- **The review** fixed three faults on Cyanotype's Practice, each with a browser test where a test can show it:
+  - A kept game whose set-up start the engine cannot read stopped the page, not the game: the game read the start in
+    its constructor, before its check. Now the check reads it first, the game stops with the engine's refusal, and
+    Abort ends it.
+  - A `position` alone that is the standard start brought an empty start: the card said "The game starts after the
+    record's 0 moves.". Now it brings nothing, as on Hedge School's Practice.
+  - The page did not start the analytics itself. The layout started them only because the page's `onMount` runs
+    first and takes the start out of the address. Now the page starts them, as Hedge School's Practice does.
+  - The takeback's stop at the moves brought is now in the shared `takebackCount` (its `brought`), with unit tests.
+    Hedge School's game still cuts its moves itself.

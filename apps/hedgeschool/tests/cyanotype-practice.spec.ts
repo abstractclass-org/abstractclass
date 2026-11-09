@@ -16,8 +16,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
-import { writePosition } from "../../cyanotype/src/lib/game/position.ts";
+import { STANDARD_START, writePosition } from "../../cyanotype/src/lib/game/position.ts";
 import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
+import { hexKey, parseHex, shift, TOUCHING } from "../../cyanotype/src/lib/board/hex.ts";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { LITE } from "./cyanotype-review.ts";
 
@@ -53,8 +54,18 @@ async function turn(page: Page): Promise<string> {
   return (await page.locator(STATUS).textContent())!;
 }
 
-const keptMoves = (page: Page) => page.evaluate(() =>
-  (JSON.parse(localStorage.getItem("cyanotype:practice-game:1") ?? "null") as { moves: string[] } | null)?.moves ?? null);
+/** The game in progress, kept in this browser. */
+const keptGame = (page: Page) => page.evaluate(() =>
+  JSON.parse(localStorage.getItem("cyanotype:practice-game:1") ?? "null") as
+    { moves: string[]; start?: string; brought?: number } | null);
+const keptMoves = async (page: Page) => (await keptGame(page))?.moves ?? null;
+/** The player's clicks, the same for each run (mulberry32). */
+const seeded = (s: number) => () => {
+  s = (s + 0x6d2b79f5) | 0;
+  let t = Math.imul(s ^ (s >>> 15), 1 | s);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
+};
 const listed = (page: Page) => page.locator(".movelist .mv").allTextContents();
 
 /** The preview's engine manifest. Skips the test when there is no preview, or when it has no practice bot. In CI, a
@@ -85,13 +96,7 @@ for (const side of ["Blue", "Red"] as const) {
     const manifest = await botManifest(page);
     const errors: string[] = [];
     page.on("pageerror", e => errors.push(String(e)));
-    let seed = side === "Blue" ? 1 : 2; // the player's clicks: the same for each run of a side (mulberry32)
-    const random = () => {
-      seed = (seed + 0x6d2b79f5) | 0;
-      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
-    };
+    const random = seeded(side === "Blue" ? 1 : 2); // the same clicks for each run of a side
     await startGame(page, manifest, side);
     const player = side === "Blue" ? 0 : 1;
     let status = await turn(page), reloaded = false, moves = 0;
@@ -212,10 +217,7 @@ const MIDDLE = writePosition(middle.position);
  *  game reaches it (cyanotype-editor.spec.ts makes the same position). */
 const UNREACHED = (() => {
   const cells = middle.position.cells;
-  const beside = (hex: string) => {
-    const [q, r] = hex.split(",").map(Number);
-    return [[1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1]].map(([dq, dr]) => `${q + dq},${r + dr}`);
-  };
+  const beside = (hex: string) => TOUCHING.map(d => hexKey(shift([parseHex(hex)], d)[0]));
   const blue = (hex: string) => cells[hex]?.[0] === 0 && cells[hex][1] !== "wall";
   for (const hex of Object.keys(cells).filter(blue)) {
     const free = beside(hex).find(h => !cells[h] && beside(h).filter(blue).length === 1);
@@ -227,18 +229,14 @@ const UNREACHED = (() => {
 const TOUCH = "Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a wall: a placement captures each cell "
   + "of the opponent that touches it, except walls\\.";
 const WHY = { it: `no game can reach it\\. ${TOUCH}`, its: `no game can reach its start\\. ${TOUCH}` };
-/** The game in progress, kept in this browser. */
-const kept = (page: Page) => page.evaluate(() =>
-  JSON.parse(localStorage.getItem("cyanotype:practice-game:1") ?? "null") as
-    { moves: string[]; start?: string; brought?: number } | null);
 const PLAY_HERE = { name: "Play the bot from here" };
 const at = (path: string) => new URL(path, CYANOTYPE).href;
 
 /** The settings of a test from a position, for each page that opens: the board's engine off, the bot on the CPU, and
- *  the bot's choices at 8 visits, the player Red. */
-async function fromPosition(page: Page) {
+ *  the bot's choices at 8 visits, the player Red. Gives the bot's network. */
+async function fromPosition(page: Page): Promise<string> {
   const manifest = await botManifest(page);
-  const network = manifest.artifacts.find((a: { kind: string }) => a.kind === "model")!.id;
+  const network: string = manifest.artifacts.find((a: { kind: string }) => a.kind === "model")!.id;
   await page.setViewportSize({ width: 1376, height: 952 });
   await page.addInitScript(([key, settings, choices]) => {
     try {
@@ -247,6 +245,7 @@ async function fromPosition(page: Page) {
     } catch { /* about:blank has no storage */ }
   }, [ENGINE_KEY, JSON.stringify({ ...LITE, on: false }),
       JSON.stringify({ bot: { network, visits: 8, variety: "low" }, side: "red", name: "" })]);
+  return network;
 }
 
 /** The player's turn, played whole by the seeded clicks: the moves that the status line gives, each kept before the
@@ -254,19 +253,12 @@ async function fromPosition(page: Page) {
 async function playTurn(page: Page, player: 0 | 1, random: () => number) {
   const left = Number(/^Your turn: (\d) move/.exec(await turn(page))![1]);
   for (let k = 0; k < left; k++) {
-    const n = (await kept(page))!.moves.length;
+    const n = (await keptGame(page))!.moves.length;
     await humanMove(page, player, random);
-    await expect.poll(async () => (await kept(page))!.moves.length).toBeGreaterThan(n);
+    await expect.poll(async () => (await keptGame(page))!.moves.length).toBeGreaterThan(n);
     await turn(page);
   }
 }
-/** The player's clicks, the same for each run (mulberry32). */
-const seeded = (s: number) => () => {
-  s = (s + 0x6d2b79f5) | 0;
-  let t = Math.imul(s ^ (s >>> 15), 1 | s);
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-  return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
-};
 
 test("Play the bot from here, on a game's position: its moves are the game's start, and a takeback stops at them", async ({ page }) => {
   await fromPosition(page);
@@ -279,15 +271,15 @@ test("Play the bot from here, on a game's position: its moves are the game's sta
   await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
   expect(await turn(page)).toMatch(/^Your turn: 2 moves\./); // Red's turn 6, the position on screen
   expect(await listed(page)).toHaveLength(9); // the record's moves, from the standard start
-  expect(await kept(page)).toMatchObject({ moves: middle.moves, brought: 9 });
-  expect((await kept(page))!.start).toBeUndefined();
+  expect(await keptGame(page)).toMatchObject({ moves: middle.moves, brought: 9 });
+  expect((await keptGame(page))!.start).toBeUndefined();
   await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled(); // nothing of the player's yet
   // The player's turn, then the bot's reply: a takeback undoes both, back to the start, and no further.
   await playTurn(page, 1, seeded(3));
   expect(await turn(page)).toMatch(/^Your turn/);
-  expect((await kept(page))!.moves).toHaveLength(13);
+  expect((await keptGame(page))!.moves).toHaveLength(13);
   await page.getByRole("button", { name: "Take back" }).click();
-  await expect.poll(async () => (await kept(page))!.moves).toEqual(middle.moves);
+  await expect.poll(async () => (await keptGame(page))!.moves).toEqual(middle.moves);
   expect(await turn(page)).toMatch(/^Your turn: 2 moves\./);
   await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled();
   expect(errors).toEqual([]);
@@ -305,19 +297,19 @@ test("Play the bot from here, on a set-up start: the bot starts from it, and the
     .toBeVisible({ timeout: 120_000 });
   await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
   expect(await turn(page)).toMatch(/^Your turn: 1 move\./);
-  expect(await kept(page)).toMatchObject({ start: MIDDLE, moves: [move], brought: 1 });
+  expect(await keptGame(page)).toMatchObject({ start: MIDDLE, moves: [move], brought: 1 });
   await expect(page.locator(".movelist").getByText("6.", { exact: true })).toBeVisible(); // the start's own turn
   await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled();
   await playTurn(page, 1, seeded(5));
   expect(await turn(page)).toMatch(/^Your turn/);
-  expect((await kept(page))!.moves).toHaveLength(4); // the move brought, the player's one, and the bot's two
+  expect((await keptGame(page))!.moves).toHaveLength(4); // the move brought, the player's one, and the bot's two
   // A reload keeps the game: the bot starts from the set-up start again, with the moves played after it.
   const before = await listed(page);
   await page.reload();
   expect(await turn(page)).toMatch(/^Your turn/);
   expect(await listed(page)).toEqual(before);
   await page.getByRole("button", { name: "Take back" }).click();
-  await expect.poll(async () => (await kept(page))!.moves).toEqual([move]);
+  await expect.poll(async () => (await keptGame(page))!.moves).toEqual([move]);
   expect(await turn(page)).toMatch(/^Your turn: 1 move\./);
   await expect(page.getByRole("button", { name: "Take back" })).toBeDisabled();
   expect(errors).toEqual([]);
@@ -336,11 +328,11 @@ test("a start that no game reaches starts no practice game, and the card gives t
   await page.goto(at(`/practice#${new URLSearchParams({ position: UNREACHED, record: middle.legal[0] })}`));
   await expect(page.getByRole("alert")).toHaveText(new RegExp(`^Practice cannot start from this record: ${WHY.its}$`),
                                                    { timeout: 120_000 });
-  expect(await kept(page)).toBeNull();
+  expect(await keptGame(page)).toBeNull();
   // The card's game then starts from the standard start.
   await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
   expect(await turn(page)).toMatch(/^Your turn/);
-  const game = await kept(page);
+  const game = await keptGame(page);
   expect(game?.start).toBeUndefined();
   expect(game?.brought).toBeUndefined();
   expect(game?.moves).toHaveLength(1); // the bot's first move, as Blue
@@ -348,19 +340,44 @@ test("a start that no game reaches starts no practice game, and the card gives t
 });
 
 test("a kept game from a start that no game reaches stops before the bot plays, in the card's words", async ({ page }) => {
-  await fromPosition(page);
-  const network = (await botManifest(page)).artifacts.find((a: { kind: string }) => a.kind === "model")!.id;
+  const network = await fromPosition(page);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
   // The page checks a start brought, not a game kept in this browser: the game checks its own start before the bot.
-  await page.goto(at("/practice"));
-  await page.evaluate(([start, network]) => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify({
+  await page.addInitScript(game => {
+    try { localStorage.setItem("cyanotype:practice-game:1", game); } catch { /* about:blank has no storage */ }
+  }, JSON.stringify({
     version: 1, bot: { network, visits: 8, variety: "low" }, human: 1, name: "", seed: 1, moves: [], builds: [],
-    started: new Date().toISOString(), start,
-  })), [UNREACHED, network]);
-  await page.reload();
+    started: new Date().toISOString(), start: UNREACHED,
+  }));
+  await page.goto(at("/practice"));
   expect(await turn(page)).toMatch(new RegExp(`^The game stopped: ${WHY.its}$`));
-  expect((await kept(page))?.moves).toEqual([]); // the bot played no move
+  expect((await keptGame(page))?.moves).toEqual([]); // the bot played no move
+  expect(errors).toEqual([]);
+});
+
+test("the standard start in the address brings nothing, and a kept start that the engine cannot read stops the game", async ({ page }) => {
+  const network = await fromPosition(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  // As on Hedge School's Practice: no line on the start brought, and no notice
+  await page.goto(at(`/practice#${new URLSearchParams({ position: STANDARD_START })}`));
+  await expect(page.getByRole("button", { name: "Play as Red" })).toBeEnabled({ timeout: 120_000 });
+  await expect(page.getByText(/^The game starts/)).toHaveCount(0);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  // The game stops with the engine's refusal, not the page, and Abort ends it
+  await page.addInitScript(game => {
+    try { localStorage.setItem("cyanotype:practice-game:1", game); } catch { /* about:blank has no storage */ }
+  }, JSON.stringify({
+    version: 1, bot: { network, visits: 8, variety: "low" }, human: 1, name: "", seed: 1, moves: [], builds: [],
+    started: new Date().toISOString(), start: "no position",
+  }));
+  await page.goto(at("/practice"));
+  expect(await turn(page)).toMatch(/^The game stopped: \S/);
+  await page.getByRole("button", { name: "Abort", exact: true }).click();
+  await page.getByRole("alertdialog", { name: "Abort" }).getByRole("button", { name: "Abort", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play as Red" })).toBeEnabled();
+  expect(await keptGame(page)).toBeNull();
   expect(errors).toEqual([]);
 });
 
@@ -371,19 +388,19 @@ test("a start brought while a game is in progress: the player chooses, and Go on
   await page.goto(at("/practice"));
   await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
   expect(await turn(page)).toMatch(/^Your turn/); // after the bot's first move, as Blue
-  const inProgress = (await kept(page))!.moves;
+  const inProgress = (await keptGame(page))!.moves;
   const bring = at(`/practice#${new URLSearchParams({ record: middle.moves.join(" ") })}`);
   await page.goto("about:blank");
   await page.goto(bring);
   const question = page.getByRole("dialog", { name: "Play from this position?" });
   await question.getByRole("button", { name: "Go on with mine" }).click({ timeout: 120_000 });
   expect(await turn(page)).toMatch(/^Your turn/);
-  expect((await kept(page))!.moves).toEqual(inProgress);
+  expect((await keptGame(page))!.moves).toEqual(inProgress);
   // Again, and Play from the position: the card, with the start brought, and no game in progress
   await page.goto("about:blank");
   await page.goto(bring);
   await question.getByRole("button", { name: "Play from the position" }).click({ timeout: 120_000 });
   await expect(page.getByText("The game starts after the record's 9 moves.")).toBeVisible();
-  expect(await kept(page)).toBeNull();
+  expect(await keptGame(page)).toBeNull();
   expect(errors).toEqual([]);
 });

@@ -11,8 +11,8 @@
   // bot, else on one thread (@abstractclass/practice/botForms.ts), with the engine settings' GPU and workers. The page
   // counts a game's start and end, the engine's errors and the features used, as Hedge School's does (its design 17).
   // Its way in from a position, which the Analysis board's "Play the bot from here" gives (Hedge School's design 24,
-  // item 4): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address at once.
-  // The engine's rules check them as the Analysis board checks a record or a start (recordCheck.ts): a start that no
+  // item 4): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address at once,
+  // then the analytics start. The engine's rules check them as the Analysis board checks a record or a start (recordCheck.ts): a start that no
   // game reaches, or a move that the rules refuse, starts no game, and the page says why.
   import { onDestroy, onMount, untrack } from "svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
@@ -39,7 +39,6 @@
   import { moveName } from "#lib/game/notation.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, startTurn } from "#lib/game/position.ts";
-  import type { GameRecord } from "#lib/game/record.ts";
   import { recordProblem, rulesBy, startProblem } from "#lib/review/recordCheck.ts";
   import { loadEngine } from "#lib/analysis/engineSettings.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
@@ -48,7 +47,7 @@
     from "#lib/practice/stampduty.ts";
   import { broughtLine, komiLine, newPractice, practiceFrom, practiceOutcome, type Brought, type PracticeFrom,
            type PracticeOutcome } from "@abstractclass/practice/practice.ts";
-  import { track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
@@ -75,11 +74,14 @@
   const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
 
   /** The start after the `#`, read: a record's moves from its start (its `Position` tag, or `position` beside it), or
-   *  a set-up start alone. It leaves the address. Null for none, and a notice for a record that cannot be read. */
-  function readBrought(): { record: GameRecord | null; start: string | null } | null {
+   *  a set-up start alone. It leaves the address, then the analytics start: the layout does not start them while the
+   *  address holds a start (holdsGame). Null for none, as for a `position` alone that is the standard start (Hedge
+   *  School's Practice brings nothing for it either), and a notice for a record that cannot be read. */
+  function readBrought() {
     const hash = new URLSearchParams(location.hash.slice(1)), text = hash.get("record"), position = hash.get("position");
     history.replaceState(null, "", location.pathname); // the start is kept below, not in the address
-    if (text === null && position === null) return null;
+    startAnalytics();
+    if (text === null && !setUpStart(position)) return null;
     try {
       const record = text === null ? null : readPasted(text, position).record;
       return { record, start: setUpStart(record ? record.tags.Position : position) ?? null };
@@ -182,8 +184,9 @@
     choices.side = side;
     dropped = false;
     notice = "";
-    saveChoices($state.snapshot(choices));
-    const kept: KeptPractice = newPractice($state.snapshot(choices), brought);
+    const chosen = $state.snapshot(choices);
+    saveChoices(chosen);
+    const kept: KeptPractice = newPractice(chosen, brought);
     const from = practiceFrom(brought);
     brought = null;
     keep(kept);
@@ -283,6 +286,9 @@
   // The move list: one move a line, as Blueprints' moves are long, each turn's number at its first move, and each move a
   // step to its position. Its numbers start at the start's own turn.
   const firstTurn = $derived(startTurn(game?.kept.start));
+  /** A turn's number, at its first move: "6.", or "6..." for a set-up start at a turn's second move, whose first move
+   *  was played before the start. */
+  const turnLabel = (k: number) => `${firstTurn.turn + k}${k === 0 && !firstTurn.first ? "..." : "."}`;
   const turns = $derived.by(() => {
     const out: { player: Player; moves: { text: string; at: number }[] }[] = [];
     (game?.played ?? []).forEach((m, i) => {
@@ -375,8 +381,7 @@
         {#each turns as t, k (k)}
           {#each t.moves as m, i (m.at)}
             <div class="grid grid-cols-[2.2rem_minmax(0,1fr)] items-baseline gap-x-1">
-              <!-- A set-up start at a turn's second move: its first move was played before the start ("51..."). -->
-              <span class={TURN_NUMBER}>{i === 0 ? `${firstTurn.turn + k}${k === 0 && !firstTurn.first ? "..." : "."}` : ""}</span>
+              <span class={TURN_NUMBER}>{i === 0 ? turnLabel(k) : ""}</span>
               <button type="button" class={[moveButton(t.player, shown === m.at ? MOVE_HERE : undefined), "justify-self-start"]} tabindex="-1"
                       aria-current={shown === m.at ? "step" : undefined} onclick={() => step(m.at)}>{m.text}</button>
             </div>
@@ -438,4 +443,4 @@
 <!-- A start brought while a game is in progress: the player chooses, once the rules have checked the start. -->
 <ReplaceGame open={replacing} {ready} title="Play from this position?" play="Play from the position"
              description="Your game in progress stops. You cannot continue it. This browser keeps one game in progress."
-             onanswer={b => void answerReplace(b)} />
+             onanswer={answerReplace} />

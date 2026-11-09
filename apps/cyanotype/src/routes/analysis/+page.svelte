@@ -224,9 +224,8 @@
     return p ? writePosition(p) : null;
   });
   const editorHref = $derived(onScreen ? `/editor#${new URLSearchParams({ position: onScreen })}` : "/editor");
-  // Practice from the position on screen (Hedge School's design 24, item 4): the board's set-up start when it has one,
-  // and the moves from the start to the position on screen, as a record. Practice gives a game's position to the bot as
-  // its moves, and a set-up start as its own position (practice/game.svelte.ts).
+  // "Play the bot from here" (the page's head comment). Practice gives a game's position to the bot as its moves, and a
+  // set-up start as its own position (practice/game.svelte.ts).
   const practiceHref = $derived(game ? practiceAddress(game.startPosition, current) : null);
 
   // The board's Import (Hedge School's design 21, item 5): a position, moves or both pasted, checked here by the

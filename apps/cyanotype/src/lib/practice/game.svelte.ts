@@ -56,11 +56,12 @@ export class PracticeGame {
   readonly kept: KeptPractice;
   private described = $state.raw<GamePosition[]>([]); // the engine's positions, each with what the move to it did
   private closed = false; // the bot is ended: no move is kept after it
-  private readonly setUp: string | null; // the set-up start in the engine's one-line form, or null: the standard start
+  // The set-up start in the engine's one-line form, or null: the standard start. start() sets it once the check has
+  // read the start, so that a start that the engine cannot read stops the game, not the page.
+  private setUp: string | null = null;
 
   constructor(kept: KeptPractice, private rulesWorker: EngineWorker, private bot: PracticeBot) {
     this.kept = { ...kept, moves: [...kept.moves], builds: [...kept.builds] };
-    this.setUp = kept.start ? enginePosition(kept.start) : null;
   }
 
   get position(): SitePosition | undefined { return this.positions.at(-1); }
@@ -85,6 +86,7 @@ export class PracticeGame {
     try {
       const unreached = this.kept.start ? await startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
       if (unreached) throw new Error(unreached);
+      this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
       const info = JSON.parse(await this.bot.command("blueprints-bot-info")) as { build: string };
       if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build); // a new build continues the game
       for (const line of botCommands(this.kept.bot, this.kept.komi)) await this.bot.command(line);
@@ -117,14 +119,16 @@ export class PracticeGame {
     }
   }
 
-  /** The players of the moves played against the bot: after the moves brought, which are the game's start, so that a
-   *  takeback stops there, and the bot gets no `undo` past it. */
-  private get movers(): Player[] { return this.played.slice(this.kept.brought ?? 0).map(m => m.player); }
+  /** The moves that a takeback undoes now: never the moves brought, the game's start, so the bot gets no `undo` past
+   *  it. */
+  private get takebacks(): number {
+    return takebackCount(this.played.map(m => m.player), this.human, this.kept.brought);
+  }
 
   /** Takes back the player's last turn, and the bot's turn after it (Hedge School's design 24), on the player's turn. */
   async takeback() {
     if (!this.canTakeBack) return;
-    const n = takebackCount(this.movers, this.human);
+    const n = this.takebacks;
     this.status = "playing"; // nothing else moves until the bot has undone the moves
     try {
       for (let k = 0; k < n; k++) await this.bot.command("undo");
@@ -142,7 +146,7 @@ export class PracticeGame {
 
   /** Whether a takeback has something to undo now. */
   get canTakeBack(): boolean {
-    return this.status === "human" && takebackCount(this.movers, this.human) > 0;
+    return this.status === "human" && this.takebacks > 0;
   }
 
   /** The player resigns, at any time: the bot wins. A search in progress ends with the bot's worker. */

@@ -133,8 +133,7 @@ export function practiceHref(start: string | null | undefined, moves: readonly s
 
 /** The settings card's line on a start brought: from a set-up start, after a record's moves, or both. `word` is the
  *  game's word for a move, singular then plural ("edge", "edges"). */
-export function broughtLine(brought: { start: string | null | undefined; moves: readonly unknown[] },
-                            word: readonly [string, string]): string {
+export function broughtLine(brought: Brought, word: readonly [string, string]): string {
   const n = brought.moves.length, moves = `${n} ${n === 1 ? word[0] : word[1]}`;
   return brought.start ? `The game starts from the Analysis board's set-up position${n ? `, after the record's ${moves}` : ""}.`
     : `The game starts after the record's ${moves}.`;
@@ -191,13 +190,13 @@ export const botLabel = (network: string, bot: BotSettings) =>
 
 /** How many moves a takeback undoes (design 24): the bot's turn after the player's last turn, then that turn, whole,
  *  as Lichess undoes the player's move and the reply. `movers` is the player of each move. None before the player's
- *  first move. */
-export function takebackCount(movers: Player[], human: Player): number {
+ *  first move. The first `brought` moves came with the game's start (design 24, item 4): a takeback stops at them. */
+export function takebackCount(movers: readonly Player[], human: Player, brought = 0): number {
   let k = movers.length;
-  while (k > 0 && movers[k - 1] !== human) k--;
+  while (k > brought && movers[k - 1] !== human) k--;
   const end = k;
-  while (k > 0 && movers[k - 1] === human) k--;
-  return end === 0 ? 0 : movers.length - k;
+  while (k > brought && movers[k - 1] === human) k--;
+  return end === brought ? 0 : movers.length - k;
 }
 
 /** The result when the player resigns: the bot's win, as Hedge School's records write a resignation (`r+R` when Red
