@@ -181,19 +181,19 @@
     {@const { sent, record, source, stale } = phase}
     {@const names = playerNames(record.tags)}
     {@const site = sent.site === "strategyjam.org" ? "strategyjam.org" : "meaf.us"}
-    {@const refused = wayRefusals(record)}
+    {@const refusals = wayRefusals(record)}
     <!-- `site`: one of the two sites, as the import's source names them (toolSource), never the link's own text. Two
          ways for the game (design 21): the text that a player follows, in strict Simplified Technical English.
-         `refused`: a way that the site refuses for this game is off, with the reason, before the click. -->
+         `refusals`: a way that the site refuses for this game is off, with the reason, before the click. -->
     <ToolChoice heading="A game from {site}" players="{names.blue} against {names.red}"
                 length="{record.moves.length} {record.moves.length === 1 ? 'edge' : 'edges'}"
                 notice={stale ? staleNotice : undefined}
                 review={{ label: "Review the game", onclick: () => reviewChosen(sent, record, source),
-                          refusal: refused.review,
+                          refusal: refusals.review,
                           text: "The engine examines all the moves of the game. It gives a quality label to each move. "
                             + "Hedge School keeps the game in your list of games." }}
                 analyze={{ label: "Analyze on the board", onclick: () => analyzeChosen(sent, record, source),
-                           refusal: refused.analyze,
+                           refusal: refusals.analyze,
                            text: `The Analysis board shows ${sent.at === null ? "the position after the last move of the game"
                              : `the position that you saw on ${site}`}. Make your own moves to examine other lines. `
                              + "Hedge School does not keep the game in your list of games." }} />

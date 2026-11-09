@@ -1,14 +1,16 @@
 // The import page takes every game from outside (design 22). A game from the bookmarklet or the userscript asks where
 // it goes (design 21, item 5): the review, which keeps the game, or the Analysis board at the position that the game's
-// page showed, which keeps none. A tool from before the import page opens the review, which asks too. A partner's link
+// page showed, which keeps none. A way that the site refuses for the game (a set-up start, other rules) is off before
+// the click, with its reason. A tool from before the import page opens the review, which asks too. A partner's link
 // goes straight to the review (design 18). On the review, a link's record gets the Review tab. Each test opens a
 // fresh browser context, so its store starts empty.
 import { test, expect, type Page } from "@playwright/test";
 
 const record = '[Event "meaf.us game"]\n[Site "meaf.us"]\n[Blue "Ann"]\n[Red "Bo"]\n[Result "*"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *\n';
-/** The link that the bookmarklet opens on meaf.us: `at` is the position that the page showed, when it said. */
-const toolLink = (at?: number) =>
-  "/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", ...(at === undefined ? {} : { at: String(at) }), record });
+/** The link that the bookmarklet opens on meaf.us for `game` (by default the record above): `at` is the position that
+ *  the page showed, when it said. */
+const toolLink = (at?: number, game = record) =>
+  "/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", ...(at === undefined ? {} : { at: String(at) }), record: game });
 
 /** The browser's store: one store's keys, or one value (@abstractclass/storage/db.ts). */
 const stored = (page: Page, store: string, key?: string) => page.evaluate(([store, key]) => new Promise(resolve => {
@@ -65,7 +67,7 @@ test("Review the game: the game kept, then reviewed", async ({ page }) => {
 test("a game from a set-up start: the review is off before the click, and the Analysis board takes the game", async ({ page }) => {
   // The game above after its first move, as a start of its own: Red's first turn
   const setUp = '[Blue "Ann"]\n[Red "Bo"]\n[Position "A10-D10,D10-E13* Q10-T10 r2 0/0 1"]\n\n2. Q10-R8 O11-Q10 *\n';
-  await page.goto("/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", record: setUp }));
+  await page.goto(toolLink(undefined, setUp));
   const review = page.getByRole("button", { name: "Review the game" }), board = page.getByRole("button", { name: "Analyze on the board" });
   await expect(board).toBeVisible();
   await expect(review).toBeDisabled();
@@ -73,9 +75,10 @@ test("a game from a set-up start: the review is off before the click, and the An
                               + "only: open it on the Analysis board.")).toBeVisible();
   await expect(page.getByText("The engine examines all the moves of the game.")).toHaveCount(0); // the reason in its place
   await expect(board).toHaveAttribute("autofocus", ""); // the board takes the review's autofocus
-  // No import was tried: no game kept, and the page stays
+  // No import was tried: the review's click would replace the choice with "Importing the game…" at once
   await review.click({ force: true });
-  await expect(page).toHaveURL(url => url.pathname === "/import");
+  await expect(page.getByText("Importing the game…")).toHaveCount(0);
+  await expect(board).toBeEnabled();
   await expect(page.getByRole("alert")).toHaveCount(0);
   expect(await stored(page, "games")).toEqual([]);
   await board.click();
@@ -83,6 +86,18 @@ test("a game from a set-up start: the review is off before the click, and the An
   // The board takes the game from its set-up start, at the game's end, with no refusal
   await boardAt(page).toBe("Q10-R8 O11-Q10");
   await expect(page.getByRole("alert")).toHaveCount(0);
+  expect(await stored(page, "games")).toEqual([]); // the forced click kept no game, also later
+});
+
+test("a game of other rules: both ways are off before the click, each with its own reason", async ({ page }) => {
+  await page.goto(toolLink(undefined, '[Rules "Race to 2000"]\n' + record));
+  await expect(page.getByRole("button", { name: "Review the game" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Analyze on the board" })).toBeDisabled();
+  await expect(page.getByText("This game uses other rules (Race to 2000). Hedge School reviews games of the online rules "
+                              + "only.")).toBeVisible();
+  await expect(page.getByText("This game uses other rules (Race to 2000). The Analysis board shows games of the online "
+                              + "rules only.")).toBeVisible();
+  await expect(page.getByText("The Analysis board shows the position")).toHaveCount(0); // the reasons in their place
 });
 
 test("a userscript that Tampermonkey has not updated: the review asks too, and says to update it", async ({ page }) => {

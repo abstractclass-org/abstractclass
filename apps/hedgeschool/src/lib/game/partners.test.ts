@@ -4,8 +4,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gamePartner, partnerOf } from "./partners.ts";
 import { variantProblem, wayRefusals } from "./import.ts";
-import { setUpRefusal } from "@abstractclass/record/record.ts";
 import { gamePage, parseRecord } from "./record.ts";
+
+/** A record with these tags and moves. */
+const game = (tags: string, moves = "1. D10-E13") => parseRecord(`${tags}\n\n${moves} *`);
+const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]', "2. N9-Q10"); // the start's own turn, Red's
+const rulesGame = game('[Rules "Race to 2000"]');
 
 test("a save page counts only on a partner's own host, over https", () => {
   assert.equal(partnerOf("https://www.enclosuregame.com/hedge-school/save?game=1")?.name, "enclosuregame.com");
@@ -21,24 +25,21 @@ test("a save page counts only on a partner's own host, over https", () => {
 });
 
 test("a game of other rules, or from another start, is refused; the online rules' game is not", () => {
-  const game = (tags: string, moves = "1. D10-E13") => parseRecord(`${tags}\n\n${moves} *`);
   assert.equal(variantProblem(game('[Event "?"]')), null);
-  assert.match(variantProblem(game('[Rules "Race to 2000"]')) ?? "", /other rules \(Race to 2000\)/);
-  const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]', "2. N9-Q10"); // the start's own turn, Red's
+  assert.match(variantProblem(rulesGame) ?? "", /other rules \(Race to 2000\)/);
   assert.match(variantProblem(setUp) ?? "", /another position/);
   assert.equal(variantProblem(setUp, true), null); // the Analysis board takes it
   assert.equal(variantProblem(game('[Position "A10-D10 Q10-T10 b1 0/0 0"]')), null); // the standard start, written out
   assert.equal(variantProblem(game('[Rules "?"]')), null);
 });
 
-test("the arrival's ways: a set-up start turns off the review only, with the shared words; other rules turn off both", () => {
-  const game = (tags: string, moves = "1. D10-E13") => parseRecord(`${tags}\n\n${moves} *`);
-  const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]', "2. N9-Q10");
-  assert.deepEqual(wayRefusals(setUp), { review: setUpRefusal("Hedge School"), analyze: null });
-  assert.equal(wayRefusals(setUp).review, "This game starts from another position. Hedge School reviews games from the "
-    + "standard start only: open it on the Analysis board.");
-  const rules = variantProblem(game('[Rules "Race to 2000"]'));
-  assert.deepEqual(wayRefusals(game('[Rules "Race to 2000"]')), { review: rules, analyze: rules });
+test("the arrival's ways: a set-up start turns off the review only, and other rules turn off both, each in its own words", () => {
+  assert.deepEqual(wayRefusals(setUp), { analyze: null, review: "This game starts from another position. Hedge School "
+    + "reviews games from the standard start only: open it on the Analysis board." }); // Cyanotype's words (setUpRefusal)
+  assert.deepEqual(wayRefusals(rulesGame), {
+    review: "This game uses other rules (Race to 2000). Hedge School reviews games of the online rules only.",
+    analyze: "This game uses other rules (Race to 2000). The Analysis board shows games of the online rules only.",
+  });
   assert.deepEqual(wayRefusals(game('[Event "?"]')), { review: null, analyze: null });
 });
 

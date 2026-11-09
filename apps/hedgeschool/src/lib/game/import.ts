@@ -12,17 +12,26 @@ import { saveGame } from "./store.ts";
  *  page). The engine plays the online rules from the standard start only, so such a game is refused, never reviewed by
  *  the wrong rules (design 18). */
 export function variantProblem(record: GameRecord, board = false): string | null {
-  const set = (tag: string) => { const v = record.tags[tag]?.trim(); return v && v !== "?" && v !== "-" ? v : null; };
-  const rules = set("Rules"), position = setUpStart(record.tags.Position);
+  const rules = otherRules(record);
   if (rules) return `This game uses other rules (${rules}). Hedge School reviews games of the online rules only.`;
-  if (position && !board) return setUpRefusal("Hedge School");
-  return null;
+  return !board && setUpStart(record.tags.Position) ? setUpRefusal("Hedge School") : null;
 }
 
-/** Why the arrival's two ways (ToolChoice.svelte, design 21) refuse a tool's game, each before its click, or null: the
- *  review refuses another variant and another start, and the Analysis board refuses another variant only. */
-export const wayRefusals = (record: GameRecord): { review: string | null; analyze: string | null } =>
-  ({ review: variantProblem(record), analyze: variantProblem(record, true) });
+/** The rules that a game's `Rules` tag names, or null for the online rules: no tag, or "?" or "-". */
+function otherRules(record: GameRecord): string | null {
+  const rules = record.tags.Rules?.trim();
+  return rules && rules !== "?" && rules !== "-" ? rules : null;
+}
+
+/** Why each of the arrival's two ways (ToolChoice.svelte, design 21) refuses a tool's game before its click, or null
+ *  for a way that takes the game. The review refuses other rules and a set-up start. The Analysis board takes a set-up
+ *  start, and refuses other rules in its own words. */
+export function wayRefusals(record: GameRecord): { review: string | null; analyze: string | null } {
+  const rules = otherRules(record);
+  const analyze = rules
+    ? `This game uses other rules (${rules}). The Analysis board shows games of the online rules only.` : null;
+  return { review: variantProblem(record), analyze };
+}
 
 /** Imports a read record. Returns the game's id, or throws an Error whose message tells the player what is wrong. */
 export async function importRecord(text: string, record: GameRecord): Promise<string> {
