@@ -24,7 +24,8 @@
   import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
   import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
-  import { broughtLine, newPractice, type Brought } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, newPractice, practiceFrom, type Brought, type PracticeFrom }
+    from "@abstractclass/practice/practice.ts";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
@@ -123,7 +124,7 @@
 
   /** Starts the bot for a game, and the game: a new one, one from the Analysis board's Play (a record brought), or one
    *  kept from an earlier visit (`from`, for design 17's `practice_start`). */
-  async function play(kept: KeptPractice, from: "new" | "analysis_board" | "set_up_start" | "resumed") {
+  async function play(kept: KeptPractice, from: PracticeFrom) {
     if (!manifest || !rules) return;
     phase = "game";
     starting = kept;
@@ -149,7 +150,7 @@
     choices.side = side;
     saveChoices($state.snapshot(choices));
     const kept: KeptPractice = newPractice($state.snapshot(choices), brought);
-    const from = brought?.start ? "set_up_start" : brought ? "analysis_board" : "new";
+    const from = practiceFrom(brought);
     brought = null;
     keep(kept);
     void play(kept, from);

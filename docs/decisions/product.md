@@ -10440,3 +10440,8 @@ its Practice starts from the position that it brings, on the practice bot of `en
   Hedge School's Practice has the same order (`apps/hedgeschool/src/routes/practice/+page.svelte`), unchanged here.
   Checked on that base: `npm run check:all` passed every step, with no unit test skipped. The whole layout test on
   the two previews (Chromium): 226 cases, 221 passed and 5 skipped, the analytics cases, which need `VITE_GA_ID`.
+- **Practice's analytics** (abscls-8tl1.48 came to dev first): the new starts count as Hedge School's do (its design
+  17). `practice_start`'s `practice_from` is `analysis_board` for a game from the board's "Play the bot from here" and
+  `set_up_start` for a game from a set-up start, beside `new` and `resumed`. Both sites take the value from one shared
+  function, `practiceFrom` in `@abstractclass/practice/practice.ts`, with a unit test of each value. Design 33's
+  "Where Cyanotype's events differ" no longer lists `practice_from`.

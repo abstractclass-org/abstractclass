@@ -4,8 +4,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  botLabel, broughtLine, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, newPractice, practiceHref,
-  practiceOutcome, resignResult, scoreResult, settingsCommands, takebackCount, visitsStop, visitsTaken, type KeptPractice,
+  botLabel, broughtLine, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, newPractice,
+  practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, settingsCommands, takebackCount, visitsStop,
+  visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -109,6 +110,13 @@ test("Practice's address from a position: the set-up start, and the moves from i
   assert.equal(practiceHref(undefined, ["north", "east"]), "/practice#record=north+east");
   assert.equal(practiceHref("a b 1", []), "/practice#position=a+b+1");
   assert.equal(practiceHref("a b 1", ["north"]), "/practice#position=a+b+1&record=north");
+});
+
+test("a new game's practice_from: the standard start, the Analysis board's position, or its set-up start", () => {
+  assert.equal(practiceFrom(null), "new");
+  assert.equal(practiceFrom({ start: null, moves: ["north"] }), "analysis_board");
+  assert.equal(practiceFrom({ start: "s", moves: [] }), "set_up_start");
+  assert.equal(practiceFrom({ start: "s", moves: ["north"] }), "set_up_start");
 });
 
 test("the settings card's line on a start brought, in the game's word for a move", () => {

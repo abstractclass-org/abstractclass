@@ -471,8 +471,9 @@ edit in the same commit), so their changes still apply.
   code is written for (Hedge School 0.6.x, Cyanotype 0.8.x with the root's views and the position check), from the
   site's `engine.lock.json` and its manifest.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, with tests on a game of
-  words, among them the way in from a position: `practiceHref`, `broughtLine` and `newPractice`), `PracticeCard.svelte`
-  (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one that fills the room),
+  words, among them the way in from a position: `practiceHref`, `broughtLine`, `newPractice` and `practiceFrom`),
+  `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one that
+  fills the room),
   `ReplaceGame.svelte` (the question when a start comes while a game is in progress), `bot.ts`, `botWorker.ts` and
   `botMessages.ts` (the page's side of the practice bot and its worker), `botForms.ts` and `botFormsWorker.ts` (the
   bot's forms, and their worker module with the threaded bot's evaluators), and `practice.css` (the package's Tailwind

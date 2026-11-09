@@ -357,14 +357,14 @@ How strong each setting plays against people is not measured yet.
   sets it up, `packages/engine/src/ort.ts`, and the network's sizes of the manifest), `bot.ts` (the bot in one form,
   sent GTP commands one at a time), `botWorker.ts` (the bot in its worker, `serveBot`) and `botMessages.ts`. The page
   gives the game's name in the bot's commands (`enclosure`).
-- **The pure parts:** the shared part in `packages/practice/src/practice.ts` (`@abstractclass/practice`, design 29):
-  the visits and the variety, the choices and the kept game under each site's key, the GTP commands with each site's
+- **The pure parts:** the shared part in `packages/practice/src/practice.ts` (`@abstractclass/practice`, design 29): the
+  visits and the variety, the choices and the kept game under each site's key, the GTP commands with each site's
   half-life, the takeback's reach, the results and the outcome, and the way in from a position (`practiceHref`, the
-  card's line `broughtLine`, and the new game `newPractice`). Hedge School's part in `src/lib/practice/hedgefund.ts`:
-  its keys (the kept game `hedge-school:practice-game:1` and the choices `hedge-school:practice-choices:1`, in the
-  browser's local storage), its networks, the bot's half-life, the turns after a set-up start, the analytics'
-  parameters and the record. Tests: `practice.test.ts` here, and the package's own on a game of words. The score's
-  display settings are kept under `hedge-school:practice-display:2`.
+  card's line `broughtLine`, the new game `newPractice`, and its `practice_from`, `practiceFrom`). Hedge School's part
+  in `src/lib/practice/hedgefund.ts`: its keys (the kept game `hedge-school:practice-game:1` and the choices
+  `hedge-school:practice-choices:1`, in the browser's local storage), its networks, the bot's half-life, the turns after
+  a set-up start, the analytics' parameters and the record. Tests: `practice.test.ts` here, and the package's own on a
+  game of words. The score's display settings are kept under `hedge-school:practice-display:2`.
 - **The card and the frame:** `packages/practice/src/PracticeCard.svelte` (the settings card) and
   `PracticeFrame.svelte` (the game's layout: the row, the square board, the side column and the step bar), which
   Cyanotype's practice shares (design 33). The page gives their content. `ReplaceGame.svelte`: the question when a

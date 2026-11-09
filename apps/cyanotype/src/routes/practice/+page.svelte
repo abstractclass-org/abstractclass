@@ -46,8 +46,8 @@
   import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, practiceEndParams, practiceParams, saveChoices,
            type KeptPractice }
     from "#lib/practice/stampduty.ts";
-  import { broughtLine, komiLine, newPractice, practiceOutcome, type Brought, type PracticeOutcome }
-    from "@abstractclass/practice/practice.ts";
+  import { broughtLine, komiLine, newPractice, practiceFrom, practiceOutcome, type Brought, type PracticeFrom,
+           type PracticeOutcome } from "@abstractclass/practice/practice.ts";
   import { track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
@@ -135,7 +135,7 @@
 
   /** Starts the bot for a game, and the game: a new one, or one kept from an earlier visit (`from`, for
    *  `practice_start`). */
-  async function play(kept: KeptPractice, from: "new" | "analysis_board" | "set_up_start" | "resumed") {
+  async function play(kept: KeptPractice, from: PracticeFrom) {
     if (!manifest || !rules) return;
     phase = "game";
     starting = kept;
@@ -184,7 +184,7 @@
     notice = "";
     saveChoices($state.snapshot(choices));
     const kept: KeptPractice = newPractice($state.snapshot(choices), brought);
-    const from = brought?.start ? "set_up_start" : brought ? "analysis_board" : "new";
+    const from = practiceFrom(brought);
     brought = null;
     keep(kept);
     void play(kept, from);

@@ -1301,9 +1301,9 @@ both sites share (design 29), with Cyanotype's own services and keys.
    - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the
      reports have one dimension for a game's length.
    - **`network`** names Stamp Duty's networks (Stamp Duty 0.2).
-   - **`practice_game` is always false,** and **`practice_from` is `new` or `resumed`:** Cyanotype keeps no practice
-     game in the player's games yet (abscls-8tl1.50), and its Practice starts from the standard start only
-     (abscls-8tl1.40).
+   - **`practice_game` is always false:** Cyanotype keeps no practice game in the player's games yet (abscls-8tl1.50).
+     `practice_from` takes Hedge School's values: `new`, `analysis_board` for the board's "Play the bot from here",
+     `set_up_start` for a set-up start, and `resumed` (`practiceFrom` in `@abstractclass/practice/practice.ts`).
    - **Practice's features** (`feature_name`): `practice komi`, `practice takeback`, `practice look back` and `note
      drawn`. Cyanotype's Practice has no display settings of Hedge School's, so it sends none of their features.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.

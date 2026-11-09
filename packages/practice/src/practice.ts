@@ -115,6 +115,14 @@ export interface KeptPractice<Form extends string = string> {
  *  start), and the moves of a record from it. The moves are the game's start: they were not played against the bot. */
 export interface Brought { start: string | null; moves: string[] }
 
+/** Where a game began, as design 17's `practice_start` counts it (`practice_from`): a new game from the standard start,
+ *  from the Analysis board's position (a record's moves), or from its set-up start; or a game kept and resumed. */
+export type PracticeFrom = "new" | "analysis_board" | "set_up_start" | "resumed";
+
+/** A new game's `practice_from`, by the start brought (none: the standard start). */
+export const practiceFrom = (brought: Brought | null): PracticeFrom =>
+  brought?.start ? "set_up_start" : brought ? "analysis_board" : "new";
+
 /** Practice's address from a position, as the Analysis board's "Play the bot from here" opens it (design 24, item 4):
  *  the board's set-up start when it has one (`position`), and the moves from the start to the position on screen, as
  *  a record (`record`). */
