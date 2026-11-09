@@ -71,10 +71,11 @@ edit in the same commit), so their changes still apply.
    Node, `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
    `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites. The
    analytics moved out of Hedge School with Cyanotype's (design 33, "Analytics"): the site's package holds the
-   analytics with each site's services and keys as parameters (`analytics.svelte.ts`), PostHog's client
-   (`posthog.ts`), the flag of internal traffic (`internalTraffic.ts`), the ranges (`measure.ts`), and the consent
-   banner and its card (`ConsentBanner.svelte`, `CornerCard.svelte`, with the site's mark as a parameter). The engine
-   settings' changes as events went into the analysis package (`settingChanges.ts`), the exports' event into the
+   analytics with each site's Cloudflare token and keys as parameters and the one PostHog key of the build
+   (`analytics.svelte.ts`), PostHog's client (`posthog.ts`), the flag of internal traffic (`internalTraffic.ts`), the
+   ranges (`measure.ts`), and the consent banner and its card (`ConsentBanner.svelte`, `CornerCard.svelte`, with the
+   site's mark as a parameter). The engine settings' changes as events went into the analysis package
+   (`settingChanges.ts`), the exports' event into the
    review's (`exportEvents.ts`) and a practice game's parameters into the practice's (`practiceEvents.ts`), each with
    the site's analytics and its networks' names as parameters.
    The review file (Hedge School's design 13) moved out of Hedge School's `src/lib/game/reviewFile.ts` with

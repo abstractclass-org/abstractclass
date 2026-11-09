@@ -14,8 +14,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const site = join(root, "apps/hedgeschool");
 const cyanotype = join(root, "apps/cyanotype");
 
-/** A made-up PostHog project key, in the form of a real one. */
-const TEST_POSTHOG_KEY = "phc_TEST000000000000000000000000000000000000000";
+/** A made-up PostHog project key, in the form of a real one: `phc_` and 44 characters. */
+const TEST_POSTHOG_KEY = "phc_TEST0000000000000000000000000000000000000000";
 
 const steps = [
   // No package.json with a key twice (a merge can leave two "dependencies" blocks), and the root scripts' own tests.

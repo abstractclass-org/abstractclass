@@ -21,7 +21,7 @@ entries before it).
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
-| Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with no Function, and its own analytics (section 9). |
+| Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with no Function, and the same analytics as Hedge School's (section 9). |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
 runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it keeps the practice games (section 7).
@@ -201,13 +201,16 @@ put them behind a sign-in (Cloudflare Access).
 
 - **One project for all the sites,** in PostHog's US region: the app at `https://us.posthog.com`, the events to
   `https://us.i.posthog.com`. Each event names its site's host (`$host`), so a report splits the sites. The project's
-  token is the repository variable `POSTHOG_KEY`. The deploy gives it to each site's build as `VITE_POSTHOG_KEY`, on
+  token, which PostHog shows under Settings → Project (`https://us.posthog.com/settings/project`), is the repository
+  variable `POSTHOG_KEY`. The deploy gives it to each site's build as `VITE_POSTHOG_KEY`, on
   `main` only. A project token is public: it goes into the pages' code, and it can only send events.
 - **The project's settings** (Settings → Project, `https://us.posthog.com/settings/project`):
   - **Web analytics → Enable cookieless tracking:** on. The sites run PostHog in its cookieless mode, and without this
     setting PostHog drops their events. Done on 2026-11-09.
-  - **Filter out internal and test users:** a filter on the event property `internal`, so that the events where it is
-    `true` drop out. Set it once, after the release that sends the property (design 17, "The setup in PostHog").
+  - **Filter out internal and test users:** set it once, after the release that sends the event property `internal`.
+    In this section, click **+ Add filter**, choose the event property `internal`, and choose the operator **is not
+    set**. Each entry keeps the events that match it, so the owner's events, which have the property, drop out. Then
+    turn on **Enable this filter on all new insights**.
 - **Builds on a developer's machine leave `VITE_POSTHOG_KEY` unset,** so that test visits are not counted, and the
   build holds none of PostHog's code. check:all gives both sites' builds a made-up key, for the browser tests, and
   the tests' browser resolves none of PostHog's addresses. It also builds Cyanotype once without the key, and its
@@ -216,14 +219,17 @@ put them behind a sign-in (Cloudflare Access).
   (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
 - **The owner's own visits** (design 17): a browser with the site's flag of internal traffic gives every event the
   property `internal: true`. Set the flag once in each browser that visits a site: each browser and each browser
-  profile, on each device. Open `https://hedgeschool.abstractclass.org/?internal=on` (and Cyanotype's address with the
-  same parameter: each site keeps its own flag). The address loses `?internal=on` at once. The flag holds for all
-  pages of that site in that browser, and not for a preview's address. It stays until someone clears the browser's
-  data for the site. A private window forgets it when it closes. To remove the flag, open a page of the site with
-  `?internal=off`. To check it, open PostHog's **Activity**: the browser's events show the property `internal`.
+  profile, on each device. Open `https://hedgeschool.abstractclass.org/?internal=on`, and, once Cyanotype is live,
+  `https://cyanotype.abstractclass.org/?internal=on`: each site keeps its own flag. The address loses `?internal=on` at
+  once. The flag holds for all pages of that site in that browser, and not for a preview's address. It stays until
+  someone clears the browser's data for the site. A private window forgets it when it closes. To remove the flag, open
+  a page of the site with `?internal=off`. To check it, keep the site open, and open PostHog's Activity
+  (`https://us.posthog.com/activity/explore`): the browser's events show the property `internal`.
 - **Google Analytics, before PostHog:** Hedge School's property (`G-C5RY6DWGWN`) counted the site until the release
-  of 2026-11-09's change. No build sends to it after that release. The repository variables `VITE_GA_ID` and
-  `CYANOTYPE_GA_ID` are deleted once the change is on `main`.
+  of 2026-11-09's change. No build sends to it after that release. Once the change is on `main`, delete the
+  repository variables `VITE_GA_ID` and `CYANOTYPE_GA_ID`: in GitHub, the repository's **Settings → Secrets and
+  variables → Actions → Variables**, the delete button of each, or `gh variable delete VITE_GA_ID` and
+  `gh variable delete CYANOTYPE_GA_ID` in a clone of the repository.
 
 ## 5. Cloudflare Web Analytics
 
@@ -467,8 +473,10 @@ measures nothing.
 
 - **Neither service needs a step of Cyanotype's own.** The account's one Web Analytics site, `abstractclass.org`
   (section 5), takes the beacon of every subdomain, and its dashboard splits the visits by host. The PostHog project
-  takes the events of every site, and each event names its host. The flag of internal traffic is Cyanotype's own: set
-  it in each browser with `?internal=on` on Cyanotype's address (section 4).
+  takes the events of every site, and each event names its host. The flag of internal traffic is Cyanotype's own:
+  once Cyanotype is live, open `https://cyanotype.abstractclass.org/?internal=on` once in each browser and each browser
+  profile that visits it, on each device. The address loses `?internal=on` at once, and the flag stays until someone
+  clears the browser's data for the site.
 
 ## The launch switch
 

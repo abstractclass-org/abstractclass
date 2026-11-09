@@ -4,9 +4,8 @@
   // does not read further. Accept and Decline cover every purpose and look the same, so that declining is as easy as
   // accepting. With more than one purpose, "Choose each" leads to the privacy page's switch for each. With one, as now
   // (the games' link), Accept and Decline are the choice, and the privacy page's switch changes it. Its words promise
-  // only what holds
-  // whatever the site adds later. The title is the site's own (`title`): plain web writing, which invites. The visit
-  // counts need no consent (Hedge School's design 11), so the banner does not name them.
+  // only what holds whatever the site adds later. The title is the site's own (`title`): plain web writing, which
+  // invites. The visit counts need no consent (Hedge School's design 11), so the banner does not name them.
   import type { Snippet } from "svelte";
   import type { Analytics } from "./analytics.svelte.ts";
   import CornerCard from "./CornerCard.svelte";

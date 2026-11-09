@@ -10544,23 +10544,24 @@ not engine-887be290's for Cyanotype's.
 
 ### PostHog in place of Google Analytics (2026-11-09)
 
-- **Decided** (abscls-xb0k; the owner's decision of 2026-11-09, on cyanotype-coord's recommendation): both sites
-  measure with PostHog in place of Google Analytics, in one project for all the sites, in cookieless mode always.
-  Cloudflare Web Analytics stays as it is ([design/11-early-access.md](../design/11-early-access.md), item 7).
+- **Decided** (abscls-xb0k): both sites measure with PostHog in place of Google Analytics, in one project for all the
+  sites, in cookieless mode always. Cloudflare Web Analytics stays as it is
+  ([design/11-early-access.md](../design/11-early-access.md), item 7).
 - **Why:** the setup that design 17 needed in Google Analytics (43 custom dimensions, 3 custom metrics, 3 calculated
-  metrics, 4 key events and 6 explorations, all by hand) and a consent banner for its cookies were too much, and the
-  owner paused it. PostHog's event properties "are used for filtering, breakdowns, cohorts, targeting, and more", with
+  metrics, 4 key events and 6 explorations, all by hand) and a consent banner for its cookies were too much, and that
+  setup stopped. PostHog's event properties "are used for filtering, breakdowns, cohorts, targeting, and more", with
   no step to register them. Its free plan has 1,000,000 events a month, 1 project and 1 year of data
   (posthog.com/pricing.md, read 2026-11-09). Cloudflare counted about 900 page loads in 350 visits on Hedge School
   from 2026-10-10 to 11-08. With `cookieless_mode: 'always'`, PostHog "never stores PostHog data in cookies or
   local/session storage" and "doesn't require a cookie banner (unless something else on your website uses cookies)"
   (posthog.com/docs/privacy/data-collection.md).
-- **The region:** PostHog's US region, which the owner picked at signup: the events go to `https://us.i.posthog.com`.
+- **The region:** PostHog's US region, the project's region since its signup: the events go to
+  `https://us.i.posthog.com`.
   The privacy pages say that PostHog stores the data in the US, and name the basis for the data of visitors from the
   EU, the UK and Switzerland: PostHog's DPA, section 10.3, "Processor confirms that it participates in the EU-US Data
   Privacy Framework, the UK Extension to this Framework and the Swiss-U.S. Data Privacy Framework", with the Standard
   Contractual Clauses of its section 10.4 beside them (posthog.com/dpa and posthog.com/privacy, read 2026-11-09).
--  **The client:** posthog-js 1.447.4 from npm, in its slim bundle with no external loading
+- **The client:** posthog-js 1.447.4 from npm, in its slim bundle with no external loading
   (`posthog-js/dist/module.slim.no-external`, with `AnalyticsExtensions` for the page views), not PostHog's snippet. The
   build-sizes check passes either way (no file is near 25 MiB). The snippet loads PostHog's latest `array.js` from
   PostHog's address, and EasyPrivacy, one of uBlock Origin's default lists, blocks it
@@ -10589,8 +10590,8 @@ not engine-887be290's for Cyanotype's.
   page view too (`register` in `loaded`, which runs before it). The project's filter of internal and test users is
   the owner's step.
 - **The consent:** the analytics purpose goes from both sites. Hedge School keeps the games' purpose (design 25: the
-  owner's answer of 2026-11-09, "let's keep the consent for ID, then"), under its key `hedge-school:consent:2`, and
-  its banner names that purpose only, with no "Choose each". Cyanotype asks for no consent: no banner, and no "Your
+  random ID that links a browser's practice games), under its key `hedge-school:consent:2`, and its banner names that
+  purpose only, with no "Choose each". Cyanotype asks for no consent: no banner, and no "Your
   choices" on its Privacy page.
 - **The ask to allow the measuring in a blocker** (design 27) goes. No visitor accepts PostHog's counts, so a request
   would go to every visitor with a blocker. uBlock Origin's default lists (EasyList, EasyPrivacy, uBlock filters,
@@ -10598,7 +10599,8 @@ not engine-887be290's for Cyanotype's.
   tracking protection list (`||i.posthog.com^`) and Firefox's strict tracking protection (Disconnect's Analytics) do.
   posthog-js calls `on_request_error` only for a status of 400 or more, so the page cannot see a blocked request
   without a check of blockers, which design 27 rejects. This departs from the issue's text, which kept the ask if a
-  blocker stops PostHog as it stopped Google's tag: the owner can bring it back.
+  blocker stops PostHog as it stopped Google's tag. The departure waits for a confirmation (abscls-xb0k). The ask can
+  come back with a check of its own.
 - **The tests:** the layout test's analytics cases (`tests/analytics.spec.ts`, which replaces
   `tests/analytics-ask.spec.ts`) run on check:all's builds: Hedge School's with a made-up key, Cyanotype's without
   one. The tests' Chromium resolves none of PostHog's addresses (`--host-resolver-rules`), and Playwright's routes
@@ -10619,19 +10621,18 @@ tag queue, and "PostHog in place of Google Analytics".
 
 - **The test of Cyanotype's events** (`tests/cyanotype-events.spec.ts`) now reads what the pages send to PostHog, as
   `tests/analytics.spec.ts` does, with the shared part in `tests/posthog.ts`. Its 3 cases check the same events with
-  the same parameters: a review file loaded, with its exports from the review and from the Review tab; a file that
-  cannot load; the review snapshot's open and Review again. It no longer reads `window.dataLayer` on a build with
-  `G-TEST000000`, and it no longer skips on a build without the Google tag. On a build without PostHog's key it
-  fails: the Review tab's page view does not come.
+  the same parameters. The first loads a review file and exports it from the review and from the Review tab. The
+  second gives a file that cannot load. The third opens a review snapshot and clicks Review again. It no longer reads
+  `window.dataLayer` on a build with `G-TEST000000`, and it no longer skips on a build without the Google tag. On a
+  build without PostHog's key it fails: the Review tab's page view does not come.
 - **Both sites' builds of check:all have the made-up PostHog key.** Cyanotype's events need a build that sends them.
   The check that a build without the key holds none of PostHog's code moved out of the browser test into check:all:
   it builds Cyanotype without the key first, and its step `cyanotype-no-posthog` (`scripts/no-posthog.mjs`) refuses a
   script of that build that names `i.posthog.com` (the client's address in `posthog.ts`) or
   `__PosthogExtensions__`. Then it builds Cyanotype with the key for the browser tests. The extra build took 7 s
   on the owner's machine. The browser test of a page served without the key needed a third preview, and a worker has
-  two ports. The
-  Cyanotype case of `tests/analytics.spec.ts` now checks the keyed build: page views with `internal: true` after
-  `?internal=on`, no banner, no "Your choices", and nothing kept in the browser.
+  two ports. The Cyanotype case of `tests/analytics.spec.ts` now checks the keyed build: page views with
+  `internal: true` after `?internal=on`, no banner, no "Your choices", and nothing kept in the browser.
 - **A page's last events go in a beacon.** The Review tab loads the page again once it keeps a review file, so
   `load_saved` goes out as the page goes: posthog-js sends the events that it still holds with
   `navigator.sendBeacon` on `pagehide`. Neither Playwright's routes and request events nor Chromium's CDP Network
@@ -10651,3 +10652,33 @@ tag queue, and "PostHog in place of Google Analytics".
   passed all 233 cases, with none skipped: the 4 analytics cases and the 3 of Cyanotype's events among them. A
   Cyanotype build with the key and two changes, no `load_saved` for a review file and no feature "review again",
   failed the review file's case and the review snapshot's case, and passed the case of a file that cannot load.
+- **The review of both entries** (abscls-xb0k):
+  - **One gate for PostHog's key.** The shared analytics read `VITE_POSTHOG_KEY` themselves (`POSTHOG` in
+    `packages/site/src/analytics.svelte.ts`), so the step `cyanotype-no-posthog` checks the gate of both sites. A
+    build of Hedge School without the key had 98 scripts, none with PostHog's code.
+  - **The client is one promise.** The calls wait for it in their order. A client that did not load or did not start
+    takes none. Before, each call after a failed load waited in a list that only grew.
+  - **No scroll depth:** `disable_scroll_properties: true` ("These allow you to keep track of how far down someone
+    scrolled in your website", posthog-js's types). No report uses it, and the privacy pages do not name it.
+  - **A page view, as the review read it** on a build of Hedge School with the made-up key: the address without its
+    `#` part, with its query (the `utm_` parameters and the ads' click ids are properties of their own), the title,
+    the referrer, the browser, its version and language, the operating system, the device's type, the time zone, the
+    screen's and the window's sizes, and an id for each page view. After a page change by the site's router, it also
+    has the page before and how long that page stayed open (`$prev_pageview_duration`). It has no session id, and
+    PostHog kept nothing in the cookies or the browser's storage. The privacy pages do not name the window's size or
+    how long a page stayed open: a change of their text is proposed in abscls-xb0k. On a page change by the router,
+    the page view has the title of the page before: PostHog reads it as the address changes, before the page sets its
+    own. The reports use the path.
+  - **The privacy pages' facts,** read again on posthog.com on 2026-11-09: the US region's data stays in the US
+    (posthog.com/privacy). The hash takes the IP address, the browser and a salt of the day, which PostHog deletes
+    (posthog.com/tutorials/cookieless-tracking). In cookieless mode, PostHog removes the IP address before it keeps
+    the event (posthog.com/docs/privacy/data-storage.md). PostHog takes part in the EU-U.S. Data Privacy Framework,
+    its UK Extension and the Swiss-U.S. framework (posthog.com/privacy).
+  - **The third case, mutated:** a Cyanotype build with the key and without `trackLoadFailed("review_file", "file")`
+    failed the case of a file that cannot load (its `load_failed` was `[]`). The build put back passed it.
+  - **The departure from design 27's ask, read again:** EasyPrivacy's PostHog rules match `/static/array.js`, `/i/`,
+    `ip=`, `app.posthog.com/e/?compression=` and `posthog.com/*/?retry_count`. None matches the client's first
+    request, `POST https://us.i.posthog.com/e/`. A request that PostHog's client sends again after a failure has
+    `retry_count`, which EasyPrivacy stops. uBlock Origin's own lists and Peter Lowe's list have no PostHog rule.
+  - **The owner's step of the filter** gives its operator: the event property `internal`, **is not set**. Each entry
+    keeps the events that match it (posthog.com/docs/data/test-accounts.md).

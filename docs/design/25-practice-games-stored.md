@@ -41,7 +41,7 @@ Lichess and chess.com keep every game played on them:
 4. **No switch to keep games out:** a game with no number and no name identifies no one, as Lichess's anonymous
    games. For the linked games, the consent is the way out: Decline stops the link, and the privacy page deletes the
    games that went with this browser's number.
-5.  **The consent banner asks for the games' link, and is open about it** (design 11's banner, replaced): a visitor who
+5. **The consent banner asks for the games' link, and is open about it** (design 11's banner, replaced): a visitor who
    declines most often does not read the banner, so it says, in a few lines, what the purpose does for the site. Accept
    and Decline stay alike, so that declining is as easy as accepting. The privacy page has a switch for each purpose.
    With more than one purpose, the banner's "Choose each" leads to them. The banner promises only what holds whatever

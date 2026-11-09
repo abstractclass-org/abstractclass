@@ -131,10 +131,11 @@ to register them. So the site's events need no setup in PostHog. The project's s
 
 - **Cookieless tracking:** Settings → Project → Web analytics → **Enable cookieless tracking**, on. Without it,
   PostHog drops the events of the sites' cookieless mode.
-- **Internal traffic:** Settings → Project → **Filter out internal and test users**: a filter on the event property
-  `internal`, so that the events where it is `true` drop out (item 6,
-  [posthog.com/docs/data/test-accounts.md](https://posthog.com/docs/data/test-accounts.md)). An insight then takes
-  the filter with its switch of the same name.
+- **Internal traffic:** Settings → Project → **Filter out internal and test users**: the entry "event property
+  `internal` **is not set**" (item 6). Each entry keeps the events that match it, so the events that carry `internal`
+  drop out ([posthog.com/docs/data/test-accounts.md](https://posthog.com/docs/data/test-accounts.md)). An insight
+  then takes the filter with its switch of the same name, which **Enable this filter on all new insights** turns on.
+  [docs/hosting.md](../hosting.md), section 4, gives the steps.
 - **The data's time:** PostHog's free plan keeps a year of data (posthog.com/pricing). A year compares a release with
   the months before it.
 
@@ -253,7 +254,7 @@ Cyanotype's.
 - **The game's id after the `#`:** the site's promise is that neither service sees a game. An id made from the moves
   does not show the game, but it ties each page view to one game, and the reports gain nothing from it.
 - **A feature once in each review:** the question is how many players use it, not how often.
--  **A flag in the browser for internal traffic:** PostHog's
+- **A flag in the browser for internal traffic:** PostHog's
   [filter of internal and test users](https://posthog.com/docs/data/test-accounts.md) takes any event property, Google's
   [internal traffic article](https://support.google.com/analytics/answer/10104470) let a site add `traffic_type` to its
   events itself, and Plausible (`plausible_ignore`) and Matomo (a cookie that ignores the visits) use a flag in the

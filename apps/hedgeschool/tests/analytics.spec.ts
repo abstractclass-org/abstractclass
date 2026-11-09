@@ -9,7 +9,8 @@ const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
 lookLikeAVisitor();
 
-/** What this site keeps in the browser: its cookies, and the keys of its local and session storage. */
+/** What this site keeps in the browser: its cookies, and the keys of its local and session storage. PostHog's own keys
+ *  start with `ph_`, or `__ph_` for its consent (`__ph_opt_in_out_` and the project's key). */
 const kept = (page: Page) => page.evaluate(() => ({
   cookies: document.cookie,
   keys: [...Object.keys(localStorage), ...Object.keys(sessionStorage)],
@@ -46,7 +47,7 @@ test("Hedge School, a build with PostHog's key: without the flag, no `internal`,
   expect(view.properties.$cookieless_mode).toBe(true);
   const { cookies, keys } = await kept(page);
   expect(cookies).toBe("");
-  expect(keys.filter(k => /^ph_|posthog/i.test(k))).toEqual([]);
+  expect(keys.filter(k => /(^|_)ph_|posthog/i.test(k))).toEqual([]);
 });
 
 test("Hedge School: the consent banner asks only about the practice games' random ID", async ({ context }) => {
@@ -87,5 +88,5 @@ test("Cyanotype, a build with PostHog's key: its page views carry internal: true
   await expect(page.getByRole("region", { name: "Help Cyanotype get better" })).toHaveCount(0);
   const { cookies, keys } = await kept(page);
   expect(cookies).toBe("");
-  expect(keys.filter(k => /consent|^ph_|posthog/i.test(k))).toEqual([]);
+  expect(keys.filter(k => /consent|(^|_)ph_|posthog/i.test(k))).toEqual([]);
 });

@@ -2,9 +2,9 @@
 // nothing stored in the browser for them, so neither asks for consent. PostHog runs in its cookieless mode
 // (posthog.ts): it counts visitors by a hash on its servers.
 //
-// Each site makes one Analytics with its build's two services and its own keys in the browser (Hedge School's and
-// Cyanotype's src/lib/analytics.svelte.ts). Without the services, as in development and in the previews, nothing
-// loads. Neither service sees a game: a page whose address holds a game after its `#` (a record, a packed review or
+// Each site makes one Analytics with its build's Cloudflare token and its own keys in the browser (Hedge School's and
+// Cyanotype's src/lib/analytics.svelte.ts). PostHog's key is the build's, the same project for every site (POSTHOG).
+// Without the services, as in development and in the previews, nothing loads. Neither service sees a game: a page whose address holds a game after its `#` (a record, a packed review or
 // analysis, Hedge School's design 22) takes it out of the address before it starts them, every other page starts them
 // from the layout, and the review names its game's id after the `#`, which neither records.
 //
@@ -16,28 +16,29 @@
 // that links this browser's practice games, where the site stores them. The banner's Accept and Decline set it, and
 // the privacy page's switch. A build that stores no practice games asks for no consent.
 import { readLocalJson, readLocal, writeLocal } from "@abstractclass/storage/local.ts";
+// A type only: the build drops it, so a build without PostHog's key holds none of its code.
+import type { PostHogClient } from "./posthog.ts";
 
 export type Consent = "granted" | "denied";
 export type Purpose = "games";
 export type EventParams = Record<string, string | number | boolean>;
 
-/** The part of PostHog's client that the site uses (posthog.ts). */
-interface PostHogClient {
-  capture(name: string, properties?: EventParams): unknown;
-  register(properties: EventParams): void;
-}
-
-/** What a site gives its analytics: the build's two services (none in development), the keys of the practice games'
- *  consent where the build stores them, and the flag of internal traffic. */
+/** What a site gives its analytics: Cloudflare Web Analytics' token from its build (none in development), the keys of
+ *  the practice games' consent where the build stores them, and the flag of internal traffic. PostHog's key is the
+ *  build's VITE_POSTHOG_KEY, the same for every site (POSTHOG). */
 export interface AnalyticsOptions {
-  /** PostHog's project key, and the import of its client (posthog.ts). The site imports the client only in a build
-   *  with the key, so that a build without it holds none of PostHog's code. */
-  posthog: { key: string; load: () => Promise<typeof import("./posthog.ts")> } | undefined;
   cfToken: string | undefined; // Cloudflare Web Analytics' token
   /** Where a build that stores practice games keeps the consent (the purpose "games"), and the random number. */
   games: { consent: string; number: string } | undefined;
   isInternal: () => boolean;
 }
+
+/** PostHog's key and the import of its client, from the build's VITE_POSTHOG_KEY: one project for all the sites. A
+ *  build without the key has none: the build drops the import with its branch, so it holds none of PostHog's code
+ *  (check:all's step `cyanotype-no-posthog`). */
+const POSTHOG = import.meta.env.VITE_POSTHOG_KEY
+  ? { key: import.meta.env.VITE_POSTHOG_KEY as string, load: () => import("./posthog.ts") }
+  : undefined;
 
 /** One site's analytics. Its members are arrows, so that a site can export them one by one. */
 export class Analytics {
@@ -50,9 +51,9 @@ export class Analytics {
 
   readonly #o: AnalyticsOptions;
   #started = false;
-  /** PostHog's client once it has loaded, and before that the calls that wait for it. */
-  #client: PostHogClient | null = null;
-  #waiting: ((client: PostHogClient) => void)[] = [];
+  /** PostHog's client, once its file has loaded and it has started: null where it did not, and no promise before the
+   *  services start or in a build without the key. */
+  #client: Promise<PostHogClient | null> | null = null;
   readonly #sent = new Set<string>();
 
   constructor(o: AnalyticsOptions) {
@@ -86,30 +87,22 @@ export class Analytics {
   startAnalytics = () => {
     if (this.#started) return;
     this.#started = true;
-    const { posthog, cfToken } = this.#o;
+    const { cfToken } = this.#o;
+    const posthog = POSTHOG;
     if (cfToken) addScript("https://static.cloudflareinsights.com/beacon.min.js", { "data-cf-beacon": JSON.stringify({ token: cfToken }) });
     if (posthog) {
       // A browser with the flag of internal traffic (internalTraffic.ts): every event of the page has the property
       // `internal`, the first page view too, for PostHog's filter of internal and test users.
       const properties: EventParams = this.#o.isInternal() ? { internal: true } : {};
-      posthog.load().then(
-        m => {
-          const client = m.startPostHog(posthog.key, properties);
-          this.#client = client;
-          for (const call of this.#waiting) call(client);
-          this.#waiting = [];
-        },
-        () => (this.#waiting = []), // the client's file did not load: the page counts nothing
-      );
+      // A client whose file did not load, or that did not start: the page counts nothing.
+      this.#client = posthog.load().then(m => m.startPostHog(posthog.key, properties)).catch(() => null);
     }
   };
 
-  /** Calls PostHog's client now, or once it has loaded. Nothing in a build without it, or before the services
-   *  start. */
+  /** Calls PostHog's client once it has started, in the order of the calls. Nothing in a build without it, before the
+   *  services start, or where it did not start. */
   #withClient(call: (client: PostHogClient) => void) {
-    if (!this.#o.posthog || !this.#started) return;
-    if (this.#client) call(this.#client);
-    else this.#waiting.push(call);
+    void this.#client?.then(c => c && call(c));
   }
 
   /** Sends an event to PostHog (Hedge School's design 17): its name and properties, counts and ranges only, never a

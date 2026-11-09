@@ -1507,7 +1507,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `src/lib/SiteFooter.svelte`: the footer, with How reviews work, Privacy and Notices. `src/app.css`: the accent
   (Hedge School's lavender) and the board's colour tokens, after the shared style and the view's
   (`@abstractclass/review/review.css`).
--  `apps/cyanotype/src/lib/analytics.svelte.ts`: Cyanotype's analytics ("Analytics"), on
+- `apps/cyanotype/src/lib/analytics.svelte.ts`: Cyanotype's analytics ("Analytics"), on
   `packages/site/src/analytics.svelte.ts`, with the flag of internal traffic (`src/lib/internalTraffic.ts`, read as the
   site starts in `src/hooks.client.ts`), the sources and the imports' and exports' events (`src/lib/game/sources.ts`),
   the settings' changes (`src/lib/analysis/settingChanges.ts`) and a practice game's parameters

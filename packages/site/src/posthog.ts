@@ -1,14 +1,14 @@
 // PostHog's client as the sites start it (Hedge School's designs 11 and 17): posthog-js from npm, in its slim bundle
-// with no external loading, so that the version is the lockfile's and the client loads no script from PostHog. A site
-// imports this module only in a build with VITE_POSTHOG_KEY (each site's src/lib/analytics.svelte.ts), so a build
-// without the key holds none of PostHog's code. Each option's name and meaning is from PostHog's docs
+// with no external loading, so that the version is the lockfile's and the client loads no script from PostHog. The
+// sites import this module only in a build with VITE_POSTHOG_KEY (POSTHOG in analytics.svelte.ts), so a build without
+// the key holds none of PostHog's code. Each option's name and meaning is from PostHog's docs
 // (posthog.com/docs/libraries/js/config.md, posthog.com/docs/privacy/data-collection.md and
 // posthog.com/docs/libraries/js.md, "Tree shaking with the slim bundle").
 import posthog from "posthog-js/dist/module.slim.no-external";
 import { AnalyticsExtensions } from "posthog-js/dist/extension-bundles";
 
 /** PostHog's address for the project, in its US region. */
-export const POSTHOG_HOST = "https://us.i.posthog.com";
+const POSTHOG_HOST = "https://us.i.posthog.com";
 
 export type PostHogClient = Pick<typeof posthog, "capture" | "register">;
 
@@ -37,6 +37,9 @@ export function startPostHog(key: string, properties: Record<string, string | nu
     rageclick: false,
     capture_performance: false,
     capture_exceptions: false,
+    // No scroll depth with the page leave and the next page view: no report uses it, and the privacy pages do not name
+    // it.
+    disable_scroll_properties: true,
     disable_product_tours: true,
     disable_conversations: true,
     // No request for feature flags or for the project's remote settings: the options here are all the settings.
