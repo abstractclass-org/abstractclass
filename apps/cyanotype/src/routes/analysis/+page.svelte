@@ -121,7 +121,7 @@
     imported = !brings || OWN.includes(via ?? "") ? undefined : isImportSource(via) ? via : "site_link";
     loaded = brings ? undefined : via === "analysis_file" ? via : "analysis_share_link";
     if (text === null && position === null) {
-      const kind = p.get("via") === "analysis_file" ? "file" : "link";
+      const kind = loaded === "analysis_file" ? "file" : "link";
       try {
         return { kept, at: keptAt, brought: { ...readBoardLink(packed ?? "", p.get("at")), kind } };
       } catch (e) {

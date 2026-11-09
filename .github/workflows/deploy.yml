@@ -168,15 +168,15 @@ jobs:
       - name: The packages' checks and tests
         run: npm run check --workspace=packages && npm test --workspace=packages
         working-directory: .
-      # The build's edition: the repository variable VITE_EDITION, as for the site's build. Its two analytics services
-      # are Cyanotype's own (docs/hosting.md, "Cyanotype's analytics"): the repository variables CYANOTYPE_GA_ID and
-      # CYANOTYPE_CF_ANALYTICS_TOKEN, given to the build under the names that the code reads, VITE_GA_ID and
-      # VITE_CF_ANALYTICS_TOKEN. Only the live site has them, as for the site's build: previews are not counted.
+      # The build's edition: the repository variable VITE_EDITION, as for the site's build. Its analytics
+      # (docs/hosting.md, "Cyanotype's analytics"): Cyanotype's own Google Analytics ID, CYANOTYPE_GA_ID, under the
+      # name that the code reads, and the domain's one Cloudflare Web Analytics site, VITE_CF_ANALYTICS_TOKEN, as for
+      # the site's build. Only the live site has them: previews are not counted.
       - run: npm run engine -- --deploy && npm run check && npm test && npm run build
         env:
           VITE_EDITION: ${{ vars.VITE_EDITION }}
           VITE_GA_ID: ${{ github.ref_name == 'main' && vars.CYANOTYPE_GA_ID || '' }}
-          VITE_CF_ANALYTICS_TOKEN: ${{ github.ref_name == 'main' && vars.CYANOTYPE_CF_ANALYTICS_TOKEN || '' }}
+          VITE_CF_ANALYTICS_TOKEN: ${{ github.ref_name == 'main' && vars.VITE_CF_ANALYTICS_TOKEN || '' }}
 
       - name: Upload to Cloudflare Pages
         env:

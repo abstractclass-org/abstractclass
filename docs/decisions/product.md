@@ -10191,11 +10191,12 @@ Enclosure, 90,980 for Blueprints).
   in a blocker and their card (with the site's mark as a snippet). The settings' changes went into the analysis
   package, the exports' event into the review's and a practice game's parameters into the practice's. Hedge School's
   files keep their names as wrappers, with its keys, so its pages, events and unit tests stay as they were.
-- **The services:** Cyanotype's own Google Analytics property and Cloudflare Web Analytics site, so that the two sites'
-  reports stay apart: their events have the same names. The code reads one pair of names in each build
-  (`VITE_GA_ID`, `VITE_CF_ANALYTICS_TOKEN`). The repository's variables are per site, so the deploy gives Cyanotype's
-  build `CYANOTYPE_GA_ID` and `CYANOTYPE_CF_ANALYTICS_TOKEN` under those names, on `main` only. The owner makes the
-  property and the site ([hosting.md](../hosting.md), "Cyanotype's analytics").
+- **The services:** Cyanotype's own Google Analytics property, so that the two sites' reports stay apart: their events
+  have the same names. Cloudflare Web Analytics is the domain's one site, `abstractclass.org`, which takes every
+  subdomain's beacon and splits the visits by host. The code reads one pair of names in each build (`VITE_GA_ID`,
+  `VITE_CF_ANALYTICS_TOKEN`). The deploy gives Cyanotype's build `CYANOTYPE_GA_ID` as `VITE_GA_ID`, and the domain's
+  `VITE_CF_ANALYTICS_TOKEN` as it is, on `main` only ([hosting.md](../hosting.md), "Cyanotype's analytics"). The
+  owner chose PostHog in place of Google Analytics (abscls-xb0k), so the property's setup waits for that work.
 - **The consent's one purpose** is Google Analytics' cookies: Cyanotype stores no practice games yet (abscls-8tl1.50).
 - **Where the events differ:** design 33, "Analytics and consent", item 4. The import page sends a tool's source to the
   review's or the board's address as `via`, and that page counts the import: Cyanotype's import page does not keep the

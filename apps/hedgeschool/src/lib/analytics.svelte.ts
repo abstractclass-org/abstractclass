@@ -8,7 +8,7 @@ import { STORES_PRACTICE_GAMES } from "#lib/edition.ts";
 import { isInternal } from "#lib/internalTraffic.ts";
 import { Analytics } from "@abstractclass/site/analytics.svelte.ts";
 
-export type { Consent, Purpose } from "@abstractclass/site/analytics.svelte.ts";
+export type { Purpose } from "@abstractclass/site/analytics.svelte.ts";
 
 export const analytics = new Analytics({
   gaId: import.meta.env.VITE_GA_ID,
@@ -25,5 +25,6 @@ export const analytics = new Analytics({
 export const PURPOSES = analytics.purposes;
 export const ASKS_CONSENT = analytics.asksConsent;
 export const consent = analytics.consent;
-export const { consentChosen, linksGames, asksToAllow, closeAsk, startAnalytics, track, trackOnce, setVisitor, choose,
-               chooseShown, chooseAll, browserNumber, keptNumber, forgetNumber } = analytics;
+// The banner and the ask take `analytics` itself, for their choices and their Close.
+export const { consentChosen, linksGames, asksToAllow, startAnalytics, track, trackOnce, setVisitor, chooseShown,
+               browserNumber, keptNumber, forgetNumber } = analytics;

@@ -16,8 +16,8 @@ editor and starts from a set-up position are built (abscls-8tl1.39, "Decision", 
 the engine's check that a game can reach a position (abscls-8tl1.59). The early access is built, as Hedge School's
 ("Decision", item 11). The player's games, kept in this browser, are built as Hedge School's (abscls-8tl1.38, "The
 player's games"). Partner sites are designed, not built ("Partner sites"). The analytics and the consent banner are
-built as Hedge School's (abscls-8tl1.48, "Analytics and consent"). Cyanotype's own Google Analytics property and
-Cloudflare Web Analytics site are the owner's steps.
+built as Hedge School's (abscls-8tl1.48, "Analytics and consent"). No build measures yet: PostHog replaces Google
+Analytics first (abscls-xb0k).
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -1175,12 +1175,13 @@ both sites share (design 29), with Cyanotype's own services and keys.
    (`packages/practice/src/practiceEvents.ts`), beside the import's events (`packages/import/src/importEvents.ts`).
    Each site's `src/lib/analytics.svelte.ts` makes its analytics. Its other files give the events the site's names of
    its networks and its sources. Hedge School's behaviour, events and keys stay as they were.
-2. **The services are Cyanotype's own:** a Google Analytics property and a Cloudflare Web Analytics site, so that its
-   reports stay apart from Hedge School's. The two sites' events have the same names. The build reads Hedge School's
-   variable names, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN`. The deploy gives them from Cyanotype's repository
-   variables, `CYANOTYPE_GA_ID` and `CYANOTYPE_CF_ANALYTICS_TOKEN`, for `main` only. Without them, as in development
-   and on the previews, nothing is measured and no banner shows. [docs/hosting.md](../hosting.md), "Cyanotype's
-   analytics", gives the owner's steps.
+2. **The services:** a Google Analytics property of Cyanotype's own, so that its reports stay apart from Hedge
+   School's: the two sites' events have the same names. Cloudflare Web Analytics is the domain's one site,
+   `abstractclass.org`, which takes the beacon of every subdomain and splits the visits by host. The build reads Hedge
+   School's variable names, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN`. The deploy gives Cyanotype's repository
+   variable `CYANOTYPE_GA_ID` as `VITE_GA_ID`, and the domain's token `VITE_CF_ANALYTICS_TOKEN` as it is, for `main`
+   only. Without them, as in development and on the previews, nothing is measured and no banner shows.
+   [docs/hosting.md](../hosting.md), "Cyanotype's analytics", gives the setup.
 3. **The consent has one purpose,** Google Analytics' cookies: Cyanotype stores no practice games yet
    (abscls-8tl1.50), so it has no random number that links them. The banner is Hedge School's, with the logo at 48
    pixels (the full print, "The logo") and its own title, "Help Cyanotype get better". The Privacy page says what is
@@ -1192,15 +1193,15 @@ both sites share (design 29), with Cyanotype's own services and keys.
    of the address starts them (the review, the import page, the Analysis board and the board editor). The pages send
    these events:
    - the review: `review_open`, `review_done`, `game_missing`, `engine_error`, `setting_change`, `feature`, `export`,
-     and `import_game` or `import_failed` for a record after the `#`;
+     and `import_game` or `import_failed` for a record after the `#`.
    - the Review tab: `import_game`, `import_failed`, `load_failed`, `game_delete`, `game_delete_cancel`, `export`, and
-     the visitor's property `games_stored`;
-   - a shared review: `review_share_open`, `load_saved`, `load_failed`;
-   - the import page: `tool_out_of_date`, and `import_failed` for a game that it cannot read or open;
+     the visitor's property `games_stored`.
+   - a shared review: `review_share_open`, `load_saved`, `load_failed`.
+   - the import page: `tool_out_of_date`, and `import_failed` for a game that it cannot read or open.
    - the Analysis board: `analysis_open`, `import_game`, `import_failed`, `load_saved`, `load_failed`,
-     `engine_error`, `setting_change`, `feature`, `export`;
-   - the board editor: `editor_open`, `editor_analyze`;
-   - Practice: `practice_start`, `practice_end`, `engine_error`, `feature`;
+     `engine_error`, `setting_change`, `feature`, `export`.
+   - the board editor: `editor_open`, `editor_analyze`.
+   - Practice: `practice_start`, `practice_end`, `engine_error`, `feature`.
    - the engine's session, on the review and the Analysis board: `gpu_test`, and `engine_error` for the GPU.
 
    **Where Cyanotype's events differ from Hedge School's:**

@@ -482,49 +482,21 @@ Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
 ### Cyanotype's analytics
 
 Cyanotype counts its visits and events as Hedge School does ([design 33](design/33-cyanotype.md), "Analytics and
-consent"): Google Analytics after the visitor's consent, and Cloudflare Web Analytics, without cookies. They are
-Cyanotype's own, apart from Hedge School's, so that each site's reports stay apart (section 4, "One property for Hedge
-School"): both sites send events with the same names. The job `cyanotype` gives the build two repository variables of
-Cyanotype's under the names that the code reads, `VITE_GA_ID` and `VITE_CF_ANALYTICS_TOKEN`. Only a push to `main`
-gives them, so previews are not counted. Until Cyanotype's launch, the job deploys previews only, so no build has
-them. A build without them measures nothing and shows no consent banner.
+consent"): Google Analytics after the visitor's consent, and Cloudflare Web Analytics, without cookies. The job
+`cyanotype` gives the build two repository variables under the names that the code reads. Only a push to `main` gives
+them, so previews are not counted. Until Cyanotype's launch, the job deploys previews only, so no build has them. A
+build without them measures nothing and shows no consent banner.
 
-| Name | Kind | Value |
+| Name in the build | Repository variable | Value |
 |---|---|---|
-| `CYANOTYPE_GA_ID` | variable | The measurement ID of Cyanotype's web stream (step 1) |
-| `CYANOTYPE_CF_ANALYTICS_TOKEN` | variable | The token of Cyanotype's Web Analytics site (step 2) |
+| `VITE_GA_ID` | `CYANOTYPE_GA_ID` | The measurement ID (`G-…`) of Cyanotype's own Google Analytics web stream |
+| `VITE_CF_ANALYTICS_TOKEN` | `VITE_CF_ANALYTICS_TOKEN` | The token of the domain's Web Analytics site (section 5), as for Hedge School |
 
-**The owner's steps, once,** before Cyanotype's launch (section 9, step 3). Each variable goes in the repository's
-**Settings → Secrets and variables → Actions → Variables → New repository variable**: a variable of the whole
-repository, as section 3's are, not of an environment.
-
-1. **Google Analytics: Cyanotype's own property and web stream.**
-   1. At [analytics.google.com](https://analytics.google.com), click **Admin**, then **Create → Property**. Property
-      name: `Cyanotype`. Give the time zone and the currency as Hedge School's property has them. Finish the steps.
-   2. In the new property, **Admin → Data collection and modification → Data streams → Add stream → Web**. Website
-      URL: `https://cyanotype.abstractclass.org`. Stream name: `Cyanotype`. Keep **Enhanced measurement** on, with
-      **"Page changes based on browser history events"** on (section 4). Click **Create stream**.
-   3. Copy the stream's **Measurement ID** (`G-…`), and set it as the repository variable `CYANOTYPE_GA_ID`.
-   4. Set up the property as Hedge School's: the custom dimensions and metrics, the key events and the data retention
-      of 14 months, as design 17's "The setup in Google Analytics" lists them. Cyanotype's events use the same
-      parameters. Design 33's "Analytics and consent" names the values that differ.
-   5. The owner's own visits: do the four steps of section 4's "The owner's own visits" in this property, with
-      Cyanotype's address: `https://cyanotype.abstractclass.org/?internal=on`. Each site keeps its own flag in the
-      browser, so a browser needs the flag on each site.
-2. **Cloudflare Web Analytics: Cyanotype's own site.**
-   1. In the Cloudflare dashboard, **Web Analytics → Add a site**. Hostname: `cyanotype.abstractclass.org`. If
-      Cloudflare turns on its **automatic setup** for it, change it: **Manage site → "Enable with JS Snippet
-      installation" → Update**, as section 5, step 2, does for the domain.
-   2. The snippet holds the site's token (`data-cf-beacon='{"token": "…"}'`). Set the token alone, the 32
-      hexadecimal digits, as the repository variable `CYANOTYPE_CF_ANALYTICS_TOKEN`.
-   3. Do not turn on the Pages project's own Web Analytics (**Metrics → Web Analytics** of the project `cyanotype`):
-      visits would count twice.
-   The domain's site (section 5) also takes Cyanotype's beacon, since its hostname ends with `abstractclass.org`. A
-   site of Cyanotype's own gives Cyanotype a dashboard of its own.
-3. **Check, after the launch's deploy:** open `https://cyanotype.abstractclass.org` in a new private window. The
-   banner "Help Cyanotype get better" shows. In Google Analytics, Cyanotype's property shows the visit in **Reports →
-   Realtime**. Cloudflare's dashboard shows it in the Web Analytics site `cyanotype.abstractclass.org`, after some
-   minutes. Visit the Privacy page's "Your choices" too: its switch shows.
+- **Cloudflare Web Analytics needs no step.** The account's one site, `abstractclass.org` (section 5), takes the
+  beacon of every subdomain, and its dashboard splits the visits by host. Cyanotype uses its token.
+- **Google Analytics has no owner's step here.** Both sites move to PostHog in its place (abscls-xb0k), and that work
+  gives the owner's steps. The variable `CYANOTYPE_GA_ID` holds a Google Tag Manager container ID (`GTM-…`), not a
+  measurement ID: before Cyanotype's launch, it gets the replacement's value or is deleted.
 
 ## The launch switch
 
