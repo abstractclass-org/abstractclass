@@ -1,5 +1,7 @@
 // A game record into the player's games: checked with the engine's rules (check.ts), given its cut marks, and kept in
 // this browser (store.ts). The pages that import (Home, and the review's ways in, Arrival.svelte) show the outcome.
+// It also gives the reason why a page refuses a game of other rules or from a set-up start (variantProblem): the
+// review, the Analysis board and Practice each refuse in their own words.
 import { setUpRefusal } from "@abstractclass/record/record.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
 import { checkMoves } from "./check.ts";
@@ -7,21 +9,21 @@ import { markCuts, type GameRecord } from "./record.ts";
 import { saveGame } from "./store.ts";
 
 /** The pages that refuse a game of other rules, each in its own words (design 21, design 24). */
-export type RulesPage = "review" | "analysis" | "practice";
-const onlineRulesOnly: Record<RulesPage, string> = {
+type RulesPage = "review" | "analysis" | "practice";
+const onlineRulesSentence: Record<RulesPage, string> = {
   review: "Hedge School reviews games of the online rules only.",
   analysis: "The Analysis board shows games of the online rules only.",
   practice: "Practice plays games of the online rules only.",
 };
 
-/** Why a page cannot take a game of another variant, or from another start, or null. The review refuses both. The
- *  Analysis board and Practice take another start (design 21, design 24), and refuse other rules in their own words.
- *  The notation names them with the `Rules` and `Position` tags, which a game of the online rules from the standard
- *  start leaves out (the /notation page). The engine plays the online rules only, so such a game is refused, never
- *  reviewed or played by the wrong rules (design 18). */
+/** Why a page cannot take a game of other rules or from a set-up start, or null. The notation names the two with the
+ *  `Rules` and `Position` tags, which a game of the online rules from the standard start leaves out (the /notation
+ *  page). The engine plays the online rules only, so a game of other rules is refused, never reviewed or played by the
+ *  wrong rules (design 18). The review refuses a set-up start too: a review is of a game from the standard start
+ *  (design 21). The Analysis board and Practice take a set-up start (design 21, design 24). */
 export function variantProblem(record: GameRecord, page: RulesPage = "review"): string | null {
   const rules = otherRules(record);
-  if (rules) return `This game uses other rules (${rules}). ${onlineRulesOnly[page]}`;
+  if (rules) return `This game uses other rules (${rules}). ${onlineRulesSentence[page]}`;
   return page === "review" && setUpStart(record.tags.Position) ? setUpRefusal("Hedge School") : null;
 }
 

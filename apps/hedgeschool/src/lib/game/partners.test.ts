@@ -37,10 +37,8 @@ test("a game of other rules, or from another start, is refused; the online rules
 test("the arrival's ways: a set-up start turns off the review only, and other rules turn off both, each in its own words", () => {
   assert.deepEqual(wayRefusals(setUp), { analyze: null, review: "This game starts from another position. Hedge School "
     + "reviews games from the standard start only: open it on the Analysis board." }); // Cyanotype's words (setUpRefusal)
-  assert.deepEqual(wayRefusals(rulesGame), {
-    review: "This game uses other rules (Race to 2000). Hedge School reviews games of the online rules only.",
-    analyze: "This game uses other rules (Race to 2000). The Analysis board shows games of the online rules only.",
-  });
+  // Other rules: each way's reason is the one that its page gives after the click. The next test checks the words.
+  assert.deepEqual(wayRefusals(rulesGame), { review: variantProblem(rulesGame), analyze: variantProblem(rulesGame, "analysis") });
   assert.deepEqual(wayRefusals(game('[Event "?"]')), { review: null, analyze: null });
 });
 
@@ -49,7 +47,6 @@ test("each page refuses a game of other rules in its own words", () => {
   assert.equal(variantProblem(rulesGame), uses + "Hedge School reviews games of the online rules only.");
   assert.equal(variantProblem(rulesGame, "analysis"), uses + "The Analysis board shows games of the online rules only.");
   assert.equal(variantProblem(rulesGame, "practice"), uses + "Practice plays games of the online rules only.");
-  assert.equal(wayRefusals(rulesGame).analyze, variantProblem(rulesGame, "analysis")); // the arrival's card, the board's page
 });
 
 test("the game's own page comes from a web address in Site, and from nothing else", () => {

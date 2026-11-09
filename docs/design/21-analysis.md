@@ -129,8 +129,8 @@ engine does by itself.
    - **The record carries the start:** the notation's `[Position "…"]` tag (engine design 04, as PGN's `FEN` tag),
      with the moves after it. The board reads it, and its record export writes it. A review refuses such a record,
      and says to open it on the board (`variantProblem` in `src/lib/game/import.ts`): a review is of a game played
-     from the standard start. The board takes the record. It refuses a record of other rules, in its own words: "The
-     Analysis board shows games of the online rules only."
+     from the standard start. The board takes the record. It refuses a record of other rules in its own words
+     (item 5).
    - **A link and a file carry it:** the board's link packs it in its tags as `Position`, as a record carries it, and
      the analysis file keeps it in its board (`start`). A record's komi goes the same way (design 24): `Komi` in the
      link's tags, and `komi` in the file's board.
