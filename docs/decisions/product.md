@@ -10322,8 +10322,8 @@ that the two sites share (design 33, "The review snapshot and the annotated reco
 - **Cyanotype's review snapshot** is Hedge School's: the engine's rules alone, the record's capture marks checked, and
   the stored results of the mark's search at the mark's depth, with the line "Reviewed on (date) with an earlier
   version of the engine." and Review again. A record whose capture marks are wrong opens no review snapshot: the page
-  says why ("Cyanotype cannot review this game: …"), as before. Cyanotype counts no event of it: it has no analytics
-  yet (abscls-8tl1.48).
+  says why ("Cyanotype cannot review this game: …"), as before. Its events are Hedge School's (the entry "Cyanotype
+  counts its review files and review snapshot").
 - **Cyanotype's annotated record** follows the review file in the review's Export menu and beside each game in the
   Review tab, copied or as a file. The review page writes it from its review, and the Review tab from the store, with
   the note "Reviewed by Cyanotype with Stamp Duty 0.2 (the network …), at least N visits a position."
@@ -10369,3 +10369,23 @@ abscls-8tl1.34 and abscls-8tl1.35, after the two entries before.
 - **Checked:** `npm run check:all` passed, all 15 steps. The whole layout test (`npm run test:layout --
   --project=chromium`), in headless Chromium on the CPU: 207 cases, 202 passed and 5 skipped. The 5 skipped are the
   analytics ask's (`analytics-ask.spec.ts`), which need a build with the Google tag (`VITE_GA_ID`).
+
+### Cyanotype counts its review files and review snapshot (2026-11-09)
+
+abscls-8tl1.34 and abscls-8tl1.35, on Cyanotype's analytics (abscls-8tl1.48, "Cyanotype's analytics and consent, as
+Hedge School's").
+
+- **The events are Hedge School's** (its design 17), with its names and parameters. The Review tab sends `load_saved`
+  for a review file that it keeps (`load_source` `review_file`, the game's length as `edges`, and `with_results`),
+  and `load_failed` for a review file that it cannot load (`review_file`, `file`). The Export menus of the review and
+  of each game in the Review tab send `export` with `export_kind` `review_file`, `record_copy` or `record_file`. The
+  review snapshot's open sends `review_open` with `done_before` true and the feature "snapshot opened", and Review
+  again the feature "review again". The review that Review again starts sends no second `review_open`.
+- **Design 33** ("Analytics and consent", item 4) lists them, and its list of what Cyanotype lacks no longer names the
+  review files and the review snapshot.
+- **The test:** `tests/cyanotype-events.spec.ts`, on a build with a made-up measurement ID, as the analytics ask's
+  cases. Every request to Google stops, and the test reads the commands that the site gives the tag's queue
+  (`window.dataLayer`), kept in the tab's session storage across the page's loads. It skips on a build without the
+  Google tag.
+- **Checked:** both sites built with `VITE_GA_ID=G-TEST000000`, in headless Chromium on the CPU:
+  `analytics-ask.spec.ts` passed its 10 cases, and `cyanotype-events.spec.ts` its 3.

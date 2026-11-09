@@ -1247,8 +1247,8 @@ both sites share (design 29), with Cyanotype's own services and keys.
    of the address starts them (the review, the import page, the Analysis board and the board editor). The pages send
    these events:
    - the review: `review_open`, `review_done`, `game_missing`, `engine_error`, `setting_change`, `feature`, `export`.
-   - the Review tab: `import_game`, `import_failed`, `load_failed`, `game_delete`, `game_delete_cancel`, `export`, and
-     the visitor's property `games_stored`.
+   - the Review tab: `import_game`, `import_failed`, `load_saved` (a review file), `load_failed`, `game_delete`,
+     `game_delete_cancel`, `export`, and the visitor's property `games_stored`.
    - a shared review: `review_share_open`, `load_saved`, `load_failed`.
    - the import page: `tool_out_of_date`, `import_game` for a game that it keeps for its review, and `import_failed`
      for a game that it cannot read, open or keep.
@@ -1263,8 +1263,8 @@ both sites share (design 29), with Cyanotype's own services and keys.
      and `strategyjam_userscript`. Cyanotype has no meaf.us tools (`bookmarklet`, `userscript`, `older_tool`) and no
      Constellation export (`pasted_constellation`): both are Enclosure's. Its tools always send their version, so
      `stale_tool` is never `older`.
-   - **Its saved work** (`load_source`): `review_share_link`, `analysis_share_link` and `analysis_file`. Cyanotype has
-     no review files (abscls-8tl1.34) and no partner sites.
+   - **Its saved work** (`load_source`): `review_file`, `review_share_link`, `analysis_share_link` and
+     `analysis_file`. Cyanotype has no partner sites yet.
    - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the
      reports have one dimension for a game's length.
    - **`network`** names Stamp Duty's networks (Stamp Duty 0.2).
@@ -1274,10 +1274,13 @@ both sites share (design 29), with Cyanotype's own services and keys.
    - **Practice's features** (`feature_name`): `practice komi`, `practice takeback`, `practice look back` and `note
      drawn`. Cyanotype's Practice has no display settings of Hedge School's, so it sends none of their features.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
-   - **No event of a part that Cyanotype lacks:** Support Us (`support_open`, abscls-8tl1.49), Openings
-     (abscls-8tl1.53), the review snapshot's features (abscls-8tl1.35) and the review file's loads (abscls-8tl1.34).
+   - **No event of a part that Cyanotype lacks:** Support Us (`support_open`, abscls-8tl1.49) and Openings
+     (abscls-8tl1.53).
 5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics-ask.spec.ts`) run on both sites,
    each on a build with a made-up measurement ID. They skip on a build without it, as Hedge School's do.
+   `tests/cyanotype-events.spec.ts` checks, on such a build, the events of the review files and the review snapshot:
+   a review file loaded and a file that cannot load, the exports of the review file and the annotated record from the
+   review and the Review tab, the review snapshot's open and Review again.
 
 ## The logo
 
