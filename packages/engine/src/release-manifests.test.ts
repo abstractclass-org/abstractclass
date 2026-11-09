@@ -2,7 +2,7 @@
 // manifests downloads each once, and then the step reads no network. A fake download stands for GitHub. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Lock, ReleaseManifest } from "./lock-check.ts";
@@ -62,6 +62,13 @@ test("a cached manifest that is not the release's for the lock is downloaded aga
   assert.deepEqual((await lockManifests(lock, dir, again.download, quiet)).map(r => r.manifest),
                    [manifests[NEW], manifests[OLD]]);
   assert.equal(again.calls.length, 2);
+  // JSON with the release's tag, but not in a manifest's form: assets that are not a list, or not objects.
+  writeFileSync(join(dir, "releases", OLD, "manifest.json"), JSON.stringify({ tag: OLD, assets: {} }));
+  writeFileSync(join(dir, "releases", NEW, "manifest.json"), JSON.stringify({ tag: NEW, assets: [null] }));
+  const third = github();
+  assert.deepEqual((await lockManifests(lock, dir, third.download, quiet)).map(r => r.manifest),
+                   [manifests[NEW], manifests[OLD]]);
+  assert.equal(third.calls.length, 2);
 }));
 
 test("a failed download stops the step with the download's error", () => withCache(async dir => {
@@ -70,7 +77,11 @@ test("a failed download stops the step with the download's error", () => withCac
   };
   await assert.rejects(lockManifests(lock, dir, failing, quiet),
     /release engine-\w+ manifest\.json: https:\/\/github\.com\/x\/releases\/download\/.* gave HTTP 504/);
-  const notJson: Download = async () => Buffer.from("<html>");
-  await assert.rejects(lockManifests(lock, dir, notJson, quiet),
-    /release engine-\w+ manifest\.json: the file is not JSON/);
+  // A file that is not a manifest stops the step with the release's name, and the cache does not keep it.
+  for (const text of ["<html>", "0", "42", "[]", JSON.stringify({ tag: OLD, assets: {} })]) {
+    const notManifest: Download = async () => Buffer.from(text);
+    await assert.rejects(lockManifests(lock, dir, notManifest, quiet),
+      /release engine-\w+ manifest\.json: the file is not a release's manifest/, text);
+  }
+  assert.equal(existsSync(join(dir, "releases")), false);
 }));

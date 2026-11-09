@@ -124,7 +124,7 @@ test("the step reads the manifest of each release of the lock, once, in the lock
 test("a lock whose files one of its releases names with the lock's entries passes, with that release", () => {
   assert.deepEqual(checkOneReleaseSet(setLock(), [newRelease, oldRelease]), { release: NEW, unchecked: [] });
   // The rule reads no time and no order: the order of the list does not count. So a manifest uploaded again to the
-  // earlier release, which a rule by upload time took for the newest, changes nothing.
+  // earlier release changes nothing.
   assert.deepEqual(checkOneReleaseSet(setLock(), [oldRelease, newRelease]), { release: NEW, unchecked: [] });
   // A lock from one release passes with that release.
   const one = setLock();

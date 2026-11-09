@@ -64,17 +64,22 @@ async function get(artifact) {
 }
 
 /** Downloads `asset` of release `tag` of the lock's repository. A failed download stops the step with an error that
- *  names `id`, the URL and the HTTP status or the network's error. */
+ *  names `id`, the URL and the HTTP status or the network's error: no answer, or a file that stops before its end. */
 async function download(id, tag, asset) {
   const url = `https://github.com/${lock.repository}/releases/download/${tag}/${asset}`;
+  const cause = e => e.cause?.code ?? e.cause?.message ?? e.message;
   let response;
   try {
     response = await fetch(url);
   } catch (e) {
-    throw new Error(`${id}: ${url} gave no answer (${e.cause?.code ?? e.cause?.message ?? e.message})`, { cause: e });
+    throw new Error(`${id}: ${url} gave no answer (${cause(e)})`, { cause: e });
   }
   if (!response.ok) throw new Error(`${id}: ${url} gave HTTP ${response.status}`);
-  return Buffer.from(await response.arrayBuffer());
+  try {
+    return Buffer.from(await response.arrayBuffer());
+  } catch (e) {
+    throw new Error(`${id}: ${url} stopped before the end of the file (${cause(e)})`, { cause: e });
+  }
 }
 
 /** Writes a file under static/engine/<id>/: compressed when asked or when it is too large to serve, and in parts when

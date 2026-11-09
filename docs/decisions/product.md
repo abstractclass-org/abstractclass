@@ -10831,12 +10831,13 @@ its full import already ("Cyanotype's review files, as Hedge School's").
 
 - **Decided** (abscls-8tl1.84): the check of each lock as one release's set changes its rule. One release of the lock
   must name every file of the lock from a release, with the lock's SHA-256 and size (`checkOneReleaseSet` in
-  `packages/engine/src/lock-check.ts`, design 03). It replaces the rule "each file has the entry of the newest of the
-  lock's releases that names it", which ordered the releases by each manifest download's `Last-Modified`, and the
-  cached time of each manifest (`releases/<tag>/manifest.time`).
+  `packages/engine/src/lock-check.ts`, design 03). The earlier rule was "each file has the entry of the newest of the
+  lock's releases that names it". It ordered the releases by the `Last-Modified` time of each manifest's download.
+  The cache kept that time beside each manifest (`releases/<tag>/manifest.time`). The step no longer reads or keeps
+  that time.
 - **Why:** the rule needs no order of the releases, so it needs no time.
   - Upload order is not release order. A manifest that is uploaded again to an earlier release, to correct it, made
-    that release the newest, and the old rule then refused a right lock. The new rule reads no time, so such a
+    that release the newest, and the old rule then refused a correct lock. The new rule reads no time, so such a
     manifest changes nothing.
   - A warm cache with no `manifest.time` downloaded every manifest again. The new rule reads the cached manifests
     only, so a warm cache reads no network (`packages/engine/src/release-manifests.ts`).
@@ -10847,9 +10848,17 @@ its full import already ("Cyanotype's review files, as Hedge School's").
     with its own release's entry.
 - **The message:** when no release names every file, the step names the release that names the most files, and
   each file that it does not name, with the lock's entry and the release's (or "no entry").
-- **On CI:** the Tests workflow keeps each lock's download cache by the lock's hash, and a cache that its key finds
-  is not saved again. The caches saved before the check of the release's set hold no manifests. The four keys now
-  start with `engine-v2-` and `cyanotype-engine-v2-`, so each job saves a new cache with the manifests once.
+- **A limit of the cache:** the step downloads a cached manifest again only when it does not give the lock's entries
+  for its own release's files. A manifest that is uploaded again to a release after the cache took it stays as the
+  cache has it. On a machine, delete `releases/<tag>` from the download cache to read it again. On CI, the cache
+  changes with the lock.
+- **On CI:** the Tests workflow keeps each lock's download cache by the lock's hash. When the key finds a cache,
+  actions/cache does not save it again. The caches saved before the check of the release's set hold no manifests.
+  The four keys now start with `engine-v2-` and `cyanotype-engine-v2-`, so each job saves a new cache with the
+  manifests once.
+- **The review** made the step refuse a manifest that is JSON but not a manifest (a number, a list, or `assets`
+  that is not a list), with the release's name. A cached one of that form downloads again. A download that stops
+  before the end of its file stops the step with the release and the URL.
 - **Checked:** both locks pass on their releases: engine-c43233eb names all 19 files of Hedge School's lock, and
   engine-887be290 all 13 of Cyanotype's. With an empty cache, each step downloaded the manifests of the lock's
   releases once (5 and 2). Run again with a fetch that a script made fail, both steps passed from the cache. With no

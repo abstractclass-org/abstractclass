@@ -18,7 +18,7 @@
 // of the lock in its manifest, with the lock's SHA-256 and size. The lock takes each file from the release that first
 // shipped its bytes, so that a browser's cache keeps a file that a release did not change (design 33, "The engine's
 // files"). A release's manifest names every file of the release, the unchanged ones too. So the newest release of a
-// right lock names all its files. A lock that pairs a file of one release with an older file that the release
+// correct lock names all its files. A lock that pairs a file of one release with an older file that the release
 // replaced has no such release: for one, the threaded bot of a new release with the evaluator of an older release,
 // which the new release changed. The rule needs no order of the releases. The step reads the manifest of every
 // release of the lock for it.

@@ -68,14 +68,17 @@ new builds arrive often.
   - **The lock's files are one release's set.** The lock takes each file from the release that first shipped its bytes,
     so that a browser's cache keeps a file that a new release did not change. A release's manifest names every file of
     the release, the unchanged ones too. So one release of the lock must name every file of the lock, with the lock's
-    SHA-256 and size: for a right lock, its newest release. Otherwise the lock pairs a file of a new release with an
+    SHA-256 and size: for a correct lock, its newest release. Otherwise the lock pairs a file of a new release with an
     older file that the new release replaced, such as a new threaded bot with the evaluator of an earlier release. A
     lock that keeps a file that its newest release dropped stops too. The rule needs no order of the releases, so it
     reads no time. The step reads the manifest of each release of the lock, and stops when no release names every
     file. Its message names the release that names the most files, and each file that it does not name, with both
     entries (`checkOneReleaseSet` in `packages/engine/src/lock-check.ts`). The download cache keeps each manifest by
     its release's tag, so a warm cache reads no network (`packages/engine/src/release-manifests.ts`). A manifest that
-    cannot download stops the step, with the release, the URL and the cause.
+    cannot download stops the step, with the release, the URL and the cause. The step downloads a cached manifest
+    again only when it is not a manifest, or when it does not give the lock's entries for its own release's files. A
+    manifest that is uploaded again to a release after the cache took it stays as the cache has it: delete
+    `releases/<tag>` from the download cache to read it again.
   - **The engine modules come from one engine commit.** The engine modules are the modules that play the game's
     rules: the CPU and the GPU module, and the practice bot's two modules. A release's tag gives its commit:
     `engine-<commit>`, with or without a suffix. The step stops when the lock's engine modules come from two commits
@@ -148,3 +151,7 @@ new builds arrive often.
 
 - [decisions/architecture.md](../decisions/architecture.md), "The stack" (2026-10-09).
 - [decisions/architecture.md](../decisions/architecture.md), "Styles in Tailwind" (2026-10-10).
+- [decisions/product.md](../decisions/product.md), "The engine step: Practice's CPU form, and each lock as one release's
+  set" (2026-11-09).
+- [decisions/product.md](../decisions/product.md), "The engine step: one release of the lock names every file"
+  (2026-11-10).

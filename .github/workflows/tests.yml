@@ -53,8 +53,9 @@ jobs:
       # reads by SHA-256 (packages/engine/src/fetch-engine.mjs). Not static/engine: the script empties that folder on
       # each run. After npm ci, which removes node_modules. The script checks each file's SHA-256, cached or downloaded.
       # The cache also keeps the manifest of each release of the lock (releases/<tag>/manifest.json), which the step's
-      # check of the lock reads (packages/engine/src/release-manifests.ts). A cache that its key finds is not saved
-      # again, so the keys' "v2" names the caches that hold the manifests: the caches saved before had none.
+      # check of the lock reads (packages/engine/src/release-manifests.ts). When the key finds a cache, actions/cache
+      # does not save it again. So the keys' "v2" names the caches that hold the manifests: the caches saved before had
+      # none.
       - name: Cache the engine's files
         uses: actions/cache@v6
         with:
