@@ -27,10 +27,13 @@ import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput }
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewTestGame, storeReview, toolLink }
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
+import { toMove } from "./move-header.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
+/** The fixture's game record. */
+const fixtureRecord = () => JSON.parse(readFileSync(FIXTURE, "utf8")).record as string;
 
 /** A rule broken, as text, and for a page or a page area that scrolls sideways, what passes its right edge (`detail`). */
 interface Problem { problem: string; detail?: string }
@@ -530,17 +533,22 @@ test("layout of the weak walls", async ({ page }) => {
   /** The walls' rings, once their search has run. */
   const settled = () => expect(page.locator("g.walls circle").first()).toBeVisible({ timeout: 120_000 });
   const switchOn = () => expect(page.getByRole("button", { name: "Weak walls" })).toHaveAttribute("aria-pressed", "true");
-  /** The walls' note, legend or reading that its line cuts with an ellipsis. */
-  const wallsFit: OwnRules = p => p.locator(".map-margin").evaluate(m =>
-    [...m.querySelectorAll<HTMLElement>('[role="status"], div[aria-label="Weak walls"] > span')]
+  /** The walls' note, legend or reading that its line cuts with an ellipsis, and a note beside the walls' legend or
+   *  reading: the two do not fit side by side at 360 pixels, so they never show together (design 30, "The weak
+   *  walls", item 4). */
+  const wallsFit: OwnRules = p => p.locator(".map-margin").evaluate(m => {
+    const note = m.querySelector('[role="status"]'), legend = m.querySelector('div[aria-label="Weak walls"]');
+    return [...m.querySelectorAll<HTMLElement>('[role="status"], div[aria-label="Weak walls"] > span')]
       .filter(e => e.textContent!.startsWith("Weak walls") || e.parentElement!.matches('[aria-label="Weak walls"]'))
       .filter(e => e.scrollWidth > e.clientWidth)
-      .map(e => `the weak walls' text "${e.textContent}" is cut: ${e.scrollWidth} pixels in ${e.clientWidth}`));
+      .map(e => `the weak walls' text "${e.textContent}" is cut: ${e.scrollWidth} pixels in ${e.clientWidth}`)
+      .concat(note && legend ? [`the note "${note.textContent}" shows beside the weak walls' "${legend.textContent}"`] : []);
+  });
+  const RINGS_AT = 40; // the fixture's position after 40 edges, which has rings
   const reports: string[] = [];
   await reviewedGame(page);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
-  await page.keyboard.press("Home");
-  for (let k = 0; k < 40; k++) await page.keyboard.press("ArrowRight");
+  await toMove(page, RINGS_AT);
   await page.keyboard.press("w");
   await switchOn();
   await settled();
@@ -549,8 +557,7 @@ test("layout of the weak walls", async ({ page }) => {
   await page.keyboard.press("t");
   reports.push(await sweep(page, "/review, the weak walls and the area map", wallsFit, [700]));
   // The Analysis board keeps its own setting, and its area map is on by default
-  const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record as string;
-  await page.goto("/analysis#" + new URLSearchParams({ record, at: "40" }));
+  await page.goto("/analysis#" + new URLSearchParams({ record: fixtureRecord(), at: String(RINGS_AT) }));
   await expect(page.getByRole("button", { name: "Weak walls" })).toBeVisible({ timeout: 60_000 });
   await page.keyboard.press("w");
   await switchOn();
@@ -709,7 +716,7 @@ test("the sentence under the book's table keeps the move list in place", async (
 /** Opens Practice in a game in progress, kept in this browser (hedgefund.ts, KeptPractice): the fixture's first 20
  *  edges, the player to move next, so that the bot does not search. */
 async function practiceGame(page: Page) {
-  const moves = (JSON.parse(readFileSync(FIXTURE, "utf8")).record as string).replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
+  const moves = fixtureRecord().replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
   await page.goto("/practice");
   await page.evaluate(kept => localStorage.setItem("hedge-school:practice-game:1", JSON.stringify(kept)), {
     version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "", seed: 1,
@@ -759,7 +766,7 @@ test("the step bar on a phone", async ({ browser }) => {
   await context.addInitScript(() =>
     localStorage.setItem("hedge-school:consent:2", JSON.stringify({ analytics: "denied", games: "denied" })));
   const page = await context.newPage();
-  const record = JSON.parse(readFileSync(FIXTURE, "utf8")).record as string;
+  const record = fixtureRecord();
   const found: string[] = [];
   await reviewedGame(page);
   await expect(page.getByText(/^Review done/).first()).toBeVisible({ timeout: 300_000 });

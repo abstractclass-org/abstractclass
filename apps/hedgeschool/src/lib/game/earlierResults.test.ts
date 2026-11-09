@@ -174,24 +174,25 @@ test("after the site's lock left engine-d6786eba, a visitor's reviews and analys
   // engine-d6786eba's CPU module and HedgeFund 0.2 Lite's file (b10c128-s89066368-d17827487): its results are keyed by
   // the search fdfe5ad, which the later release keeps (request 30), and its marks name its module.
   const d6786eba = "29c7c0afb3984d88bb5f1bb21b0a056fb0fd5a5e1fc454c5c8e5232d9cd0b766";
-  const lite = "000126bf7f28eeb05280e16aafa7055c6b9e9f4dc38739b67406ce0da3d2e950";
+  const lite = "000126bf7f28eeb05280e16aafa7055c6b9e9f4dc38739b67406ce0da3d2e950", search = "fdfe5ad";
   const site = lock as unknown as Manifest, module = moduleOf(site)!;
   assert.notEqual(module.sha256, d6786eba, "the lock has moved to a later release");
-  assert.equal(module.search, "fdfe5ad");
+  assert.equal(module.search, search);
   assert.equal(shippedModels(site)!.has(lite), true);
   // A review and its variations, the maps added to them, and an Analysis board's deeper results
-  const stored = [...results("fdfe5ad", lite, 512, line(MOVES)), ...results("fdfe5ad", lite, 512, [["D10-G10", "N11-Q11"]]),
-                  ...line(MOVES).map(m => mapKey("fdfe5ad", lite, m)), ...results("fdfe5ad", lite, 4096, [["D10-G10"]])];
+  const stored = [...results(search, lite, 512, line(MOVES)), ...results(search, lite, 512, [["D10-G10", "N11-Q11"]]),
+                  ...line(MOVES).map(m => mapKey(search, lite, m)), ...results(search, lite, 4096, [["D10-G10"]])];
+  // They stay with no game to read them, and the results of another search, an earlier engine's, still go
+  const earlier = results("s1", lite, 512, line(MOVES));
+  assert.deepEqual(unneededResults([...stored, ...earlier], [], site), earlier);
   const reviewed = mark(d6786eba, lite, "b10c128-s89066368-d17827487");
-  assert.deepEqual(unneededResults(stored, [{ moves: MOVES, branches: BRANCHES, mark: reviewed }], site), []);
-  assert.deepEqual(unneededResults(stored, [], site), []);
   // The game's review counts as done: it opens with its results, with no review snapshot and no review again
   const want = reviewMark(site, reviewed.network, 512);
   assert.equal(reviewCovers(reviewed, want), true);
   assert.equal(reviewAgainWhy(reviewed, want), null);
-  // A review file of it and a share link of it, which name its module (a link by its first hex digits)
+  // A review file of it and a share link of it, which name its module (a link by its first 8 hex digits, share.ts)
   assert.equal(shippedModules(site)!.includes(d6786eba), true);
-  assert.equal(sameSearch(site, d6786eba.slice(0, 12)), true);
+  assert.equal(sameSearch(site, d6786eba.slice(0, 8)), true);
 });
 
 test("the results of an older shape that the readers read are kept or removed as this shape's", () => {

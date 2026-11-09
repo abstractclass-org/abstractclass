@@ -1457,10 +1457,11 @@ has 16 logical cores. Three runs of each, the median and the range:
   - `npm run engine` fetched every file with the lock's size and SHA-256. The CPU module answered protocol 0.6.2 and
     the search `fdfe5ad`. Every engine entry from `engine-c43233eb` matched the release's manifest, and the manifest
     lists each other entry of the lock with the same SHA-256.
-  - `npm run check:all` passed every step: the site's 313 tests, with a new test of `earlierResults.test.ts`. It
-    takes the lock itself and a review of `engine-d6786eba`'s module with HedgeFund 0.2 Lite: its results, its
-    variations' results, its added maps and a deeper result all stay, its mark covers the site's review with no
-    review again, and a review file or a share link of that module is the site's search.
+  - `npm run check:all` passed every step: the site's 313 tests, with a new test of `earlierResults.test.ts`. The
+    test takes the lock itself and a review of `engine-d6786eba`'s module with HedgeFund 0.2 Lite. The review's
+    results, its variations' results, its added maps and a deeper result all stay. The results of another search
+    go. The review's mark covers the site's review, with no review again. A review file or a share link of that
+    module is of the site's search.
   - In Playwright's Chromium (headless, the layout test's launch options), the review fixture
     (`tests/fixtures/hedgefund-review.json`, a review by `engine-d6786eba`'s module) opened with its results in
     under 1 s: "Review done", no review snapshot. Opened again from its address, it opened the same way. After 40 edges,
@@ -1472,8 +1473,9 @@ has 16 logical cores. Three runs of each, the median and the range:
 - **The margin at 360 pixels:** the first run of the whole layout test with the new engine failed in that case. On
   the Analysis board the walls came before the area map, so "Map: waiting for the engine" (158 pixels) and the walls'
   legend (53 pixels, cut) showed side by side at 360 × 700. No earlier engine gave the walls, so no test saw the
-  legend. Now the walls' legend shows only while no margin note does, and a weak wall's reading under the pointer
-  takes the note's place, as the map's reading does (design 30, "The weak walls", item 4;
-  `packages/review/src/ReviewView.svelte`, `marginNote`).
+  legend. Now the walls' legend shows only while no margin note shows. Under the pointer, the reading of a point on
+  an edge takes the note's place, as the map's reading does. Design 30 says so in "The weak walls", item 4, and
+  `marginNote` in `packages/review/src/ReviewView.svelte` does it. The layout case now also reports a note beside
+  the walls' legend or reading, at every width.
 - **The whole layout test** in Chromium, after that change: 216 passed and 5 skipped (the 5 cases of
   `analytics-ask.spec.ts`, which need a build with `VITE_GA_ID`). "Layout of the weak walls" passed in 1.2 minutes.

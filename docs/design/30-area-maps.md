@@ -473,4 +473,5 @@ chance that one of them is cut. So the board marks the points, and names no chan
   third style", "The marks of After vs before, and 0.05", "The map's work made visible, and the map stage", "\"Map:
   waiting for the engine\" did not end", "The area map's review", "The map's bookkeeping in edge cases" and "The
   review of the map's bookkeeping".
-- [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21).
+- [decisions/engine.md](../decisions/engine.md): "The cost of the ownership in a whole review" (2026-10-21), and
+  "The release c43233eb: protocol 0.6.2 and the weak walls" (2026-11-09).
