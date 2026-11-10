@@ -33,7 +33,7 @@ test("a kept board's komi beyond the game's limit, either way, is a problem in t
 
 test("the notice of a kept board that cannot open names the new board, unless a board brought is on screen", () => {
   const problem = "its komi must be from -5,052 to 5,052 points: 6000";
-  // The kept board alone: a new board opens in its place (the words that the owner approved)
+  // The kept board alone: a new board opens in its place, and the notice says so
   assert.equal(keptBoardNotice(problem, false), "The Analysis board cannot open your own analysis: its komi must be " +
     "from -5,052 to 5,052 points: 6000. A new board is here instead.");
   // A link, an analysis file, New or the Import brings a board that replaces it: no new board is on screen

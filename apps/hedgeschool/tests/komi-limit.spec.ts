@@ -57,6 +57,11 @@ async function savedBoard(page: Page): Promise<{ komi?: number; nodes: unknown[]
                                     page.getByRole("menuitem", { name: /^Analysis file/ }).click()]);
   return JSON.parse(readFileSync((await file.path())!, "utf8")).board;
 }
+/** Loads an analysis file of the board at `komi` on the board's page. */
+async function loadAnalysisFile(page: Page, komi: number) {
+  const file = { format: "hedge-school-analysis", version: ANALYSIS_FILE_VERSION, exported: "", site: "x", board: board(komi), analyses: [] };
+  await fileInput(page).setInputFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+}
 /** The moves in the board's move list. */
 const moves = (page: Page) => page.locator("button.mv[data-path]");
 
@@ -77,7 +82,7 @@ test("a kept board at komi 6,000 does not open: a new board, with the notice, an
 
 test("a kept board at komi 6,000 and a link within the limit: the link's board opens, with no question", async ({ page }) => {
   // The kept board cannot open, so the board does not ask to replace it, as on Cyanotype. The link's board is on
-  // screen, so the notice does not say that a new board is
+  // screen, so the notice does not say that a new board is here
   await keep(page, kept(6000));
   await page.goto(boardLink("", board(300), 0));
   await expect(notice(page)).toHaveText(KEPT_GONE, { timeout: 60_000 });
@@ -91,8 +96,7 @@ test("a kept board at komi 6,000, then an analysis file within the limit: the fi
   await page.goto("/analysis");
   await expect(notice(page)).toHaveText(KEPT_REFUSED, { timeout: 60_000 });
   await expect(page.getByRole("button", { name: "Export" })).toBeVisible();
-  const file = { format: "hedge-school-analysis", version: ANALYSIS_FILE_VERSION, exported: "", site: "x", board: board(300), analyses: [] };
-  await fileInput(page).setInputFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  await loadAnalysisFile(page, 300);
   await expect(moves(page)).toHaveCount(1, { timeout: 60_000 });
   await expect(notice(page)).toHaveText(KEPT_GONE);
   expect((await savedBoard(page)).komi).toBe(300);
@@ -124,8 +128,7 @@ test("a link at komi 6,000 does not open on the Analysis board, and the notice g
 test("an analysis file at komi 6,000 does not open on the Analysis board, and the notice gives the limit", async ({ page }) => {
   await page.goto("/analysis");
   await expect(page.getByRole("button", { name: "Export" })).toBeVisible({ timeout: 60_000 });
-  const file = { format: "hedge-school-analysis", version: ANALYSIS_FILE_VERSION, exported: "", site: "x", board: board(6000), analyses: [] };
-  await fileInput(page).setInputFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  await loadAnalysisFile(page, 6000);
   await expect(notice(page)).toHaveText("The Analysis board cannot load this file: the analysis file's komi must be " +
     "from -5,052 to 5,052 points: 6000.");
 });
