@@ -1178,7 +1178,8 @@ export class GameAnalysis<G extends GameTypes> {
       const { reply } = await engine.analyse({ ...query, maxVisits: 1, includeWeakWalls: true }).done;
       if (era !== this.era) return;
       if (!reply.weakWalls) this.wallsUnsupported = true;
-      // The game's walls type is what its engine gives, as describe_game's fields are (G["fields"])
+      // The walls get the game's type here only. The engine package types them as Enclosure's (WeakWalls), and a
+      // game that has walls types them as its engine gives them
       else this.walls = { ...this.walls, [key]: reply.weakWalls as G["walls"] };
     }, { cpu: true })
       .catch(e => {

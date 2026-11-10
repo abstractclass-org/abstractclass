@@ -474,8 +474,10 @@ chance that one of them is cut. So the board marks the points, and names no chan
   `wallWork`, `marginNote`, `wallReading`), and the layout test's case "layout of the weak walls". The game's own
   type of the walls is the game types' `walls` in `packages/analysis/src/game.ts`, and `GameAnalysis` keeps and gives
   the walls by it. In `packages/review/src/game.ts`: the display's field `weakWalls` and the view game's `walls`
-  (`WallParts`). Enclosure's type of the walls, the protocol's `WeakWalls`, is in `src/lib/review/enclosure.ts`, and
-  its view game's `walls` is in `src/lib/review/enclosureView.ts`.
+  (`WallParts`). A setting kept before that field loads with the walls off (tests:
+  `packages/review/src/display.test.ts`, and each site's `src/lib/review/display.test.ts`). Enclosure's type of the
+  walls, the protocol's `WeakWalls`, is in `src/lib/review/enclosure.ts`, and its view game's `walls` is in
+  `src/lib/review/enclosureView.ts`.
 - The measurements, in `scripts/measure/`: `review-ownership.mjs` (the maps' size and time in a whole review),
   `candidate-maps.mjs` (a candidate's map from a short search), `candidate-map-delay.mjs` (its delay in the browser),
   `line-map-lag.mjs` (the maps' lag behind an animated line), `difference-at-best.mjs` (after vs before at the best

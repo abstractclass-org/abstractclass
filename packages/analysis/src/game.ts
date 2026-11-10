@@ -44,10 +44,7 @@ export interface GameTypes {
   described: unknown; // describe's reply: a position with its legal moves
   rules: unknown; // a position's rules, for the player's own moves (Enclosure: the legal edges and the mover's nodes)
   step: unknown; // a move of a line, played: what the board draws after it (Enclosure: the cut, the regions, the areas)
-  // A position's weak walls, as the engine's reply gives them (Enclosure: protocol 0.6.2's WeakWalls). The analysis
-  // asks for them and keeps them for the game (GameAnalysis's askWalls). A game with none leaves the type unknown, and
-  // its view has no walls' part (Blueprints)
-  walls: unknown;
+  walls: unknown; // a position's weak walls, as the engine gives them (Enclosure: the protocol's WeakWalls)
 }
 
 /** How the shared code tells moves apart and names them. */
