@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The engine lab: the CPU module (protocol 0.1) in Web Workers. It draws the board from the engine's rules
+  // The engine lab: the CPU module in Web Workers. It draws the board from the engine's rules
   // (describe, before any network), analyses one position in slices with a stop, and reviews a whole game over a pool
   // of workers to measure the time a position on this machine.
   import { onMount } from "svelte";

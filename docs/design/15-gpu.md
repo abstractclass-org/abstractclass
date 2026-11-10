@@ -30,10 +30,9 @@ which Chrome and Edge have from version 137.
    CPU worker is free (item 2). So the test waits when a short review has ended, and also while a worker searches
    alone once the workers have their 20 seconds. While the test waits, the line says "In use. The speed test
    continues with the next searches." While it measures, the line says "In use. Testing its speed against a worker…".
-5. **One cache for both modules.** The page keeps a result from the GPU under the workers' search, as it keeps a
-   result from a CPU worker ([design 05](05-review-analysis.md)). The store keys a result by the engine's search, the
-   network, the visits and the position (`cache.ts`). The page does not use a GPU module that reports another search
-   than the workers' (`gpu.svelte.ts`). A review can mix the two.
+5. **One cache for both modules.** The page keys a result from the GPU by the workers' search, as it keys a result
+   from a CPU worker ([design 05](05-review-analysis.md), item 3). The page uses the GPU module only when it reports
+   the workers' search (`gpu.svelte.ts`). A review can mix the two.
 6. **The deploy compresses the large files.** Cloudflare Pages serves no file over 25 MiB. The deploy stores each
    network's graph and ONNX Runtime's WebAssembly compressed with gzip, and splits a compressed file over 24 MiB into
    parts. The page joins the parts, decompresses them and checks the SHA-256.
@@ -89,8 +88,8 @@ which Chrome and Edge have from version 137.
 - **A browser without JSPI or WebGPU keeps the CPU workers.** The setting's line says what is missing.
 - **The test runs once for each network, GPU and GPU module on each browser.** A review shorter than the test leaves
   no result. Then the test continues on the next review. Clearing the site's data clears the result.
-- **The cache keys of the earlier engine build no longer match,** so the stored reviews search again once with the
-  new build.
+- **The cache keys of the earlier engine build no longer matched,** so the stored reviews searched again once with
+  the new build. The keys then named the build. They now name the engine's search (design 05, item 3).
 - **The gain, measured on one desktop** (an RTX 5080, with the CPU busy with other work): with 4 CPU workers, the GPU
   made the label stage 2.05 times as fast with Lite ([decisions/engine.md](../decisions/engine.md), "The GPU in the
   review").

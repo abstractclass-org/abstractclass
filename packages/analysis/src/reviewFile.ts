@@ -1,6 +1,6 @@
 // A reviewed game as a file (Hedge School's design 13): the game's record, the player's variations, and the engine's
 // results for every position of the game and its variations, so that another browser opens the review without
-// searching again. The results are keyed by the engine's build and network (cache.ts), so a browser whose site ships
+// searching again. The results are keyed by the engine's search and network (cache.ts), so a browser whose site ships
 // another network keeps the game and its variations, and its review searches again with its own engine. KaTrain keeps
 // its analysis in its SGF files in the same spirit. The game's record alone, with evaluations and labels, is the
 // annotated record (annotate.ts). Each site gives its part (ReviewFileSite): its name and its files' format, its
