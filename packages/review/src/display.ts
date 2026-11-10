@@ -41,8 +41,7 @@ export function displayStore<D extends Display>(key: string, defaults: D, isSoun
       sound: kept.sound ?? defaults.sound,
       moveSound: isSound(kept.moveSound) ? kept.moveSound : defaults.moveSound,
       volume: typeof kept.volume === "number" ? Math.min(1, Math.max(0, kept.volume)) : defaults.volume,
-      // A game with weak walls has them in its defaults
-      ...(defaults.weakWalls && { weakWalls: { ...defaults.weakWalls, ...kept.weakWalls } }),
+      weakWalls: { ...defaults.weakWalls, ...kept.weakWalls },
     };
   }
 

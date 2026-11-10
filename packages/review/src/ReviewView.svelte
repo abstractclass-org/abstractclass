@@ -11,9 +11,8 @@
   import { GROUP_HOVER, MOVE_HERE, MOVE_HOVER, MOVE_LIST, ROUND_GROUP, ROUND_HERE, ROUND_HOVER, TURN_NUMBER, TURN_REM, keepInView, moveButton,
            turnRow } from "./moveList.ts";
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
-  import type { GameTypes, Player } from "@abstractclass/analysis/game.ts";
+  import type { Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState, WallState } from "@abstractclass/analysis/analysis.svelte.ts";
-  import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
   import { PLAYER_NAME, WHOLE, type ViewTypes } from "./game.ts";
 
   /** The review in progress: what the engine does now, and the stages as parts of one bar, each with its share of the
@@ -43,7 +42,7 @@
   }
   /** The analysis behind the view (GameAnalysis): its variations, an engine error, the position searched for the player,
    *  the rules and the results the view asks for, and the changes of the tree. */
-  export interface ReviewGame<G extends GameTypes> {
+  export interface ReviewGame<G extends ViewTypes> {
     error: string;
     readonly komi: number; // the game's komi, Red's starting score (Hedge School's design 24): 0 for most games
     readonly takesBook: boolean; // the analysis takes the opening book: not on the board, nor at a komi (Hedge School's design 24)
@@ -79,7 +78,7 @@
     askOwnership(paths: string[][]): void;
     // The weak walls (a prototype, Hedge School's design 30): the position's, asked for while they show, and their state
     askWalls(path: string[] | null): void;
-    wallsAt(path: string[]): WeakWalls | undefined;
+    wallsAt(path: string[]): G["walls"] | undefined;
     wallState(path: string[]): WallState;
     // The threat (Lichess's "Show threat"): the search of the position after a pass by the side to move here, or none
     askThreat(path: string[] | null): void;
@@ -970,9 +969,9 @@
   // them (the game's `walls`), off by default on each page. The engine gives them for a position from one evaluation on
   // a CPU worker (askWalls). They are the position on screen's: while a line or a preview shows, the board shows
   // another position, and the walls hide. The key w shows or hides them.
-  const wallsOn = $derived(!!view.walls && !!display.weakWalls?.[mapPage]);
+  const wallsOn = $derived(!!view.walls && display.weakWalls[mapPage]);
   function setWalls(on: boolean) {
-    if (display.weakWalls) display.weakWalls[mapPage] = on;
+    display.weakWalls[mapPage] = on;
   }
   $effect(() => {
     const p = wallsOn ? path : null;
@@ -2510,7 +2509,7 @@
                  class="w-28 flex-none accent-(--accent)" />
         </div>
       {/if}
-      {#if view.walls && display.weakWalls}
+      {#if view.walls}
         {@render toggle(view.walls.name, view.walls.help, () => wallsOn, setWalls)}
       {/if}
       {#each view.layers.filter(l => l.afterMap) as l (l.key)}{@render layer(l)}{/each}

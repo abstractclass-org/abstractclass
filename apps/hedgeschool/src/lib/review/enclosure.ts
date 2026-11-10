@@ -13,6 +13,7 @@ import { boardPosition, playerOf, rulesOf, type DescribeReply, type GamePosition
 import type { EdgeInput, EdgeRules } from "#lib/board/edgeInput.svelte.ts";
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import type { BookPlace } from "#lib/book/place.svelte.ts";
+import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
 import type { Display } from "./display.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
 import { PLAYER_NAME, type LayerSetting, type ViewTypes } from "@abstractclass/review/game.ts";
@@ -84,7 +85,7 @@ export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${m
 /** Enclosure's types (GameTypes): a move is an edge, a position the board's, a move played has its cut, the engine's
  *  fields are describe_game's, the rules are the edge input's, and a line's step is its cut, regions and areas. And the
  *  review's view's (ViewTypes, enclosureView.ts): the review's display settings (display.ts), the board's notes, the
- *  edge input, a point of the lattice and the opening book's place. */
+ *  edge input, a point of the lattice, the opening book's place, and the engine's weak walls (weakWalls.ts). */
 export interface Enclosure extends ViewTypes {
   move: Edge;
   position: Position;
@@ -98,6 +99,7 @@ export interface Enclosure extends ViewTypes {
   input: EdgeInput;
   point: [number, number];
   book: BookPlace;
+  walls: WeakWalls;
 }
 
 /** A move's cut edge, from describe_game's `cuts`. */

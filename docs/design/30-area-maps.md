@@ -471,7 +471,10 @@ chance that one of them is cut. So the board marks the points, and names no chan
   and `wallState` in `packages/analysis/src/analysis.svelte.ts`, the pool's `cpu` task in
   `packages/engine/src/pool.ts` (tests: `pool.test.ts`), `weakWalls` in `packages/engine/src/protocol.ts`, the
   switch, the legend, the setting and the key w in `packages/review/src/ReviewView.svelte` (`wallsOn`, `shownWalls`,
-  `wallWork`, `marginNote`, `wallReading`), and the layout test's case "layout of the weak walls".
+  `wallWork`, `marginNote`, `wallReading`), and the layout test's case "layout of the weak walls". In
+  `packages/review/src/game.ts`, the display's field `weakWalls`, which every site gives (Cyanotype's both off), the
+  game's own type of the walls (the view types' `walls`: Enclosure's is the protocol's `WeakWalls`, in
+  `src/lib/review/enclosure.ts`), and the view game's `walls` (`WallParts`, in `src/lib/review/enclosureView.ts`).
 - The measurements, in `scripts/measure/`: `review-ownership.mjs` (the maps' size and time in a whole review),
   `candidate-maps.mjs` (a candidate's map from a short search), `candidate-map-delay.mjs` (its delay in the browser),
   `line-map-lag.mjs` (the maps' lag behind an animated line), `difference-at-best.mjs` (after vs before at the best

@@ -17,6 +17,7 @@ export const DEFAULT_DISPLAY: Display = {
   areaMap: { review: false, board: true },
   mapStyle: "ownership",
   mapMin: { ownership: 5, change: 5, difference: 5 },
+  weakWalls: { review: false, board: false }, // Enclosure's: Blueprints has none, and the view offers no switch
   scoreLine: true,
   areaLine: true,
   lineSteps: true,
