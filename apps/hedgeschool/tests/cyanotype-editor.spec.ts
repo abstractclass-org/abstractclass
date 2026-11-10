@@ -188,12 +188,14 @@ test("the editor: a right-button drag opens no menu, also when it ends off the b
 
 test("the editor says what the engine's rules refuse, and Analyze waits", async ({ page }) => {
   await page.goto(at("/editor"));
+  const status = page.getByRole("status").filter({ hasText: "position" });
+  await expect(status).toHaveText("A game can reach this position.", { timeout: 120_000 }); // ready
   const field = page.getByLabel("Position, in the notation");
   const fields = MIDDLE.split(" ");
   fields[2] = fields[2].replace(/;[^;|]+$/, ""); // Blue's blueprint 3 without its last cell: 20 cells
   await field.fill(fields.join(" "));
   await field.press("Enter");
-  await expect(page.getByRole("status").filter({ hasText: "position" }))
+  await expect(status)
     .toHaveText("The engine cannot read this position: Blue's blueprints hold 20 cells, not 21.", { timeout: 120_000 });
   await expect(page.getByRole("button", { name: "Analyze" })).toBeDisabled();
 });
@@ -355,6 +357,8 @@ test("the Import, a link and an analysis file with a komi: the board says that i
   expect((await keptBoard(page))?.start).toBeUndefined();
   // The editor's field takes a position, which has no komi: a record there is no position
   await page.goto(at("/editor"));
+  await expect(page.getByRole("status").filter({ hasText: "position" }))
+    .toHaveText("A game can reach this position.", { timeout: 120_000 }); // ready
   const field = page.getByLabel("Position, in the notation");
   await field.fill(`[Komi "300"] ${MIDDLE}`);
   await field.press("Enter");

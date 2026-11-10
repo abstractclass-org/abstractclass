@@ -21,6 +21,7 @@
   import type { Player } from "@abstractclass/analysis/game.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import { readTypedEarly } from "@abstractclass/site/typedEarly.ts";
   import PositionCheckStatus from "@abstractclass/review/PositionCheckStatus.svelte";
   import { hexKey, parseHex, type Hex } from "#lib/board/hex.ts";
   import { PLAYER_NAMES, type HandHex, type Kind, type SitePosition } from "#lib/board/position.ts";
@@ -39,6 +40,7 @@
   // The engine's answer on the latest position: its refusal, or whether a game can reach it. Null until it answers.
   let read = $state.raw<StartChecked | null>(null);
   let field = $state(""); // the position field, as the player types it
+  let fieldInput: HTMLInputElement;
   let fieldError = $state("");
   let engine = $state.raw<EngineWorker | null>(null);
   let failed = $state("");
@@ -59,6 +61,8 @@
       try { load(readPosition(text)); break; } catch { /* the next, or the start */ }
     }
     track("editor_open");
+    // A position typed before this code ran: the page reads it, as the field's Enter would have
+    readTypedEarly(fieldInput, text => { field = text; readField(); });
     void (async () => {
       try {
         const manifest = await loadManifest();
@@ -261,7 +265,7 @@
       <div class="grid gap-1">
         <label for="position-text" class="text-sm">Position, in the <a href="/notation" target="_blank" rel="noopener noreferrer">notation</a></label>
         <span class="flex gap-1.5">
-          <input id="position-text" bind:value={field} spellcheck="false" autocomplete="off" class={[FIELD, "flex-1 min-w-0 font-mono text-sm"]}
+          <input id="position-text" bind:this={fieldInput} bind:value={field} spellcheck="false" autocomplete="off" class={[FIELD, "flex-1 min-w-0 font-mono text-sm"]}
                  onchange={readField} />
           <button type="button" class="text-sm" onclick={copy}>{copied ? "Copied" : "Copy"}</button>
         </span>
