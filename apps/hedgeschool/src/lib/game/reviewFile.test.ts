@@ -4,22 +4,38 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHAPE, mapKey, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
-import { buildReviewFile, gameAnalyses, hedgeSchoolFiles, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
+import { buildReviewFile, gameAnalyses, hedgeSchoolFiles, mergeBranches, positionKeys, readReviewFile, reviewFileName, type ReviewFile } from "./reviewFile.ts";
 import { loadGame, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
 import type { Checked } from "./check.ts";
+import type { MoveCheck } from "./import.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const store = memoryDb(); // the import's store
 
+/** A check of the engine's rules that answers `checked` for every record. */
+const answers = (checked: Checked): MoveCheck => async () => checked;
 /** A check that accepts every record: no move cuts. */
-const accepts = async (): Promise<Checked> => ({ problem: null, cuts: null });
+const accepts = answers({ problem: null, cuts: null });
 const { importReview } = hedgeSchoolFiles(accepts);
+/** The import of `file`, whose game the engine's rules check with `check`. */
+const importWith = (check: MoveCheck, file: ReviewFile) => hedgeSchoolFiles(check).importReview(file, null, []);
 
 const RECORD = '[Blue "Ann"]\n[Red "Ben O\'Hara"]\n\n1. D10-G10 2. N11-Q10 L10-N11 *';
 const MOVES = ["D10-G10", "N11-Q10", "L10-N11"];
 const BRANCHES: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 0], ["D10-G10 N11-Q11 L10-N11", 1, 1]] };
 const key = (moves: string, shape = SHAPE, model = "ab12") => `${shape}|85c2adb|${model}|512|${moves}`;
+/** The review file of `record`, as a load reads it. */
+const fileOf = (record: string, branches: KeptBranches | null = null, entries: [string, unknown][] = []) =>
+  readReviewFile(JSON.stringify(buildReviewFile(record, branches, entries, "abc1234")));
+/** The review file of `record` with a variation and a result (at the start), for a load that must keep neither. */
+function withBoth(record: string) {
+  const file = fileOf(record, { version: 2, nodes: [["D10-G10 N11-Q11", 0]] }, [[key(""), { blueWin: 0.5 }]]);
+  assert.ok(file.branches && file.analyses.length);
+  return file;
+}
+/** The rows of each store: a refused file leaves them as they were. */
+const sizes = () => Object.values(STORES).map(name => store.rows(name).size);
 
 test("a game at a komi: its results, and none at komi 0 (its positions: @abstractclass/analysis/kept.test.ts)", () => {
   // Design 24: its results' keys name the komi before the moves
@@ -84,7 +100,7 @@ test("a review file of a game at a komi keeps its komi and its results at it, an
   // The same moves at komi 0 take their own results, and not the komi's start, which is no move from theirs.
   assert.deepEqual(buildReviewFile(RECORD, null, entries, "abc1234").analyses.map(e => e[1]), [{ a: 0 }, { a: 1 }]);
   const { id } = await importReview(readReviewFile(JSON.stringify(file)), null, []);
-  const { id: evenId } = await importReview(readReviewFile(JSON.stringify(buildReviewFile(RECORD, null, [], "abc1234"))), null, []);
+  const { id: evenId } = await importReview(fileOf(RECORD), null, []);
   assert.notEqual(id, evenId);
   assert.equal((await loadGame(id))?.record.komi, -300);
 });
@@ -158,42 +174,39 @@ test("a review file's mark names its search, and the load keeps it: a file writt
 });
 
 test("a file's game is checked by the engine's rules, as a pasted record is: a refused game keeps nothing", async () => {
-  const record = "1. D10-G10 2. N11-Q12 *";
-  const branches: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 0]] };
-  const file = buildReviewFile(record, branches, [[key("D10-G10 N11-Q12"), { blueWin: 0.5 }]], "abc1234");
   // The check's own words, as the paste shows them (check.ts)
   const problem = "Edge 2 (N11-Q12) is not legal in its position. Check the record from there.";
-  const refuses = async (): Promise<Checked> => ({ problem, cuts: null });
-  const sizes = () => Object.values(STORES).map(name => store.rows(name).size);
   const before = sizes();
-  await assert.rejects(hedgeSchoolFiles(refuses).importReview(readReviewFile(JSON.stringify(file)), null, []),
-                       { message: problem });
+  await assert.rejects(importWith(answers({ problem, cuts: null }), withBoth("1. D10-G10 2. N11-Q12 *")), { message: problem });
   assert.deepEqual(sizes(), before); // no game, no variations, no results
 });
 
 test("a file's game is kept with a cut mark on every move that cuts: a move marked already stays as it is", async () => {
   const record = '[Blue "Cut"]\n\n1. D10-G10 2. N11-Q11x L10-N11 *';
-  const cuts = async (): Promise<Checked> => ({ problem: null, cuts: [false, true, true] });
-  const file = readReviewFile(JSON.stringify(buildReviewFile(record, null, [], "abc1234")));
-  const { id } = await hedgeSchoolFiles(cuts).importReview(file, null, []);
+  const { id } = await importWith(answers({ problem: null, cuts: [false, true, true] }), fileOf(record));
   assert.equal((await loadGame(id))?.game.record, '[Blue "Cut"]\n\n1. D10-G10 2. N11-Q11x L10-N11x *');
 });
 
-test("a file's game of other rules is refused in the review's words, before the engine's check", async () => {
+test("a file's game of other rules or from a set-up start is refused in the review's words, before the engine's check", async () => {
   let checked = false;
-  const check = async (): Promise<Checked> => { checked = true; return { problem: null, cuts: null }; };
-  const file = buildReviewFile(`[Rules "Classic"]\n${RECORD}`, null, [], "abc1234");
-  await assert.rejects(hedgeSchoolFiles(check).importReview(readReviewFile(JSON.stringify(file)), null, []),
+  const check: MoveCheck = async () => { checked = true; return { problem: null, cuts: null }; };
+  const before = sizes();
+  await assert.rejects(importWith(check, withBoth(`[Rules "Classic"]\n${RECORD}`)),
                        { message: "This game uses other rules (Classic). Hedge School reviews games of the online rules only." });
+  await assert.rejects(importWith(check, withBoth('[Position "A10-D10 Q10-T10 b2 0/0 3"]\n\n3. D10-G10 G10-K9 4. N9-Q10 *')),
+                       { message: "This game starts from another position. Hedge School reviews games from the standard start "
+                                  + "only: open it on the Analysis board." });
   assert.equal(checked, false);
+  assert.deepEqual(sizes(), before); // no game, no variations, no results
 });
 
-test("a browser that cannot keep the file's game says so, in the paste's words", async () => {
-  const file = buildReviewFile('[Blue "Blocked"]\n\n1. D10-G10 *', null, [], "abc1234");
+test("a browser that cannot keep the file's game says so, in the paste's words, and keeps nothing", async () => {
+  const file = withBoth('[Blue "Blocked"]\n\n1. D10-G10 *'), before = sizes();
   store.hold();
-  const load = importReview(readReviewFile(JSON.stringify(file)), null, []);
-  const before = store.puts(STORES.games).length;
-  while (store.puts(STORES.games).length === before) await new Promise(resolve => setTimeout(resolve));
+  const load = importWith(accepts, file);
+  const puts = store.puts(STORES.games).length;
+  while (store.puts(STORES.games).length === puts) await new Promise(resolve => setTimeout(resolve));
   store.release(false); // the browser keeps nothing
   await assert.rejects(load, { message: "This browser does not let the site keep games (a private window, or blocked site data)." });
+  assert.deepEqual(sizes(), before); // no game, no variations, no results
 });

@@ -11,7 +11,6 @@ import { networkName } from "#lib/analysis/engineSettings.ts";
 import { ENCLOSURE_CODE, sharedRecord, type SharedReview } from "./share.ts";
 import { reviewLink, shareNote } from "@abstractclass/analysis/share.ts";
 import { importRecord, type MoveCheck } from "./import.ts";
-import { checkMoves } from "./check.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
 import { mergeBranches, positionKeys } from "@abstractclass/analysis/kept.ts";
 import { shippedModels } from "@abstractclass/analysis/files.ts";
@@ -30,9 +29,9 @@ export { belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
 /** Hedge School's review files. A file's game comes in as a pasted record does (design 13, importRecord): the review
  *  refuses a game of other rules (design 18) or from a set-up start (design 21), the engine's rules check its moves
- *  with `check` (a test gives its own), its record gets its cut marks, and a browser that cannot keep it says so. So
+ *  (check.ts's, or a test's own `check`), its record gets its cut marks, and a browser that cannot keep it says so. So
  *  the list keeps no game that the review refuses. */
-export const hedgeSchoolFiles = (check: MoveCheck = checkMoves) => reviewFiles({
+export const hedgeSchoolFiles = (check?: MoveCheck) => reviewFiles({
   name: "Hedge School", format: REVIEW_FORMAT, prefix: "hedge-school", parse: parseRecord,
   players: r => playerNames(r.tags), networkName, loadGame, keep: (text, record) => importRecord(text, record, check),
 });

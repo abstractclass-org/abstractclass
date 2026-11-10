@@ -1,5 +1,6 @@
 // A game record into the player's games: checked with the engine's rules (check.ts), given its cut marks, and kept in
-// this browser (store.ts). The pages that import (Home, and the review's ways in, Arrival.svelte) show the outcome.
+// this browser (store.ts). The pages that import show the outcome: the Review tab (ReviewHome.svelte), with a pasted
+// record or a review file's game (reviewFile.ts), and the review's ways in (Arrival.svelte).
 // It also gives the reason why a page refuses a game of other rules or from a set-up start (variantProblem): the
 // review, the Analysis board and Practice each refuse in their own words.
 import { setUpRefusal } from "@abstractclass/record/record.ts";
