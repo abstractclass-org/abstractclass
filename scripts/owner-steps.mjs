@@ -6,10 +6,11 @@
 // heading's block runs to the next heading of the same or a higher level. A bold line's block runs to the next
 // heading of any level. In a block, the check refuses each phrase of PATTERNS: each sends the reader elsewhere for
 // what to do. A link to a page for the reader's information stays allowed: the check reads a link's text, not its
-// target. A fenced code block does not count. A phrase may wrap from one line to the next.
+// target. A fenced code block does not count. A phrase may wrap from one line to the next. Where two phrases overlap,
+// the check refuses the first one only.
 //
-// The decision logs (docs/decisions/) are history, and the check reads them too: an entry that it refuses keeps its
-// words, and its log goes out of the check, with the reason, in place of a rewrite.
+// The check reads the decision logs (docs/decisions/) too. They are history: a past entry keeps its words, so a
+// refusal there calls for a decision on the check's scope, not for a rewrite.
 //
 //   node scripts/owner-steps.mjs [ROOT]
 //
@@ -17,121 +18,102 @@
 // repository's root (the default: this script's). npm run check:all runs it (scripts/check-all.mjs).
 // Tests: node --test "scripts/*.test.mjs"
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative, sep } from "node:path";
 
 /** A word that does not end a sentence or a clause: the words of one phrase stay in one sentence. */
-const WORD = String.raw`[^\s]*[^\s.:;!?]`;
+const WORD = String.raw`\S*[^\s.:;!?]`;
 
 /** The phrases that send the reader elsewhere for what to do. Each is short and exact: a wider one refuses steps that
  *  are complete. */
 export const PATTERNS = [
-  { name: "steps of section", pattern: /\bsteps\s+of\s+section\b/gi },
-  { name: "as section N", pattern: /\bas\s+section\s+\d+/gi },
-  { name: "as … does", pattern: new RegExp(String.raw`\bas\s+(?:${WORD}\s+){1,6}?does\b`, "gi") },
-  {
-    name: "as …'s … has",
-    pattern: new RegExp(String.raw`\bas\s+(?:${WORD}\s+){0,4}?[^\s]*['’]s\s+(?:${WORD}\s+){0,4}?has\b`, "gi"),
-  },
-  { name: "as design NN lists", pattern: /\bas\s+design\s+\d+\s+lists\b/gi },
-  { name: "repeat the", pattern: /\brepeat\s+the\b/gi },
-  { name: "the same as", pattern: /\bthe\s+same\s+as\b/gi },
+  /\bsteps\s+of\s+section\b/gi,
+  /\bas\s+section\s+\d+/gi,
+  new RegExp(String.raw`\bas\s+(?:${WORD}\s+){1,6}?does\b`, "gi"), // as … does
+  new RegExp(String.raw`\bas\s+(?:${WORD}\s+){0,4}?\S*['’]s\s+(?:${WORD}\s+){0,4}?has\b`, "gi"), // as …'s … has
+  /\bas\s+design\s+\d+(?:['’]s\s+["“][^"”]*["”])?\s+lists\b/gi, // with or without a section's title
+  /\brepeat\s+the\b/gi,
+  /\bthe\s+same\s+as\b/gi,
 ];
 
 const HEADING = /^(#{1,6})\s/;
 const BOLD_START = /\*\*The owner['’]s steps/;
 const HEADING_START = /owner['’]s steps/i;
 const FENCE = /^\s*(`{3,}|~{3,})/;
-/** A bold line's block is below every heading: any heading ends it. */
-const BELOW_HEADINGS = 7;
 
-/** The blocks of the owner's steps in a Markdown text: each block's first and last line (numbers from 1). */
-export function blocks(text) {
-  const lines = text.split("\n").map(line => line.replace(/\r$/, ""));
+/** The lines of a Markdown text as the check reads them: each line of a fenced code block, its fences too, empty. */
+function prose(text) {
+  let fence = null;
+  return text.split(/\r?\n/).map(line => {
+    const mark = line.match(FENCE)?.[1];
+    if (!fence) {
+      if (!mark) return line;
+      fence = mark;
+    } else if (mark && mark[0] === fence[0] && mark.length >= fence.length && !line.trim().slice(mark.length)) {
+      fence = null;
+    }
+    return "";
+  });
+}
+
+/** The blocks of the owner's steps in the lines of `prose`: each block's first and last line (numbers from 1). */
+function blocksInLines(lines) {
   const found = [];
   let block = null;
-  let fence = null;
+  let level = 0;
   lines.forEach((line, i) => {
-    const mark = line.match(FENCE)?.[1];
-    if (fence) {
-      if (mark && mark[0] === fence[0] && mark.length >= fence.length && !line.trim().slice(mark.length)) fence = null;
-      if (block) block.end = i + 1;
-      return;
-    }
-    if (mark) fence = mark;
-    const heading = line.match(HEADING);
-    if (heading && block && heading[1].length <= block.level) block = null;
-    if (!block && heading && HEADING_START.test(line)) {
-      block = { start: i + 1, end: i + 1, level: heading[1].length };
-      found.push(block);
-    } else if (!block && !heading && BOLD_START.test(line)) {
-      block = { start: i + 1, end: i + 1, level: BELOW_HEADINGS };
+    const heading = line.match(HEADING)?.[1].length;
+    if (block && heading !== undefined && heading <= level) block = null;
+    if (!block && (heading ? HEADING_START.test(line) : BOLD_START.test(line))) {
+      block = { start: i + 1, end: i + 1 };
+      level = heading ?? Infinity; // a bold line's block is below every heading: any heading ends it
       found.push(block);
     }
     if (block) block.end = i + 1;
   });
-  return found.map(({ start, end }) => ({ start, end }));
+  return found;
 }
 
-/** The text of lines `start` to `end` (numbers from 1) as the check reads it: a fenced code block's lines empty, a
- *  link as its text alone, no `*` of emphasis. Each line keeps its place, so an index still gives its line. */
-function readable(lines, start, end) {
-  let fence = null;
-  return lines.slice(start - 1, end).map(line => {
-    const mark = line.match(FENCE)?.[1];
-    if (fence) {
-      if (mark && mark[0] === fence[0] && mark.length >= fence.length && !line.trim().slice(mark.length)) fence = null;
-      return "";
-    }
-    if (mark) {
-      fence = mark;
-      return "";
-    }
-    return line.replace(/\]\([^)\s]*\)/g, "").replace(/\[/g, "").replace(/\*/g, "");
-  }).join("\n");
-}
+/** The blocks of the owner's steps in a Markdown text: each block's first and last line (numbers from 1). */
+export const blocks = text => blocksInLines(prose(text));
 
 /** The phrases of PATTERNS in the blocks of the owner's steps of a Markdown text, each with its line (from 1), in the
- *  order of the lines. */
+ *  order of the text. The check reads a link as its text alone, with no `*` of emphasis. Of two phrases that overlap,
+ *  the one that starts first counts (the longer one, when both start at one place). */
 export function refusals(text) {
-  const lines = text.split("\n").map(line => line.replace(/\r$/, ""));
+  const lines = prose(text);
   const found = [];
-  for (const { start, end } of blocks(text)) {
-    const block = readable(lines, start, end);
-    for (const { pattern } of PATTERNS) {
-      for (const m of block.matchAll(pattern)) {
-        const line = start + block.slice(0, m.index).split("\n").length - 1;
-        found.push({ line, phrase: m[0].replace(/\s+/g, " ") });
-      }
+  for (const { start, end } of blocksInLines(lines)) {
+    const block = lines.slice(start - 1, end).map(line => line.replace(/\]\([^)\s]*\)/g, "").replace(/[[*]/g, ""))
+      .join("\n");
+    const matches = PATTERNS.flatMap(pattern => [...block.matchAll(pattern)])
+      .sort((a, b) => a.index - b.index || b[0].length - a[0].length);
+    let free = 0;
+    for (const m of matches) {
+      if (m.index < free) continue;
+      free = m.index + m[0].length;
+      found.push({ line: start + block.slice(0, m.index).split("\n").length - 1, phrase: m[0].replace(/\s+/g, " ") });
     }
   }
-  return found.sort((a, b) => a.line - b.line);
+  return found;
 }
 
 /** The Markdown files that the check reads, as paths from `root` with `/`: every one under docs/, and each app's and
  *  package's README. */
 export function documents(root) {
-  const found = [];
-  const walk = folder => {
-    for (const entry of readdirSync(join(root, folder), { withFileTypes: true })) {
-      const path = `${folder}/${entry.name}`;
-      if (entry.isDirectory()) walk(path);
-      else if (entry.name.endsWith(".md")) found.push(path);
-    }
-  };
-  if (existsSync(join(root, "docs"))) walk("docs");
-  for (const parent of ["apps", "packages"]) {
-    if (!existsSync(join(root, parent))) continue;
-    for (const entry of readdirSync(join(root, parent), { withFileTypes: true })) {
-      const path = `${parent}/${entry.name}/README.md`;
-      if (entry.isDirectory() && existsSync(join(root, path))) found.push(path);
-    }
-  }
-  return found.sort();
+  const docs = existsSync(join(root, "docs"))
+    ? readdirSync(join(root, "docs"), { recursive: true, withFileTypes: true })
+      .filter(f => f.isFile() && f.name.endsWith(".md"))
+      .map(f => relative(root, join(f.parentPath, f.name)).split(sep).join("/"))
+    : [];
+  const readmes = ["apps", "packages"]
+    .flatMap(parent => (existsSync(join(root, parent)) ? readdirSync(join(root, parent)) : [])
+      .map(name => `${parent}/${name}/README.md`))
+    .filter(path => existsSync(join(root, path)));
+  return [...docs, ...readmes].sort();
 }
 
 if (import.meta.main) {
-  const root = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), "..");
+  const root = process.argv[2] ?? join(import.meta.dirname, "..");
   let count = 0;
   let refused = 0;
   const files = documents(root);
@@ -139,13 +121,13 @@ if (import.meta.main) {
     const text = readFileSync(join(root, path), "utf8");
     count += blocks(text).length;
     for (const { line, phrase } of refusals(text)) {
-      console.log(`${path}:${line}: "${phrase}" sends the reader ` +
-        "elsewhere. Write the step's URL, clicks and values on its own line.");
+      console.log(`${path}:${line}: "${phrase}" sends the reader elsewhere. ` +
+        "Write the URL, the clicks and the values in the step itself.");
       refused++;
     }
   }
   console.log(refused
-    ? `owner-steps: FAIL ${refused} refusals in the owner's steps`
+    ? `owner-steps: FAIL ${refused} refusal${refused === 1 ? "" : "s"} in the owner's steps`
     : `owner-steps: PASS ${count} blocks of the owner's steps in ${files.length} Markdown files`);
   process.exit(refused ? 1 : 0);
 }

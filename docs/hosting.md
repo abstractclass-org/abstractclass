@@ -28,6 +28,8 @@ runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it ke
 
 ## 1. The domain on Cloudflare
 
+**The owner's steps, once.**
+
 1. **Add the domain to Cloudflare:** in the Cloudflare dashboard, add `abstractclass.org` on the free plan. Cloudflare
    copies the DNS records it finds, and names two nameservers.
 2. **Turn off DNSSEC at Porkbun first,** if it is on. A DS record at the registry that does not match Cloudflare's keys
@@ -207,16 +209,21 @@ put them behind a sign-in (Cloudflare Access).
 - **The project's settings** (Settings → Project, `https://us.posthog.com/settings/project`):
   - **Web analytics → Enable cookieless tracking:** on. The sites run PostHog in its cookieless mode, and without this
     setting PostHog drops their events. Done on 2026-11-09.
-  - **Filter out internal and test users:** set it once, after the release that sends the event property `internal`.
-    In this section, click **+ Add filter**, choose the event property `internal`, and choose the operator **is not
-    set**. Each entry keeps the events that match it, so the owner's events, which have the property, drop out. Then
-    turn on **Enable this filter on all new insights**.
+  - **Filter out internal and test users:** an entry that drops the owner's events (the owner's steps, below).
 - **Builds on a developer's machine leave `VITE_POSTHOG_KEY` unset,** so that test visits are not counted, and the
   build holds none of PostHog's code. check:all gives both sites' builds a made-up key, for the browser tests, and
   the tests' browser resolves none of PostHog's addresses. It also builds Cyanotype once without the key, and its
   step `cyanotype-no-posthog` refuses a script of that build that holds PostHog's code.
 - **The site loads PostHog itself:** posthog-js from npm, in its slim bundle with no external loading
   (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
+
+**The owner's steps.**
+
+- **Filter out internal and test users,** once, after the release that sends the event property `internal`. Open
+  `https://us.posthog.com/settings/project`, and go to its section **Filter out internal and test users**. Click
+  **+ Add filter**, choose the event property `internal`, and choose the operator **is not set**. Each entry keeps the
+  events that match it, so the owner's events, which have the property, drop out. Then turn on **Enable this filter on
+  all new insights**.
 - **The owner's own visits** (design 17): a browser with the site's flag of internal traffic gives every event the
   property `internal: true`. Set the flag once in each browser that visits a site: each browser and each browser
   profile, on each device. Open `https://hedgeschool.abstractclass.org/?internal=on`, and, once Cyanotype is live,
@@ -233,17 +240,20 @@ put them behind a sign-in (Cloudflare Access).
 
 ## 5. Cloudflare Web Analytics
 
+**The owner's steps, once.**
+
 1. In the Cloudflare dashboard, **Web Analytics → Add a site**, and choose the domain, `abstractclass.org`. One site
-   covers all its subdomains, as one PostHog project does: Cloudflare accepts a site's beacon from any
-   hostname that ends with the site's name (`hedgeschool.abstractclass.org` ends with `abstractclass.org`), and its
-   dashboard separates them by the **Host** dimension. A site for each subdomain is needed only for separate
-   dashboards.
+   covers all its subdomains: Cloudflare accepts a site's beacon from any hostname that ends with the site's name
+   (`hedgeschool.abstractclass.org` ends with `abstractclass.org`), and its dashboard separates them by the **Host**
+   dimension. A site for each subdomain is needed only for separate dashboards.
 2. Cloudflare turns on its **automatic setup** for a domain it proxies: it adds its beacon to each page of every
    subdomain as the page is served. Change it: **Manage site → "Enable with JS Snippet installation" → Update**. The
    beacon must start only after a page removes a game from its address (design 22), and the site's own code
    makes sure of that.
 3. The snippet that Cloudflare then shows holds the site's token (`data-cf-beacon='{"token": "…"}'`). Set the token
-   alone, the 32 hexadecimal digits, as `VITE_CF_ANALYTICS_TOKEN`, and deploy again. The site adds the beacon itself
+   alone, the 32 hexadecimal digits, as the repository variable `VITE_CF_ANALYTICS_TOKEN`: in GitHub, the
+   repository's **Settings → Secrets and variables → Actions → Variables → New repository variable**. Then deploy
+   again: in GitHub, **Actions → Deploy → Run workflow** on `main`. The site adds the beacon itself
    (`src/lib/analytics.svelte.ts`): the snippet is not pasted anywhere. The beacon finds its token by its own script
    element, or else by the element with `data-cf-beacon`, so the site's plain script works as well as the snippet's
    `type='module'`.
@@ -287,7 +297,9 @@ Cloudflare's analytics of the whole account, so its counts include the previews 
 
 The games against HedgeFund go to a D1 database when they end (design 25). Production and the previews each have
 their own, so that test games never mix with the players' games. The schema is the files in `migrations/`. The
-databases and their bindings are set up once, in the Cloudflare dashboard:
+databases and their bindings are set up once, in the Cloudflare dashboard.
+
+**The owner's steps, once.**
 
 1. **Create the two databases.** Go to **D1 SQL database** ([the page](https://dash.cloudflare.com/?to=/:account/workers/d1)),
    select **Create Database**, and give the name `hedgeschool-games`. Leave the location as Cloudflare chooses it.
@@ -301,8 +313,9 @@ databases and their bindings are set up once, in the Cloudflare dashboard:
    database `hedgeschool-games`, and **Save**. Then with the selector on **Preview**: **Add → D1 database**, the
    variable name `GAMES`, the database `hedgeschool-games-preview`, and **Save**. The name `GAMES` is the one that the
    Function reads, in both environments.
-4. **Turn the sending on:** the repository's variable `VITE_STORE_PRACTICE_GAMES` is `on`, for production and the
-   previews (section 3).
+4. **Turn the sending on:** in GitHub, the repository's **Settings → Secrets and variables → Actions → Variables →
+   New repository variable**, with the name `VITE_STORE_PRACTICE_GAMES` and the value `on`. The deploy gives it to
+   production and to the previews.
 5. **Deploy again:** push to `dev`, or run the workflow **Deploy** on `dev` (**Actions → Deploy → Run workflow**). A
    binding and a variable take effect from the next deployment.
 6. **Check on the preview:** play a game against HedgeFund on `dev.hedgeschool.pages.dev` to its end, or abort it
@@ -436,11 +449,12 @@ Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
    answers with status 522.
 3. **Deploy the live site from a release, when the owner says to launch it.** Do not deploy from a local build. A
    local build has no branch variables, so its userscript loads from `http://127.0.0.1:4173`. The job also runs the
-   checks and the tests before it uploads. Just before this release, commit Cyanotype's launch on `dev` ("The launch
-   switch", below), and push `dev`. Then release `dev` as the section "Deploy, check and roll back" below gives:
-   `git push origin dev:main`. A release also releases Hedge School and the hub: the push sends all of `dev` to
-   `main`. In GitHub, go to **Actions → Deploy**, and open the run of this push. Its job `cyanotype` uploads the build
-   to the production branch. When the job shows a pass, do the checks of step 4.
+   checks and the tests before it uploads. Just before this release, commit Cyanotype's launch on `dev`: in
+   `.github/workflows/deploy.yml`, remove the line `if: github.ref_name != 'main'` of the job `cyanotype` and the
+   comment above it. Push `dev`. Then release `dev`: `git push origin dev:main`. A release also releases Hedge School
+   and the hub: the push sends all of `dev` to `main`. In GitHub, go to **Actions → Deploy**, and open the run of this
+   push. Its job `cyanotype` uploads the build to the production branch. When the job shows a pass, do the checks of
+   step 4.
 4. **Check:**
    - Run the check of a deployed site ("Deploy, check and roll back", below) in `apps/cyanotype`, against the live
      address and against the project's address: `git fetch`, then
