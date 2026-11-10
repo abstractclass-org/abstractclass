@@ -6,10 +6,11 @@
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
+  import { removeUnreadResults } from "@abstractclass/analysis/cache.ts";
   import { startAnalytics } from "#lib/analytics.svelte.ts";
   import favicon from "#lib/assets/favicon.svg";
   import Logo from "#lib/brand/Logo.svelte";
-  import { PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
+  import { ENGINE_FILES, PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
   import SiteFrame from "@abstractclass/site/SiteFrame.svelte";
   import SiteMenu from "@abstractclass/site/SiteMenu.svelte";
   import SiteName from "@abstractclass/site/SiteName.svelte";
@@ -30,6 +31,10 @@
   // starts them itself.
   onMount(() => {
     if (page.route.id !== "/import" && !holdsGame(location.hash)) startAnalytics();
+    // The stored analyses that no reader reads: once after a change of their shape, and an earlier engine's that no
+    // stored game needs, once after a change of the engine or of what the games need (Hedge School's design 20). The
+    // removal's code loads only then, when the page is idle.
+    removeUnreadResults(ENGINE_FILES, () => import("#lib/game/earlierResults.ts").then(m => m.removeEarlierResults(ENGINE_FILES)));
   });
 </script>
 

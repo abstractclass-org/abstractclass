@@ -5,6 +5,7 @@ import { defaultClientConditions, defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { engineFiles } from '@abstractclass/analysis/cache.ts';
 
 // Cyanotype, Blueprints' site (docs/design/33-cyanotype.md), on Hedge School's build (apps/hedgeschool).
 
@@ -31,10 +32,16 @@ const userscriptCode = createHash('sha256')
 		.map(f => readFileSync(f, 'utf8')).join('\0'))
 	.digest('hex').slice(0, 12);
 
+// The engine files that the stored results name (src/lib/game/earlierResults.ts), as Hedge School's: the CPU module and
+// the networks, by SHA-256. The site's first start after a release that changes one removes the results that no stored
+// game needs.
+const files = engineFiles(JSON.parse(readFileSync('engine.lock.json', 'utf8')));
+
 export default defineConfig({
 	define: {
 		__SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin),
 		__USERSCRIPT_VERSION__: JSON.stringify(userscriptVersion), __USERSCRIPT_CODE__: JSON.stringify(userscriptCode),
+		__ENGINE_FILES__: JSON.stringify(files),
 	},
 	// The engine package's two settings, as in Hedge School's vite.config.ts (design 29, "Consequences", and design 33,
 	// "The engine's files"). ONNX Runtime Web (the GPU worker, which the shared engine session can start) in its form

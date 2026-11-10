@@ -25,9 +25,10 @@ export function memoryDb(later: (step: () => void) => void = step => setTimeout(
       const r = rows(name);
       return {
         get: (key: IDBValidKey) => answered({ result: structuredClone(r.get(key)) }),
-        getAllKeys: () => (scans++, { result: [...r.keys()].sort() }),
-        // Every value, in the order of their keys, as getAllKeys gives the keys (dbEntries).
-        getAll: () => ({ result: [...r.keys()].sort().map(k => structuredClone(r.get(k))) }),
+        getAllKeys: () => (scans++, answered({ result: [...r.keys()].sort() })),
+        // Every value, in the order of their keys, as getAllKeys gives the keys (dbEntries). Both answer in the order
+        // they were made, as dbReadThenDelete needs.
+        getAll: () => answered({ result: [...r.keys()].sort().map(k => structuredClone(r.get(k))) }),
         delete: (key: IDBValidKey) => {
           const had = r.has(key), old = r.get(key);
           undo.push(() => { if (had) r.set(key, old); });

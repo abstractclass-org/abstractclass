@@ -6,6 +6,7 @@ import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
+import { engineFiles } from '@abstractclass/analysis/cache.ts';
 
 // The site's version: the commit it is built from (Cloudflare's build names it, else Git), for the footer.
 const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA
@@ -44,8 +45,7 @@ const userscriptCode = createHash('sha256')
 
 // The engine files that the stored results name (src/lib/game/earlierResults.ts): the CPU module and the networks, by
 // SHA-256. The site's first start after a release that changes one removes the results that no stored game needs.
-const engineFiles = (JSON.parse(readFileSync('engine.lock.json', 'utf8')).artifacts as { kind: string; sha256: string }[])
-	.filter(a => a.kind === 'module' || a.kind === 'model').map(a => a.sha256).join(' ');
+const files = engineFiles(JSON.parse(readFileSync('engine.lock.json', 'utf8')));
 
 // The test book (design 32, "The test book"): the dev and preview servers serve tests/fixtures/test-book/ at
 // /test-book/, for the explorer until the engine repository's book comes. No build holds it, so no deployed site
@@ -67,7 +67,7 @@ export default defineConfig({
 	define: {
 		__SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin),
 		__USERSCRIPT_VERSION__: JSON.stringify(userscriptVersion), __USERSCRIPT_CODE__: JSON.stringify(userscriptCode),
-		__ENGINE_FILES__: JSON.stringify(engineFiles),
+		__ENGINE_FILES__: JSON.stringify(files),
 	},
 	// ONNX Runtime Web (the GPU worker, @abstractclass/engine/gpuWorker.ts) in its form that takes its WebAssembly from
 	// the page: its usual form makes the build copy that file (26.8 MB) into the site, over Cloudflare Pages' 25 MiB for a

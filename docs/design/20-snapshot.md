@@ -151,7 +151,9 @@ look at a past review pays it each time, and the earlier results are still in th
 - **The removal's cost:** a start with nothing changed reads one value of local storage. A start when the removal is
   due loads its code once the page is idle. Then one transaction reads the games, their variations and the store's
   keys, and removes the results. The removal reads each key once. Until the transaction ends, the review's reads of
-  the store wait. Not measured in a browser.
+  the store wait. In headless Chromium, on Cyanotype's built site, the store held 5,184 results (Blueprints' results
+  of a real review, 13.8 kB each on average as JSON) and two games. The transaction removed 5,063 of them in 224 to
+  360 ms over four runs. Hedge School runs the same code, and was not measured on its own.
 - **Two tabs:** one transaction reads and removes, so no write comes between. The load of a review file keeps the
   game's mark before its results, so a removal in another tab between the two takes none of them. A change of what
   the games need while a removal runs keeps the removal due. A tab of an earlier release that starts after a later
@@ -167,14 +169,22 @@ look at a past review pays it each time, and the earlier results are still in th
   `src/lib/book/reviewBook.ts` (`giveBook`, the book's values),
   `src/lib/game/reviewFile.ts` (`readReviewFile`, the file's search, and `importReview`, the mark kept),
   `src/lib/game/store.ts` (`reviewAgainWhy`, the mark's `search`: `reviewMark`, `markReviewed`).
-- The removal: `src/lib/game/earlierResults.ts` (`unneededResults`, `readsAt`, `removeEarlierResults`, which
-  `src/routes/+layout.svelte` starts), `packages/analysis/src/cache.ts` (the mark: `earlierRemovalDue`,
-  `makeEarlierRemovalDue`), `src/lib/game/store.ts` (`markReviewed`, `deleteGame`), `src/lib/game/analysisFile.ts`
-  (`openAnalysisFile`), `packages/storage/src/db.ts` (`dbReadThenDelete`), `vite.config.ts` (`__ENGINE_FILES__`).
+- The removal, which Hedge School and Cyanotype share (design 29; Cyanotype's design 33, "The player's games", item
+  12): `packages/analysis/src/earlierResults.ts` (`unneededResults`, `readsAt`, `removeUnneeded`), with each site's
+  engine and reader of games in its `src/lib/game/earlierResults.ts` (`removeEarlierResults`).
+  `src/routes/+layout.svelte` starts it (`packages/analysis/src/cache.ts`, `removeUnreadResults`). `cache.ts` also
+  keeps the mark (`earlierRemovalDue`, `makeEarlierRemovalDue`) and gives the engine files (`engineFiles`), which
+  `vite.config.ts` gives the pages (`__ENGINE_FILES__`). The changes that make it due:
+  `packages/analysis/src/games.ts` (`markReviewed`, `deleteGame`) and `reviewFile.ts` (`importReview`). An analysis
+  file keeps the site's search only (`packages/analysis/src/files.ts`, `keepAnalyses`). `packages/storage/src/db.ts`
+  (`dbReadThenDelete`). The tests: `src/lib/game/earlierResults.test.ts` (Enclosure), Cyanotype's
+  `earlierResults.test.ts` (Blueprints) and `packages/analysis/src/earlierResults.test.ts` (a game of words), and in
+  a browser `tests/cyanotype-earlier-results.spec.ts` (Cyanotype), with the removal's time.
 
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "A review by an earlier engine opens as it was" (2026-10-14), "An
   earlier engine's results go when no game needs them" (2026-10-16), "The review snapshot reads its results by their
   keys" (2026-10-18), "A network chosen while the review starts its pool" (2026-10-20), "The map's bookkeeping in edge
-  cases" and "The review of the map's bookkeeping" (2026-10-21).
+  cases" and "The review of the map's bookkeeping" (2026-10-21), and "Cyanotype removes earlier engine results, as
+  Hedge School" (2026-11-11).

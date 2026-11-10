@@ -10982,3 +10982,46 @@ load. In both, the Practice page showed no content after a load.
   a release (abscls-iwbs).
 - **Both sites** take it from the shared packages: `packages/analysis/src/files.ts`, `kept.ts`, `settings.ts`,
   `analysis.svelte.ts`, and `packages/review/src/ChooseNetwork.svelte` with the panel's note in `ReviewView.svelte`.
+
+### Cyanotype removes earlier engine results, as Hedge School (2026-11-11)
+
+Beads abscls-8tl1.30. Design 20 ("Consequences" and "Where it is"), design 29 and design 33 ("The player's games",
+item 12, and "The gaps from Hedge School") changed. Cyanotype kept every result of every engine: its first release
+has none of an earlier one, but its next release with a new search or a new file of the network would add a set.
+
+- **One removal for both sites:** the rule (`unneededResults`) and the transaction (`removeUnneeded`) moved out of
+  Hedge School's `src/lib/game/earlierResults.ts` into `packages/analysis/src/earlierResults.ts`. The start at the
+  site's start (`removeUnreadResults`) and the build's engine files (`engineFiles`) went into `cache.ts`. Each site's
+  `earlierResults.ts` gives its engine (its `engine.lock.json`) and its reader of games (`readGames`), and each site's
+  `vite.config.ts` its engine files. Hedge School's behaviour did not change: its `earlierResults.test.ts` passes
+  with no change.
+- **A game's id is its key:** the removal reads the games as the list does (`games.ts`, `asStored`). A game that
+  Cyanotype's review kept before the list of games has no id of its own, and its variations are under its key.
+- **An earlier result** is one that the site's engine cannot read, not one of an older release: its search is not
+  the site's, or its network's file is not one that the lock ships. The lock keeps the earlier networks too (design
+  09), as `unneededResults` counts the site's search with each shipped file as the site's own. Checked on Cyanotype's
+  lock and the keys of the stored review of its browser tests (`apps/cyanotype/src/lib/game/earlierResults.test.ts`).
+  `engine-887be290` removes none of the results of `engine-91ab0b7d`, and nor does a later release with the same
+  search and file, or one that adds a network beside it. A release whose lock drops the file, or with a new search,
+  removes all of them when no game reads them. With a game reviewed by them, it keeps what the game's review
+  snapshot shows: each position of its line at the review's depth. When the lock ships no network of the game's
+  mark, no review snapshot opens, and they all go.
+- **Cyanotype's start removes the results of an older shape too,** as Hedge School's does: the shared start does both.
+- **The store in memory of the unit tests** (`packages/storage/src/memoryDb.ts`) now answers the reads of a store's
+  keys and values when they end, as IndexedDB does. `dbReadThenDelete` waits for them, so before this change no unit
+  test could run a removal.
+- **Measured** in headless Chromium (Playwright's chromium project, on the CPU), on Cyanotype's built site, in a job of
+  2 threads in the machine's queue (`apps/hedgeschool/tests/cyanotype-earlier-results.spec.ts`: three runs, and
+  one in the whole suite). The store
+  held 5,184 results and two games: the stored review's 81 results (13.8 kB each on average as JSON) and 63 copies of
+  them under other keys. The start removed 5,063 and kept 121: the site's own 81, and the 40 that the game's review
+  snapshot shows. Both games stayed. The transaction, from the mark that a removal runs to the mark that it ended,
+  took 283, 340 and 360 ms, and 224 ms in the suite. The page loaded the removal's code once it was idle. Hedge
+  School's removal is the same code, and was not measured on its own.
+- **Found, not changed here:** Cyanotype's lock gives its CPU module no `sameSearchAs`, so it does not name the CPU
+  module of `engine-91ab0b7d` (`28775af7…`), whose search is the same (design 20, item 7). By the code
+  (`games.ts`, `reviewAgainWhy`; `client.ts`, `searchModules`), a game that a browser marked with that module counts
+  as reviewed by an earlier engine. Its review snapshot leaves out the site's own search, so none opens, and the game
+  is reviewed again from its stored results with no search, with the notice that the engine changed. A review file
+  of that module loads as an earlier engine's too. The removal is not touched: those results are the site's search's.
+  Only preview builds served `engine-91ab0b7d`.

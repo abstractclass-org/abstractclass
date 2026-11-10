@@ -1017,7 +1017,8 @@ settings of its design 09 and the marks of its design 13), in the code that both
    start.
 5. **A game's Delete** asks first, in Hedge School's dialog: "Delete this game?", with Cancel focused, and a Delete
    that waits for the double-click time. It deletes the game, its variations and the pointer of "Continue your last
-   review" to it. The engine's results stay: they belong to positions.
+   review" to it. The site's engine's results stay: they belong to positions. An earlier engine's results that only
+   the game's review snapshot read go at a later start (item 12).
 6. **The browser keeps the games:** when a game is kept, and in the Review tab when the browser holds games, the site
    asks for persistent storage, once a page. The line under the list says what the browser answered, as on Hedge
    School.
@@ -1037,6 +1038,16 @@ settings of its design 09 and the marks of its design 13), in the code that both
     dropped there loads as one chosen with "Load a review file". The Analysis board's New menu refuses a review file,
     with Hedge School's words: "this is a review file: load it in the Review tab".
 11. **The home page** has "Review a game you played" among its ways in, for a record, as Hedge School's.
+12. **An earlier engine's results go when no game needs them,** as on Hedge School (its design 20, item 8), in the
+    code that both sites share (design 29). A result is earlier when the site's engine cannot read it, not when its
+    release is older: its key names the search and the network's file (`packages/analysis/src/cache.ts`). The site
+    reads its own search's results with each network file that its lock ships, and the lock keeps the earlier
+    networks too (Hedge School's design 09). So a release that keeps the search and the files removes nothing, as
+    `engine-887be290` kept the results of `engine-91ab0b7d`, and a release that adds a network removes nothing either.
+    A release that changes the CPU module or a network makes the removal due. The site's next start then removes,
+    once the page is idle, the results of another search and of a network file that the lock no longer ships, where
+    no stored game's review snapshot reads them. A start removes the results of an older shape too, as Hedge School's
+    does.
 
 **Where it departs from Hedge School's:**
 
@@ -1408,7 +1419,6 @@ measure (`/lab/measure`, `packages/measure`). Cyanotype lacks these pages of Hed
 
 The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as features:
 
-- **The removal of earlier engine results after a release** (`game/earlierResults.ts`, design 20). abscls-8tl1.30.
 - **The area map** (`review/enclosureMap.ts`, design 30). abscls-8tl1.17 decides whether Blueprints has one ("No
   area map yet").
 - **The weak walls** (`review/weakWalls.ts`, design 30): the rings on the walls that the engine expects to fall.
@@ -1685,6 +1695,11 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   game's own settings), `src/lib/review/ReviewHome.svelte` (the Review tab), `src/lib/game/store.ts` (the game's id and
   the store's calls), `src/lib/game/import.ts` (a record's way into the list, and a shared review's) and
   `src/lib/review/recordCheck.ts` (`checkRecordMarks`), with their tests (`store.test.ts`, `import.test.ts`).
+  The removal of earlier results (item 12): `src/lib/game/earlierResults.ts` (Cyanotype's engine and its reader of
+  games, on `packages/analysis/src/earlierResults.ts`), which `src/routes/+layout.svelte` starts
+  (`removeUnreadResults`), and `vite.config.ts` (`__ENGINE_FILES__`). `earlierResults.test.ts` checks it on
+  Cyanotype's lock and the keys of the stored review, and `apps/hedgeschool/tests/cyanotype-earlier-results.spec.ts`
+  in a browser, with its time.
   `src/lib/analysis/engineSettings.ts`: a game's own settings for Cyanotype's networks. The shared parts:
   `packages/analysis/src/games.ts` (the store and the marks), `reviewLock.ts` (the lock) and `settings.ts`
   (`ownSettingsOf`), `packages/review/src/GameList.svelte` (the list, its Export and its Delete),
@@ -1759,5 +1774,6 @@ games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before
 (2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), "Cyanotype's analytics and consent, as Hedge
 School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach the position" (2026-11-09),
 "Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), "Cyanotype's Play the bot from here, and
-Practice from a set-up start" (2026-11-09), and "PostHog in place of Google Analytics" (2026-11-09). The earlier
-entries name the site by its first name, Drawing Board.
+Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), and "Cyanotype
+removes earlier engine results, as Hedge School" (2026-11-11). The earlier entries name the site by its first name,
+Drawing Board.

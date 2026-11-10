@@ -6,7 +6,7 @@
 	import { EARLY_ACCESS, ENGINE_FILES, OPENINGS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
 	import { ASKS_CONSENT, analytics, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
-	import { earlierRemovalDue, removeOlderShapes } from '@abstractclass/analysis/cache.ts';
+	import { removeUnreadResults } from '@abstractclass/analysis/cache.ts';
 	import { holdsGame } from '@abstractclass/import/importHash.ts';
 	import ConsentBanner from '@abstractclass/site/ConsentBanner.svelte';
 	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
@@ -53,15 +53,10 @@
 		mounted = true;
 		if (page.route.id !== '/import' && !holdsGame(location.hash)) startAnalytics();
 		void flushPractice(); // the practice games that could not be sent before (design 25)
-		void removeOlderShapes(); // the stored analyses that no reader reads, once after a change of their shape
-		// An earlier engine's results that no stored game needs, once after a change of the engine or of what the games
-		// need. Its code loads only then, when the page is idle: its transaction would hold the page's own reads of the
-		// store. A load or a removal that fails leaves it due, for a later start.
-		if (earlierRemovalDue(ENGINE_FILES)) {
-			const remove = () => void import('#lib/game/earlierResults.ts').then(m => m.removeEarlierResults(ENGINE_FILES)).catch(() => {});
-			if ('requestIdleCallback' in window) requestIdleCallback(remove, { timeout: 10_000 });
-			else setTimeout(remove, 2_000); // Safari
-		}
+		// The stored analyses that no reader reads: once after a change of their shape, and an earlier engine's that no
+		// stored game needs, once after a change of the engine or of what the games need (design 20). The removal's code
+		// loads only then, when the page is idle.
+		removeUnreadResults(ENGINE_FILES, () => import('#lib/game/earlierResults.ts').then(m => m.removeEarlierResults(ENGINE_FILES)));
 	});
 </script>
 

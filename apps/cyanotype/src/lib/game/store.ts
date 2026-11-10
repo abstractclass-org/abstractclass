@@ -25,7 +25,7 @@ export function gameId(moves: string[], komi = 0): string {
  *  can be blocked), `loadGame` reads one, `listGames` reads them all, newest first, leaving out a game whose record
  *  does not read. `deleteGame` deletes a game, its variations and the Review link's pointer to it, for good (Hedge
  *  School's design 11). `lastReview` and `rememberReview` read and keep the id of the last game reviewed in this
- *  browser. */
-export const { saveGame, loadGame, listGames, deleteGame, lastReview, rememberReview } = gameStore<GameRecord>({
+ *  browser. `readGames` reads the records of stored games, for the removal of earlier results (earlierResults.ts). */
+export const { saveGame, loadGame, listGames, readGames, deleteGame, lastReview, rememberReview } = gameStore<GameRecord>({
   parse: parseRecord, lastReviewKey: LAST_REVIEW_KEY, id: record => gameId(record.moves, record.komi),
 });

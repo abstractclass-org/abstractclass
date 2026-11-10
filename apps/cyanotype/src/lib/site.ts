@@ -4,6 +4,9 @@ export const SITE_NAME = "Cyanotype";
 /** The engine's name, as the site shows it: its practice bot and the engine that reviews games. */
 export const ENGINE_NAME = "Stamp Duty";
 export const SITE_VERSION: string = typeof __SITE_VERSION__ === "string" ? __SITE_VERSION__ : "unknown";
+/** The engine files that the build ships (vite.config.ts): its CPU module and networks, by SHA-256. A release that
+ *  changes one makes the removal of earlier results due (game/earlierResults.ts). */
+export const ENGINE_FILES: string = typeof __ENGINE_FILES__ === "string" ? __ENGINE_FILES__ : "";
 /** The live site's address: the canonical address of every page, wherever the page is served (design 23). */
 export const SITE_ORIGIN = "https://cyanotype.abstractclass.org";
 /** The site's own copyright: its code, text and design. The works of others that it ships are on the notices page. */

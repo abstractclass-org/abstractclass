@@ -88,8 +88,9 @@ export interface GameSite<R extends { moves: string[] }> {
 }
 
 /** A game as the store reads it: a game that a site kept before it had a list of games (Cyanotype's review kept its
- *  record and the time it came) has no version and no id, and its key gives the id. A stored field stays as stored. */
-const asStored = <G extends StoredGame>(key: string, value: G): G =>
+ *  record and the time it came) has no version and no id, and its key gives the id. A stored field stays as stored.
+ *  The removal of earlier results reads the games so too (earlierResults.ts). */
+export const asStored =<G extends StoredGame>(key: string, value: G): G =>
   ({ ...value, version: value.version ?? 1, id: value.id ?? key });
 
 /** A site's store of games. `G` is the site's stored game, when it keeps more than the shared fields. */

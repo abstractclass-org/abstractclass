@@ -92,13 +92,30 @@ export async function removeOlderShapes(): Promise<void> {
 }
 
 // The removal of an earlier engine's results, and of an earlier network file's, that no stored game needs any more
-// (Hedge School's src/lib/game/earlierResults.ts, design 20). The browser's mark keeps the site's engine files (the
-// build's ENGINE_FILES) that the last removal ran for. A release that changes them, and a change of what the games
-// need, make it due: a start with nothing changed reads the mark alone.
+// (earlierResults.ts, Hedge School's design 20). The browser's mark keeps the site's engine files (engineFiles) that the
+// last removal ran for. A release that changes them, and a change of what the games need, make it due: a start with
+// nothing changed reads the mark alone.
 const EARLIER = "learn-enclosure:earlier-results:1";
 const removing = (files: string) => `removing ${files}`;
+/** The engine files that the stored results name, by SHA-256: the CPU module and the networks of `manifest`, a site's
+ *  engine.lock.json. Each site's build gives them to its pages (its vite.config.ts, `__ENGINE_FILES__`), so that a
+ *  start reads no lock to know whether the removal is due. */
+export const engineFiles = (manifest: { artifacts: { kind: string; sha256: string }[] }) =>
+  manifest.artifacts.filter(a => a.kind === "module" || a.kind === "model").map(a => a.sha256).join(" ");
 /** Whether the removal of earlier results is due for `files`, the site's engine files. */
 export const earlierRemovalDue = (files: string) => readLocal(EARLIER) !== files;
+/** Removes, at the site's start, the stored results that no reader reads: the older shapes' (removeOlderShapes), and,
+ *  when it is due for `files` (the site's engine files), an earlier engine's that no stored game needs. `remove` loads
+ *  the site's removal (its earlierResults.ts, on removeUnneeded) and runs it for `files`. Its code loads only then, once
+ *  the page is idle: its transaction holds the page's own reads of the store. A load or a removal that fails leaves it
+ *  due, for a later start. */
+export function removeUnreadResults(files: string, remove: () => Promise<unknown>) {
+  void removeOlderShapes();
+  if (!earlierRemovalDue(files)) return;
+  const run = () => void remove().catch(() => {});
+  if ("requestIdleCallback" in window) requestIdleCallback(run, { timeout: 10_000 });
+  else setTimeout(run, 2_000); // Safari
+}
 /** Runs a removal for `files`: `work` answers whether it removed them. The mark says that a removal runs until it ends,
  *  so a removal that a closed page stops stays due. Then it keeps the removal's mark, unless the removal failed or
  *  what the games need changed while it ran. */

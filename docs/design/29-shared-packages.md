@@ -90,6 +90,10 @@ edit in the same commit), so their changes still apply.
    School's `src/lib/review/storedReview.ts`, the review snapshot's opening from its review page, and the annotated
    record of a stored game from its `exportText.ts`. Each site gives its step after the rules: Hedge School's opening
    book, Cyanotype's check of the capture marks.
+   The removal of an earlier engine's results that no stored game needs (Hedge School's design 20, item 8) moved out
+   of Hedge School's `src/lib/game/earlierResults.ts` with Cyanotype's removal, into the analysis package
+   (`earlierResults.ts`). Its start at the site's start went into `cache.ts`, and the engine files that make it due too.
+   Each site gives its engine (its `engine.lock.json`) and its reader of stored games.
    A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
    its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
    (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site
@@ -432,6 +436,11 @@ edit in the same commit), so their changes still apply.
   engine settings' general part, and a game's own network and depth, with each site's networks as a parameter
   (`ownSettingsOf`, design 09). Hedge School's `src/lib/game/store.ts` and `src/lib/analysis/engineSettings.ts` and
   Cyanotype's `src/lib/game/store.ts` and `src/lib/analysis/engineSettings.ts` give their parts.
+- `packages/analysis/src/earlierResults.ts`: the removal of an earlier engine's results that no stored game needs
+  (design 20, item 8): the rule (`unneededResults`) and the removal (`removeUnneeded`), with each site's engine and
+  reader of games as parameters. `cache.ts`: the engine files that start it (`engineFiles`), and its start, with the
+  removal of older shapes (`removeUnreadResults`). Hedge School's and Cyanotype's `src/lib/game/earlierResults.ts`
+  give their parts, and each site's `vite.config.ts` its engine files.
 - `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with
   the rules and a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the
   engine session's tests.
@@ -516,7 +525,8 @@ review's view in packages/review" (2026-10-25), "The review's styles in packages
 (2026-10-26), "The import's frame in packages/import, and Drawing Board's tools" (2026-10-27), "Cyanotype's
 review takes two moves that give one position as one move" (2026-11-05), "Cyanotype on Stamp Duty 0.2, with the GPU
 and the threaded bot" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
-(2026-11-08), "Cyanotype's review files, as Hedge School's" (2026-11-08), and "Cyanotype's review snapshot and
-annotated record from the store" (2026-11-08).
+(2026-11-08), "Cyanotype's review files, as Hedge School's" (2026-11-08), "Cyanotype's review snapshot and
+annotated record from the store" (2026-11-08), and "Cyanotype removes earlier engine results, as Hedge School"
+(2026-11-11).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06), and "A new feature starts in a package" (2026-11-08).
