@@ -13,7 +13,7 @@
   // leaves the address at once. The position being made is kept in this browser, so that a reload keeps it. The page
   // counts its open and Analyze, as Hedge School's editor does (its design 17). The analytics start once the position
   // has left the address.
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
@@ -21,7 +21,6 @@
   import type { Player } from "@abstractclass/analysis/game.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-  import { readTypedEarly } from "@abstractclass/site/typedEarly.ts";
   import PositionCheckStatus from "@abstractclass/review/PositionCheckStatus.svelte";
   import { hexKey, parseHex, type Hex } from "#lib/board/hex.ts";
   import { PLAYER_NAMES, type HandHex, type Kind, type SitePosition } from "#lib/board/position.ts";
@@ -40,7 +39,6 @@
   // The engine's answer on the latest position: its refusal, or whether a game can reach it. Null until it answers.
   let read = $state.raw<StartChecked | null>(null);
   let field = $state(""); // the position field, as the player types it
-  let fieldInput: HTMLInputElement;
   let fieldError = $state("");
   let engine = $state.raw<EngineWorker | null>(null);
   let failed = $state("");
@@ -53,6 +51,11 @@
   const other = (p: Player): Player => (p ? 0 : 1);
 
   onMount(() => {
+    // A position typed before this code ran: the field's binding took the text when the page started, but no handler
+    // heard Enter. The field starts empty, and the prerendered page shows it empty, so a text in it is the player's.
+    // The page reads it as Enter does, after its first update, which writes the board's position in the field. It
+    // reads it after the position from the address or the browser, so the typed text comes last and counts.
+    const typed = field;
     const brought = new URLSearchParams(location.hash.slice(1)).get("position");
     history.replaceState(null, "", location.pathname);
     startAnalytics();
@@ -61,8 +64,7 @@
       try { load(readPosition(text)); break; } catch { /* the next, or the start */ }
     }
     track("editor_open");
-    // A position typed before this code ran: the page reads it, as the field's Enter would have
-    readTypedEarly(fieldInput, text => { field = text; readField(); });
+    if (typed) void tick().then(() => { field = typed; readField(); });
     void (async () => {
       try {
         const manifest = await loadManifest();
@@ -78,14 +80,19 @@
   onDestroy(() => engine?.terminate());
 
   // At each change: the field shows the position, the browser keeps it, and the engine reads it, as the Analysis board
-  // reads a start (startChecked). Only the latest answer counts. A drag with Shift counts at its end.
+  // reads a start (startChecked). Only the latest answer counts. A drag with Shift counts at its end. When the engine
+  // arrives, the page asks it about the position, but does not write the field again: a text there that did not read
+  // keeps its reason.
+  $effect(() => {
+    if (stroke) return;
+    field = notation;
+    fieldError = "";
+    writeLocal(EDITOR_KEY, notation);
+  });
   let asked = 0;
   $effect(() => {
     if (stroke) return;
     const n = notation;
-    field = n;
-    fieldError = "";
-    writeLocal(EDITOR_KEY, n);
     read = null;
     if (engine) void askEngine(engine, n);
   });
@@ -265,7 +272,7 @@
       <div class="grid gap-1">
         <label for="position-text" class="text-sm">Position, in the <a href="/notation" target="_blank" rel="noopener noreferrer">notation</a></label>
         <span class="flex gap-1.5">
-          <input id="position-text" bind:this={fieldInput} bind:value={field} spellcheck="false" autocomplete="off" class={[FIELD, "flex-1 min-w-0 font-mono text-sm"]}
+          <input id="position-text" bind:value={field} spellcheck="false" autocomplete="off" class={[FIELD, "flex-1 min-w-0 font-mono text-sm"]}
                  onchange={readField} />
           <button type="button" class="text-sm" onclick={copy}>{copied ? "Copied" : "Copy"}</button>
         </span>

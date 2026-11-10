@@ -963,9 +963,11 @@ in "Set up a position".
    the one being made. The browser keeps the position being made (`cyanotype:editor:1`). The address
    `/editor#position=` brings one, and the position leaves the address at once. The page is prerendered with its
    field, so a player can type in it before the page's code runs, and no handler hears the keys. When the page starts,
-   it reads the text that the field holds, as Enter does: a position opens, and a text that does not read stays in
-   the field with the reason (`packages/site/src/typedEarly.ts`). Hedge School's editor shows its field only once the
-   engine has drawn the position, so its field takes no keys before its code runs.
+   it reads the text that the field holds, as Enter does. It reads the text after the position from the address or
+   the browser, so the typed text counts. A position opens. A text that does not read stays in the field with the
+   reason. Only a change of the position writes the field, so the engine's arrival keeps the text and its reason.
+   Hedge School's editor shows its field only once the engine has drawn the position, so its field takes no keys
+   before its code runs.
 8. **A drag with Shift puts the cell on each hex that it passes,** as a click on that hex does: the left button the
    chosen player's cell of the chosen kind, and the right button the other player's. The drag's first hex sets what
    it does. Where a click there removes a cell, the drag removes that cell from each hex that it passes, and leaves
