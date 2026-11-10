@@ -13,7 +13,7 @@
 // "Play the bot from here" on a game's position and on a set-up start, a start that no game reaches, and the question
 // when a start comes while a game is in progress. Run:
 // npm run test:layout -- tests/cyanotype-practice.spec.ts, with CYANOTYPE_BASE_URL.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./pageLog.ts";
 import { readFileSync } from "node:fs";
 import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
 import { STANDARD_START, writePosition } from "../../cyanotype/src/lib/game/position.ts";
@@ -80,10 +80,19 @@ async function botManifest(page: Page) {
   return manifest;
 }
 
+/** Opens Practice with no game kept, and waits until the page's code has run: the settings card shows. page.goto
+ *  returns at the load event, before the page's code runs. A case that writes the browser's storage, then reloads,
+ *  waits for this first: else the first load's code can still read the storage before the reload replaces the page,
+ *  and drop a kept game whose network the site does not ship (abscls-z0jz). */
+async function openPractice(page: Page) {
+  await page.goto(new URL("/practice", CYANOTYPE).href);
+  await expect(page.getByRole("button", { name: "Play as Blue" })).toBeVisible({ timeout: 60_000 });
+}
+
 /** Starts a game against the practice bot at 32 visits, the player on a side. */
 async function startGame(page: Page, manifest: { artifacts: { kind: string; id: string }[] }, side: "Blue" | "Red") {
   await page.setViewportSize({ width: 1376, height: 952 });
-  await page.goto(new URL("/practice", CYANOTYPE).href);
+  await openPractice(page);
   await page.evaluate(network => localStorage.setItem("cyanotype:practice-choices:1",
                         JSON.stringify({ bot: { network, visits: 32, variety: "low" }, side: "random", name: "" })),
                       manifest.artifacts.find(a => a.kind === "model")!.id);
@@ -131,7 +140,7 @@ test("a kept game whose network the site does not ship gives way to the settings
   await botManifest(page);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(new URL("/practice", CYANOTYPE).href);
+  await openPractice(page);
   await page.evaluate(() => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify({
     version: 1, bot: { network: "no-such-network", visits: 32, variety: "low" }, human: 0, name: "", seed: 1,
     moves: ["1@-13,-1"], builds: [], started: new Date().toISOString(),
@@ -150,7 +159,7 @@ test("the komi on Cyanotype's card, and a game at it: the player's head start in
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
   await page.setViewportSize({ width: 1376, height: 952 });
-  await page.goto(new URL("/practice", CYANOTYPE).href);
+  await openPractice(page);
   await page.evaluate(network => localStorage.setItem("cyanotype:practice-choices:1",
                         JSON.stringify({ bot: { network, visits: 32, variety: "low" }, komi: 300, side: "random", name: "" })),
                       manifest.artifacts.find((a: { kind: string }) => a.kind === "model")!.id);

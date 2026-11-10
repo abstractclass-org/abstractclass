@@ -59,6 +59,16 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   Start Cyanotype's preview as in the note "The local server", in `apps/cyanotype` and on a port other than Hedge
   School's. Then set `CYANOTYPE_BASE_URL` to the address of that preview, in the same way as `BASE_URL` (the note
   "The layout test"). The tests do not serve a build themselves, because a stale build would pass with no message.
+- **A page's code runs after `page.goto` returns.** `page.goto` returns at the load event, and the sites' pages start
+  their code after it: in 30 loads of Cyanotype's Practice, with and without a CPU throttle of 8, the prerendered page
+  was still there at the load event every time. A test that writes the browser's storage, then reloads, first waits
+  for something that only the page's code shows (Practice's settings card). Else the first load's code can still read
+  the storage before the reload replaces the page. A slow answer to the reload, as under the machine's load, keeps the
+  old page running. `tests/cyanotype-practice.spec.ts` (`openPractice`) does this. A test that types into a
+  prerendered field waits the same way (abscls-6i5k).
+- **A failing case's page log:** a spec that imports `test` from `tests/pageLog.ts` attaches its pages' errors, console
+  errors and failed requests to each case that fails ("page-log", beside the screenshot in `test-results`). A script
+  of the site that does not load leaves a page with only the header: the log then names the request.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
 - **The local server:** `node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort`

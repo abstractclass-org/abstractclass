@@ -2,7 +2,7 @@
 // with no reload. On a build that stores practice games (VITE_STORE_PRACTICE_GAMES=on, as CI builds), with
 // /api/practice-games answered here. A build that stores none skips it. That a game sent before a delete is not kept
 // after it is the Function's check, in src/lib/practice/stored.test.ts.
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./pageLog.ts";
 import { readFileSync } from "node:fs";
 
 const NUMBER = "c9d8e7f6-a5b4-4c3d-8e2f-1a0b9c8d7e6f";
