@@ -35,19 +35,32 @@ export function headerRules(dir) {
 }
 
 /**
+ * A build folder's files, as Cloudflare Pages serves them: a page at its path without `.html`, the folder's 404.html
+ * for a path that it lacks, and the headers of the folder's own _headers, "no-cache" where they set no Cache-Control.
+ * Gives the lookup of an address's path (decoded): the file to send, whether the build has the path (else the file is
+ * 404.html), and the headers.
+ */
+export function buildFiles(dir) {
+  const file = p => existsSync(p) && statSync(p).isFile() ? p : undefined, rules = headerRules(dir);
+  return path => {
+    const base = join(dir, path);
+    const found = file(base) ?? file(`${base}.html`) ?? file(join(base, "index.html")), sent = found ?? join(dir, "404.html");
+    const headers = { "Content-Type": TYPES[extname(sent)] ?? "application/octet-stream", "Cache-Control": "no-cache" };
+    if (found) for (const { pattern, set } of rules) if (pattern.test(path)) Object.assign(headers, set);
+    return { found: found !== undefined, sent, headers };
+  };
+}
+
+/**
  * A build's preview on a port of its own, at 127.0.0.1. It serves a build folder (`build` after `npm run build`, or a
- * copy of it, so that two builds can run side by side) as Cloudflare Pages does: a page at its path without `.html`,
- * the folder's 404.html for a path that it lacks, and the headers of the folder's own _headers, "no-cache" where they
- * set no Cache-Control. Resolves with the preview's address and a function that stops it.
+ * copy of it, so that two builds can run side by side) as Cloudflare Pages does (`buildFiles`). Resolves with the
+ * preview's address and a function that stops it.
  */
 export async function preview(dir, port) {
-  const file = p => existsSync(p) && statSync(p).isFile() ? p : undefined, rules = headerRules(dir);
+  const lookup = buildFiles(dir);
   const server = createServer((req, res) => {
-    const path = decodeURIComponent(new URL(req.url, "http://x").pathname), base = join(dir, path);
-    const found = file(base) ?? file(`${base}.html`) ?? file(join(base, "index.html")), sent = found ?? join(dir, "404.html");
-    const headers = { "Content-Type": TYPES[extname(sent)] ?? "application/octet-stream", "Content-Length": statSync(sent).size, "Cache-Control": "no-cache" };
-    if (found) for (const { pattern, set } of rules) if (pattern.test(path)) Object.assign(headers, set);
-    res.writeHead(found ? 200 : 404, headers);
+    const { found, sent, headers } = lookup(decodeURIComponent(new URL(req.url, "http://x").pathname));
+    res.writeHead(found ? 200 : 404, { ...headers, "Content-Length": statSync(sent).size });
     createReadStream(sent).pipe(res);
   });
   await new Promise((resolve, reject) => server.once("error", reject).listen(port, "127.0.0.1", resolve));

@@ -101,7 +101,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     of the folder's own `_headers`. To compare two builds, copy `build` to a folder in `runs/` (Git ignores it) after
     each build, and serve each copy on its own port. It does not serve the test book at `/test-book/` (only Vite's
     servers do), so a layout test against it skips every case of the book and of Openings, 81 cases. Run the layout
-    test against Vite's preview.
+    test against Vite's preview. `buildFiles(dir)` is its lookup of a path's file and headers. A script that serves a
+    build through Playwright's `route`, with no port, uses it too (`wall-rings.mjs`).
   - `launch()` starts Playwright's Chromium with its scroll bars. `trace(browser, page, act)` records Chrome's trace
     while `act` runs.
   - `storeReview(page, url)` keeps the review of the test fixture (`FIXTURE`) in the page's browser, and waits until
@@ -127,6 +128,10 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   const pairs = await inPairs(builds, 5, async ({ url }) => { /* one set of runs at url: give its median */ });
   console.log(verdict(pairs.map(pair => pair.map(run => run.result))), pairs.map(pair => pair.map(run => run.load)));
   ```
+- **Checks that compare colours:** a test or a script takes the colour tokens of each theme from
+  `packages/site/src/themeTokens.ts`, and the arithmetic from `apps/hedgeschool/src/lib/colour.ts`: OKLab, the
+  distance in OKLab, a mix in OKLab as `color-mix` gives it, and WCAG's luminance and contrast. Do not write them
+  again. Its users: `symbolShades.test.ts`, `weakWalls.test.ts` and `wall-rings.mjs`.
 - **A hidden tab in Playwright:** a browser that Playwright launches never hides a page. Its switches
   (`--disable-background-timer-throttling`, `--disable-renderer-backgrounding`,
   `--disable-backgrounding-occluded-windows`) stop the throttling, and its focus emulation

@@ -15,46 +15,30 @@
 // in apps/hedgeschool, after a build:
 //
 //   node scripts/measure/wall-rings.mjs <build dir> <out dir> [workers]
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { extname, join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import config from "../../playwright.config.ts";
-import { headerRules, launch, searchesEnded, stepTo, storeReview, watchSweep } from "./speed.mjs";
+import { buildFiles, launch, searchesEnded, stepTo, storeReview, watchSweep } from "./speed.mjs";
+import * as colour from "../../src/lib/colour.ts";
 import { WALL_MIN, wallInk } from "../../src/lib/review/weakWalls.ts";
 
 const [dir, out, workersArg = "2"] = process.argv.slice(2);
 const workers = Number(workersArg);
 mkdirSync(out, { recursive: true });
 
-// The colours, as Chromium mixes them: OKLab from sRGB (Björn Ottosson's matrices), and back to linear sRGB, kept in
-// its range
-const lin = c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const gam = c => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
-/** OKLab, from a colour "#rrggbb". */
-function oklab(hex) {
-  const [r, g, b] = [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-          0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-}
-function linearOf([L, a, b]) {
-  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
-  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-          -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s].map(c => Math.min(1, Math.max(0, c)));
-}
-const luminance = lab => { const [r, g, b] = linearOf(lab); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
-const contrast = (x, y) => { const [a, b] = [luminance(x), luminance(y)].sort((p, q) => q - p); return (a + 0.05) / (b + 0.05); };
-const hexOf = lab => "#" + linearOf(lab).map(c => Math.round(gam(c) * 255).toString(16).padStart(2, "0")).join("");
+// The colours, as Chromium mixes them (colour.ts): OKLab, and back to linear sRGB, kept in its range
+const oklab = colour.hexToOklab;
+/** WCAG's contrast of two OKLab colours. */
+const contrast = (x, y) => colour.contrast(colour.oklabToLinear(x), colour.oklabToLinear(y));
+const hexOf = lab => colour.linearToHex(colour.oklabToLinear(lab));
 const STROKE = /var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)/;
 /** A ring's stroke, a color-mix of two tokens in OKLab, as an OKLab colour: `tokens` gives each token's hex. */
 function inkLab(stroke, tokens) {
   const [, hi, p, lo] = stroke.match(STROKE);
-  const [x, y] = [oklab(tokens[hi]), oklab(tokens[lo])];
-  return y.map((v, i) => v + (x[i] - v) * (Number(p) / 100));
+  return colour.mix(oklab(tokens[hi]), oklab(tokens[lo]), Number(p) / 100);
 }
-const dE = (x, y) => 100 * Math.hypot(...x.map((v, i) => v - y[i]));
+/** The distance in OKLab, × 100. */
+const dE = (x, y) => 100 * colour.distance(x, y);
 /** A stroke's two tokens and its percentage, as one key. */
 const strokeKey = stroke => stroke.match(STROKE)?.slice(1).join(" ");
 /** The chance of each stroke that `wallInk` gives, by its key: the ramp's places, each whole percent of it from 10%. */
@@ -67,23 +51,15 @@ const TOKENS = ["--board-bg", "--text", "--wall-low", "--wall-mid", "--wall-high
 const THEMES = ["light", "dark"];
 const WIDTHS = [[1400, 900], [390, 844]];
 
-// The build, served to the browser alone: a page at its path without `.html`, the folder's 404.html for a path that
-// it lacks, and the headers of the folder's _headers
+// The build, served to the browser alone, as the preview serves it (speed.mjs, `buildFiles`)
 const ORIGIN = "https://hedge-school.test";
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
-                ".json": "application/json", ".wasm": "application/wasm", ".svg": "image/svg+xml", ".png": "image/png",
-                ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".txt": "text/plain; charset=utf-8",
-                ".xml": "application/xml" };
-const rules = headerRules(dir), isFile = p => (existsSync(p) && statSync(p).isFile() ? p : undefined);
+const lookup = buildFiles(dir);
 const browser = await launch(config.projects.find(p => p.name === "chromium").use.launchOptions);
 const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 const unserved = [];
 await context.route(`${ORIGIN}/**`, route => {
-  const path = decodeURIComponent(new URL(route.request().url()).pathname), base = join(dir, path);
-  const found = isFile(base) ?? isFile(`${base}.html`) ?? isFile(join(base, "index.html")), sent = found ?? join(dir, "404.html");
+  const path = decodeURIComponent(new URL(route.request().url()).pathname), { found, sent, headers } = lookup(path);
   if (!found) unserved.push(path);
-  const headers = { "Content-Type": TYPES[extname(sent)] ?? "application/octet-stream", "Cache-Control": "no-cache" };
-  if (found) for (const { pattern, set } of rules) if (pattern.test(path)) Object.assign(headers, set);
   return route.fulfill({ status: found ? 200 : 404, headers, body: readFileSync(sent) });
 });
 await context.addInitScript(watchSweep, JSON.stringify({ workers, gpu: "off" }));

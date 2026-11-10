@@ -1,5 +1,6 @@
-// Checks the parsing of Chrome's trace, the long tasks, the verdict on pairs and the preview's header rules (speed.mjs),
-// on recorded inputs and static/_headers. Run: npm test.
+// Checks the parsing of Chrome's trace, the long tasks, the verdict on pairs, the preview's header rules and its
+// lookup of a build's files (speed.mjs), on recorded inputs, static/_headers and a build folder of its own. Run:
+// npm test.
 //   - tests/fixtures/review-reload-trace.json: Chrome's trace of a reload of the stored review, in Playwright's Chromium
 //     (the build of abscls-3nr), cut to the events that the parsing reads: the marks, the main thread's tasks and
 //     paints of the first draw and three on each side of it, eight tasks of other threads inside it, and the eight
@@ -9,8 +10,10 @@
 //     once for a page".
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { eventTime, headerRules, longTasks, median, tasksBetween, verdict, verdictText } from "./speed.mjs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { buildFiles, eventTime, headerRules, longTasks, median, tasksBetween, verdict, verdictText } from "./speed.mjs";
 
 const trace = JSON.parse(readFileSync("tests/fixtures/review-reload-trace.json", "utf8"));
 // The first draw's tasks: each task's start, wall time and thread time, in milliseconds.
@@ -107,4 +110,30 @@ test("the preview's headers of a path come from the rules of _headers that match
   assert.deepEqual(headers("/engine/manifest.json"), {});
   assert.deepEqual(headers("/bookmarklet.js"), { "Cache-Control": "no-cache" });
   assert.deepEqual(headers("/review"), {}); // the rules for Cloudflare's own hosts match no path
+});
+
+test("a build's files as the preview serves them: a page without .html, 404.html for a path not in the build", () => {
+  const dir = mkdtempSync(join(tmpdir(), "build-files-"));
+  try {
+    mkdirSync(join(dir, "sounds"));
+    for (const file of ["index.html", "about.html", "404.html", "sounds/move.mp3", "data.bin"]) {
+      writeFileSync(join(dir, file), "");
+    }
+    writeFileSync(join(dir, "_headers"), "/sounds/*\n  Cache-Control: public, max-age=60\n");
+    const lookup = buildFiles(dir), html = "text/html; charset=utf-8";
+    assert.deepEqual(lookup("/"), { found: true, sent: join(dir, "index.html"),
+                                    headers: { "Content-Type": html, "Cache-Control": "no-cache" } });
+    assert.deepEqual(lookup("/about"), { found: true, sent: join(dir, "about.html"),
+                                         headers: { "Content-Type": html, "Cache-Control": "no-cache" } });
+    assert.deepEqual(lookup("/sounds/move.mp3"), {
+      found: true, sent: join(dir, "sounds/move.mp3"),
+      headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=60" },
+    });
+    assert.equal(lookup("/data.bin").headers["Content-Type"], "application/octet-stream");
+    // A path that the build lacks: its 404.html, without the rules of _headers
+    assert.deepEqual(lookup("/sounds/none.mp3"), { found: false, sent: join(dir, "404.html"),
+                                                   headers: { "Content-Type": html, "Cache-Control": "no-cache" } });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
