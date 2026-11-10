@@ -23,31 +23,54 @@ export const PLAYER_NAME = ["Blue", "Red"] as const;
 export const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
 /** A score as the players' cards, the Report and an image's caption show it: whole, with thousands separated. */
 export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
-/** Two scores closer than this are equal: a tolerance for the error of a floating-point sum, not a rule. The rule for a
- *  draw is equal scores. Blueprints' points are whole, and the margins of Enclosure's finished games are whole or half
- *  (737 games, the engine repository's design 08), so a margin under the tolerance is a margin of 0. */
-export const SCORE_TOLERANCE = 0.05;
-/** A game's result by the scores: the winner, or null for a draw, and the margin (the winner's score less the loser's). */
+/** A game's result by the scores: the winner, or null for a draw, and the margin (the winner's score less the loser's)
+ *  as a record writes it. */
 export interface ScoreResult { winner: Player | null; margin: number }
-/** The result by the scores (Blue's, then Red's): a draw when they are equal (within SCORE_TOLERANCE). The one rule for
- *  a draw, in every game: the review, the board and Practice. Rounding for display stays apart from it. */
-export function resultOfScores(scores: readonly [number, number]): ScoreResult {
-  const d = scores[0] - scores[1];
-  return Math.abs(d) < SCORE_TOLERANCE ? { winner: null, margin: 0 } : { winner: d > 0 ? 0 : 1, margin: Math.abs(d) };
+/** A result from its winner and its margin, by the one rule for a draw: the margin as a record writes it, rounded to
+ *  six decimals (`r+377.651497`), and a draw when that is 0. Enclosure's areas are exact rationals, so a margin can be
+ *  any number at any komi (docs/design/24-practice.md, "Whole points"), and a win by 0.03 is a win. The rounding takes
+ *  away only the error of a floating-point sum. A record's result and the words then always agree. */
+function byMargin(winner: Player, m: number): ScoreResult {
+  const margin = Math.round(m * 1e6) / 1e6;
+  return margin === 0 ? { winner: null, margin } : { winner, margin };
 }
+/** The result by the scores (Blue's, then Red's), in every game: the review, the board, Practice and its record.
+ *  Rounding for display stays apart from it. */
+export const resultOfScores = (scores: readonly [number, number]): ScoreResult =>
+  byMargin(scores[0] > scores[1] ? 0 : 1, Math.abs(scores[0] - scores[1]));
 /** The result that a record gives by the scores (`b+28.5`, `r+3`, `0`), by the same rule. Null for any other: a
  *  resignation (`b+R`), a forfeit (`r+F`), or no result (`*`). */
 export function resultOfRecord(result: string): ScoreResult | null {
   if (result === "0") return { winner: null, margin: 0 };
   const m = /^([br])\+(\d+(?:\.\d+)?)$/.exec(result);
-  if (!m) return null;
-  const margin = Number(m[2]);
-  return resultOfScores(m[1] === "b" ? [margin, 0] : [0, margin]);
+  return m ? byMargin(m[1] === "b" ? 0 : 1, Number(m[2])) : null;
+}
+/** A win's margin that one decimal writes as 0.0, with as many decimals as it needs, up to the record's six: "0.03".
+ *  Undefined for a margin that one decimal writes as a number. Each format of a margin starts with it, so that a win
+ *  never reads "won by 0.0". */
+export function smallMargin(m: number): string | undefined {
+  if (Number(m.toFixed(1)) !== 0) return undefined;
+  let digits = 2;
+  while (digits < 6 && Number(m.toFixed(digits)) === 0) digits++;
+  return m.toFixed(digits);
 }
 /** A result in words: "A draw", or the winner and the margin with no unit (the glossary's "Score"): "Blue won by 28.5".
- *  `margin` writes the margin in the game's format (ViewGame `margin`). */
-export const resultText = (r: ScoreResult, margin: (m: number) => string): string =>
-  r.winner === null ? "A draw" : `${PLAYER_NAME[r.winner]} won by ${margin(r.margin)}`;
+ *  `fmtMargin` writes the margin in the game's format (ViewGame `fmtMargin`). */
+export const resultText = (r: ScoreResult, fmtMargin: (m: number) => string): string =>
+  r.winner === null ? "A draw" : `${PLAYER_NAME[r.winner]} won by ${fmtMargin(r.margin)}`;
+/** A game's outcome in words, for each game's `ending`: by the scores when the rules ended the game (`overByRules`),
+ *  else as the record says it ended (a result by the scores, a resignation, a forfeit, or no end yet). `move`: the
+ *  game's word for a move ("edge"). */
+export function endingWords(data: Pick<ReviewData<GameTypes>, "moves" | "result" | "ending">, overByRules: boolean,
+                            move: string, fmtMargin: (m: number) => string): string {
+  if (overByRules) return resultText(resultOfScores([data.result.blue, data.result.red]), fmtMargin);
+  const result = data.ending?.result ?? "", byScores = resultOfRecord(result), n = data.moves.length;
+  if (byScores) return resultText(byScores, fmtMargin);
+  const m = /^([br])\+([RF])$/.exec(result);
+  if (!m) return `Unfinished after ${move} ${n}`;
+  const winner: Player = m[1] === "b" ? 0 : 1, loser = PLAYER_NAME[winner === 0 ? 1 : 0];
+  return `${PLAYER_NAME[winner]} won: ${loser} ${m[2] === "R" ? "resigned" : "left the game"} after ${move} ${n}`;
+}
 /** The class of a number in a shape or a badge: trimmed to the digits' height (cap height to baseline), so that flex
  *  centring centres the digits in any font. */
 export const DIGITS = "block [text-box:trim-both_cap_alphabetic]";
@@ -392,9 +415,9 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   words: { move: string; moves: string; Move: string }; // the game's word for a move: "edge", "edges", "Edge"
   /** The game's outcome in words. */
   ending(data: ReviewData<G>): string;
-  /** A margin in the game's format, with no unit, for the result's words (resultText): Enclosure's in halves, "28.5",
-   *  and Blueprints' whole, "24". */
-  margin(m: number): string;
+  /** A margin in the game's format, with no unit, for the result's words (resultText): Enclosure's with one decimal,
+   *  "27.5", and Blueprints' whole points, "24", or "24.5" from a half komi. Each takes smallMargin first ("0.03"). */
+  fmtMargin(m: number): string;
   /** A move's note in the move list, in one line: its label, and the engine's choice when the move was not it. Its text,
    *  or its parts, where the note names moves that the lists write in glyphs (`NotePart`). `before`: the position
    *  before the move. */

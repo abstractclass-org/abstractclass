@@ -33,7 +33,7 @@
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
-  import { AREA, LAYERS, margin, MOVE_TEXT, moveNotation, type Player } from "#lib/review/enclosure.ts";
+  import { AREA, fmtMargin, LAYERS, MOVE_TEXT, moveNotation, type Player } from "#lib/review/enclosure.ts";
   import { resultOfScores, resultText } from "@abstractclass/review/game.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "#lib/sound.ts";
@@ -271,7 +271,7 @@
     if (g.status === "failed") return `The game stopped: ${g.error}`;
     if (g.status === "over") {
       if (g.resigned) return "You resigned: HedgeFund wins.";
-      return `Game over. ${resultText(resultOfScores(p.scores), margin)}.`; // the review's words and rule (game.ts)
+      return `Game over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`; // the review's words and rule (game.ts)
     }
     if (g.status === "bot") return `HedgeFund is thinking… ${g.thinkingSince === null ? "" : seconds(Math.max(0, now - g.thinkingSince))}`;
     return `Your turn: ${p.movesLeft} ${p.movesLeft === 1 ? "edge" : "edges"} to play.`;

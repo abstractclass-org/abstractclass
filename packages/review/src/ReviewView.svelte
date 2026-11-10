@@ -13,7 +13,7 @@
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
   import type { Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState, WallState } from "@abstractclass/analysis/analysis.svelte.ts";
-  import { PLAYER_NAME, resultOfScores, resultText, WHOLE, type ViewTypes } from "./game.ts";
+  import { PLAYER_NAME, resultOfScores, resultText, smallMargin, WHOLE, type ViewTypes } from "./game.ts";
 
   /** The review in progress: what the engine does now, and the stages as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
@@ -1588,7 +1588,7 @@
     };
     if (mainAt === null) return `A variation from ${view.words.move} ${pos + 1} · ${over ? "Game over" : turnHere()}`; // where it leaves the game
     if (board) {
-      if (over) return `Game over · ${resultText(resultOfScores(position.scores), view.margin)}`;
+      if (over) return `Game over · ${resultText(resultOfScores(position.scores), view.fmtMargin)}`;
       return `${view.words.Move} ${(position.count ?? path.length) + 1} · ${turnHere()}`;
     }
     if (pos === last) return endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
@@ -1627,6 +1627,12 @@
     const v = Number(Math.abs(blue).toFixed(digits));
     return v === 0 ? even : `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${(digits ? ONE_DIGIT : WHOLE).format(v)}`;
   };
+  // A game's result in the same form, with one decimal, by the rule for a draw (resultOfScores): `even` for a draw, and
+  // a win that one decimal writes as 0.0 with more decimals, "Red +0.03" (smallMargin).
+  const resultSide = (scores: readonly [number, number], even = "even") => {
+    const { winner, margin } = resultOfScores(scores);
+    return winner === null ? even : `${PLAYER_NAME[winner]} +${smallMargin(margin) ?? ONE_DIGIT.format(margin)}`;
+  };
   const sideShort = (blue: number) =>
     Math.abs(blue) >= 999.5 ? `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${shortPoints(Math.abs(blue))}` : sideText(blue, 0, "0");
   // Made for the position pointed at only: the chart asks for one note at a time.
@@ -1637,7 +1643,8 @@
     const move = !e ? "" : unit === "edge" ? moveText(e.index) : `${t!.number}. ${t!.edges.map(m => view.notation(m)).join(" ")}`;
     const title = e ? `${move}${listed(label) ? ` [${LABEL_TEXT[label]}]` : ""}` : "The start";
     const s = R.blueScore[i];
-    const value = i === last && endedByRules ? `Result: ${sideText(s!, 1)}` : s === undefined ? "Not analyzed yet"
+    const value = i === last && endedByRules ? `Result: ${resultSide([R.data.result.blue, R.data.result.red])}`
+      : s === undefined ? "Not analyzed yet"
       : `Lead: ${sideText(s, 1)}${chartSettled[i] ? "" : " · first estimate"}`;
     const details = [showScore && i !== last && `Score: ${sideText(scoreDiff[i], 1)}`,
                      showArea && !!view.second && `${view.second.name}: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
@@ -2879,7 +2886,7 @@
           <strong class="text-ink">{sideText(analysis.margin!, 0, "0")} ± {Math.round(analysis.spread!)}</strong>
           · lead {sideText(analysis.lead, 0, "0")}
         {:else if over}
-          Final margin <strong class="text-ink">{sideText(position.scores[0] - position.scores[1], 1, "0")}</strong>
+          Final margin <strong class="text-ink">{resultSide(position.scores, "0")}</strong>
         {:else}{engineNote ?? "Not analyzed yet"}{/if}
       </p>
       {#if !engineOpen && threatOn}

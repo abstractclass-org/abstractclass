@@ -40,7 +40,7 @@
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, startTurn } from "#lib/game/position.ts";
   import { recordProblem, rulesBy, startProblem } from "#lib/review/recordCheck.ts";
-  import { margin } from "#lib/review/blueprints.ts";
+  import { fmtMargin } from "#lib/review/blueprints.ts";
   import { resultOfScores, resultText } from "@abstractclass/review/game.ts";
   import { loadEngine } from "#lib/analysis/engineSettings.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
@@ -275,7 +275,8 @@
     if (!g || g.status === "starting" || !p) return `${ENGINE_NAME} starts…`;
     if (g.status === "over") {
       if (g.resigned) return `You resigned. ${ENGINE_NAME} wins.`;
-      return `The game is over. ${resultText(resultOfScores(p.scores), margin)}.`; // the review's words and rule (game.ts)
+      // The review's words and its rule for a draw (@abstractclass/review/game.ts)
+      return `The game is over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`;
     }
     if (!atLatest) return `You look at move ${shown}. To go back to the game, go to the last move.`;
     if (g.status === "bot") return `${ENGINE_NAME} thinks… ${g.thinkingSince === null ? "" : seconds(Math.max(0, now - g.thinkingSince))}`;

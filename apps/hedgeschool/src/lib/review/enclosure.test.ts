@@ -335,6 +335,13 @@ test("a game's outcome: by the scores when the rules ended it, else as its recor
   assert.equal(endingText(game(true, 40, 12.5, "b+27.5")), "Blue won by 27.5");
   assert.equal(endingText(game(true, 20, 20, "0")), "A draw");
   assert.equal(endingText(game(true, 0.1 + 0.2, 0.3, "0")), "A draw"); // equal scores, by a floating-point sum
+  assert.equal(endingText(game(true, 377.651497, 0, "b+377.651497")), "Blue won by 377.7");
+  // A margin can be any number (design 24, "Whole points"): a win by 0.03 is a win, never "won by 0.0". A margin
+  // under the record's six decimals is a draw, as the record writes it.
+  assert.equal(endingText(game(true, 10, 10.03, "r+0.03")), "Red won by 0.03");
+  assert.equal(endingText(game(true, 10.0000004, 10, "0")), "A draw");
+  assert.equal(endingText(game(false, 3, 9, "r+0.03")), "Red won by 0.03");
+  assert.equal(endingText(game(false, 3, 9, "b+0.000001")), "Blue won by 0.000001");
   assert.equal(endingText(game(false, 3, 9, "0")), "A draw"); // the record's draw
   assert.equal(endingText(game(false, 3, 9, "r+12")), "Red won by 12.0"); // the record's result by the scores
   assert.equal(endingText(game(false, 3, 9, "b+R")), "Blue won: Red resigned after edge 2");

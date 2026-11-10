@@ -205,10 +205,10 @@ export function takebackCount(movers: readonly Player[], human: Player, brought 
 export const resignResult = (human: Player) => (human === 0 ? "r+R" : "b+R");
 
 /** The result of a game that the rules ended, from its scores (Blue's, then Red's): `b+12.5`, `r+3`, or `0`, by the
- *  view's rule for a draw (resultOfScores). */
+ *  view's rule for a draw, with the margin to six decimals (resultOfScores). */
 export function scoreResult(scores: [number, number]): string {
-  const r = resultOfScores(scores), points = String(Math.round(r.margin * 1e6) / 1e6);
-  return r.winner === null ? "0" : `${r.winner === 0 ? "b" : "r"}+${points}`;
+  const { winner, margin } = resultOfScores(scores);
+  return winner === null ? "0" : `${winner === 0 ? "b" : "r"}+${margin}`;
 }
 
 export type PracticeOutcome = "won" | "lost" | "draw" | "resigned" | "aborted";

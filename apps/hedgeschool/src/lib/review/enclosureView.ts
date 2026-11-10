@@ -24,8 +24,8 @@ import { imageCaption, imageName } from "./enclosureImage.ts";
 import EnclosureBoard, { boardLine } from "./EnclosureBoard.svelte";
 import EdgePill from "./EdgePill.svelte";
 import EmptyBoard from "./EmptyBoard.svelte";
-import { AREA, enclosure, endingText, LAYERS, lineMovers, margin, MOVE_TEXT, moveNotation, PLAYER_NAME, shortNote, turnShortNote,
-         type Enclosure } from "./enclosure.ts";
+import { AREA, enclosure, endingText, fmtMargin, LAYERS, lineMovers, MOVE_TEXT, moveNotation, PLAYER_NAME, shortNote,
+         turnShortNote, type Enclosure } from "./enclosure.ts";
 
 /** The board of an image of a line, as boardImage.ts draws it: the regions always shown, and the edge cut by the move
  *  that led to the position while no edge of the line is drawn. */
@@ -87,7 +87,7 @@ export const enclosureView: ViewGame<Enclosure> = {
 
   words: { move: "edge", moves: "edges", Move: "Edge" },
   ending: endingText,
-  margin,
+  fmtMargin,
   shortNote,
   turnShortNote,
 

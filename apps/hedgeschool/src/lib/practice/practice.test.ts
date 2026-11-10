@@ -172,6 +172,7 @@ test("the events about a game carry its settings and counts as ranges, never a m
 test("a game's outcome is the player's", () => {
   assert.equal(practiceOutcome([60, 50], 0, false), "won");
   assert.equal(practiceOutcome([60, 50], 1, false), "lost");
-  assert.equal(practiceOutcome([50.02, 50], 1, false), "draw");
+  assert.equal(practiceOutcome([50.02, 50], 1, false), "lost"); // a margin can be any number: 0.02 wins (design 24)
+  assert.equal(practiceOutcome([50.0000004, 50], 1, false), "draw"); // under the record's six decimals: `0`
   assert.equal(practiceOutcome([60, 50], 0, true), "resigned");
 });

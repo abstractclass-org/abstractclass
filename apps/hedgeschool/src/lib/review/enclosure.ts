@@ -16,7 +16,7 @@ import type { BookPlace } from "#lib/book/place.svelte.ts";
 import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
 import type { Display } from "./display.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
-import { PLAYER_NAME, resultOfRecord, resultOfScores, resultText, type LayerSetting, type ViewTypes } from "@abstractclass/review/game.ts";
+import { endingWords, smallMargin, type LayerSetting, type ViewTypes } from "@abstractclass/review/game.ts";
 export * from "@abstractclass/analysis/model.ts";
 export { fmtScore, PLAYER_NAME } from "@abstractclass/review/game.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
@@ -162,20 +162,12 @@ export function shortNote(e: EdgeReview): string {
   return `${e.label ? shared.LABEL_TEXT[e.label] : "Not analyzed yet"}.${better}`;
 }
 
-/** A margin in Enclosure's format: in halves, with one decimal, "28.5" (the glossary's "Score"). */
-export const margin = (m: number) => m.toFixed(1);
+/** A margin in Enclosure's format: one decimal, "27.5". Its areas are exact rationals, so a margin can be any number
+ *  (docs/design/24-practice.md, "Whole points"): a win that one decimal writes as 0.0 takes more decimals, "0.03"
+ *  (smallMargin). */
+export const fmtMargin = (m: number) => smallMargin(m) ?? m.toFixed(1);
 
-/** The game's outcome in words: by the scores when the rules ended the game, else as the record says it ended (a
- *  resignation, a forfeit, a result the record gives, or no end yet). The result's words and its rule for a draw are
- *  the view's (resultText). */
-export function endingText(data: ReviewData): string {
-  const n = data.moves.length, overByRules = data.positions[n]?.over ?? true;
-  if (overByRules) return resultText(resultOfScores([data.result.blue, data.result.red]), margin);
-  const result = data.ending?.result ?? "", byScores = resultOfRecord(result);
-  if (byScores) return resultText(byScores, margin);
-  const m = /^([br])\+([RF])$/.exec(result);
-  if (!m) return `Unfinished after edge ${n}`;
-  const winner: Player = m[1] === "b" ? 0 : 1, loser = PLAYER_NAME[winner === 0 ? 1 : 0];
-  if (m[2] === "R") return `${PLAYER_NAME[winner]} won: ${loser} resigned after edge ${n}`;
-  return `${PLAYER_NAME[winner]} won: ${loser} left the game after edge ${n}`;
-}
+/** The game's outcome in words, in the view's words and by its rule for a draw (endingWords). The game ended by the
+ *  rules unless its last position says otherwise. */
+export const endingText = (data: ReviewData): string =>
+  endingWords(data, data.positions[data.moves.length]?.over ?? true, "edge", fmtMargin);

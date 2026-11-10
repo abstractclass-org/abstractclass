@@ -72,9 +72,12 @@ test("the results and the player's outcome", () => {
   assert.deepEqual([scoreResult([12.5, 0]), scoreResult([3, 6]), scoreResult([4, 4])], ["b+12.5", "r+3", "0"]);
   assert.equal(practiceOutcome([10, 2], 0, false), "won");
   assert.equal(practiceOutcome([10, 2], 1, false), "lost");
-  assert.equal(practiceOutcome([5, 5.01], 1, false), "draw");
-  // One rule for a draw: a tie is "0" and a draw, and a floating-point error in a sum of areas does not break it.
+  // One rule for a draw, the record's: a tie is "0" and a draw, and a floating-point error in a sum of areas does not
+  // break it. A margin under the record's six decimals is a draw, and any other margin is a win, 0.03 too.
   assert.deepEqual([scoreResult([0.1 + 0.2, 0.3]), practiceOutcome([0.1 + 0.2, 0.3], 0, false)], ["0", "draw"]);
+  assert.deepEqual([scoreResult([5.0000004, 5]), practiceOutcome([5.0000004, 5], 1, false)], ["0", "draw"]);
+  assert.deepEqual([scoreResult([5, 5.03]), practiceOutcome([5, 5.03], 1, false)], ["r+0.03", "won"]);
+  assert.equal(practiceOutcome([5, 5.01], 0, false), "lost");
   assert.equal(practiceOutcome([10, 2], 0, true), "resigned");
 });
 

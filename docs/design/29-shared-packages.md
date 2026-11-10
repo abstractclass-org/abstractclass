@@ -227,15 +227,20 @@ edit in the same commit), so their changes still apply.
      package's `PLAYER_NAME` and `@abstractclass/site`'s colours. The cards show the score, and the game's second
      number when it has one (`second`: Enclosure's area, which the cards, the Advantage chart and an image's caption
      show).
-   - **The texts:** the game's word for a move (`words`), the game's end (`ending`), its format of a margin (`margin`:
-     Enclosure's "28.5", Blueprints' whole "24") and the move list's notes (`shortNote`, `turnShortNote`). The texts of
-     the game's own parts come with each part.
-   - **The result by the scores:** one rule and one text for every game, in `game.ts`. A draw is equal scores
-     (`resultOfScores`, with a tolerance for a floating-point sum, `SCORE_TOLERANCE`), and a record's result by the
-     scores (`b+28.5`, `0`) takes the same rule (`resultOfRecord`). The words are "A draw", or the winner and the margin
-     with no unit: "Blue won by 28.5" (`resultText`, with the game's `margin`). Each game's `ending`, the board's line
-     at the game's end, Practice's result and outcome (`@abstractclass/practice`'s `scoreResult` and
-     `practiceOutcome`) and each site's Practice page use them.
+   - **The texts:** the game's word for a move (`words`), the game's end (`ending`), its format of a margin
+     (`fmtMargin`: Enclosure's one decimal, "27.5", and Blueprints' whole points, "24", or "24.5" from a half komi)
+     and the move list's notes (`shortNote`, `turnShortNote`). The texts of the game's own parts come with each part.
+   - **The result by the scores:** one rule and one text for every game, in `game.ts`. The rule is the record's: the
+     margin rounded to six decimals, as a record writes it (`r+377.651497`), and a draw when that is 0
+     (`resultOfScores`). Enclosure's areas are exact rationals, so a margin can be any number (design 24, "Whole
+     points"). A win by 0.03 is a win, and the rounding takes away only the error of a floating-point sum. A record's
+     result by the scores (`b+28.5`, `0`) takes the same rule (`resultOfRecord`). The words are "A draw", or the winner
+     and the margin with no unit: "Blue won by 28.5" (`resultText`, with the game's `fmtMargin`). A margin that one
+     decimal writes as 0.0 takes as many decimals as it needs, up to six: "Red won by 0.03" (`smallMargin`, in each
+     game's format). The review uses them in each game's `ending` (`endingWords`: the result, a resignation, a forfeit,
+     or no end yet), in the board's line at the game's end, and in the chart's result and the final margin. Practice
+     uses them in its stored result and its outcome (`@abstractclass/practice`'s `scoreResult` and `practiceOutcome`),
+     and in each site's line at the game's end.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
      board's own layers (`layers`: Enclosure's regions before the area map's settings, and its invincible edges after
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
