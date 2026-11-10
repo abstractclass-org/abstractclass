@@ -92,8 +92,8 @@ edit in the same commit), so their changes still apply.
    book, Cyanotype's check of the capture marks.
    The removal of an earlier engine's results that no stored game needs (Hedge School's design 20, item 8) moved out
    of Hedge School's `src/lib/game/earlierResults.ts` with Cyanotype's removal, into the analysis package
-   (`earlierResults.ts`). Its start at the site's start went into `cache.ts`, and the engine files that make it due too.
-   Each site gives its engine (its `engine.lock.json`) and its reader of stored games.
+   (`earlierResults.ts`). `cache.ts` holds the code that starts it when a site starts, and the list of engine files
+   whose change makes it due. Each site gives its engine (its `engine.lock.json`) and its reader of stored games.
    A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
    its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
    (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site

@@ -2,8 +2,9 @@
 // design 20). The browser keeps each result with the engine's search and the network file that found it (cache.ts).
 // The site's engine reads its own results only. An earlier engine's are read by the review snapshot of a game whose
 // last review used it, and by nothing else. So a result is earlier when the site's engine cannot read it: when its
-// search is not the site's, or its network's file is not one that the site ships. A site's lock keeps the earlier
-// networks too (Hedge School's design 09), so a release that adds a network removes nothing. Each site gives its
+// search is not the site's, or its network's file is not one that the site ships. A release that adds a network
+// removes nothing. A release that drops a network from the lock removes its results that no review snapshot reads,
+// and a snapshot needs its network: Hedge School's lock keeps the earlier networks (its design 09). Each site gives its
 // engine (its engine.lock.json) and its store of games (games.ts, gameStore's readGames): Hedge School's
 // src/lib/game/earlierResults.ts and Cyanotype's. The site's layout loads it at the site's start when the removal is
 // due (cache.ts, removeUnreadResults).

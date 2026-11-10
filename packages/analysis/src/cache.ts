@@ -81,15 +81,15 @@ export function removalDue(mark: string | null): boolean {
   return Number.isNaN(shape) || shape < SHAPE;
 }
 /** The browser's mark of the removal of older shapes: the shape that it last ran for. */
-export const REMOVED = "learn-enclosure:analysis-shape:1";
+export const SHAPE_MARK = "learn-enclosure:analysis-shape:1";
 
 /** Removes the stored results of older shapes (isOlderShape), at the site's first start after a change of SHAPE: a
  *  start with the same shape reads the mark alone. The results of the shapes that the readers read stay, of every
  *  engine and network: a review snapshot reads an earlier engine's (design 20). The mark follows the removal, so a removal
  *  that fails runs again at the next start. */
 async function removeOlderShapes(): Promise<void> {
-  if (!removalDue(readLocal(REMOVED))) return;
-  if (await dbDeleteWhere(STORES.analysis, isOlderShape)) writeLocal(REMOVED, String(SHAPE));
+  if (!removalDue(readLocal(SHAPE_MARK))) return;
+  if (await dbDeleteWhere(STORES.analysis, isOlderShape)) writeLocal(SHAPE_MARK, String(SHAPE));
 }
 
 // The removal of an earlier engine's results, and of an earlier network file's, that no stored game needs any more
@@ -98,7 +98,7 @@ async function removeOlderShapes(): Promise<void> {
 // nothing changed reads the mark alone.
 /** The browser's mark of the removal of earlier results: the engine files that the last removal ran for, or "removing "
  *  and them while one runs. */
-export const EARLIER = "learn-enclosure:earlier-results:1";
+export const EARLIER_MARK = "learn-enclosure:earlier-results:1";
 const removing = (files: string) => `removing ${files}`;
 /** The engine files that the stored results name, by SHA-256: the CPU module and the networks of `manifest`, a site's
  *  engine.lock.json. Each site's build gives them to its pages (its vite.config.ts, `__ENGINE_FILES__`), so that a
@@ -106,7 +106,7 @@ const removing = (files: string) => `removing ${files}`;
 export const engineFiles = (manifest: { artifacts: { kind: string; sha256: string }[] }) =>
   manifest.artifacts.filter(a => a.kind === "module" || a.kind === "model").map(a => a.sha256).join(" ");
 /** Whether the removal of earlier results is due for `files`, the site's engine files. */
-export const earlierRemovalDue = (files: string) => readLocal(EARLIER) !== files;
+export const earlierRemovalDue = (files: string) => readLocal(EARLIER_MARK) !== files;
 /** Removes, at the site's start, the stored results that no reader reads: the older shapes' (removeOlderShapes), and,
  *  when it is due for `files` (the site's engine files), an earlier engine's that no stored game needs. `load` loads
  *  the site's removal (its earlierResults.ts, on removeUnneeded), which runs for `files`. Its code loads only then, once
@@ -124,12 +124,12 @@ export function removeUnreadResults(files: string,
  *  so a removal that a closed page stops stays due. Then it keeps the removal's mark, unless the removal failed or
  *  what the games need changed while it ran. */
 export async function earlierRemoval(files: string, work: () => Promise<boolean>) {
-  writeLocal(EARLIER, removing(files));
-  if ((await work()) && readLocal(EARLIER) === removing(files)) writeLocal(EARLIER, files);
+  writeLocal(EARLIER_MARK, removing(files));
+  if ((await work()) && readLocal(EARLIER_MARK) === removing(files)) writeLocal(EARLIER_MARK, files);
 }
 /** What the stored games need changed (a game's mark, a game deleted, a file loaded): the next start removes the
  *  results that they no longer need. */
-export const makeEarlierRemovalDue = () => writeLocal(EARLIER, null);
+export const makeEarlierRemovalDue = () => writeLocal(EARLIER_MARK, null);
 
 /** The results of `models` (the networks' SHA-256), or every result when null: the site keeps only the results of the
  *  networks it ships, since its engine never asks for another's. */

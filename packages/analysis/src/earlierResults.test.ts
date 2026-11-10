@@ -33,7 +33,8 @@ const ENGINE: Manifest = { artifacts: [
   { ...artifact, id: "big", kind: "model", sha256: "b3" },
 ] };
 const results = (search: string, positions: string[][]) => positions.map(m => analysisKey(search, "b2", m, 512));
-const LINE = [[], ["a"], ["a", "b"], ["a", "b", "c"]], VARIATION = ["a", "x"];
+// A variation of two moves from the game's line: its second position is read only through the game's variations
+const LINE = [[], ["a"], ["a", "b"], ["a", "b", "c"]], VARIATION = [["a", "x"], ["a", "x", "y"]];
 
 test("the engine files are the CPU module and the networks, which the stored results' keys name", () => {
   assert.equal(engineFiles(ENGINE), "m2 b2 b3");
@@ -44,18 +45,18 @@ test("the removal takes the results that no game needs, and keeps the site's own
   // its key is its id. And a game whose record does not read, which cannot open.
   const mark = { module: "m1", model: "b2", network: "net", visits: 512, at: "2026-11-01T00:00:00Z", search: "s1" };
   const game = { record: "a b c", added: "2026-11-01T00:00:00Z", reviewed: mark };
-  const branches: KeptBranches = { version: 2, nodes: [[VARIATION.join(" "), 0]] };
+  const branches: KeptBranches = { version: 2, nodes: VARIATION.map(m => [m.join(" "), 0]) };
   db.rows(STORES.games).set("w-abc", game);
   db.rows(STORES.branches).set("w-abc", branches);
   const unread = { version: 1, id: "w-ab!", record: "a b !", added: "2026-11-01T00:00:00Z", reviewed: { ...mark, search: "s0" } };
   db.rows(STORES.games).set("w-ab!", unread);
-  const own = results("s2", LINE), read = results("s1", [...LINE, VARIATION]), earlier = results("s0", LINE);
+  const own = results("s2", LINE), read = results("s1", [...LINE, ...VARIATION]), earlier = results("s0", LINE);
   for (const key of [...own, ...read, ...earlier]) db.rows(STORES.analysis).set(key, {});
-  await removeUnneeded("m2 b2 b3", ENGINE, readGames);
+  await removeUnneeded(engineFiles(ENGINE), ENGINE, readGames);
   assert.deepEqual([...db.rows(STORES.analysis).keys()].sort(), [...own, ...read].sort());
   assert.deepEqual([...db.rows(STORES.games)], [["w-abc", game], ["w-ab!", unread]]);
   assert.deepEqual([...db.rows(STORES.branches)], [["w-abc", branches]]);
   // The browser's mark keeps the engine files that the removal ran for: a start with them removes nothing
-  assert.equal(earlierRemovalDue("m2 b2 b3"), false);
+  assert.equal(earlierRemovalDue(engineFiles(ENGINE)), false);
   assert.equal(earlierRemovalDue("m3 b2 b3"), true);
 });

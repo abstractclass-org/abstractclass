@@ -11000,32 +11000,35 @@ a new search or a new file of the network would add a set.
   (`games.ts`, `readGames`) takes the store's entries, and gives a game with no id the id of its key. A game that
   Cyanotype's review kept before the list of games has no id of its own, and its variations are under its key.
 - **An earlier result** is one that the site's engine cannot read, not one of an older release: its search is not
-  the site's, or its network's file is not one that the lock ships. The lock keeps the earlier networks too (design
-  09), as `unneededResults` counts the site's search with each shipped file as the site's own. Checked on Cyanotype's
-  lock and the keys of the stored review of its browser tests (`apps/cyanotype/src/lib/game/earlierResults.test.ts`).
-  `engine-887be290` removes none of the results of `engine-91ab0b7d`, and nor does a later release with the same
-  search and file, or one that adds a network beside it. A release whose lock drops the file, or with a new search,
-  removes all of them when no game reads them. With a game reviewed by them, it keeps what the game's review
-  snapshot shows: each position of its line at the review's depth. When the lock ships no network of the game's
-  mark, no review snapshot opens, and they all go.
+  the site's, or its network's file is not one that the lock ships. `unneededResults` counts the site's search with
+  each shipped file as the site's own. Hedge School's lock keeps the earlier networks too (design 09), so a release
+  that adds a network removes nothing. Cyanotype's lock ships one network. The issue that keeps the earlier ones in
+  it (abscls-8tl1.54) is deferred. Until that issue lands, a Blueprints release whose lock replaces Stamp Duty 0.2
+  makes the next start remove every result of Stamp Duty 0.2: no review snapshot opens without its network. Checked
+  on Cyanotype's lock and the keys of the stored review of its browser tests
+  (`apps/cyanotype/src/lib/game/earlierResults.test.ts`). `engine-887be290` removes none of the results of
+  `engine-91ab0b7d`, and nor does a later release with the same search and file, or one that adds a network beside
+  it. A release whose lock drops the file, or with a new search, removes all of them when no game reads them. With a
+  game reviewed by them, it keeps what the game's review snapshot shows: each position of its line at the review's
+  depth. When the lock ships no network of the game's mark, no review snapshot opens, and they all go.
 - **Cyanotype's start removes the results of an older shape too,** as Hedge School's does: the shared start does both.
 - **The store in memory of the unit tests** (`packages/storage/src/memoryDb.ts`) now answers the reads of a store's
   keys and values when they end, as IndexedDB does. `dbReadThenDelete` waits for them, so before this change no unit
   test could run a removal.
 - **Measured** in headless Chromium (Playwright's chromium project, on the CPU), on Cyanotype's built site, in a job of
-  2 threads in the machine's queue (`apps/hedgeschool/tests/cyanotype-earlier-results.spec.ts`: three runs, and
-  one in the whole suite). The store
-  held 5,184 results and two games: the stored review's 81 results (13.8 kB each on average as JSON) and 63 copies of
-  them under other keys. The start removed 5,063 and kept 121: the site's own 81, and the 40 that the game's review
-  snapshot shows. Both games stayed. The transaction, from the mark that a removal runs to the mark that it ended,
-  took 283, 340 and 360 ms, and 224 ms in the suite. The page loaded the removal's code once it was idle. Hedge
-  School's removal is the same code, and was not measured on its own.
-- **The lock names `engine-91ab0b7d`'s CPU module:** Cyanotype's lock gave its CPU module no `sameSearchAs`, so it
-  did not name the CPU module of `engine-91ab0b7d` (`28775af7…`), whose search is the same (design 20, item 7, and
-  design 33, "The engine's files"). A test on the real mark of a game that `engine-91ab0b7d` reviewed (the stored
-  review's mark before it was written again with `engine-887be290`) showed that such a game counted as reviewed by an
-  earlier engine (`reviewAgainWhy` gave "engine"). Its review snapshot left out the site's own search, so none
-  opened, and the game was reviewed again with the notice that the engine changed. A review file of that module
-  loaded as an earlier engine's too. The lock's CPU module now gives `sameSearchAs` with that SHA-256, and the test
-  checks that the mark counts as the site's engine's. The removal was not touched: those results are the site's
-  search's. The lock check of the engine step reads no `sameSearchAs`. Only preview builds served `engine-91ab0b7d`.
+  2 threads in the machine's queue (`apps/hedgeschool/tests/cyanotype-earlier-results.spec.ts`: three runs, and one
+  in the whole suite). The store held 5,184 results and two games: the stored review's 81 results (13.8 kB each on
+  average as JSON) and 63 copies of them under other keys. The start removed 5,063 and kept 121: the site's own 81,
+  and the 40 that the game's review snapshot shows. Both games stayed. The transaction, from the mark that a removal
+  runs to the mark that it ended, took 283, 340 and 360 ms, and 224 ms in the suite. The page loaded the removal's
+  code once it was idle. Hedge School runs the same code. No run measured it on Hedge School's site.
+- **The lock lists `engine-91ab0b7d`'s CPU module:** Cyanotype's lock gave its CPU module no `sameSearchAs`, so it
+  did not list the CPU module of `engine-91ab0b7d` (`28775af7…`), whose search is the same (design 20, item 7, and
+  design 33, "The engine's files"). A test took the real mark of a game that `engine-91ab0b7d` reviewed: the stored
+  review's mark before the fixture took `engine-887be290`'s review. With that lock, the site counted the game as
+  reviewed by an earlier engine (`reviewAgainWhy` gave "engine"). Its review snapshot left out the site's own search,
+  so none opened. The site then reviewed the game again, with the notice that the engine changed. A review file of
+  that module loaded as an earlier engine's too. The lock's CPU module now lists that SHA-256 in `sameSearchAs`, and
+  the test checks that the mark counts as the site's engine's. This change does not touch the removal: those results
+  are the site's search's. The engine step's lock check does not read `sameSearchAs`. Only preview builds served
+  `engine-91ab0b7d`.

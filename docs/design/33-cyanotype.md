@@ -402,9 +402,10 @@ their manifest. The page loads them from there.
    `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the threaded bot) and `engine-91ab0b7d` (protocol
    0.7.1, without the position check), stay in `abstractclass-org/blueprints-engine`. The stored results of
    `engine-91ab0b7d` stay valid: their keys name the search, which is the same, and the network
-   (`packages/analysis/src/cache.ts`). The lock names `engine-91ab0b7d`'s CPU module as one of its search
-   (`sameSearchAs`, Hedge School's design 20, item 7). So a game that a browser marked with that module, and a
-   review file of it, count as reviewed by the site's engine: the game opens its review with no review snapshot.
+   (`packages/analysis/src/cache.ts`). The lock lists `engine-91ab0b7d`'s CPU module among the earlier modules of
+   its search (`sameSearchAs`, Hedge School's design 20, item 7). So the site counts a game that a browser marked
+   with that module, and a review file of that module, as reviewed by its own engine. The game opens its review with
+   no review snapshot.
 2. **Protocol 0.8.** Blueprints' build speaks 0.8.0, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
    passes find no candidate gives its first pass's policy move. 0.8.0 brought the position check, and breaks a 0.7
@@ -1043,13 +1044,16 @@ settings of its design 09 and the marks of its design 13), in the code that both
 12. **An earlier engine's results go when no game needs them,** as on Hedge School (its design 20, item 8), in the
     code that both sites share (design 29). A result is earlier when the site's engine cannot read it, not when its
     release is older: its key names the search and the network's file (`packages/analysis/src/cache.ts`). The site
-    reads its own search's results with each network file that its lock ships, and the lock keeps the earlier
-    networks too (Hedge School's design 09). So a release that keeps the search and the files removes nothing, as
-    `engine-887be290` kept the results of `engine-91ab0b7d`, and a release that adds a network removes nothing either.
-    A release that changes the CPU module or a network makes the removal due. The site's next start then removes,
-    once the page is idle, the results of another search and of a network file that the lock no longer ships, where
-    no stored game's review snapshot reads them. A start removes the results of an older shape too, as Hedge School's
-    does.
+    reads its own search's results with each network file that its lock ships. So a release that keeps the search and
+    the files removes nothing, as `engine-887be290` kept the results of `engine-91ab0b7d`. A release that adds a
+    network beside them removes nothing either. Hedge School's lock keeps its earlier networks (its design 09), but
+    Cyanotype's ships one, and keeping the earlier ones waits for abscls-8tl1.54 ("The networks" in the gaps below).
+    Until then, a release whose lock replaces Stamp Duty 0.2 removes every result of Stamp Duty 0.2 at the next
+    start: no review snapshot opens without its network.
+    A release that changes the CPU module or a network makes the removal due. The site's next start then waits until
+    the page is idle. Then it removes the results of another search, and of a network file that the lock no longer
+    ships, that no stored game's review snapshot reads. A start removes the results of an older shape too, as Hedge
+    School's does.
 
 **Where it departs from Hedge School's:**
 

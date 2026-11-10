@@ -3,22 +3,23 @@
 // games, then a start of the site. The test puts them in the store on a file of the site that no page code runs on
 // (the engine's manifest), so that the removal is due at the next start: the store has no mark of a removal yet. The
 // results are the stored review's (cyanotype-review.ts, STORED), the site's own, and copies of them under other keys:
-// - a game reviewed by an earlier engine, with the search READ: its review snapshot reads its results, so the ones that
-//   it shows stay, each position of the game's line at the review's depth;
+// - a game reviewed by an earlier engine, with the search READ_SEARCH: its review snapshot reads its results, so the
+//   ones that it shows stay, each position of the game's line at the review's depth;
 // - COPIES that no game reads, half under another search and half under a network file that the lock does not ship:
 //   they go.
 // The test also times the removal's transaction: from the browser's mark that a removal runs (cache.ts, earlierRemoval)
-// to the mark that it ended. The tests skip, with a message, when the preview has no engine files, and fail in CI.
+// to the mark that it ended. The test skips, with a message, when the preview has no engine files, and fails in CI.
+// Run: npx playwright test tests/cyanotype-earlier-results.spec.ts, with CYANOTYPE_BASE_URL.
 import { test, expect, type Page } from "@playwright/test";
 import type { Manifest } from "../../../packages/engine/src/client.ts";
-import { EARLIER, REMOVED, SHAPE, engineFiles, lineKeyMoves, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
+import { EARLIER_MARK, SHAPE_MARK, SHAPE, engineFiles, lineKeyMoves, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { gameId } from "../../cyanotype/src/lib/game/store.ts";
 import { CYANOTYPE, keptResults, noReview, putResults, readStored, testRecord } from "./cyanotype-review.ts";
 
 /** The search of the earlier engine whose results the game's review snapshot reads. */
-const READ = "0e100000";
+const READ_SEARCH = "0e100000";
 /** The copies of the stored review's results that no game reads: a few thousand results, as a browser holds after some
  *  reviews by earlier engines. */
 const COPIES = 62;
@@ -90,27 +91,27 @@ test("a start removes the earlier engines' results that no game needs, and keeps
   const record = testRecord(), moves = parseRecord(record).moves, added = "2026-11-01T00:00:00Z";
   const games: [string, object][] = [
     [gameId(moves), { version: 1, id: gameId(moves), record, added, reviewed:
-      { module: "an earlier build", model: stored.model, network: stored.network, visits: stored.visits, at: added, search: READ } }],
+      { module: "an earlier build", model: stored.model, network: stored.network, visits: stored.visits, at: added, search: READ_SEARCH } }],
     [gameId(moves, 2), { version: 1, id: gameId(moves, 2), record: record.replace("\n\n", '\n[Komi "2"]\n\n'), added }],
   ];
   // The store, on the engine's manifest: no page code runs there, so nothing removes before the start
   await page.goto(new URL("/engine/manifest.json", CYANOTYPE).href);
   await putResults(page, stored.analyses);
-  await putCopies(page, [{ search: READ, model: stored.model }, ...earlierEngines()]);
+  await putCopies(page, [{ search: READ_SEARCH, model: stored.model }, ...earlierEngines()]);
   await putGames(page, games);
   // A start after a release of a new engine, with the same shape of results: the removal of older shapes is not due
-  await page.evaluate(([mark, shape]) => localStorage.setItem(mark, shape), [REMOVED, String(SHAPE)] as const);
+  await page.evaluate(([mark, shape]) => localStorage.setItem(mark, shape), [SHAPE_MARK, String(SHAPE)] as const);
   const before = (await keptResults(page)).map(([key]) => key);
   expect(before.length).toBe(own.length * (2 + COPIES));
   // The start: the removal runs once the page is idle, and its mark then names the build's engine files
-  await page.addInitScript(timeTheMark, EARLIER);
+  await page.addInitScript(timeTheMark, EARLIER_MARK);
   await page.goto(new URL("/about", CYANOTYPE).href);
-  await expect.poll(() => page.evaluate(mark => localStorage.getItem(mark), EARLIER), { timeout: 60_000 })
+  await expect.poll(() => page.evaluate(mark => localStorage.getItem(mark), EARLIER_MARK), { timeout: 60_000 })
     .toBe(engineFiles(manifest));
   // The site's own results stay, and of the earlier engine's that the game's review snapshot reads, those that it shows:
   // each position of the game's line at the review's depth. Every other result goes.
   const line = new Set(lineKeyMoves(moves).map(m => m.join(" ")));
-  const shown = own.map(k => k.replace(`|${stored.search}|`, `|${READ}|`)).filter(k => {
+  const shown = own.map(k => k.replace(`|${stored.search}|`, `|${READ_SEARCH}|`)).filter(k => {
     const { visits, moves: at } = readAnalysisKey(k);
     return visits === stored.visits && line.has(at);
   });

@@ -2,10 +2,11 @@
 // (engine.lock.json) and the keys of a real review: the stored review of the browser tests
 // (apps/hedgeschool/tests/cyanotype-fixture.ts). A result is earlier when the site's engine cannot read it, not when its
 // release is older. Its key names the search and the network's file (@abstractclass/analysis/cache.ts), and the site
-// reads its own search's results with each network file that its lock ships, the earlier networks too (Hedge School's
-// design 09). So a release that keeps the search and the file removes nothing, and nor does one that adds a network
-// beside it. A release with a new search, or one whose lock drops the file, removes the old results that no stored
-// game's review snapshot reads. Run: npm test.
+// reads its own search's results with each network file that its lock ships. So a release that keeps the search and
+// the file removes nothing, and nor does one that adds a network beside it. A release with a new search, or one whose
+// lock drops the file, removes the old results that no stored game's review snapshot reads. Cyanotype's lock ships one
+// network, and does not keep the earlier ones yet (design 33, "The networks", abscls-8tl1.54): a review snapshot needs
+// its network. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -81,8 +82,8 @@ test("a game that engine-91ab0b7d reviewed counts as reviewed by the site's engi
 });
 
 test("a release that adds a network, with the lock's network still in it, removes nothing", () => {
-  // The lock keeps the earlier networks for the games that name them (Hedge School's design 09): the site reads its
-  // search's results with each of them
+  // A lock that keeps the earlier network beside the new one, as Hedge School's does (its design 09): the site reads
+  // its search's results with each of them
   const next = release({ added: [["a later network", "e".repeat(64)]] }), added = withFile("e".repeat(64));
   assert.deepEqual(unneededResults([...KEYS, ...added], [], next), []);
   assert.deepEqual(unneededResults([...KEYS, ...added], [reviewed(mark(MODULE.sha256, STORED.model, STORED.search))], next), []);
@@ -115,13 +116,14 @@ test("a release with a new search removes the old search's results that no revie
 
 test("the removal in the browser's store: earlier results go, the site's own results, the games and their variations stay", async () => {
   // The test game, kept before the list of games (no id, no version: its key is its id), reviewed by an earlier engine
-  // whose search was "e1", with a variation from its second position
-  const id = gameId(MOVES), variation = [...MOVES.slice(0, 2), "2@9,9"].join(" ");
-  const branches: KeptBranches = { version: 2, nodes: [[variation, 0]] };
+  // whose search was "e1", with a variation of two moves from its second position. The variation's second position is
+  // read only through the game's variations, which are under its key.
+  const id = gameId(MOVES), variation = [[...MOVES.slice(0, 2), "2@9,9"], [...MOVES.slice(0, 2), "2@9,9", "1@-9,9"]];
+  const branches: KeptBranches = { version: 2, nodes: variation.map(m => [m.join(" "), 0]) };
   const game = { record: RECORD, added: "2026-11-01T00:00:00Z", reviewed: mark("an earlier build", STORED.model, "e1") };
   db.rows(STORES.games).set(id, game);
   db.rows(STORES.branches).set(id, branches);
-  const read = searchedBy("e1"), atVariation = [analysisKey("e1", STORED.model, variation.split(" "), STORED.visits)];
+  const read = searchedBy("e1"), atVariation = variation.map(m => analysisKey("e1", STORED.model, m, STORED.visits));
   const unread = searchedBy("e0");
   for (const key of [...KEYS, ...read, ...atVariation, ...unread]) db.rows(STORES.analysis).set(key, { visits: readAnalysisKey(key).visits });
   await removeEarlierResults("the site's engine files");
