@@ -51,6 +51,9 @@ test("the cut mark: read with or without it, and written after the move", () => 
   assert.equal(r.clocks[2], "0:00:41");
   assert.equal(markCuts(text, r, [false, true, true, false, true]),
                "1. D10-G10 2. N11-Q10x L10-N11x { [%clk 0:00:41] } 3. D10-G9 G9-H10x *");
+  // A record marked already, as a review file's record is: it stays as it is
+  const marked = "1. D10-G10 2. N11-Q10x L10-N11x?? *";
+  assert.equal(markCuts(marked, parseRecord(marked), [false, true, true]), marked);
 });
 
 test("the Komi tag: up to the engine's limit, 5,052 points either way, and beyond it an error that names it", () => {

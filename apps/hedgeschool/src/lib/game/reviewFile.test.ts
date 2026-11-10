@@ -1,13 +1,20 @@
-// The review file (reviewFile.ts): which results belong to a game, the file read back, variations merged, and the mark
-// that a load keeps. Run: npm test.
+// The review file (reviewFile.ts): which results belong to a game, the file read back, variations merged, the mark
+// that a load keeps, and a file's game kept as a pasted record is (import.ts): checked, given its cut marks, and
+// refused with the paste's message. The engine's check is the test's own. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHAPE, mapKey, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
-import { buildReviewFile, gameAnalyses, importReview, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
+import { buildReviewFile, gameAnalyses, hedgeSchoolFiles, mergeBranches, positionKeys, readReviewFile, reviewFileName } from "./reviewFile.ts";
 import { loadGame, reviewCovers, reviewMark, type KeptBranches, type ReviewMark } from "./store.ts";
+import type { Checked } from "./check.ts";
+import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
-memoryDb(); // the import's store
+const store = memoryDb(); // the import's store
+
+/** A check that accepts every record: no move cuts. */
+const accepts = async (): Promise<Checked> => ({ problem: null, cuts: null });
+const { importReview } = hedgeSchoolFiles(accepts);
 
 const RECORD = '[Blue "Ann"]\n[Red "Ben O\'Hara"]\n\n1. D10-G10 2. N11-Q10 L10-N11 *';
 const MOVES = ["D10-G10", "N11-Q10", "L10-N11"];
@@ -148,4 +155,45 @@ test("a review file's mark names its search, and the load keeps it: a file writt
   const wrong = await load("1. D10-G10 2. N11-Q11 *", { ...done, search: 5 } as unknown as ReviewMark);
   assert.equal(wrong?.model, "ab12");
   assert.equal(wrong?.search, undefined); // not a search's name
+});
+
+test("a file's game is checked by the engine's rules, as a pasted record is: a refused game keeps nothing", async () => {
+  const record = "1. D10-G10 2. N11-Q12 *";
+  const branches: KeptBranches = { version: 2, nodes: [["D10-G10 N11-Q11", 0]] };
+  const file = buildReviewFile(record, branches, [[key("D10-G10 N11-Q12"), { blueWin: 0.5 }]], "abc1234");
+  // The check's own words, as the paste shows them (check.ts)
+  const problem = "Edge 2 (N11-Q12) is not legal in its position. Check the record from there.";
+  const refuses = async (): Promise<Checked> => ({ problem, cuts: null });
+  const sizes = () => Object.values(STORES).map(name => store.rows(name).size);
+  const before = sizes();
+  await assert.rejects(hedgeSchoolFiles(refuses).importReview(readReviewFile(JSON.stringify(file)), null, []),
+                       { message: problem });
+  assert.deepEqual(sizes(), before); // no game, no variations, no results
+});
+
+test("a file's game is kept with a cut mark on every move that cuts: a move marked already stays as it is", async () => {
+  const record = '[Blue "Cut"]\n\n1. D10-G10 2. N11-Q11x L10-N11 *';
+  const cuts = async (): Promise<Checked> => ({ problem: null, cuts: [false, true, true] });
+  const file = readReviewFile(JSON.stringify(buildReviewFile(record, null, [], "abc1234")));
+  const { id } = await hedgeSchoolFiles(cuts).importReview(file, null, []);
+  assert.equal((await loadGame(id))?.game.record, '[Blue "Cut"]\n\n1. D10-G10 2. N11-Q11x L10-N11x *');
+});
+
+test("a file's game of other rules is refused in the review's words, before the engine's check", async () => {
+  let checked = false;
+  const check = async (): Promise<Checked> => { checked = true; return { problem: null, cuts: null }; };
+  const file = buildReviewFile(`[Rules "Classic"]\n${RECORD}`, null, [], "abc1234");
+  await assert.rejects(hedgeSchoolFiles(check).importReview(readReviewFile(JSON.stringify(file)), null, []),
+                       { message: "This game uses other rules (Classic). Hedge School reviews games of the online rules only." });
+  assert.equal(checked, false);
+});
+
+test("a browser that cannot keep the file's game says so, in the paste's words", async () => {
+  const file = buildReviewFile('[Blue "Blocked"]\n\n1. D10-G10 *', null, [], "abc1234");
+  store.hold();
+  const load = importReview(readReviewFile(JSON.stringify(file)), null, []);
+  const before = store.puts(STORES.games).length;
+  while (store.puts(STORES.games).length === before) await new Promise(resolve => setTimeout(resolve));
+  store.release(false); // the browser keeps nothing
+  await assert.rejects(load, { message: "This browser does not let the site keep games (a private window, or blocked site data)." });
 });

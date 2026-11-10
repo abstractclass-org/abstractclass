@@ -4,7 +4,7 @@
 // review, the Analysis board and Practice each refuse in their own words.
 import { setUpRefusal } from "@abstractclass/record/record.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
-import { checkMoves } from "./check.ts";
+import { checkMoves, type Checked } from "./check.ts";
 import { markCuts, type GameRecord } from "./record.ts";
 import { saveGame } from "./store.ts";
 
@@ -39,11 +39,16 @@ export function wayRefusals(record: GameRecord): { review: string | null; analyz
   return { review: variantProblem(record, "review"), analyze: variantProblem(record, "analysis") };
 }
 
-/** Imports a read record. Returns the game's id, or throws an Error whose message tells the player what is wrong. */
-export async function importRecord(text: string, record: GameRecord): Promise<string> {
+/** A record's check by the engine's rules, with the moves that cut: check.ts's, in a worker of its own. A test gives
+ *  its own. */
+export type MoveCheck = (record: GameRecord) => Promise<Checked>;
+
+/** Imports a read record: the paste's, a shared review's and a review file's. Returns the game's id, or throws an Error
+ *  whose message tells the player what is wrong. */
+export async function importRecord(text: string, record: GameRecord, check: MoveCheck = checkMoves): Promise<string> {
   const variant = variantProblem(record, "review");
   if (variant) throw new Error(variant);
-  const { problem, cuts } = await checkMoves(record);
+  const { problem, cuts } = await check(record);
   if (problem) throw new Error(problem);
   // The record is kept with a cut mark on every move that cuts, as the notation asks.
   const { id, kept } = await saveGame(cuts ? markCuts(text, record, cuts) : text, record);

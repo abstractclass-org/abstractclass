@@ -10735,3 +10735,36 @@ tag queue, and "PostHog in place of Google Analytics".
     (14 rings, 1 request for them to a CPU worker and none to the GPU, 12 searches on the GPU), and Practice 3 s (the
     bot "on the GPU.", a turn of 0.9 s). With Auto, the GPU's test gave "7.8 times a worker's speed.", the review took
     33 s, the board 15 s and Practice 3 s (a turn of 0.8 s).
+
+### A Hedge School review file's game comes in as a pasted record does (2026-11-10)
+
+abscls-1adn. Design 13, item 5, says that a load "keeps the game as it keeps a pasted record". Hedge School's
+`keep()` in `src/lib/game/reviewFile.ts` refused a game of other rules or from a set-up start, and then kept the
+file's game as it was. So, for a game that came in a review file, the engine's rules never checked its moves, its
+record got no cut marks, and a browser that cannot keep games gave the player no message. Cyanotype's `keep()` ran
+its full import already ("Cyanotype's review files, as Hedge School's").
+
+- **A correction:** that entry says "Hedge School's import keeps the file's game without the engine's rules, as its
+  paste does". The second part is wrong. Hedge School's paste (`importRecord` in `src/lib/game/import.ts`) checks the
+  game's moves with the engine's rules (`checkMoves`), and keeps the record with its cut marks (`markCuts`).
+- **The change:** Hedge School's `keep()` calls `importRecord`, as Cyanotype's does. A file's game gets the review's
+  refusal of other rules and of a set-up start, the engine's check, the cut marks, and the paste's message when the
+  browser cannot keep it. The Review tab puts that message after "Hedge School could not load this file:", as for
+  any file that does not load. A refused file keeps nothing: no game, no variations and no results.
+- **A record that has its marks already:** `markCuts` adds a mark only to a move that has none (`markMoves` in the
+  record package). So the record of a file that Hedge School wrote keeps its text, and a record without marks gets
+  them. `record.test.ts` checks this.
+- **The check in the tests:** `importRecord` takes the engine's check as an argument (`MoveCheck`, `checkMoves` by
+  default), as Cyanotype's does. `hedgeSchoolFiles(check)` gives the review files with a check, so that the unit tests
+  run without the engine. The unit tests (`reviewFile.test.ts`) check a refused game that keeps nothing, the cut marks,
+  the refusal of other rules before the engine's check, and the message when the store keeps nothing. The browser
+  tests (`tests/review-file.spec.ts`) check the same with the engine's own rules: the layout test's game gets its cut
+  marks, a file whose fourth edge repeats the first gets the paste's message and keeps nothing, and a browser with
+  blocked site data gets the paste's message.
+- **Checked:** check:all passed. The whole layout test (Chromium) ran twice, with no skip. The first run failed the
+  new cut-mark case alone: the Review tab loads the page again after it names the game, and the case read the store
+  during that load. The case now reads again until the page answers, and the four cases of
+  `tests/review-file.spec.ts` passed. The second run passed 239 cases. Its one failure was a Cyanotype Practice case
+  (`cyanotype-practice.spec.ts`, "a kept game whose network the site does not ship gives way to the settings card"),
+  whose status line did not show within 5 s after a reload. This change does not touch Cyanotype, the case passed in
+  the first run, and it passed three times of three alone.

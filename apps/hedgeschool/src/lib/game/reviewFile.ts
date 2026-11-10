@@ -1,16 +1,17 @@
 // A reviewed game as a file (design 13): the shared review file (@abstractclass/analysis/reviewFile.ts), in Hedge
-// School's format, with its record's reader, its store of games and its import's check of the variant. The file holds
-// the game's record, the player's variations, and the engine's results for every position of the game and its
-// variations, so that another browser opens the review without searching again. The game's record alone, with
-// evaluations and labels, is the annotated record (review/annotate.ts).
+// School's format, with its record's reader, its store of games and its import (import.ts). The file holds the game's
+// record, the player's variations, and the engine's results for every position of the game and its variations, so
+// that another browser opens the review without searching again. The game's record alone, with evaluations and labels,
+// is the annotated record (review/annotate.ts).
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { parseRecord, playerNames } from "./record.ts";
-import { branchNodes, loadGame, saveGame, setGameSettings, type KeptBranches } from "./store.ts";
+import { branchNodes, loadGame, setGameSettings, type KeptBranches } from "./store.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { ENCLOSURE_CODE, sharedRecord, type SharedReview } from "./share.ts";
 import { reviewLink, shareNote } from "@abstractclass/analysis/share.ts";
-import { importRecord, variantProblem } from "./import.ts";
+import { importRecord, type MoveCheck } from "./import.ts";
+import { checkMoves } from "./check.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
 import { mergeBranches, positionKeys } from "@abstractclass/analysis/kept.ts";
 import { shippedModels } from "@abstractclass/analysis/files.ts";
@@ -27,17 +28,15 @@ export { positionKeys };
 // Which results belong to a file, and the networks a manifest ships: the shared ones (@abstractclass/analysis/files.ts).
 export { belongs, shippedModels } from "@abstractclass/analysis/files.ts";
 
-/** Hedge School's review files. A file's game gets the review's check (variantProblem): the review refuses a game of
- *  other rules (design 18) or from a set-up start (design 21). */
-const files = reviewFiles({
+/** Hedge School's review files. A file's game comes in as a pasted record does (design 13, importRecord): the review
+ *  refuses a game of other rules (design 18) or from a set-up start (design 21), the engine's rules check its moves
+ *  with `check` (a test gives its own), its record gets its cut marks, and a browser that cannot keep it says so. So
+ *  the list keeps no game that the review refuses. */
+export const hedgeSchoolFiles = (check: MoveCheck = checkMoves) => reviewFiles({
   name: "Hedge School", format: REVIEW_FORMAT, prefix: "hedge-school", parse: parseRecord,
-  players: r => playerNames(r.tags), networkName, loadGame,
-  async keep(text, record) {
-    const variant = variantProblem(record, "review");
-    if (variant) throw new Error(variant);
-    return (await saveGame(text, record)).id;
-  },
+  players: r => playerNames(r.tags), networkName, loadGame, keep: (text, record) => importRecord(text, record, check),
 });
+const files = hedgeSchoolFiles();
 
 /** The review file of a game, its record and its variations, with its results among `entries` (of `models` when
  *  given), the site's version, and the game's mark. */
