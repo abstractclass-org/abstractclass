@@ -25,6 +25,9 @@ const steps = [
   { name: "engine-kinds", cwd: root, command: "node scripts/engine-kinds.mjs" },
   // No package imports a site (design 29, item 1).
   { name: "package-imports", cwd: root, command: "node scripts/package-imports.mjs" },
+  // Each block of the owner's steps in the documents names its own URL, clicks and values, and sends the reader to no
+  // other section for what to do (scripts/owner-steps.mjs).
+  { name: "owner-steps", cwd: root, command: "node scripts/owner-steps.mjs" },
   { name: "engine", cwd: site, command: "npm run engine -- --deploy", stopsOnFailure: true },
   { name: "site-check", cwd: site, command: "npm run check" },
   { name: "site-test", cwd: site, command: "npm test" },

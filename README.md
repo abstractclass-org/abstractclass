@@ -48,7 +48,8 @@ The repository's own checks run at the root:
 
 ```sh
 node scripts/doc-widths.mjs origin/dev    # added Markdown lines over 120 characters since origin/dev
-node --test "scripts/*.test.mjs"          # the width check's tests
+node scripts/owner-steps.mjs              # each block of the owner's steps gives its own URLs, clicks and values
+node --test "scripts/*.test.mjs"          # the root scripts' tests
 sh scripts/commit-msg.test.sh             # the commit-msg hook's tests (.githooks/commit-msg)
 sh scripts/pre-push.test.sh               # the pre-push hook's tests (.githooks/pre-push)
 ```

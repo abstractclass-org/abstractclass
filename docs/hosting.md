@@ -354,8 +354,9 @@ variable `CLOUDFLARE_ACCOUNT_ID` (section 3). The token's permission covers ever
    The project's name is `abstractclass`. Its address is `abstractclass.pages.dev`. If that address is taken, Pages
    adds a few characters to the address, not to the name, and Wrangler shows the address. The steps below write the
    address as `abstractclass.pages.dev`. If Wrangler shows another address, use that address in its place.
-2. **Deploy its first files.** In the same folder, `apps/hub`, as the job `hub` does:
-   `npx wrangler@4.144.0 pages deploy public --project-name=abstractclass --branch=main`. The branch `main` is the
+2. **Deploy its first files.** In a terminal, in the folder `apps/hub` of a checkout of `dev`, run
+   `npx wrangler@4.144.0 pages deploy public --project-name=abstractclass --branch=main`. The job `hub` of the
+   workflow **Deploy** makes the same upload on each push, with the push's branch. The branch `main` is the
    production branch, so this deployment is the live hub. It stays live until a release puts the hub on `main`.
 3. **Give it the domain.** In the Cloudflare dashboard, go to **Workers & Pages**, select the project
    `abstractclass`, then **Custom domains → Set up a domain**. Enter `abstractclass.org`, then select **Continue**
