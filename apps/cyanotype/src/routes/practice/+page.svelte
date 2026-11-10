@@ -35,11 +35,13 @@
   import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
   import { firstStatus, inputStatus } from "#lib/board/input.ts";
   import { handsAt, keptPanel, ONE_COLUMN_HEIGHT } from "#lib/board/keptPanel.svelte.ts";
-  import { PLAYER_NAMES, STARS, starsOf, type Player } from "#lib/board/position.ts";
+  import { STARS, starsOf, type Player } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, startTurn } from "#lib/game/position.ts";
   import { recordProblem, rulesBy, startProblem } from "#lib/review/recordCheck.ts";
+  import { margin } from "#lib/review/blueprints.ts";
+  import { resultOfScores, resultText } from "@abstractclass/review/game.ts";
   import { loadEngine } from "#lib/analysis/engineSettings.ts";
   import { PracticeGame } from "#lib/practice/game.svelte.ts";
   import { NETWORKS, botName, keep, loadChoices, loadKept, offersNetwork, practiceEndParams, practiceParams, saveChoices,
@@ -273,8 +275,7 @@
     if (!g || g.status === "starting" || !p) return `${ENGINE_NAME} starts…`;
     if (g.status === "over") {
       if (g.resigned) return `You resigned. ${ENGINE_NAME} wins.`;
-      const won = /^([br])\+(.+)$/.exec(g.result ?? ""); // the rules' result: the winner and the margin
-      return won ? `The game is over: ${PLAYER_NAMES[won[1] === "b" ? 0 : 1]} wins by ${won[2]}.` : "The game is over: a draw.";
+      return `The game is over. ${resultText(resultOfScores(p.scores), margin)}.`; // the review's words and rule (game.ts)
     }
     if (!atLatest) return `You look at move ${shown}. To go back to the game, go to the last move.`;
     if (g.status === "bot") return `${ENGINE_NAME} thinks… ${g.thinkingSince === null ? "" : seconds(Math.max(0, now - g.thinkingSince))}`;

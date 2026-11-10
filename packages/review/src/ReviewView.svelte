@@ -13,7 +13,7 @@
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
   import type { Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState, WallState } from "@abstractclass/analysis/analysis.svelte.ts";
-  import { PLAYER_NAME, WHOLE, type ViewTypes } from "./game.ts";
+  import { PLAYER_NAME, resultOfScores, resultText, WHOLE, type ViewTypes } from "./game.ts";
 
   /** The review in progress: what the engine does now, and the stages as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
@@ -1588,7 +1588,7 @@
     };
     if (mainAt === null) return `A variation from ${view.words.move} ${pos + 1} · ${over ? "Game over" : turnHere()}`; // where it leaves the game
     if (board) {
-      if (over) return `Game over · ${PLAYER_NAME[position.scores[0] > position.scores[1] ? 0 : 1]} won by ${Math.abs(position.scores[0] - position.scores[1]).toFixed(1)}`;
+      if (over) return `Game over · ${resultText(resultOfScores(position.scores), view.margin)}`;
       return `${view.words.Move} ${(position.count ?? path.length) + 1} · ${turnHere()}`;
     }
     if (pos === last) return endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;

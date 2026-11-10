@@ -227,8 +227,15 @@ edit in the same commit), so their changes still apply.
      package's `PLAYER_NAME` and `@abstractclass/site`'s colours. The cards show the score, and the game's second
      number when it has one (`second`: Enclosure's area, which the cards, the Advantage chart and an image's caption
      show).
-   - **The texts:** the game's word for a move (`words`), the game's end (`ending`) and the move list's notes
-     (`shortNote`, `turnShortNote`). The texts of the game's own parts come with each part.
+   - **The texts:** the game's word for a move (`words`), the game's end (`ending`), its format of a margin (`margin`:
+     Enclosure's "28.5", Blueprints' whole "24") and the move list's notes (`shortNote`, `turnShortNote`). The texts of
+     the game's own parts come with each part.
+   - **The result by the scores:** one rule and one text for every game, in `game.ts`. A draw is equal scores
+     (`resultOfScores`, with a tolerance for a floating-point sum, `SCORE_TOLERANCE`), and a record's result by the
+     scores (`b+28.5`, `0`) takes the same rule (`resultOfRecord`). The words are "A draw", or the winner and the margin
+     with no unit: "Blue won by 28.5" (`resultText`, with the game's `margin`). Each game's `ending`, the board's line
+     at the game's end, Practice's result and outcome (`@abstractclass/practice`'s `scoreResult` and
+     `practiceOutcome`) and each site's Practice page use them.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
      board's own layers (`layers`: Enclosure's regions before the area map's settings, and its invincible edges after
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
@@ -422,9 +429,10 @@ edit in the same commit), so their changes still apply.
   for the view.
 - `packages/review/` (`@abstractclass/review`): the view (`ReviewView.svelte`) and its parts, on the same rules. Its
   check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names, the score's
-  format, and the class of a number in a move's shape (`DIGITS`). `src/ownership.ts`: the area map's styles and
-  marks. `src/lineImage.ts`: the line that an image draws, and its animation's frames. `src/ReplaceAnalysis.svelte`:
-  the Analysis board's question before a line brought replaces the analysis kept in the browser. `src/GameList.svelte`:
+  format, the result by the scores and its words, and the class of a number in a move's shape (`DIGITS`).
+  `src/ownership.ts`: the area map's styles and marks. `src/lineImage.ts`: the line that an image draws, and its
+  animation's frames. `src/ReplaceAnalysis.svelte`: the Analysis board's question before a line brought replaces the
+  analysis kept in the browser. `src/GameList.svelte`:
   the Review tab's list of the player's games, with each game's Export and Delete and the line on what the browser
   keeps, with each site's rows (Hedge School's and Cyanotype's `src/lib/review/ReviewHome.svelte`), and the
   question before a Delete (`@abstractclass/site`'s `ConfirmDialog.svelte`). `src/ImportDialog.svelte`: the Analysis

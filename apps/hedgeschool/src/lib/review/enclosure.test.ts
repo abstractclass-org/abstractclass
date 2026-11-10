@@ -334,6 +334,9 @@ test("a game's outcome: by the scores when the rules ended it, else as its recor
   });
   assert.equal(endingText(game(true, 40, 12.5, "b+27.5")), "Blue won by 27.5");
   assert.equal(endingText(game(true, 20, 20, "0")), "A draw");
+  assert.equal(endingText(game(true, 0.1 + 0.2, 0.3, "0")), "A draw"); // equal scores, by a floating-point sum
+  assert.equal(endingText(game(false, 3, 9, "0")), "A draw"); // the record's draw
+  assert.equal(endingText(game(false, 3, 9, "r+12")), "Red won by 12.0"); // the record's result by the scores
   assert.equal(endingText(game(false, 3, 9, "b+R")), "Blue won: Red resigned after edge 2");
   assert.equal(endingText(game(false, 3, 9, "r+F")), "Red won: Blue left the game after edge 2");
   assert.equal(endingText(game(false, 3, 9, "*")), "Unfinished after edge 2");

@@ -5,6 +5,7 @@
 // networks, its bot's half-life and its record (Hedge School's src/lib/practice/hedgefund.ts).
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { inSteps } from "@abstractclass/analysis/settings.ts";
+import { resultOfScores } from "@abstractclass/review/game.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
 /** The visits for each bot move: any whole number from 1 to 8,192 (design 24). The slider's stops are the doublings. */
@@ -203,16 +204,18 @@ export function takebackCount(movers: readonly Player[], human: Player, brought 
  *  wins). */
 export const resignResult = (human: Player) => (human === 0 ? "r+R" : "b+R");
 
-/** The result of a game that the rules ended, from its scores (Blue's, then Red's): `b+12.5`, `r+3`, or `0`. */
+/** The result of a game that the rules ended, from its scores (Blue's, then Red's): `b+12.5`, `r+3`, or `0`, by the
+ *  view's rule for a draw (resultOfScores). */
 export function scoreResult(scores: [number, number]): string {
-  const d = scores[0] - scores[1], points = String(Math.round(Math.abs(d) * 1e6) / 1e6);
-  return d > 0 ? `b+${points}` : d < 0 ? `r+${points}` : "0";
+  const r = resultOfScores(scores), points = String(Math.round(r.margin * 1e6) / 1e6);
+  return r.winner === null ? "0" : `${r.winner === 0 ? "b" : "r"}+${points}`;
 }
 
 export type PracticeOutcome = "won" | "lost" | "draw" | "resigned" | "aborted";
 
-/** The player's outcome of a game that the rules ended, from the scores (Blue's, then Red's), or of a resignation. */
+/** The player's outcome of a game that the rules ended, from the scores (Blue's, then Red's) by the view's rule for a
+ *  draw (resultOfScores), or of a resignation. */
 export function practiceOutcome(scores: [number, number], human: Player, resigned: boolean): PracticeOutcome {
-  const d = scores[0] - scores[1];
-  return resigned ? "resigned" : Math.abs(d) < 0.05 ? "draw" : (d > 0) === (human === 0) ? "won" : "lost";
+  const { winner } = resultOfScores(scores);
+  return resigned ? "resigned" : winner === null ? "draw" : winner === human ? "won" : "lost";
 }

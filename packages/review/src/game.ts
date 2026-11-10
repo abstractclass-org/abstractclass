@@ -23,6 +23,31 @@ export const PLAYER_NAME = ["Blue", "Red"] as const;
 export const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
 /** A score as the players' cards, the Report and an image's caption show it: whole, with thousands separated. */
 export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
+/** Two scores closer than this are equal: a tolerance for the error of a floating-point sum, not a rule. The rule for a
+ *  draw is equal scores. Blueprints' points are whole, and the margins of Enclosure's finished games are whole or half
+ *  (737 games, the engine repository's design 08), so a margin under the tolerance is a margin of 0. */
+export const SCORE_TOLERANCE = 0.05;
+/** A game's result by the scores: the winner, or null for a draw, and the margin (the winner's score less the loser's). */
+export interface ScoreResult { winner: Player | null; margin: number }
+/** The result by the scores (Blue's, then Red's): a draw when they are equal (within SCORE_TOLERANCE). The one rule for
+ *  a draw, in every game: the review, the board and Practice. Rounding for display stays apart from it. */
+export function resultOfScores(scores: readonly [number, number]): ScoreResult {
+  const d = scores[0] - scores[1];
+  return Math.abs(d) < SCORE_TOLERANCE ? { winner: null, margin: 0 } : { winner: d > 0 ? 0 : 1, margin: Math.abs(d) };
+}
+/** The result that a record gives by the scores (`b+28.5`, `r+3`, `0`), by the same rule. Null for any other: a
+ *  resignation (`b+R`), a forfeit (`r+F`), or no result (`*`). */
+export function resultOfRecord(result: string): ScoreResult | null {
+  if (result === "0") return { winner: null, margin: 0 };
+  const m = /^([br])\+(\d+(?:\.\d+)?)$/.exec(result);
+  if (!m) return null;
+  const margin = Number(m[2]);
+  return resultOfScores(m[1] === "b" ? [margin, 0] : [0, margin]);
+}
+/** A result in words: "A draw", or the winner and the margin with no unit (the glossary's "Score"): "Blue won by 28.5".
+ *  `margin` writes the margin in the game's format (ViewGame `margin`). */
+export const resultText = (r: ScoreResult, margin: (m: number) => string): string =>
+  r.winner === null ? "A draw" : `${PLAYER_NAME[r.winner]} won by ${margin(r.margin)}`;
 /** The class of a number in a shape or a badge: trimmed to the digits' height (cap height to baseline), so that flex
  *  centring centres the digits in any font. */
 export const DIGITS = "block [text-box:trim-both_cap_alphabetic]";
@@ -367,6 +392,9 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   words: { move: string; moves: string; Move: string }; // the game's word for a move: "edge", "edges", "Edge"
   /** The game's outcome in words. */
   ending(data: ReviewData<G>): string;
+  /** A margin in the game's format, with no unit, for the result's words (resultText): Enclosure's in halves, "28.5",
+   *  and Blueprints' whole, "24". */
+  margin(m: number): string;
   /** A move's note in the move list, in one line: its label, and the engine's choice when the move was not it. Its text,
    *  or its parts, where the note names moves that the lists write in glyphs (`NotePart`). `before`: the position
    *  before the move. */

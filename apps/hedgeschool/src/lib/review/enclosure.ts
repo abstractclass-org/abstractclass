@@ -16,7 +16,7 @@ import type { BookPlace } from "#lib/book/place.svelte.ts";
 import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
 import type { Display } from "./display.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
-import { PLAYER_NAME, type LayerSetting, type ViewTypes } from "@abstractclass/review/game.ts";
+import { PLAYER_NAME, resultOfRecord, resultOfScores, resultText, type LayerSetting, type ViewTypes } from "@abstractclass/review/game.ts";
 export * from "@abstractclass/analysis/model.ts";
 export { fmtScore, PLAYER_NAME } from "@abstractclass/review/game.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
@@ -162,17 +162,20 @@ export function shortNote(e: EdgeReview): string {
   return `${e.label ? shared.LABEL_TEXT[e.label] : "Not analyzed yet"}.${better}`;
 }
 
+/** A margin in Enclosure's format: in halves, with one decimal, "28.5" (the glossary's "Score"). */
+export const margin = (m: number) => m.toFixed(1);
+
 /** The game's outcome in words: by the scores when the rules ended the game, else as the record says it ended (a
- *  resignation, a forfeit, a result the record gives, or no end yet). */
+ *  resignation, a forfeit, a result the record gives, or no end yet). The result's words and its rule for a draw are
+ *  the view's (resultText). */
 export function endingText(data: ReviewData): string {
   const n = data.moves.length, overByRules = data.positions[n]?.over ?? true;
-  const { blue, red } = data.result;
-  if (overByRules)
-    return blue === red ? "A draw" : `${PLAYER_NAME[blue > red ? 0 : 1]} won by ${Math.abs(blue - red).toFixed(1)}`;
-  const m = /^([br])\+(R|F|\d+(?:\.\d+)?)$/.exec(data.ending?.result ?? "");
-  if (!m) return data.ending?.result === "0" ? "A draw" : `Unfinished after edge ${n}`;
+  if (overByRules) return resultText(resultOfScores([data.result.blue, data.result.red]), margin);
+  const result = data.ending?.result ?? "", byScores = resultOfRecord(result);
+  if (byScores) return resultText(byScores, margin);
+  const m = /^([br])\+([RF])$/.exec(result);
+  if (!m) return `Unfinished after edge ${n}`;
   const winner: Player = m[1] === "b" ? 0 : 1, loser = PLAYER_NAME[winner === 0 ? 1 : 0];
   if (m[2] === "R") return `${PLAYER_NAME[winner]} won: ${loser} resigned after edge ${n}`;
-  if (m[2] === "F") return `${PLAYER_NAME[winner]} won: ${loser} left the game after edge ${n}`;
-  return `${PLAYER_NAME[winner]} won by ${Number(m[2]).toFixed(1)}`;
+  return `${PLAYER_NAME[winner]} won: ${loser} left the game after edge ${n}`;
 }

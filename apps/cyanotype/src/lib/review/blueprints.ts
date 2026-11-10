@@ -9,7 +9,7 @@
 import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, Player } from "@abstractclass/analysis/game.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
-import { PLAYER_NAME, WHOLE, type NotePart, type ViewTypes } from "@abstractclass/review/game.ts";
+import { PLAYER_NAME, resultOfRecord, resultOfScores, resultText, WHOLE, type NotePart, type ViewTypes } from "@abstractclass/review/game.ts";
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import { moveName, moveText, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
 import { enginePosition } from "../game/position.ts";
@@ -217,19 +217,22 @@ export function shortNote(e: MoveReview, before: Position): string | NotePart<Bl
   return [`${said} `, asPlayed(e.best.edge, e.player, before), " was best."];
 }
 
+/** A margin in Blueprints' format: its points are whole, "24". */
+export const margin = (m: number) => WHOLE.format(m);
+
 /** The game's outcome in words: by the scores when the rules ended the game, else as the record says it ended (a
- *  resignation, a forfeit, a result that the record gives, or no end yet). Blueprints' points are whole. */
+ *  resignation, a forfeit, a result that the record gives, or no end yet). The result's words and its rule for a draw
+ *  are the view's (resultText). */
 export function endingText(data: ReviewData): string {
   const n = data.moves.length, overByRules = data.positions[n]?.over ?? false;
-  const { blue, red } = data.result;
-  if (overByRules)
-    return blue === red ? "A draw" : `${PLAYER_NAME[blue > red ? 0 : 1]} won by ${WHOLE.format(Math.abs(blue - red))}`;
-  const m = /^([br])\+(R|F|\d+(?:\.\d+)?)$/.exec(data.ending?.result ?? "");
-  if (!m) return data.ending?.result === "0" ? "A draw" : `Unfinished after move ${n}`;
+  if (overByRules) return resultText(resultOfScores([data.result.blue, data.result.red]), margin);
+  const result = data.ending?.result ?? "", byScores = resultOfRecord(result);
+  if (byScores) return resultText(byScores, margin);
+  const m = /^([br])\+([RF])$/.exec(result);
+  if (!m) return `Unfinished after move ${n}`;
   const winner: Player = m[1] === "b" ? 0 : 1, loser = PLAYER_NAME[winner === 0 ? 1 : 0];
   if (m[2] === "R") return `${PLAYER_NAME[winner]} won: ${loser} resigned after move ${n}`;
-  if (m[2] === "F") return `${PLAYER_NAME[winner]} won: ${loser} left the game after move ${n}`;
-  return `${PLAYER_NAME[winner]} won by ${WHOLE.format(Number(m[2]))}`;
+  return `${PLAYER_NAME[winner]} won: ${loser} left the game after move ${n}`;
 }
 
 /** A move not played as a move played, for the lists' glyphs (the view's `glyphs.asPlayed`): from the hands before it

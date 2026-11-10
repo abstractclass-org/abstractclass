@@ -17,7 +17,7 @@ import { hexKey } from "../board/hex.ts";
 import { STARS } from "../board/position.ts";
 import { moveName, moveText } from "../game/notation.ts";
 import { NETWORKS, networkMB, networkName } from "../analysis/engineSettings.ts";
-import { asPlayed, blueprints, captureOf, endingText, lineMovers, playedText, shortNote, turnShortNote, type Blueprints } from "./blueprints.ts";
+import { asPlayed, blueprints, captureOf, endingText, lineMovers, margin, playedText, shortNote, turnShortNote, type Blueprints } from "./blueprints.ts";
 import { alignMap, boardState, mapIndex } from "./blueprintsMap.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
 import ReviewBoard from "./ReviewBoard.svelte";
@@ -100,6 +100,7 @@ export const blueprintsView: ViewGame<Blueprints> = {
 
   words: { move: "move", moves: "moves", Move: "Move" },
   ending: endingText,
+  margin,
   shortNote,
   turnShortNote,
 
