@@ -1,7 +1,7 @@
 // Cyanotype's review files, its review snapshot and its annotated record (its design 33, "The review files", as Hedge
 // School's designs 13 and 20), on its preview (CYANOTYPE_BASE_URL), with the review's test game: the stored review
 // (cyanotype-review.ts), loaded as a review file in the Review tab, with the engine off, so that nothing searches.
-// - The review snapshot: the test gives the stored review an engine module that no site ships, and its results a
+// - The review snapshot: the test gives the stored review a CPU module that no site ships, and its results a
 //   search that is not the site's (review-file.ts, earlierReview). The import then keeps the file's review as an
 //   earlier engine's (apps/cyanotype/src/lib/game/reviewFile.ts), and the review opens as it was, from the stored
 //   results alone (src/routes/review/+page.svelte, openSnapshot). Its move list must be the review's, with the

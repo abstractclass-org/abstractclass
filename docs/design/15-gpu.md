@@ -30,8 +30,10 @@ which Chrome and Edge have from version 137.
    CPU worker is free (item 2). So the test waits when a short review has ended, and also while a worker searches
    alone once the workers have their 20 seconds. While the test waits, the line says "In use. The speed test
    continues with the next searches." While it measures, the line says "In use. Testing its speed against a worker…".
-5. **One cache for both modules.** The page keeps a result from the GPU under the CPU module's build, as it keeps a
-   result from a CPU worker ([design 05](05-review-analysis.md)). A review can mix the two.
+5. **One cache for both modules.** The page keeps a result from the GPU under the workers' search, as it keeps a
+   result from a CPU worker ([design 05](05-review-analysis.md)). The store keys a result by the engine's search, the
+   network, the visits and the position (`cache.ts`). The page does not use a GPU module that reports another search
+   than the workers' (`gpu.svelte.ts`). A review can mix the two.
 6. **The deploy compresses the large files.** Cloudflare Pages serves no file over 25 MiB. The deploy stores each
    network's graph and ONNX Runtime's WebAssembly compressed with gzip, and splits a compressed file over 24 MiB into
    parts. The page joins the parts, decompresses them and checks the SHA-256.

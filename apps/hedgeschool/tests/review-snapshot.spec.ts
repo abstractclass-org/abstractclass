@@ -1,7 +1,7 @@
 // The review snapshot (design 20): a game whose last review ran with an earlier engine opens as that review was, from
 // the stored results alone (src/routes/review/+page.svelte, openSnapshot, with startWithBook of
 // src/lib/review/storedReview.ts). The game is the layout test's (tests/fixtures/hedgefund-review.json). The test gives
-// its review file an engine module that no site ships, and its results a search that is not the site's. The import
+// its review file a CPU module that no site ships, and its results a search that is not the site's. The import
 // then keeps the file's review as an earlier engine's (src/lib/game/reviewFile.ts, importReview). The review snapshot
 // must show the same move list, with the quality labels by edge and by turn, as the review of the unchanged file.
 // Two marks:

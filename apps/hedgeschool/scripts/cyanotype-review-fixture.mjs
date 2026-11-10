@@ -11,7 +11,7 @@
 //   Review tab's paste (pasteRecord), and the review runs at Lite, 512 visits a position, on the CPU. The script prints
 //   the review's first line of progress once the engine has searched a position.
 // - It saves the review file from the review's Export menu: the game's record as the page keeps it, the review's mark
-//   (its engine module, its search, its network and its depth), and the results of the game's positions.
+//   (its CPU module, its search, its network and its depth), and the results of the game's positions.
 // - Then it searches the Analysis board's position of more views (cyanotype-review.ts, SPREAD_BOARD) to 512 visits.
 //   It adds the results of that position, and of the positions one move from it, to the file's results, and writes
 //   the file as STORED: a review file of the game leaves them out, and the layout test's Analysis board takes them.

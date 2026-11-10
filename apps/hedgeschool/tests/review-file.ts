@@ -19,7 +19,7 @@ export async function loadReviewFile(page: Page, file: ReviewFileInput) {
 /** The search of an earlier engine: not the site's. A review snapshot of an earlier engine leaves it out. */
 const EARLIER_SEARCH = "earlier-search";
 
-/** The review file at `path` as a review by an earlier engine: its review names an engine module that no site ships,
+/** The review file at `path` as a review by an earlier engine: its review names a CPU module that no site ships,
  *  and its results are of the search EARLIER_SEARCH. The import then keeps the file's review as an earlier engine's
  *  (src/lib/game/reviewFile.ts, importReview), and the review opens as a review snapshot (design 20). `named`: the
  *  review names that search, else it names none, as an older file's does. `keep`: the results that stay, by the

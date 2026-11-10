@@ -45,7 +45,7 @@ export const buildReviewFile = files.build;
  *  that tells the player what is wrong. */
 export const readReviewFile = files.read;
 
-/** Reads a review file and keeps it in this browser (importReview), with the networks and the engine modules that the
+/** Reads a review file and keeps it in this browser (importReview), with the networks and the CPU modules that the
  *  manifest ships. Answers the game's id, and the file for the load's count. Throws an Error that tells the player what
  *  is wrong. */
 export const loadReviewFile = files.load;
@@ -119,7 +119,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
 }
 
 /** Keeps a review file's game, variations and results in this browser (@abstractclass/analysis/reviewFile.ts). `models`
- *  are the networks that this site ships (their SHA-256), `modules` the engine modules of this site's search. The
+ *  are the networks that this site ships (their SHA-256), `modules` the CPU modules of this site's search. The
  *  file's review is the game's mark when it ran with a network kept: done here when it ran with one of these modules,
  *  else a review by an earlier engine, which opens as it was (design 20). */
 export const importReview = files.importReview;

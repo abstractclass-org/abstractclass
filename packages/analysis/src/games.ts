@@ -30,7 +30,7 @@ export async function setGameSettings(id: string, settings: GameSettings) {
   if (game) await dbPut(STORES.games, id, { ...game, settings });
 }
 
-/** A review that ran to its end (Hedge School's design 13): the engine module's and the network's SHA-256 (the
+/** A review that ran to its end (Hedge School's design 13): the CPU module's and the network's SHA-256 (the
  *  manifest's), the network's id, and the review's depth. A game exports only when its mark names a module of the
  *  site's search, the network set now, and the review depth set now or deeper. `search` is the module's search, which
  *  keys the review's results (cache.ts): a review snapshot reads them by their keys (Hedge School's design 20). An older
@@ -61,7 +61,7 @@ export function reviewAgainWhy(mark: ReviewMark | undefined, want: WantedReview 
   return mark.model !== want.model ? "network" : null;
 }
 
-/** Whether a new mark replaces a mark of another engine module or network file: the earlier one's results, which its
+/** Whether a new mark replaces a mark of another CPU module or network file: the earlier one's results, which its
  *  review snapshot read, may then be of no use (Hedge School's design 20). */
 export const replacesAnother = (before: ReviewMark | undefined, mark: Omit<ReviewMark, "at">) =>
   !!before && (before.module !== mark.module || before.model !== mark.model);

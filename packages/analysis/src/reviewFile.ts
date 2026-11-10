@@ -26,7 +26,7 @@ export interface ReviewFile {
   analyses: [string, unknown][]; // the engine's results, by their keys in the browser's store
 }
 
-/** The finished review in a file: the engine module's and the network's SHA-256, the module's search (none in an older
+/** The finished review in a file: the CPU module's and the network's SHA-256, the module's search (none in an older
  *  file), the network's id and name, the review's depth, and when it ended. */
 export interface FileReview extends ReviewMark { networkName: string }
 
@@ -37,7 +37,7 @@ export function gameAnalyses(entries: [string, unknown][], positions: Set<string
   return entries.filter(([key]) => belongs(key, positions, models));
 }
 
-/** The engine modules of a manifest's search, by SHA-256: a file's review counts as done where it ran with one. */
+/** The CPU modules of a manifest's search, by SHA-256: a file's review counts as done where it ran with one. */
 export const shippedModules = (manifest: Manifest | null) => (manifest ? searchModules(manifest) : null);
 
 /** What a site gives its review files. */
@@ -88,7 +88,7 @@ export function reviewFiles<R extends { moves: string[]; komi: number }>(site: R
 
   /** Keeps a review file's game, variations and results in this browser. `models` are the networks that this site
    *  ships (their SHA-256): results of another network are left out, since this site's engine never asks for them.
-   *  `modules` are the engine modules of this site's search (their SHA-256). The file's review is the game's mark when
+   *  `modules` are the CPU modules of this site's search (their SHA-256). The file's review is the game's mark when
    *  it ran with a network kept: done here when it ran with one of these modules, else a review by an earlier engine,
    *  which opens as it was (Hedge School's design 20). A mark of this site's search stays over an earlier engine's.
    *  The mark keeps the search that the file's review names: an older file's review names none. The mark comes before
@@ -115,7 +115,7 @@ export function reviewFiles<R extends { moves: string[]; komi: number }>(site: R
   return {
     build, read, importReview,
 
-    /** Reads a review file and keeps it in this browser (importReview), with the networks and the engine modules that
+    /** Reads a review file and keeps it in this browser (importReview), with the networks and the CPU modules that
      *  the manifest ships. Answers the game's id, and the file for the load's count. Throws an Error that tells the
      *  player what is wrong. */
     async load(text: string, manifest: Manifest | null): Promise<{ id: string; file: ReviewFile }> {

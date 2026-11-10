@@ -42,7 +42,7 @@ guidelines.
   | What | Where, in the engine repository |
   |---|---|
   | The notation, the protocol, and what each output means | [`docs/design/04-notation-and-protocol.md`](https://github.com/abstractclass-org/engines/blob/main/docs/design/04-notation-and-protocol.md) |
-  | The engine module the site uses (`enclosure-engine.wasm`): actions, slices, memory | the same design document, "In the code" |
+  | The CPU module the site uses (`enclosure-engine.wasm`): actions, slices, memory | the same design document, "In the code" |
   | The driver for both modules (WASI imports, loading, the GPU's batches), which the site loads from the release (`packages/engine/src/library.ts`) | [`games/enclosure/wasm/gpu_engine.mjs`](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/wasm/gpu_engine.mjs) |
   | The WebAssembly builds: how they are built, their speed | [`games/enclosure/wasm/README.md`](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/wasm/README.md) |
   | Strength against search budget | [`games/enclosure/docs/decisions/strength.md`](https://github.com/abstractclass-org/engines/blob/main/games/enclosure/docs/decisions/strength.md) |

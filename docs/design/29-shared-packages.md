@@ -68,8 +68,10 @@ edit in the same commit), so their changes still apply.
    and depth (`settings.ts`, `ownSettingsOf`) went into the analysis package. The Review tab's list with its Delete
    (`GameList.svelte`) went into the review's. The question before an action that the player cannot undo
    (`ConfirmDialog.svelte`), one of the site's general controls, went into the site's. The engine's two scripts for
-   Node, `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (`npm run engine`: a site's
-   `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with it, for both sites. The
+   Node, `node-engine.mjs` (the CPU module in Node, for the checks) and `fetch-engine.mjs` (which `npm run engine`
+   ran: the fetch of a site's `engine.lock.json`), moved from Hedge School's `scripts/` into the engine package with
+   it, for both sites. Now `npm run engine` runs each site's `scripts/engine.mjs`, which gives the package's
+   `fetchEngine` the site's komi limit. The
    analytics moved out of Hedge School with Cyanotype's (design 33, "Analytics"): the site's package holds the
    analytics with each site's Cloudflare token and keys as parameters and the one PostHog key of the build
    (`analytics.svelte.ts`), PostHog's client (`posthog.ts`), the flag of internal traffic (`internalTraffic.ts`), the

@@ -7,7 +7,7 @@ searches are in design 10.
 ## Context
 
 A review analyses every position of a game on the visitor's CPU ([02-static-site.md](02-static-site.md)), with the
-engine module in a pool of Web Workers. The engine reports, for each position, the win chance and two scores from
+CPU module in a pool of Web Workers. The engine reports, for each position, the win chance and two scores from
 Blue's side: `scoreSelfplay` (the expected final margin) and `scoreLead` (the starting score that would make the game
 even), and every candidate with the same values. It is reproducible: the same request and build give the same reply.
 Design 01 asks for losses in points, labels with sourced thresholds, and labels only where they clear the search's

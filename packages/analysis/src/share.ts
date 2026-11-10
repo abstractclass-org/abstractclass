@@ -5,7 +5,7 @@
 // Blueprints' placements and edits.
 //
 // The format, version 1, in base64url:
-// - bytes: the version, then the first 4 bytes of the engine module's SHA-256 and of the network's;
+// - bytes: the version, then the first 4 bytes of the CPU module's SHA-256 and of the network's;
 // - then bits: the review's visits (Elias gamma); the tags as UTF-8, `key<TAB>value` lines (their length in bytes,
 //   then the bytes); the game's moves (their number, then each by the site's MoveCode); the variations as a tree: the
 //   game's positions that have variations (their number, then each as the gap from the one before), and from each,
@@ -19,7 +19,7 @@ const SHARE_VERSION = 1;
 export const DISCORD_LIMIT = 2000;
 
 export interface SharedReview {
-  module: string; // the engine module's SHA-256, its first 8 hex digits
+  module: string; // the CPU module's SHA-256, its first 8 hex digits
   model: string; // the network's SHA-256, its first 8 hex digits
   visits: number; // the review's visits for each position
   tags: Record<string, string>;
@@ -162,7 +162,7 @@ export function decodeShare(text: string, code: MoveCode): SharedReview {
   return { module: hexOf(bytes.subarray(1, 5)), model: hexOf(bytes.subarray(5, 9)), visits, tags, moves, branches };
 }
 
-/** What a finished review ran with: the engine module's and the network's SHA-256, and the review's visits. */
+/** What a finished review ran with: the CPU module's and the network's SHA-256, and the review's visits. */
 export interface ReviewRun { module: string; model: string; visits: number }
 
 /** The link that shares a review (`/review#packed=…`): its game's tags and moves, its variations, and what its finished

@@ -1,4 +1,4 @@
-// One engine module in a Web Worker (docs/design/02-static-site.md). Requests run one at a time, in order. A search
+// The CPU module in a Web Worker (docs/design/02-static-site.md). Requests run one at a time, in order. A search
 // runs in slices (channel.ts, searchInSlices): after each slice the worker posts the results so far and yields, so that
 // a stop message can arrive, and the worker keeps the search's time limit. The engine continues the same tree, so
 // slices change no result. The module runs through the engine's own library (library.ts, createCpuEngine), and the
@@ -15,7 +15,7 @@ const stopped = new Set<number>();
 const post = (m: WorkerReply) => self.postMessage(m);
 
 function call(request: object): unknown {
-  if (!engine) throw new Error("the engine module is not loaded");
+  if (!engine) throw new Error("the CPU module is not loaded");
   return JSON.parse(engine.call(request));
 }
 

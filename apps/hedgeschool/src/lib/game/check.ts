@@ -1,4 +1,4 @@
-// Checks a game's moves with the engine's rules before the game is kept: the engine module in a worker, without a
+// Checks a game's moves with the engine's rules before the game is kept: the CPU module in a worker, without a
 // network (describe works before one loads). Finds which moves cut an enemy edge, so that the record carries the
 // cut mark (record.ts), and refuses a mark on a move that cuts nothing. Problems count edges from 1 as the record does.
 import { EngineError, EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";

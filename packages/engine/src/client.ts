@@ -113,7 +113,7 @@ export class EngineWorker {
   }
   private async start(manifest: Manifest): Promise<Timed<VersionReply>> {
     const module = moduleOf(manifest), library = libraryOf(manifest);
-    if (!module || !library) throw new Error("the manifest lacks the engine module or its library");
+    if (!module || !library) throw new Error("the manifest lacks the CPU module or its library");
     const t = await this.channel.send<VersionReply>({ type: "init", module: await compile(module.url), library: library.url }).done;
     checkVersion(t.reply, manifest.protocol);
     return t;

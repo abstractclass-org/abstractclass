@@ -28,7 +28,7 @@ export const buildReviewFile = files.build;
 /** Reads a review file. Throws an Error that tells the player what is wrong. */
 export const readReviewFile = files.read;
 
-/** Reads a review file and keeps it in this browser, with the networks and the engine modules that the manifest ships.
+/** Reads a review file and keeps it in this browser, with the networks and the CPU modules that the manifest ships.
  *  Answers the game's id, and the file. Throws an Error that tells the player what is wrong. */
 export const loadReviewFile = files.load;
 

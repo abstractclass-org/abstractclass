@@ -15,7 +15,7 @@ import { loadLibrary } from "./library.ts";
 export async function nodeEngine(root, { network } = {}) {
   const manifest = JSON.parse(readFileSync(join(root, "static", "engine", "manifest.json"), "utf8"));
   const module = moduleOf(manifest), library = libraryOf(manifest);
-  if (!module || !library) throw new Error("static/engine/manifest.json lacks the engine module or its library");
+  if (!module || !library) throw new Error("static/engine/manifest.json lacks the CPU module or its library");
   const lib = await loadLibrary(pathToFileURL(join(root, "static", library.url)).href);
   const engine = await lib.createCpuEngine(await WebAssembly.compile(readFileSync(join(root, "static", module.url))));
   if (network) {
