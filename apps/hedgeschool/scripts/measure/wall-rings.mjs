@@ -11,8 +11,8 @@
 //   players' blue and red and the signs' green and yellow (the least ΔE over the whole percentages from 10% to 100%).
 // In Playwright's Chromium, headless, with the layout test's launch options (off the GPU), and the engine's GPU off:
 // the walls come from a CPU worker. The browser takes the build from the script, at an address that no server holds
-// (ORIGIN), as a preview serves it (speed.mjs, `preview`): no port, so no other server can answer in its place. Run it
-// in apps/hedgeschool, after a build:
+// (ORIGIN), as a preview serves it (speed.mjs, `buildFiles`): no port, so no other server can answer in its place.
+// Run it in apps/hedgeschool, after a build:
 //
 //   node scripts/measure/wall-rings.mjs <build dir> <out dir> [workers]
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -26,21 +26,13 @@ const [dir, out, workersArg = "2"] = process.argv.slice(2);
 const workers = Number(workersArg);
 mkdirSync(out, { recursive: true });
 
-// The colours, as Chromium mixes them (colour.ts): OKLab, and back to linear sRGB, kept in its range
-const oklab = colour.hexToOklab;
-/** WCAG's contrast of two OKLab colours. */
-const contrast = (x, y) => colour.contrast(colour.oklabToLinear(x), colour.oklabToLinear(y));
+// The colours, as Chromium mixes them, in OKLab (colour.ts)
+/** An OKLab colour as "#rrggbb", kept in sRGB's range. */
 const hexOf = lab => colour.linearToHex(colour.oklabToLinear(lab));
-const STROKE = /var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)/;
-/** A ring's stroke, a color-mix of two tokens in OKLab, as an OKLab colour: `tokens` gives each token's hex. */
-function inkLab(stroke, tokens) {
-  const [, hi, p, lo] = stroke.match(STROKE);
-  return colour.mix(oklab(tokens[hi]), oklab(tokens[lo]), Number(p) / 100);
-}
 /** The distance in OKLab, × 100. */
 const dE = (x, y) => 100 * colour.distance(x, y);
-/** A stroke's two tokens and its percentage, as one key. */
-const strokeKey = stroke => stroke.match(STROKE)?.slice(1).join(" ");
+/** A stroke's two tokens and its percentage, as one key: a ring's style on the page holds it. */
+const strokeKey = stroke => stroke.match(/var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)/)?.slice(1).join(" ");
 /** The chance of each stroke that `wallInk` gives, by its key: the ramp's places, each whole percent of it from 10%. */
 const CHANCE_OF = new Map(Array.from({ length: 101 }, (_, place) => {
   const chance = WALL_MIN + ((1 - WALL_MIN) * place) / 100;
@@ -193,13 +185,17 @@ for (const theme of THEMES) {
 const EVERY_PERCENT = Array.from({ length: 91 }, (_, i) => WALL_MIN + i / 100);
 const numbers = {};
 for (const theme of THEMES) {
-  const t = tokens[theme], lab = c => inkLab(wallInk(c), t), bg = oklab(t["--board-bg"]);
+  // A ring's colour at a chance, and a token's, in OKLab
+  const t = tokens[theme], lab = c => colour.tokenMix(wallInk(c), name => t[name]);
+  const tokenLab = name => colour.hexToOklab(t[name]), bg = tokenLab("--board-bg");
   numbers[theme] = {
     dE70_85: dE(lab(0.7), lab(0.85)), dE20_35: dE(lab(0.2), lab(0.35)),
-    tokens: Object.fromEntries(["--wall-low", "--wall-mid", "--wall-high"].map(name => [name, contrast(oklab(t[name]), bg)])),
-    rings: STEPS.map(c => ({ chance: c, ink: hexOf(lab(c)), contrast: contrast(lab(c), bg) })),
+    tokens: Object.fromEntries(["--wall-low", "--wall-mid", "--wall-high"]
+      .map(name => [name, colour.oklabContrast(tokenLab(name), bg)])),
+    rings: STEPS.map(c => ({ chance: c, ink: hexOf(lab(c)), contrast: colour.oklabContrast(lab(c), bg) })),
     nearest: Object.fromEntries(NEAR.map(name => {
-      const [d, chance] = EVERY_PERCENT.map(c => [dE(lab(c), oklab(t[name])), c]).reduce((p, q) => (q[0] < p[0] ? q : p));
+      const [d, chance] = EVERY_PERCENT.map(c => [dE(lab(c), tokenLab(name)), c])
+        .reduce((p, q) => (q[0] < p[0] ? q : p));
       return [name, { dE: d, chance }];
     })),
   };

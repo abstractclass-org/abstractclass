@@ -1,15 +1,20 @@
-// The colour arithmetic of the checks that compare the site's colours: sRGB's channels, OKLab (Björn Ottosson's
-// matrices, which CSS Color 4 and the browser's color-mix use), the distance between two colours in OKLab, and WCAG
-// 2.2's relative luminance and contrast ratio. Its users: symbolShades.test.ts, review/weakWalls.test.ts and
-// scripts/measure/wall-rings.mjs. Only Hedge School's tests and scripts use it, so it stays in Hedge School (design 29
-// moves a part into packages/ when another site needs it). Its tests: colour.test.ts.
+// The colour arithmetic of Hedge School's checks that compare its colours: sRGB's channels, OKLab (Björn Ottosson's
+// matrices from linear sRGB: his OKLab, which CSS Color 4 and the browser's color-mix take), the distance between two
+// colours in OKLab, a mix in OKLab as color-mix gives it, and WCAG 2.2's relative luminance and contrast ratio. Its
+// users: symbolShades.test.ts, review/weakWalls.test.ts and scripts/measure/wall-rings.mjs. It is code for checks, not
+// a feature, and only Hedge School uses it: a part goes into packages/ when a second site needs it (design 26, item 4).
+// A check of another site's colours first moves it into packages/site, beside themeTokens.ts. Its tests:
+// colour.test.ts.
 
 /** A colour's three channels: linear sRGB's red, green and blue, or OKLab's L, a and b. */
 export type Channels = number[];
 
-/** A colour "#rrggbb" as linear sRGB, each channel from 0 to 1. */
-export const hexToLinear = (hex: string): Channels => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
-  .map(c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+/** A colour "#rrggbb" as linear sRGB, each channel from 0 to 1. Another form of colour stops the caller. */
+export function hexToLinear(hex: string): Channels {
+  if (!/^#[\da-f]{6}$/i.test(hex)) throw new Error(`not a colour "#rrggbb": ${hex}`);
+  return [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+}
 
 /** A linear sRGB colour as "#rrggbb", each channel rounded to the nearest of 256. */
 export const linearToHex = (rgb: Channels): string => "#" + rgb
@@ -17,7 +22,7 @@ export const linearToHex = (rgb: Channels): string => "#" + rgb
   .map(c => c.toString(16).padStart(2, "0")).join("");
 
 /** OKLab, from linear sRGB. */
-export function linearToOklab([r, g, b]: Channels): Channels {
+function linearToOklab([r, g, b]: Channels): Channels {
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
   const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
@@ -25,7 +30,7 @@ export function linearToOklab([r, g, b]: Channels): Channels {
     0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
 }
 
-/** Linear sRGB from OKLab, each channel kept in sRGB's range (0 to 1), as the browser shows a colour out of it. */
+/** Linear sRGB from OKLab, each channel clipped to sRGB's range (0 to 1). */
 export function oklabToLinear([L, a, b]: Channels): Channels {
   const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
   const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
@@ -43,6 +48,16 @@ export const distance = (x: Channels, y: Channels): number => Math.hypot(...x.ma
 /** The mix of two OKLab colours, `share` (0 to 1) of `x` and the rest of `y`, as `color-mix(in oklab, x, y)` mixes. */
 export const mix = (x: Channels, y: Channels, share: number): Channels => y.map((v, i) => v + (x[i] - v) * share);
 
+/**
+ * The colour of `color-mix(in oklab, var(--x) p%, var(--y))`, a mix of two tokens (as `wallInk` writes a ring's), in
+ * OKLab. `colourOf` gives a token's colour "#rrggbb" by its name. Another form of text stops the caller.
+ */
+export function tokenMix(text: string, colourOf: (token: string) => string): Channels {
+  const [, x, p, y] = text.match(/^color-mix\(in oklab, var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)\)$/) ?? [];
+  if (x === undefined) throw new Error(`not a color-mix of two tokens in OKLab: ${text}`);
+  return mix(hexToOklab(colourOf(x)), hexToOklab(colourOf(y)), Number(p) / 100);
+}
+
 /** WCAG's relative luminance of a linear sRGB colour. */
 export const luminance = ([r, g, b]: Channels): number => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
@@ -51,3 +66,6 @@ export function contrast(x: Channels, y: Channels): number {
   const [hi, lo] = [luminance(x), luminance(y)].sort((p, q) => q - p);
   return (hi + 0.05) / (lo + 0.05);
 }
+
+/** WCAG's contrast ratio of two OKLab colours, each clipped to sRGB's range. */
+export const oklabContrast = (x: Channels, y: Channels): number => contrast(oklabToLinear(x), oklabToLinear(y));

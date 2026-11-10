@@ -128,10 +128,11 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   const pairs = await inPairs(builds, 5, async ({ url }) => { /* one set of runs at url: give its median */ });
   console.log(verdict(pairs.map(pair => pair.map(run => run.result))), pairs.map(pair => pair.map(run => run.load)));
   ```
-- **Checks that compare colours:** a test or a script takes the colour tokens of each theme from
-  `packages/site/src/themeTokens.ts`, and the arithmetic from `apps/hedgeschool/src/lib/colour.ts`: OKLab, the
-  distance in OKLab, a mix in OKLab as `color-mix` gives it, and WCAG's luminance and contrast. Do not write them
-  again. Its users: `symbolShades.test.ts`, `weakWalls.test.ts` and `wall-rings.mjs`.
+- **Checks that compare colours:** a test takes the colour tokens of each theme from
+  `packages/site/src/themeTokens.ts` (a script in a browser reads them from the page). Hedge School's checks take the
+  arithmetic from `apps/hedgeschool/src/lib/colour.ts`: OKLab, the distance in OKLab, a mix in OKLab as `color-mix`
+  gives it (also from a `color-mix` text of two tokens), and WCAG's luminance and contrast. Do not write them again.
+  A check of another site's colours first moves `colour.ts` into `packages/site`, beside `themeTokens.ts`.
 - **A hidden tab in Playwright:** a browser that Playwright launches never hides a page. Its switches
   (`--disable-background-timer-throttling`, `--disable-renderer-backgrounding`,
   `--disable-backgrounding-occluded-windows`) stop the throttling, and its focus emulation

@@ -67,29 +67,20 @@ const colourOf = (theme: Record<string, string>, name: string): string => {
   const named = theme[name]?.match(/^var\((--[\w-]+)\)$/);
   return named ? colourOf(theme, named[1]) : theme[name];
 };
-/** OKLab, from a colour "#rrggbb". */
-function oklab(hex: string): number[] {
-  assert.match(hex ?? "", /^#[\da-f]{6}$/i);
-  return colour.hexToOklab(hex);
-}
-/** WCAG's contrast of two OKLab colours, each kept in sRGB's range. */
-const contrast = (x: number[], y: number[]) => colour.contrast(colour.oklabToLinear(x), colour.oklabToLinear(y));
 /** OKLCH's hue, in degrees. */
 const hue = ([, a, b]: number[]) => (Math.atan2(b, a) * 180) / Math.PI;
 
 for (const [board, theme] of Object.entries(THEMES)) {
-  /** A ring's colour on this board, in OKLab: its color-mix of two tokens, mixed in OKLab as the browser mixes it. */
-  const ink = (chance: number) => {
-    const [, hi, p, lo] = wallInk(chance).match(/^color-mix\(in oklab, var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)\)$/)!;
-    return colour.mix(oklab(theme[hi]), oklab(theme[lo]), Number(p) / 100);
-  };
+  /** A ring's colour on this board, in OKLab: its color-mix of two tokens, mixed in OKLab as the browser mixes it.
+   *  A token that is not a colour "#rrggbb" stops the test (colour.ts). */
+  const ink = (chance: number) => colour.tokenMix(wallInk(chance), name => theme[name]);
 
   test(`the rings on the ${board} board: the tokens at 10%, 55% and 1, the bolder, the likelier the cut`, () => {
     for (const [chance, token] of [[WALL_MIN, "--wall-low"], [0.55, "--wall-mid"], [1, "--wall-high"]] as const) {
-      assert.ok(colour.distance(ink(chance), oklab(theme[token])) < 1e-9, `${chance}: ${token}`);
+      assert.ok(colour.distance(ink(chance), colour.hexToOklab(theme[token])) < 1e-9, `${chance}: ${token}`);
     }
-    const back = oklab(theme["--board-bg"]);
-    const contrasts = [WALL_MIN, 0.2, 0.35, 0.55, 0.7, 0.85, 1].map(c => contrast(ink(c), back));
+    const back = colour.hexToOklab(theme["--board-bg"]);
+    const contrasts = [WALL_MIN, 0.2, 0.35, 0.55, 0.7, 0.85, 1].map(c => colour.oklabContrast(ink(c), back));
     for (let i = 1; i < contrasts.length; i++) {
       assert.ok(contrasts[i] > contrasts[i - 1], `contrasts against the board: ${contrasts.map(c => c.toFixed(2))}`);
     }
@@ -112,7 +103,7 @@ for (const [board, theme] of Object.entries(THEMES)) {
   test(`the rings on the ${board} board: apart from the players' red and the signs' green at every chance`, () => {
     /** The least distance in OKLab from a ring at a whole percentage, from 10% to 100%, to the token `name`. */
     const nearest = (name: string) => Math.min(...Array.from({ length: 91 },
-      (_, i) => colour.distance(ink(WALL_MIN + i / 100), oklab(colourOf(theme, name)))));
+      (_, i) => colour.distance(ink(WALL_MIN + i / 100), colour.hexToOklab(colourOf(theme, name)))));
     assert.ok(nearest("--red") >= 0.1, `to the players' red: ${nearest("--red").toFixed(3)}`);
     assert.ok(nearest("--sign-green") >= 0.14, `to the signs' green: ${nearest("--sign-green").toFixed(3)}`);
   });
