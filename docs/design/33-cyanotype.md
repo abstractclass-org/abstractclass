@@ -402,7 +402,9 @@ their manifest. The page loads them from there.
    `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the threaded bot) and `engine-91ab0b7d` (protocol
    0.7.1, without the position check), stay in `abstractclass-org/blueprints-engine`. The stored results of
    `engine-91ab0b7d` stay valid: their keys name the search, which is the same, and the network
-   (`packages/analysis/src/cache.ts`).
+   (`packages/analysis/src/cache.ts`). The lock names `engine-91ab0b7d`'s CPU module as one of its search
+   (`sameSearchAs`, Hedge School's design 20, item 7). So a game that a browser marked with that module, and a
+   review file of it, count as reviewed by the site's engine: the game opens its review with no review snapshot.
 2. **Protocol 0.8.** Blueprints' build speaks 0.8.0, and Enclosure's stays 0.6.x (the engine repository's design 04,
    "Versioning"). 0.7.0 brought the search of the root's views, and 0.7.1 its move at few visits: a search whose
    passes find no candidate gives its first pass's policy move. 0.8.0 brought the position check, and breaks a 0.7

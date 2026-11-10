@@ -56,7 +56,7 @@
 		// The stored analyses that no reader reads: once after a change of their shape, and an earlier engine's that no
 		// stored game needs, once after a change of the engine or of what the games need (design 20). The removal's code
 		// loads only then, when the page is idle.
-		removeUnreadResults(ENGINE_FILES, () => import('#lib/game/earlierResults.ts').then(m => m.removeEarlierResults(ENGINE_FILES)));
+		removeUnreadResults(ENGINE_FILES, () => import('#lib/game/earlierResults.ts'));
 	});
 </script>
 

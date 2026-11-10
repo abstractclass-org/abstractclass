@@ -88,9 +88,8 @@ export interface GameSite<R extends { moves: string[] }> {
 }
 
 /** A game as the store reads it: a game that a site kept before it had a list of games (Cyanotype's review kept its
- *  record and the time it came) has no version and no id, and its key gives the id. A stored field stays as stored.
- *  The removal of earlier results reads the games so too (earlierResults.ts). */
-export const asStored =<G extends StoredGame>(key: string, value: G): G =>
+ *  record and the time it came) has no version and no id, and its key gives the id. A stored field stays as stored. */
+const asStored = <G extends StoredGame>(key: string, value: G): G =>
   ({ ...value, version: value.version ?? 1, id: value.id ?? key });
 
 /** A site's store of games. `G` is the site's stored game, when it keeps more than the shared fields. */
@@ -100,8 +99,10 @@ export function gameStore<R extends { moves: string[] }, G extends StoredGame = 
   const lastReview = (): string | null => readLocal(site.lastReviewKey);
   /** Keeps the id of the game a review opened, or forgets it (null). */
   const rememberReview = (id: string | null) => writeLocal(site.lastReviewKey, id);
-  /** Stored games with their records read. A game whose record does not read is left out: it cannot open. */
-  const readGames = (games: G[]): { game: G; record: R }[] => games.flatMap(game => {
+  /** Stored games, each with its key in the store (asStored), with their records read. A game whose record does not
+   *  read is left out: it cannot open. The list and the removal of earlier results (earlierResults.ts) read them so. */
+  const readGames = (entries: [string, unknown][]): { game: G; record: R }[] => entries.flatMap(([key, value]) => {
+    const game = asStored(key, value as G);
     try { return [{ game, record: site.parse(game.record) }]; } catch { return []; }
   });
   return {
@@ -126,8 +127,7 @@ export function gameStore<R extends { moves: string[] }, G extends StoredGame = 
 
     /** The stored games, newest first. */
     async listGames(): Promise<{ game: G; record: R }[]> {
-      const games = (await dbEntries<G>(STORES.games)).map(([key, value]) => asStored(key, value));
-      return readGames(games.sort((a, b) => b.added.localeCompare(a.added)));
+      return readGames(await dbEntries<G>(STORES.games)).sort((a, b) => b.game.added.localeCompare(a.game.added));
     },
 
     /** Deletes a game, its variations, and the Review link's pointer to it, for good: the player confirmed it (Hedge

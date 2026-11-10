@@ -11,7 +11,8 @@
       "source": { "release": { "tag": "engine-887be290", "asset": "blueprints-engine.wasm" } },
       "sha256": "86dec849f5884aaaf6f2e715e4ed6c92fb182a39de58e98e95ad41920bf35122",
       "bytes": 1549402,
-      "search": "91ab0b7d"
+      "search": "91ab0b7d",
+      "sameSearchAs": ["28775af7ce301e0a7d1423fc7d39b8c972f29d1db3e63ea3f219ccb071210803"]
     },
     {
       "id": "engine-887be290-gpu",

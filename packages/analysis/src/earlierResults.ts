@@ -13,25 +13,25 @@ import { STORES, dbReadThenDelete } from "@abstractclass/storage/db.ts";
 import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { positionKeys, type KeptBranches } from "./kept.ts";
 import { shippedModels } from "./files.ts";
-import { asStored, reviewAgainWhy, reviewMark, type ReviewMark, type StoredGame } from "./games.ts";
+import { reviewAgainWhy, reviewMark, type ReviewMark, type StoredGame } from "./games.ts";
 
-/** A site's reader of its stored games (gameStore's readGames): each game with its record read, the moves and the komi
- *  among them. It leaves out a game whose record does not read: such a game cannot open, so it needs no result. */
-export type ReadGames<G extends StoredGame> = (games: G[]) => { game: G; record: { moves: string[]; komi?: number } }[];
+/** A site's reader of its stored games (gameStore's readGames): each entry of the store with its record read, the
+ *  moves and the komi among them, and its id, which a game that a site kept before it had a list of games takes from
+ *  its key. It leaves out a game whose record does not read: such a game cannot open, so it needs no result. */
+export type ReadGames =
+  (entries: [string, unknown][]) => { game: StoredGame; record: { moves: string[]; komi?: number } }[];
 
 /** Removes the stored results that no game needs (unneededResults), in one transaction with the read of the games, their
  *  variations and the results' keys. `files` are the site's engine files (cache.ts, engineFiles), which the browser's
  *  mark keeps after the removal. `engine` is the site's (its engine.lock.json), and `readGames` its reader of games. */
-export const removeUnneeded = <G extends StoredGame>(files: string, engine: Manifest, readGames: ReadGames<G>) =>
+export const removeUnneeded = (files: string, engine: Manifest, readGames: ReadGames) =>
   earlierRemoval(files, () => dbReadThenDelete(STORES.analysis, [STORES.games, STORES.branches], (keys, read) =>
     unneededResults(keys, keptGames(read[STORES.games], read[STORES.branches], readGames), engine)));
 
-/** The stored games as the removal reads them. A game's key is its id: a game that a site kept before it had a list of
- *  games has no id of its own (games.ts, asStored). */
-function keptGames<G extends StoredGame>(games: [string, unknown][], branches: [string, unknown][],
-                                         readGames: ReadGames<G>): KeptGame[] {
+/** The stored games as the removal reads them, each with the variations kept under its id. */
+function keptGames(games: [string, unknown][], branches: [string, unknown][], readGames: ReadGames): KeptGame[] {
   const branchesOf = new Map(branches);
-  return readGames(games.map(([key, game]) => asStored(key, game as G))).map(({ game, record }) =>
+  return readGames(games).map(({ game, record }) =>
     ({ moves: record.moves, branches: (branchesOf.get(game.id) as KeptBranches | undefined) ?? null, mark: game.reviewed,
        komi: record.komi }));
 }

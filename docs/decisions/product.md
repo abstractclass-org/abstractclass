@@ -10985,9 +10985,10 @@ load. In both, the Practice page showed no content after a load.
 
 ### Cyanotype removes earlier engine results, as Hedge School (2026-11-11)
 
-Beads abscls-8tl1.30. Design 20 ("Consequences" and "Where it is"), design 29 and design 33 ("The player's games",
-item 12, and "The gaps from Hedge School") changed. Cyanotype kept every result of every engine: its first release
-has none of an earlier one, but its next release with a new search or a new file of the network would add a set.
+Beads abscls-8tl1.30. Design 20 ("Consequences" and "Where it is"), design 29 and design 33 ("The engine's files",
+item 1, "The player's games", item 12, and "The gaps from Hedge School") changed, and Cyanotype's `engine.lock.json`.
+Cyanotype kept every result of every engine: its first release has none of an earlier one, but its next release with
+a new search or a new file of the network would add a set.
 
 - **One removal for both sites:** the rule (`unneededResults`) and the transaction (`removeUnneeded`) moved out of
   Hedge School's `src/lib/game/earlierResults.ts` into `packages/analysis/src/earlierResults.ts`. The start at the
@@ -10995,7 +10996,8 @@ has none of an earlier one, but its next release with a new search or a new file
   `earlierResults.ts` gives its engine (its `engine.lock.json`) and its reader of games (`readGames`), and each site's
   `vite.config.ts` its engine files. Hedge School's behaviour did not change: its `earlierResults.test.ts` passes
   with no change.
-- **A game's id is its key:** the removal reads the games as the list does (`games.ts`, `asStored`). A game that
+- **A game's id is its key:** the removal reads the games as the list does: the store's reader of games
+  (`games.ts`, `readGames`) takes the store's entries, and gives a game with no id the id of its key. A game that
   Cyanotype's review kept before the list of games has no id of its own, and its variations are under its key.
 - **An earlier result** is one that the site's engine cannot read, not one of an older release: its search is not
   the site's, or its network's file is not one that the lock ships. The lock keeps the earlier networks too (design
@@ -11018,10 +11020,12 @@ has none of an earlier one, but its next release with a new search or a new file
   snapshot shows. Both games stayed. The transaction, from the mark that a removal runs to the mark that it ended,
   took 283, 340 and 360 ms, and 224 ms in the suite. The page loaded the removal's code once it was idle. Hedge
   School's removal is the same code, and was not measured on its own.
-- **Found, not changed here:** Cyanotype's lock gives its CPU module no `sameSearchAs`, so it does not name the CPU
-  module of `engine-91ab0b7d` (`28775af7…`), whose search is the same (design 20, item 7). By the code
-  (`games.ts`, `reviewAgainWhy`; `client.ts`, `searchModules`), a game that a browser marked with that module counts
-  as reviewed by an earlier engine. Its review snapshot leaves out the site's own search, so none opens, and the game
-  is reviewed again from its stored results with no search, with the notice that the engine changed. A review file
-  of that module loads as an earlier engine's too. The removal is not touched: those results are the site's search's.
-  Only preview builds served `engine-91ab0b7d`.
+- **The lock names `engine-91ab0b7d`'s CPU module:** Cyanotype's lock gave its CPU module no `sameSearchAs`, so it
+  did not name the CPU module of `engine-91ab0b7d` (`28775af7…`), whose search is the same (design 20, item 7, and
+  design 33, "The engine's files"). A test on the real mark of a game that `engine-91ab0b7d` reviewed (the stored
+  review's mark before it was written again with `engine-887be290`) showed that such a game counted as reviewed by an
+  earlier engine (`reviewAgainWhy` gave "engine"). Its review snapshot left out the site's own search, so none
+  opened, and the game was reviewed again with the notice that the engine changed. A review file of that module
+  loaded as an earlier engine's too. The lock's CPU module now gives `sameSearchAs` with that SHA-256, and the test
+  checks that the mark counts as the site's engine's. The removal was not touched: those results are the site's
+  search's. The lock check of the engine step reads no `sameSearchAs`. Only preview builds served `engine-91ab0b7d`.

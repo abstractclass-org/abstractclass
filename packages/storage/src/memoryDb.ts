@@ -11,7 +11,8 @@ export function memoryDb(later: (step: () => void) => void = step => setTimeout(
   const stores = new Map<string, Map<IDBValidKey, unknown>>(), written = new Map<string, IDBValidKey[]>();
   const held: ((ok: boolean) => void)[] = [];
   let scans = 0, holding = false;
-  /** A request that answers its `onsuccess` in a microtask, when the caller sets one. */
+  /** A request that answers its `onsuccess` in a microtask, when the caller sets one. Every request but a cursor's
+   *  answers so, in the order the requests were made, as IndexedDB's do (dbReadThenDelete reads in that order). */
   const answered = <R extends object>(req: R): R & { onsuccess?: () => void } => {
     const out: R & { onsuccess?: () => void } = req;
     queueMicrotask(() => out.onsuccess?.());
@@ -26,14 +27,13 @@ export function memoryDb(later: (step: () => void) => void = step => setTimeout(
       return {
         get: (key: IDBValidKey) => answered({ result: structuredClone(r.get(key)) }),
         getAllKeys: () => (scans++, answered({ result: [...r.keys()].sort() })),
-        // Every value, in the order of their keys, as getAllKeys gives the keys (dbEntries). Both answer in the order
-        // they were made, as dbReadThenDelete needs.
+        // Every value, in the order of their keys, as getAllKeys gives the keys (dbEntries)
         getAll: () => answered({ result: [...r.keys()].sort().map(k => structuredClone(r.get(k))) }),
         delete: (key: IDBValidKey) => {
           const had = r.has(key), old = r.get(key);
           undo.push(() => { if (had) r.set(key, old); });
           r.delete(key);
-          return { result: undefined };
+          return answered({ result: undefined });
         },
         // A cursor over the keys in order (dbEntriesWhere): each step answers in a microtask, before the transaction
         // completes in its timer. It counts as a read of every key.
@@ -54,7 +54,7 @@ export function memoryDb(later: (step: () => void) => void = step => setTimeout(
           undo.push(() => (had ? r.set(key, old) : r.delete(key)));
           r.set(key, structuredClone(value));
           puts(name).push(key);
-          return { result: key };
+          return answered({ result: key });
         },
       };
     };

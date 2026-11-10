@@ -12,11 +12,11 @@ import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { analysisKey, lineKeyMoves, readAnalysisKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
 import type { KeptBranches } from "@abstractclass/analysis/kept.ts";
-import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
+import { moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { readStored, testRecord } from "../../../../hedgeschool/tests/cyanotype-fixture.ts";
 import { parseRecord } from "./record.ts";
-import { gameId, type ReviewMark } from "./store.ts";
+import { gameId, reviewAgainWhy, reviewCovers, reviewMark, type ReviewMark } from "./store.ts";
 import { removeEarlierResults, unneededResults } from "./earlierResults.ts";
 
 const db = memoryDb(); // the browser's store
@@ -29,11 +29,11 @@ const ENGINE_91AB0B7D = "28775af7ce301e0a7d1423fc7d39b8c972f29d1db3e63ea3f219ccb
 
 /** A later release of Cyanotype's engine: a new build of the CPU module that searches as `search`, with the file
  *  `model` of the lock's network in place of its own, and the networks `added` beside it (each id with its file). A
- *  build of the lock's search names the lock's module as one of its search (`sameSearchAs`). */
+ *  build of the lock's search names the lock's modules of its search as its own (`sameSearchAs`). */
 function release({ search = MODULE.search!, model = STORED.model, added = [] as [string, string][] } = {}): Manifest {
   const network = SITE.artifacts.find(a => a.kind === "model")!;
-  return { ...SITE, artifacts: [...SITE.artifacts.map(a => a.kind === "module"
-    ? { ...a, sha256: "a later build", search, ...(search === MODULE.search ? { sameSearchAs: [MODULE.sha256] } : {}) }
+  return { ...SITE, artifacts: [...SITE.artifacts.map(({ sameSearchAs: _, ...a }) => a.kind === "module"
+    ? { ...a, sha256: "a later build", search, ...(search === MODULE.search ? { sameSearchAs: searchModules(SITE) } : {}) }
     : a.kind === "model" ? { ...a, sha256: model } : a),
     ...added.map(([id, sha256]) => ({ ...network, id, sha256 }))] };
 }
@@ -68,6 +68,16 @@ test("a release with the same search and network removes nothing: engine-887be29
   // A later release that keeps the search and the network keeps them all too
   assert.deepEqual(unneededResults(KEYS, [], release()), []);
   assert.deepEqual(unneededResults(KEYS, [reviewed(mark(MODULE.sha256))], release()), []);
+});
+
+test("a game that engine-91ab0b7d reviewed counts as reviewed by the site's engine: the lock names its CPU module", () => {
+  // The real mark of such a game: the stored review's, before it was written again with engine-887be290
+  // (apps/hedgeschool/tests/fixtures/cyanotype-review.json at 8462111a)
+  const real: ReviewMark = { module: ENGINE_91AB0B7D, model: STORED.model, network: STORED.network, visits: 512,
+                             search: "91ab0b7d", at: "2026-11-08T21:23:22.669Z" };
+  const want = reviewMark(SITE, real.network, real.visits);
+  assert.equal(reviewAgainWhy(real, want), null);
+  assert.equal(reviewCovers(real, want), true);
 });
 
 test("a release that adds a network, with the lock's network still in it, removes nothing", () => {
