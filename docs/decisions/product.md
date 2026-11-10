@@ -10902,3 +10902,37 @@ its full import already ("Cyanotype's review files, as Hedge School's").
   widths, with DejaVu Sans loaded from WSL's `/usr/share/fonts` as a `FontFace`. The room came from the Analysis
   board's margin at 360 × 700: its box, its padding, and its gap after the walls' switch. The figures are design 30's,
   item 9.
+
+### Practice's tests keep their storage before the page's code runs (2026-11-10)
+
+Beads abscls-z0jz. Two cases of `cyanotype-practice.spec.ts` each failed once in the whole suite under the machine's
+load. In both, the Practice page showed no content after a load.
+
+- **The dropped-game case** ("a kept game whose network the site does not ship gives way to the settings card"):
+  `page.goto` returns at the load event, and the page's code runs after it. In 30 of 30 loads of `/practice` (CPU
+  throttling of 1 and of 8, with the scripts delayed and not), the prerendered page was still there at the load event.
+  The case wrote a kept game with an unknown network, then reloaded. When the reload's answer was slow, the first
+  load's code read the game and dropped it, and the reloaded page had no game for its notice. A player cannot meet
+  this: only the test writes the storage between the load and the start.
+- **Measured** at 8 times CPU throttling (`Emulation.setCPUThrottlingRate`), 20 runs of each with `--repeat-each`.
+  "Held" is the reload's document held 1.5 s by `page.route`.
+  - The case as it was: 20 of 20 passed not held, and 20 of 20 failed held (no notice within 5 s, the failure of the
+    suite).
+  - With a wait for the settings card before the write: 20 of 20 passed, held and not held.
+- **The change:** `keepBefore` writes the storage with `page.addInitScript` before the case's only load, so no reload
+  remains. Hedge School's `practice-komi.spec.ts` had the same race in `keepGame`: the first load saved the finished
+  game and dropped it before the reload. Its cases go on to `/review` and `/openings`, where an init script would
+  write the game again, so `keepGame` waits for the settings card before its write and reload. Measured again at 8
+  times throttling: Cyanotype's case held 1.5 s failed 3 of 3 as it was and passed 3 of 3 changed. Hedge School's
+  `keepGame` held 60 s failed as it was (the first load sent the finished game 3.0 s after the case started) and
+  passed changed.
+- **The empty page** (`:359`, "the standard start in the address brings nothing, and a kept start that the engine
+  cannot read stops the game"): "Play as Red" did not show within 120 s, and the screenshot showed the header over an
+  empty page. It did not occur again: at 8 times throttling, 50 of 50 loads showed the card, also with each `/_app/`
+  request delayed up to 2 s at random. One `/_app/` request that fails (`start.js`, the payload or a chunk) leaves
+  `/practice` with only the header and no message, as in that screenshot. abscls-lwhe adds a notice for a page whose
+  scripts do not load.
+- **The evidence of the next failure:** `tests/page-log.ts` attaches each page error, console error, failed request,
+  HTTP error and crash to a case that fails. Playwright's trace (`retain-on-failure`) is the published method for
+  this evidence, but it keeps the body of each response, and these cases load the engine's files of many megabytes.
+  The listeners add no time that the suite shows: the three spec files that use it took 227.9 s, 2.2 s and 25.6 s.
