@@ -1407,6 +1407,9 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The removal of earlier engine results after a release** (`game/earlierResults.ts`, design 20). abscls-8tl1.30.
 - **The area map** (`review/enclosureMap.ts`, design 30). abscls-8tl1.17 decides whether Blueprints has one ("No
   area map yet").
+- **The weak walls** (`review/weakWalls.ts`, design 30): the rings on the walls that the engine expects to fall.
+  Blueprints' walls are cells, not Enclosure's edges, and its engine gives no field for them. abscls-8tl1.17 decides
+  with the area map what Blueprints shows in their place. Cyanotype's display settings keep them off.
 - **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
   `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
   ("Practice against Stamp Duty", item 2). abscls-8tl1.50.
