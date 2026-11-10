@@ -113,6 +113,7 @@ edit in the same commit), so their changes still apply.
      described: unknown;      // describe's reply: a position with its legal moves
      rules: unknown;          // a position's rules, for the player's own moves. Enclosure: the legal edges and nodes
      step: unknown;           // a move of a line, played: what the board draws after it. Enclosure: the cut, the regions
+     walls: unknown;          // a position's weak walls, as the engine gives them. Enclosure: the protocol's WeakWalls
    }
    /** What the analysis reads of a position. */
    interface PositionInfo { player: Player; over: boolean; scores: [number, number]; count?: number }
@@ -135,6 +136,9 @@ edit in the same commit), so their changes still apply.
 
    - **The board's drawing, the notation's texts and the import stay in the site.** The interface carries only what
      the shared code must compute with.
+   - **The game types its weak walls.** The analysis asks the engine for a position's weak walls on one shared path
+     (`GameAnalysis`'s `askWalls`), and it keeps and gives them as the game's `walls`. A game with none (Blueprints)
+     leaves the type unknown, and its view has no walls' part.
    - **The game compares and names its moves.** The shared code compares two moves with `equal` (Enclosure's
      `sameEdge`), and keys the tree, the queries and the stored results by the moves' names. Enclosure's name
      (`edgeName`) puts the lower point first: it is the edge's one spelling. A move's name has no space (a path in the

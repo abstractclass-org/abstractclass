@@ -27,7 +27,7 @@
 // The analysis is every game's (design 29): the game (game.ts) gives the positions from the engine's fields, the moves
 // played, a move's name, the rules for the player's moves and a line's steps. `G` is the game's types.
 import { toAnalysis } from "./reply.ts";
-import { positionQuery, type WeakWalls } from "@abstractclass/engine/protocol.ts";
+import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import { BOARD_ID, branchNodes, keptNode, type KeptNode, type KeptBoard, type KeptBranches } from "./kept.ts";
 import { withKomi, type Game, type GameTypes, type Player } from "./game.ts";
@@ -183,7 +183,7 @@ export class GameAnalysis<G extends GameTypes> {
   // worker, as the GPU module refuses the field. Kept for the page's visit only: a prototype (Hedge School's
   // design 30, "The weak walls"). The position asked for last, the searches that wait or run, the positions that
   // got none (the engine refused the position), and whether the engine gives none at all.
-  private walls = $state.raw<Record<string, WeakWalls>>({});
+  private walls = $state.raw<Record<string, G["walls"]>>({});
   private wallsAsked: string[] | null = null;
   private wallWork = $state.raw<Record<string, "waiting" | "searching">>({});
   private wallless = $state.raw(new Set<string>());
@@ -1134,7 +1134,7 @@ export class GameAnalysis<G extends GameTypes> {
     }
   }
   /** A position's weak walls (askWalls), once the engine has given them. */
-  wallsAt(path: string[]): WeakWalls | undefined {
+  wallsAt(path: string[]): G["walls"] | undefined {
     return this.walls[pathKey(path)];
   }
   /** The state of a position's weak walls, for the board's note: as mapState, `none` where the game ends or the engine
@@ -1178,7 +1178,8 @@ export class GameAnalysis<G extends GameTypes> {
       const { reply } = await engine.analyse({ ...query, maxVisits: 1, includeWeakWalls: true }).done;
       if (era !== this.era) return;
       if (!reply.weakWalls) this.wallsUnsupported = true;
-      else this.walls = { ...this.walls, [key]: reply.weakWalls };
+      // The game's walls type is what its engine gives, as describe_game's fields are (G["fields"])
+      else this.walls = { ...this.walls, [key]: reply.weakWalls as G["walls"] };
     }, { cpu: true })
       .catch(e => {
         if (e instanceof Cancelled || e instanceof Stopped || era !== this.era) { tried = false; return; }

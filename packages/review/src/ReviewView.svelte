@@ -11,7 +11,7 @@
   import { GROUP_HOVER, MOVE_HERE, MOVE_HOVER, MOVE_LIST, ROUND_GROUP, ROUND_HERE, ROUND_HOVER, TURN_NUMBER, TURN_REM, keepInView, moveButton,
            turnRow } from "./moveList.ts";
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
-  import type { Player } from "@abstractclass/analysis/game.ts";
+  import type { GameTypes, Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState, WallState } from "@abstractclass/analysis/analysis.svelte.ts";
   import { PLAYER_NAME, resultOfScores, resultText, smallMargin, WHOLE, type ViewTypes } from "./game.ts";
 
@@ -42,7 +42,7 @@
   }
   /** The analysis behind the view (GameAnalysis): its variations, an engine error, the position searched for the player,
    *  the rules and the results the view asks for, and the changes of the tree. */
-  export interface ReviewGame<G extends ViewTypes> {
+  export interface ReviewGame<G extends GameTypes> {
     error: string;
     readonly komi: number; // the game's komi, Red's starting score (Hedge School's design 24): 0 for most games
     readonly takesBook: boolean; // the analysis takes the opening book: not on the board, nor at a komi (Hedge School's design 24)

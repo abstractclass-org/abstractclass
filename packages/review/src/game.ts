@@ -128,10 +128,6 @@ export interface ViewTypes extends GameTypes {
   input: MoveInput<this["rules"]>; // the player's own moves on the board (Enclosure: the edge input)
   point: unknown; // a place on the board that the area map marks (Enclosure: a point, [x, y])
   book: ViewBook<this["move"]>; // the opening book where the view shows it (Hedge School's book/place.svelte.ts)
-  // A position's weak walls, as the engine gives them (Enclosure: protocol 0.6.2's WeakWalls). For now the analysis
-  // gives the protocol's walls for every game (GameAnalysis's wallsAt). So a game with walls sets the protocol's type,
-  // and a game with none leaves it unknown
-  walls: unknown;
 }
 
 /** The player's own moves on the board: the position's rules that the site takes them by, and the move begun. */
