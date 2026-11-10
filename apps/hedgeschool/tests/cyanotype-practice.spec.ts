@@ -13,7 +13,7 @@
 // "Play the bot from here" on a game's position and on a set-up start, a start that no game reaches, and the question
 // when a start comes while a game is in progress. Run:
 // npm run test:layout -- tests/cyanotype-practice.spec.ts, with CYANOTYPE_BASE_URL.
-import { expect, test, type Page } from "./pageLog.ts";
+import { expect, test, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
 import { STANDARD_START, writePosition } from "../../cyanotype/src/lib/game/position.ts";
@@ -24,6 +24,7 @@ import { LITE } from "./cyanotype-review.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 const STATUS = '[data-testid="practice-status"]';
+const at = (path: string) => new URL(path, CYANOTYPE).href;
 
 /** The player's move, as a click on a blueprint, then on one of its marked anchor hexes, at random. A blueprint with
  *  no legal placement gives way to the next. With none, an edit: a cell, then one of its marked new places. */
@@ -68,9 +69,13 @@ const seeded = (s: number) => () => {
 };
 const listed = (page: Page) => page.locator(".movelist .mv").allTextContents();
 
+type BotManifest = { artifacts: { kind: string; id: string }[] };
+/** The practice bot's network in the preview's engine manifest. */
+const modelOf = (manifest: BotManifest) => manifest.artifacts.find(a => a.kind === "model")!.id;
+
 /** The preview's engine manifest. Skips the test when there is no preview, or when it has no practice bot. In CI, a
  *  preview with no practice bot is an error: the Tests workflow builds Cyanotype with its engine's files. */
-async function botManifest(page: Page) {
+async function botManifest(page: Page): Promise<BotManifest> {
   test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json()).catch(() => null);
   const why = "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build";
@@ -80,23 +85,24 @@ async function botManifest(page: Page) {
   return manifest;
 }
 
-/** Opens Practice with no game kept, and waits until the page's code has run: the settings card shows. page.goto
- *  returns at the load event, before the page's code runs. A case that writes the browser's storage, then reloads,
- *  waits for this first: else the first load's code can still read the storage before the reload replaces the page,
- *  and drop a kept game whose network the site does not ship (abscls-z0jz). */
-async function openPractice(page: Page) {
-  await page.goto(new URL("/practice", CYANOTYPE).href);
-  await expect(page.getByRole("button", { name: "Play as Blue" })).toBeVisible({ timeout: 60_000 });
+/** Keeps `value` in the browser's storage at `key` before the page's code runs, on each load from now on, as from an
+ *  earlier visit. A write after page.goto can come before the first load's code reads the storage (abscls-z0jz):
+ *  docs/working-notes.md, "A page's code runs after page.goto returns". */
+const keepBefore = (page: Page, key: string, value: object) => page.addInitScript(([k, v]) => {
+  try { localStorage.setItem(k, v); } catch { /* about:blank has no storage */ }
+}, [key, JSON.stringify(value)]);
+
+/** Opens Practice with the card's choices kept: the bot at 32 visits with the preview's network, and `more`. */
+async function openWithChoices(page: Page, manifest: BotManifest, more: object = {}) {
+  await page.setViewportSize({ width: 1376, height: 952 });
+  await keepBefore(page, "cyanotype:practice-choices:1",
+                   { bot: { network: modelOf(manifest), visits: 32, variety: "low" }, side: "random", name: "", ...more });
+  await page.goto(at("/practice"));
 }
 
 /** Starts a game against the practice bot at 32 visits, the player on a side. */
-async function startGame(page: Page, manifest: { artifacts: { kind: string; id: string }[] }, side: "Blue" | "Red") {
-  await page.setViewportSize({ width: 1376, height: 952 });
-  await openPractice(page);
-  await page.evaluate(network => localStorage.setItem("cyanotype:practice-choices:1",
-                        JSON.stringify({ bot: { network, visits: 32, variety: "low" }, side: "random", name: "" })),
-                      manifest.artifacts.find(a => a.kind === "model")!.id);
-  await page.reload();
+async function startGame(page: Page, manifest: BotManifest, side: "Blue" | "Red") {
+  await openWithChoices(page, manifest);
   await page.getByRole("button", { name: `Play as ${side}` }).click({ timeout: 60_000 });
 }
 
@@ -140,13 +146,13 @@ test("a kept game whose network the site does not ship gives way to the settings
   await botManifest(page);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await openPractice(page);
-  await page.evaluate(() => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify({
+  await keepBefore(page, "cyanotype:practice-game:1", {
     version: 1, bot: { network: "no-such-network", visits: 32, variety: "low" }, human: 0, name: "", seed: 1,
     moves: ["1@-13,-1"], builds: [], started: new Date().toISOString(),
-  })));
-  await page.reload();
-  await expect(page.getByRole("status").filter({ hasText: "does not have the network of your last game" })).toBeVisible();
+  });
+  await page.goto(at("/practice"));
+  await expect(page.getByRole("status").filter({ hasText: "does not have the network of your last game" }))
+    .toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("button", { name: "Play as Blue" })).toBeEnabled({ timeout: 60_000 });
   expect(await keptMoves(page)).toBeNull();
   expect(errors).toEqual([]);
@@ -158,13 +164,8 @@ test("the komi on Cyanotype's card, and a game at it: the player's head start in
   const manifest = await botManifest(page);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await page.setViewportSize({ width: 1376, height: 952 });
-  await openPractice(page);
-  await page.evaluate(network => localStorage.setItem("cyanotype:practice-choices:1",
-                        JSON.stringify({ bot: { network, visits: 32, variety: "low" }, komi: 300, side: "random", name: "" })),
-                      manifest.artifacts.find((a: { kind: string }) => a.kind === "model")!.id);
-  await page.reload();
-  await expect(page.locator("#komi")).toHaveValue("300");
+  await openWithChoices(page, manifest, { komi: 300 });
+  await expect(page.locator("#komi")).toHaveValue("300", { timeout: 60_000 });
   await expect(page.locator("#komi-help")).toContainText("You start 300 points ahead.");
   await expect(page.getByText("Stamp Duty ahead", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Play as Blue" }).click({ timeout: 60_000 });
@@ -239,21 +240,14 @@ const TOUCH = "Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a 
   + "of the opponent that touches it, except walls\\.";
 const WHY = { it: `no game can reach it\\. ${TOUCH}`, its: `no game can reach its start\\. ${TOUCH}` };
 const PLAY_HERE = { name: "Play the bot from here" };
-const at = (path: string) => new URL(path, CYANOTYPE).href;
 
 /** The settings of a test from a position, for each page that opens: the board's engine off, the bot on the CPU, and
  *  the bot's choices at 8 visits, the player Red. Gives the bot's network. */
 async function fromPosition(page: Page): Promise<string> {
-  const manifest = await botManifest(page);
-  const network: string = manifest.artifacts.find((a: { kind: string }) => a.kind === "model")!.id;
+  const network = modelOf(await botManifest(page));
   await page.setViewportSize({ width: 1376, height: 952 });
-  await page.addInitScript(([key, settings, choices]) => {
-    try {
-      localStorage.setItem(key, settings);
-      localStorage.setItem("cyanotype:practice-choices:1", choices);
-    } catch { /* about:blank has no storage */ }
-  }, [ENGINE_KEY, JSON.stringify({ ...LITE, on: false }),
-      JSON.stringify({ bot: { network, visits: 8, variety: "low" }, side: "red", name: "" })]);
+  await keepBefore(page, ENGINE_KEY, { ...LITE, on: false });
+  await keepBefore(page, "cyanotype:practice-choices:1", { bot: { network, visits: 8, variety: "low" }, side: "red", name: "" });
   return network;
 }
 
@@ -353,12 +347,10 @@ test("a kept game from a start that no game reaches stops before the bot plays, 
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
   // The page checks a start brought, not a game kept in this browser: the game checks its own start before the bot.
-  await page.addInitScript(game => {
-    try { localStorage.setItem("cyanotype:practice-game:1", game); } catch { /* about:blank has no storage */ }
-  }, JSON.stringify({
+  await keepBefore(page, "cyanotype:practice-game:1", {
     version: 1, bot: { network, visits: 8, variety: "low" }, human: 1, name: "", seed: 1, moves: [], builds: [],
     started: new Date().toISOString(), start: UNREACHED,
-  }));
+  });
   await page.goto(at("/practice"));
   expect(await turn(page)).toMatch(new RegExp(`^The game stopped: ${WHY.its}$`));
   expect((await keptGame(page))?.moves).toEqual([]); // the bot played no move
@@ -375,12 +367,10 @@ test("the standard start in the address brings nothing, and a kept start that th
   await expect(page.getByText(/^The game starts/)).toHaveCount(0);
   await expect(page.getByRole("alert")).toHaveCount(0);
   // The game stops with the engine's refusal, not the page, and Abort ends it
-  await page.addInitScript(game => {
-    try { localStorage.setItem("cyanotype:practice-game:1", game); } catch { /* about:blank has no storage */ }
-  }, JSON.stringify({
+  await keepBefore(page, "cyanotype:practice-game:1", {
     version: 1, bot: { network, visits: 8, variety: "low" }, human: 1, name: "", seed: 1, moves: [], builds: [],
     started: new Date().toISOString(), start: "no position",
-  }));
+  });
   await page.goto(at("/practice"));
   expect(await turn(page)).toMatch(/^The game stopped: \S/);
   await page.getByRole("button", { name: "Abort", exact: true }).click();

@@ -6,7 +6,7 @@
 // engine is off: the review shows the game's positions and its stored results, and searches nothing. Run:
 // npm run test:layout -- tests/practice-komi.spec.ts --project=chromium, with BASE_URL.
 import { readFileSync } from "node:fs";
-import { expect, test, type Page, type Request } from "./pageLog.ts";
+import { expect, test, type Page, type Request } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
@@ -18,8 +18,11 @@ const fixtureMoves = (count?: number) => (JSON.parse(readFileSync(FIXTURE, "utf8
   .replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, count);
 
 /** Keeps a game of `moves` in Practice, as from an earlier visit, then reloads the page, which goes on with it: the
- *  player Blue, the bot at 1 visit a move, and Red's komi `komi`. */
+ *  player Blue, the bot at 1 visit a move, and Red's komi `komi`. It waits first for the settings card: the first
+ *  load's code, when it starts after the write, plays the game too, and can end a whole game before the reload
+ *  (docs/working-notes.md, "A page's code runs after page.goto returns"). */
 async function keepGame(page: Page, komi: number, moves: string[]) {
+  await expect(page.getByRole("button", { name: "Play as Blue" })).toBeVisible({ timeout: 60_000 });
   await page.evaluate(([key, kept]) => localStorage.setItem(key, JSON.stringify(kept)), [GAME, {
     version: 1, bot: { network: NETWORK, visits: 1, variety: "low" }, human: 0, name: "", seed: 1, komi,
     moves, builds: [], started: new Date().toISOString(),
