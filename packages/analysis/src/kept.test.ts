@@ -2,7 +2,7 @@
 // a game or a board. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { boardOfLine, keptKomiProblem, positionKeys, type KeptBranches } from "./kept.ts";
+import { boardOfLine, keptBoardNotice, keptKomiProblem, positionKeys, type KeptBranches } from "./kept.ts";
 
 const MOVES = ["ab", "cd", "ef"];
 const BRANCHES: KeptBranches = { version: 2, nodes: [["ab gh", 0], ["ab gh ef", 1, 1]] };
@@ -29,4 +29,17 @@ test("a kept board's komi beyond the game's limit, either way, is a problem in t
   assert.equal(keptKomiProblem(boardOfLine(["ab"], undefined, 5052), 5052), null);
   assert.equal(keptKomiProblem(boardOfLine(["ab"]), 5052), null);
   assert.equal(keptKomiProblem(null, 5052), null);
+});
+
+test("the notice of a kept board that cannot open names the new board, unless a board brought is on screen", () => {
+  const problem = "its komi must be from -5,052 to 5,052 points: 6000";
+  // The kept board alone: a new board opens in its place (the words that the owner approved)
+  assert.equal(keptBoardNotice(problem, false), "The Analysis board cannot open your own analysis: its komi must be " +
+    "from -5,052 to 5,052 points: 6000. A new board is here instead.");
+  // A link, an analysis file, New or the Import brings a board that replaces it: no new board is on screen
+  assert.equal(keptBoardNotice(problem, true), "The Analysis board cannot open your own analysis: its komi must be " +
+    "from -5,052 to 5,052 points: 6000.");
+  // A problem that ends with its own period keeps one
+  assert.equal(keptBoardNotice("it has a komi. The board can analyze only at komi 0.", true),
+    "The Analysis board cannot open your own analysis: it has a komi. The board can analyze only at komi 0.");
 });

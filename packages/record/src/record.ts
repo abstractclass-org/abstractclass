@@ -31,8 +31,10 @@ export interface Notation<Mark> {
    *  turn. Without it, the game has no set-up start: the first move opens turn 1, and the reader refuses a `Position`
    *  tag. */
   start?(tags: Record<string, string>): { turn: number; first: boolean };
-  /** The largest komi, either way, that the game's engine takes. The reader refuses a `Komi` tag beyond it, which the
-   *  engine would refuse. Without it, the reader takes any komi that a tag can give (KOMI). */
+  /** The largest komi, either way, that the game's engine takes: its cap, past which a practice module refuses the
+   *  komi. The reader refuses a `Komi` tag beyond it: the analysis module searches there with no error, but its
+   *  numbers mean nothing (Hedge School's design 24). Without it, the reader takes any komi that a tag can give
+   *  (KOMI). */
   maxKomi?: number;
 }
 
@@ -92,9 +94,10 @@ export const isKomi = (n: unknown): n is number => typeof n === "number" && komi
 export const komiRange = (max: number): string =>
   `from ${(-max).toLocaleString("en")} to ${max.toLocaleString("en")} points`;
 
-/** Why a komi is beyond the game's limit `max`, either way, or null within it: the game's engine would refuse it.
- *  `shown` is the komi as its source writes it, and `what` names the source: "the Komi tag" for a record and a board's
- *  link, which carry it as a tag. "the Komi tag must be from -5,052 to 5,052 points: 6000". */
+/** Why a komi is beyond the game's limit `max`, either way, or null within it: the record's limit, beyond which the
+ *  game's analysis module gives numbers that mean nothing. `shown` is the komi as its source writes it, and `what`
+ *  names the source: "the Komi tag" for a record and a board's link, which carry it as a tag. "the Komi tag must be
+ *  from -5,052 to 5,052 points: 6000". */
 export const komiLimitProblem = (komi: number, max: number, shown: string | number, what = "the Komi tag"): string | null =>
   Math.abs(komi) > max ? `${what} must be ${komiRange(max)}: ${shown}` : null;
 

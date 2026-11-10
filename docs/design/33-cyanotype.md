@@ -222,7 +222,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       reaches, and gives a finished one the game's end first. So the board editor, the Import and a start from a
       link or a file take the check before they open the Analysis board, as Hedge School's do (its design 21). A
       record from a set-up start takes it before its moves. A board kept in the browser whose start fails the check
-      (one kept before the check) gives way to a new board, with a notice, as a kept board with a komi does.
+      (one kept before the check) gives way to a new board, with a notice, as a kept board with a komi does. A board
+      brought in its place opens at once, and the notice then does not name a new board (design 24, item 15).
       describe_game gives no check: the site asks describe for it (`src/lib/review/recordCheck.ts`, `startChecked`).
     - Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
       back from its notation as the same position, with the same legal moves (`position.engine.test.ts`, at
@@ -519,18 +520,19 @@ This browser keeps the game in progress (`cyanotype:practice-game:1`), the choic
 and the panel's place and size (`cyanotype:practice-panel:1`).
 
 **The komi** (design 24): the card's fourth setting, from the shared card, with Hedge School's range and step. Stamp
-Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the
-size of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does, and
-the game's id in this browser covers the komi, from a record and from a shared review. A record's komi beyond 90,980
-points either way, the most that Blueprints' engine takes, is an error in the record (design 24, item 15), and so is a
-link's or an analysis file's. The Analysis board does not take a komi yet. Its page builds the board's analysis after
-it chooses the board, but at komi 0. So it refuses a record, a link or an analysis file with a komi, with a notice.
-The analysis takes the board's komi in a later change (abscls-8tl1.50). The Import refuses a record with a komi in its
-dialog, for the same reason: it puts the record in the page's address, and the page opens it as a record. The board
-does not open a kept board with a komi either, and opens a new board with a notice. The board keeps only boards at
-komi 0, so this is a defence. A position's notation has no komi. Nothing on Cyanotype writes the tag yet, as
-its practice games are not kept. The board takes a komi as Hedge School's does when Cyanotype keeps its practice games
-("The gaps from Hedge School").
+Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the size
+of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does, and the game's
+id in this browser covers the komi, from a record and from a shared review. A record's komi beyond 90,980 points either
+way, Blueprints' engine's cap, is an error in the record (design 24, item 15), and so is a link's or an analysis file's.
+Past the cap, a practice module refuses the komi. The analysis module searches with no error, but its numbers mean
+nothing: at komi 100,000 every candidate gives Blue 0.0%, and the lead is about 2.4 times the komi. The Analysis board
+does not take a komi yet. Its page builds the board's analysis after it chooses the board, but at komi 0. So it refuses
+a record, a link or an analysis file with a komi, with a notice. The analysis takes the board's komi in a later change
+(abscls-8tl1.50). The Import refuses a record with a komi in its dialog, for the same reason: it puts the record in the
+page's address, and the page opens it as a record. The board does not open a kept board with a komi either, and opens a
+new board with a notice. The board keeps only boards at komi 0, so this is a defence. A position's notation has no komi.
+Nothing on Cyanotype writes the tag yet, as its practice games are not kept. The board takes a komi as Hedge School's
+does when Cyanotype keeps its practice games ("The gaps from Hedge School").
 
 **How it departs from Hedge School's Practice (design 24):**
 

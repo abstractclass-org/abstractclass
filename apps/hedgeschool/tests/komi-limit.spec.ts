@@ -1,8 +1,9 @@
 // Each game's komi limit (design 24, item 15): a board's link and an analysis file beyond the komi that a record can
 // give do not open on Hedge School's Analysis board, and the notice gives the limit in the record's words. A board kept
 // in this browser beyond it (kept from a link before the link's check) gives way to a new board, with a notice, as on
-// Cyanotype (design 33). Each site's Notation page states the limit in its Komi row. The board's engine is off: the
-// refusal comes before any search, and the board's analysis file shows the komi at which the board searches.
+// Cyanotype (design 33). A board brought then takes its place, and the notice names no new board. Each site's
+// Notation page states the limit in its Komi row. The board's engine is off: the refusal comes before any search, and
+// the board's analysis file shows the komi at which the board searches.
 // Cyanotype's case runs when CYANOTYPE_BASE_URL gives its running preview. Run:
 // npm run test:layout -- tests/komi-limit.spec.ts --project=chromium, with BASE_URL (and CYANOTYPE_BASE_URL).
 import { readFileSync } from "node:fs";
@@ -29,7 +30,9 @@ const kept = (komi: number) => boardOfLine(["D10-G10"], undefined, komi);
 const notice = (page: Page) => page.getByRole("alert");
 /** The limit, in the record's words, with the komi beyond it. */
 const LIMIT = "must be from -5,052 to 5,052 points: 6000.";
-const KEPT_REFUSED = `The Analysis board cannot open your own analysis: its komi ${LIMIT} A new board is here instead.`;
+/** The kept board's notice under a board brought in its place: no new board is on screen. */
+const KEPT_GONE = `The Analysis board cannot open your own analysis: its komi ${LIMIT}`;
+const KEPT_REFUSED = `${KEPT_GONE} A new board is here instead.`;
 
 /** Keeps `board` as this browser's Analysis board, as the page keeps it (@abstractclass/storage/db.ts). It writes from
  *  a static file of the site's origin, where none of the site's code opens the database meanwhile. */
@@ -73,12 +76,25 @@ test("a kept board at komi 6,000 does not open: a new board, with the notice, an
 });
 
 test("a kept board at komi 6,000 and a link within the limit: the link's board opens, with no question", async ({ page }) => {
-  // The kept board cannot open, so the board does not ask to replace it, as on Cyanotype
+  // The kept board cannot open, so the board does not ask to replace it, as on Cyanotype. The link's board is on
+  // screen, so the notice does not say that a new board is
   await keep(page, kept(6000));
   await page.goto(boardLink("", board(300), 0));
-  await expect(notice(page)).toHaveText(KEPT_REFUSED, { timeout: 60_000 });
+  await expect(notice(page)).toHaveText(KEPT_GONE, { timeout: 60_000 });
   await expect(moves(page)).toHaveCount(1, { timeout: 60_000 });
   await expect(page.getByRole("dialog", { name: "Replace your analysis?" })).toHaveCount(0);
+  expect((await savedBoard(page)).komi).toBe(300);
+});
+
+test("a kept board at komi 6,000, then an analysis file within the limit: the file's board, and the short notice", async ({ page }) => {
+  await keep(page, kept(6000));
+  await page.goto("/analysis");
+  await expect(notice(page)).toHaveText(KEPT_REFUSED, { timeout: 60_000 });
+  await expect(page.getByRole("button", { name: "Export" })).toBeVisible();
+  const file = { format: "hedge-school-analysis", version: ANALYSIS_FILE_VERSION, exported: "", site: "x", board: board(300), analyses: [] };
+  await fileInput(page).setInputFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  await expect(moves(page)).toHaveCount(1, { timeout: 60_000 });
+  await expect(notice(page)).toHaveText(KEPT_GONE);
   expect((await savedBoard(page)).komi).toBe(300);
 });
 

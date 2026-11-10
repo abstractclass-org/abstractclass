@@ -27,7 +27,7 @@
   import ReplaceAnalysis, { ReplaceQuestion } from "@abstractclass/review/ReplaceAnalysis.svelte";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
-  import { BOARD_ID, boardOfLine, type KeptBoard } from "@abstractclass/analysis/kept.ts";
+  import { BOARD_ID, boardOfLine, keptBoardNotice, type KeptBoard } from "@abstractclass/analysis/kept.ts";
   import { onlyJudged, review, type Unit } from "@abstractclass/analysis/model.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
@@ -100,6 +100,9 @@
    *  The address names the source (`via`): a tool's game from the import page, or the Import's paste. A record or a
    *  position with none is a link's. The board editor's position is the site's own: neither. */
   let imported: ImportSource | undefined, loaded: LoadSource | undefined;
+  /** Why the board kept here could not open (a komi, or a start that no game reaches), or null. A board brought then
+   *  replaces it at once, and the notice names no new board. */
+  let keptGone: string | null = null;
   const OWN: string[] = ["editor"];
   /** The board kept here, at its kept place, and a board brought after the `#`, which leaves the address: a record's
    *  line (`record`, from its `Position` tag or from `position`), a set-up start alone (`position`), or a link's or a
@@ -111,7 +114,8 @@
     try {
       refuseKomi(kept?.komi);
     } catch (e) {
-      notice = `The Analysis board cannot open your own analysis: ${sentence(errorText(e))} A new board is here instead.`;
+      keptGone = errorText(e);
+      notice = keptBoardNotice(keptGone, false);
       kept = null;
     }
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
@@ -172,7 +176,8 @@
         let kept = chosen.kept;
         const keptProblem = kept?.start ? await startProblem(rules, kept.start, "its start") : null;
         if (keptProblem) {
-          notice = `The Analysis board cannot open your own analysis: ${sentence(keptProblem)} A new board is here instead.`;
+          keptGone = keptProblem;
+          notice = keptBoardNotice(keptGone, false);
           kept = null;
         }
         // The notice says what cannot open, so the problem names the start by it: "this position: no game can reach
@@ -181,6 +186,7 @@
           : b.board.start ? await startProblem(rules, b.board.start, b.kind === "position" ? "it" : "its start") : null;
         if (b && problem) refuse(problem, b.kind, true);
         brought = b && !problem && (!kept?.nodes.length || await question.ask()) ? b : undefined;
+        if (brought && keptGone) notice = keptBoardNotice(keptGone, true);
         board = brought?.board ?? kept;
         keptAt = chosen.at;
         return new GameAnalysis(blueprints, pool, [], BOARD_ID, board?.start ?? null);

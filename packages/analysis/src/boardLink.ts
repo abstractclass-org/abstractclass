@@ -25,8 +25,8 @@ export function boardLink(origin: string, board: KeptBoard, at: number, code: Mo
 
 /** A board from a link's `packed` and `at`. `start` reads the link's `Position` tag as the board's set-up start: none
  *  for the standard start. The `Komi` tag is the board's komi: none for 0. `maxKomi` is the game's komi limit, either
- *  way (its record's `MAX_RECORD_KOMI`): the engine would refuse a komi beyond it. Throws an Error that says what is
- *  wrong with the link. */
+ *  way (its record's `MAX_RECORD_KOMI`, its engine's cap): beyond it, the analysis module searches with no error, but
+ *  its numbers mean nothing (Hedge School's design 24). Throws an Error that says what is wrong with the link. */
 export function readBoardLink(packed: string, at: string | null, code: MoveCode,
                               start: (position: string | undefined) => string | null | undefined,
                               maxKomi: number): { board: KeptBoard; at: number } {

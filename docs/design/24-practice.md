@@ -206,13 +206,16 @@ How strong each setting plays against people is not measured yet.
     - **Each game's limit:** a komi beyond what the game's engine takes is an error in the record too, and its message
       names the limit. Enclosure's engine takes up to 5,052 points either way, its score target cap (the engine
       repository's `Rules::MAX_USER_KOMI`). Blueprints' engine takes up to 90,980 points (its board's area and KataGo's
-      margin, at its score scale). The engine repository's design 04 gives the tag no limit. Without the site's check,
-      a practice module refuses a larger komi with its own message. Enclosure's analysis module searches at it with no
-      error, but its numbers there mean nothing. The card's range stays ±3,000 (item 2). A board's link and an analysis
-      file beyond the limit do not open either. Their message is the record's, and the file's results do not go to the
-      store. A board kept in the browser beyond the limit (kept from a link before the link's check) does not open. A
-      new board opens in its place, with the record's message as a notice. Cyanotype does the same for a kept board
-      that it cannot open (design 33). Each Notation page's Komi row states the limit.
+      margin, at its score scale). The engine repository's design 04 gives the tag no limit. Without the site's check, a
+      practice module refuses a larger komi with its own message. Each game's analysis module (Enclosure's and
+      Blueprints') searches at it with no error, but its numbers there mean nothing. The card's range stays ±3,000 (item
+      2). A board's link and an analysis file beyond the limit do not open either. Their message is the record's, and
+      the file's results do not go to the store. A board kept in the browser beyond the limit (kept from a link before
+      the link's check) does not open. A new board opens in its place, with the record's message as a notice. Cyanotype
+      does the same for a kept board that it cannot open (design 33). A board brought (a link, an analysis file, New or
+      the Import) takes the kept board's place at once. The notice then does not say that a new board is here: "The
+      Analysis board cannot open your own analysis: its komi must be from -5,052 to 5,052 points: 6000." Each Notation
+      page's Komi row states the limit.
     - **The limit is a copy:** each site's record copies its engine's cap. A release that moves the cap would make
       the site refuse a komi that the engine takes, or pass one that it refuses. So each engine update checks it.
       `npm run engine` sends each practice module GTP's `komi` at the site's limit either way, and at half a point
@@ -407,7 +410,8 @@ How strong each setting plays against people is not measured yet.
   A board's link and an analysis file take it too (`readBoardLink` in `packages/analysis/src/boardLink.ts`,
   `readAnalysisFile` in `files.ts`), and so does the Analysis board's kept board (`keptKomiProblem` in `kept.ts`,
   in `chooseBoard` of `src/routes/analysis/+page.svelte`). Their words are the record's (`komiLimitProblem` in
-  `packages/record/src/record.ts`). The Notation page's Komi row states the limit. The engine step checks the limit
+  `packages/record/src/record.ts`). The kept board's notice, with or without its new board, is `keptBoardNotice` in
+  `kept.ts`, on both sites. The Notation page's Komi row states the limit. The engine step checks the limit
   against each practice module's GTP `komi` (`checkKomiCap` in `packages/engine/src/practice-check.ts`). Each site
   gives the step its limit (its `scripts/engine.mjs`). The analysis modules share the practice modules' cap, because
   the step takes every engine module of the lock from one engine commit (design 03, "The engine's artifacts"). A site

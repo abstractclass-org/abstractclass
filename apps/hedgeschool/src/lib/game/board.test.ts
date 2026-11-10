@@ -53,7 +53,7 @@ test("a link beyond the komi that a record can give does not open, in the record
     new URLSearchParams(new URL(boardLink("https://example.com", { version: 2, main: [], nodes: [], komi }, 0)).hash.slice(1)).get("packed")!;
   assert.equal(readBoardLink(packed(MAX_RECORD_KOMI), null).board.komi, 5052);
   assert.equal(readBoardLink(packed(-MAX_RECORD_KOMI), null).board.komi, -5052);
-  // Komi 6,000: before, the board opened it, and the engine refused it
+  // Komi 6,000: before, the board opened it, and the analysis module searched at it with numbers that meant nothing
   assert.throws(() => readBoardLink(packed(6000), null),
     (e: Error) => e.message === "the Komi tag must be from -5,052 to 5,052 points: 6000");
   assert.throws(() => readBoardLink(packed(-5052.5), null), /from -5,052 to 5,052 points: -5052\.5$/);

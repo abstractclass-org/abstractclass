@@ -38,6 +38,7 @@
   import { checkMoves, checkPosition } from "#lib/game/check.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
+  import { keptBoardNotice } from "@abstractclass/analysis/kept.ts";
   import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
@@ -106,10 +107,10 @@
     // A kept board beyond the komi's limit (design 24), kept from a link before the link's check, does not open: the
     // engine's numbers mean nothing beyond its cap, and a link or a file of the board would not open again. A new board
     // opens, as Cyanotype's does for a kept board that it cannot open (its design 33), and replaces it in the store at
-    // its first change.
+    // its first change. A board brought replaces it at once: the notice then names no new board.
     const keptProblem = keptKomiProblem(kept);
     if (keptProblem) {
-      notice = `The Analysis board cannot open your own analysis: ${sentence(keptProblem)} A new board is here instead.`;
+      notice = keptBoardNotice(keptProblem, false);
       kept = null;
     }
     const at = readLocal(AT_KEY), keptAt = at ? at.split(" ") : [];
@@ -139,6 +140,7 @@
       return { board: kept, at: keptAt };
     }
     if (kept?.nodes.length && !(await question.ask())) return { board: kept, at: keptAt };
+    if (keptProblem) notice = keptBoardNotice(keptProblem, true);
     return { board: brought.board, atMain: brought.at, imported, loaded };
   }
   /** The notice of a line brought that cannot open: the board kept here opens. Where the kept board could not open

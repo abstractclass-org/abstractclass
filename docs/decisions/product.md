@@ -10936,3 +10936,28 @@ load. In both, the Practice page showed no content after a load.
   HTTP error and crash to a case that fails. Playwright's trace (`retain-on-failure`) is the published method for
   this evidence, but it keeps the body of each response, and these cases load the engine's files of many megabytes.
   The listeners add no time that the suite shows: the three spec files that use it took 227.9 s, 2.2 s and 25.6 s.
+
+### The komi limit's words, and the kept board's notice under a board brought (2026-11-10)
+
+- **Measured** (abscls-x2d0): Blueprints' analysis module, Cyanotype's lock engine-887be290 (protocol 0.8.0, network
+  b6c96-s47076224-d3087660), does not refuse a komi past its cap of 90,980 points. One job of `scripts/machine run`
+  sent it searches of 200 visits on the CPU module in Node (`nodeEngine` of `packages/engine`, one thread), at the
+  standard start and after the first 20 moves of the review's test game. At komi 90,980.5, 100,000, 1,000,000 and
+  -1,000,000 it searched with no error. Every candidate gave Blue 0.0% (100.0% at -1,000,000), and the lead was about
+  2.4 times the komi: -243,002 at 100,000 and -2,320,255 at 1,000,000. At komi 0 the start gave Blue 50.4% and a lead
+  of 10.2. So both games' analysis modules search past the cap, as Enclosure's did at komi 6000 (the entry "Hedge
+  School's kept Analysis board keeps the komi limit"), and only a practice module refuses the komi.
+- **At the limit itself** the numbers mean nothing either: at komi 90,980 the lead was -220,504, about 2.4 times the
+  komi, and the candidates had 4 to 9 visits each. The limit is the engine's input cap. Stamp Duty's run trains komi
+  out to ±3,000 points, and the card's range stays ±3,000. This change keeps the limit as it is.
+- **The words:** the comments of `readBoardLink` (`packages/analysis/src/boardLink.ts`), `readAnalysisFile`
+  (`files.ts`), the record's `maxKomi` and `komiLimitProblem` (`packages/record/src/record.ts`) and Hedge School's
+  `board.test.ts` no longer say that the engine would refuse such a komi. They say that the limit is the record's, and
+  that beyond it the analysis module gives numbers that mean nothing. Design 24 (item 15) and design 33 ("The komi")
+  say the same of both games.
+- **The kept board's notice under a board brought:** when a link, an analysis file, New or the Import brings a board
+  that replaces a kept board that cannot open, the brought board is on screen at once. The notice then drops its last
+  sentence: "The Analysis board cannot open your own analysis: its komi must be from -5,052 to 5,052 points: 6000."
+  The notice of the kept board alone stays word for word, as the owner approved it. `keptBoardNotice` in
+  `packages/analysis/src/kept.ts` gives both forms. Both sites take it: Hedge School's kept board beyond the limit, and
+  Cyanotype's kept board with a komi or with a start that no game reaches.

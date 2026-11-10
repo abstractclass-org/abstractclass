@@ -93,8 +93,9 @@ export function analysisFileName(format: string, now = new Date()): string {
 /** Reads an analysis file of `site` in `format`. Throws an Error that tells the player what is wrong. Its version rule
  *  is the review file's (Hedge School's design 13). A board's komi is a number of whole or half points, as a record's
  *  `Komi` tag is (Hedge School's design 24). It is within the game's limit `maxKomi`, either way (its record's
- *  `MAX_RECORD_KOMI`): the engine would refuse a komi beyond it. A site reads the file before it keeps its results
- *  (keepAnalyses), so a file that the board cannot open puts none in the store. */
+ *  `MAX_RECORD_KOMI`, its engine's cap): beyond it, the analysis module searches with no error, but its numbers mean
+ *  nothing. A site reads the file before it keeps its results (keepAnalyses), so a file that the board cannot open
+ *  puts none in the store. */
 export function readAnalysisFile(text: string, site: string, format: string, maxKomi: number): AnalysisFile {
   const f = readSiteFile(text, site, format, ANALYSIS_FILE_VERSION, "analysis file") as Partial<AnalysisFile> & { analyses: [string, unknown][] };
   const b = f.board;
