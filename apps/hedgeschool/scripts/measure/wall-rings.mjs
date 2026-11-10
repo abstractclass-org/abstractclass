@@ -1,62 +1,69 @@
 // The weak walls' rings (design 30, "The weak walls", item 3; weakWalls.ts, `wallInk`): drawn in the real page, at the
 // positions that show the walls (design 30, "Positions that show them"), with a strip and the numbers beside them.
-// - The chances that the two positions show, read from the rings' strokes (their place on the ramp, to half a point).
+// - The chances that the two positions show, read from the rings' strokes (each stroke's place on the ramp, in whole
+//   percent: to half a point of chance).
 // - A board image per position, window width (1400 and 390 pixels) and board (light, dark): the Analysis board after
 //   Space six times from the start, and the review fixture after 40 edges.
 // - A strip per board: a ring at 10, 20, ... 100% on a Blue and on a Red edge, with its number, at the board's scale in
 //   a window 1400 pixels wide.
 // - The numbers: for each board, the colour distance in OKLab (ΔE, × 100) between 70% and 85% and between 20% and 35%,
-//   and each ring's contrast against the board (WCAG 2.2's ratio).
+//   each ring's and each token's contrast against the board (WCAG 2.2's ratio), and how near a ring comes to the
+//   players' blue and red and the signs' green and yellow (the least ΔE over the whole percentages from 10% to 100%).
 // In Playwright's Chromium, headless, with the layout test's launch options (off the GPU), and the engine's GPU off:
 // the walls come from a CPU worker. The browser takes the build from the script, at an address that no server holds
 // (ORIGIN), as a preview serves it (speed.mjs, `preview`): no port, so no other server can answer in its place. Run it
 // in apps/hedgeschool, after a build:
 //
 //   node scripts/measure/wall-rings.mjs <build dir> <out dir> [workers]
-import { chromium } from "@playwright/test";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import config from "../../playwright.config.ts";
-import { checkLaunch } from "../edge.mjs";
-import { FIXTURE, headerRules, stepTo, watchSweep } from "./speed.mjs";
+import { headerRules, launch, searchesEnded, stepTo, storeReview, watchSweep } from "./speed.mjs";
 import { WALL_MIN, wallInk } from "../../src/lib/review/weakWalls.ts";
 
 const [dir, out, workersArg = "2"] = process.argv.slice(2);
 const workers = Number(workersArg);
 mkdirSync(out, { recursive: true });
-const launchOptions = config.projects.find(p => p.name === "chromium").use.launchOptions;
-checkLaunch(launchOptions);
 
-// The colours, as Chromium mixes them: OKLab from sRGB (Björn Ottosson's matrices), and back, cut to sRGB's range
+// The colours, as Chromium mixes them: OKLab from sRGB (Björn Ottosson's matrices), and back to linear sRGB, kept in
+// its range
 const lin = c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 const gam = c => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
-const rgbOfHex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
-function oklab(rgb) {
-  const [r, g, b] = rgb.map(lin);
+/** OKLab, from a colour "#rrggbb". */
+function oklab(hex) {
+  const [r, g, b] = [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
   const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
   return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
           0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
 }
-function rgbOf([L, a, b]) {
+function linearOf([L, a, b]) {
   const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
   const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
   return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-          -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s].map(c => Math.min(1, Math.max(0, gam(c))));
+          -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s].map(c => Math.min(1, Math.max(0, c)));
 }
-const luminance = rgb => { const [r, g, b] = rgb.map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const luminance = lab => { const [r, g, b] = linearOf(lab); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const contrast = (x, y) => { const [a, b] = [luminance(x), luminance(y)].sort((p, q) => q - p); return (a + 0.05) / (b + 0.05); };
-const hexOf = rgb => "#" + rgb.map(c => Math.round(c * 255).toString(16).padStart(2, "0")).join("");
+const hexOf = lab => "#" + linearOf(lab).map(c => Math.round(gam(c) * 255).toString(16).padStart(2, "0")).join("");
 const STROKE = /var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)/;
 /** A ring's stroke, a color-mix of two tokens in OKLab, as an OKLab colour: `tokens` gives each token's hex. */
 function inkLab(stroke, tokens) {
   const [, hi, p, lo] = stroke.match(STROKE);
-  const [x, y] = [oklab(rgbOfHex(tokens[hi])), oklab(rgbOfHex(tokens[lo]))];
+  const [x, y] = [oklab(tokens[hi]), oklab(tokens[lo])];
   return y.map((v, i) => v + (x[i] - v) * (Number(p) / 100));
 }
 const dE = (x, y) => 100 * Math.hypot(...x.map((v, i) => v - y[i]));
-const TOKENS = ["--board-bg", "--board-dot", "--blue", "--red", "--wall-low", "--wall-mid", "--wall-high", "--text"];
+/** A stroke's two tokens and its percentage, as one key. */
+const strokeKey = stroke => stroke.match(STROKE)?.slice(1).join(" ");
+/** The chance of each stroke that `wallInk` gives, by its key: the ramp's places, each whole percent of it from 10%. */
+const CHANCE_OF = new Map(Array.from({ length: 101 }, (_, place) => {
+  const chance = WALL_MIN + ((1 - WALL_MIN) * place) / 100;
+  return [strokeKey(wallInk(chance)), chance];
+}));
+const NEAR = ["--blue", "--red", "--sign-green", "--sign-yellow"]; // the colours that a ring must not be taken for
+const TOKENS = ["--board-bg", "--text", "--wall-low", "--wall-mid", "--wall-high", ...NEAR];
 const THEMES = ["light", "dark"];
 const WIDTHS = [[1400, 900], [390, 844]];
 
@@ -65,9 +72,10 @@ const WIDTHS = [[1400, 900], [390, 844]];
 const ORIGIN = "https://hedge-school.test";
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
                 ".json": "application/json", ".wasm": "application/wasm", ".svg": "image/svg+xml", ".png": "image/png",
-                ".ico": "image/x-icon", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml" };
+                ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".txt": "text/plain; charset=utf-8",
+                ".xml": "application/xml" };
 const rules = headerRules(dir), isFile = p => (existsSync(p) && statSync(p).isFile() ? p : undefined);
-const browser = await chromium.launch(launchOptions);
+const browser = await launch(config.projects.find(p => p.name === "chromium").use.launchOptions);
 const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 const unserved = [];
 await context.route(`${ORIGIN}/**`, route => {
@@ -93,20 +101,19 @@ page.on("pageerror", e => errors.push(e.message));
 await page.goto(ORIGIN);
 if (!/Hedge School/.test(await page.title())) throw new Error(`the build serves "${await page.title()}"`);
 
-const ended = () => page.waitForFunction(() => window.__searches.every(s => s.ended !== undefined), null, { timeout: 300_000 })
-  .catch(() => console.log("  (a search still runs after 300 s)"));
+const ended = () => searchesEnded(page, 300_000).catch(() => console.log("  (a search still runs after 300 s)"));
 const rings = page.locator("g.walls circle.wall-ring");
 /** Waits until the rings show and their count holds for a second. */
 async function ringsShown() {
   await rings.first().waitFor({ timeout: 180_000 });
   for (let last = -1, now = await rings.count(); now !== last; last = now, now = await rings.count()) await page.waitForTimeout(1000);
 }
-/** The chances of the rings on the page, read from their strokes (the place on the ramp from 10% to 1, in whole
- *  percent, which the stroke gives in one of its two parts): to half a point. */
-const chancesShown = () => rings.evaluateAll((cs, source) => cs.map(c => {
-  const [, hi, p] = c.getAttribute("style").match(new RegExp(source));
-  return hi === "--wall-high" ? 50 + Number(p) / 2 : Number(p) / 2;
-}), STROKE.source).then(ms => ms.map(m => Math.round((WALL_MIN + ((1 - WALL_MIN) * m) / 100) * 1000) / 1000).sort((a, b) => a - b));
+/** The chances of the rings on the page, from their strokes. A stroke that `wallInk` does not give stops the script. */
+const chancesShown = async () => (await rings.evaluateAll(cs => cs.map(c => c.getAttribute("style")))).map(style => {
+  const chance = CHANCE_OF.get(strokeKey(style));
+  if (chance === undefined) throw new Error(`a ring's stroke that wallInk does not give: ${style}`);
+  return Math.round(chance * 1000) / 1000;
+}).sort((a, b) => a - b);
 /** The board with its top margin (the switches and the legend), as an image. */
 async function boardShot(file) {
   await page.mouse.move(0, 0);
@@ -119,15 +126,8 @@ async function boardShot(file) {
 /** The board's pixels per lattice unit, in this window. */
 const unit = () => page.locator("svg.board").first().evaluate(s => s.getBoundingClientRect().width / s.viewBox.baseVal.width);
 
-// The positions. The Analysis board: Home, then Space six times, each after the search ends, so that Space plays the
-// engine's first choice. The board keeps its place, so its page opens there again.
-const POSITIONS = {
-  analysis6: { path: "/analysis", ready: async () => { await page.locator("svg.board").first().waitFor(); } },
-  review40: { path: "/review", ready: async () => {
-    await page.getByText(/^Review done/).first().waitFor({ timeout: 300_000 });
-    await stepTo(page, 40);
-  } },
-};
+// The Analysis board: Home, then Space six times, each after the search ends, so that Space plays the engine's first
+// choice
 await page.goto(`${ORIGIN}/analysis`);
 await page.locator("svg.board").first().waitFor({ timeout: 60_000 });
 await page.locator("body").click({ position: { x: 1, y: 1 } });
@@ -145,40 +145,41 @@ for (let k = 1; k <= 6; k++) {
     throw e;
   });
 }
-const analysisMoves = await page.locator(".mv").allTextContents();
-console.log(`Analysis board: ${analysisMoves.map(t => t.trim()).join(" ")}`);
-// The review fixture, imported once: its page then opens the stored review
-await page.goto(`${ORIGIN}/review`);
-await page.locator('input[type="file"][accept*="json"]').and(page.locator("[data-ready]")).first().setInputFiles(FIXTURE);
-await page.waitForURL(/#game=/, { timeout: 60_000 });
-POSITIONS.review40.hash = new URL(page.url()).hash;
-POSITIONS.analysis6.hash = "";
+const analysisMoves = (await page.locator(".mv").allTextContents()).map(t => t.trim()).join(" ");
+console.log(`Analysis board: ${analysisMoves}`);
+// The review fixture, kept in this browser: the import's page loads itself again to review it, until "Review done"
+await storeReview(page, ORIGIN);
 
+// The positions, each at its address: the Analysis board keeps its place, so its page opens there again
+const POSITIONS = {
+  analysis6: { address: `${ORIGIN}/analysis`, ready: async () => {
+    await page.locator("svg.board").first().waitFor();
+    await page.locator("body").click({ position: { x: 1, y: 1 } });
+  } },
+  review40: { address: page.url(), ready: async () => {
+    await page.getByText(/^Review done/).first().waitFor({ timeout: 300_000 });
+    await stepTo(page, 40);
+  } },
+};
 const chances = {}, tokens = {}, images = [];
 let scale = 0;
 for (const [name, position] of Object.entries(POSITIONS)) {
   await page.setViewportSize({ width: 1400, height: 900 });
-  // A navigation of the page before (the review's import replaces its address) can abort this one: then once again
-  await page.goto(`${ORIGIN}${position.path}${position.hash}`).catch(async e => {
-    if (!/ERR_ABORTED/.test(e.message)) throw e;
-    await page.waitForTimeout(1000);
-    await page.goto(`${ORIGIN}${position.path}${position.hash}`);
-  });
+  await page.goto(position.address);
   await position.ready();
-  if (name === "analysis6") await page.locator("body").click({ position: { x: 1, y: 1 } });
   await ended();
   await ringsShown();
   chances[name] = await chancesShown();
+  scale ||= await unit();
   for (const [width, height] of WIDTHS) {
     await page.setViewportSize({ width, height });
     for (const theme of THEMES) {
       await page.evaluate(t => (document.documentElement.dataset.theme = t), theme);
       await page.waitForTimeout(400);
-      if (!tokens[theme]) {
-        tokens[theme] = await page.evaluate(names => Object.fromEntries(names.map(n =>
-          [n, getComputedStyle(document.documentElement).getPropertyValue(n).trim()])), TOKENS);
-      }
-      if (width === 1400 && !scale) scale = await unit();
+      tokens[theme] ??= await page.evaluate(names => {
+        const style = getComputedStyle(document.documentElement);
+        return Object.fromEntries(names.map(n => [n, style.getPropertyValue(n).trim()]));
+      }, TOKENS);
       const file = `walls-${name}-${width}-${theme}.png`;
       await boardShot(file);
       images.push(file);
@@ -212,12 +213,19 @@ for (const theme of THEMES) {
 }
 
 // The numbers
+/** The chances at each whole percentage from 10% to 100%. */
+const EVERY_PERCENT = Array.from({ length: 91 }, (_, i) => WALL_MIN + i / 100);
 const numbers = {};
 for (const theme of THEMES) {
-  const t = tokens[theme], lab = c => inkLab(wallInk(c), t), bg = rgbOfHex(t["--board-bg"]);
+  const t = tokens[theme], lab = c => inkLab(wallInk(c), t), bg = oklab(t["--board-bg"]);
   numbers[theme] = {
     dE70_85: dE(lab(0.7), lab(0.85)), dE20_35: dE(lab(0.2), lab(0.35)),
-    rings: STEPS.map(c => ({ chance: c, ink: hexOf(rgbOf(lab(c))), contrast: contrast(rgbOf(lab(c)), bg) })),
+    tokens: Object.fromEntries(["--wall-low", "--wall-mid", "--wall-high"].map(name => [name, contrast(oklab(t[name]), bg)])),
+    rings: STEPS.map(c => ({ chance: c, ink: hexOf(lab(c)), contrast: contrast(lab(c), bg) })),
+    nearest: Object.fromEntries(NEAR.map(name => {
+      const [d, chance] = EVERY_PERCENT.map(c => [dE(lab(c), oklab(t[name])), c]).reduce((p, q) => (q[0] < p[0] ? q : p));
+      return [name, { dE: d, chance }];
+    })),
   };
 }
 const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
@@ -228,11 +236,16 @@ for (const theme of THEMES) {
   lines.push(`| ${theme} | ${f1(n.dE70_85)} | ${f1(n.dE20_35)} | ${n.rings.map(r => f2(r.contrast)).join(" | ")} |`);
 }
 const summary = [
-  `Analysis board's moves: ${analysisMoves.map(t => t.trim()).join(" ")}`,
+  `Analysis board's moves: ${analysisMoves}`,
   ...Object.entries(chances).map(([n, cs]) => `${n}: ${cs.length} rings, chances ${cs.map(c => Math.round(c * 1000) / 10).join(" ")}`),
   `tokens: ${JSON.stringify(tokens)}`,
   `the board's scale at 1400 pixels: ${f1(scale)} pixels per lattice unit`,
   "", ...lines, "",
+  ...THEMES.map(theme => `the tokens' contrasts on the ${theme} board: ` + Object.entries(numbers[theme].tokens)
+    .map(([name, c]) => `${name} ${f2(c)}:1`).join(", ")),
+  ...THEMES.map(theme => `nearest on the ${theme} board (ΔE, at a chance): ` + Object.entries(numbers[theme].nearest)
+    .map(([name, { dE: d, chance }]) => `${name} ${f1(d)} at ${Math.round(chance * 100)}%`).join(", ")),
+  "",
   `page errors: ${errors.length ? errors.join("; ") : "none"}`,
   `paths not in the build: ${unserved.length ? [...new Set(unserved)].join(", ") : "none"}`,
 ];

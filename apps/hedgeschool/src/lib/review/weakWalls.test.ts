@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
 import { siteThemes } from "@abstractclass/site/themeTokens.ts";
-import { WALL_MIN, chanceText, wallInk, wallMarks, wallMix, wallReading } from "./weakWalls.ts";
+import { WALL_MIN, chanceText, wallInk, wallMarks, wallReading } from "./weakWalls.ts";
 
 const N = 19;
 /** The engine's field with these chances, by player and point, and null elsewhere. */
@@ -49,24 +49,23 @@ test("a chance out of the range, or not a number, gets no mark", () => {
   assert.deepEqual(wallMarks(walls), []);
 });
 
-test("a ring's colour: the ramp goes from its faint end at the smallest value marked to its bold end at 1", () => {
-  assert.equal(wallMix(WALL_MIN), 0);
-  assert.equal(wallMix(1), 100);
-  assert.equal(wallMix(0.55), 50);
-  assert.equal(wallMix(0), 0); // under the smallest value, as at it
-});
-
-test("a ring's colour: a ramp of three tokens, through the middle one at the ramp's half", () => {
+test("a ring's colour: a ramp of three tokens from the smallest value marked to 1, the middle one at its half", () => {
   assert.equal(wallInk(WALL_MIN), "color-mix(in oklab, var(--wall-mid) 0%, var(--wall-low))");
   assert.equal(wallInk(0.325), "color-mix(in oklab, var(--wall-mid) 50%, var(--wall-low))");
   assert.equal(wallInk(0.55), "color-mix(in oklab, var(--wall-mid) 100%, var(--wall-low))");
   assert.equal(wallInk(0.775), "color-mix(in oklab, var(--wall-high) 50%, var(--wall-mid))");
   assert.equal(wallInk(1), "color-mix(in oklab, var(--wall-high) 100%, var(--wall-mid))");
+  assert.equal(wallInk(0), wallInk(WALL_MIN)); // under the smallest value, as at it
 });
 
 // The tokens as the site's style imports them, by board: the shared ones, the view's, then Hedge School's
 const THEMES = siteThemes(["@abstractclass/site/site.css", "@abstractclass/review/review.css", "../../app.css"]
   .map(sheet => new URL(import.meta.resolve(sheet))));
+/** A token's colour on a board, through the tokens that it names (`var(--name)`). */
+const colourOf = (theme: Record<string, string>, name: string): string => {
+  const named = theme[name]?.match(/^var\((--[\w-]+)\)$/);
+  return named ? colourOf(theme, named[1]) : theme[name];
+};
 const linear = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
   .map(c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
 /** OKLab (Björn Ottosson's), from a colour "#rrggbb". */
@@ -79,7 +78,7 @@ function oklab(hex: string): number[] {
   return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
     0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
 }
-/** WCAG's relative luminance of an OKLab colour, cut to sRGB's range. */
+/** WCAG's relative luminance of an OKLab colour, kept in sRGB's range. */
 function luminance([L, a, b]: number[]): number {
   const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
   const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
@@ -124,9 +123,17 @@ for (const [board, theme] of Object.entries(THEMES)) {
   });
 
   test(`the rings on the ${board} board: 70% and 85% read apart`, () => {
-    // The ramp of one hue that D replaced: 0.055 on the light board, 0.047 on the dark
+    // The ramp of one hue before it: 0.055 on the light board, 0.047 on the dark
     const d = distance(ink(0.7), ink(0.85));
     assert.ok(d > 0.06, `70% to 85%: ${d.toFixed(3)} in OKLab`);
+  });
+
+  test(`the rings on the ${board} board: apart from the players' red and the signs' green at every chance`, () => {
+    /** The least distance in OKLab from a ring at a whole percentage, from 10% to 100%, to the token `name`. */
+    const nearest = (name: string) => Math.min(...Array.from({ length: 91 },
+      (_, i) => distance(ink(WALL_MIN + i / 100), oklab(colourOf(theme, name)))));
+    assert.ok(nearest("--red") >= 0.1, `to the players' red: ${nearest("--red").toFixed(3)}`);
+    assert.ok(nearest("--sign-green") >= 0.14, `to the signs' green: ${nearest("--sign-green").toFixed(3)}`);
   });
 }
 

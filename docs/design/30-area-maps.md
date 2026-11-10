@@ -5,7 +5,7 @@ position that the board shows, the maps that a stored review lacks added on dema
 the maps of a review snapshot. 2026-11-04: the signs of after vs before in green and yellow, by good and bad for the
 player who chose. 2026-11-08: a prototype of the weak walls, for a look before a decision ("The weak walls: a
 prototype"). 2026-11-09: the weak walls in one form, a ring whose colour gives the chance, and the margin's texts
-that fit a window 360 pixels wide.
+that fit a window 360 pixels wide. 2026-11-10: the rings' colour in a ramp of three hues.
 
 ## The players and their questions
 
@@ -353,7 +353,7 @@ The site follows KaTrain's review (design 05). The display departs from it on pu
 ## The weak walls: a prototype
 
 **Status:** a prototype, built for a look on the page. The look kept the weak walls in one form: a ring of one size,
-from a light to a dark brown, at each point from 10% up. The points in "Still open" are not decided.
+in a ramp of three hues, at each point from 10% up. The points in "Still open" are not decided.
 
 ### What the engine gives
 
@@ -380,26 +380,27 @@ chance that one of them is cut. So the board marks the points, and names no chan
 2. **A mark at each point whose chance is 10% or more** (`WALL_MIN` in `src/lib/review/weakWalls.ts`). In HedgeFund
    0.2's self-play, about half of the points on edges are under 10%, and 1.6% of those were cut.
 3. **A ring of one size at each marked point, whose colour gives the chance.** The colour is a ramp of three hues
-   (`wallInk` and `wallMix` in `src/lib/review/weakWalls.ts`, the tokens in `src/app.css`). It goes from `--wall-low`
-   at 10% through `--wall-mid` at 55% to `--wall-high` at 1, in two straight parts in OKLab. On the light board it
-   goes from yellow through orange to brown, as ColorBrewer's YlOrBr. On the dark board it goes the other way, from
-   brown through orange to yellow. So on both boards, the likelier the cut, the bolder the ring against the board:
-   from 2.07:1 to 9.39:1 on the light board, and from 2.50:1 to 9.27:1 on the dark board (WCAG 2.2's contrast).
+   (`wallInk` in `src/lib/review/weakWalls.ts`, the tokens in `src/app.css`). It goes from `--wall-low` at 10%
+   through `--wall-mid` at 55% to `--wall-high` at 1, in two straight parts in OKLab. On the light board it goes from
+   yellow through orange to brown, as ColorBrewer's YlOrBr. On the dark board it goes the other way, from brown
+   through orange to yellow. So on both boards, the likelier the cut, the bolder the ring against the board. Its
+   contrast (WCAG 2.2) goes from 2.07:1 to 9.39:1 on the light board, and from 2.50:1 to 9.27:1 on the dark board.
    - **Why three hues:** the first ramp had one hue, a brown from light to dark (an amber from dim to bright on the
      dark board). On real positions, its 70% and 85% looked almost the same. In OKLab they are 0.055 apart on the
      light board and 0.047 on the dark board. A change of hue adds distance that one hue cannot give. On the ramp of
      three hues, 70% and 85% are 0.066 and 0.063 apart, and 20% and 35% are 0.059 and 0.064 apart (one hue: 0.058 and
-     0.050). Five forms were drawn at the positions below (docs/decisions/product.md, "The weak walls' colour: a ramp
-     of three hues"). Classes of colour gave larger steps between classes, but each class shows its chances in one
-     colour.
-   - **Its hues** are apart from the players' blue and red and the signs' green. At every chance, the ring's colour
-     is at least 0.10 from the players' red in OKLab, and at least 0.147 from the signs' green. Near the middle it
-     comes within 0.035 of the signs' yellow (at 42% on the light board and 63% on the dark board), but a ring goes
-     round a point, and a sign fills a point's square.
-   - **The ring** is over the edges and the nodes, with a halo in the board's colour that keeps it whole where it
-     meets an edge. The prototype also drew two other forms for the look: a disc under the edges whose area grew with
-     the chance, which hid a chance of 26% under an edge's end node, and a ring filled from the top as far as the
-     chance.
+     0.050). The look drew five forms at the positions below (docs/decisions/product.md, "The weak walls' colour: a
+     ramp of three hues"). Classes of colour gave larger steps between classes, but each class shows its chances in
+     one colour.
+   - **Its hues** are apart from the players' blue and red and the signs' green. At its nearest, the ring's colour is
+     0.108 from the players' red in OKLab on the light board and 0.102 on the dark board, and 0.147 and 0.153 from the
+     signs' green. The unit tests keep it at least 0.10 from the red and 0.14 from the green at every chance. Near the
+     middle, it comes to 0.035 from the signs' yellow on the light board (at 42%) and to 0.030 on the dark board (at
+     63%). But a ring goes round a point, and a sign fills a point's square.
+   - **The ring** is over the edges and the dots at their ends, with a halo in the board's colour that keeps it whole
+     where it meets an edge. The prototype also drew two other forms for the look: a disc under the edges whose area
+     grew with the chance, which hid a chance of 26% under the dot at an edge's end, and a ring filled from the top as
+     far as the chance.
 4. **The legend and the numbers:** while the weak walls show and the area map does not, the legend's line says
    "Weak walls: bolder means weaker", or "Weak walls: none at 10% or more" where no point is marked. While the mouse's
    pointer is on a point of an edge, the line gives its reading in its place, for example "E5 · Blue · cut chance 62%"
@@ -464,7 +465,7 @@ chance that one of them is cut. So the board marks the points, and names no chan
   at the positions that a review snapshot reads),
   `src/lib/game/reviewFile.ts` and `src/lib/game/analysisFile.ts` (the files at shape 5),
   `packages/engine/src/protocol.ts` (the fields).
-- The weak walls' prototype: `src/lib/review/weakWalls.ts` (`wallMarks`, `wallMix`, `wallInk`, `wallReading`,
+- The weak walls' prototype: `src/lib/review/weakWalls.ts` (`wallMarks`, `wallInk`, `wallReading`,
   `WALL_MIN`; tests: `weakWalls.test.ts`), the rings' tokens `--wall-low`, `--wall-mid` and `--wall-high` in
   `src/app.css`, the rings in `src/lib/board/Board.svelte` (the prop `walls`), `askWalls`, `wallsAt`
   and `wallState` in `packages/analysis/src/analysis.svelte.ts`, the pool's `cpu` task in

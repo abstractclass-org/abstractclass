@@ -40,7 +40,7 @@ export function wallMarks(walls: WeakWalls): WallMark[] {
 
 /** The place of a chance on the rings' ramp, in percent: from its faint end at the smallest chance marked to its bold
  *  end at 1. */
-export const wallMix = (chance: number) => Math.min(100, Math.max(0, Math.round(((chance - WALL_MIN) / (1 - WALL_MIN)) * 100)));
+const wallMix = (chance: number) => Math.min(100, Math.max(0, Math.round(((chance - WALL_MIN) / (1 - WALL_MIN)) * 100)));
 
 /** A ring's colour: a ramp of three hues, from `--wall-low` at the ramp's faint end through `--wall-mid` at its half
  *  to `--wall-high` at its bold end (the tokens in src/app.css): yellow, orange and brown on the light board, as
