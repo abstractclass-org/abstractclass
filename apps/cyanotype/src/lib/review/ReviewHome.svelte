@@ -28,6 +28,7 @@
   import { setVisitor, track } from "#lib/analytics.svelte.ts";
   import { trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
   import { GAME_RANGES, range } from "@abstractclass/site/measure.ts";
+  import ChooseNetwork, { NetworkChoice } from "@abstractclass/review/ChooseNetwork.svelte";
 
   let text = $state("");
   let problem = $state("");
@@ -103,6 +104,8 @@
   let fileProblem = $state("");
   let loadingFile = $state(false);
   let dragging = $state(false);
+  // An analysis file of several networks, or of a network that the site no longer ships: the player chooses one first.
+  const networkChoice = new NetworkChoice();
 
   /** A game's export, as on the review page: the annotated record is written from the stored results, with no
    *  search (exportText.ts). */
@@ -118,7 +121,9 @@
     const content = await file.text();
     if (fileKind(content) === "analysis") {
       try {
-        await goto(await openAnalysisFile(content, await manifestLoad)); // the board counts the load
+        // The board counts the load. A file whose network the board cannot take alone asks first: a cancel stays here.
+        const address = await openAnalysisFile(content, await manifestLoad, networkChoice.ask);
+        if (address) await goto(address);
       } catch (e) {
         fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
         trackLoadFailed("analysis_file", "file");
@@ -220,6 +225,8 @@
   <GameList games={rows} {kept} site={SITE_NAME} ondelete={removeGame}
             ondecide={answer => { if (answer === "no") track("game_delete_cancel"); }} />
 </main>
+
+<ChooseNetwork choice={networkChoice} />
 
 <!-- The footer waits for the list of games, which comes above it. -->
 <div class={[!read && "invisible"]}><SiteFooter /></div>

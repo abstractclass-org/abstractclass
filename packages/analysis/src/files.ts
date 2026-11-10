@@ -4,13 +4,15 @@
 //
 // The analysis file: the board's lines, the moves evaluated, and the engine's results for every position of them and of
 // the positions one move from them (which confirm the Greats), so that the analysis opens at once in another browser.
-// It is the review file's kind for the board: the same results, chosen the same way, and read the same way.
+// It is the review file's kind for the board: the same results, chosen the same way, and read the same way. It names
+// the network that the board searched with (`engine`), and the board that opens it searches with that network
+// (boardNetwork), which it keeps as its own (kept.ts, KeptBoard's `network`), as a review file's game keeps its own.
 import { atShape, isAnalysisKey, ofModels, parentKeyMoves, readAnalysisKey, readable } from "./cache.ts";
 import type { KeptBoard } from "./kept.ts";
 import { boardPositionKeys } from "./boardLink.ts";
 import { isKomi, komiLimitProblem } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
-import { moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
+import { modelOf, moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 
 /** Reads a file of `site` in `format` (`noun`: "review file", "analysis file"), its fields not yet checked but its
  *  results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
@@ -71,17 +73,39 @@ export interface AnalysisFile {
   version: number;
   exported: string; // ISO date and time
   site: string; // the site's version (its commit) that wrote the file
+  engine?: FileEngine; // the network that the board searched with, and the search: none in an older file
   board: KeptBoard; // the lines: every node, with the moves evaluated, and the main line
   analyses: [string, unknown][]; // the engine's results, by their keys in the browser's store
 }
 
-/** The analysis file of a board in `format`, with the results of `models`, the networks the site ships. `site` is the
- *  site's version. */
+/** The engine of an analysis file's board (Hedge School's design 21): the network that the board searched with, by its
+ *  id, its name and its file's SHA-256, and the CPU module's search, as a review file's review names them. The board
+ *  that opens the file searches with this network, so that the file's results show at once. A new field: the version
+ *  stays (Hedge School's design 13). */
+export interface FileEngine {
+  network: string; // the network's id: "b10c128-s89066368-d17827487"
+  networkName: string; // its name, as the engine's release names it: "HedgeFund 0.2 Lite"
+  model: string; // the network file's SHA-256, which keys its results (cache.ts)
+  search?: string; // the CPU module's search, which keys its results too
+}
+
+/** The engine of a board that searches with the network `network`, from the manifest: null when the manifest does not
+ *  ship that network. */
+export function fileEngine(manifest: Manifest | null, network: string): FileEngine | null {
+  const model = manifest && modelOf(manifest, network), search = manifest && moduleOf(manifest)?.search;
+  return model ? { network, networkName: model.displayName ?? network, model: model.sha256, ...(search ? { search } : {}) } : null;
+}
+
+/** The analysis file of a board in `format`, with the results of `models`, the networks the site ships, and the engine
+ *  that the board searched with (fileEngine). `site` is the site's version. The board's own network (kept.ts) is the
+ *  board's in this browser: the file names its network as `engine`. */
 export async function exportAnalysis(format: string, board: KeptBoard, site: string, models: Set<string> | null,
-                                     now = new Date()): Promise<AnalysisFile> {
-  const positions = boardPositionKeys(board);
+                                     engine: FileEngine | null = null, now = new Date()): Promise<AnalysisFile> {
+  const { network: _, ...lines } = board;
+  const positions = boardPositionKeys(lines);
   const analyses = atShape(await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models)));
-  return { format, version: ANALYSIS_FILE_VERSION, exported: now.toISOString(), site, board, analyses };
+  return { format, version: ANALYSIS_FILE_VERSION, exported: now.toISOString(), site, ...(engine ? { engine } : {}),
+           board: lines, analyses };
 }
 
 /** A file name for an analysis in `format`: the format, then the date and time it was saved, the player's own. */
@@ -106,8 +130,99 @@ export function readAnalysisFile(text: string, site: string, format: string, max
   if (!boardOk) throw new Error(`${site} cannot read the analysis file's lines.`);
   const komi = b.komi ?? 0, beyond = komiLimitProblem(komi, maxKomi, komi, "the analysis file's komi");
   if (beyond) throw new Error(beyond);
-  return { ...f, board: b } as AnalysisFile;
+  // An engine that the reader cannot use is as none: the results' keys then give the network (fileNetwork).
+  const e = f.engine as Partial<FileEngine> | undefined;
+  const engine = e && typeof e === "object" && typeof e.network === "string" && typeof e.model === "string" ?
+    { network: e.network, model: e.model, networkName: typeof e.networkName === "string" ? e.networkName : e.network,
+      ...(typeof e.search === "string" ? { search: e.search } : {}) } : undefined;
+  const { engine: _, ...rest } = f;
+  return { ...rest, ...(engine ? { engine } : {}), board: b } as AnalysisFile;
 }
+
+/** The network of an analysis file's results, for the board that opens it (Hedge School's design 21):
+ *  - `one`: the network that the board searches with, by its id: the file's `engine`, else the one network that the
+ *    site ships among its results.
+ *  - `several`: the networks that the site ships among its results, more than one, with their counts of results, the
+ *    most first. The player chooses one.
+ *  - `gone`: a network that the site no longer ships, by its name when the file names it. The board cannot read its
+ *    results, and does not search the file's positions with another network until the player chooses one.
+ *  - `none`: no result that the site's search reads. The board searches with the browser's network.
+ *  The results counted are those of the manifest's search, which the board reads (keepAnalyses). */
+export type FileNetwork =
+  | { kind: "one"; network: string }
+  | { kind: "several"; networks: { network: string; results: number }[] }
+  | { kind: "gone"; name: string | null }
+  | { kind: "none" };
+
+/** The network of an analysis file's results (FileNetwork), from the networks that the manifest ships. */
+export function fileNetwork(file: Pick<AnalysisFile, "engine" | "analyses">, manifest: Manifest | null): FileNetwork {
+  if (!manifest) return { kind: "none" };
+  const shipped = new Map(manifest.artifacts.filter(a => a.kind === "model").map(a => [a.sha256, a.id]));
+  if (file.engine) {
+    const id = shipped.get(file.engine.model);
+    return id ? { kind: "one", network: id } : { kind: "gone", name: file.engine.networkName };
+  }
+  const search = moduleOf(manifest)?.search, counts = new Map<string, number>();
+  let other = 0; // results of networks that the site no longer ships
+  for (const [key] of file.analyses) {
+    const k = readAnalysisKey(key), id = shipped.get(k.model);
+    if (search && k.search !== search) continue;
+    if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
+    else other++;
+  }
+  const networks = [...counts].map(([network, results]) => ({ network, results })).sort((a, b) => b.results - a.results);
+  return networks.length === 1 ? { kind: "one", network: networks[0].network }
+    : networks.length > 1 ? { kind: "several", networks }
+    : other ? { kind: "gone", name: null }
+    : { kind: "none" };
+}
+
+/** The question that the board asks before it opens an analysis file whose network it cannot take alone (fileNetwork,
+ *  `several` and `gone`): a title, why it asks, and a choice of networks, by their ids and names. */
+export interface NetworkQuestion { title: string; text: string; choices: { network: string; name: string }[] }
+
+/** The question for an analysis file of several networks or of a network that `site` no longer ships, with the names
+ *  of the networks (`name`). A file of several networks offers its networks. A file of a network that has gone offers
+ *  the networks that the site's settings offer (`offered`). */
+export function networkQuestion(found: Extract<FileNetwork, { kind: "several" | "gone" }>, site: string,
+                                name: (id: string) => string, offered: string[]): NetworkQuestion {
+  if (found.kind === "several") {
+    const each = found.networks.map(n => `${name(n.network)} (${n.results.toLocaleString("en")} result${n.results === 1 ? "" : "s"})`);
+    return {
+      title: "Choose a network for this analysis",
+      text: `This analysis file has results from ${found.networks.length} networks: ${listed(each)}. The board uses ` +
+        "one network at a time. It shows the results of that network, and it searches with that network.",
+      choices: found.networks.map(n => ({ network: n.network, name: name(n.network) })),
+    };
+  }
+  return {
+    title: "The file's network is not available",
+    text: `The results in this analysis file are from ${found.name ? `${found.name}, a network` : "a network"} that ` +
+      `${site} does not have now. ` +
+      "The board cannot show these results. Choose a network to search the file's positions again, or cancel to keep " +
+      "your board.",
+    choices: offered.map(network => ({ network, name: name(network) })),
+  };
+}
+/** Words in a list: "a", "a and b", "a, b and c". */
+const listed = (words: string[]) => (words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`);
+
+/** The network of the board that opens an analysis file (fileNetwork): the file's own, or the network that the player
+ *  chooses (`choose`, which answers null for a cancel) when the file holds several or one that has gone. Answers the
+ *  network's id, null for the browser's network (a file with no result that the board reads), or undefined when the
+ *  player cancels: the board then stays as it was. */
+export async function boardNetwork(file: AnalysisFile, manifest: Manifest | null, site: string,
+                                   name: (id: string) => string, offered: string[],
+                                   choose: (q: NetworkQuestion) => Promise<string | null>): Promise<string | null | undefined> {
+  const found = fileNetwork(file, manifest);
+  if (found.kind === "one") return found.network;
+  if (found.kind === "none") return null;
+  return (await choose(networkQuestion(found, site, name, offered))) ?? undefined;
+}
+
+/** The board's address with its own network (`network`, from boardNetwork), which the board reads after the `#`. */
+export const withNetwork = (address: string, network: string | null) =>
+  (network ? `${address}&network=${encodeURIComponent(network)}` : address);
 
 /** Keeps an analysis file's results in this browser, of the manifest's search and the networks it ships: the board
  *  reads no other (Hedge School's design 20, item 8). */

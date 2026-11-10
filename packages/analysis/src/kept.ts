@@ -19,6 +19,9 @@ export interface KeptBoard {
   main: string[];
   start?: string; // a set-up position (design 21)
   komi?: number; // the komi, Red's starting score, of a record brought with one (Hedge School's design 24); none: 0
+  // The board's own network, by its id: an analysis file's, then the one chosen in the engine settings (Hedge School's
+  // design 21). None: the browser's. A board brought another way (New, the Import, a link) has none.
+  network?: string;
 }
 export const BOARD_ID = "board";
 /** A board of one line, its moves by the tree's names: a node for each of its positions, as a link packs every node

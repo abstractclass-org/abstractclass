@@ -13,14 +13,14 @@ import "./testing/svelteModules.ts";
 import type { AnalysisQuery, AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import { Cancelled, type EnginePool, type Work } from "@abstractclass/engine/pool.ts";
 import { EngineError } from "@abstractclass/engine/client.ts";
-import { BOARD_ID } from "./kept.ts";
+import { BOARD_ID, type KeptBoard } from "./kept.ts";
 import { reply, wordFields, wordRules, words } from "./testing/game.ts";
 import type { Player } from "./game.ts";
 import { LABEL_VISITS, MAP_VISITS, SWEEP_VISITS, analysisKey, cachePut, keyMoves, parentKeyMoves, mapGet, mapPut,
          readAnalysisKey } from "./cache.ts";
 import { judgeBranchMove, judgeTurn, review, valuesAfter, type Analysis } from "./model.ts";
 import { toAnalysis } from "./reply.ts";
-import { STORES } from "@abstractclass/storage/db.ts";
+import { STORES, dbGet } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
 const store = memoryDb(queueMicrotask); // its transactions complete in microtasks: the tests mock setTimeout
@@ -758,6 +758,31 @@ test("a line gleams while a search of its position can change it: not for a labe
   await turns();
   mock.timers.tick(BATCH_MS);
   assert.deepEqual([game.analysis[0]?.visits, game.pending([])], [visits + 96, false]); // the label search runs on
+});
+
+test("an analysis file's board keeps its own network, and opens with that network's labels, with no search", async () => {
+  // The page searches with the board's network: the pool's here, whatever the browser's settings (Hedge School's design 21)
+  const { pool, searches } = fakePool();
+  for (const p of [[], ["a"], ["a", "b"]])
+    await cachePut(analysisKey(pool.search!, pool.model!.sha256, p, 16384), toAnalysis(words, reply(16384)));
+  const game = new GameAnalysis(words, pool, [], BOARD_ID);
+  await game.start();
+  await game.loadBoard({ version: 2, nodes: [["a", 0, 1], ["a b", 0]], main: ["a", "b"], network: "the file's" });
+  await game.fromStore(pool.search!, pool.model!.sha256);
+  await game.sweep();
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  assert.deepEqual([game.judgedMain, game.awaitsGreat("a"), searches.length], [{ a: true }, false, 0]);
+  assert.deepEqual([game.analysisOf([])?.visits, game.analysisOf(["a"])?.visits], [16384, 16384]);
+  // The board keeps its network with its tree, and a network chosen for it, so that a reload keeps it
+  assert.equal(game.keptBoard().network, "the file's");
+  await game.setBoardNetwork("another");
+  assert.equal((await dbGet<KeptBoard>(STORES.branches, BOARD_ID))?.network, "another");
+  // A board brought another way has none: the browser's network
+  const fresh = new GameAnalysis(words, pool, [], BOARD_ID);
+  await fresh.start();
+  await fresh.loadBoard({ version: 2, nodes: [["a", 0]], main: ["a"] });
+  assert.equal(fresh.keptBoard().network, undefined);
 });
 
 /** The board, its start on screen with a time limit of 2 seconds: the focus's search waits for the test. */

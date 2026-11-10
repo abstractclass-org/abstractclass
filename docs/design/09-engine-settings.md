@@ -72,6 +72,10 @@ kept in this browser, and each applies at once, without a reload.
      depth per move as the player chose it, so Custom at Lite's 512 visits stays Custom with its row. When the page
      opens, the visits give it: 512 shows Lite, and the review is the same (`withOwn` and `changeOwn` in
      `packages/analysis/src/settings.ts`, which `src/lib/analysis/engineSettings.ts` exports).
+   - **The Analysis board from an analysis file** keeps the file's network as its own, and keeps no depth of its own
+     (design 21, item 11). The panel says so and names the network. A network chosen there is the board's, and the
+     board searches again with it. The settings kept in the browser serve every other page, and their other settings
+     serve the board too (`withBoardNetwork` and `boardChange` in `packages/analysis/src/settings.ts`).
    - **A game whose last review used an earlier network** with the browser's settings keeps that review's network and
      depth per move as its own, as a game from a review file does (`ownSettings` in
      `src/lib/analysis/engineSettings.ts`, from `ownSettingsOf` in `packages/analysis/src/settings.ts`). So it opens
@@ -88,10 +92,10 @@ kept in this browser, and each applies at once, without a reload.
      and 10.3M) and adds that a network downloads once. In a narrow panel the label breaks only before the parenthesis
      ("HedgeFund 0.2 Lite" over "(6.5 MB)"): no-break spaces hold each part together.
      - **The earlier networks,** HedgeFund 0.1 Lite and HedgeFund 0.1, are off the menus, and the site still ships them
-       (`engine.lock.json` keeps their files): a game, a review file, a shared link or a Practice game that names one
-       still loads it (`shipsNetwork` in `src/lib/analysis/engineSettings.ts`). Settings kept in the browser with an
-       earlier network take the default. So a review file exported before, and a review that a partner site kept, open
-       with their results (design 13, design 20).
+       (`engine.lock.json` keeps their files): a game, a review file, an analysis file, a shared link or a Practice
+       game that names one still loads it (`shipsNetwork` in `src/lib/analysis/engineSettings.ts`). Settings kept in
+       the browser with an earlier network take the default. So a review file exported before, and a review that a
+       partner site kept, open with their results (design 13, design 20).
 
      The board keeps the old pool's rules while a new pool loads the other network. Then the analysis starts again,
      since every result came from the old network. The browser's store keys results by network, so a network's results

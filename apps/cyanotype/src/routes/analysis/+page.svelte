@@ -3,7 +3,8 @@
   // set-up position, or a line brought after the `#`: `#record=` (a record, whose moves become the main line, and
   // `&at=`, the place on it), `#position=` (a set-up start, from the board editor or the Import, in the position's
   // notation, game/position.ts; with `record=`, the record's start), or the lines of a shared analysis or an analysis
-  // file loaded (`#packed=`, game/board.ts, with `&at=`), which can name a set-up start too.
+  // file loaded (`#packed=`, game/board.ts, with `&at=`), which can name a set-up start too. A file's lines come with
+  // its network (`&network=`), which the board keeps as its own (Hedge School's design 21).
   // The engine checks a record brought as the review checks a game: it plays each move from the record's start, and
   // confirms each capture mark (design 33, item 6). It reads a start, brought alone or as a record's, and checks that a
   // game can reach it (protocol 0.8.0's check), so it analyzes no position that no game reaches. A record or a start
@@ -25,6 +26,7 @@
   import { replaceState } from "$app/navigation";
   import ReviewView, { reviewSkeleton } from "@abstractclass/review/ReviewView.svelte";
   import ReplaceAnalysis, { ReplaceQuestion } from "@abstractclass/review/ReplaceAnalysis.svelte";
+  import ChooseNetwork, { NetworkChoice } from "@abstractclass/review/ChooseNetwork.svelte";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
   import { BOARD_ID, boardOfLine, keptBoardNotice, type KeptBoard } from "@abstractclass/analysis/kept.ts";
@@ -36,7 +38,7 @@
   import NewMenu from "@abstractclass/review/NewMenu.svelte";
   import ImportDialog from "@abstractclass/review/ImportDialog.svelte";
   import { BOARD_EXPORTS, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
-  import { shippedModels } from "@abstractclass/analysis/files.ts";
+  import { fileEngine, shippedModels } from "@abstractclass/analysis/files.ts";
   import { download } from "@abstractclass/site/download.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -48,7 +50,8 @@
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import { checkRecord, checkStart, recordProblem, rulesBy, startProblem } from "#lib/review/recordCheck.ts";
-  import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
+  import { boardChange, loadEngine, networkName, reviewVisits, saveEngine, shipsNetwork, withBoardNetwork,
+           type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { startTags, type GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
@@ -72,9 +75,27 @@
   let current = $state<string[]>([]); // the position on screen
   const engine = $state(loadEngine());
   $effect(() => saveEngine($state.snapshot(engine)));
+  // The board's own network (KeptBoard's `network`): an analysis file's, so that the file's results show at once, then
+  // the one chosen in the engine settings (Hedge School's design 21). The settings kept in the browser keep their
+  // network for every other page, and the rest of them serve the board too. Null: the browser's network.
+  let own = $state<string | null>(null);
+  const settings = $derived(withBoardNetwork(engine, own));
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
-  const session = new EngineSession({ settings: () => engine, game: () => game, position: () => current,
+  const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
                                       tracker: { track, networkName } });
+  /** A change in the engine settings: a network chosen is the board's own when it has one (boardChange). */
+  function changeEngine(change: Partial<EngineSettings>) {
+    trackSettingChange(change, settings, !!own && change.network !== undefined);
+    const next = boardChange(own, change);
+    if (next.network && next.network !== own) {
+      own = next.network;
+      void game?.setBoardNetwork(next.network);
+    }
+    Object.assign(engine, next.browser);
+  }
+  /** A board's own network that the site ships, else none (KeptBoard's `network`): a network that has left the engine
+   *  lock gives way to the browser's, as a game's own settings do (engineSettings.ts, ownSettings). */
+  const shipped = (network: string | null | undefined) => (network && shipsNetwork(network) ? network : null);
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);
@@ -106,9 +127,16 @@
   const OWN: string[] = ["editor"];
   /** The board kept here, at its kept place, and a board brought after the `#`, which leaves the address: a record's
    *  line (`record`, from its `Position` tag or from `position`), a set-up start alone (`position`), or a link's or a
-   *  file's lines, once they are read. The engine checks it before it replaces the kept board (recordCheck.ts). */
-  async function chooseBoard(): Promise<{ kept: KeptBoard | null; at: string[]; brought?: Brought }> {
+   *  file's lines, once they are read. The engine checks it before it replaces the kept board (recordCheck.ts). A
+   *  file's lines come with its network (`&network=`, analysisFile.ts), which the board keeps as its own. Before the
+   *  address leaves, `expect` gets the network of the board that opens unless the board kept here stays: the engine
+   *  loads that network meanwhile. */
+  async function chooseBoard(expect: (network: string | null) => void): Promise<{ kept: KeptBoard | null; at: string[]; brought?: Brought }> {
     let kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
+    if (kept?.network && !shipped(kept.network)) {
+      const { network: _, ...lines } = kept;
+      kept = lines;
+    }
     // A kept board with a komi (Hedge School's design 24), which the board cannot analyze, does not open: a defence, as
     // only a board at komi 0 is kept here. A new board opens, and replaces it in the store at its first change.
     try {
@@ -121,16 +149,23 @@
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
     const p = new URLSearchParams(location.hash.slice(1)), text = p.get("record"), packed = p.get("packed");
     const position = p.get("position");
-    if (text === null && packed === null && position === null) { startAnalytics(); return { kept, at: keptAt }; }
-    await replaceState("/analysis", {}); // async: the address changes only once it resolves
-    startAnalytics();
+    if (text === null && packed === null && position === null) {
+      expect(kept?.network ?? null);
+      startAnalytics();
+      return { kept, at: keptAt };
+    }
     const via = p.get("via"), brings = text !== null || position !== null; // moves or a start, not saved work
     imported = !brings || OWN.includes(via ?? "") ? undefined : isImportSource(via) ? via : "site_link";
     loaded = brings ? undefined : via === "analysis_file" ? via : "analysis_share_link";
+    const network = loaded === "analysis_file" ? shipped(p.get("network")) : null; // an analysis file's
+    expect(network);
+    await replaceState("/analysis", {}); // async: the address changes only once it resolves
+    startAnalytics();
     if (text === null && position === null) {
       const kind = loaded === "analysis_file" ? "file" : "link";
       try {
-        return { kept, at: keptAt, brought: { ...readBoardLink(packed ?? "", p.get("at")), kind } };
+        const read = readBoardLink(packed ?? "", p.get("at"));
+        return { kept, at: keptAt, brought: { ...read, board: network ? { ...read.board, network } : read.board, kind } };
       } catch (e) {
         refuse(errorText(e), kind);
         return { kept, at: keptAt };
@@ -161,11 +196,19 @@
   }
   // A board brought, when the board kept here has moves of its own: the player chooses which to keep.
   const question = new ReplaceQuestion();
+  // An analysis file of several networks, or of a network that the site no longer ships: the player chooses one.
+  const networkChoice = new NetworkChoice();
 
   onMount(async () => {
     try {
       await session.load();
-      const opening = chooseBoard();
+      // The engine starts with the network of the board that opens unless the board kept here stays: the chosen
+      // board's own network then replaces it, if it differs.
+      let expect!: (network: string | null) => void;
+      const expected = new Promise<string | null>(resolve => (expect = resolve));
+      const opening = chooseBoard(expect);
+      opening.catch(() => expect(null)); // the failure itself comes below
+      own = await expected;
       let board: KeptBoard | null = null, brought: Brought | undefined, keptAt: string[] = [];
       // The analysis starts from the board's start, so the engine's rules check a board brought first, once they work:
       // a record's moves from its start, or a start alone. Only a board that they accept replaces the board kept here.
@@ -188,6 +231,7 @@
         brought = b && !problem && (!kept?.nodes.length || await question.ask()) ? b : undefined;
         if (brought && keptGone) notice = keptBoardNotice(keptGone, true);
         board = brought?.board ?? kept;
+        own = board?.network ?? null;
         keptAt = chosen.at;
         return new GameAnalysis(blueprints, pool, [], BOARD_ID, board?.start ?? null);
       }, async (g, pool) => {
@@ -264,7 +308,10 @@
     const content = await file.text();
     try {
       if (fileKind(content) === "review") throw new Error("this is a review file: load it in the Review tab");
-      history.replaceState(null, "", await openAnalysisFile(content, session.manifest)); // `/analysis#packed=…`
+      // A file whose network the board cannot take alone asks first: a cancel keeps the board as it is.
+      const address = await openAnalysisFile(content, session.manifest, networkChoice.ask); // `/analysis#packed=…`
+      if (!address) return;
+      history.replaceState(null, "", address);
       location.reload();
     } catch (e) {
       notice = `The Analysis board cannot load this file: ${sentence(errorText(e))}`;
@@ -283,7 +330,9 @@
       return { linkLength: link.length };
     }
     if (kind === "analysis_file") {
-      download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest))));
+      // The file names the board's network, which the board that opens it takes (Hedge School's design 21).
+      download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest),
+                                                                       fileEngine(session.manifest, session.network))));
       return;
     }
     const text = annotatedRecord({ R: r, unit, tags: startTags(g.startPosition, g.komi), result: "*",
@@ -305,8 +354,8 @@
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}
   <ReviewView view={blueprintsView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
-              onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} {engine}
-              onengine={(change: Partial<EngineSettings>) => { trackSettingChange(change, engine, false); Object.assign(engine, change); }}
+              onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} engine={settings}
+              onengine={changeEngine} ownSettings={own ? "board" : undefined}
               onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
     {#snippet tools(unit)}
@@ -327,6 +376,7 @@
 {/if}
 
 <ReplaceAnalysis {question} />
+<ChooseNetwork choice={networkChoice} />
 
 <!-- The board's Import: a position, moves, or both pasted (Hedge School's design 21). An analysis file has its own
      Load. The examples: the start of the standard start, and the first moves of Stamp Duty's own game. -->

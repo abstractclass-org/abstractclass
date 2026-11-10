@@ -149,6 +149,9 @@ export class GameAnalysis<G extends GameTypes> {
   // A review snapshot (Hedge School's design 20): the search and the network file of its results, whose maps it reads from
   // the store (freeze). Its maps that the store lacks, by path key, cannot come: a review snapshot does no searches.
   private frozen: { search: string; model: string } | null = null;
+  // Board: its own network, kept with its tree (kept.ts, KeptBoard's `network`): an analysis file's, or one chosen for
+  // it. The page searches with it. Undefined: the browser's.
+  private boardNetwork: string | undefined;
   private unstored = $state.raw(new Set<string>());
   private mapPassOn = $state(false); // the map stage runs (passMaps)
   // What the page asked for last: the maps (askOwnership) and the pass (passMaps). A call that comes before the engine
@@ -778,6 +781,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  Call after start(). A node that the rules refuse is dropped, with the rest of its line, and the main line stops
    *  before it. */
   async loadBoard(kept: KeptBoard) {
+    this.boardNetwork = kept.network;
     await this.addNodes(kept.nodes);
     const main: string[] = [];
     for (const m of kept.main) {
@@ -787,11 +791,19 @@ export class GameAnalysis<G extends GameTypes> {
     this.reindex(this.treeNodes(), main);
   }
 
-  /** Board: the tree as the browser keeps it: every node, the main line's too, and the main line. */
+  /** Board: the tree as the browser keeps it: every node, the main line's too, the main line, and the board's own
+   *  network. */
   keptBoard(): KeptBoard {
     const nodes = Object.entries(this.treeNodes()).map(([k, n]) => keptNode(k, n.order, n.judged));
     return { version: 2, nodes, main: [...this.mainNames], ...(this.startPosition ? { start: this.startPosition } : {}),
-             ...(this.komi ? { komi: this.komi } : {}) };
+             ...(this.komi ? { komi: this.komi } : {}), ...(this.boardNetwork ? { network: this.boardNetwork } : {}) };
+  }
+
+  /** Board: its own network, `id`, chosen in the engine settings (KeptBoard's `network`), kept with its tree. */
+  async setBoardNetwork(id: string) {
+    if (!this.board || id === this.boardNetwork) return;
+    this.boardNetwork = id;
+    await this.keepBranches();
   }
 
   /** Board: the engine is ready once the pool has a network (the board's sweep). No stage runs: the engine searches the

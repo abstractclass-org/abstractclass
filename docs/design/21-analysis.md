@@ -115,7 +115,7 @@ engine does by itself.
      shows.
    - **The analysis file,** to open elsewhere: the lines and the engine's results for every position of them, and of
      the positions one move from them, as a review file chooses them (`src/lib/game/analysisFile.ts`). It opens at
-     once, from the board's Load.
+     once, from the board's Load. Item 11 gives its network.
    - **The record,** copied or as a file: the main line, the variations, the result `*` (unfinished, engine design
      04), the marks of the moves evaluated, and the evaluations of the positions searched (design 13's marks and
      `[%eval]` comments).
@@ -191,6 +191,36 @@ engine does by itself.
     - **Analyze** opens the Analysis board from the position (`/analysis#position=…`), after the board asks before it
       replaces its analysis.
     - **Standard start** and **Remove all edges** reset it.
+11. **An analysis file opens with its own network,** as a review file's game reviews with its own (design 09). The
+    browser's store keys each result by its network, so a board that searched with another network would not read the
+    file's results. It would search every position again, and each move evaluated would say "Evaluating…" meanwhile.
+    - **The file names its network:** `engine`, with the network's id, its name, its file's SHA-256 and the CPU
+      module's search, as a review file's review names them (`FileEngine` in `packages/analysis/src/files.ts`). It is
+      the network that the board searched with when the player saved the file. The field is new, so the file's version
+      stays (design 13).
+    - **A file without it,** written before, gives its network by its results' keys: the network that the site ships,
+      when the results of the site's search are of one such network. A network that the site no longer ships does not
+      count: no search of this site reads its results.
+    - **A file of several networks asks the player** which network the board uses (`ChooseNetwork.svelte` in
+      `packages/review`). The question names each network with its count of results, and says that the board uses one
+      network at a time. Cancel keeps the board as it was, and keeps none of the file's results.
+    - **A file of a network that the site no longer ships asks too.** The board cannot show its results, and it does
+      not search the file's positions with another network until the player chooses one. The question names the
+      file's network when the file names it, and offers the networks of the Network setting. Cancel keeps the board as
+      it was. The engine lock keeps every network that a file can name today (design 09, "The earlier networks"), so
+      this question comes only after a release that drops a network.
+    - **The board keeps the network as its own:** the Load puts it in the board's address (`&network=`), and the board
+      keeps it with its tree in the browser's store (`network` in `KeptBoard`, `packages/analysis/src/kept.ts`). So a
+      reload keeps it. The board searches with it, and reads the file's results in its first frame, with no search.
+      The settings kept in the browser keep their network for every other page, and their other settings serve the
+      board too. The board keeps no depth of its own: "Evaluate quality: Depth" stays the browser's.
+    - **The engine settings say so:** "This board came from an analysis file. It keeps its own network, …", with the
+      network's name. A network chosen in the Network setting becomes the board's own, and the board searches again
+      with it. The browser's network stays as it was. An earlier network, off the menu, has the note of design 09.
+    - **A board brought another way** (New, the Import, a link, the board editor) has no network of its own: it uses the
+      browser's. A link holds no results, so it names no network. A board whose own network has left the engine lock
+      uses the browser's, as a game's own settings do.
+    - **The file that the board saves** names the board's network, its own or the browser's.
 
 ## Why
 
@@ -211,6 +241,14 @@ engine does by itself.
 - **Saved analyses in the list of games:** the list would mix games played with lines explored. Studies are the
   place for kept work.
 - **A link with a position only** (a FEN-like line): it loses the moves before it, and so the line on the board.
+- **An analysis file opened with the browser's network** (the first build): the file's results waited unused, and the
+  board searched every position again, unless the player chose the file's network. Nothing on the page named it.
+- **A file without its network takes the network with the most results:** a file of several networks then opened
+  with one that the player did not choose, and said nothing. The question names them and says why.
+- **A file of a network that the site no longer ships, shown as a review snapshot** (design 20): the board would read
+  the file's results with no network, and search nothing. It needs a board form of the review snapshot, and a store
+  that keeps a network's results after the site stops shipping it (design 20, item 8). The engine lock still ships
+  every network that a file can name, so the board asks instead.
 - **An export of the lines alone,** with no results (the first choice): that is a board editor's output. The board's
   work is the engine's searches of the lines that the player explored, deeper than a review's, and the analysis file
   keeps them.
@@ -237,7 +275,10 @@ engine does by itself.
   (`BoardForm`). `packages/analysis/src/analysis.svelte.ts`: the board form of the analysis (`setMain`, `playLine`,
   `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line. `src/lib/game/analysisFile.ts`: the
   analysis file. Their frames are shared with Cyanotype: `packages/analysis/src/boardLink.ts` (the link) and
-  `packages/analysis/src/files.ts` (the file). `packages/review/src/NewMenu.svelte` and `ExportMenu.svelte`: the
+  `packages/analysis/src/files.ts` (the file, its network: `fileNetwork`, `boardNetwork`, `networkQuestion`). The
+  board's own network: `withBoardNetwork` and `boardChange` in `packages/analysis/src/settings.ts`, `setBoardNetwork`
+  in `packages/analysis/src/analysis.svelte.ts`, and the question in `packages/review/src/ChooseNetwork.svelte`.
+  `packages/review/src/NewMenu.svelte` and `ExportMenu.svelte`: the
   menus. `packages/review/src/ImportDialog.svelte`: the Import's dialog. `packages/analysis/src/model.ts`:
   `onlyJudged`. `src/lib/game/paste.ts`: a pasted record, with the start's tag and the place of a problem from
   `packages/record/src/record.ts` (`withStartTag`, `pastedError`). `src/routes/editor/+page.svelte` and
@@ -249,3 +290,4 @@ engine does by itself.
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "The Analysis board" (2026-10-14).
+- [decisions/product.md](../decisions/product.md): "An analysis file opens with its own network" (2026-11-11).

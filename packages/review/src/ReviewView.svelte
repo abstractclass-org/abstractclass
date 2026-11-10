@@ -183,7 +183,9 @@
     // and the Export menu (design 13), which labels an export by the labels' unit given
     tools?: Snippet<[Unit]>;
     siteLink?: { href: string; host: string } | null; // the game's own page, from its record's Site tag
-    ownSettings?: "stored" | "mark"; // the game keeps its own network and depth, and where from (Hedge School's engineSettings.ts)
+    // The game keeps its own network and depth, and where from (Hedge School's engineSettings.ts), or the board keeps its
+    // own network ("board": an analysis file's, Hedge School's design 21).
+    ownSettings?: "stored" | "mark" | "board";
     onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
@@ -2578,10 +2580,13 @@
         <p class="mb-1.5 text-xs text-muted">{#if ownSettings === "mark"}This game keeps the network and depth per move of
           its last review, so that the review opens as the engine made it. A change of the depth here applies to this game
           only.
+          {:else if ownSettings === "board"}This board came from an analysis file. It keeps its own network,
+          {view.networks.name(e.network)}. At first this is the file's network, so that the file's results show at once.
+          A network chosen here applies to this board only.
           {:else}This game came with a network and depth per move, from a review file or a shared link. It keeps them, so
           that its review stays the one it came with. A change of them here applies to this game only.{/if}
           {#if !view.networks.offered.some(n => n.id === e.network)}Its network, {view.networks.name(e.network)}, is an earlier one, and the Network setting
-            does not offer it. Choose a network there to review the game again with it.{/if}</p>
+            does not offer it. Choose a network there to {ownSettings === "board" ? "search the board" : "review the game"} again with it.{/if}</p>
       {/if}
       <h3 class={SETTINGS_HEAD}>Position on screen</h3>
       {@render visitsSteps("Depth", board ? "How far to search it." : "How far to search it. Deeper than the review, it also updates the review there: the quality labels and the report.",

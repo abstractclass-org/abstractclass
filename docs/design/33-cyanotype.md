@@ -753,6 +753,8 @@ build). The decision log gives the measurements that led to each choice.
       choice by its name ("Blunder. 3@4,-1 1@6,-3 was best."). Its New menu (`packages/review/src/NewMenu.svelte`) has
       Hedge School's four ways ("The board editor"). A file loads as Hedge School's does: its results go to the
       browser's store, and its lines to the board's address, so that the board asks before it replaces its analysis.
+      The file names the board's network, and the board that opens it keeps that network as its own, as on Hedge
+      School (its design 21, item 11). A file of several networks, or of one that the site no longer ships, asks first.
     - **The review's Export,** once the review is done: a link that shares the review (`/review#packed=…`,
       `src/lib/game/share.ts`, `src/lib/review/reviewExports.ts`), on the review and beside each game in the Review tab
       ("The player's games"). The link names the game's mark, its deepest review that ran to its end, as Hedge School's

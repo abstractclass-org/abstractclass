@@ -23,6 +23,7 @@
   import { GAME_RANGES, range } from "@abstractclass/site/measure.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
+  import ChooseNetwork, { NetworkChoice } from "@abstractclass/review/ChooseNetwork.svelte";
 
   // The page has chosen the Review tab (src/routes/review/+page.svelte). Before, its address may name a game, and the
   // tab only shows, as prerendered, where the address names none.
@@ -108,6 +109,8 @@
   let loadingFile = $state(false);
   let dragging = $state(false);
   let fileInput = $state<HTMLInputElement>();
+  // An analysis file of several networks, or of a network that the site no longer ships: the player chooses one first.
+  const networkChoice = new NetworkChoice();
 
   /** A game's export, as on the review page: the annotated record is written from the stored results, with no search. */
   async function exportGame(id: string, record: string, kind: ExportKind) {
@@ -122,7 +125,9 @@
     const content = await file.text();
     if (fileKind(content) === "analysis") {
       try {
-        await goto(await openAnalysisFile(content, await manifestLoad)); // the board counts the load
+        // The board counts the load. A file whose network the board cannot take alone asks first: a cancel stays here.
+        const address = await openAnalysisFile(content, await manifestLoad, networkChoice.ask);
+        if (address) await goto(address);
       } catch (e) {
         fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
         trackLoadFailed("analysis_file", "file");
@@ -231,6 +236,8 @@
   <GameList games={rows} {kept} site={SITE_NAME} ondelete={removeGame}
             ondecide={answer => { if (answer === "no") track("game_delete_cancel"); }} />
 </main>
+
+<ChooseNetwork choice={networkChoice} />
 
 <!-- With a script, the footer waits for the list of games, which comes above it. With no script, it shows. -->
 <div class={[!read && "invisible noscript:visible"]}><SiteFooter /></div>

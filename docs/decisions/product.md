@@ -10961,3 +10961,23 @@ load. In both, the Practice page showed no content after a load.
   The notice of the kept board alone does not change: there, a new board is on screen. `keptBoardNotice` in
   `packages/analysis/src/kept.ts` gives both forms. Both sites take it: Hedge School's kept board beyond the limit, and
   Cyanotype's kept board with a komi or with a start that no game reaches.
+
+### An analysis file opens with its own network (2026-11-11)
+
+- **The problem** (abscls-mgme): a player's analysis file held HedgeFund 0.2's results, and the browser's setting was
+  another network. The board searched with the browser's network, so it read none of the file's results, and many
+  moves evaluated said "Evaluating…". Nothing on the page named the file's network.
+- **The file names its network:** `engine` (network id, name, file SHA-256, search), as a review file's review names
+  them. A file written before gives it by its results' keys, when those of the site's search are of one network that
+  the site ships. The field is new, so the file's version stays at 1.
+- **The board keeps it as its own:** the Load puts it in the board's address (`&network=`), and the board keeps it
+  with its tree (`KeptBoard`'s `network`), so a reload keeps it. A network chosen in the panel is the board's, and the
+  browser's settings keep their network for every other page. The board keeps no depth of its own: the issue named the
+  network only, and "Evaluate quality: Depth" reads deeper stored results as they are.
+- **The audit's narrowed plan** (abscls-70t7): a file of several networks asks the player which one. A file of a
+  network that the site no longer ships asks too, before the board searches with another network. Its results cannot
+  show: no search of the site reads them, and the removal of earlier results (design 20, item 8) keeps none for the
+  board. Showing them would take a board form of the review snapshot. The engine lock ships every network that a file
+  can name today, so the question comes only after a release that drops one.
+- **Both sites** take it from the shared packages: `packages/analysis/src/files.ts`, `kept.ts`, `settings.ts`,
+  `analysis.svelte.ts`, and `packages/review/src/ChooseNetwork.svelte` with the panel's note in `ReviewView.svelte`.
