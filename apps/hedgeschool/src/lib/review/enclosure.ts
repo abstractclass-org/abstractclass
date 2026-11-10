@@ -85,7 +85,7 @@ export const moveNotation = (m: { edge: Edge | null; cut: Edge | null }) => `${m
 /** Enclosure's types (GameTypes): a move is an edge, a position the board's, a move played has its cut, the engine's
  *  fields are describe_game's, the rules are the edge input's, and a line's step is its cut, regions and areas. And the
  *  review's view's (ViewTypes, enclosureView.ts): the review's display settings (display.ts), the board's notes, the
- *  edge input, a point of the lattice, the opening book's place, and the engine's weak walls (weakWalls.ts). */
+ *  edge input, a point of the lattice, the opening book's place, and the engine's weak walls (the protocol's). */
 export interface Enclosure extends ViewTypes {
   move: Edge;
   position: Position;

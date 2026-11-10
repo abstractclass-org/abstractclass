@@ -966,9 +966,9 @@
   });
 
   // The weak walls (a prototype, Hedge School's design 30, "The weak walls"): beside the area map, for a game that has
-  // them (the game's `walls`), off by default on each page. The engine gives them for a position from one evaluation on
-  // a CPU worker (askWalls). They are the position on screen's: while a line or a preview shows, the board shows
-  // another position, and the walls hide. The key w shows or hides them.
+  // them (the view game's `walls`), off by default on each page. The engine gives them for a position from one
+  // evaluation on a CPU worker (askWalls). They are the position on screen's: while a line or a preview shows, the
+  // board shows another position, and the walls hide. The key w shows or hides them.
   const wallsOn = $derived(!!view.walls && display.weakWalls[mapPage]);
   function setWalls(on: boolean) {
     display.weakWalls[mapPage] = on;

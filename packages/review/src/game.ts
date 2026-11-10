@@ -46,9 +46,9 @@ export interface Display {
   // before it ("After vs before", KaTrain's loss grid with the rises)
   mapStyle: MapStyle;
   mapMin: Record<MapStyle, number>; // each style's smallest value marked, in hundredths: 0 marks every point with one
-  // The weak walls (a prototype, Hedge School's design 30, "The weak walls"), on each page: each lattice point of a
-  // player's edges marked by the chance that an edge there is cut before the game ends. They show only in a game that
-  // has them (the view game's `walls`): a game with none keeps both off
+  // The weak walls (a prototype, Hedge School's design 30, "The weak walls"), on each page: each point of a player's
+  // edges marked by the chance that an edge there is cut before the game ends. They show only in a game that has them
+  // (the view game's `walls`): a game with none keeps both off
   weakWalls: { review: boolean; board: boolean };
   scoreLine: boolean; // the Advantage chart's score line (Blue − Red)
   areaLine: boolean; // the Advantage chart's line of the players' second number (the game's `second`), Blue − Red
@@ -80,8 +80,9 @@ export interface ViewTypes extends GameTypes {
   input: MoveInput<this["rules"]>; // the player's own moves on the board (Enclosure: the edge input)
   point: unknown; // a place on the board that the area map marks (Enclosure: a point, [x, y])
   book: ViewBook<this["move"]>; // the opening book where the view shows it (Hedge School's book/place.svelte.ts)
-  // A position's weak walls, as the engine gives them (Enclosure: protocol 0.6.2's WeakWalls). A game with none (no
-  // `walls` in its view game) leaves it unknown
+  // A position's weak walls, as the engine gives them (Enclosure: protocol 0.6.2's WeakWalls). For now the analysis
+  // gives the protocol's walls for every game (GameAnalysis's wallsAt). So a game with walls sets the protocol's type,
+  // and a game with none leaves it unknown
   walls: unknown;
 }
 

@@ -10875,7 +10875,7 @@ its full import already ("Cyanotype's review files, as Hedge School's").
   360 pixels", above). A phone shows no title, so each text must fit by itself. The prototype's review (abscls-udwl)
   set the rule, and the release of the walls' engine (abscls-tdbr) added the rule of one text at a time.
 - **The room:** at 360 × 700 the board is 313 pixels wide, and the two switches (the area map's and the walls')
-  leave 219 pixels. A note has 207 of them inside its padding, and the legend's line 215.
+  leave 219 pixels. A note has 207 of them inside its padding, and the legend's line has 215.
 - **The widths,** at 12 pixels (`text-xs`), in Segoe UI (the browser's `system-ui` on Windows) and DejaVu Sans
   (Linux's `system-ui`, wider). The readings are every point's name with each player and each chance text.
 
@@ -10883,19 +10883,22 @@ its full import already ("Cyanotype's review files, as Hedge School's").
   |---|---|---|---|---|
   | A note | "Weak walls: the game ends here" | 169.5 | 195.7 | 207 |
   | The legend | "Weak walls: bolder means weaker" | 177.1 | 204.1 | 215 |
-  | A reading | "M10 · Blue · cut chance under 1%" | 175.6 | 202.7 | 215 |
+  | A reading | "M18 · Blue · cut chance under 1%" | 175.6 | 202.7 | 215 |
 
-  Any row from 10 to 19 in column M gives the same width as M10: DejaVu Sans's digits are one width. The
+  Any row from 10 to 19 in column M gives the same width as M18: in both fonts, the digits are one width. The
   calibration, "Loading the engine's network…", took 165.3 and 189.7 pixels, as in the earlier entry.
 - **One text at a time:** the margin shows one note, the area map's first. The walls' legend shows only while no
-  note shows, and the walls' note takes the place of the map's legend. Under the pointer, the reading of a point on
-  an edge takes the note's place, as the map's reading does (`marginNote` in `packages/review/src/ReviewView.svelte`).
+  note shows and the area map is off. With the area map on, the map's legend shows, and the walls' note takes its
+  place. Under the pointer, the reading of a point on an edge takes the note's or the legend's place, as the map's
+  reading does (`marginNote` in `packages/review/src/ReviewView.svelte`).
   Two texts do not fit side by side at 360 pixels:
   - In the prototype's review, the walls' note squeezed the map's legend to 4 pixels on the Analysis board.
   - With the first engine that gave the walls, "Map: waiting for the engine" (158 pixels) showed beside the walls'
-    legend, which got 53 pixels and an ellipsis (docs/decisions/engine.md, "The release c43233eb: protocol 0.6.2 and
-    the weak walls").
+    legend, which got 53 pixels and an ellipsis (decisions/engine.md, "The release c43233eb: protocol 0.6.2 and the
+    weak walls").
 - **The layout test** (the case "layout of the weak walls") checks at every width that no walls' text ends with an
   ellipsis, and reports a note beside the walls' legend or reading.
 - **The measurement:** headless Chromium with the layout test's launch options. The canvas's `measureText` gave the
-  widths, with DejaVu Sans loaded from WSL's `/usr/share/fonts` as a `FontFace`. The widths are design 30's, item 9.
+  widths, with DejaVu Sans loaded from WSL's `/usr/share/fonts` as a `FontFace`. The room came from the Analysis
+  board's margin at 360 × 700: its box, its padding, and its gap after the walls' switch. The figures are design 30's,
+  item 9.
