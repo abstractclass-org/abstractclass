@@ -12,6 +12,7 @@
   import Logo from "#lib/brand/Logo.svelte";
   import { ENGINE_FILES, PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
   import SiteFrame from "@abstractclass/site/SiteFrame.svelte";
+  import SiteHead from "@abstractclass/site/SiteHead.svelte";
   import SiteMenu from "@abstractclass/site/SiteMenu.svelte";
   import SiteName from "@abstractclass/site/SiteName.svelte";
   import ThemeMenu from "@abstractclass/site/ThemeMenu.svelte";
@@ -38,22 +39,10 @@
   });
 </script>
 
-<svelte:head>
-  <!-- The logo (design 33, "The logo"): a PNG for browsers without SVG icons, the SVG for the rest, and a square tile for
-       iOS. -->
-  <link rel="icon" href="/favicon.ico" sizes="32x32" />
-  <link rel="icon" href={favicon} type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <!-- Link previews (design 23): the tags that every page shares. Each page gives its title, description and address
-       (PageMeta). The image is drawn by scripts/brand.mjs from src/lib/brand/card.ts. -->
-  <meta property="og:site_name" content={SITE_NAME} />
-  <meta property="og:type" content="website" />
-  <meta property="og:image" content="{SITE_ORIGIN}/brand/card.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Cyanotype: learn Blueprints. The logo, and a corner of a board with Blue's and Red's cells." />
-  <meta name="twitter:card" content="summary_large_image" />
-</svelte:head>
+<!-- The icons, the logo (design 33, "The logo"), and the link previews' tags that every page shares (Hedge School's
+     design 23). The preview picture is drawn by scripts/brand.mjs from src/lib/brand/card.ts. -->
+<SiteHead {favicon} name={SITE_NAME} origin={SITE_ORIGIN}
+          imageAlt="Cyanotype: learn Blueprints. The logo, and a corner of a board with Blue's and Red's cells." />
 
 <SiteFrame origin={SITE_ORIGIN} themeKey={THEME_KEY} placesKey={PLACES_KEY}>
   {#snippet header()}

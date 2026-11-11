@@ -15,6 +15,7 @@
 	import Icon from '@abstractclass/site/Icon.svelte';
 	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';
 	import SiteName from '@abstractclass/site/SiteName.svelte';
+	import SiteHead from '@abstractclass/site/SiteHead.svelte';
 	import Collie from '#lib/Collie.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -60,21 +61,10 @@
 	});
 </script>
 
-<svelte:head>
-	<!-- The collie (design 12): a PNG for browsers without SVG icons, the SVG for the rest, and a square tile for iOS. -->
-	<link rel="icon" href="/favicon.ico" sizes="32x32" />
-	<link rel="icon" href={favicon} type="image/svg+xml" />
-	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-	<!-- Link previews (design 23): the tags that every page shares. Each page gives its title, description and address
-	     (PageMeta.svelte). The image is drawn from scripts/social-card.html. -->
-	<meta property="og:site_name" content={SITE_NAME} />
-	<meta property="og:type" content="website" />
-	<meta property="og:image" content="{SITE_ORIGIN}/brand/card.png" />
-	<meta property="og:image:width" content="1200" />
-	<meta property="og:image:height" content="630" />
-	<meta property="og:image:alt" content="Hedge School: learn Enclosure. A board with Blue's and Red's edges." />
-	<meta name="twitter:card" content="summary_large_image" />
-</svelte:head>
+<!-- The icons, the collie (design 12), and the link previews' tags that every page shares (design 23). The preview
+     picture is drawn from scripts/social-card.html. -->
+<SiteHead {favicon} name={SITE_NAME} origin={SITE_ORIGIN}
+          imageAlt="Hedge School: learn Enclosure. A board with Blue's and Red's edges." />
 
 <!-- The site's frame (SiteFrame): on a screen with a mouse, the header over the page's own scrolling area, which fills
      the rest of the window (site.css, pageScroll.ts). The theme's key is also in src/app.html. -->
