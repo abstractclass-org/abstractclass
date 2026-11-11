@@ -1,12 +1,10 @@
 <script lang="ts" module>
   import { center, hexPath, type Hex } from "./hex.ts";
   import type { Kind, Player } from "./position.ts";
-  import { STAR, STRIPES } from "./cellMarks.ts";
+  import { CELL_SIZE, STAR, STRIPES } from "./cellMarks.ts";
 
   /** The kinds' marks (cellMarks.ts). A Normal cell has none. */
   const MARKS: Partial<Record<Kind, string>> = { star: STAR, wall: STRIPES };
-  /** A cell's radius: a gap of 0.07 between two cells, so that each cell reads alone. */
-  export const CELL_SIZE = 0.93;
   const SHAPE = hexPath(0, 0, CELL_SIZE);
 </script>
 

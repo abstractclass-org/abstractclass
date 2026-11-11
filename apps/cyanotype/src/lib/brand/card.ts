@@ -2,6 +2,7 @@
 // School's (its scripts/social-card.html, design 23): a corner of a board on the left, and on the right the logo, the
 // site's name, what it is for and its address, in the site's dark theme. Drawn as SVG here, and to
 // static/brand/card.png by scripts/brand.mjs. For Node: it reads the site's style sheets.
+import { CELL_SIZE } from "#lib/board/cellMarks.ts";
 import { center, hexPath, type Hex } from "#lib/board/hex.ts";
 import type { Kind, Player } from "#lib/board/position.ts";
 import { siteThemes } from "@abstractclass/site/themeTokens.ts";
@@ -49,7 +50,7 @@ function board(x0: number, y0: number, side: number, k: number): string {
   let cells = "";
   for (const [h, owner, kind] of CELLS) {
     const [x, y] = at(h);
-    cells += `<path d="${hexPath(x, y, k * 0.93)}" fill="${owner ? RED : BLUE}"/>`;
+    cells += `<path d="${hexPath(x, y, k * CELL_SIZE)}" fill="${owner ? RED : BLUE}"/>`;
     if (kind === "star") cells += `<path d="${starPath(x, y, k * 0.52)}" fill="${ON_CELL}"/>`;
     if (kind === "wall") cells += `<path d="${bricks(x, y, k)}" fill="none" stroke="${ON_CELL}" stroke-width="${k * 0.07}"/>`;
   }

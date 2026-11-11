@@ -1383,11 +1383,15 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
 6. **The head for partner sites' buttons.** Hedge School gives its head to partner sites at
    `/brand/hedge-school.svg` (design 18). Cyanotype's comes with its partner sites ("Partner sites", item 11): the
    simple drawing at `/brand/cyanotype.svg`, abscls-8tl1.77. Until then Cyanotype has no such file.
-7. **How each file is made.** The drawings are SVG in code (`src/lib/brand/logo.ts`, and the card in `card.ts`).
-   `scripts/brand.mjs` writes the favicon's SVG file from them, and draws the PNG files in headless Chromium, each at
-   its own size, with the launch options of the layout test (off the GPU on Windows). Run it again after a change of
-   the drawings: `node scripts/brand.mjs` in `apps/cyanotype`. A test (`logo.test.ts`) keeps the favicon's file equal
-   to the simple drawing.
+7. **How each file is made.** The drawings are SVG in code (`src/lib/brand/logo.ts`, and the card in `card.ts`). The
+   card takes its colours from the site's tokens in the dark theme (`@abstractclass/site/themeTokens.ts`), and its
+   cells' size from the board's (`CELL_SIZE`, `src/lib/board/cellMarks.ts`). `scripts/brand.mjs` writes the
+   favicon's SVG file from them, and draws the PNG files in headless Chromium, each at its own size, off the GPU on
+   Windows as the layout test (`@abstractclass/site/chromium.ts`). It joins the favicon's sizes in the ICO file that
+   Hedge School's favicon has too (`@abstractclass/site/ico.ts`). The icons' tags and the link preview's are the
+   sites' shared head (`@abstractclass/site/SiteHead.svelte`). Run the script again after a change of the drawings:
+   `node scripts/brand.mjs` in `apps/cyanotype`. A test (`logo.test.ts`) keeps the favicon's file equal to the simple
+   drawing.
 
 ## The gaps from Hedge School
 

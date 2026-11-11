@@ -1,6 +1,10 @@
-// The kinds' marks (design 33, "The cells' marks"), for a pointy-top hex of radius 1 round (0, 0), as Cell.svelte
-// draws a cell: a star cell's six-point star, and a wall's diagonal stripes. A Normal cell has no mark. The shapes, not
-// the colours alone, tell the kinds apart: a shape against lines. Geometry only.
+// A cell's size, and the kinds' marks (design 33, "The cells' marks"), for a pointy-top hex of radius 1 round (0, 0),
+// as Cell.svelte draws a cell: a star cell's six-point star, and a wall's diagonal stripes. A Normal cell has no mark.
+// The shapes, not the colours alone, tell the kinds apart: a shape against lines. Geometry only. The link preview
+// picture (brand/card.ts) draws its cells at the board's size, with its own marks.
+
+/** A cell's radius: a gap of 0.07 between two cells, so that each cell reads alone. */
+export const CELL_SIZE = 0.93;
 
 const SQRT3 = Math.sqrt(3);
 type Point = [number, number];

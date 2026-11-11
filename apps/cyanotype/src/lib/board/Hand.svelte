@@ -3,7 +3,8 @@
   import { cellKey } from "./input.ts";
   import { blueprintCells, PLAYER_NAMES, sameHandHex, type BlueprintNumber, type Hand, type HandHex, type Player } from "./position.ts";
   import type { Size } from "./view.ts";
-  import Cell, { CELL_SIZE } from "./Cell.svelte";
+  import Cell from "./Cell.svelte";
+  import { CELL_SIZE } from "./cellMarks.ts";
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
   import type { Label } from "@abstractclass/analysis/labels.ts";
   import { chipRow } from "./chips.ts";
