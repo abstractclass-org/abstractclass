@@ -11115,3 +11115,26 @@ with Hedge School") changed. Cyanotype's Practice copied parts of Hedge School's
     differ. So the difference comes from the rendering, not from the change.
   - The site suite on the branch's final code: check:all passes, and the whole layout test passes: 259 cases, none
     skipped, none flaky.
+
+### The pre-commit hook refuses a script without its exec bit (2026-11-11)
+
+abscls-rcvo, the owner's decision of 2026-11-11 by the MacBook's coordinator (abscls-us46.78's third part). Git for
+Windows stages a new file at mode 100644, and `core.filemode=false` keeps that mode, so a script made on Windows
+reached the Mac without its exec bit. Planning's and engines' `.githooks/pre-commit` refuse such a file (planning's
+hook as of c2cdbc1, engines 769a2f1b); this repository's hook now does the same.
+
+- **The check:** the block of planning's hook, line for line but the temporary file's name. It reads the staged
+  adds, modifications and type changes at index mode 100644, and refuses each one whose staged content starts with
+  `#!`, with the fix in the message (`git update-index --chmod=+x -- <file>`). It runs first, in sh, with no node.
+  The width check follows as before, and still only where node is found. When both fail, the hook prints both.
+- **The modes:** `scripts/commit-msg.test.sh` and `scripts/pre-push.test.sh` went from 100644 to 100755. Every
+  tracked file that starts with `#!` is now 100755 (the three hooks and their three tests), and every 100755 file
+  starts with `#!`.
+- **Limits, shared with planning's and engines' copies:** a path that starts with `:` and digits is taken for a
+  header and not checked; a path with an apostrophe breaks the quoted fix in the message; the printed fix fails when
+  the commit runs from a subfolder; and the hook runs one `git show` per staged file (about 0.9 s each on this machine
+  under load). A fix of one goes into all three repositories.
+- **Checked:** `sh scripts/pre-commit.test.sh` passed 30 cases with 2 skipped on Windows (a path `0:foo` and a path
+  with a newline, which Git for Windows refuses to stage), and 29 with 1 skipped in WSL with dash and Linux Git (no
+  node there). check:all passed all 19 steps. The branch's commits went through the new hook. The workflow Documents
+  runs the test on each push to `dev`.
