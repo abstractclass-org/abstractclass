@@ -451,3 +451,27 @@ test("a start brought while a game is in progress: the player chooses, and Go on
   expect(await keptGame(page)).toBeNull();
   expect(errors).toEqual([]);
 });
+
+// The game in progress that the page found as it mounted, ended by another tab while the engine loads: the question
+// does not ask about it, and the card keeps the start brought (the shared start, @abstractclass/practice/page.svelte.ts).
+test("a start brought, and a game that another tab ends while the engine loads: no question, the start stays", async ({ page }) => {
+  const network = await fromPosition(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await keepBefore(page, "cyanotype:practice-game:1", {
+    version: 1, bot: { network, visits: 8, variety: "low" }, human: 0, name: "", seed: 1, moves: middle.moves.slice(0, 1),
+    builds: [], started: new Date().toISOString(),
+  });
+  let endedElsewhere = () => {};
+  const ended = new Promise<void>(r => (endedElsewhere = r));
+  await page.route("**/engine/manifest.json", async route => { await ended; await route.continue(); });
+  await page.goto(at(`/practice#${new URLSearchParams({ record: middle.moves.join(" ") })}`));
+  const red = page.getByRole("button", { name: "Play as Red" });
+  await expect(red).toBeDisabled({ timeout: 60_000 }); // the card, before the rules are loaded
+  await page.evaluate(() => localStorage.removeItem("cyanotype:practice-game:1"));
+  endedElsewhere();
+  await expect(red).toBeEnabled({ timeout: 120_000 });
+  await expect(page.getByText("The game starts after the record's 9 moves.")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Play from this position?" })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

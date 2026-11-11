@@ -33,7 +33,7 @@ export interface PracticeSite<K extends KeptPractice, G extends Game<K>> {
   engine(): EngineSettings; // the engine settings, for the bot's form
   create(kept: K, rules: EngineWorker, bot: PracticeBot): G;
   params(kept: K, form: string, cores: number): EventParams; // practice_start's
-  endParams(kept: K, form: string, cores: number, outcome: PracticeOutcome, edges: number): EventParams; // practice_end's
+  endParams(kept: K, form: string, cores: number, outcome: PracticeOutcome, moves: number): EventParams; // practice_end's
   track(name: string, params?: EventParams): void;
   trackOnce(key: string, name: string, params?: EventParams): void;
   ended?(game: G, outcome: PracticeOutcome): void; // the site's part of a game's end, after its event
@@ -104,7 +104,8 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
    *  start came in the address that the rules have not refused yet. The site reads it before (`brought`), or checks it
    *  once the rules are loaded (`check`). The page resumes a kept game only when it found one as it mounted and nothing
    *  is brought: a game that another tab starts while the engine loads does not replace the settings card. A game found
-   *  that another tab ends meanwhile gives way to the card. */
+   *  that another tab ends meanwhile gives way to the card, and the question on a start brought does not ask about
+   *  it. */
   async mount(bringing: boolean, manifest: () => Promise<Manifest>, check?: (rules: EngineWorker) => Promise<void>) {
     const found = this.site.loadKept();
     if (found?.moves.length && this.brought) this.replacing = true; // the player chooses: the game in progress, or the start
@@ -116,11 +117,12 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       this.rules = w;
       await check?.(w);
       this.ready = true;
-      // A start brought that the rules refused leaves the game in progress, which goes on.
-      if (this.brought) { if (found?.moves.length) this.replacing = true; return; }
       if (!found || this.game) return;
-      const resume = this.site.loadKept();
-      if (resume) await this.play(resume, "resumed");
+      const kept = this.site.loadKept(); // the game found, unless another tab ended it
+      // The player chooses between the game in progress and the start brought. A start brought that the rules refused
+      // leaves the game in progress, which goes on.
+      if (this.brought) this.replacing = !!(found.moves.length && kept?.moves.length);
+      else if (kept) await this.play(kept, "resumed");
       else this.phase = "settings";
     } catch (e) {
       this.failed = errorText(e);
@@ -190,10 +192,10 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     if (fromBrought) {
       if (kept && this.rules) await this.site.setAside?.(kept, this.rules);
       this.site.keep(null);
-      return;
+    } else if (kept) { // a game that another tab ended leaves the start brought
+      this.brought = null;
+      await this.play(kept, "resumed");
     }
-    this.brought = null;
-    if (kept) await this.play(kept, "resumed");
   }
 
   /** A takeback, from the latest position: the board shows it after. */

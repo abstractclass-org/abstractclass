@@ -11077,14 +11077,18 @@ with Hedge School") changed. Cyanotype's Practice copied parts of Hedge School's
   the engine's start, a new game, the steps and their keys, the bot's thinking time, the question on a start brought,
   the player's notes, and the game's events. A site gives its game, its storage, its engine settings, its analytics,
   and its own parts of a game's start and end. `PracticeActions.svelte` (Take back, Abort and Resign) and
-  `ConfirmEnd.svelte` (the question before Abort or Resign, with each site's words) hold the markup that both pages
-  repeated. `turnsOf` in `practice.ts` groups the move list's turns.
+  `ConfirmEnd.svelte` (the question before Abort or Resign, with each site's words) hold that part of the markup that
+  both pages repeated. `turnsOf` in `practice.ts` groups the move list's turns. Some markup is still in both pages:
+  the move list's frame and its skeleton, the players' skeleton, the frame of the error and of the wait.
 - **The resume rule is Hedge School's:** the page resumes a kept game only when it found one as it mounted. Before,
   Cyanotype resumed whatever its storage held once the engine had started. So a game that another tab started while
   this tab's engine loaded replaced the settings card that the player saw (found by abscls-z0jz's review). A start
   brought that the rules refuse still leaves the game in progress, which goes on, as before.
 - **A game found that another tab ends while the engine loads gives way to the card.** Before, on both sites, the
-  page waited for that game, with "Starting" and its buttons off, until a reload. The review found it.
+  page waited for that game, with "Starting" and its buttons off, until a reload. With a start brought, the question
+  asks only about a game that is still kept once the rules are loaded, as Cyanotype's page asked before. Hedge
+  School's asked about the game found as the page opened, and "Go on with mine" then lost the start brought. The
+  review found both.
 - **Hedge School's rules stay through the bot's turn,** as Cyanotype's did. The page gives the board's input no rules
   off the player's turn, so the board does not change.
 - **Cyanotype's one column:** the hands' place follows the review's one column (`packages/review/src/oneColumn.ts`, a
@@ -11092,7 +11096,8 @@ with Hedge School") changed. Cyanotype's Practice copied parts of Hedge School's
   column's height (`ONE_COLUMN_HEIGHT`) and the board take the hands' sizes under the field, the room between them
   and the field, and the zoom's buttons from one place (`panel.ts`: `UNDER_HAND`, `FIELD_GAP`, `ZOOM_BUTTONS`). The
   board sets the buttons' sizes as custom properties, so its classes no longer repeat them. The pixels are the same.
-- **What the pages show did not change,** apart from the fault's fix.
+- **What the pages show did not change,** apart from the faults' fixes: what a tab shows when another tab starts or
+  ends a game while the engine loads.
 - **Checked** in headless Chromium (Playwright's chromium project, on the CPU), on both sites' builds: a case on each
   site keeps a game while the engine's manifest waits, and the settings card stays (`practice-start.spec.ts` and
   `cyanotype-practice.spec.ts`). The practice cases of both sites and the layout cases of their Practice pages pass:
