@@ -1,15 +1,20 @@
 // The link preview picture (design 33, "The logo"): 1,200 × 630 pixels, Open Graph's size, in the form of Hedge
 // School's (its scripts/social-card.html, design 23): a corner of a board on the left, and on the right the logo, the
 // site's name, what it is for and its address, in the site's dark theme. Drawn as SVG here, and to
-// static/brand/card.png by scripts/brand.mjs.
+// static/brand/card.png by scripts/brand.mjs. For Node: it reads the site's style sheets.
 import { center, hexPath, type Hex } from "#lib/board/hex.ts";
 import type { Kind, Player } from "#lib/board/position.ts";
+import { siteThemes } from "@abstractclass/site/themeTokens.ts";
 import { LOGO_LARGE, shapeMarkup, starPath } from "./logo.ts";
 
-// The dark theme's colours (packages/site/src/site.css, and the board's in src/app.css). The grey under the lead is
-// Hedge School's card's own.
-const BG = "#1d1e21", TEXT = "#e4e4e6", MUTED = "#9a9ca3", LEAD = "#b8a6e8", ABOUT = "#c9cace";
-const BOARD = "#3a362e", GRID = "#6d6555", BLUE = "#5b8ff0", RED = "#e8635c", ON_CELL = "#16181c";
+// The dark theme's colours: the site's tokens, from the style sheets that hold them, in the order that src/app.css
+// imports them. The lead takes the accent's colour, and the marks on the cells the colour of the text on the accent.
+// The grey under the lead is Hedge School's card's own.
+const { dark } = siteThemes([import.meta.resolve("@abstractclass/site/site.css"),
+  import.meta.resolve("@abstractclass/review/review.css"), import.meta.resolve("../../app.css")].map(url => new URL(url)));
+const BG = dark["--bg"], TEXT = dark["--text"], MUTED = dark["--muted"], LEAD = dark["--accent"], ABOUT = "#c9cace";
+const BOARD = dark["--board-bg"], GRID = dark["--board-dot"], BLUE = dark["--blue"], RED = dark["--red"];
+const ON_CELL = dark["--on-accent"];
 
 /** The card's size, Open Graph's. */
 export const CARD_WIDTH = 1200, CARD_HEIGHT = 630;
