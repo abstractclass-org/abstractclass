@@ -312,7 +312,14 @@ edit in the same commit), so their changes still apply.
     notation, the reader of a game site's page) and the pages that connect the shared parts. A feature that only one
     game has, such as Enclosure's area map, stays in that game's site. Code that a site copied from another site moves
     into a package too: abscls-8tl1.58 (the logo's files and the Export menu) and abscls-8tl1.15 (Practice's page
-    parts).
+    parts). From abscls-8tl1.58, the site's package holds the favicon's ICO file (`ico.ts`), Chromium's switches off
+    the GPU for the browser tests and scripts (`chromium.ts`), the head's icons and link preview tags
+    (`SiteHead.svelte`), and the theme tokens of every block of a theme (`themeTokens.ts`, which Cyanotype's link
+    preview picture reads). The engine's holds the error text as a sentence's end (`errorSentence`). The review's
+    Export menu (`exports.ts`) holds the review link's note and copy (`shareNote`, `copyReviewLink`) and the Analysis
+    board's exports (`deliverBoardExport`), and the analysis package the board's file load (`loadBoardFile`). The
+    shared review's intro (Hedge School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site:
+    its words differ between the two copies, and one text for both is a visible change.
 
 ## Why
 
@@ -536,6 +543,7 @@ and the threaded bot" (2026-11-07), "Cyanotype refuses a set-up start before the
 (2026-11-08), "Cyanotype's review files, as Hedge School's" (2026-11-08), "Cyanotype's review snapshot and
 annotated record from the store" (2026-11-08), "Cyanotype removes earlier engine results, as Hedge School"
 (2026-11-11), "One rule for a draw in the value at the game's end and in Cyanotype's kept result" (2026-11-11),
-and "Practice's page parts in packages/practice" (2026-11-11).
+"Practice's page parts in packages/practice" (2026-11-11), and "The logo's files and the exports' glue in
+packages/" (2026-11-11).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06), and "A new feature starts in a package" (2026-11-08).

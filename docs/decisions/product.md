@@ -11287,3 +11287,38 @@ both document checks, and the steps to roll back).
   footer only. It compares the engine's files with the `engine.lock.json` of its own checkout, and the header with
   its own list of links. So at an older commit it can fail although the rollback worked. The restored deployment is
   the one that went live at its release, with the same files.
+
+### The logo's files and the exports' glue in packages/ (2026-11-11)
+
+Beads abscls-8tl1.58. Design 29 (item 11) and design 33 ("The logo", item 7) changed. Cyanotype copied parts of
+Hedge School's logo files, its head and its Export menu. They move into the packages, as design 29, item 11, asks. No
+file moved, so the work has no commit of renames. Each part is its own commit.
+
+- **The logo's files:** one ICO writer (`packages/site/src/ico.ts`) for Hedge School's `scripts/favicon.mjs` and
+  Cyanotype's `scripts/brand.mjs`. One module of Chromium's switches off the GPU (`packages/site/src/chromium.ts`,
+  `OFF_THE_GPU`) for Hedge School's `playwright.config.ts` and `brand.mjs`, which imported that config before. One
+  head block of the icons and the link preview tags (`packages/site/src/SiteHead.svelte`) for both layouts.
+- **Cyanotype's link preview picture** (`src/lib/brand/card.ts`) reads its colours from the site's tokens in the dark
+  theme. The grey under the lead stays the card's own, as on Hedge School's card. `block()` in `themeTokens.ts` now
+  takes every block of a theme at a line's start: Cyanotype's `src/app.css` gives its accent's tokens and its board's
+  in two blocks of each theme. A nested block, such as the hub's `:root` in its `@media`, is still left out.
+- **The cells:** since abscls-8tl1.69, the board's star cells and walls have marks that the card does not draw. The
+  card keeps its five-point star and its bricks. What both still draw is the cell at the board's size: `CELL_SIZE`
+  moved from `Cell.svelte` into `cellMarks.ts`, and the card imports it.
+- **The exports' glue:** `errorSentence` (an error's text, ended by one period) in `packages/engine/src/errors.ts`
+  replaces five copies. `shareNote` moved from `packages/analysis/src/share.ts` into the Export menu's
+  `packages/review/src/exports.ts`, with its test, beside `copyReviewLink`. `deliverBoardExport` there delivers the
+  Analysis board's link, analysis file and annotated record. `loadBoardFile` in `packages/analysis/src/files.ts`
+  refuses a review file on the Analysis board and words the board's notice. Each site keeps what it does with the
+  address and its events.
+- **The shared review's intro stays in each site.** Hedge School's `Arrival.svelte` and Cyanotype's
+  `SharedArrival.svelte` read and keep a shared review with the same steps, but their words differ: "edges" against
+  "move" or "moves", "a game you import" against "a game that you import", "as the engine finds it" against "when
+  the engine finds it", and "a network this site no longer has" against "a network that this site no longer has". One
+  text for both sites is a visible change on one of them.
+- **Checked, with no visible change:** `brand.mjs` wrote its four files with the same SHA-256 as before, after each
+  step. The shared ICO writer rebuilt both sites' `favicon.ico` from their own images byte for byte. (`favicon.mjs`
+  draws with Edge, which only the owner starts.) Both sites' built pages (35) kept their heads, but for the build's
+  file hashes, Svelte's head comment and, on six of Cyanotype's pages, one preload fewer: the bundler now puts the
+  constants of Cyanotype's `site.ts` in another chunk. Both home pages at 1,280 and 360 pixels, in both themes, gave
+  the same pixels on dev and on the branch, but for the footer's version, the commit that the build names.
