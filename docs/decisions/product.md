@@ -11415,3 +11415,38 @@ abscls-m2i8 and abscls-wtdm, later steps of abscls-pymm ("A time limit on each f
   new case fails with the old code.
 - **Left:** a part that lacks a position stays in the cache, so "Try again" does not read it again; its error is a
   `BookLoadError`, so the review still searches that position.
+
+### Every spec keeps a page log, and check:all refuses one that does not (2026-11-12)
+
+Beads abscls-tblx, a later step of abscls-z0jz ("Practice's tests keep their storage before the page's code runs").
+
+- **Every spec:** 28 of the 33 spec files in `apps/hedgeschool/tests` took `test` from `@playwright/test`, so their
+  failing cases kept no page log. Now all 33 take `test` and `expect` from `tests/page-log.ts`. `tests/posthog.ts` and
+  the other helper modules still use Playwright's own `test` for their `test.use` and `test.beforeEach`. These
+  register on the spec's file as before.
+- **Every context:** the log read only the case's own context. A case on another context wrote "(nothing)" when it
+  failed: the 13 serial cases of `cyanotype-review.spec.ts` (one context from its `beforeAll`), its two Analysis-board
+  cases, two cases of `layout.spec.ts`, and the pages of `browser.newPage` and `browser.newContext` in
+  `cyanotype-snapshot`, `review-snapshot` and `practice-komi`. Now the log reads each context that is open while the
+  case runs, and each one that opens during it. It takes its listeners off at the case's end, so a `beforeAll`'s
+  context logs each case on its own. In a scratch run of four cases that fail on purpose, one on each kind of
+  context, three of the four logs said "(nothing)" before the change. After it, each log named its own console error.
+- **The check:** `scripts/spec-page-log.mjs`, the step `spec-page-log` of `npm run check:all`, reads each file that
+  Playwright runs (`*.spec.*` and `*.test.*`, the default, because `playwright.config.ts` gives no `testMatch`). It
+  refuses a file that takes `test` as a value from `@playwright/test` or `playwright/test`, in any form of import or
+  re-export. It also refuses a file that does not import `test` from the page log, so a helper module cannot give it
+  Playwright's own. Each of the 33 specs, with its import changed back to Playwright or to a helper, was refused.
+  Not covered: a dynamic `import()` or `require()` of Playwright, and a helper that gives Playwright's `test` under
+  another name to a spec that also imports the page log's. A check at run time (a reporter in `playwright.config.ts`)
+  would cover them.
+- **Three keeps before the load:** "Practice: the notes stay with their position" (`cyanotype-notes.spec.ts`), "layout
+  of a practice game on Cyanotype" (`layout.spec.ts`) and the `practiceGame` helper wrote the game, then reloaded.
+  They now keep it with `keepBefore` (`tests/keep-before.ts`, moved from `cyanotype-practice.spec.ts`) before their
+  one load, as the cases of abscls-z0jz do. The other cases that write and reload go on to other pages or remove a
+  key, so an init script does not fit them.
+- **The cost:** the layout test took 35.0 min and 34.8 min in the two suite runs of the change, as in the runs before
+  it. A measure on a local test page gave the listeners about 0.035 ms an event, an estimated 5 to 10 s a suite run.
+- **The first log of a cause:** in one suite run, `analytics.spec.ts:19` failed, and its log named a chunk of the
+  site's code that did not load, `net::ERR_NO_BUFFER_SPACE` (Windows' WSAENOBUFS, no socket buffer space under the
+  machine's load), then "Failed to fetch dynamically imported module". The file alone then passed 12 of 12. A chunk
+  that does not load fits the page with only the header that abscls-z0jz found.

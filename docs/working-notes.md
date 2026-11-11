@@ -72,13 +72,15 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   pages start their code after it. So when a test writes the browser's storage after `page.goto`, then reloads, the
   first load's code can still read that storage before the reload replaces the page. A slow answer to the reload, as
   under the machine's load, keeps the old page running. Write the storage with `page.addInitScript` before the first
-  load (`keepBefore` in `tests/cyanotype-practice.spec.ts`). An init script runs again on each later load: where that
+  load (`keepBefore` in `tests/keep-before.ts`). An init script runs again on each later load: where that
   does harm, wait for something that only the page's code shows, such as Practice's settings card, before the write
   (`keepGame` in `tests/practice-komi.spec.ts`). A test that types into a prerendered field waits the same way
   (abscls-6i5k).
-- **A failing case's page log:** a spec that imports `test` from `tests/page-log.ts` keeps its pages' errors, console
-  errors, failed requests, HTTP errors and crashes for each case that fails: `page-log.txt`, beside the screenshot in
-  the case's folder of `test-results`. A script of the site that does not load leaves a page with only the header: the
+- **A failing case's page log:** each spec imports `test` from `tests/page-log.ts`, and the step `spec-page-log` of
+  `npm run check:all` refuses a test file that does not. For each case that fails, the log keeps the pages' errors,
+  console errors, failed requests, HTTP errors and crashes: `page-log.txt`, beside the screenshot in the case's folder
+  of `test-results`. It reads each browser context that is open while the case runs: the case's own, a `beforeAll`'s,
+  and one that the case opens itself. A script of the site that does not load leaves a page with only the header: the
   log then names the request.
 - **The local server and a build:** stop the server before `npm run build`, then start it again. A build under a
   running server can stop it (a page asks for `_app/version.json` while the build replaces it).
