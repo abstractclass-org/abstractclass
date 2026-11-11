@@ -27,13 +27,13 @@
   import { modelOf } from "@abstractclass/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, shipsNetwork, withBoardNetwork,
            type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import { addressNetwork, fileEngine, loadBoardFile } from "@abstractclass/analysis/files.ts";
+  import { addressNetwork, boardRefusal, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
+  import { errorText } from "@abstractclass/engine/errors.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
-  import { shippedModels, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
-  import { BOARD_EXPORTS, deliverBoardExport } from "@abstractclass/review/exports.ts";
+  import { BOARD_EXPORTS, boardRecordNote, deliverBoardExport, type ExportKind,
+           type ExportResult } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { parseRecord, startTags, withStart } from "#lib/game/record.ts";
@@ -153,11 +153,11 @@
         : readBoardLink(p.get("packed") ?? "", p.get("at"));
     } catch (e) {
       if (brings) {
-        refuse(`The Analysis board cannot ${OWN.includes(via ?? "") ? "analyze" : "import"} this ${record !== null ? "record" : "position"}: ${errorSentence(e)}`);
+        refuse(boardRefusal(OWN.includes(via ?? "") ? "analyze" : "import", record !== null ? "record" : "position", e));
         if (imported)
           trackImportFailed("analysis", imported, e instanceof RecordProblem ? e.failure : "link");
       } else {
-        refuse(`The Analysis board cannot load this ${loaded === "analysis_file" ? "file" : "link"}: ${errorSentence(e)}`);
+        refuse(boardRefusal("load", loaded === "analysis_file" ? "file" : "link", e));
         trackLoadFailed(loaded!, loaded === "analysis_file" ? "file" : "link");
       }
       return { board: kept, at: keptAt };
@@ -299,10 +299,10 @@
       // The file names the board's network, which the board that opens it takes (design 21).
       file: () => exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest),
                                  fileEngine(session.manifest, session.network)),
-      fileName: () => analysisFileName(),
+      fileName: analysisFileName(),
       annotated: () => annotatedRecord({ R: r, unit, tags: startTags(g.startPosition, g.komi), result: "*",
                                          branches: g.branches, annotator: SITE_NAME,
-                                         note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` }),
+                                         note: boardRecordNote(SITE_NAME, networkName(session.network), session.network) }),
     });
   }
 </script>

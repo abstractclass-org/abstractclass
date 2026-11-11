@@ -25,30 +25,37 @@ export const REVIEW_LINK: ExportItem =
 export const REVIEW_FILE: ExportItem =
   ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"];
 
-/** The note after a review's link is copied: its length, and a warning past a Discord message's limit. `reviewFile`:
- *  whether the site exports review files, which the warning offers in the link's place. */
-export function shareNote(length: number, reviewFile = true): string {
+/** The note after a review's link is copied: its length, and a warning past a Discord message's limit, which offers
+ *  the review file in the link's place. */
+export function shareNote(length: number): string {
   const n = length.toLocaleString("en");
   return length > DISCORD_LIMIT
-    ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some variations${reviewFile ? ", or send the review file" : ""}.`
+    ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some variations, or send the review file.`
     : `Link copied (${n} characters). The recipient's browser reviews the game again.`;
+}
+
+/** Copies a link, and answers its length (Hedge School's design 17 counts it). */
+async function copyLink(link: string): Promise<ExportResult> {
+  await navigator.clipboard.writeText(link);
+  return { linkLength: link.length };
 }
 
 /** Copies a review's link (Hedge School's design 13, item 8), and answers its length and the note on it (shareNote). */
 export async function copyReviewLink(link: string): Promise<ExportResult> {
-  await navigator.clipboard.writeText(link);
-  return { linkLength: link.length, note: shareNote(link.length) };
+  return { ...(await copyLink(link)), note: shareNote(link.length) };
 }
 
-/** Delivers a game's review file or its annotated record, as both sites' reviews do (Hedge School's design 13): the
- *  file that `file` makes, as a download named `name`; or the annotated record, which `annotated` writes when it is
- *  asked for, copied (`record_copy`) or as a download (any other kind) whose name is the file's with `.txt`. */
+/** Delivers a file or the annotated record, as both sites' reviews and Analysis boards do (Hedge School's designs 13
+ *  and 21): the review file or the analysis file that `file` makes, as a download named `name`; or the annotated
+ *  record, which `annotated` writes when it is asked for, copied (`record_copy`) or as a download (any other kind)
+ *  named `recordName`: by default the file's name with `.txt`. */
 export async function deliverFileOrRecord(kind: ExportKind, name: string, file: () => Promise<unknown>,
-                                          annotated: () => string | Promise<string>): Promise<void> {
-  if (kind === "review_file") return download(name, JSON.stringify(await file()));
+                                          annotated: () => string | Promise<string>,
+                                          recordName = name.replace(/\.json$/, ".txt")): Promise<void> {
+  if (kind === "review_file" || kind === "analysis_file") return download(name, JSON.stringify(await file()));
   const text = await annotated();
   if (kind === "record_copy") await navigator.clipboard.writeText(text);
-  else download(name.replace(/\.json$/, ".txt"), text, "text/plain");
+  else download(recordName, text, "text/plain");
 }
 
 /** The annotated record, copied or as a file: the review's and the Analysis board's last entries. */
@@ -57,31 +64,24 @@ export const RECORD_EXPORTS: ExportItem[] = [
   ["record_file", "Annotated record as a file", "", "Annotated record saved"],
 ];
 
-/** What the Analysis board exports, each made when it is asked for: its link, its analysis file and the file's name, and
- *  its annotated record. */
+/** What the Analysis board exports: its link, its analysis file and the file's name, and its annotated record. The
+ *  link, the file and the record are made only when they are asked for. */
 export interface BoardExport {
-  link(): string;
-  file(): Promise<unknown>;
-  fileName(): string;
-  annotated(): string;
+  link: () => string;
+  file: () => Promise<unknown>;
+  fileName: string;
+  annotated: () => string;
 }
 
-/** Delivers an export of the Analysis board (Hedge School's design 21), as both sites' boards do: its link, copied; its
- *  analysis file as a download; or its annotated record, copied or as `analysis.txt`. A link's length is counted
- *  (Hedge School's design 17). */
+/** The note of the Analysis board's annotated record: the site, and the network of the engine's results. */
+export const boardRecordNote = (site: string, networkName: string, network: string) =>
+  `${site}'s Analysis board, with ${networkName} (the network ${network}).`;
+
+/** Delivers an export of the Analysis board (Hedge School's design 21), as both sites' boards do: its link, copied;
+ *  its analysis file as a download; or its annotated record, copied or as `analysis.txt`. */
 export async function deliverBoardExport(kind: ExportKind, board: BoardExport): Promise<ExportResult | void> {
-  if (kind === "share_link") {
-    const link = board.link();
-    await navigator.clipboard.writeText(link);
-    return { linkLength: link.length };
-  }
-  if (kind === "analysis_file") {
-    download(board.fileName(), JSON.stringify(await board.file()));
-    return;
-  }
-  const text = board.annotated();
-  if (kind === "record_copy") await navigator.clipboard.writeText(text);
-  else download("analysis.txt", text, "text/plain");
+  if (kind === "share_link") return copyLink(board.link());
+  return deliverFileOrRecord(kind, board.fileName, board.file, board.annotated, "analysis.txt");
 }
 
 /** The Analysis board's entries (Hedge School's design 21): the analysis by link, as a file with the engine's results,

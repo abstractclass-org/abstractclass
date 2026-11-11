@@ -11308,9 +11308,10 @@ file moved, so the work has no commit of renames. Each part is its own commit.
 - **The exports' glue:** `errorSentence` (an error's text, ended by one period) in `packages/engine/src/errors.ts`
   replaces five copies. `shareNote` moved from `packages/analysis/src/share.ts` into the Export menu's
   `packages/review/src/exports.ts`, with its test, beside `copyReviewLink`. `deliverBoardExport` there delivers the
-  Analysis board's link, analysis file and annotated record. `loadBoardFile` in `packages/analysis/src/files.ts`
-  refuses a review file on the Analysis board and words the board's notice. Each site keeps what it does with the
-  address and its events.
+  Analysis board's link, analysis file and annotated record, through the review's `deliverFileOrRecord`, and
+  `boardRecordNote` words the record's note. `loadBoardFile` in `packages/analysis/src/files.ts` refuses a review
+  file on the Analysis board. `boardRefusal` there words each notice of what the board cannot take: a file, a link, a
+  record or a position. Each site keeps what it does with the address and its events.
 - **The shared review's intro stays in each site.** Hedge School's `Arrival.svelte` and Cyanotype's
   `SharedArrival.svelte` read and keep a shared review with the same steps, but their words differ: "edges" against
   "move" or "moves", "a game you import" against "a game that you import", "as the engine finds it" against "when

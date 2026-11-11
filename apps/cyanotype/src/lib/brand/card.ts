@@ -10,12 +10,16 @@ import { LOGO_LARGE, shapeMarkup, starPath } from "./logo.ts";
 
 // The dark theme's colours: the site's tokens, from the style sheets that hold them, in the order that src/app.css
 // imports them. The lead takes the accent's colour, and the marks on the cells the colour of the text on the accent.
-// The grey under the lead is Hedge School's card's own.
-const { dark } = siteThemes([import.meta.resolve("@abstractclass/site/site.css"),
-  import.meta.resolve("@abstractclass/review/review.css"), import.meta.resolve("../../app.css")].map(url => new URL(url)));
-const BG = dark["--bg"], TEXT = dark["--text"], MUTED = dark["--muted"], LEAD = dark["--accent"], ABOUT = "#c9cace";
-const BOARD = dark["--board-bg"], GRID = dark["--board-dot"], BLUE = dark["--blue"], RED = dark["--red"];
-const ON_CELL = dark["--on-accent"];
+// The grey under the lead is Hedge School's card's own. A token that the sheets do not hold stops the drawing.
+const { dark } = siteThemes(["@abstractclass/site/site.css", "@abstractclass/review/review.css", "../../app.css"]
+  .map(sheet => new URL(import.meta.resolve(sheet))));
+function token(name: string): string {
+  if (!dark[name]) throw new Error(`the site's style sheets give no ${name} in the dark theme`);
+  return dark[name];
+}
+const BG = token("--bg"), TEXT = token("--text"), MUTED = token("--muted"), LEAD = token("--accent"), ABOUT = "#c9cace";
+const BOARD = token("--board-bg"), GRID = token("--board-dot"), BLUE = token("--blue"), RED = token("--red");
+const ON_CELL = token("--on-accent");
 
 /** The card's size, Open Graph's. */
 export const CARD_WIDTH = 1200, CARD_HEIGHT = 630;

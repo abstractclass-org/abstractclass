@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { analysisKey } from "./cache.ts";
-import { ANALYSIS_FILE_VERSION, addressNetwork, belongs, boardNetwork, exportAnalysis, fileEngine, fileKind, fileNetwork,
-         loadBoardFile, readAnalysisFile, withNetwork, type AnalysisFile } from "./files.ts";
+import { ANALYSIS_FILE_VERSION, addressNetwork, belongs, boardNetwork, boardRefusal, exportAnalysis, fileEngine, fileKind,
+         fileNetwork, loadBoardFile, readAnalysisFile, withNetwork, type AnalysisFile } from "./files.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import type { KeptBoard } from "./kept.ts";
 import { STORES, dbPut } from "@abstractclass/storage/db.ts";
@@ -131,10 +131,19 @@ test("the Analysis board loads an analysis file at its address, and refuses a re
     readAnalysisFile(text, "Test", "test-analysis", 5000); // throws for a file that does not read
     return "/analysis#packed=AAAA";
   };
-  const file = (data: unknown) => new Blob([JSON.stringify(data)]);
-  assert.deepEqual(await loadBoardFile(file({ format: "test-review" }), kind, open),
+  const blob = (data: unknown) => new Blob([JSON.stringify(data)]);
+  assert.deepEqual(await loadBoardFile(new Blob([file({ version: 2, main: [], nodes: [] })]), kind, open),
+                   { address: "/analysis#packed=AAAA" });
+  assert.deepEqual(await loadBoardFile(blob({ format: "test-review" }), kind, open),
                    { problem: "The Analysis board cannot load this file: this is a review file: load it in the Review tab." });
-  assert.deepEqual(await loadBoardFile(file({ format: "test-analysis", cancel: true }), kind, open), { address: null });
-  assert.deepEqual(await loadBoardFile(file({ format: "other" }), kind, open),
+  assert.deepEqual(await loadBoardFile(blob({ format: "test-analysis", cancel: true }), kind, open), { address: null });
+  assert.deepEqual(await loadBoardFile(blob({ format: "other" }), kind, open),
                    { problem: "The Analysis board cannot load this file: This is not a Test analysis file." });
+});
+
+test("the Analysis board's notice says what it cannot take, and why, as one sentence", () => {
+  assert.equal(boardRefusal("open", "record", "move 3 is not legal"),
+               "The Analysis board cannot open this record: move 3 is not legal.");
+  assert.equal(boardRefusal("load", "link", new Error("the link is broken.")),
+               "The Analysis board cannot load this link: the link is broken.");
 });

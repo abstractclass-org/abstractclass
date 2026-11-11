@@ -37,8 +37,9 @@
   import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import NewMenu from "@abstractclass/review/NewMenu.svelte";
   import ImportDialog from "@abstractclass/review/ImportDialog.svelte";
-  import { BOARD_EXPORTS, deliverBoardExport, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
-  import { addressNetwork, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
+  import { BOARD_EXPORTS, boardRecordNote, deliverBoardExport, type ExportKind,
+           type ExportResult } from "@abstractclass/review/exports.ts";
+  import { addressNetwork, boardRefusal, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -180,7 +181,7 @@
     if (loaded) trackLoadFailed(loaded, rules ? "rejected" : kind === "file" ? "file" : "link");
     if (imported) trackImportFailed("analysis", imported, rules ? "rejected" : kind === "record" ? "record" : "link");
     const verb = kind === "link" || kind === "file" ? "load" : "open";
-    const why = `The Analysis board cannot ${verb} this ${kind}: ${errorSentence(problem)}`;
+    const why = boardRefusal(verb, kind, problem);
     notice = notice ? `${notice} ${why}` : `${why} Your own analysis is here instead.`;
   }
   // A board brought, when the board kept here has moves of its own: the player chooses which to keep.
@@ -313,10 +314,10 @@
       // The file names the board's network, which the board that opens it takes (Hedge School's design 21).
       file: () => exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest),
                                  fileEngine(session.manifest, session.network)),
-      fileName: () => analysisFileName(),
+      fileName: analysisFileName(),
       annotated: () => annotatedRecord({ R: r, unit, tags: startTags(g.startPosition, g.komi), result: "*",
                                          branches: g.branches, annotator: SITE_NAME,
-                                         note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` }),
+                                         note: boardRecordNote(SITE_NAME, networkName(session.network), session.network) }),
     });
   }
 </script>

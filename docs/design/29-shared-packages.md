@@ -317,7 +317,8 @@ edit in the same commit), so their changes still apply.
     (`SiteHead.svelte`), and the theme tokens of every block of a theme (`themeTokens.ts`, which Cyanotype's link
     preview picture reads). The engine's holds the error text as a sentence's end (`errorSentence`). The review's
     Export menu (`exports.ts`) holds the review link's note and copy (`shareNote`, `copyReviewLink`) and the Analysis
-    board's exports (`deliverBoardExport`), and the analysis package the board's file load (`loadBoardFile`). The
+    board's exports (`deliverBoardExport`, `boardRecordNote`). The analysis package holds the board's file load
+    (`loadBoardFile`) and its notice of what it cannot take (`boardRefusal`). The
     shared review's intro (Hedge School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site:
     its words differ between the two copies, and one text for both is a visible change.
 

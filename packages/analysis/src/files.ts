@@ -49,6 +49,11 @@ export function fileKind(text: string, review: string, analysis: string): "revie
   }
 }
 
+/** The Analysis board's notice of what it was given and cannot take (Hedge School's design 21): it cannot `verb` this
+ *  `what` (a file, a link, a record, a position), and why (an error, or a problem's text). */
+export const boardRefusal = (verb: string, what: string, why: unknown) =>
+  `The Analysis board cannot ${verb} this ${what}: ${errorSentence(why)}`;
+
 /** A file loaded on the Analysis board (Hedge School's design 21), as both sites' boards load one from the New menu:
  *  `kind` tells a review file, which the board refuses (it loads in the Review tab), and `open` keeps an analysis
  *  file's results and answers the board's address (each site's openAnalysisFile), or null after a cancel. Answers the
@@ -62,7 +67,7 @@ export async function loadBoardFile(file: Blob, kind: (text: string) => "review"
     // A file whose network the board cannot take alone asks first: a cancel keeps the board as it is.
     return { address: await open(content) };
   } catch (e) {
-    return { problem: `The Analysis board cannot load this file: ${errorSentence(e)}` };
+    return { problem: boardRefusal("load", "file", e) };
   }
 }
 

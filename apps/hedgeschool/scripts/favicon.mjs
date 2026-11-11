@@ -29,6 +29,6 @@ const images = SIZES.map(size => {
 });
 rmSync(dir, { recursive: true });
 
-const ico = icoFile(SIZES, images);
+const ico = icoFile(images);
 writeFileSync("static/favicon.ico", ico);
 console.log(`static/favicon.ico: ${SIZES.join(", ")} pixels, ${ico.length} bytes`);

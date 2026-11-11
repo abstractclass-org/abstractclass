@@ -34,7 +34,7 @@ try {
 
   const images = [];
   for (const size of ICO_SIZES) images.push(await png(svgDocument(LOGO_SMALL, size), size));
-  const ico = icoFile(ICO_SIZES, images);
+  const ico = icoFile(images);
   writeFileSync("static/favicon.ico", ico);
 
   writeFileSync("static/apple-touch-icon.png", await png(svgDocument(TOUCH_ICON, 180), 180));
