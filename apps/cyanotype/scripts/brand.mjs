@@ -5,19 +5,18 @@
 //   ICO file's form is the sites' one (@abstractclass/site/ico.ts).
 // - static/apple-touch-icon.png: the full print on a full square of 180 pixels, for iOS's home screen.
 // - static/brand/card.png: the link preview picture, 1,200 × 630 pixels.
-// Each picture is drawn by headless Chromium at its own size, with Hedge School's layout test's launch options (its
-// playwright.config.ts: off the GPU on Windows). Run it again after a change of the drawings:
+// Each picture is drawn by headless Chromium at its own size, off the GPU on Windows, as the layout test runs it
+// (@abstractclass/site/chromium.ts). Run it again after a change of the drawings:
 //   cd apps/cyanotype && node scripts/brand.mjs
 import { writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
+import { OFF_THE_GPU } from "@abstractclass/site/chromium.ts";
 import { icoFile } from "@abstractclass/site/ico.ts";
-import config from "../../hedgeschool/playwright.config.ts";
 import { card, CARD_HEIGHT, CARD_WIDTH } from "../src/lib/brand/card.ts";
 import { FAVICON_SVG, LOGO_SMALL, svgDocument, TOUCH_ICON } from "../src/lib/brand/logo.ts";
 
 const ICO_SIZES = [16, 32, 48];
-const { launchOptions } = config.projects.find(p => p.name === "chromium").use;
-const browser = await chromium.launch(launchOptions);
+const browser = await chromium.launch({ args: [...OFF_THE_GPU] });
 
 /** An SVG document drawn as a PNG of width × height pixels, with a clear background. */
 async function png(doc, width, height = width) {

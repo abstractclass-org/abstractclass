@@ -184,11 +184,12 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   `scripts/measure/speed.mjs` adds them up. A worker's console messages and requests reach Playwright's
   `page.on("console")` and `page.on("request")`.
 - **The GPU in Playwright's Chromium:** by default, a run uses the four flags of "Off the GPU" below, which
-  `playwright.config.ts` gives Chromium on Windows. The engine is then off, or on the CPU only. A run with any WebGPU
-  flag is a check of the site's GPU path, with the software adapter's flags too. Such a run starts only after
-  jam-coord and eng-coord have both said yes. A worker asks its own coordinator, never the others (abscls-gwi0,
-  2026-11-04). The run then goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`):
-  that job pauses the engines' training on the GPU and guards it.
+  `playwright.config.ts` gives Chromium on Windows. They are in one module, `packages/site/src/chromium.ts`
+  (`OFF_THE_GPU`), which Cyanotype's `scripts/brand.mjs` also takes. The engine is then off, or on the CPU only. A run
+  with any WebGPU flag is a check of the site's GPU path, with the software adapter's flags too. Such a run starts only
+  after jam-coord and eng-coord have both said yes. A worker asks its own coordinator, never the others (abscls-gwi0,
+  2026-11-04). The run then goes through `scripts/machine run --gpu` in the planning folder (`abstractclass-org`): that
+  job pauses the engines' training on the GPU and guards it.
   - **A run on the real GPU uses Playwright's full Chromium:** launch it with `channel: "chromium"` (the new headless
     mode, `ms-playwright/chromium-1243/chrome-win64/chrome.exe`). A headless launch without a channel runs
     `chrome-headless-shell`, which makes no WebGPU device on this machine (the note "Faults with the WebGPU flags").
