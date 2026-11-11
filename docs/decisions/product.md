@@ -11377,6 +11377,12 @@ now gives the limit.
   request, with exit code 2 and a line that says to run `git fetch` (`git fetch --unshallow` in a shallow clone). A
   commit that has no lock at the site's path, such as one from before the site moved into `apps/hedgeschool`, stops
   it with exit code 2 too, and the line names the path.
+- **Step 5 starts with `git pull` and `npm ci` in a checkout of `dev`.** `git fetch` changes no file of the checkout.
+  So a checkout from before this change runs the older script, which reads the checkout's lock and says FAIL after
+  the rollback, as before. The first line of the check must name the commit's lock, which the older script does not
+  print. The header's links, the pages that lead home and a site's own checks still come from the checkout's script.
+  A rollback past a change to them can say FAIL on their line, so step 5 tells the owner to look at them in a
+  browser then.
 - **Checked on 2026-11-12, read-only, from a checkout of dev at `4ad8ee9`:** on `dev.hedgeschool.pages.dev`, with no
   commit and with `origin/dev`, PASS, 15 of 15. With `25e94e45`, the commit of the lock before the two engine changes
   of 2026-11-09, FAIL, 11 of 15: the footer, and the manifest, the module and the terms of the older engine, which

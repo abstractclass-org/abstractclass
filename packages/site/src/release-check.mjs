@@ -7,17 +7,19 @@
 // `git fetch`. An address that does not end in .pages.dev is the live site: it has no X-Robots-Tag, and its domain's
 // answers are signed (DNSSEC). The check reads the engine's files as the page does, by the site's manifest, and checks
 // them against the site's engine.lock.json: with <commit>, the lock of that commit, as Git keeps it, so that a check
-// after a rollback uses the release's own engine files. Without it, the lock of this checkout. A commit that the clone
-// does not have (a shallow clone, or a commit not fetched yet) stops the check before any request, with exit code 2
-// and a line that says to run `git fetch`. It reads public pages only, and a site's own checks may send a request that
-// stores nothing. Each line says PASS, FAIL or INFO. The last line is `release-check: PASS` or `release-check: FAIL`.
+// after a rollback uses the release's own engine files. Without it, the lock of this checkout. The first line names the
+// lock. The check stops before any request, with exit code 2, when the clone does not have the commit (a shallow clone,
+// or a commit not fetched yet): its line says to run `git fetch`. It stops in the same way when the commit has no lock
+// in the site's folder (a commit from before the site moved into apps/): its line names the path. It reads public
+// pages only, and a site's own checks may send a request that stores nothing. Each line says PASS, FAIL or INFO. The
+// last line is `release-check: PASS` or `release-check: FAIL`.
 //
 // It runs in Node only, and no page imports it: it is why this package depends on @abstractclass/engine (design 29).
 import { fetchArtifact } from "@abstractclass/engine/artifacts.ts";
 import { commitAndLock } from "./releaseLock.ts";
 
 /** Runs the checks on the command line's address, prints a line for each, and ends the process: exit code 0 when all
- *  pass, 1 when one fails, 2 for a wrong command line or a commit that the clone does not have. The site's parts:
+ *  pass, 1 when one fails, 2 for a wrong command line or a commit that gives no lock. The site's parts:
  *  - `lock`: the URL of the site's engine.lock.json.
  *  - `branchOf`: the commit of each pages.dev address: the project's, origin/main, and dev's preview, origin/dev.
  *  - `menu`: the links that the header shows.
@@ -38,10 +40,10 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     console.error(`${host}: name the commit that the deploy built`);
     process.exit(2);
   }
-  // The footer's rule (each site's vite.config.ts): the commit's first 7 characters.
-  let commit, lock, lockFrom;
+  const atCommit = commitArg !== undefined;
+  let commit, lock;
   try {
-    ({ commit, lock, lockFrom } = commitAndLock(lockUrl, ref, { atCommit: commitArg !== undefined }));
+    ({ commit, lock } = commitAndLock(lockUrl, ref, { atCommit }));
   } catch (error) {
     console.error(error.message);
     process.exit(2);
@@ -55,7 +57,7 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   const cacheOf = r => r.headers.get("cache-control") ?? "";
 
   console.log(`INFO  ${base}, ${live ? "the live site" : "not the live site"}, commit ${commit} (${ref}), `
-    + `the engine lock of ${lockFrom}`);
+    + `the engine lock of ${atCommit ? `commit ${commit}` : "this checkout"}`);
 
   // The home page: the footer's version, the robots' header, the header's links.
   const home = await fetch(`${base}/`);

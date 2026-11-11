@@ -567,12 +567,13 @@ a push to `main` that the owner did not say to make. The owner's word to release
   `apps/cyanotype`) does the checks below against the live site or a preview, when the workflow **Deploy** has
   finished. Without a commit, it takes `origin/main` for the live site and the project's address, and `origin/dev` for
   dev's preview: run `git fetch` first. It checks the engine's files against the `engine.lock.json` of the commit that
-  the command names, or of the checkout when it names none. A commit that the clone does not have stops it with exit
-  code 2 and a line that says to run `git fetch`. Each line says PASS, FAIL or INFO, and the last line says
-  `release-check: PASS` or `release-check: FAIL`. The checks that both sites share are in
+  the command names, or of the checkout when it names none. Its first line names that lock. A commit that the clone
+  does not have stops it with exit code 2 and a line that says to run `git fetch`. Each line says PASS, FAIL or INFO,
+  and the last line says `release-check: PASS` or `release-check: FAIL`. The checks that both sites share are in
   `packages/site/src/release-check.mjs`. Each site's script gives its addresses, its header's links and its pages
-  that lead home, and adds its own checks. The checks, all true on Hedge School's live site on 2026-10-18 at commit
-  `b4f0472`, and on its dev preview on 2026-10-20 at commit `f50704c`:
+  that lead home, and adds its own checks. These come from the checkout's script, not from the commit. The checks,
+  all true on Hedge School's live site on 2026-10-18 at commit `b4f0472`, and on its dev preview on 2026-10-20 at
+  commit `f50704c`:
   - the footer's version is the commit that the deploy built.
   - the live address answers with no `X-Robots-Tag`, the project's address (`hedgeschool.pages.dev`,
     `cyanotype-ztp.pages.dev`) and the previews with `noindex` (design 23), and an unknown address answers 404.
@@ -615,16 +616,23 @@ a push to `main` that the owner did not say to make. The owner's word to release
   4. Select the three dotted actions menu of the deployment of the release before, then **Rollback to this
      deployment**. A confirmation window opens. Confirm the rollback in it. The site's production deployment changes
      at once.
-  5. Check the site. In a terminal, in a checkout of this repository, run `git fetch`. Then:
-     - For Hedge School, in the folder `apps/hedgeschool`, run
-       `node scripts/release-check.mjs https://hedgeschool.abstractclass.org <the commit of the release before>`.
-     - For Cyanotype, in the folder `apps/cyanotype`, run
-       `node scripts/release-check.mjs https://cyanotype.abstractclass.org <the commit of the release before>`.
+  5. Check the site.
+     - For Hedge School and Cyanotype, open a terminal in a checkout of `dev`. Run `git pull`, then `npm ci` at the
+       repository's root. `git fetch` alone is not enough: it leaves the checkout's older check script, which can
+       read the wrong lock. Then run the site's check:
+       - For Hedge School, in the folder `apps/hedgeschool`, run
+         `node scripts/release-check.mjs https://hedgeschool.abstractclass.org <the commit of the release before>`.
+       - For Cyanotype, in the folder `apps/cyanotype`, run
+         `node scripts/release-check.mjs https://cyanotype.abstractclass.org <the commit of the release before>`.
+
+       The first line must end with `the engine lock of commit` and the first 7 characters of the commit of the
+       release before. The last line must say `release-check: PASS`. If a line says that the commit is not a commit
+       in this clone, run the command that the line gives, then run the check again. The check takes the header's
+       links and the pages that lead home from the checkout, not from the commit. If the release that you undid
+       changed them, their line can say FAIL although the rollback worked. Then open the site's address in a
+       browser, and make sure that the header and those pages are as they were before that release.
      - For the hub, open `https://abstractclass.org` in a browser and reload the page. The hub shows no version and
        has no check script: check that the change to undo is gone.
-
-     The last line of the check must say `release-check: PASS`. If a line says that the commit is not a commit in
-     this clone, run `git fetch` again, then run the check again.
   6. Before the next release, undo the bad change on `dev`. In a terminal, in a checkout of `dev`, run `git fetch`,
      then `git log --oneline <the commit of the release before>..<the commit of the deployment undone>`. It lists the
      commits of the release that you undid. Revert each bad one (`git revert <commit>`), or commit a fix. Then run
