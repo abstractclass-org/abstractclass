@@ -41,7 +41,7 @@
   import { addressNetwork, fileEngine, shippedModels } from "@abstractclass/analysis/files.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { download } from "@abstractclass/site/download.ts";
-  import { errorText } from "@abstractclass/engine/errors.ts";
+  import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -173,7 +173,6 @@
       return { kept, at: keptAt };
     }
   }
-  const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
   /** The notice of a board brought that cannot open: the board kept here opens. Where the kept board could not open
    *  either (chooseBoard's notice, a kept board with a komi), that notice stays first and names the new board. The
    *  failure counts by why: a link or a file that does not read, a record that does not read, or a line that the
@@ -182,7 +181,7 @@
     if (loaded) trackLoadFailed(loaded, rules ? "rejected" : kind === "file" ? "file" : "link");
     if (imported) trackImportFailed("analysis", imported, rules ? "rejected" : kind === "record" ? "record" : "link");
     const verb = kind === "link" || kind === "file" ? "load" : "open";
-    const why = `The Analysis board cannot ${verb} this ${kind}: ${sentence(problem)}`;
+    const why = `The Analysis board cannot ${verb} this ${kind}: ${errorSentence(problem)}`;
     notice = notice ? `${notice} ${why}` : `${why} Your own analysis is here instead.`;
   }
   // A board brought, when the board kept here has moves of its own: the player chooses which to keep.
@@ -275,13 +274,13 @@
   async function importPasted(position: string, pasted: string) {
     if (!pasted.trim()) {
       const start = setUpStart(position), problem = start ? await checkStart(start) : null;
-      if (problem) throw new Error(`${SITE_NAME} cannot open this position: ${sentence(problem)}`);
+      if (problem) throw new Error(`${SITE_NAME} cannot open this position: ${errorSentence(problem)}`);
       importAddress(new URLSearchParams({ position: start ?? STANDARD_START, via: "pasted_position" }));
       return;
     }
     const read = readPasted(pasted, position || null);
     const problem = recordKomiProblem(read.record) ?? await checkRecord(read.record, "their start");
-    if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${sentence(problem)}`);
+    if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${errorSentence(problem)}`);
     importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}),
                                         via: position ? "pasted_position" : "pasted_record" }));
   }
@@ -304,7 +303,7 @@
       history.replaceState(null, "", address);
       location.reload();
     } catch (e) {
-      notice = `The Analysis board cannot load this file: ${sentence(errorText(e))}`;
+      notice = `The Analysis board cannot load this file: ${errorSentence(e)}`;
       trackLoadFailed("analysis_file", "file");
     }
   }

@@ -29,7 +29,7 @@
            type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { addressNetwork, fileEngine } from "@abstractclass/analysis/files.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { errorText } from "@abstractclass/engine/errors.ts";
+  import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
   import { download, shippedModels, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
@@ -62,7 +62,6 @@
   let game = $state<GameAnalysis<Enclosure> | null>(null);
   let error = $state("");
   let notice = $state(""); // a line brought, or the kept board (keptKomiProblem), that could not open
-  const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
   let start = $state<string[] | null>(null); // where the view opens
   let current = $state<string[]>([]); // the position on screen
   const engine = $state(loadEngine());
@@ -154,11 +153,11 @@
         : readBoardLink(p.get("packed") ?? "", p.get("at"));
     } catch (e) {
       if (brings) {
-        refuse(`The Analysis board cannot ${OWN.includes(via ?? "") ? "analyze" : "import"} this ${record !== null ? "record" : "position"}: ${sentence(errorText(e))}`);
+        refuse(`The Analysis board cannot ${OWN.includes(via ?? "") ? "analyze" : "import"} this ${record !== null ? "record" : "position"}: ${errorSentence(e)}`);
         if (imported)
           trackImportFailed("analysis", imported, e instanceof RecordProblem ? e.failure : "link");
       } else {
-        refuse(`The Analysis board cannot load this ${loaded === "analysis_file" ? "file" : "link"}: ${sentence(errorText(e))}`);
+        refuse(`The Analysis board cannot load this ${loaded === "analysis_file" ? "file" : "link"}: ${errorSentence(e)}`);
         trackLoadFailed(loaded!, loaded === "analysis_file" ? "file" : "link");
       }
       return { board: kept, at: keptAt };
@@ -291,7 +290,7 @@
       const address = await openAnalysisFile(content, session.manifest, networkChoice.ask);
       if (address) importAddress(address.split("#")[1]);
     } catch (e) {
-      notice = `The Analysis board cannot load this file: ${sentence(errorText(e))}`;
+      notice = `The Analysis board cannot load this file: ${errorSentence(e)}`;
       trackLoadFailed("analysis_file", "file");
     }
   }

@@ -30,7 +30,7 @@
   import { BOT_WHERE } from "@abstractclass/practice/botForms.ts";
   import { PracticePage, seconds } from "@abstractclass/practice/page.svelte.ts";
   import { loadManifest, megabytes } from "@abstractclass/engine/client.ts";
-  import { errorText } from "@abstractclass/engine/errors.ts";
+  import { errorSentence } from "@abstractclass/engine/errors.ts";
   import Board from "#lib/board/Board.svelte";
   import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
   import { firstStatus, inputStatus } from "#lib/board/input.ts";
@@ -55,7 +55,6 @@
 
   let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
   let notice = $state(""); // a start brought that cannot be played
-  const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
 
   // The page's flow, with Cyanotype's game.
   const page = new PracticePage<KeptPractice, PracticeGame>({
@@ -80,7 +79,7 @@
       const record = text === null ? null : readPasted(text, position).record;
       return { record, start: setUpStart(record ? record.tags.Position : position) ?? null };
     } catch (e) {
-      notice = `Practice cannot start from this record: ${sentence(errorText(e))}`;
+      notice = `Practice cannot start from this record: ${errorSentence(e)}`;
       return null;
     }
   }
@@ -100,7 +99,7 @@
       if (!bringing) return;
       const r = rulesBy(w), problem = bringing.record ? await recordProblem(r, bringing.record)
         : bringing.start ? await startProblem(r, bringing.start) : null;
-      if (problem) notice = `Practice cannot start from this ${bringing.record ? "record" : "position"}: ${sentence(problem)}`;
+      if (problem) notice = `Practice cannot start from this ${bringing.record ? "record" : "position"}: ${errorSentence(problem)}`;
       else page.brought = { start: bringing.start, moves: bringing.record?.moves ?? [] };
     });
   });

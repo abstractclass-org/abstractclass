@@ -22,7 +22,7 @@
            type Tool } from "@abstractclass/import/importHash.ts";
   import { openReview } from "@abstractclass/import/openReview.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
-  import { errorText } from "@abstractclass/engine/errors.ts";
+  import { errorSentence } from "@abstractclass/engine/errors.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import type { Checked } from "#lib/game/check.ts";
   import { keepChecked } from "#lib/game/import.ts";
@@ -44,7 +44,6 @@
     | { at: "failed"; message: string; keeping: boolean };
   let phase = $state.raw<Phase>({ at: "reading" });
   let stale = $state<Tool | null>(null); // the tool, when it is out of date
-  const sentence = (text: string) => text.replace(/\.?$/, "."); // an error's text, ended by one period
 
   onMount(async () => {
     if (!holdsGame(location.hash)) { location.replace("/tools"); return; }
@@ -67,7 +66,7 @@
       record = parseRecord(sent.record);
     } catch (e) {
       phase = { at: "failed", keeping: false,
-                message: `${SITE_NAME} could not read the game: ${sentence(errorText(e))}` };
+                message: `${SITE_NAME} could not read the game: ${errorSentence(e)}` };
       trackImportFailed("review", source, failure);
       return;
     }
@@ -75,7 +74,7 @@
     const checked = await checkRecordMarks(record);
     if (checked.problem) trackImportFailed("review", source, "rejected");
     phase = checked.problem
-      ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${sentence(checked.problem)}`, keeping: false }
+      ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${errorSentence(checked.problem)}`, keeping: false }
       : { at: "choose", sent, record, source, checked };
   });
 
@@ -93,7 +92,7 @@
       openReview(id);
     } catch (e) {
       phase = { at: "failed", keeping: true,
-                message: `${SITE_NAME} could not import the game: ${sentence(errorText(e))}` };
+                message: `${SITE_NAME} could not import the game: ${errorSentence(e)}` };
       trackImportFailed("review", source, "rejected");
     }
   }

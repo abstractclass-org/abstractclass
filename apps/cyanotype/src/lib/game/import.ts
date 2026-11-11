@@ -4,6 +4,7 @@
 // (store.ts). So the list keeps no game that the review refuses. The Review tab's paste and a shared review's page
 // (review/SharedArrival.svelte) come here (importRecord), and so does the import page's review, with the check that
 // the page ran already (keepChecked). Each shows the outcome.
+import { errorSentence } from "@abstractclass/engine/errors.ts";
 import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
 import { mergeBranches, type KeptBranches } from "@abstractclass/analysis/kept.ts";
 import type { Checked } from "./check.ts";
@@ -16,9 +17,6 @@ import { SITE_NAME } from "../site.ts";
 /** A record's check by the engine's rules, with each move's capture mark: recordCheck.ts's, in a worker of its own. A
  *  test gives its own. */
 export type RecordCheck = (record: GameRecord) => Promise<Checked>;
-
-/** An error's text, ended by one period. */
-const sentence = (text: string) => text.replace(/\.?$/, ".");
 
 /** Throws the review's refusal of a game from a set-up start: before the engine's check, which it makes needless. */
 function refuseSetUp(record: GameRecord) {
@@ -38,7 +36,7 @@ export async function importRecord(text: string, record: GameRecord,
  *  its game before the choice, so that the rules check it once. Returns the game's id, or throws as importRecord. */
 export async function keepChecked(text: string, record: GameRecord, { problem, captures }: Checked): Promise<string> {
   refuseSetUp(record);
-  if (problem) throw new Error(`${SITE_NAME} cannot review this game: ${sentence(problem)}`);
+  if (problem) throw new Error(`${SITE_NAME} cannot review this game: ${errorSentence(problem)}`);
   // The record is kept with a capture mark on every move that captures, as the notation writes it.
   const { id, kept } = await saveGame(markCaptures(text, record, captures), record);
   if (!kept) throw new Error("This browser does not let the site keep games (a private window, or blocked site data).");
