@@ -142,7 +142,9 @@ How strong each setting plays against people is not measured yet.
 9. **The game in progress:** one in each browser, kept as the player leaves it, and resumed on the next visit, as the
    Analysis board keeps its one board. A game has no clock, so it can last days. A record brought in asks first, and
    the game in progress then goes into Your games as unfinished. The page shows nothing until it knows whether a game
-   is in progress, so that the card does not show for a moment before the game.
+   is in progress, so that the card does not show for a moment before the game. The page resumes a game only when it
+   found the game as it opened. A game that another tab starts while the engine loads does not replace the card that
+   the player sees.
 10. **A game that ends goes into Your games** in the Review tab, kept at once, and its review is one click away.
     Lichess keeps every game against the computer in the player's history. A game from a set-up start opens on the
     Analysis board ("Analyze the game"), from Practice and from Your games, as the Review tab reviews games from the
@@ -367,8 +369,15 @@ How strong each setting plays against people is not measured yet.
   (`packages/review/src/moveList.ts`, and Enclosure's width of a move, `MOVE_TEXT` in `src/lib/review/enclosure.ts`),
   the controls' icons (`packages/site/src/Icon.svelte`), and the settings' rows and the sound settings
   (`packages/site/src/SettingChoice.svelte`, `SettingToggle.svelte`, and `src/lib/ui/SoundSettings.svelte`).
-- **The game:** `src/lib/practice/game.svelte.ts`: the moves to the bot and to the rules worker, the bot's time,
-  Abort, Resign, the end and the save into Your games.
+- **The game:** the flow that both sites share in `packages/practice/src/game.svelte.ts` (`PracticeGame`: the turns,
+  the bot's time, the takeback, Abort and Resign, with its tests on a game of words), and Enclosure's game in
+  `src/lib/practice/game.svelte.ts`, which extends it: the moves to the bot and to the rules worker, each move's time,
+  the end and the save into Your games.
+- **The page's flow:** `packages/practice/src/page.svelte.ts` (`PracticePage`), for both sites: the card or the game,
+  the engine's start, a new game, the steps and their keys, the bot's thinking time, the question on a start brought,
+  the player's notes and the game's events. `PracticeActions.svelte` (Take back, Abort and Resign in the step bar) and
+  `ConfirmEnd.svelte` (the question before Abort or Resign, with each site's words). The page gives the site's parts:
+  its game, its storage, its engine settings, its analytics, and what a game's end sends (design 25).
 - **The bot,** in `@abstractclass/practice` (design 29), for both sites: `packages/practice/src/botForms.ts` (the
   form to start, with a fall back to the next, and where each form runs for the line under the board) and
   `botFormsWorker.ts` (the threaded bot's evaluators in the bot's worker, with ONNX Runtime set up as the GPU worker

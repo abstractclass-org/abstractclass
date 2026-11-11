@@ -469,7 +469,8 @@ edit in the same commit), so their changes still apply.
   the accuracy, the hard positions and the meter), with the numbers from the analysis package's code, and each site's
   words for a move ("edges" on Hedge School) and for the other player ("enemy") as props (design 33, "The review and
   the Analysis board", item 13). `src/review.css`: the package's Tailwind source and
-  the view's style (item 9), which a site's style imports after `site.css`. `src/testing/display.ts`: the test that
+  the view's style (item 9), which a site's style imports after `site.css`. `src/oneColumn.ts`: the pages' one
+  column (below 800 pixels) as a media query, for a script that must know it. `src/testing/display.ts`: the test that
   each site runs on its display settings (its `src/lib/review/display.test.ts`).
 - `apps/hedgeschool/src/lib/review/enclosureView.ts`: Enclosure's part of the view, which the review's and the
   Analysis board's pages give it. Its components: `EnclosureBoard.svelte` (Hedge School's board with the view's
@@ -508,7 +509,10 @@ edit in the same commit), so their changes still apply.
 - `packages/practice/` (`@abstractclass/practice`): `practice.ts` (the practice's shared part, the way in from a
   position too: `practiceHref`, `broughtLine`, `newPractice` and `practiceFrom`, with tests on a game of words),
   `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one that fills
-  the room), `ReplaceGame.svelte` (the question when a start comes while a game is in progress), `bot.ts`,
+  the room), `ReplaceGame.svelte` (the question when a start comes while a game is in progress), `game.svelte.ts` (the
+  game's flow, which each site's game extends, with its tests on a game of words), `page.svelte.ts` (the page's flow,
+  with each site's parts), `PracticeActions.svelte` and `ConfirmEnd.svelte` (Take back, Abort and Resign, and the
+  question before Abort or Resign), `bot.ts`,
   `botWorker.ts` and `botMessages.ts` (the page's side of the practice bot and its worker), `botForms.ts` and
   `botFormsWorker.ts` (the bot's forms, and their worker module with the threaded bot's evaluators), and `practice.css`
   (the package's Tailwind source). `practice.css` also holds the utility `btn-danger`, the style of a button that ends
@@ -530,7 +534,7 @@ review takes two moves that give one position as one move" (2026-11-05), "Cyanot
 and the threaded bot" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
 (2026-11-08), "Cyanotype's review files, as Hedge School's" (2026-11-08), "Cyanotype's review snapshot and
 annotated record from the store" (2026-11-08), "Cyanotype removes earlier engine results, as Hedge School"
-(2026-11-11), and "One rule for a draw in the value at the game's end and in Cyanotype's kept result"
-(2026-11-11).
+(2026-11-11), "One rule for a draw in the value at the game's end and in Cyanotype's kept result" (2026-11-11),
+and "Practice's page parts in packages/practice" (2026-11-11).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06), and "A new feature starts in a package" (2026-11-08).

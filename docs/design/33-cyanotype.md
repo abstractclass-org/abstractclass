@@ -591,12 +591,13 @@ six screenshots on a computer, a corner was always free at the plain fit's scale
 
 **What it shares with Hedge School** (design 29: move, do not copy): the settings card and the game's frame
 (`@abstractclass/practice`: `PracticeCard.svelte`, and `PracticeFrame.svelte` with its board's box in the form
-"fill"), the practice's part that is not Enclosure's (`practice.ts`: the visits, the variety and its help, the
-choices and the kept game under each site's key, the GTP helpers, the takeback, the results), and the bot's page side,
-its forms and its worker (`bot.ts`, `botForms.ts`, `botWorker.ts`, `botFormsWorker.ts`, `botMessages.ts`). Each site
-gives the game's name in the bot's commands. The forms and their worker moved out of Hedge School when Blueprints'
-release had the threaded bot (abscls-8tl1.29). Hedge School's stored games (design 25) stay in Hedge School until
-Cyanotype has a backend:
+"fill"), the practice's part that is not Enclosure's (`practice.ts`: the visits, the variety and its help, the choices
+and the kept game under each site's key, the GTP helpers, the takeback, the results), the game's flow and the page's
+(`game.svelte.ts`, which `src/lib/practice/game.svelte.ts` extends, and `page.svelte.ts`), the game's actions and
+their question (`PracticeActions.svelte`, `ConfirmEnd.svelte`), and the bot's page side, its forms and its worker
+(`bot.ts`, `botForms.ts`, `botWorker.ts`, `botFormsWorker.ts`, `botMessages.ts`). Each site gives the game's name in
+the bot's commands. The forms and their worker moved out of Hedge School when Blueprints' release had the threaded bot
+(abscls-8tl1.29). Hedge School's stored games (design 25) stay in Hedge School until Cyanotype has a backend:
 the server's check names Enclosure's edges, and the Pages Function bundles it alone.
 
 ## How a game comes in from strategyjam.org

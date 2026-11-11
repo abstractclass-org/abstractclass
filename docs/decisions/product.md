@@ -11059,3 +11059,38 @@ a new search or a new file of the network would add a set.
   engine's own result at komi 0 and the scores by the rule at any other komi. It now takes the scores by the rule
   (`scoreResult`) at every komi. The two agree on every real game, since Blueprints' points are whole. Cyanotype's
   engine test game still keeps `r+730` at komi 0 (`stampduty.engine.test.ts`).
+
+### Practice's page parts in packages/practice (2026-11-11)
+
+Beads abscls-8tl1.15. Design 24 (item 9 and "Where it is"), design 29 ("Where it is") and design 33 ("What it shares
+with Hedge School") changed. Cyanotype's Practice copied parts of Hedge School's page and game. They move into
+`@abstractclass/practice`, as design 29, item 11, asks. No file moved, so the work has no commit of renames.
+
+- **The game's flow:** `packages/practice/src/game.svelte.ts` (`PracticeGame`) holds the turns, the bot's timed turn,
+  the takeback and its reach, Resign, Abort and the stop on an error. Each site's game extends it with its own parts:
+  its start, its positions and moves, the rules of the player's move, the bot's move (Cyanotype checks it against the
+  legal moves), and its end (Hedge School's save into Your games, Cyanotype's result by `endResult`, which did not
+  change). The class has no switch on the game. Its tests run the flow on a game of words with a fake bot.
+- **The page's flow:** `page.svelte.ts` (`PracticePage`) holds what both pages did the same way: the card or the game,
+  the engine's start, a new game, the steps and their keys, the bot's thinking time, the question on a start brought,
+  the player's notes, and the game's events. A site gives its game, its storage, its engine settings, its analytics,
+  and its own parts of a game's start and end. `PracticeActions.svelte` (Take back, Abort and Resign) and
+  `ConfirmEnd.svelte` (the question before Abort or Resign, with each site's words) hold the markup that both pages
+  repeated. `turnsOf` in `practice.ts` groups the move list's turns.
+- **The resume rule is Hedge School's:** the page resumes a kept game only when it found one as it mounted. Before,
+  Cyanotype resumed whatever its storage held once the engine had started. So a game that another tab started while
+  this tab's engine loaded replaced the settings card that the player saw (found by abscls-z0jz's review). A start
+  brought that the rules refuse still leaves the game in progress, which goes on, as before.
+- **Hedge School's rules stay through the bot's turn,** as Cyanotype's did. The page gives the board's input no rules
+  off the player's turn, so the board does not change.
+- **Cyanotype's one column:** the hands' place follows the review's one column (`packages/review/src/oneColumn.ts`, a
+  media query that `ReviewView.svelte` used alone before) in place of the window's width against 800. The one
+  column's height (`ONE_COLUMN_HEIGHT`) and the board take the hands' sizes under the field, the room between them
+  and the field, and the zoom's buttons from one place (`panel.ts`: `UNDER_HAND`, `FIELD_GAP`, `ZOOM_BUTTONS`). The
+  board sets the buttons' sizes as custom properties, so its classes no longer repeat them. The pixels are the same.
+- **What the pages show did not change,** apart from the fault's fix.
+- **Checked** in headless Chromium (Playwright's chromium project, on the CPU), on both sites' builds: a case on each
+  site keeps a game while the engine's manifest waits, and the settings card stays (`practice-start.spec.ts` and
+  `cyanotype-practice.spec.ts`). The practice cases of both sites and the layout cases of their Practice pages pass:
+  30 cases, none skipped, the whole games against Stamp Duty with a reload among them. The layout test's whole run is
+  the merge's check.
