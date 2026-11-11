@@ -77,6 +77,10 @@ Write the documents as standalone documentation, not as a record of our sessions
 - Do not tag text with who decided it ("(owner)", "owner:", "the owner's choice"). Write the decision and its
   reason.
 - Do not name the owner's accounts in general prose.
+- Start each block of steps that the owner follows with its marker: a paragraph in bold that starts with "The owner's
+  steps", or a heading that holds "owner's steps". Each step names its URL, its clicks and its values in the step
+  itself. The check `scripts/owner-steps.mjs` reads only the marked blocks. See
+  [docs/working-notes.md](docs/working-notes.md), "Each block of the owner's steps is complete".
 
 ## Writing the site's text
 

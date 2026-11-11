@@ -11365,3 +11365,22 @@ now gives the limit.
   lookup loads the part. `analysis.test.ts` gives `GameAnalysis` a lookup that answers no values after a while.
   "Evaluate quality" searches nothing while it waits, then searches both positions, and the move gets its quality
   label.
+
+### release-check reads the lock of the commit that it checks (2026-11-12)
+
+- **The change:** `release-check.mjs <base URL> <commit>` checks the deployed engine's files against the
+  `engine.lock.json` of that commit (`git show`, in `packages/site/src/releaseLock.ts`). Before, it took the commit
+  for the footer only and read its own checkout's lock, so after a rollback past an engine change it said FAIL
+  although the rollback worked. Without a commit, it reads the checkout's lock, as before. The INFO line names the
+  lock that it read. hosting.md's "Roll back", step 5, runs the script again, with each site's command written out.
+- **A commit that the clone does not have** (a shallow clone, or a commit not fetched yet) stops the check before any
+  request, with exit code 2 and a line that says to run `git fetch` (`git fetch --unshallow` in a shallow clone). A
+  commit that has no lock at the site's path, such as one from before the site moved into `apps/hedgeschool`, stops
+  it with exit code 2 too, and the line names the path.
+- **Checked on 2026-11-12, read-only, from a checkout of dev at `4ad8ee9`:** on `dev.hedgeschool.pages.dev`, with no
+  commit and with `origin/dev`, PASS, 15 of 15. With `25e94e45`, the commit of the lock before the two engine changes
+  of 2026-11-09, FAIL, 11 of 15: the footer, and the manifest, the module and the terms of the older engine, which
+  dev does not serve. The live site at `origin/main` (`8621232`, whose lock is the older one) is the case of a
+  rollback: the new script with the commit said PASS, 16 of 16. The old script with the same commit, and the new one
+  with no commit, said FAIL, 13 of 16, on the manifest, the module and the terms. An unknown hash stopped with exit
+  code 2.
