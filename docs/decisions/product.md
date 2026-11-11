@@ -11390,3 +11390,28 @@ now gives the limit.
   rollback: the new script with the commit said PASS, 16 of 16. The old script with the same commit, and the new one
   with no commit, said FAIL, 13 of 16, on the manifest, the module and the terms. An unknown hash stopped with exit
   code 2.
+
+### A book part of another form fails as a part that fails, and the book's time-limit test by file (2026-11-12)
+
+abscls-m2i8 and abscls-wtdm, later steps of abscls-pymm ("A time limit on each file of the opening book").
+
+- **A part of another form:** `FileBook.load` (`apps/hedgeschool/src/lib/book/book.ts`) checked a part's format and
+  version in its success branch. A part of another form then stayed in the loader's cache as a rejected promise with a
+  plain `Error`: "Try again" never read it again, and one such part on a game's line made `giveBook` drop all of the
+  game's book values. Now `FileBook.load` is one `try`/`catch`, as `openBook`'s read of the index. Each failure (a
+  fetch error, the time limit, another format or version, a broken positions field) clears the part and throws a
+  `BookLoadError` with the part's address, and a success caches the part. `bookValues` gives no values for that
+  position only: the game's other book values stay, and a later lookup or "Try again" reads the part again.
+- **The time-limit test on a busy machine:** `book.test.ts`'s case "a part that does not answer in the time limit"
+  failed in two of three site-suite runs of cyanotype-coord's abscls-tblx worker, with the machine's CPU at 100%. The
+  case gave 150 ms to the part that must time out, and `openBook`'s read of the index and two other reads took the
+  same limit. `openBook`'s limit is now a function of a file's address, by default the 30 s limit of every file, which
+  the site keeps. The case gives 150 ms only to the two reads that must time out. Its test server holds every answer
+  for 300 ms: with one shared 150 ms limit the case fails every time, and with the limit by file it passes. Its
+  timing check takes the time when the part's read starts, so a timer that fires early fails it.
+- **One fixture reader** (`src/lib/book/testing/testBook.ts`) for the nine tests of `src/lib/book`.
+- **Checked:** the site suite on the branch: check:all passed all 19 steps (site-test 340 of 340), and the layout test
+  passed 265 cases, none skipped, none flaky. `book.test.ts` alone passed 5 of 5 runs with Windows' CPU at 100%. Each
+  new case fails with the old code.
+- **Left:** a part that lacks a position stays in the cache, so "Try again" does not read it again; its error is a
+  `BookLoadError`, so the review still searches that position.
