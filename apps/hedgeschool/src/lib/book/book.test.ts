@@ -7,9 +7,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { once } from "node:events";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { BOOK_TIME_LIMIT, BookLoadError, bookMove, openBook, type Book, type BookReader } from "./book.ts";
 import { BOOK_FORMAT, BOOK_VERSION, type BookIndex, type BookPart, type BookPosition } from "./form.ts";
@@ -202,9 +204,9 @@ test("a part that does not load rejects each lookup in it, and a later lookup tr
 
   // A reader that fails once: the second lookup loads the part
   let fails = 1;
-  const flaky: BookReader = async url => {
+  const flaky: BookReader = async (url, signal) => {
     if (url.endsWith("/1.json") && fails-- > 0) throw new Error("offline");
-    return files()(url);
+    return files()(url, signal);
   };
   const book: Book = await openBook(TEST_BOOK, flaky);
   await assert.rejects(book.get(LINE_B_POSITIONS[7]), (e: unknown) =>
@@ -212,34 +214,39 @@ test("a part that does not load rejects each lookup in it, and a later lookup tr
   assert.equal((await book.get(LINE_B_POSITIONS[7]))?.position, LINE_B_POSITIONS[7]);
 });
 
-/** A server of the test books' files over HTTP, which the loader's own reader fetches. Its start's part of the cases
- *  answers as `start` says: in full, never (no headers), with half of its body, or with a server error. `requests`
- *  counts the start part's requests, and `open` the ones that the server still holds: a request that the client
- *  aborts closes. */
+/** The cases' part that holds the start. */
+const START_PART = "/test-book/cases/0.json";
+
+/** A server of the test books' files over HTTP, which the loader's own reader fetches. The cases' start's part answers
+ *  as `start` says: in full, never (no headers), with half of its body, or with a server error. `requests` counts the
+ *  start part's requests, and `open` the ones that the server still holds. `closed` settles when the last one closes:
+ *  a request that the client aborts closes. */
 async function bookServer() {
-  const START_PART = "/test-book/cases/0.json";
   const server = {
     start: "answer" as "answer" | "no headers" | "half a body" | "error",
     requests: 0,
     open: 0,
+    closed: Promise.resolve() as Promise<unknown>,
     url: "",
     close: () => {},
   };
   const http = createServer((req, res) => {
+    const file = fixture(req.url!);
     if (req.url === START_PART) {
       server.requests++;
       server.open++;
       res.on("close", () => server.open--);
+      server.closed = once(res, "close");
       if (server.start === "no headers") return;
       if (server.start === "error") { res.writeHead(500).end(); return; }
-      const body = readFileSync(fixture(START_PART));
+      const body = readFileSync(file);
       res.writeHead(200, { "Content-Type": "application/json", "Content-Length": body.length });
       if (server.start === "half a body") { res.write(body.subarray(0, body.length >> 1)); return; }
       res.end(body);
       return;
     }
-    if (!existsSync(fixture(req.url!))) { res.writeHead(404).end(); return; }
-    res.writeHead(200, { "Content-Type": "application/json" }).end(readFileSync(fixture(req.url!)));
+    if (!existsSync(file)) { res.writeHead(404).end(); return; }
+    res.writeHead(200, { "Content-Type": "application/json" }).end(readFileSync(file));
   });
   await new Promise<void>(resolve => http.listen(0, "127.0.0.1", resolve));
   server.url = `http://127.0.0.1:${(http.address() as AddressInfo).port}${CASES}`;
@@ -247,51 +254,62 @@ async function bookServer() {
   return server;
 }
 
-test("a part that does not answer in the time limit counts as not loaded: its headers, its body, or an error", async () => {
-  const server = await bookServer(), LIMIT = 300;
-  try {
-    for (const start of ["no headers", "half a body", "error"] as const) {
-      server.start = start;
-      server.requests = 0;
-      const t0 = performance.now();
-      const book = await openBook(server.url, undefined, LIMIT); // it starts the start's part
-      await assert.rejects(book.get(START), (e: unknown) =>
-        e instanceof BookLoadError && (start === "error" ? /500/ : /no answer in 0\.3 s/).test(e.message), start);
-      if (start !== "error") assert.ok(performance.now() - t0 >= LIMIT - 20, `${start}: not before the time limit`);
-      assert.equal(book.peek(START), undefined, `${start}: the part counts as not loaded`);
-      await new Promise(resolve => setTimeout(resolve, 50));
-      assert.equal(server.open, 0, `${start}: the loader stopped its request`);
-      // A later lookup asks again, and the part loads once the server answers
-      server.start = "answer";
-      assert.equal((await book.get(START))?.position, START, start);
-      assert.equal(server.requests, 2, `${start}: one request, then one more`);
-      assert.equal(book.peek(START)?.position, START);
-    }
-    // A part that answers in time: no time limit ends it
-    const book = await openBook(server.url, undefined, LIMIT);
-    assert.equal((await book.get(START))?.position, START);
-  } finally {
-    server.close();
+// The test's own timeout fails a loader that does not stop a request, and `t.after` then closes the server
+test("a part that does not answer in the time limit counts as not loaded: its headers, its body, or an error",
+     { timeout: 10_000 }, async t => {
+  const server = await bookServer(), LIMIT = 150;
+  t.after(() => server.close());
+  for (const start of ["no headers", "half a body", "error"] as const) {
+    server.start = start;
+    server.requests = 0;
+    const t0 = performance.now();
+    const book = await openBook(server.url, undefined, LIMIT); // it starts the start's part
+    await assert.rejects(book.get(START), (e: unknown) =>
+      e instanceof BookLoadError && (start === "error" ? /500/ : /no answer in 0\.15 s/).test(e.message), start);
+    if (start !== "error") assert.ok(performance.now() - t0 >= LIMIT - 20, `${start}: not before the time limit`);
+    assert.equal(book.peek(START), undefined, `${start}: the part counts as not loaded`);
+    await Promise.race([server.closed, delay(1000, undefined, { ref: false })]);
+    assert.equal(server.open, 0, `${start}: the loader stopped its request`);
+    // A later lookup asks again, and the part loads once the server answers
+    server.start = "answer";
+    assert.equal((await book.get(START))?.position, START, start);
+    assert.equal(server.requests, 2, `${start}: one request, then one more`);
+    assert.equal(book.peek(START)?.position, START);
   }
 });
 
-test("the time limit holds any reader, and a stalled index fails as an index that does not load", async () => {
+test("the time limit holds any reader: the index, a part that does not answer, and one that answers just in time",
+     { timeout: 10_000 }, async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
   const never: BookReader = () => new Promise(() => {});
-  await assert.rejects(openBook("/x.json", never, 50), (e: unknown) =>
-    e instanceof BookLoadError && /no answer in 0\.05 s/.test(e.message));
-  const stalls = new Set<string>(), signals: AbortSignal[] = [];
+  const index = openBook("/x.json", never);
+  t.mock.timers.tick(BOOK_TIME_LIMIT);
+  await assert.rejects(index, (e: unknown) => e instanceof BookLoadError && /no answer in 30 s/.test(e.message));
+  // The start's part answers to its requests in turn: never, never again, with an error, and 1 ms before the limit
+  const answers = ["never", "never", "error", "just in time"];
+  const signals: AbortSignal[] = []; // the start part's reads
   const read: BookReader = (url, signal) => {
-    signals.push(signal!);
-    return stalls.has(url) ? new Promise(() => {}) : files()(url);
+    if (url !== START_PART) return files()(url, signal);
+    signals.push(signal);
+    const answer = answers.shift();
+    if (answer === "never") return new Promise(() => {});
+    if (answer === "error") return Promise.reject(new Error("offline"));
+    return new Promise(resolve => setTimeout(() => resolve(files()(url, signal)), BOOK_TIME_LIMIT - 1));
   };
-  stalls.add("/test-book/cases/0.json");
-  const book = await openBook(CASES, read, 50);
-  await assert.rejects(book.get(START), BookLoadError);
-  assert.ok(signals[1].aborted, "the start part's read is told to stop");
-  stalls.clear();
-  assert.equal((await book.get(START))?.position, START);
-  assert.ok(!signals[2].aborted);
-  assert.equal(BOOK_TIME_LIMIT, 30_000);
+  const book = await openBook(CASES, read); // it starts the start's part
+  for (const k of [0, 1]) {
+    const lookup = book.get(START);
+    t.mock.timers.tick(BOOK_TIME_LIMIT);
+    await assert.rejects(lookup, BookLoadError, `request ${k + 1}`);
+    assert.ok(signals[k].aborted, `request ${k + 1}: its read is told to stop`);
+  }
+  await assert.rejects(book.get(START), /offline/);
+  const last = book.get(START);
+  t.mock.timers.tick(BOOK_TIME_LIMIT - 1);
+  assert.equal((await last)?.position, START, "a part that answers just before the limit loads");
+  t.mock.timers.tick(BOOK_TIME_LIMIT);
+  assert.deepEqual(signals.map(s => s.aborted), [true, true, false, false],
+                   "the timer ends with a read that fails or loads in time");
 });
 
 test("the loader refuses a file that is not a book's, or a book of another form", async () => {

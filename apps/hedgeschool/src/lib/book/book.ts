@@ -16,7 +16,8 @@ export interface Book {
   /** The start, in the position notation. */
   readonly start: string;
   /** The book's position, with its part loaded. Null when the book does not hold it. It rejects with a
-   *  BookLoadError when the part does not load, and a later call tries again. */
+   *  BookLoadError when the part does not load or does not answer in its time limit (BOOK_TIME_LIMIT), and a later
+   *  call tries again. It always settles: the review's evaluation waits for it before it searches. */
   get(position: string): Promise<BookPosition | null>;
   /** The book's position at once: null when the book does not hold it (from the index alone), undefined while its
    *  part is not loaded. */
@@ -34,14 +35,15 @@ export class BookLoadError extends Error {
 }
 
 /** How long a file of the book may take to load, from its request to the end of its body, in milliseconds. Past it, the
- *  loader stops the read and the file counts as not loaded: a lookup in it fails, the review searches its positions,
- *  and a later lookup tries again (design 32, "A file that does not answer"). The browser itself does not stop a fetch
- *  that stalls. 30 seconds is about three times the time of all the test book's files at once on DevTools' "3G". */
+ *  loader stops the read and the file counts as not loaded, as a file that fails: a part's lookups fail and the review
+ *  searches its positions, and the index fails as an index that does not load (design 32, "A file that does not
+ *  answer"). The browser itself does not stop a fetch that stalls. 30 seconds is about 2.7 times the time of all the
+ *  test book's files at once on DevTools' "3G". */
 export const BOOK_TIME_LIMIT = 30_000;
 
 /** Reads a file of the book: its address in, its JSON out. `signal` aborts when the time limit ends: a reader that
- *  fetches stops its request then. The loader gives it always. */
-export type BookReader = (url: string, signal?: AbortSignal) => Promise<unknown>;
+ *  fetches stops its request then. */
+export type BookReader = (url: string, signal: AbortSignal) => Promise<unknown>;
 
 const fetchJson: BookReader = async (url, signal) => {
   const response = await fetch(url, { signal }); // the signal stops the body's read too
@@ -49,21 +51,22 @@ const fetchJson: BookReader = async (url, signal) => {
   return response.json();
 };
 
+/** A reader held to the time limit (inTime). */
+type TimedReader = (url: string) => Promise<unknown>;
+
 /** `read` held to a time limit of `limit` milliseconds: past it, the read's signal aborts and the read rejects, whether
  *  the reader stops or not. */
-function inTime(read: BookReader, limit: number): (url: string) => Promise<unknown> {
-  return url => {
+function inTime(read: BookReader, limit: number): TimedReader {
+  return url => new Promise((resolve, reject) => {
     const abort = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const late = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => {
-        const e = new Error(`no answer in ${limit / 1000} s`);
-        abort.abort(e);
-        reject(e);
-      }, limit);
-    });
-    return Promise.race([read(url, abort.signal), late]).finally(() => clearTimeout(timer));
-  };
+    const reading = read(url, abort.signal); // a reader that throws at once rejects here, with no timer
+    const timer = setTimeout(() => {
+      const e = new Error(`no answer in ${limit / 1000} s`);
+      abort.abort(e);
+      reject(e);
+    }, limit);
+    reading.then(resolve, reject).finally(() => clearTimeout(timer));
+  });
 }
 
 function checked<T extends { format: unknown; version: unknown }>(file: T): T {
@@ -96,13 +99,13 @@ class FileBook implements Book {
   readonly source: BookSource;
   readonly start: string;
   private readonly urls: string[];
-  private readonly read: (url: string) => Promise<unknown>;
+  private readonly read: TimedReader;
   private readonly where = new Map<string, number>(); // each stored position's part
   // Each part while it loads, then when it is loaded. A part that did not load, or not in the time limit, has
   // neither, so a later lookup tries again ("Try again", design 32).
   private readonly parts: (Promise<Part> | Part | undefined)[] = [];
 
-  constructor(index: BookIndex, base: string, read: (url: string) => Promise<unknown>) {
+  constructor(index: BookIndex, base: string, read: TimedReader) {
     this.source = index.source;
     this.start = index.start;
     this.urls = index.parts.map(p => base + p.file);

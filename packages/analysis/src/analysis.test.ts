@@ -1452,7 +1452,7 @@ test("a book that does not answer for a variation's position: Evaluate quality s
 test("a book that fails only after a while (Hedge School's time limit on a part): Evaluate quality waits, then searches", async () => {
   const { game, searches, searched } = await bookGame();
   // The book's lookup of the variation's positions, which answers when the test says: as Hedge School's book.ts after
-  // its time limit, it gives no values (results.ts, bookValues)
+  // its time limit, it gives no values (bookValues in apps/hedgeschool/src/lib/book/results.ts)
   const answers: ((a: Analysis<string> | undefined) => void)[] = [];
   game.useBook([undefined, undefined, undefined, undefined], () => new Promise(resolve => answers.push(resolve)));
   await game.addLine(["a", "x"], false);
@@ -1464,7 +1464,7 @@ test("a book that fails only after a while (Hedge School's time limit on a part)
   assert.deepEqual(searched().sort(), ["a", "a x"]);
   for (const s of searches) s.end(LABEL_VISITS);
   await turns();
-  // The labels as the view reads them: the move's label from the review's own searches, so no waiting mark stays
+  // The quality label as the view reads it: the move's, from the review's own searches, so no pulsing "…" stays
   const after = valuesAfter(game.branches["a x"].position, game.valuesAt(["a", "x"]), "lead", LABEL_VISITS);
   assert.equal(after?.book, undefined);
   assert.notEqual(judgeBranchMove(words, game.valuesAt(["a"]), after, 1, "x", "lead", LABEL_VISITS, game.secondAt(["a"]),

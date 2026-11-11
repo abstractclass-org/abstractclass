@@ -423,10 +423,12 @@ explorer reads the book through one interface, so a book in another form comes i
   flags stay inside the loader. `bookMove` gives the book move that an edge plays. In a position that is its own
   mirror image, an edge plays its twin's book move, turned over.
 - **A file that does not answer:** each file of the book, the index and each part, has a time limit of 30 seconds
-  (`BOOK_TIME_LIMIT` in `book.ts`), from its request to the end of its body. Past it, the loader stops the request
-  and the file counts as not loaded, as a file that fails: a lookup in it fails, the review searches its positions,
-  and a later lookup tries again. A file that does not answer must not hold the review's evaluation: the evaluation
-  waits for the book's answer before it searches a variation's positions, and without a limit it waits for good.
+  (`BOOK_TIME_LIMIT` in `book.ts`), from its request to the end of its body. Past it, the loader stops the request.
+  The file then counts as not loaded, as a file that fails. A part that does not answer fails each lookup in it, and
+  the review searches its positions. A later lookup asks for the part again. An index that does not answer fails as
+  an index that does not load, and the table's "Try again" asks for it again. A file that does not answer must not
+  hold the review's evaluation. The evaluation waits for the book's answer before it searches a variation's
+  positions, so without a limit it waits until the page closes.
   - **Why a limit of the loader's own:** the browser does not stop a fetch that stalls. Headless Chromium 153 kept a
     fetch with no headers and a fetch whose body stopped half way open for 11 minutes, until the test ended. So the
     limit is the loader's. It aborts the fetch (its `AbortSignal` stops the body's read too), and it rejects even when a
@@ -434,16 +436,16 @@ explorer reads the book through one interface, so a book in another form comes i
   - **Why 30 seconds:** in headless Chromium, from the dev server's test book, one part took 2 to 15 milliseconds at
     full speed. With DevTools' network presets, the largest part (1.json, 164 kB) took 0.33 seconds on "Fast 4G", 1.4
     seconds on "Slow 4G" and 5.3 seconds on "3G". The index and all four parts at once took 0.6, 2.9 and 11.3 seconds.
-    The test book's files are served uncompressed, and a deployed site compresses them (1.json to 45 kB with gzip). So
-    30 seconds is about three times the whole test book on "3G", and leaves room for larger parts in the engine's
-    book. A shorter limit fails a book that loads on a slow connection, and the review then searches positions that
-    the book holds. A longer one keeps the waiting mark of a variation's move for longer when the book's server does
-    not answer.
-  - **Cyanotype** has no opening book (design 33, "Later"). The loader and its limit are Hedge School's, in
-    `apps/hedgeschool`. The wait for the book's answer is in the shared `GameAnalysis` (`packages/analysis`). When
-    Cyanotype's book comes, the loader with its limit moves into a package (design 29), so that each site's book
-    holds the limit. Another form of the book (request 22) that comes through an adapter of the interface `Book` must
-    hold the same limit.
+    The dev server sends the test book's files uncompressed. With gzip, 1.json is 45 kB. No measure ran on a deployed
+    site, because no deployed site serves a book. So 30 seconds is about 2.7 times the whole test book on "3G", and it
+    leaves room for larger parts in the engine's book. A shorter limit fails a book that loads on a slow connection,
+    and the review then searches positions that the book holds. A longer limit keeps the pulsing "…" of a variation's
+    move (design 07) for longer when the book's server does not answer.
+  - **Cyanotype** has no opening book (design 33, "Later" and "The gaps from Hedge School"). The loader and its limit
+    are Hedge School's, in `apps/hedgeschool`. The wait for the book's answer is in the shared `GameAnalysis`
+    (`packages/analysis`). When Cyanotype's book comes, the loader with its limit moves into a package (design 29), so
+    that each site's book holds the limit. Another form of the book (request 22) that comes through an adapter of the
+    interface `Book` must hold the same limit.
 
 ### The test book
 
@@ -681,8 +683,9 @@ edges).
     the positions that the book holds. A search that ran before keeps its result for the analysis column, and the
     labels take the book's values.
   - **A book that does not load,** or a position whose part does not load or does not answer in its time limit: the
-    evaluation searches the variation's positions, as without a book. So the waiting mark of a variation's move lasts
-    at most the time limit, then the search's label comes.
+    evaluation searches the variation's positions, as without a book. So the book holds the evaluation of a variation's
+    move for at most two time limits: a lookup reads the position's part, then the part of the position after its best
+    move (`bookValues` in `results.ts`), and each read has its own limit. Then the searches start.
   - **A variation move that was not evaluated:** the analysis asks the book for each variation position, evaluated or
     not. So at a variation's book position, the ◆ of a hard position (design 14) and the area map (design 30) are the
     book's, as on the game's line.

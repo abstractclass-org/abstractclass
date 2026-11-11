@@ -11331,30 +11331,37 @@ file moved, so the work has no commit of renames. Each part is its own commit.
 ### A time limit on each file of the opening book (2026-11-11)
 
 abscls-pymm, from the review of abscls-8981. The book's loader (`apps/hedgeschool/src/lib/book/book.ts`) had no time
-limit on a fetch, and the evaluation of a variation (`judgeSearches` and `askBook` in
+limit on a fetch. The evaluation of a variation (`judgeSearches` and `askBook` in
 `packages/analysis/src/analysis.svelte.ts`) waits for the book's answer before it searches the variation's positions.
-A fetch that never ended held the move at its waiting mark for good. Design 32, "The book file", now gives the limit.
+So a fetch that never ended kept the move's pulsing "…" (design 07) until the page closed. Design 32, "The book file",
+now gives the limit.
 
 - **The limit:** 30 seconds for each file, the index and each part, from the request to the end of the body
-  (`BOOK_TIME_LIMIT`). Past it, the loader aborts the fetch and the file counts as not loaded: the lookup fails with a
-  `BookLoadError`, `bookValues` gives no values, and the review searches the position. The part leaves the loader's
-  cache, so a later lookup and the table's "Try again" ask again. The limit wraps any reader, so it rejects even when
-  a reader does not stop.
+  (`BOOK_TIME_LIMIT`). Past it, the loader aborts the fetch and the file counts as not loaded. A lookup in the part
+  fails with a `BookLoadError`, `bookValues` gives no values, and the review searches the position. The part leaves
+  the loader's cache, so a later lookup and the table's "Try again" ask for it again. An index past its limit fails as
+  an index that does not load, and the table's "Try again" asks for it again. The limit wraps any reader, so it
+  rejects even when a reader does not stop.
+- **The longest wait:** a lookup of a position reads its part, then the part of the position after its best move
+  (`bookValues` in `results.ts`), each with its own limit. So the book holds the evaluation of a variation's move for
+  at most 60 seconds.
 - **The browser's own behaviour:** headless Chromium 153 kept a fetch with no headers and a fetch whose body stopped
   half way pending for 11 minutes, until the measure ended. So the limit must be the loader's.
-- **The measure:** headless Chromium 153 fetched the test book's files from the dev server (port 4202), which serves
-  them with the preview server's own middleware (`testBook` in `vite.config.ts`), as `book.ts` reads them (fetch,
-  then the JSON). One part took 2 to 15 ms at full speed. With DevTools' network presets, the largest part (1.json,
-  164 kB, 45 kB with gzip) took 0.33 s on "Fast 4G", 1.4 s on "Slow 4G" and 5.3 s on "3G". The index and the four
-  parts at once took 0.6 s, 2.9 s and 11.3 s. The dev server sends the files uncompressed. 30 seconds is about three
-  times the whole test book on "3G", with room for the engine's larger book. It was not measured on a deployed site:
-  no deployed site serves a book.
+- **The measure:** headless Chromium 153 fetched the test book's files from the dev server (port 4202), as `book.ts`
+  reads them (fetch, then the JSON). The dev server serves them with the preview server's own middleware (`testBook`
+  in `vite.config.ts`). One part took 2 to 15 ms at full speed. With DevTools' network presets, the largest part
+  (1.json, 164 kB, 45 kB with gzip) took 0.33 s on "Fast 4G", 1.4 s on "Slow 4G" and 5.3 s on "3G". The index and the
+  four parts at once took 0.6 s, 2.9 s and 11.3 s. The dev server sends the files uncompressed. 30 seconds is about
+  2.7 times the whole test book on "3G", with room for the engine's larger book. No measure ran on a deployed site,
+  because no deployed site serves a book.
 - **Cyanotype** has no opening book. The loader is Hedge School's. The wait for the book's answer is in the shared
   analysis package. When Cyanotype's book comes, the loader and its limit move into a package (design 29).
-- **Checked:** `book.test.ts` serves the cases over HTTP to the loader's own fetch: a part with no headers, a part
-  whose body stops half way, and a server error each reject the lookup with a `BookLoadError`, the server sees the
-  request close, and a later lookup asks again and loads the part. A part that answers in time loads. A reader that
-  never answers is held to the limit, the index too. `reviewBook.test.ts` gives `giveBook` an `OpeningBook` whose
-  variation part does not answer: the lookup waits until the limit, then gives no values, and the table's next lookup
-  loads the part. `analysis.test.ts` gives `GameAnalysis` a lookup that answers no values after a while: "Evaluate
-  quality" searches nothing while it waits, then searches both positions, and the move gets a label.
+- **Checked:** `book.test.ts` serves the cases over HTTP to the loader's own fetch. A part with no headers, a part
+  whose body stops half way, and a server error each reject the lookup with a `BookLoadError`. The server sees the
+  request close, and a later lookup asks again and loads the part. With mock timers, the limit holds a reader that
+  never answers, the index too. A part fails again when its second request does not answer. A failure and a load
+  1 ms before the limit each stop the part's timer. `reviewBook.test.ts` gives `giveBook` an `OpeningBook` whose
+  variation part does not answer. The lookup waits until the limit and then gives no values, and the table's next
+  lookup loads the part. `analysis.test.ts` gives `GameAnalysis` a lookup that answers no values after a while.
+  "Evaluate quality" searches nothing while it waits, then searches both positions, and the move gets its quality
+  label.

@@ -13,7 +13,6 @@ import type { Analysis } from "@abstractclass/analysis/model.ts";
 import type { Enclosure } from "#lib/review/enclosure.ts";
 import { BOOK_TIME_LIMIT, type BookReader } from "./book.ts";
 import type { BookIndex } from "./form.ts";
-import type { OpeningBook as Book } from "./lookup.svelte.ts";
 import { giveBook } from "./reviewBook.ts";
 
 const { OpeningBook } = await import("./lookup.svelte.ts");
@@ -28,46 +27,44 @@ const review = (komi: number) => ({ takesBook: !komi }) as unknown as GameAnalys
 
 test("a review at a komi does not open the book, and a review at komi 0 does", async () => {
   // A book with no index: a review that opens it takes no values from it.
-  const opened = mock.fn(async () => null), book = { opened } as unknown as Book;
+  const opened = mock.fn(async () => null), book = { opened } as unknown as InstanceType<typeof OpeningBook>;
   await giveBook(review(-300), book);
   assert.equal(opened.mock.callCount(), 0);
   await giveBook(review(0), book);
   assert.equal(opened.mock.callCount(), 1);
 });
 
-test("a part that does not answer in the time limit gives the review no values, and a later lookup asks again", async () => {
-  mock.timers.enable({ apis: ["setTimeout"] });
-  try {
-    // The game's start is in the start's part, which answers. A variation's position is in part 1, which never answers
-    // to its first request.
-    const index = readJson(TEST_BOOK) as BookIndex, part = index.parts[1], later = part.positions[0];
-    let stalls = 1;
-    const read: BookReader = async url =>
-      (url.endsWith(`/${part.file}`) && stalls-- > 0 ? new Promise(() => {}) : readJson(url));
-    const book = new OpeningBook(TEST_BOOK, read);
-    // The review as giveBook reads it: GameAnalysis.useBook takes the game's values and the lookup of the variations'
-    const useBook = mock.fn((_: unknown, __: unknown) => {});
-    const g = { takesBook: true, rulesReady: true, positions: [{ notation: index.start }], useBook };
-    await giveBook(g as unknown as GameAnalysis<Enclosure>, book);
-    const [results, lookup] = useBook.mock.calls[0].arguments as
-      [(Analysis<string> | undefined)[], (p: { notation: string }) => Promise<Analysis<string> | undefined>];
-    assert.equal(results[0]?.book, true, "the game's start takes the book's values");
+test("a part that does not answer in the time limit gives the review no values, and a later lookup asks again", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  // The game's start is in the start's part, which answers. A variation's position is in part 1, which never answers
+  // to its first request.
+  const index = readJson(TEST_BOOK) as BookIndex, part = index.parts[1], variation = part.positions[0];
+  let stalls = 1;
+  const read: BookReader = async url =>
+    (url.endsWith(`/${part.file}`) && stalls-- > 0 ? new Promise(() => {}) : readJson(url));
+  const book = new OpeningBook(TEST_BOOK, read);
+  // The review as giveBook reads it: GameAnalysis.useBook takes the values of the game's positions, and the lookup
+  // of the variations' positions
+  type Values = Analysis<string> | undefined;
+  const useBook = mock.fn((_results: Values[], _lookup: (p: { notation: string }) => Promise<Values>) => {});
+  const g = { takesBook: true, rulesReady: true, positions: [{ notation: index.start }], useBook };
+  await giveBook(g as unknown as GameAnalysis<Enclosure>, book);
+  const [results, lookup] = useBook.mock.calls[0].arguments;
+  assert.equal(results[0]?.book, true, "the game's start takes the book's values");
 
-    let answer: Analysis<string> | undefined | "waiting" = "waiting";
-    void lookup({ notation: later }).then(a => (answer = a));
-    await settle();
-    assert.equal(answer, "waiting", "the evaluation waits for the book's answer");
-    mock.timers.tick(BOOK_TIME_LIMIT - 1);
-    await settle();
-    assert.equal(answer, "waiting");
-    mock.timers.tick(1);
-    await settle();
-    assert.equal(answer, undefined, "no values: the review searches the position (GameAnalysis.askBook)");
-    assert.equal(book.at(later).state, "loading", "the table asks again, as nothing failed there before");
-    await settle();
-    assert.equal(book.at(later).state, "in", "the second request answers");
-    assert.equal((await lookup({ notation: later }))?.book, true, "a part that answers in time gives the book's values");
-  } finally {
-    mock.timers.reset();
-  }
+  let answer: Values | "waiting" = "waiting";
+  void lookup({ notation: variation }).then(a => (answer = a));
+  await settle();
+  assert.equal(answer, "waiting", "the evaluation waits for the book's answer");
+  t.mock.timers.tick(BOOK_TIME_LIMIT - 1);
+  await settle();
+  assert.equal(answer, "waiting");
+  t.mock.timers.tick(1);
+  await settle();
+  assert.equal(answer, undefined, "no values: the review searches the position (GameAnalysis.askBook)");
+  assert.equal(book.at(variation).state, "loading", "the table asks again, as nothing failed there before");
+  await settle();
+  assert.equal(book.at(variation).state, "in", "the second request answers");
+  assert.equal((await lookup({ notation: variation }))?.book, true,
+               "a part that answers in time gives the book's values");
 });
