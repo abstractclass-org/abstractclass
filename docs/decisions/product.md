@@ -11227,9 +11227,9 @@ both document checks, and the steps to roll back).
   values in the step itself."
 - **Where a block starts and ends:** a block starts at a line that holds the marker in bold (two asterisks, then "The
   owner's steps"), or at a heading that holds "owner's steps" in any case. A heading's block runs to the next heading
-  of the same or a higher level. A bold line's block runs to the next heading of any level. The other reading, to the
-  next heading of the level of the heading above the bold line, would take in hosting.md's "Cyanotype's analytics",
-  where a description gives a false refusal.
+  of the same or a higher level. A bold line's block runs to the next heading of any level. Another reading ends a
+  bold line's block at the next heading of the level of the heading above it. That block would take in hosting.md's
+  "Cyanotype's analytics", where a description gives a false refusal.
 - **The seven phrases:** "steps of section", "as section N", "as … does" (at most 6 words between), "as …'s … has" (at
   most 4 words on each side), "as design NN lists" (also with "'s" and a quoted section's title), "repeat the" and "the
   same as". The words of one phrase stay in one sentence, and a phrase may wrap onto the next line. Of two phrases that
@@ -11257,21 +11257,33 @@ both document checks, and the steps to roll back).
   `docs/working-notes.md`, beside the width rule: a block of steps starts with its marker, and each step names its
   URL, its clicks and its values in the step itself. The steps to register the site in Google Search Console go with
   abscls-hus.
-- **The decision logs stay in the check:** they hold one block, a pointer to hosting.md (this file, "The owner's
-  visits marked as internal traffic"), and it gives no refusal. A past entry keeps its words: a refusal there calls
-  for a decision on the check's scope, not for a rewrite.
+- **The decision logs stay in the check:** they hold one block, in this file's entry "The owner's visits marked as
+  internal traffic": a pointer to the steps in hosting.md. It gives no refusal. A past entry keeps its words: a
+  refusal there calls for a decision on the check's scope, not for a rewrite.
 - **One helper for both document checks:** the check and the width check (`scripts/doc-widths.mjs`) read a Markdown
   line by the same rules: a fenced code block does not count (`prose`), and a link's target is `](…)` with no space
   (`LINK_TARGET`). Both are in `doc-widths.mjs`, and `owner-steps.mjs` imports them. They are not in a file of their
   own, because `scripts/pre-commit.test.sh` copies `doc-widths.mjs` alone into its test repository. The results did
   not change: both checks gave the same output before and after on the 93 tracked Markdown files, on `54e1c960`'s
   hosting.md and on three made-up texts (CRLF, fences of both kinds, long links). Both test files passed unchanged.
+  The review compared the old and the new code on 475 texts (the Markdown of five commits and of the working tree,
+  with CRLF and fences): no difference. The planning repository's `.githooks/pre-commit` has the same width rules in
+  sh, for engines. A change to the rules changes it too.
 - **Roll back:** hosting.md, "Deploy, check and roll back", named no URL and no project for a rollback. It now has a
-  block of steps: the dashboard's **Workers & Pages** page, the project of each site (`hedgeschool`, `cyanotype`,
-  `abstractclass`), **Deployments**, the **All deployments** list, the three dotted actions menu, **Rollback to this
-  deployment** and the confirmation, then the release check with the restored commit, and the revert on `dev`.
-  The words come from Cloudflare's documentation, read on 2026-11-11: the rollbacks page of Pages
-  (<https://developers.cloudflare.com/pages/configuration/rollbacks/>, updated 2026-04-21) for **Deployments**, **All
-  deployments**, the menu, **Rollback to this deployment**, the confirmation window, and which deployments can come
-  back. Its other Pages pages give the **Workers & Pages** page, its URL and "Select your Pages project". No page
-  names the confirmation's button, or says what the list shows of a deployment that Wrangler uploaded.
+  block of steps for the projects `hedgeschool`, `cyanotype` (after its launch) and `abstractclass`, from the
+  dashboard to the check of the footer's version and the revert on `dev`. One release pushes many commits, so the
+  steps take each commit from the list of deployments, not from `git log`. The words come from Cloudflare's
+  documentation, read on 2026-11-11. The rollbacks page of Pages
+  (<https://developers.cloudflare.com/pages/configuration/rollbacks/>, updated 2026-04-21) gives **Deployments**,
+  **All deployments**, the three dotted actions menu, **Rollback to this deployment**, the confirmation window, and
+  which deployments can come back. Cloudflare's other Pages pages give the **Workers & Pages** page, its URL and
+  "Select your Pages project". No page names the confirmation's button, or says what the list shows of a deployment
+  that Wrangler uploaded.
+- **The account, read on 2026-11-11** (the Pages API, GET calls only): the projects `hedgeschool`, `cyanotype` and
+  `abstractclass`, each with the production branch `main` and its site's domain. `cyanotype` has no production
+  deployment, because Cyanotype is not launched. Each production deployment of `hedgeschool` holds its commit and
+  the commit's first line, one deployment for each release.
+- **After a rollback, the check is the footer's version, not `release-check.mjs`:** the script takes a commit for the
+  footer only. It compares the engine's files with the `engine.lock.json` of its own checkout, and the header with
+  its own list of links. So at an older commit it can fail although the rollback worked. The restored deployment is
+  the one that went live at its release, with the same files.

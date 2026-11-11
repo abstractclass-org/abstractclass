@@ -7,8 +7,7 @@
 // heading of any level. In a block, the check refuses each phrase of PATTERNS: each sends the reader elsewhere for
 // what to do. A link to a page for the reader's information stays allowed: the check reads a link's text, not its
 // target. A fenced code block does not count. A phrase may wrap from one line to the next. Where two phrases overlap,
-// the check refuses the first one only. The rules of a fenced code block and of a link's target are the width check's
-// (scripts/doc-widths.mjs).
+// the check refuses the first one only.
 //
 // The check reads the decision logs (docs/decisions/) too. They are history: a past entry keeps its words, so a
 // refusal there calls for a decision on the check's scope, not for a rewrite.

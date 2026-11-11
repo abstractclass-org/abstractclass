@@ -6,8 +6,9 @@
 // A line may be longer where it cannot wrap: a table row, a line in a code block, or a line whose length comes from
 // URLs (a link's target, `<https://…>`, a bare URL). The text around a URL still counts. A moved file's lines are not
 // added. Code keeps its own lengths.
-// The rules of a Markdown line that both this check and scripts/owner-steps.mjs read are here: `prose` (the fenced
-// code blocks) and `LINK_TARGET`.
+// scripts/owner-steps.mjs imports `prose` and `LINK_TARGET` from here. Import no file of the repository here:
+// scripts/pre-commit.test.sh copies this file alone. The planning repository's .githooks/pre-commit has these rules
+// in sh, for engines/: change it with them.
 // Tests: node --test "scripts/*.test.mjs"
 import { execFileSync } from "node:child_process";
 
