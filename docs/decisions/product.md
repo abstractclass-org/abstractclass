@@ -10978,6 +10978,7 @@ load. In both, the Practice page showed no content after a load.
   network that the site no longer ships asks too, before the board searches with another network. Its results cannot
   show: no search of the site reads them, and the removal of earlier results (design 20, item 8) keeps none for the
   board. Showing them would take a board form of the review snapshot. The engine lock ships every network that a file
-  can name today, so the question comes only after a release that drops one.
+  can name today, so the question comes only after a release that drops one. A later change shows them, before such
+  a release (abscls-iwbs).
 - **Both sites** take it from the shared packages: `packages/analysis/src/files.ts`, `kept.ts`, `settings.ts`,
   `analysis.svelte.ts`, and `packages/review/src/ChooseNetwork.svelte` with the panel's note in `ReviewView.svelte`.

@@ -29,6 +29,12 @@ export const BOARD_ID = "board";
 export const boardOfLine = (main: string[], start?: string, komi = 0): KeptBoard =>
   ({ version: 2, main, nodes: prefixKeys(main).slice(1).map((k): KeptNode => [k, 0]), ...(start ? { start } : {}),
      ...(komi ? { komi } : {}) });
+/** A board's lines, without its own network: what an analysis file holds (files.ts), which names the network apart. */
+export const boardLines = ({ network: _, ...lines }: KeptBoard): Omit<KeptBoard, "network"> => lines;
+/** The board kept here as it opens: its own network gives way to the browser's once the site no longer ships it
+ *  (`ships`), as a game's own settings do (settings.ts, ownSettingsOf). */
+export const keptShipped = (board: KeptBoard | null, ships: (network: string) => boolean): KeptBoard | null =>
+  (board?.network && !ships(board.network) ? boardLines(board) : board);
 
 /** Why the board kept here cannot open at its komi, or null: a komi beyond the game's limit `maxKomi`, either way (its
  *  record's `MAX_RECORD_KOMI`, its engine's cap). Each game's analysis module searches beyond the cap with no error,

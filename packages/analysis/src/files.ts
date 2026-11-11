@@ -8,7 +8,7 @@
 // the network that the board searched with (`engine`), and the board that opens it searches with that network
 // (boardNetwork), which it keeps as its own (kept.ts, KeptBoard's `network`), as a review file's game keeps its own.
 import { atShape, isAnalysisKey, ofModels, parentKeyMoves, readAnalysisKey, readable } from "./cache.ts";
-import type { KeptBoard } from "./kept.ts";
+import { boardLines, type KeptBoard } from "./kept.ts";
 import { boardPositionKeys } from "./boardLink.ts";
 import { isKomi, komiLimitProblem } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
@@ -74,7 +74,7 @@ export interface AnalysisFile {
   exported: string; // ISO date and time
   site: string; // the site's version (its commit) that wrote the file
   engine?: FileEngine; // the network that the board searched with, and the search: none in an older file
-  board: KeptBoard; // the lines: every node, with the moves evaluated, and the main line
+  board: Omit<KeptBoard, "network">; // the lines: every node, with the moves evaluated, and the main line
   analyses: [string, unknown][]; // the engine's results, by their keys in the browser's store
 }
 
@@ -101,11 +101,10 @@ export function fileEngine(manifest: Manifest | null, network: string): FileEngi
  *  board's in this browser: the file names its network as `engine`. */
 export async function exportAnalysis(format: string, board: KeptBoard, site: string, models: Set<string> | null,
                                      engine: FileEngine | null = null, now = new Date()): Promise<AnalysisFile> {
-  const { network: _, ...lines } = board;
-  const positions = boardPositionKeys(lines);
+  const positions = boardPositionKeys(board);
   const analyses = atShape(await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models)));
   return { format, version: ANALYSIS_FILE_VERSION, exported: now.toISOString(), site, ...(engine ? { engine } : {}),
-           board: lines, analyses };
+           board: boardLines(board), analyses };
 }
 
 /** A file name for an analysis in `format`: the format, then the date and time it was saved, the player's own. */
@@ -131,12 +130,11 @@ export function readAnalysisFile(text: string, site: string, format: string, max
   const komi = b.komi ?? 0, beyond = komiLimitProblem(komi, maxKomi, komi, "the analysis file's komi");
   if (beyond) throw new Error(beyond);
   // An engine that the reader cannot use is as none: the results' keys then give the network (fileNetwork).
-  const e = f.engine as Partial<FileEngine> | undefined;
-  const engine = e && typeof e === "object" && typeof e.network === "string" && typeof e.model === "string" ?
+  const e = f.engine as Partial<FileEngine> | null | undefined;
+  const engine = typeof e?.network === "string" && typeof e.model === "string" ?
     { network: e.network, model: e.model, networkName: typeof e.networkName === "string" ? e.networkName : e.network,
       ...(typeof e.search === "string" ? { search: e.search } : {}) } : undefined;
-  const { engine: _, ...rest } = f;
-  return { ...rest, ...(engine ? { engine } : {}), board: b } as AnalysisFile;
+  return { ...f, engine, board: b } as AnalysisFile;
 }
 
 /** The network of an analysis file's results, for the board that opens it (Hedge School's design 21):
@@ -181,11 +179,15 @@ export function fileNetwork(file: Pick<AnalysisFile, "engine" | "analyses">, man
  *  `several` and `gone`): a title, why it asks, and a choice of networks, by their ids and names. */
 export interface NetworkQuestion { title: string; text: string; choices: { network: string; name: string }[] }
 
-/** The question for an analysis file of several networks or of a network that `site` no longer ships, with the names
- *  of the networks (`name`). A file of several networks offers its networks. A file of a network that has gone offers
- *  the networks that the site's settings offer (`offered`). */
-export function networkQuestion(found: Extract<FileNetwork, { kind: "several" | "gone" }>, site: string,
-                                name: (id: string) => string, offered: string[]): NetworkQuestion {
+/** A site's networks, as its question names them (networkQuestion): the site's name (`site`), each network's name by
+ *  its id (`name`), and the networks that its settings offer (`offered`). */
+export interface SiteNetworks { site: string; name: (id: string) => string; offered: string[] }
+
+/** The question for an analysis file of several networks or of a network that the site no longer ships. A file of
+ *  several networks offers its networks. A file of a network that has gone offers the networks that the site's settings
+ *  offer. */
+export function networkQuestion(found: Extract<FileNetwork, { kind: "several" | "gone" }>,
+                                { site, name, offered }: SiteNetworks): NetworkQuestion {
   if (found.kind === "several") {
     const each = found.networks.map(n => `${name(n.network)} (${n.results.toLocaleString("en")} result${n.results === 1 ? "" : "s"})`);
     return {
@@ -209,20 +211,27 @@ const listed = (words: string[]) => (words.length < 2 ? words.join("") : `${word
 
 /** The network of the board that opens an analysis file (fileNetwork): the file's own, or the network that the player
  *  chooses (`choose`, which answers null for a cancel) when the file holds several or one that has gone. Answers the
- *  network's id, null for the browser's network (a file with no result that the board reads), or undefined when the
- *  player cancels: the board then stays as it was. */
-export async function boardNetwork(file: AnalysisFile, manifest: Manifest | null, site: string,
-                                   name: (id: string) => string, offered: string[],
-                                   choose: (q: NetworkQuestion) => Promise<string | null>): Promise<string | null | undefined> {
+ *  network's id, or a network of null for the browser's network (a file with no result that the board reads). Answers
+ *  null when the player cancels: the board then stays as it was. */
+export async function boardNetwork(file: AnalysisFile, manifest: Manifest | null, networks: SiteNetworks,
+                                   choose: (q: NetworkQuestion) => Promise<string | null>): Promise<{ network: string | null } | null> {
   const found = fileNetwork(file, manifest);
-  if (found.kind === "one") return found.network;
-  if (found.kind === "none") return null;
-  return (await choose(networkQuestion(found, site, name, offered))) ?? undefined;
+  if (found.kind === "one") return { network: found.network };
+  if (found.kind === "none") return { network: null };
+  const network = await choose(networkQuestion(found, networks));
+  return network ? { network } : null;
 }
 
-/** The board's address with its own network (`network`, from boardNetwork), which the board reads after the `#`. */
+/** The board's address with its own network (`network`, from boardNetwork), which the board reads after the `#`
+ *  (addressNetwork). */
 export const withNetwork = (address: string, network: string | null) =>
   (network ? `${address}&network=${encodeURIComponent(network)}` : address);
+/** The network that the board's address names (withNetwork): an analysis file's, while the site ships it (`ships`),
+ *  else null. A board brought another way names none. */
+export function addressNetwork(p: URLSearchParams, ships: (network: string) => boolean): string | null {
+  const network = p.get("via") === "analysis_file" ? p.get("network") : null;
+  return network && ships(network) ? network : null;
+}
 
 /** Keeps an analysis file's results in this browser, of the manifest's search and the networks it ships: the board
  *  reads no other (Hedge School's design 20, item 8). */

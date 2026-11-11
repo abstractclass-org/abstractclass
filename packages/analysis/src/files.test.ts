@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { analysisKey } from "./cache.ts";
-import { ANALYSIS_FILE_VERSION, belongs, boardNetwork, exportAnalysis, fileEngine, fileNetwork, readAnalysisFile, withNetwork,
-         type AnalysisFile } from "./files.ts";
+import { ANALYSIS_FILE_VERSION, addressNetwork, belongs, boardNetwork, exportAnalysis, fileEngine, fileNetwork, readAnalysisFile,
+         withNetwork, type AnalysisFile } from "./files.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import type { KeptBoard } from "./kept.ts";
 import { STORES, dbPut } from "@abstractclass/storage/db.ts";
@@ -88,20 +88,25 @@ test("an analysis file's network: the one it names, else the one network of its 
 test("the board's network of an analysis file: the file's, the player's choice, or none after a cancel", async () => {
   const read = (extra: object) => readAnalysisFile(JSON.stringify({ ...JSON.parse(file({ version: 2, main: [], nodes: [] })), ...extra }),
                                                    "Test", FORMAT, NO_LIMIT);
-  const name = (id: string) => id.toUpperCase(), offered = ["net-a"];
+  const site = { site: "Test", name: (id: string) => id.toUpperCase(), offered: ["net-a"] };
   const never = async (): Promise<string | null> => assert.fail("asked");
-  assert.equal(await boardNetwork(read({ analyses: results(["aa"]) }), MANIFEST, "Test", name, offered, never), "net-a");
-  assert.equal(await boardNetwork(read({}), MANIFEST, "Test", name, offered, never), null);
+  assert.deepEqual(await boardNetwork(read({ analyses: results(["aa"]) }), MANIFEST, site, never), { network: "net-a" });
+  assert.deepEqual(await boardNetwork(read({}), MANIFEST, site, never), { network: null }); // the browser's
   const several = read({ analyses: results(["aa", "bb"]) });
-  assert.equal(await boardNetwork(several, MANIFEST, "Test", name, offered, async q => q.choices[1].network), "net-b");
-  assert.equal(await boardNetwork(several, MANIFEST, "Test", name, offered, async () => null), undefined);
+  assert.deepEqual(await boardNetwork(several, MANIFEST, site, async q => q.choices[1].network), { network: "net-b" });
+  assert.equal(await boardNetwork(several, MANIFEST, site, async () => null), null); // a cancel
   const gone = read({ analyses: results(["0dd"]) });
-  assert.equal(await boardNetwork(gone, MANIFEST, "Test", name, offered, async q => {
+  assert.deepEqual(await boardNetwork(gone, MANIFEST, site, async q => {
     assert.deepEqual(q.choices, [{ network: "net-a", name: "NET-A" }]); // the networks that the settings offer
     return q.choices[0].network;
-  }), "net-a");
-  assert.equal(withNetwork("/analysis#packed=x", "net-a"), "/analysis#packed=x&network=net-a");
+  }), { network: "net-a" });
   assert.equal(withNetwork("/analysis#packed=x", null), "/analysis#packed=x");
+  // The board reads it back from its address, while the site ships it, and only from an analysis file's address
+  const address = withNetwork("/analysis#packed=x&via=analysis_file", "net-a"), ships = (id: string) => id === "net-a";
+  assert.equal(address, "/analysis#packed=x&via=analysis_file&network=net-a");
+  assert.equal(addressNetwork(new URLSearchParams(address.split("#")[1]), ships), "net-a");
+  assert.equal(addressNetwork(new URLSearchParams("packed=x&via=analysis_file&network=net-b"), ships), null);
+  assert.equal(addressNetwork(new URLSearchParams("packed=x&network=net-a"), ships), null); // a shared link's
 });
 
 test("an analysis file names the board's network, out and back in, and not the board's own in its lines", async () => {
@@ -109,7 +114,7 @@ test("an analysis file names the board's network, out and back in, and not the b
   assert.deepEqual(engine, { network: "net-a", networkName: "Net A", model: "aa", search: "s1" });
   assert.equal(fileEngine(MANIFEST, "net-c"), null);
   const out = await exportAnalysis(FORMAT, { version: 2, main: [], nodes: [], network: "net-b" }, "x", null, engine);
-  assert.equal(out.board.network, undefined);
+  assert.equal("network" in out.board, false);
   const back = readAnalysisFile(JSON.stringify(out), "Test", FORMAT, NO_LIMIT);
   assert.deepEqual(back.engine, engine);
   // An engine that the reader cannot use is as none

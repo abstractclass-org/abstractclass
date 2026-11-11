@@ -248,7 +248,8 @@ engine does by itself.
 - **A file of a network that the site no longer ships, shown as a review snapshot** (design 20): the board would read
   the file's results with no network, and search nothing. It needs a board form of the review snapshot, and a store
   that keeps a network's results after the site stops shipping it (design 20, item 8). The engine lock still ships
-  every network that a file can name, so the board asks instead.
+  every network that a file can name, so the board asks instead. A later change shows these results, before a release
+  that drops a network (beads abscls-iwbs).
 - **An export of the lines alone,** with no results (the first choice): that is a board editor's output. The board's
   work is the engine's searches of the lines that the player explored, deeper than a review's, and the analysis file
   keeps them.
@@ -275,16 +276,16 @@ engine does by itself.
   (`BoardForm`). `packages/analysis/src/analysis.svelte.ts`: the board form of the analysis (`setMain`, `playLine`,
   `judgedMain`, `keptBoard`). `src/lib/game/board.ts`: the link and a record's line. `src/lib/game/analysisFile.ts`: the
   analysis file. Their frames are shared with Cyanotype: `packages/analysis/src/boardLink.ts` (the link) and
-  `packages/analysis/src/files.ts` (the file, its network: `fileNetwork`, `boardNetwork`, `networkQuestion`). The
-  board's own network: `withBoardNetwork` and `boardChange` in `packages/analysis/src/settings.ts`, `setBoardNetwork`
-  in `packages/analysis/src/analysis.svelte.ts`, and the question in `packages/review/src/ChooseNetwork.svelte`.
-  `packages/review/src/NewMenu.svelte` and `ExportMenu.svelte`: the
-  menus. `packages/review/src/ImportDialog.svelte`: the Import's dialog. `packages/analysis/src/model.ts`:
-  `onlyJudged`. `src/lib/game/paste.ts`: a pasted record, with the start's tag and the place of a problem from
-  `packages/record/src/record.ts` (`withStartTag`, `pastedError`). `src/routes/editor/+page.svelte` and
-  `src/lib/editor/position.ts`: the board editor. `packages/review/src/PositionCheckStatus.svelte`: its status, the
-  engine's reading and its position check, which Cyanotype's editor shares. Cyanotype has the board editor and the
-  New menu too (its design 33, "The board editor").
+  `packages/analysis/src/files.ts` (the file, its network: `fileNetwork`, `boardNetwork`, `networkQuestion`, and the
+  address's `withNetwork` and `addressNetwork`). The board's own network: `withBoardNetwork` in
+  `packages/analysis/src/settings.ts`, `keptShipped` in `packages/analysis/src/kept.ts`, `setBoardNetwork` in
+  `packages/analysis/src/analysis.svelte.ts`, and the question in `packages/review/src/ChooseNetwork.svelte`.
+  `packages/review/src/NewMenu.svelte` and `ExportMenu.svelte`: the menus. `packages/review/src/ImportDialog.svelte`:
+  the Import's dialog. `packages/analysis/src/model.ts`: `onlyJudged`. `src/lib/game/paste.ts`: a pasted record, with
+  the start's tag and the place of a problem from `packages/record/src/record.ts` (`withStartTag`, `pastedError`).
+  `src/routes/editor/+page.svelte` and `src/lib/editor/position.ts`: the board editor.
+  `packages/review/src/PositionCheckStatus.svelte`: its status, the engine's reading and its position check, which
+  Cyanotype's editor shares. Cyanotype has the board editor and the New menu too (its design 33, "The board editor").
   `packages/import/src/importEvents.ts`: the imports' events, with Hedge School's sources in `src/lib/game/sources.ts`.
 
 ## Log entries

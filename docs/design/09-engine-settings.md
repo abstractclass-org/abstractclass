@@ -75,7 +75,7 @@ kept in this browser, and each applies at once, without a reload.
    - **The Analysis board from an analysis file** keeps the file's network as its own, and keeps no depth of its own
      (design 21, item 11). The panel says so and names the network. A network chosen there is the board's, and the
      board searches again with it. The settings kept in the browser serve every other page, and their other settings
-     serve the board too (`withBoardNetwork` and `boardChange` in `packages/analysis/src/settings.ts`).
+     serve the board too (`withBoardNetwork` in `packages/analysis/src/settings.ts`, and the page's `changeEngine`).
    - **A game whose last review used an earlier network** with the browser's settings keeps that review's network and
      depth per move as its own, as a game from a review file does (`ownSettings` in
      `src/lib/analysis/engineSettings.ts`, from `ownSettingsOf` in `packages/analysis/src/settings.ts`). So it opens

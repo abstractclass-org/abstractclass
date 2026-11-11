@@ -1,10 +1,11 @@
 // Checks a game's own network and depth (settings.ts, ownSettingsOf, withOwn and changeOwn) for a site with two
 // networks on its menus and an earlier one that it still ships, as Hedge School's lock keeps them. Hedge School's
 // engineSettings.test.ts checks them with its own networks. And the Analysis board's own network (an analysis file's,
-// Hedge School's design 21). Run: npm test.
+// Hedge School's design 21: settings.ts, withBoardNetwork, and kept.ts, keptShipped). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { REVIEW_PRESETS, boardChange, changeOwn, ownSettingsOf, withBoardNetwork, withOwn, type EngineSettings } from "./settings.ts";
+import { REVIEW_PRESETS, changeOwn, ownSettingsOf, withBoardNetwork, withOwn, type EngineSettings } from "./settings.ts";
+import { boardOfLine, keptShipped } from "./kept.ts";
 
 const MENU = ["lite", "full"], EARLIER = "earlier";
 const { ownSettings, settingsFor } = ownSettingsOf({ offers: id => MENU.includes(id ?? ""),
@@ -36,12 +37,11 @@ test("the settings show a game's own network and depth, and a change changes the
   assert.deepEqual(withOwn(browser, changed), { ...browser, network: "full", review: "lite", customReview: 512 });
 });
 
-test("the Analysis board searches with its own network, and a network chosen there leaves the browser's for every other page", () => {
-  assert.deepEqual(withBoardNetwork(browser, "full"), { ...browser, network: "full" });
+test("the Analysis board searches with its own network while the site ships it, else with the browser's", () => {
+  assert.deepEqual(withBoardNetwork(browser, EARLIER), { ...browser, network: EARLIER });
   assert.equal(withBoardNetwork(browser, null), browser);
-  // With its own network: a network chosen is the board's, and the rest is the browser's
-  assert.deepEqual(boardChange("full", { network: "lite" }), { network: "lite", browser: {} });
-  assert.deepEqual(boardChange("full", { visits: 2048 }), { network: "full", browser: { visits: 2048 } });
-  // Without one: all of it is the browser's
-  assert.deepEqual(boardChange(null, { network: "full" }), { network: null, browser: { network: "full" } });
+  const ships = (id: string) => MENU.includes(id) || id === EARLIER, board = boardOfLine(["a"]);
+  assert.deepEqual(keptShipped({ ...board, network: EARLIER }, ships), { ...board, network: EARLIER });
+  assert.deepEqual(keptShipped({ ...board, network: "gone" }, ships), board); // a network that the site no longer ships
+  assert.equal(keptShipped(null, ships), null);
 });

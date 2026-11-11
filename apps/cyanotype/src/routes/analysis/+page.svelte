@@ -29,7 +29,7 @@
   import ChooseNetwork, { NetworkChoice } from "@abstractclass/review/ChooseNetwork.svelte";
   import { GameAnalysis } from "@abstractclass/analysis/analysis.svelte.ts";
   import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
-  import { BOARD_ID, boardOfLine, keptBoardNotice, type KeptBoard } from "@abstractclass/analysis/kept.ts";
+  import { BOARD_ID, boardOfLine, keptBoardNotice, keptShipped, type KeptBoard } from "@abstractclass/analysis/kept.ts";
   import { onlyJudged, review, type Unit } from "@abstractclass/analysis/model.ts";
   import { EngineSession } from "@abstractclass/analysis/session.svelte.ts";
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
@@ -38,7 +38,8 @@
   import NewMenu from "@abstractclass/review/NewMenu.svelte";
   import ImportDialog from "@abstractclass/review/ImportDialog.svelte";
   import { BOARD_EXPORTS, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
-  import { fileEngine, shippedModels } from "@abstractclass/analysis/files.ts";
+  import { addressNetwork, fileEngine, shippedModels } from "@abstractclass/analysis/files.ts";
+  import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { download } from "@abstractclass/site/download.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
@@ -50,7 +51,7 @@
   import { blueprintsView } from "#lib/review/blueprintsView.ts";
   import { loadDisplay } from "#lib/review/display.ts";
   import { checkRecord, checkStart, recordProblem, rulesBy, startProblem } from "#lib/review/recordCheck.ts";
-  import { boardChange, loadEngine, networkName, reviewVisits, saveEngine, shipsNetwork, withBoardNetwork,
+  import { loadEngine, networkName, reviewVisits, saveEngine, shipsNetwork, withBoardNetwork,
            type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { startTags, type GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -83,19 +84,16 @@
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
                                       tracker: { track, networkName } });
-  /** A change in the engine settings: a network chosen is the board's own when it has one (boardChange). */
+  /** A change in the engine settings: a network chosen is the board's own, kept with its tree, when the board has
+   *  one (withBoardNetwork). The rest is the browser's. */
   function changeEngine(change: Partial<EngineSettings>) {
-    trackSettingChange(change, settings, !!own && change.network !== undefined);
-    const next = boardChange(own, change);
-    if (next.network && next.network !== own) {
-      own = next.network;
-      void game?.setBoardNetwork(next.network);
-    }
-    Object.assign(engine, next.browser);
+    const { network, ...rest } = change, ofBoard = !!own && network !== undefined;
+    trackSettingChange(change, settings, ofBoard); // Hedge School's design 17
+    if (!ofBoard) { Object.assign(engine, change); return; }
+    own = network;
+    void game?.setBoardNetwork(network);
+    Object.assign(engine, rest);
   }
-  /** A board's own network that the site ships, else none (KeptBoard's `network`): a network that has left the engine
-   *  lock gives way to the browser's, as a game's own settings do (engineSettings.ts, ownSettings). */
-  const shipped = (network: string | null | undefined) => (network && shipsNetwork(network) ? network : null);
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);
@@ -125,42 +123,35 @@
    *  replaces it at once, and the notice names no new board. */
   let keptGone: string | null = null;
   const OWN: string[] = ["editor"];
-  /** The board kept here, at its kept place, and a board brought after the `#`, which leaves the address: a record's
-   *  line (`record`, from its `Position` tag or from `position`), a set-up start alone (`position`), or a link's or a
-   *  file's lines, once they are read. The engine checks it before it replaces the kept board (recordCheck.ts). A
-   *  file's lines come with its network (`&network=`, analysisFile.ts), which the board keeps as its own. Before the
-   *  address leaves, `expect` gets the network of the board that opens unless the board kept here stays: the engine
-   *  loads that network meanwhile. */
-  async function chooseBoard(expect: (network: string | null) => void): Promise<{ kept: KeptBoard | null; at: string[]; brought?: Brought }> {
-    let kept = (await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null;
-    if (kept?.network && !shipped(kept.network)) {
-      const { network: _, ...lines } = kept;
-      kept = lines;
-    }
-    // A kept board with a komi (Hedge School's design 24), which the board cannot analyze, does not open: a defence, as
-    // only a board at komi 0 is kept here. A new board opens, and replaces it in the store at its first change.
+  /** The board kept here, as it opens: its own network only while the site ships it (kept.ts, keptShipped). A kept
+   *  board with a komi (Hedge School's design 24), which the board cannot analyze, does not open: a defence, as only a
+   *  board at komi 0 is kept here. A new board opens, and replaces it in the store at its first change. */
+  async function keptBoard(): Promise<KeptBoard | null> {
+    const kept = keptShipped((await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null, shipsNetwork);
     try {
       refuseKomi(kept?.komi);
+      return kept;
     } catch (e) {
       keptGone = errorText(e);
       notice = keptBoardNotice(keptGone, false);
-      kept = null;
+      return null;
     }
+  }
+  /** The board kept here (`kept`, from keptBoard), at its kept place, and a board brought after the `#`, which leaves
+   *  the address: a record's line (`record`, from its `Position` tag or from `position`), a set-up start alone
+   *  (`position`), or a link's or a file's lines, once they are read. The engine checks it before it replaces the kept
+   *  board (recordCheck.ts). A file's lines come with its network (`network`, which its address names:
+   *  analysisFile.ts), and the board keeps it as its own. */
+  async function chooseBoard(kept: KeptBoard | null, network: string | null): Promise<{ kept: KeptBoard | null; at: string[]; brought?: Brought }> {
     const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
     const p = new URLSearchParams(location.hash.slice(1)), text = p.get("record"), packed = p.get("packed");
     const position = p.get("position");
-    if (text === null && packed === null && position === null) {
-      expect(kept?.network ?? null);
-      startAnalytics();
-      return { kept, at: keptAt };
-    }
+    if (text === null && packed === null && position === null) { startAnalytics(); return { kept, at: keptAt }; }
+    await replaceState("/analysis", {}); // async: the address changes only once it resolves
+    startAnalytics();
     const via = p.get("via"), brings = text !== null || position !== null; // moves or a start, not saved work
     imported = !brings || OWN.includes(via ?? "") ? undefined : isImportSource(via) ? via : "site_link";
     loaded = brings ? undefined : via === "analysis_file" ? via : "analysis_share_link";
-    const network = loaded === "analysis_file" ? shipped(p.get("network")) : null; // an analysis file's
-    expect(network);
-    await replaceState("/analysis", {}); // async: the address changes only once it resolves
-    startAnalytics();
     if (text === null && position === null) {
       const kind = loaded === "analysis_file" ? "file" : "link";
       try {
@@ -201,14 +192,13 @@
 
   onMount(async () => {
     try {
-      await session.load();
-      // The engine starts with the network of the board that opens unless the board kept here stays: the chosen
-      // board's own network then replaces it, if it differs.
-      let expect!: (network: string | null) => void;
-      const expected = new Promise<string | null>(resolve => (expect = resolve));
-      const opening = chooseBoard(expect);
-      opening.catch(() => expect(null)); // the failure itself comes below
-      own = await expected;
+      const [, kept] = await Promise.all([session.load(), keptBoard()]);
+      // The engine starts with the network of the board that opens unless the board kept here stays: an analysis
+      // file's, which its address names, else the kept board's own. The chosen board's own network then replaces it, if
+      // it differs.
+      const addressed = addressNetwork(new URLSearchParams(location.hash.slice(1)), shipsNetwork);
+      own = holdsGame(location.hash) ? addressed : kept?.network ?? null;
+      const opening = chooseBoard(kept, addressed);
       let board: KeptBoard | null = null, brought: Brought | undefined, keptAt: string[] = [];
       // The analysis starts from the board's start, so the engine's rules check a board brought first, once they work:
       // a record's moves from its start, or a start alone. Only a board that they accept replaces the board kept here.
@@ -355,7 +345,7 @@
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}
   <ReviewView view={blueprintsView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
               onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} engine={settings}
-              onengine={changeEngine} ownSettings={own ? "board" : undefined}
+              onengine={changeEngine} ownSettings={own ? "analysis_file" : undefined}
               onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
     {#snippet tools(unit)}

@@ -760,21 +760,12 @@ test("a line gleams while a search of its position can change it: not for a labe
   assert.deepEqual([game.analysis[0]?.visits, game.pending([])], [visits + 96, false]); // the label search runs on
 });
 
-test("an analysis file's board keeps its own network, and opens with that network's labels, with no search", async () => {
-  // The page searches with the board's network: the pool's here, whatever the browser's settings (Hedge School's design 21)
-  const { pool, searches } = fakePool();
-  for (const p of [[], ["a"], ["a", "b"]])
-    await cachePut(analysisKey(pool.search!, pool.model!.sha256, p, 16384), toAnalysis(words, reply(16384)));
+test("the board keeps its own network with its tree, and a network chosen for it, so that a reload keeps it", async () => {
+  // An analysis file's network (Hedge School's design 21), which the page searches with
+  const { pool } = fakePool();
   const game = new GameAnalysis(words, pool, [], BOARD_ID);
   await game.start();
-  await game.loadBoard({ version: 2, nodes: [["a", 0, 1], ["a b", 0]], main: ["a", "b"], network: "the file's" });
-  await game.fromStore(pool.search!, pool.model!.sha256);
-  await game.sweep();
-  await turns();
-  mock.timers.tick(BATCH_MS);
-  assert.deepEqual([game.judgedMain, game.awaitsGreat("a"), searches.length], [{ a: true }, false, 0]);
-  assert.deepEqual([game.analysisOf([])?.visits, game.analysisOf(["a"])?.visits], [16384, 16384]);
-  // The board keeps its network with its tree, and a network chosen for it, so that a reload keeps it
+  await game.loadBoard({ version: 2, nodes: [["a", 0], ["a b", 0]], main: ["a", "b"], network: "the file's" });
   assert.equal(game.keptBoard().network, "the file's");
   await game.setBoardNetwork("another");
   assert.equal((await dbGet<KeptBoard>(STORES.branches, BOARD_ID))?.network, "another");

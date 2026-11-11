@@ -88,18 +88,11 @@ export function changeOwn(own: OwnSettings, s: EngineSettings, change: Partial<E
   return { ...own, settings: gameSettings(next), depthPerMove: { review: next.review, customReview: next.customReview } };
 }
 /** The settings that the Analysis board searches with: the browser's `s`, with the board's own network when it has one
- *  (kept.ts, KeptBoard's `network`: an analysis file's, Hedge School's design 21). The board keeps no depth of its own. */
+ *  (kept.ts, KeptBoard's `network`: an analysis file's, Hedge School's design 21). The board keeps no depth of its own:
+ *  a network chosen on it is its own, and the rest of a change is the browser's, so the settings kept in the browser
+ *  keep their network for every other page. */
 export const withBoardNetwork = (s: EngineSettings, network: string | null): EngineSettings =>
   (network ? { ...s, network } : s);
-/** A change of the settings on the Analysis board (`change`): with a network of its own (`network`), a network chosen
- *  is the board's, and the rest is the browser's. Without one, all of it is the browser's. Answers the board's network
- *  after the change, and the browser's change. So the settings kept in the browser keep their network for every other
- *  page. */
-export function boardChange(network: string | null, change: Partial<EngineSettings>): { network: string | null; browser: Partial<EngineSettings> } {
-  if (!network || change.network === undefined) return { network, browser: change };
-  const { network: chosen, ...browser } = change;
-  return { network: chosen, browser };
-}
 
 /** A site's games' own settings, from its networks: those that its settings and Practice offer (`offers`), and those
  *  that it ships (`ships`), which also hold the earlier networks that its engine lock keeps off the menus.

@@ -12,6 +12,8 @@ import { NETWORKS, networkName } from "../analysis/engineSettings.ts";
 export { ANALYSIS_FILE_VERSION } from "@abstractclass/analysis/files.ts";
 
 export const ANALYSIS_FORMAT = "hedge-school-analysis";
+/** The site's networks, as the question of a file's network names them (shared.networkQuestion). */
+const NETWORK_NAMES: shared.SiteNetworks = { site: "Hedge School", name: networkName, offered: NETWORKS.map(n => n.id) };
 
 /** The kind of a Hedge School file, from its `format`, or null for another file. */
 export const fileKind = (text: string) => shared.fileKind(text, REVIEW_FORMAT, ANALYSIS_FORMAT);
@@ -39,8 +41,8 @@ export const readAnalysisFile = (text: string): shared.AnalysisFile =>
 export async function openAnalysisFile(text: string, manifest: Manifest | null,
                                        choose: (q: shared.NetworkQuestion) => Promise<string | null>): Promise<string | null> {
   const file = readAnalysisFile(text);
-  const network = await shared.boardNetwork(file, manifest, "Hedge School", networkName, NETWORKS.map(n => n.id), choose);
-  if (network === undefined) return null;
+  const board = await shared.boardNetwork(file, manifest, NETWORK_NAMES, choose);
+  if (!board) return null;
   await shared.keepAnalyses(file, manifest);
-  return shared.withNetwork(boardLink("", file.board, 0, "analysis_file"), network);
+  return shared.withNetwork(boardLink("", file.board, 0, "analysis_file"), board.network);
 }

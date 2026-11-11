@@ -13,6 +13,8 @@ import { SITE_NAME } from "../site.ts";
 import { NETWORKS, networkName } from "../analysis/engineSettings.ts";
 
 export const ANALYSIS_FORMAT = "cyanotype-analysis";
+/** The site's networks, as the question of a file's network names them (shared.networkQuestion). */
+const NETWORK_NAMES: shared.SiteNetworks = { site: SITE_NAME, name: networkName, offered: NETWORKS.map(n => n.id) };
 
 /** The kind of a Cyanotype file, from its `format`: a review file (reviewFile.ts), an analysis file, or null for
  *  another file. */
@@ -41,8 +43,8 @@ export async function openAnalysisFile(text: string, manifest: Manifest | null,
                                        choose: (q: shared.NetworkQuestion) => Promise<string | null>): Promise<string | null> {
   const file = readAnalysisFile(text);
   refuseKomi(file.board.komi); // before its results go to the store
-  const network = await shared.boardNetwork(file, manifest, SITE_NAME, networkName, NETWORKS.map(n => n.id), choose);
-  if (network === undefined) return null;
+  const board = await shared.boardNetwork(file, manifest, NETWORK_NAMES, choose);
+  if (!board) return null;
   await shared.keepAnalyses(file, manifest);
-  return shared.withNetwork(boardLink("", file.board, 0, "analysis_file"), network);
+  return shared.withNetwork(boardLink("", file.board, 0, "analysis_file"), board.network);
 }
