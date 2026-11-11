@@ -144,7 +144,7 @@ How strong each setting plays against people is not measured yet.
    the game in progress then goes into Your games as unfinished. The page shows nothing until it knows whether a game
    is in progress, so that the card does not show for a moment before the game. The page resumes a game only when it
    found the game as it opened. A game that another tab starts while the engine loads does not replace the card that
-   the player sees.
+   the player sees. A game that another tab ends while the engine loads gives way to the card.
 10. **A game that ends goes into Your games** in the Review tab, kept at once, and its review is one click away.
     Lichess keeps every game against the computer in the player's history. A game from a set-up start opens on the
     Analysis board ("Analyze the game"), from Practice and from Your games, as the Review tab reviews games from the

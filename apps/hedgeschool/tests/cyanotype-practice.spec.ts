@@ -8,7 +8,8 @@
 // with a message, when the preview has no practice bot: run `npm run engine` in apps/cyanotype before its build, as the
 // Tests workflow does (design 33, "The engine's files"). In CI, they fail instead. A last test keeps a game whose
 // network the site does not ship: the page drops it and shows the settings card. A game that another tab keeps while
-// the engine loads does not replace the settings card. In a game, the confirm button of
+// the engine loads does not replace the settings card, and a game that another tab ends meanwhile gives way to it. In a
+// game, the confirm button of
 // Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility itself (`btn-danger`),
 // so that it runs without the engine's files too. The last tests start Practice from a position: the Analysis board's
 // "Play the bot from here" on a game's position and on a set-up start, a start that no game reaches, and the question
@@ -180,6 +181,28 @@ test("a game kept after the page mounts, while the engine loads, does not open: 
   await expect(blue).toBeEnabled({ timeout: 120_000 }); // the rules are loaded, and the card stays
   await expect(page.locator(STATUS)).toHaveCount(0);
   expect(await keptGame(page)).not.toBeNull(); // the other tab's game stays kept
+  expect(errors).toEqual([]);
+});
+
+// The other way round: the page found a game as it mounted, and another tab ends it while the engine loads. The page
+// shows the settings card, not a game that never starts.
+test("a game that another tab ends while the engine loads gives way to the settings card", async ({ page }) => {
+  const network = modelOf(await botManifest(page));
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await keepBefore(page, "cyanotype:practice-game:1", {
+    version: 1, bot: { network, visits: 8, variety: "low" }, human: 0, name: "", seed: 1, moves: [], builds: [],
+    started: new Date().toISOString(),
+  });
+  let endedElsewhere = () => {};
+  const ended = new Promise<void>(r => (endedElsewhere = r));
+  await page.route("**/engine/manifest.json", async route => { await ended; await route.continue(); });
+  await page.goto(at("/practice"));
+  await expect(page.locator(STATUS)).toBeVisible({ timeout: 60_000 }); // the game found, before the rules are loaded
+  await page.evaluate(() => localStorage.removeItem("cyanotype:practice-game:1"));
+  endedElsewhere();
+  await expect(page.getByRole("button", { name: "Play as Blue" })).toBeEnabled({ timeout: 120_000 });
+  await expect(page.locator(STATUS)).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

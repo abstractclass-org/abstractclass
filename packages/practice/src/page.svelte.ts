@@ -103,7 +103,8 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   /** The page's start, as it mounts: the game in progress or the settings card, then the engine's rules. `bringing`: a
    *  start came in the address that the rules have not refused yet. The site reads it before (`brought`), or checks it
    *  once the rules are loaded (`check`). The page resumes a kept game only when it found one as it mounted and nothing
-   *  is brought: a game that another tab starts while the engine loads does not replace the settings card. */
+   *  is brought: a game that another tab starts while the engine loads does not replace the settings card. A game found
+   *  that another tab ends meanwhile gives way to the card. */
   async mount(bringing: boolean, manifest: () => Promise<Manifest>, check?: (rules: EngineWorker) => Promise<void>) {
     const found = this.site.loadKept();
     if (found?.moves.length && this.brought) this.replacing = true; // the player chooses: the game in progress, or the start
@@ -117,8 +118,10 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       this.ready = true;
       // A start brought that the rules refused leaves the game in progress, which goes on.
       if (this.brought) { if (found?.moves.length) this.replacing = true; return; }
+      if (!found || this.game) return;
       const resume = this.site.loadKept();
-      if (found && resume && !this.game) await this.play(resume, "resumed");
+      if (resume) await this.play(resume, "resumed");
+      else this.phase = "settings";
     } catch (e) {
       this.failed = errorText(e);
     }

@@ -11083,6 +11083,8 @@ with Hedge School") changed. Cyanotype's Practice copied parts of Hedge School's
   Cyanotype resumed whatever its storage held once the engine had started. So a game that another tab started while
   this tab's engine loaded replaced the settings card that the player saw (found by abscls-z0jz's review). A start
   brought that the rules refuse still leaves the game in progress, which goes on, as before.
+- **A game found that another tab ends while the engine loads gives way to the card.** Before, on both sites, the
+  page waited for that game, with "Starting" and its buttons off, until a reload. The review found it.
 - **Hedge School's rules stay through the bot's turn,** as Cyanotype's did. The page gives the board's input no rules
   off the player's turn, so the board does not change.
 - **Cyanotype's one column:** the hands' place follows the review's one column (`packages/review/src/oneColumn.ts`, a
