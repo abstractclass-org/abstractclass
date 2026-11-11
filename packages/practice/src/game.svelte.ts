@@ -26,7 +26,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   thinkingSince = $state<number | null>(null); // when the bot's turn began (performance.now), while it searches
   lastTurnMs = $state<number | null>(null); // how long the bot's last turn took
   readonly kept: K;
-  protected closed = false; // the bot is ended: no move is kept after it
+  private closed = false; // the bot is ended: no move is kept after it
   private humanSince: number | null = null; // when the player's move began (performance.now), on the player's turn
 
   constructor(kept: K, protected rulesWorker: EngineWorker, protected bot: PracticeBot) {
@@ -44,22 +44,30 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   protected abstract get over(): boolean;
   /** Keeps the game in this browser, as the game in progress. Null: no game in progress. */
   protected abstract keep(kept: K | null): void;
-  /** Gives the bot the game's settings and start, plays the moves kept into it, and sets the positions and the moves
-   *  played. */
+  /** Gives the bot the game's settings and start (setUpBot), plays the moves kept into it, and sets the positions and
+   *  the moves played. */
   protected abstract prepare(): Promise<void>;
   /** A move played, by either side, with its time in milliseconds (null: not known): its position from the rules, kept
-   *  with the game. */
+   *  with the game. Never once the game has ended. */
   protected abstract add(move: string, ms: number | null): Promise<void>;
   /** The site's part of a takeback: the moves taken back, last first, are already out of the kept game. */
   protected abstract undid(undone: string[]): void;
-  /** The bot's move for `player`, from the bot. */
-  protected abstract botMove(player: Player): Promise<string>;
   /** The rules of the player's move on the latest position. */
   protected abstract humanRules(): Promise<R>;
   /** The site's part of the game's end, by the rules or by Resign. */
   protected async finished(): Promise<void> {}
   /** The site's part of Abort: answers the id of the game that the site keeps, or null. */
   protected async aborted(): Promise<string | null> { return null; }
+  /** The bot's move for `player`. */
+  protected botMove(player: Player): Promise<string> { return this.bot.command(`genmove ${gtpColor(player)}`); }
+
+  /** For prepare(): notes the bot's build in the kept game (a new build continues the game), then gives the bot the
+   *  game's settings (`commands`). */
+  protected async setUpBot(commands: Iterable<string>) {
+    const info = JSON.parse(await this.bot.command(`${this.bot.game}-bot-info`)) as { build: string };
+    if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build);
+    for (const line of commands) await this.bot.command(line);
+  }
 
   /** Starts the game: its start and the moves kept (a game from an earlier visit, or a start brought), then the turn. */
   async start() {
@@ -79,7 +87,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     const ms = this.humanSince === null ? null : Math.round(performance.now() - this.humanSince);
     try {
       await this.bot.command(`play ${gtpColor(this.human)} ${move}`);
-      await this.add(move, ms);
+      await this.addMove(move, ms);
       await this.next();
     } catch (e) {
       this.fail(e);
@@ -154,7 +162,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
       const since = (this.thinkingSince = performance.now());
       for (let p = this.mover; !this.over && p !== null && p !== this.human; p = this.mover) {
         const t0 = performance.now(), move = await this.botMove(p);
-        await this.add(move, Math.round(performance.now() - t0));
+        await this.addMove(move, Math.round(performance.now() - t0));
       }
       this.lastTurnMs = performance.now() - since;
       this.thinkingSince = null;
@@ -167,6 +175,12 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     this.rules = await this.humanRules();
     this.status = "human";
     this.humanSince = performance.now();
+  }
+
+  /** A move played, kept by the site's game (add): never once the game has ended, as the bot's worker has. */
+  private async addMove(move: string, ms: number | null) {
+    if (this.closed) throw new Error("the game has ended");
+    await this.add(move, ms);
   }
 
   /** The game stops on an error. Not once it has ended: then the bot's worker ended on purpose, and its search with it. */

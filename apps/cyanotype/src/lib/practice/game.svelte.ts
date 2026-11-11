@@ -65,9 +65,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     const unreached = this.kept.start ? await startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
     if (unreached) throw new Error(unreached);
     this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
-    const info = JSON.parse(await this.bot.command("blueprints-bot-info")) as { build: string };
-    if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build); // a new build continues the game
-    for (const line of botCommands(this.kept.bot, this.kept.komi)) await this.bot.command(line);
+    await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.setUp, this.kept.moves))).reply.positions;
     if (this.setUp) {
       await this.bot.command(`blueprints-set-position ${this.setUp}`);
@@ -91,7 +89,6 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
 
   /** A move played, by either side: its position from the rules, kept with the game. */
   protected async add(name: string) {
-    if (this.closed) throw new Error("the game has ended");
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
     keep(this.kept);
@@ -108,7 +105,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
 
   /** The bot's move, which must be one of the rules' legal moves. */
   protected async botMove(player: Player): Promise<string> {
-    const [legal, move] = await Promise.all([this.describe().then(d => d.legal), this.bot.command(`genmove ${gtpColor(player)}`)]);
+    const [legal, move] = await Promise.all([this.describe().then(d => d.legal), super.botMove(player)]);
     if (!legal.includes(move)) throw new Error(`${ENGINE_NAME} played ${move}, which is not a legal move here`);
     return move;
   }

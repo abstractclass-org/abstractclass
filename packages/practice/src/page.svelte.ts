@@ -16,7 +16,8 @@ import type { PracticeGame } from "./game.svelte.ts";
 import { newPractice, practiceFrom, practiceOutcome, type Brought, type KeptPractice, type PracticeChoices,
          type PracticeFrom, type PracticeOutcome } from "./practice.ts";
 
-/** An event's parameters, as the site's analytics take them (@abstractclass/site/analytics.svelte.ts). */
+/** An event's parameters, as the site's analytics take them (@abstractclass/site/analytics.svelte.ts's EventParams).
+ *  Not imported: that module reads Vite's `import.meta.env`, which this package's type check does not know. */
 type EventParams = Record<string, string | number | boolean>;
 
 /** A site's practice game, as the page uses it. */
@@ -37,7 +38,6 @@ export interface PracticeSite<K extends KeptPractice, G extends Game<K>> {
   trackOnce(key: string, name: string, params?: EventParams): void;
   ended?(game: G, outcome: PracticeOutcome): void; // the site's part of a game's end, after its event
   setAside?(kept: K, rules: EngineWorker): Promise<unknown>; // the game in progress, when a start brought replaces it
-  playing?(): void; // the site's part as a game starts on the page
   settings?(): void; // the site's part as the page goes back to the settings card
   forward?(move: G["played"][number]): void; // a step forward, through `move`
 }
@@ -67,7 +67,13 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   last = $derived(this.game ? this.game.positions.length - 1 : 0);
   shown = $derived(this.viewAt === null ? this.last : Math.min(this.viewAt, this.last));
   atLatest = $derived(this.shown === this.last);
-  now = $state(0); // the clock of the bot's thinking time, while it searches (performance.now)
+  taking = $derived(this.game?.status === "human" && this.atLatest); // the board takes the player's move
+  private now = $state(0); // the clock of the bot's thinking time, while it searches (performance.now)
+  /** The bot's thinking time on its turn so far, as "2.3 s", while it searches. Else empty. */
+  thinking = $derived.by(() => {
+    const since = this.game?.thinkingSince;
+    return since == null ? "" : seconds(Math.max(0, this.now - since));
+  });
   private manifest: Manifest | null = null;
   private rules: EngineWorker | null = null;
   private endSent: G | null = null;
@@ -127,7 +133,6 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     this.abortedId = null;
     this.viewAt = null;
     this.notesAt = {};
-    this.site.playing?.();
     let bot: PracticeBot | null = null;
     try {
       bot = await startBot(this.site.game, this.manifest, kept.bot.network, this.site.engine(), kept.seed);

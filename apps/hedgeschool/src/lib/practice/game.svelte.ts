@@ -38,14 +38,12 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
   /** Gives the bot the game's settings, its komi and its start (a set-up start, interface 0.1.1), plays the game's
    *  moves into it (a game kept from an earlier visit, or a record brought), and notes a new build. */
   protected async prepare() {
-    const info = JSON.parse(await this.bot.command("enclosure-bot-info")) as { build: string };
-    if (this.kept.builds.at(-1) !== info.build) this.kept.builds.push(info.build); // a new build continues the game
     // A game kept before the stored game's fields, or resumed: its own id, where the bot runs now, and a time for each
     // move (unknown for the moves before this visit's).
     this.kept.id ??= crypto.randomUUID();
     this.kept.form = this.mode;
     this.kept.ms = Array.from(this.kept.moves, (_, i) => this.kept.ms?.[i] ?? null);
-    for (const line of botCommands(this.kept.bot, this.kept.komi)) await this.bot.command(line);
+    await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);
     const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
     const positions = described.map(f => this.positionOf(f));
@@ -91,7 +89,6 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
 
   /** A move played, by either side, with its time: its position from the rules, kept with the game. */
   protected async add(name: string, ms: number | null) {
-    if (this.closed) throw new Error("the game has ended");
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
     (this.kept.ms ??= []).push(ms);
@@ -100,8 +97,6 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
     this.played = [...this.played, moveOf(this.positions[from], name, after)];
     this.positions = [...this.positions, this.positionOf(after)];
   }
-
-  protected botMove(player: Player) { return this.bot.command(`genmove ${gtpColor(player)}`); }
 
   protected async humanRules(): Promise<EdgeRules> {
     const { reply } = await this.rulesWorker.describe<DescribeReply>(positionQuery(this.kept.start ?? null, this.kept.moves));

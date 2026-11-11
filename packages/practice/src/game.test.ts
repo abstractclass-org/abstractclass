@@ -31,21 +31,20 @@ class WordGame extends PracticeGame<KeptPractice, WordPosition, WordMove, string
     this.played = this.kept.moves.map((word, n) => ({ player: positionAt(n).player, word }));
   }
   protected async add(word: string) {
-    if (this.closed) throw new Error("the game has ended");
     const n = this.kept.moves.push(word);
     this.played = [...this.played, { player: positionAt(n - 1).player, word }];
     this.positions = [...this.positions, positionAt(n)];
   }
   protected undid() {}
-  protected botMove(player: Player) { return this.bot.command(`genmove ${player ? "w" : "b"}`); }
   protected async humanRules() { return `${this.kept.moves.length} moves`; }
   protected async finished() { this.ended++; }
   protected async aborted() { return this.setAside; }
 }
 
 /** A bot that answers `genmove` with `words`, in order, and each other command with nothing. With `hold`, a `genmove`
- *  waits until the test calls `release`. */
-function fakeBot(words: string[], hold = false) {
+ *  waits until the test calls `release`. With `late`, a `genmove` answers after the bot's worker has ended too: its
+ *  reply was on its way. */
+function fakeBot(words: string[], hold = false, late = false) {
   const lines: string[] = [];
   let release = () => {}, terminated = false;
   const bot = {
@@ -55,7 +54,7 @@ function fakeBot(words: string[], hold = false) {
       lines.push(line);
       if (!line.startsWith("genmove")) return "";
       if (hold) await new Promise<void>(r => (release = r));
-      if (terminated) throw new Error("the bot's worker has ended");
+      if (terminated && !late) throw new Error("the bot's worker has ended");
       const word = words.shift();
       if (!word) throw new Error("the bot has no move");
       return word;
@@ -121,6 +120,31 @@ test("Resign while the bot searches: the bot wins, its worker ends, and its sear
   assert.equal(game.error, "");
   assert.equal(game.ended, 1);
   assert.equal(game.kepts.at(-1), null);
+});
+
+test("a move that the bot gives after Resign is not kept: the game has ended", async () => {
+  const bot = fakeBot(["b1"], true, true), game = gameOf(kept(1), bot);
+  const starting = game.start();
+  await new Promise(r => setTimeout(r));
+  await game.resign();
+  bot.release();
+  await starting;
+  assert.deepEqual([game.status, game.error], ["over", ""]);
+  assert.deepEqual(game.kept.moves, []);
+  assert.deepEqual(game.played, []);
+  assert.equal(game.kepts.at(-1), null);
+});
+
+test("the rules of the player's move stay through the bot's turn, until the player's next turn", async () => {
+  const bot = fakeBot(["r1"], true), game = gameOf(kept(0), bot);
+  await game.start();
+  assert.deepEqual([game.status, game.rules], ["human", "0 moves"]);
+  const playing = game.play("b1");
+  await new Promise(r => setTimeout(r));
+  assert.deepEqual([game.status, game.rules], ["bot", "0 moves"]); // a site's page gives its input no rules now
+  bot.release();
+  await playing;
+  assert.deepEqual([game.status, game.rules], ["human", "2 moves"]);
 });
 
 test("Abort ends the game at any time, and answers the site's id of the game", async () => {

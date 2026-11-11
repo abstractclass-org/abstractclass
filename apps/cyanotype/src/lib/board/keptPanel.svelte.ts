@@ -11,8 +11,8 @@ import type { Size } from "./view.ts";
 /** Where the hands go: in a panel over the board, or under the board in the pages' one column (ONE_COLUMN, below 800
  *  pixels). `current` follows the window's width. Call it as a component starts. */
 export function handsPlace(): { readonly current: "panel" | "under" } {
-  const oneColumn = new MediaQuery(ONE_COLUMN);
-  return { get current() { return oneColumn.current ? "under" : "panel"; } };
+  const oneColumn = new MediaQuery(ONE_COLUMN), place = $derived(oneColumn.current ? "under" : "panel");
+  return { get current() { return place; } };
 }
 
 /** The board's box in one column: the window's height less the header, the row above the board (--strip), the step bar

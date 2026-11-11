@@ -120,7 +120,6 @@
     input.reset();
     input.rules = r;
   });
-  const taking = $derived(game?.status === "human" && page.atLatest);
 
   // The hands: in a panel over the board on a computer, under the board in one column (below 800 pixels, as the
   // frame's one column). The panel's place and size are the player's: kept in this browser.
@@ -141,7 +140,7 @@
       return `The game is over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`;
     }
     if (!page.atLatest) return `You look at move ${shown}. To go back to the game, go to the last move.`;
-    if (g.status === "bot") return `${ENGINE_NAME} thinks… ${g.thinkingSince === null ? "" : seconds(Math.max(0, page.now - g.thinkingSince))}`;
+    if (g.status === "bot") return `${ENGINE_NAME} thinks… ${page.thinking}`;
     if (g.status !== "human") return "";
     const n = g.movesLeft;
     return inputStatus(input, g.human) ?? `Your turn: ${n} ${n === 1 ? "move" : "moves"}. ${firstStatus(input, g.human)}`;
@@ -212,7 +211,7 @@
     {/snippet}
     {#snippet board()}
       {#if g && pos}
-        <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={taking} hands={hands.current}
+        <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={page.taking} hands={hands.current}
                bind:place={panel.place} bind:size={panel.size} notes={page.notesAt[shown] ?? []} onnotes={n => page.note(n)} />
       {:else}
         <div class="size-full rounded bg-board"></div>

@@ -78,8 +78,7 @@
     params: practiceParams, endParams: practiceEndParams, track, trackOnce,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
-    playing: () => (notice = ""),
-    settings: () => (settingsOpen = false),
+    settings: () => { settingsOpen = false; notice = ""; },
     forward: into => { if (display.sound) void playMove(display.volume, display.moveSound, !!into.cut); },
   });
   const game = $derived(page.game);
@@ -109,7 +108,7 @@
   // The player's edges: two clicks, on the rules of the position (EdgeInput), at the latest position only.
   const input = new EdgeInput(edge => void game?.play(edgeName(edge)));
   $effect(() => {
-    const r = game?.status === "human" && page.atLatest ? game.rules : null;
+    const r = page.taking ? (game?.rules ?? null) : null;
     input.reset();
     input.rules = r;
   });
@@ -144,7 +143,7 @@
       if (g.resigned) return "You resigned: HedgeFund wins.";
       return `Game over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`; // the review's words and rule (game.ts)
     }
-    if (g.status === "bot") return `HedgeFund is thinking… ${g.thinkingSince === null ? "" : seconds(Math.max(0, page.now - g.thinkingSince))}`;
+    if (g.status === "bot") return `HedgeFund is thinking… ${page.thinking}`;
     return `Your turn: ${p.movesLeft} ${p.movesLeft === 1 ? "edge" : "edges"} to play.`;
   });
 

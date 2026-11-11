@@ -11067,10 +11067,12 @@ with Hedge School") changed. Cyanotype's Practice copied parts of Hedge School's
 `@abstractclass/practice`, as design 29, item 11, asks. No file moved, so the work has no commit of renames.
 
 - **The game's flow:** `packages/practice/src/game.svelte.ts` (`PracticeGame`) holds the turns, the bot's timed turn,
-  the takeback and its reach, Resign, Abort and the stop on an error. Each site's game extends it with its own parts:
-  its start, its positions and moves, the rules of the player's move, the bot's move (Cyanotype checks it against the
-  legal moves), and its end (Hedge School's save into Your games, Cyanotype's result by `endResult`, which did not
-  change). The class has no switch on the game. Its tests run the flow on a game of words with a fake bot.
+  the takeback and its reach, Resign, Abort and the stop on an error. It also holds the bot's set-up (its build and
+  the game's settings), its move, and the refusal of a move once the game has ended. Each site's game extends it with
+  its own parts: its start, its positions and moves, the rules of the player's move, a check of the bot's move
+  (Cyanotype checks it against the legal moves), and its end (Hedge School's save into Your games, Cyanotype's result
+  by `endResult`, which did not change). The class has no switch on the game. Its tests run the flow on a game of
+  words with a fake bot.
 - **The page's flow:** `page.svelte.ts` (`PracticePage`) holds what both pages did the same way: the card or the game,
   the engine's start, a new game, the steps and their keys, the bot's thinking time, the question on a start brought,
   the player's notes, and the game's events. A site gives its game, its storage, its engine settings, its analytics,
