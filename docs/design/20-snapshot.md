@@ -153,7 +153,7 @@ look at a past review pays it each time, and the earlier results are still in th
   keys, and removes the results. The removal reads each key once. Until the transaction ends, the review's reads of
   the store wait. In headless Chromium, on Cyanotype's built site, the store held 5,184 results (Blueprints' results
   of a real review, 13.8 kB each on average as JSON) and two games. The transaction removed 5,063 of them in 224 to
-  360 ms over four runs. Hedge School runs the same code. No run measured it on Hedge School's site.
+  360 ms over five runs. Hedge School runs the same code. No run measured it on Hedge School's site.
 - **Two tabs:** one transaction reads and removes, so no write comes between. The load of a review file keeps the
   game's mark before its results, so a removal in another tab between the two takes none of them. A change of what
   the games need while a removal runs keeps the removal due. A tab of an earlier release that starts after a later

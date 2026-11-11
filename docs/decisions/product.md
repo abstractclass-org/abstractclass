@@ -11016,12 +11016,12 @@ a new search or a new file of the network would add a set.
   keys and values when they end, as IndexedDB does. `dbReadThenDelete` waits for them, so before this change no unit
   test could run a removal.
 - **Measured** in headless Chromium (Playwright's chromium project, on the CPU), on Cyanotype's built site, in a job of
-  2 threads in the machine's queue (`apps/hedgeschool/tests/cyanotype-earlier-results.spec.ts`: three runs, and one
+  2 threads in the machine's queue (`apps/hedgeschool/tests/cyanotype-earlier-results.spec.ts`: three runs, and two
   in the whole suite). The store held 5,184 results and two games: the stored review's 81 results (13.8 kB each on
   average as JSON) and 63 copies of them under other keys. The start removed 5,063 and kept 121: the site's own 81,
   and the 40 that the game's review snapshot shows. Both games stayed. The transaction, from the mark that a removal
-  runs to the mark that it ended, took 283, 340 and 360 ms, and 224 ms in the suite. The page loaded the removal's
-  code once it was idle. Hedge School runs the same code. No run measured it on Hedge School's site.
+  runs to the mark that it ended, took 283, 340 and 360 ms, and 224 and 233 ms in the suite. The page loaded the
+  removal's code once it was idle. Hedge School runs the same code. No run measured it on Hedge School's site.
 - **The lock lists `engine-91ab0b7d`'s CPU module:** Cyanotype's lock gave its CPU module no `sameSearchAs`, so it
   did not list the CPU module of `engine-91ab0b7d` (`28775af7…`), whose search is the same (design 20, item 7, and
   design 33, "The engine's files"). A test took the real mark of a game that `engine-91ab0b7d` reviewed: the stored
