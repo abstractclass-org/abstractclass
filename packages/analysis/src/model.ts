@@ -347,9 +347,7 @@ export interface AfterValues { blueWin: number; blueScore: number | undefined; v
  *  it has `minVisits`, or the book's values. */
 export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind: ScoreKind = "lead", minVisits = 0):
     AfterValues | undefined {
-  if (p.over) {
-    return { blueWin: resultWin(p.scores), blueScore: p.scores[0] - p.scores[1] };
-  }
+  if (p.over) return { blueWin: resultWin(p.scores), blueScore: p.scores[0] - p.scores[1] };
   return deepEnough(a, minVisits) ? { blueWin: a.blueWin, blueScore: scoreOf(a, kind), visits: a.visits, ...(a.book ? { book: a.book } : {}) }
     : undefined;
 }
