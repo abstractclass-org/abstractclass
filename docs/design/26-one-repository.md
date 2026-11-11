@@ -95,8 +95,8 @@ The move must keep these:
   `package-lock.json` at the root: its one lockfile. `.node-version` and `.npmrc` stay at the root, where
   `actions/setup-node` and npm read them.
 - `scripts/` at the root: the repository's own checks. `check-all.mjs` runs the checks of the Tests workflow before
-  its browser tests, `doc-widths.mjs` the widths of the documents, and `commit-msg.test.sh` and
-  `pre-push.test.sh` the tests of the commit-msg and pre-push hooks in `.githooks/`.
+  its browser tests, `doc-widths.mjs` the widths of the documents, and `commit-msg.test.sh`,
+  `pre-commit.test.sh` and `pre-push.test.sh` the tests of the three hooks in `.githooks/`.
 - `apps/hedgeschool/`: the site. Its `package.json` (the package `hedgeschool`) has its scripts, its dependencies and
   the alias `#lib/*`.
 - `packages/`: the shared packages, `@abstractclass/engine`, `@abstractclass/storage` and `@abstractclass/analysis`

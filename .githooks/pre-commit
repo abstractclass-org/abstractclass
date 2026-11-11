@@ -1,8 +1,41 @@
 #!/bin/sh
+# Two checks of the staged files. Git runs this hook at the root of the working tree when core.hooksPath names this
+# folder. POSIX sh, with LF line ends: Git for Windows runs it in its own sh.
+#
+# The exec bit: a file that starts with #! has index mode 100755. A script from Windows lands as 100644 and runs on the
+# Mac only through its interpreter (abscls-us46.78); the message gives the fix, git update-index --chmod=+x <file>. The
+# same check and message as the planning repository's and the engine repository's pre-commit hooks: keep the three the
+# same. It reads the staged files that a commit adds, modifies or changes the type of (a link replaced by a file) with
+# index mode 100644 (a mode change counts, a rename is an add), and the first two bytes of each one's staged content:
+# a file with #! first and mode 100644 is refused. Modes 100755 and 120000 (a link) pass. A path with a newline is cut
+# at it and so is not checked, and breaks no other. It needs no node.
+#
 # The documents' widths (docs/working-notes.md): an added line over 120 characters in a staged Markdown file stops the
-# commit, as the workflow Documents would refuse its push. What counts is in scripts/doc-widths.mjs. Git runs this hook
-# at the root of the working tree when core.hooksPath names this folder. POSIX sh, with LF line ends: Git for Windows
-# runs it in its own sh. A shell with no node skips the check, and the workflow still runs it.
-# Test: node --test scripts/doc-widths.test.mjs
-command -v node >/dev/null 2>&1 || exit 0
-exec node scripts/doc-widths.mjs --staged
+# commit, as the workflow Documents would refuse its push. What counts is in scripts/doc-widths.mjs. A shell with no
+# node skips this check, and the workflow still runs it.
+#
+# Tests: sh scripts/pre-commit.test.sh, and node --test scripts/doc-widths.test.mjs
+
+modes=$(mktemp) || exit 1
+trap 'rm -f "$modes"' EXIT
+bad=0
+# Each staged add, modification or type change with index mode 100644, one path per line: --raw -z gives ":modes shas
+# status", a NUL, the path and a NUL, and tr makes lines of them. A header is the line that starts with ":modes ", and
+# the path is the line after it.
+git diff --cached --raw --no-abbrev --no-renames --no-ext-diff --diff-filter=AMT -z |
+	tr '\0' '\n' | awk '/^:[0-7]+ / { mode = $2; want = 1; next } want { if (mode == "100644") print; want = 0 }' \
+	> "$modes"
+while IFS= read -r f; do
+	if [ "$(git show ":./$f" | head -c 2 | tr -d '\000')" = '#!' ]; then  # ":./": a path such as 0:foo is no stage
+		printf "pre-commit: %s starts with #! and its mode is 100644: git update-index --chmod=+x -- '%s'\n" "$f" "$f"
+		bad=1
+	fi
+done < "$modes"
+if [ "$bad" = 1 ]; then
+	echo "pre-commit: give each script its exec bit (the command above), and commit again"
+fi
+
+if command -v node >/dev/null 2>&1; then
+	node scripts/doc-widths.mjs --staged || bad=1
+fi
+exit "$bad"
