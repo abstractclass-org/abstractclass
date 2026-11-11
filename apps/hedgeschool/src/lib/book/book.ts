@@ -55,14 +55,14 @@ const fetchJson: BookReader = async (url, signal) => {
 /** A reader held to the time limit (inTime). */
 type TimedReader = (url: string) => Promise<unknown>;
 
-/** The time limit of a file of the book, in milliseconds: one for every file, or each file's by its address. */
-export type BookLimit = number | ((url: string) => number);
+/** The time limit of a read of a file of the book, by the file's address, in milliseconds. */
+type BookLimit = (url: string) => number;
 
 /** `read` held to the time limit `limit`: past it, the read's signal aborts and the read rejects, whether the reader
  *  stops or not. */
 function inTime(read: BookReader, limit: BookLimit): TimedReader {
   return url => new Promise((resolve, reject) => {
-    const ms = typeof limit === "number" ? limit : limit(url);
+    const ms = limit(url);
     const abort = new AbortController();
     const reading = read(url, abort.signal); // a reader that throws at once rejects here, with no timer
     const timer = setTimeout(() => {
@@ -81,10 +81,10 @@ function checked<T extends { format: unknown; version: unknown }>(file: T): T {
 }
 
 /** The book of the index at `url`, in the site's form. It loads the index, then starts the start's part. Each file
- *  that does not load within its time limit `limit` counts as not loaded (BOOK_TIME_LIMIT). A test gives a short
- *  limit to the files that must not answer only: a file that answers can take longer on a busy machine. */
+ *  that does not load within its time limit counts as not loaded: `limit` gives each read's limit by the file's
+ *  address, BOOK_TIME_LIMIT for every file by default. */
 export async function openBook(url: string, reader: BookReader = fetchJson,
-                               limit: BookLimit = BOOK_TIME_LIMIT): Promise<Book> {
+                               limit: BookLimit = () => BOOK_TIME_LIMIT): Promise<Book> {
   const read = inTime(reader, limit);
   let index: BookIndex;
   try {
@@ -144,14 +144,15 @@ class FileBook implements Book {
   }
 
   /** Loads part `i`. A part that is not a book's, or of another form, fails as a part that does not load. */
-  private load(i: number): Promise<Part> {
+  private async load(i: number): Promise<Part> {
     const url = this.urls[i];
-    return this.read(url).then(file => new Map(checked(file as BookPart).positions.map(p => [p.position, p]))).then(
-      part => (this.parts[i] = part),
-      e => {
-        this.parts[i] = undefined;
-        throw new BookLoadError(url, e);
-      });
+    try {
+      const file = checked((await this.read(url)) as BookPart);
+      return (this.parts[i] = new Map(file.positions.map(p => [p.position, p])));
+    } catch (e) {
+      this.parts[i] = undefined;
+      throw new BookLoadError(url, e);
+    }
   }
 }
 

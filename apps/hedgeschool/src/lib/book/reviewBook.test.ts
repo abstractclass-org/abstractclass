@@ -21,6 +21,18 @@ const settle = async () => { for (let k = 0; k < 20; k++) await new Promise(r =>
 /** A review at `komi`: giveBook reads whether it takes the book (GameAnalysis.takesBook) before anything else. */
 const review = (komi: number) => ({ takesBook: !komi }) as unknown as GameAnalysis<Enclosure>;
 
+type Values = Analysis<string> | undefined;
+/** What a review at komi 0 of the game of `positions` takes from giveBook (GameAnalysis.useBook): the values of the
+ *  game's positions, and the lookup of the variations' positions. */
+async function givenBook(book: InstanceType<typeof OpeningBook>, positions: string[]) {
+  const useBook = mock.fn((_results: Values[], _lookup: (p: { notation: string }) => Promise<Values>) => {});
+  const g = { takesBook: true, rulesReady: true, positions: positions.map(notation => ({ notation })), useBook };
+  await giveBook(g as unknown as GameAnalysis<Enclosure>, book);
+  assert.equal(useBook.mock.callCount(), 1, "the review takes the book's values");
+  const [results, lookup] = useBook.mock.calls[0].arguments;
+  return { results, lookup };
+}
+
 test("a review at a komi does not open the book, and a review at komi 0 does", async () => {
   // A book with no index: a review that opens it takes no values from it.
   const opened = mock.fn(async () => null), book = { opened } as unknown as InstanceType<typeof OpeningBook>;
@@ -39,13 +51,7 @@ test("a part that does not answer in the time limit gives the review no values, 
   const read: BookReader = async url =>
     (url.endsWith(`/${part.file}`) && stalls-- > 0 ? new Promise(() => {}) : readJson(url));
   const book = new OpeningBook(TEST_BOOK, read);
-  // The review as giveBook reads it: GameAnalysis.useBook takes the values of the game's positions, and the lookup
-  // of the variations' positions
-  type Values = Analysis<string> | undefined;
-  const useBook = mock.fn((_results: Values[], _lookup: (p: { notation: string }) => Promise<Values>) => {});
-  const g = { takesBook: true, rulesReady: true, positions: [{ notation: index.start }], useBook };
-  await giveBook(g as unknown as GameAnalysis<Enclosure>, book);
-  const [results, lookup] = useBook.mock.calls[0].arguments;
+  const { results, lookup } = await givenBook(book, [index.start]);
   assert.equal(results[0]?.book, true, "the game's start takes the book's values");
 
   let answer: Values | "waiting" = "waiting";
@@ -84,12 +90,7 @@ test("a part of another form gives the review no values there, the game's other 
   assert.ok(failed.state === "failed" && failed.error instanceof BookLoadError && failed.error.url === url,
             "the table: the part's file did not load");
 
-  type Values = Analysis<string> | undefined;
-  const useBook = mock.fn((_results: Values[], _lookup: (p: { notation: string }) => Promise<Values>) => {});
-  const g = { takesBook: true, rulesReady: true, positions: [{ notation: index.start }, { notation: other }], useBook };
-  await giveBook(g as unknown as GameAnalysis<Enclosure>, book);
-  assert.equal(useBook.mock.callCount(), 1, "the review takes the book's values");
-  const [results, lookup] = useBook.mock.calls[0].arguments;
+  const { results, lookup } = await givenBook(book, [index.start, other]);
   assert.deepEqual(results.map(a => a?.book), [true, undefined],
                    "the start keeps the book's values, and the review searches the other position");
 

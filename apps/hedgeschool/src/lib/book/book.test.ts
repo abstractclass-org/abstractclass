@@ -209,14 +209,13 @@ test("a part that does not load rejects each lookup in it, and a later lookup tr
 const START_PART = "/test-book/cases/0.json";
 
 /** A server of the test books' files over HTTP, which the loader's own reader fetches. The cases' start's part answers
- *  as `start` says: in full, never (no headers), with half of its body, or with a server error. Each answer in full,
- *  and the error, comes `hold` milliseconds late, as on a busy machine. `requests` counts the start part's requests, and
- *  `open` the ones that the server still holds. `closed` settles when the last one closes: a request that the client
- *  aborts closes. */
-async function bookServer() {
+ *  as `start` says: in full, never (no headers), with half of its body, or with a server error. Each answer that the
+ *  server gives, in full or as an error, comes `hold` milliseconds late, as on a busy machine. `requests` counts the
+ *  start part's requests, and `open` the ones that the server still holds. `closed` settles when the last one closes: a
+ *  request that the client aborts closes. */
+async function bookServer(hold: number) {
   const server = {
     start: "answer" as "answer" | "no headers" | "half a body" | "error",
-    hold: 0,
     requests: 0,
     open: 0,
     closed: Promise.resolve() as Promise<unknown>,
@@ -224,27 +223,21 @@ async function bookServer() {
     close: () => {},
   };
   const http = createServer(async (req, res) => {
-    const file = fixture(req.url!);
+    const file = fixture(req.url!), start = req.url === START_PART ? server.start : "answer";
     if (req.url === START_PART) {
       server.requests++;
       server.open++;
       res.on("close", () => server.open--);
       server.closed = once(res, "close");
-      const start = server.start, body = readFileSync(file);
-      if (start === "no headers") return;
-      if (start === "half a body") {
-        res.writeHead(200, { "Content-Type": "application/json", "Content-Length": body.length });
-        res.write(body.subarray(0, body.length >> 1));
-        return;
-      }
-      await delay(server.hold);
-      if (start === "error") { res.writeHead(500).end(); return; }
-      res.writeHead(200, { "Content-Type": "application/json", "Content-Length": body.length }).end(body);
-      return;
     }
-    await delay(server.hold);
+    if (start === "no headers") return;
+    if (start !== "half a body") await delay(hold);
+    if (start === "error") { res.writeHead(500).end(); return; }
     if (!existsSync(file)) { res.writeHead(404).end(); return; }
-    res.writeHead(200, { "Content-Type": "application/json" }).end(readFileSync(file));
+    const body = readFileSync(file);
+    res.writeHead(200, { "Content-Type": "application/json", "Content-Length": body.length });
+    if (start === "half a body") res.write(body.subarray(0, body.length >> 1)); // and never the rest
+    else res.end(body);
   });
   await new Promise<void>(resolve => http.listen(0, "127.0.0.1", resolve));
   server.url = `http://127.0.0.1:${(http.address() as AddressInfo).port}${CASES}`;
@@ -253,21 +246,22 @@ async function bookServer() {
 }
 
 // The test's own timeout fails a loader that does not stop a request, and `t.after` then closes the server. Only the
-// start part's requests that must not answer have the short limit: on a busy machine, the server can take longer than
-// it to answer the others (the index, the error and the part's later request). The server holds each of those answers
-// for twice the short limit, so that the case shows it.
+// start part's requests that must not answer have the short limit. On a busy machine, the server can take longer than
+// the short limit to answer the other requests: the index, the error and the part's later request. The server holds
+// each of those answers for twice the short limit, so a short limit on them fails the case.
 test("a part that does not answer in the time limit counts as not loaded: its headers, its body, or an error",
      { timeout: 20_000 }, async t => {
-  const server = await bookServer(), LIMIT = 150;
-  server.hold = 2 * LIMIT;
+  const LIMIT = 150, server = await bookServer(2 * LIMIT);
   t.after(() => server.close());
-  const limit = (url: string) =>
-    (url.endsWith(START_PART) && (server.start === "no headers" || server.start === "half a body")
-      ? LIMIT : BOOK_TIME_LIMIT);
+  let t0 = 0; // the start of the start part's last read, just before its timer starts
+  const limit = (url: string) => {
+    if (!url.endsWith(START_PART)) return BOOK_TIME_LIMIT;
+    t0 = performance.now();
+    return server.start === "no headers" || server.start === "half a body" ? LIMIT : BOOK_TIME_LIMIT;
+  };
   for (const start of ["no headers", "half a body", "error"] as const) {
     server.start = start;
     server.requests = 0;
-    const t0 = performance.now();
     const book = await openBook(server.url, undefined, limit); // it starts the start's part
     await assert.rejects(book.get(START), (e: unknown) =>
       e instanceof BookLoadError && (start === "error" ? /500/ : /no answer in 0\.15 s/).test(e.message), start);
