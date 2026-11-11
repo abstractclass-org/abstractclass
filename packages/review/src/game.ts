@@ -14,6 +14,7 @@
 import type { Component, Snippet } from "svelte";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
+import { resultOfRecord, resultOfScores, type ScoreResult } from "@abstractclass/analysis/result.ts";
 import type { MoveReview, ReviewData, TurnReview, Unit } from "@abstractclass/analysis/model.ts";
 import type { AreaMark, MapStyle } from "./ownership.ts";
 
@@ -23,28 +24,9 @@ export const PLAYER_NAME = ["Blue", "Red"] as const;
 export const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
 /** A score as the players' cards, the Report and an image's caption show it: whole, with thousands separated. */
 export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
-/** A game's result by the scores: the winner, or null for a draw, and the margin (the winner's score less the loser's)
- *  as a record writes it. */
-export interface ScoreResult { winner: Player | null; margin: number }
-/** A result from its winner and its margin, by the one rule for a draw: the margin as a record writes it, rounded to
- *  six decimals (`r+377.651497`), and a draw when that is 0. Enclosure's areas are exact rationals, so a margin can be
- *  any number at any komi (docs/design/24-practice.md, "Whole points"), and a win by 0.03 is a win. The rounding takes
- *  away only the error of a floating-point sum. A record's result and the words then always agree. */
-function byMargin(winner: Player, m: number): ScoreResult {
-  const margin = Math.round(m * 1e6) / 1e6;
-  return margin === 0 ? { winner: null, margin } : { winner, margin };
-}
-/** The result by the scores (Blue's, then Red's), in every game: the review, the board, Practice and its record.
- *  Rounding for display stays apart from it. */
-export const resultOfScores = (scores: readonly [number, number]): ScoreResult =>
-  byMargin(scores[0] > scores[1] ? 0 : 1, Math.abs(scores[0] - scores[1]));
-/** The result that a record gives by the scores (`b+28.5`, `r+3`, `0`), by the same rule. Null for any other: a
- *  resignation (`b+R`), a forfeit (`r+F`), or no result (`*`). */
-export function resultOfRecord(result: string): ScoreResult | null {
-  if (result === "0") return { winner: null, margin: 0 };
-  const m = /^([br])\+(\d+(?:\.\d+)?)$/.exec(result);
-  return m ? byMargin(m[1] === "b" ? 0 : 1, Number(m[2])) : null;
-}
+/** The result by the scores and by a record, by the one rule for a draw: the analysis's (result.ts), which its value
+ *  at the game's end takes too. The view's words below and Practice's record take it from here. */
+export { resultOfRecord, resultOfScores, type ScoreResult } from "@abstractclass/analysis/result.ts";
 /** A win's margin that one decimal writes as 0.0, with as many decimals as it needs, up to the record's six: "0.03".
  *  Undefined for a margin that one decimal writes as a number. Each format of a margin starts with it, so that a win
  *  never reads "won by 0.0". */

@@ -239,17 +239,19 @@ edit in the same commit), so their changes still apply.
    - **The texts:** the game's word for a move (`words`), the game's end (`ending`), its format of a margin
      (`fmtMargin`: Enclosure's one decimal, "27.5", and Blueprints' whole points, "24", or "24.5" from a half komi)
      and the move list's notes (`shortNote`, `turnShortNote`). The texts of the game's own parts come with each part.
-   - **The result by the scores:** one rule and one text for every game, in `game.ts`. The rule is the record's: the
-     margin rounded to six decimals, as a record writes it (`r+377.651497`), and a draw when that is 0
-     (`resultOfScores`). Enclosure's areas are exact rationals, so a margin can be any number (design 24, "Whole
-     points"). A win by 0.03 is a win, and the rounding takes away only the error of a floating-point sum. A record's
-     result by the scores (`b+28.5`, `0`) takes the same rule (`resultOfRecord`). The words are "A draw", or the winner
-     and the margin with no unit: "Blue won by 28.5" (`resultText`, with the game's `fmtMargin`). A margin that one
-     decimal writes as 0.0 takes as many decimals as it needs, up to six: "Red won by 0.03" (`smallMargin`, in each
-     game's format). The review uses them in each game's `ending` (`endingWords`: the result, a resignation, a forfeit,
-     or no end yet), in the board's line at the game's end, and in the chart's result and the final margin. Practice
-     uses them in its stored result and its outcome (`@abstractclass/practice`'s `scoreResult` and `practiceOutcome`),
-     and in each site's line at the game's end.
+   - **The result by the scores:** one rule and one text for every game. The rule is the record's: the margin rounded to
+     six decimals, as a record writes it (`r+377.651497`), and a draw when that is 0 (`resultOfScores`). Enclosure's
+     areas are exact rationals, so a margin can be any number (design 24, "Whole points"). A win by 0.03 is a win, and
+     the rounding takes away only the error of a floating-point sum. A record's result by the scores (`b+28.5`, `0`)
+     takes the same rule (`resultOfRecord`). The rule is in `@abstractclass/analysis`'s `result.ts`, because the
+     analysis's value at the game's end takes it too (`resultWin`: the win bar and the chart at the end), and the
+     analysis does not import the review. The view's `game.ts` passes it on with its words. The words are "A draw", or
+     the winner and the margin with no unit: "Blue won by 28.5" (`resultText`, with the game's `fmtMargin`). A margin
+     that one decimal writes as 0.0 takes as many decimals as it needs, up to six: "Red won by 0.03" (`smallMargin`, in
+     each game's format). The review uses them in each game's `ending` (`endingWords`: the result, a resignation, a
+     forfeit, or no end yet), in the board's line at the game's end, and in the chart's result and the final margin.
+     Practice uses them in its stored result and its outcome (`@abstractclass/practice`'s `scoreResult` and
+     `practiceOutcome`), and in each site's line at the game's end.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
      board's own layers (`layers`: Enclosure's regions before the area map's settings, and its invincible edges after
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
@@ -441,14 +443,15 @@ edit in the same commit), so their changes still apply.
   reader of games as parameters. `cache.ts`: the engine files that start it (`engineFiles`), and its start, with the
   removal of older shapes (`removeUnreadResults`). Hedge School's and Cyanotype's `src/lib/game/earlierResults.ts`
   give their parts, and each site's `vite.config.ts` its engine files.
-- `packages/analysis/src/game.ts`: the game interface. `packages/analysis/src/testing/game.ts`: the test game, with
-  the rules and a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the
-  engine session's tests.
+- `packages/analysis/src/game.ts`: the game interface. `result.ts`: the result by the scores, with its one rule for a
+  draw (item 9). `packages/analysis/src/testing/game.ts`: the test game, with the rules and a search's reply for a
+  test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the engine session's tests.
 - `apps/hedgeschool/src/lib/review/enclosure.ts`: Enclosure's game and its part of the review, and Enclosure's types
   for the view.
 - `packages/review/` (`@abstractclass/review`): the view (`ReviewView.svelte`) and its parts, on the same rules. Its
   check is `svelte-check`. `src/game.ts`: the view's game interface (item 9), the players' names, the score's
-  format, the result by the scores and its words, and the class of a number in a move's shape (`DIGITS`).
+  format, the result by the scores (from `@abstractclass/analysis`'s `result.ts`) and its words, and the class of a
+  number in a move's shape (`DIGITS`).
   `src/ownership.ts`: the area map's styles and marks. `src/lineImage.ts`: the line that an image draws, and its
   animation's frames. `src/ReplaceAnalysis.svelte`: the Analysis board's question before a line brought replaces the
   analysis kept in the browser. `src/GameList.svelte`:

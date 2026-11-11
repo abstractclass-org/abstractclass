@@ -25,7 +25,7 @@ test("a game's result at its end counts the komi", {
   if (reply.error) throw new Error(reply.error);
   const end = (reply.positions as GamePosition[]).at(-1)!;
   assert.equal(end.outcome?.result, "r+730");
-  assert.equal(endResult(end, 0), "r+730"); // the rules' own result
+  assert.equal(endResult(end, 0), "r+730"); // the rules' own result, from the scores
   assert.equal(endResult(end, 300), "r+1030"); // Red starts 300 points ahead
   assert.equal(endResult(end, -300), "r+430"); // Blue starts 300 points ahead
   assert.equal(endResult(end, -730), "0"); // a draw

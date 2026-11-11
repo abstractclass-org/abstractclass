@@ -11044,3 +11044,18 @@ a new search or a new file of the network would add a set.
   - Cyanotype ships one network, so its case of a file's own network is a unit test with a lock of two networks
     (`apps/cyanotype/src/lib/game/earlierResults.test.ts`). It fails when the removal counts only the first network
     as the site's own.
+
+### One rule for a draw in the value at the game's end and in Cyanotype's kept result (2026-11-11)
+
+- **The value at the game's end** (abscls-5lga): `resultWin` (`packages/analysis/src/model.ts`) gave a draw only on a
+  difference of exactly 0. The review's value after the last move, the chart's line at the end and the board's win
+  bar at the end take it. With scores of 10.0000004 and 10, the line said "A draw" and the bar showed Blue at 100%.
+  `resultWin` now takes the record's rule (`resultOfScores`): the margin rounded to six decimals, and a draw when that
+  is 0. The bar then shows 50%. Only a game that ends within the record's rounding changes.
+- **Where the rule is:** `packages/analysis/src/result.ts`. The analysis knows a game only through the game interface
+  and does not import the review (design 29), and the rule is the same for every game. The review's `game.ts` passes
+  it on with its words, so the view's importers do not change. Its tests moved to `result.test.ts`.
+- **Cyanotype's kept result at komi 0:** `endResult` (`apps/cyanotype/src/lib/practice/stampduty.ts`) took the
+  engine's own result at komi 0 and the scores by the rule at any other komi. It now takes the scores by the rule
+  (`scoreResult`) at every komi. The two agree on every real game, since Blueprints' points are whole. The review's
+  test game still keeps `r+730` at komi 0.

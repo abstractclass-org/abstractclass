@@ -33,11 +33,11 @@ const HALFLIFE = 19;
  *  through `blueprints-set-game` (its `clear_board` keeps KataGo's rules). */
 export const botCommands = (bot: BotSettings, komi = 0) => settingsCommands(bot, HALFLIFE, komi);
 
-/** The result of a game that the rules ended, at its last position (`b+N`, `r+N` or `0`): the rules' own at komi 0.
- *  The rules' result leaves the komi out, so at another komi it comes from the scores with the komi (Hedge School's
- *  design 24). */
-export const endResult = (end: Pick<GamePosition, "scores" | "outcome">, komi: number): string =>
-  komi ? scoreResult(withKomi(end, komi).scores) : end.outcome!.result;
+/** The result of a game that the rules ended, at its last position (`b+N`, `r+N` or `0`): from the scores with the
+ *  komi (Hedge School's design 24), by the one rule for a draw (scoreResult), at every komi. The rules' own result
+ *  leaves the komi out, and the page's line and the review read the scores by that rule. */
+export const endResult = (end: Pick<GamePosition, "scores">, komi: number): string =>
+  scoreResult(withKomi(end, komi).scores);
 
 /** The bot's name on the page: its network's release name, "Stamp Duty 0.2, 64 visits, Low variety", as Hedge School
  *  names HedgeFund's. A network with no release name has its id as its name: "Stamp Duty (b6c96-s22323968-d845223),

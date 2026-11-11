@@ -17,6 +17,7 @@
 import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
 import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_MOVE_GAP, accuracyWeight, classify, listed, meterGroup,
          type Label, type MeterGroup } from "./labels.ts";
+import { resultOfScores } from "./result.ts";
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, listed, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
 
@@ -327,8 +328,12 @@ export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefin
                      && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
-/** Blue's win chance at the game's end, from the score difference (Blue less Red): 1, 0, or 0.5 for a draw. */
-export const resultWin = (blueLead: number) => (blueLead > 0 ? 1 : blueLead < 0 ? 0 : 0.5);
+/** Blue's win chance at the game's end, from the score difference (Blue less Red): 1, 0, or 0.5 for a draw, by the
+ *  one rule for a draw (result.ts, resultOfScores). So the win bar and the line at the end say the same. */
+export function resultWin(blueLead: number): number {
+  const { winner } = resultOfScores([blueLead, 0]);
+  return winner === null ? 0.5 : winner === 0 ? 1 : 0;
+}
 
 /** The engine's best turn from a position's first choice: its edge, and the next edge of its line for a turn of two. */
 const bestTurn = <M>(first: Candidate<M> | undefined, twoEdges: boolean): M[] | undefined =>
