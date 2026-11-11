@@ -11320,6 +11320,10 @@ file moved, so the work has no commit of renames. Each part is its own commit.
 - **Checked, with no visible change:** `brand.mjs` wrote its four files with the same SHA-256 as before, after each
   step. The shared ICO writer rebuilt both sites' `favicon.ico` from their own images byte for byte. (`favicon.mjs`
   draws with Edge, which only the owner starts.) Both sites' built pages (35) kept their heads, but for the build's
-  file hashes, Svelte's head comment and, on six of Cyanotype's pages, one preload fewer: the bundler now puts the
-  constants of Cyanotype's `site.ts` in another chunk. Both home pages at 1,280 and 360 pixels, in both themes, gave
-  the same pixels on dev and on the branch, but for the footer's version, the commit that the build names.
+  file hashes, Svelte's head comment and, on six of Cyanotype's pages, one preload fewer. On dev, `errorText` was a
+  chunk of its own, of 63 bytes. Now it is in the engine client's chunk, with `errorSentence`, and those six pages
+  preload that chunk already. On each page, every module that a preloaded module imports is preloaded too, so no
+  module loads later. Both home pages at 1,280 and 360 pixels, in both themes, gave the same pixels on dev and on the
+  branch.
+- **Tests:** `tests/exports.spec.ts` checks, on both sites, the Analysis board's link and annotated record copied,
+  its analysis file and record saved, its refusal of a review file, and the review's link with its note.
