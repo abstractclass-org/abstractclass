@@ -283,7 +283,9 @@ export class GameAnalysis<G extends GameTypes> {
    *  the analysis takes the book (takesBook).
    *  `lookup` gives the book's values of any position, or undefined where the book does not hold it or its part does
    *  not load. The variations' positions take their values from it (valuesAt): "Evaluate quality" does not search those
-   *  positions (judge), and the labels read the book's values there, as on the game's line. */
+   *  positions (judge), and the labels read the book's values there, as on the game's line. The lookup must settle:
+   *  "Evaluate quality" waits for it before it searches (askBook), so a lookup that does not settle stops the search. A
+   *  site's book holds each read of its files to a time limit for this (Hedge School's book.ts, Book.get). */
   useBook(results: (Analysis<G["move"]> | undefined)[],
           lookup?: (position: G["position"]) => Promise<Analysis<G["move"]> | undefined>) {
     if (!this.takesBook) return;

@@ -4,22 +4,18 @@
 // Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import "@abstractclass/analysis/testing/svelteModules.ts";
-import type { BookReader } from "./book.ts";
 import { readPasted } from "../game/paste.ts";
+import { CASES, TEST_BOOK, files } from "./testing/testBook.ts";
 
 const { OpeningBook } = await import("./lookup.svelte.ts");
 const { BookPlace, keptChoice, keepChoice } = await import("./place.svelte.ts");
 const { OpeningsPlace } = await import("./openings.svelte.ts");
 const { SvelteMap } = await import("svelte/reactivity"); // a reactive cell for the path, as a page's $derived is
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const CASES = "/test-book/cases/index.json", START = "A10-D10 Q10-T10 b1 0/0 0";
+const START = "A10-D10 Q10-T10 b1 0/0 0";
 const OUTSIDE = "A10-D10,D10-T19* Q10-T10 r2 0/0 1"; // not in the cases' book
 const settle = async () => { for (let k = 0; k < 4; k++) await new Promise(r => setTimeout(r, 0)); };
-const read: BookReader = async url => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
+const read = files();
 
 // The browser's storage, for the kept choices
 const kept = new Map<string, string>();
@@ -118,9 +114,9 @@ test("a position with no notation is outside the book", async () => {
 test("by turn: whole turns at a turn's start once its positions load, single edges by edge and elsewhere", async () => {
   kept.clear();
   keepChoice("review", { show: "book" });
-  const PROTOTYPE = "/test-book/prototype/index.json", AFTER_G9 = "A10-D10,D10-G9* Q10-T10 r2 0/0 1";
+  const AFTER_G9 = "A10-D10,D10-G9* Q10-T10 r2 0/0 1";
   const cell = new SvelteMap<string, unknown>([["path", [START, AFTER_G9]], ["unit", "turn"]]);
-  const place = new BookPlace(new OpeningBook(PROTOTYPE, read), "review", () => cell.get("path") as string[],
+  const place = new BookPlace(new OpeningBook(TEST_BOOK, read), "review", () => cell.get("path") as string[],
                               () => cell.get("unit") as "turn" | "edge");
   for (let k = 0; k < 4 && !(place.at.state === "in" && place.byTurn); k++) await settle();
   assert.equal(place.at.state, "in");
@@ -144,9 +140,9 @@ test("by turn: whole turns at a turn's start once its positions load, single edg
 
 test("by turn: the best 8 book turns, and the rest after Show more at this position only", async () => {
   // Turn 2 after Blue's A10-D9: 19 whole turns, as N11-Q10 O11-Q10 and O11-Q10 N11-Q10 are one
-  const PROTOTYPE = "/test-book/prototype/index.json", AFTER_D9 = "A10-D9*,A10-D10 Q10-T10 r2 0/0 1";
+  const AFTER_D9 = "A10-D9*,A10-D10 Q10-T10 r2 0/0 1";
   const cell = new SvelteMap<string, unknown>([["path", [START, AFTER_D9]]]);
-  const place = new BookPlace(new OpeningBook(PROTOTYPE, read), "review", () => cell.get("path") as string[], () => "turn");
+  const place = new BookPlace(new OpeningBook(TEST_BOOK, read), "review", () => cell.get("path") as string[], () => "turn");
   for (let k = 0; k < 4 && !(place.at.state === "in" && place.byTurn); k++) await settle();
   const plain = place.rows.filter(r => r.group === "fine" || r.group === "other");
   assert.equal(plain.length, 19);

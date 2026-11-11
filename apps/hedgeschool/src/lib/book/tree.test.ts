@@ -3,17 +3,13 @@
 // line through a mirror image, and the folds' words. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { bookMove, openBook, type Book, type BookReader } from "./book.ts";
+import { bookMove, openBook, type Book } from "./book.ts";
+import { CASES, TEST_BOOK, files } from "./testing/testBook.ts";
 import type { BookPosition } from "./form.ts";
 import { mirrorEdge } from "#lib/engine/notation.ts";
 import { alsoReached, bookLine, canonical, canonicalPath, continues, folded, foldText, mainEdges, positionsAlong } from "./tree.ts";
 import { edgeCount } from "./sentences.ts";
 
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const files: BookReader = async url => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
 const START = "A10-D10 Q10-T10 b1 0/0 0";
 const PROTOTYPE_MAIN = ["A10-D9", "N11-Q10", "L10-N11", "D10-G12", "G12-J15"];
 
@@ -25,7 +21,7 @@ async function walk(book: Book, line: string[]): Promise<BookPosition[]> {
 }
 
 test("the main line of the prototype's book, and a book move's line under its canonical parents", async () => {
-  const book = await openBook("/test-book/prototype/index.json", files);
+  const book = await openBook(TEST_BOOK, files());
   assert.deepEqual(await mainEdges(book), PROTOTYPE_MAIN);
   const start = (await book.get(START))!;
   for (const m of start.moves) {
@@ -41,7 +37,7 @@ test("the main line of the prototype's book, and a book move's line under its ca
 });
 
 test("a trap's line plays its refutation after it", async () => {
-  const book = await openBook("/test-book/prototype/index.json", files);
+  const book = await openBook(TEST_BOOK, files());
   // The traps of the first turns: each line starts with the trap, then its refutation
   let checked = 0;
   for (const line of [["D10-G9"], ["D10-F9"], ["D10-G9", "N11-Q10"], ["A10-D9", "N11-Q10", "K9-N11"]]) {
@@ -56,7 +52,7 @@ test("a trap's line plays its refutation after it", async () => {
 });
 
 test("a turn's two edges in the other order end with a link to the canonical line, and are no other move order", async () => {
-  const book = await openBook("/test-book/prototype/index.json", files);
+  const book = await openBook(TEST_BOOK, files());
   // After 1. A10-D9, Red's turn 2 as N11-Q10 O11-Q10, or in the other order
   const canonicalLine = ["A10-D9", "N11-Q10", "O11-Q10"], swapped = ["A10-D9", "O11-Q10", "N11-Q10"];
   const positions = await walk(book, swapped), [start, , before, end] = positions;
@@ -75,7 +71,7 @@ test("a turn's two edges in the other order end with a link to the canonical lin
 });
 
 test("a position that two turns reach: the line by its other parent links to the canonical line, which lists it", async () => {
-  const book = await openBook("/test-book/cases/index.json", files);
+  const book = await openBook(CASES, files());
   const main = await mainEdges(book);
   assert.deepEqual(main, ["A10-D9", "O9-Q10", "L10-O9", "D10-G12", "D9-E11", "H11-L10", "G14-H11"]);
   // The other line plays Blue's edges of turns 1 and 3 in the other order (book.test.ts, LINE_B)
@@ -97,7 +93,7 @@ test("a position that two turns reach: the line by its other parent links to the
 });
 
 test("a line through a mirror image keeps the player's orientation", async () => {
-  const book = await openBook("/test-book/prototype/index.json", files);
+  const book = await openBook(TEST_BOOK, files());
   // A10-D11 is the mirror image of A10-D9, the start's first book move: the book's moves come mirrored after it
   const start = (await book.get(START))!;
   const twin = bookMove(start, "A10-D11");
@@ -110,7 +106,7 @@ test("a line through a mirror image keeps the player's orientation", async () =>
 });
 
 test("a fold holds the book moves except the one shown, and says how many", async () => {
-  const book = await openBook("/test-book/prototype/index.json", files);
+  const book = await openBook(TEST_BOOK, files());
   const start = (await book.get(START))!;
   assert.deepEqual(folded(start, "A10-D9").map(m => m.move), start.moves.slice(1).map(m => m.move));
   assert.equal(folded(start, null).length, start.moves.length);

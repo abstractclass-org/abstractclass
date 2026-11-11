@@ -3,10 +3,8 @@
 // and the texts. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { openBook, type BookReader } from "./book.ts";
+import { openBook } from "./book.ts";
+import { TEST_BOOK, files, readJson } from "./testing/testBook.ts";
 import type { BookPosition } from "./form.ts";
 import { bookCount, bookRows, positionTitle, rowBoardLine, rowCandidates, rowLine, tableRows, turnRows, turnStart,
   TURNS_SHOWN, type BookRow } from "./rows.ts";
@@ -16,14 +14,12 @@ import { lineEndSymbol, positionSymbol } from "./symbols.ts";
 import { moverWin } from "@abstractclass/analysis/model.ts";
 import { playerOf } from "#lib/engine/position.ts";
 
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const files: BookReader = async url => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
-const book = await openBook("/test-book/prototype/index.json", files);
+const book = await openBook(TEST_BOOK, files());
 const START = "A10-D10 Q10-T10 b1 0/0 0";
 const at = async (position: string) => (await book.get(position))!;
 const all: BookPosition[] = [];
 {
-  const index = JSON.parse(readFileSync(join(root, "tests/fixtures/test-book/prototype/index.json"), "utf8"));
+  const index = readJson(TEST_BOOK);
   for (const part of index.parts) for (const p of part.positions) all.push(await at(p));
 }
 const groups = (rows: BookRow[]) => rows.map(r => r.group);

@@ -3,15 +3,12 @@
 // loads, which the review takes its values from (reviewBook.ts, giveBook). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { BookReader } from "./book.ts";
+import { CASES, readJson } from "./testing/testBook.ts";
 
 const { OpeningBook } = await import("./lookup.svelte.ts");
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const CASES = "/test-book/cases/index.json", START = "A10-D10 Q10-T10 b1 0/0 0";
+const START = "A10-D10 Q10-T10 b1 0/0 0";
 const settle = () => new Promise(r => setTimeout(r, 0));
 
 /** The cases' files, and a file that does not exist fails as a fetch would. `down`: every file fails. */
@@ -19,7 +16,7 @@ function files(log: string[], down = { on: false }): BookReader {
   return async url => {
     log.push(url);
     if (down.on) throw new Error("offline");
-    return JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
+    return readJson(url);
   };
 }
 
@@ -35,7 +32,7 @@ test("a position loads, then is in the book; a position that the book does not h
 });
 
 test("a part that does not load fails until Try again, and the index's failure too", async () => {
-  const index = JSON.parse(readFileSync(join(root, "tests/fixtures", CASES), "utf8"));
+  const index = readJson(CASES);
   const missing = index.parts.find((p: { file: string }) => p.file === "2.json").positions[0];
   const log: string[] = [], down = { on: true }, book = new OpeningBook(CASES, files(log, down));
   await settle();

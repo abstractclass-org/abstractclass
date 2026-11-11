@@ -4,19 +4,15 @@
 // that play a trap. The expected rows are the journey's examples, worked out by hand from the book's values. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { bookMove, openBook, type Book } from "./book.ts";
 import type { BookPosition } from "./form.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
 import type { BookAt } from "./lookup.svelte.ts";
 import { gameOpening, openingRow, openingSentence, reviewOpening, trapRows, worstBookPlay } from "./game.ts";
 import { mirrorEdge } from "#lib/engine/notation.ts";
+import { TEST_BOOK, files } from "./testing/testBook.ts";
 
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const read = async (url: string) => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
-const book = await openBook("/test-book/prototype/index.json", read);
+const book = await openBook(TEST_BOOK, files());
 
 /** The review's judgments, from its label and loss at each index (the edge's, or by turn the turn's first edge's). The
  *  review has none for an index that is not in `by`. */

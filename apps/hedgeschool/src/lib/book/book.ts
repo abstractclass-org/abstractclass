@@ -16,8 +16,9 @@ export interface Book {
   /** The start, in the position notation. */
   readonly start: string;
   /** The book's position, with its part loaded. Null when the book does not hold it. It rejects with a
-   *  BookLoadError when the part does not load or does not answer in its time limit (BOOK_TIME_LIMIT), and a later
-   *  call tries again. It always settles: the review's evaluation waits for it before it searches. */
+   *  BookLoadError when the part does not load, is not a book's part of this form, or does not answer in its time
+   *  limit (BOOK_TIME_LIMIT), and a later call tries again. It always settles: the review's evaluation waits for it
+   *  before it searches. */
   get(position: string): Promise<BookPosition | null>;
   /** The book's position at once: null when the book does not hold it (from the index alone), undefined while its
    *  part is not loaded. */
@@ -136,10 +137,11 @@ class FileBook implements Book {
     return reached(position, mirrored);
   }
 
+  /** Loads part `i`. A part that is not a book's, or of another form, fails as a part that does not load. */
   private load(i: number): Promise<Part> {
     const url = this.urls[i];
-    return this.read(url).then(
-      file => (this.parts[i] = new Map(checked(file as BookPart).positions.map(p => [p.position, p]))),
+    return this.read(url).then(file => new Map(checked(file as BookPart).positions.map(p => [p.position, p]))).then(
+      part => (this.parts[i] = part),
       e => {
         this.parts[i] = undefined;
         throw new BookLoadError(url, e);

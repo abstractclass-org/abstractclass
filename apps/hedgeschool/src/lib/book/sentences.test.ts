@@ -4,9 +4,6 @@
 // Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { openBook, type Book } from "./book.ts";
 import type { BookIndex, BookMove, BookPart, BookPosition } from "./form.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
@@ -15,15 +12,14 @@ import { NOT_IN_BOOK_SENTENCE, bestMoveSentence, bookEndSentence, endSentence, l
   lineText, lineTurn, mainLine, moveSentence, trapPlayedSentence, trapSentence, weakBookMoveSentence } from
   "./sentences.ts";
 import { mirrorPosition } from "#lib/engine/notation.ts";
+import { CASES, TEST_BOOK, files, readJson } from "./testing/testBook.ts";
 
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const readJson = (url: string) => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
-const BOOKS = ["/test-book/prototype/index.json", "/test-book/cases/index.json"];
+const BOOKS = [TEST_BOOK, CASES];
 const START = "A10-D10 Q10-T10 b1 0/0 0";
 
 /** A book's positions as they are stored, and the book through its loader. A part that no file holds is skipped. */
 async function load(url: string): Promise<{ book: Book; stored: string[] }> {
-  const book = await openBook(url, async u => readJson(u));
+  const book = await openBook(url, files());
   const index = readJson(url) as BookIndex, dir = url.slice(0, url.lastIndexOf("/") + 1);
   const stored = index.parts.flatMap(p => {
     try { return (readJson(dir + p.file) as BookPart).positions.map(q => q.position); } catch { return []; }

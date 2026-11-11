@@ -417,7 +417,8 @@ explorer reads the book through one interface, so a book in another form comes i
 
 - **The loader** (`apps/hedgeschool/src/lib/book/book.ts`) gives the interface `Book`. `get` gives a position with its
   part loaded. `peek` gives it at once when its part is loaded, and tells from the index alone when the book does not
-  hold it. A part that does not load makes each lookup in it fail, and a later lookup tries it again. A lookup takes the
+  hold it. A part that does not load makes each lookup in it fail, and a later lookup tries it again. A part that is
+  not a book's file, or that has another form (its `format` and `version`), fails in the same way. A lookup takes the
   position as the player reached it, and gives it in the player's orientation: its edges, its area map, the positions
   that its moves reach and its parents. So a move's `to` is the position that the move reaches, and the `mirrored`
   flags stay inside the loader. `bookMove` gives the book move that an edge plays. In a position that is its own

@@ -5,9 +5,6 @@
 // every position. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
 import { moverOf } from "@abstractclass/analysis/turns.ts";
 import { edgeName, mirrorEdge, parseEdge } from "#lib/engine/notation.ts";
@@ -19,10 +16,9 @@ import type { BookPart, BookPosition } from "./form.ts";
 import { bookAnalysis, bookValues } from "./results.ts";
 import { turnRows } from "./rows.ts";
 import { edgeCount, lossTo, moveLabel, moveLoss } from "./sentences.ts";
+import { TEST_BOOK, files, readJson } from "./testing/testBook.ts";
 
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const read = async (url: string) => JSON.parse(readFileSync(join(root, "tests", "fixtures", url), "utf8"));
-const book = await openBook("/test-book/prototype/index.json", read);
+const book = await openBook(TEST_BOOK, files());
 const VISITS = book.source.visits;
 const names = (a: Analysis) => a.candidates.map(c => edgeName(c.edge));
 
@@ -44,8 +40,8 @@ async function reviewOf(line: BookPosition[], edges: string[], end?: Analysis) {
 }
 
 /** Every position of the test book, as stored. */
-const index = await read("test-book/prototype/index.json");
-const stored: BookPosition[] = (await Promise.all(index.parts.map((p: { file: string }) => read(`test-book/prototype/${p.file}`))))
+const index = readJson(TEST_BOOK);
+const stored: BookPosition[] = (await Promise.all(index.parts.map((p: { file: string }) => readJson(`/test-book/prototype/${p.file}`))))
   .flatMap((part: BookPart) => part.positions);
 
 test("a book position as a result: its values, its candidates the best first, its area map and its complexity", async () => {
@@ -120,8 +116,8 @@ test("every book move of the test book: the review's label and loss are the book
 });
 
 test("a book whose parts do not load gives no values: the review searches every position", async () => {
-  const failing = await openBook("/test-book/prototype/index.json", async url => {
-    if (url.endsWith("index.json")) return read(url);
+  const failing = await openBook(TEST_BOOK, async url => {
+    if (url === TEST_BOOK) return readJson(url);
     throw new Error("offline");
   });
   const start = book.start, after = bookMove((await book.get(start))!, "A10-D9")!.to;

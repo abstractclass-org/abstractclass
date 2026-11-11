@@ -10,7 +10,6 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { once } from "node:events";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { BOOK_TIME_LIMIT, BookLoadError, bookMove, openBook, type Book, type BookReader } from "./book.ts";
@@ -21,17 +20,9 @@ import { playerOf } from "#lib/engine/position.ts";
 import { turnFromCount } from "#lib/review/enclosure.ts";
 import { moverWin } from "@abstractclass/analysis/model.ts";
 import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
+import { CASES, TEST_BOOK, files, fixture, readJson } from "./testing/testBook.ts";
 
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const TEST_BOOK = "/test-book/prototype/index.json", CASES = "/test-book/cases/index.json";
-/** A test book's file by its address on the servers. */
-const fixture = (url: string) => join(root, "tests", "fixtures", url);
-const readJson = (url: string) => JSON.parse(readFileSync(fixture(url), "utf8"));
-/** Reads the test books' files as the browser fetches them, and logs each address. */
-const files = (log: string[] = []): BookReader => async url => {
-  log.push(url);
-  return readJson(url);
-};
+const root = fileURLToPath(new URL("../../..", import.meta.url)); // the engine's files
 /** A book as its files store it: its index, the addresses of its files that exist, and their positions. */
 function stored(url: string): { index: BookIndex; urls: string[]; positions: BookPosition[] } {
   const index = readJson(url) as BookIndex, dir = url.slice(0, url.lastIndexOf("/") + 1);
@@ -312,10 +303,29 @@ test("the time limit holds any reader: the index, a part that does not answer, a
                    "the timer ends with a read that fails or loads in time");
 });
 
-test("the loader refuses a file that is not a book's, or a book of another form", async () => {
+test("the loader refuses a file that is not a book's, or a book of another form, as a file that does not load",
+     async () => {
   await assert.rejects(openBook("/x.json", async () => ({ format: "other", version: 1 })), BookLoadError);
   await assert.rejects(openBook("/x.json", async () => ({ format: BOOK_FORMAT, version: 2 })), /form 2 is not 1/);
   await assert.rejects(openBook("/x.json", async () => { throw new Error("404 Not Found"); }), /404/);
+
+  // A part that is not a book's, then a part of another form: each lookup fails as at a part that does not load, and a
+  // later lookup reads the part again
+  const PART = "/test-book/prototype/1.json", position = LINE_B_POSITIONS[7], log: string[] = [];
+  const wrong = [{ format: "other" }, { version: BOOK_VERSION + 1 }];
+  const read: BookReader = async url => {
+    log.push(url);
+    const file = readJson(url);
+    return url === PART && wrong.length ? { ...file, ...wrong.shift() } : file;
+  };
+  const book = await openBook(TEST_BOOK, read);
+  await assert.rejects(book.get(position), (e: unknown) =>
+    e instanceof BookLoadError && e.url === PART && /not a book's file: its format is other/.test(e.message));
+  await assert.rejects(book.get(position), (e: unknown) =>
+    e instanceof BookLoadError && e.url === PART && /form 2 is not 1/.test(e.message));
+  assert.equal(book.peek(position), undefined, "the part counts as not loaded");
+  assert.equal((await book.get(position))?.position, position);
+  assert.equal(log.filter(u => u === PART).length, 3, "each lookup reads the part again");
 });
 
 test("an area map keeps each point's ownership in hundredths, and its mirror image turns the rows over", () => {
