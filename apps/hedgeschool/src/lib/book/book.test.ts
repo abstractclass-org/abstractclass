@@ -1,14 +1,17 @@
 // Checks the book's loader (book.ts) and the test books in tests/fixtures/test-book (scripts/test-book.mjs), as the dev
 // and preview servers serve them (vite.config.ts, `testBook`): the form, the lookups with mirror images, the parts that
-// load on demand and the part that fails. The engine's tests check the books' positions against the engine's rules,
-// with its CPU module in Node (@abstractclass/engine/node-engine.mjs). They need its files (`npm run engine`), and are
-// skipped without them. Run: npm test.
+// load on demand and the part that fails, and the time limit on a file that does not answer (over HTTP, with the
+// loader's own fetch: no headers, half a body, a server error). The engine's tests check the books' positions against
+// the engine's rules, with its CPU module in Node (@abstractclass/engine/node-engine.mjs). They need its files
+// (`npm run engine`), and are skipped without them. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BookLoadError, bookMove, openBook, type Book, type BookReader } from "./book.ts";
+import { BOOK_TIME_LIMIT, BookLoadError, bookMove, openBook, type Book, type BookReader } from "./book.ts";
 import { BOOK_FORMAT, BOOK_VERSION, type BookIndex, type BookPart, type BookPosition } from "./form.ts";
 import { POINTS, decodeArea, encodeArea, mirrorArea } from "./area.ts";
 import { mirrorEdge, mirrorPosition } from "#lib/engine/notation.ts";
@@ -207,6 +210,88 @@ test("a part that does not load rejects each lookup in it, and a later lookup tr
   await assert.rejects(book.get(LINE_B_POSITIONS[7]), (e: unknown) =>
     e instanceof BookLoadError && e.url === "/test-book/prototype/1.json" && /offline/.test(e.message));
   assert.equal((await book.get(LINE_B_POSITIONS[7]))?.position, LINE_B_POSITIONS[7]);
+});
+
+/** A server of the test books' files over HTTP, which the loader's own reader fetches. Its start's part of the cases
+ *  answers as `start` says: in full, never (no headers), with half of its body, or with a server error. `requests`
+ *  counts the start part's requests, and `open` the ones that the server still holds: a request that the client
+ *  aborts closes. */
+async function bookServer() {
+  const START_PART = "/test-book/cases/0.json";
+  const server = {
+    start: "answer" as "answer" | "no headers" | "half a body" | "error",
+    requests: 0,
+    open: 0,
+    url: "",
+    close: () => {},
+  };
+  const http = createServer((req, res) => {
+    if (req.url === START_PART) {
+      server.requests++;
+      server.open++;
+      res.on("close", () => server.open--);
+      if (server.start === "no headers") return;
+      if (server.start === "error") { res.writeHead(500).end(); return; }
+      const body = readFileSync(fixture(START_PART));
+      res.writeHead(200, { "Content-Type": "application/json", "Content-Length": body.length });
+      if (server.start === "half a body") { res.write(body.subarray(0, body.length >> 1)); return; }
+      res.end(body);
+      return;
+    }
+    if (!existsSync(fixture(req.url!))) { res.writeHead(404).end(); return; }
+    res.writeHead(200, { "Content-Type": "application/json" }).end(readFileSync(fixture(req.url!)));
+  });
+  await new Promise<void>(resolve => http.listen(0, "127.0.0.1", resolve));
+  server.url = `http://127.0.0.1:${(http.address() as AddressInfo).port}${CASES}`;
+  server.close = () => { http.closeAllConnections(); http.close(); };
+  return server;
+}
+
+test("a part that does not answer in the time limit counts as not loaded: its headers, its body, or an error", async () => {
+  const server = await bookServer(), LIMIT = 300;
+  try {
+    for (const start of ["no headers", "half a body", "error"] as const) {
+      server.start = start;
+      server.requests = 0;
+      const t0 = performance.now();
+      const book = await openBook(server.url, undefined, LIMIT); // it starts the start's part
+      await assert.rejects(book.get(START), (e: unknown) =>
+        e instanceof BookLoadError && (start === "error" ? /500/ : /no answer in 0\.3 s/).test(e.message), start);
+      if (start !== "error") assert.ok(performance.now() - t0 >= LIMIT - 20, `${start}: not before the time limit`);
+      assert.equal(book.peek(START), undefined, `${start}: the part counts as not loaded`);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      assert.equal(server.open, 0, `${start}: the loader stopped its request`);
+      // A later lookup asks again, and the part loads once the server answers
+      server.start = "answer";
+      assert.equal((await book.get(START))?.position, START, start);
+      assert.equal(server.requests, 2, `${start}: one request, then one more`);
+      assert.equal(book.peek(START)?.position, START);
+    }
+    // A part that answers in time: no time limit ends it
+    const book = await openBook(server.url, undefined, LIMIT);
+    assert.equal((await book.get(START))?.position, START);
+  } finally {
+    server.close();
+  }
+});
+
+test("the time limit holds any reader, and a stalled index fails as an index that does not load", async () => {
+  const never: BookReader = () => new Promise(() => {});
+  await assert.rejects(openBook("/x.json", never, 50), (e: unknown) =>
+    e instanceof BookLoadError && /no answer in 0\.05 s/.test(e.message));
+  const stalls = new Set<string>(), signals: AbortSignal[] = [];
+  const read: BookReader = (url, signal) => {
+    signals.push(signal!);
+    return stalls.has(url) ? new Promise(() => {}) : files()(url);
+  };
+  stalls.add("/test-book/cases/0.json");
+  const book = await openBook(CASES, read, 50);
+  await assert.rejects(book.get(START), BookLoadError);
+  assert.ok(signals[1].aborted, "the start part's read is told to stop");
+  stalls.clear();
+  assert.equal((await book.get(START))?.position, START);
+  assert.ok(!signals[2].aborted);
+  assert.equal(BOOK_TIME_LIMIT, 30_000);
 });
 
 test("the loader refuses a file that is not a book's, or a book of another form", async () => {

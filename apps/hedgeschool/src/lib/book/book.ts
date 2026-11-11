@@ -33,14 +33,38 @@ export class BookLoadError extends Error {
   }
 }
 
-/** Reads a file of the book: its address in, its JSON out. */
-export type BookReader = (url: string) => Promise<unknown>;
+/** How long a file of the book may take to load, from its request to the end of its body, in milliseconds. Past it, the
+ *  loader stops the read and the file counts as not loaded: a lookup in it fails, the review searches its positions,
+ *  and a later lookup tries again (design 32, "A file that does not answer"). The browser itself does not stop a fetch
+ *  that stalls. 30 seconds is about three times the time of all the test book's files at once on DevTools' "3G". */
+export const BOOK_TIME_LIMIT = 30_000;
 
-const fetchJson: BookReader = async url => {
-  const response = await fetch(url);
+/** Reads a file of the book: its address in, its JSON out. `signal` aborts when the time limit ends: a reader that
+ *  fetches stops its request then. The loader gives it always. */
+export type BookReader = (url: string, signal?: AbortSignal) => Promise<unknown>;
+
+const fetchJson: BookReader = async (url, signal) => {
+  const response = await fetch(url, { signal }); // the signal stops the body's read too
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
 };
+
+/** `read` held to a time limit of `limit` milliseconds: past it, the read's signal aborts and the read rejects, whether
+ *  the reader stops or not. */
+function inTime(read: BookReader, limit: number): (url: string) => Promise<unknown> {
+  return url => {
+    const abort = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        const e = new Error(`no answer in ${limit / 1000} s`);
+        abort.abort(e);
+        reject(e);
+      }, limit);
+    });
+    return Promise.race([read(url, abort.signal), late]).finally(() => clearTimeout(timer));
+  };
+}
 
 function checked<T extends { format: unknown; version: unknown }>(file: T): T {
   if (file?.format !== BOOK_FORMAT) throw new Error(`not a book's file: its format is ${String(file?.format)}`);
@@ -48,8 +72,10 @@ function checked<T extends { format: unknown; version: unknown }>(file: T): T {
   return file;
 }
 
-/** The book of the index at `url`, in the site's form. It loads the index, then starts the start's part. */
-export async function openBook(url: string, read: BookReader = fetchJson): Promise<Book> {
+/** The book of the index at `url`, in the site's form. It loads the index, then starts the start's part. Each file
+ *  that does not load within `limit` milliseconds counts as not loaded (BOOK_TIME_LIMIT). */
+export async function openBook(url: string, reader: BookReader = fetchJson, limit = BOOK_TIME_LIMIT): Promise<Book> {
+  const read = inTime(reader, limit);
   let index: BookIndex;
   try {
     index = checked((await read(url)) as BookIndex);
@@ -70,13 +96,13 @@ class FileBook implements Book {
   readonly source: BookSource;
   readonly start: string;
   private readonly urls: string[];
-  private readonly read: BookReader;
+  private readonly read: (url: string) => Promise<unknown>;
   private readonly where = new Map<string, number>(); // each stored position's part
-  // Each part while it loads, then when it is loaded. A part that did not load has neither, so a later lookup tries
-  // again ("Try again", design 32).
+  // Each part while it loads, then when it is loaded. A part that did not load, or not in the time limit, has
+  // neither, so a later lookup tries again ("Try again", design 32).
   private readonly parts: (Promise<Part> | Part | undefined)[] = [];
 
-  constructor(index: BookIndex, base: string, read: BookReader) {
+  constructor(index: BookIndex, base: string, read: (url: string) => Promise<unknown>) {
     this.source = index.source;
     this.start = index.start;
     this.urls = index.parts.map(p => base + p.file);
