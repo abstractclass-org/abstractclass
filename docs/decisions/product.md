@@ -11032,3 +11032,15 @@ a new search or a new file of the network would add a set.
   the test checks that the mark counts as the site's engine's. This change does not touch the removal: those results
   are the site's search's. The engine step's lock check does not read `sameSearchAs`. Only preview builds served
   `engine-91ab0b7d`.
+- **With an analysis file's own network** ("An analysis file opens with its own network", abscls-mgme): the removal
+  takes none of the results that the board reads. An analysis file keeps only results of the site's search and of a
+  network that the lock ships (`keepAnalyses`), and the removal counts these as the site's own. Checked in
+  `apps/hedgeschool/tests/analysis-file-network.spec.ts`, in headless Chromium on the CPU:
+  - Hedge School, a file of HedgeFund 0.1 Lite with the browser on HedgeFund 0.2: the page's load of the file's
+    board waits while another tab runs the removal. All 244 of the file's results stay, and the earlier engine's go.
+    The board then shows the file's results with no search.
+  - Both sites, a file of a network that the lock does not ship: the board asks first, Cancel keeps the board, and a
+    removal in another tab takes none of the board's results.
+  - Cyanotype ships one network, so its case of a file's own network is a unit test with a lock of two networks
+    (`apps/cyanotype/src/lib/game/earlierResults.test.ts`). It fails when the removal counts only the first network
+    as the site's own.

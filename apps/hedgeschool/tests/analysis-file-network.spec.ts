@@ -2,7 +2,10 @@
 // file of one network opens with that network while the browser's setting is another, so its results show with no
 // search, and the engine panel says so. A reload keeps the board's network, and the settings kept in the browser keep
 // theirs for every other page. A network chosen in the panel is the board's only. A file of several networks, or of
-// a network that the site does not have, asks first, and Cancel keeps the board.
+// a network that the site does not have, asks first, and Cancel keeps the board. A removal of earlier engine results
+// in another tab (design 20) takes none of the results that the board reads: a file's, while the page loads the file's
+// board, and the board's own, after a file of a network that the site does not have. Cyanotype's case of a file's own
+// network needs a second network, so it is a unit test (apps/cyanotype/src/lib/game/earlierResults.test.ts).
 // The files come from the review fixtures. Hedge School's: tests/fixtures/hedgefund-review.json, whose results are of
 // HedgeFund 0.1 Lite, an earlier network that the site still ships, with the engine field that the board writes.
 // Cyanotype's: its stored review (STORED, cyanotype-fixture.ts), with no engine field, as a file written before the
@@ -15,14 +18,14 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { ANALYSIS_FILE_VERSION } from "../../../packages/analysis/src/files.ts";
-import { readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
+import { EARLIER_MARK, engineFiles, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { BOARD_ID, boardOfLine, type KeptBoard } from "../../../packages/analysis/src/kept.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { boardLink } from "../src/lib/game/board.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
 import { parseRecord as parseCyanotypeRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { ENGINE_KEY as CYANOTYPE_ENGINE } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, LITE, expectNoSearch, keptResults, noReview, readStored, testRecord } from "./cyanotype-review.ts";
+import { CYANOTYPE, LITE, expectNoSearch, keptResults, noReview, putResults, readStored, testRecord } from "./cyanotype-review.ts";
 import { fileInput } from "./review-file.ts";
 
 /** Hedge School's keys in local storage: the engine's settings, the display settings, and the consent notice's
@@ -136,6 +139,29 @@ const note = (name: string) => `This board came from an analysis file. It keeps 
 /** The moves in the board's move list. */
 const moves = (page: Page) => page.locator("button.mv[data-path]");
 
+/** Runs the removal of earlier engine results (design 20) in another tab of the browser of `page`: the removal's mark
+ *  cleared, as a change of what the games need clears it, then a start of the site at `origin`, until the mark names
+ *  the site's engine files `files` again. Answers the keys of the results in the store after it. */
+async function removeInAnotherTab(page: Page, origin: string, files: string): Promise<string[]> {
+  const other = await page.context().newPage();
+  await other.addInitScript(mark => localStorage.removeItem(mark), EARLIER_MARK);
+  await other.goto(new URL("/about", origin).href);
+  await expect.poll(() => other.evaluate(mark => localStorage.getItem(mark), EARLIER_MARK), { timeout: 60_000 }).toBe(files);
+  const kept = (await keptResults(other)).map(([key]) => key);
+  await other.close();
+  return kept;
+}
+/** Holds the next load of the Analysis page in `page` until `release` resolves. After a file's load, that load comes
+ *  once the file's results are in the store, and before the board reads them (analysisFile.ts, openAnalysisFile: the
+ *  page then loads its address again). Answers once the load waits. */
+const holdNextLoad = (page: Page, release: Promise<void>) => new Promise<void>(held => void page.route(
+  url => url.pathname === "/analysis", async route => { held(); await release; await route.continue(); }, { times: 1 }));
+/** The results `analyses` as another search's, `search`: the keys name it in their place. */
+const asSearch = (analyses: [string, unknown][], search: string) => analyses.map(([key, value]): [string, unknown] =>
+  [key.replace(`|${readAnalysisKey(key).search}|`, `|${search}|`), value]);
+/** A file of the network "HedgeFund 0.0", which no lock ships: its results' keys name the file `GONE`. */
+const GONE = "ab".repeat(32);
+
 test.describe("Hedge School", () => {
   // The engine at the file's depth, on the CPU. The area map off: on the board it is on by default, and the file holds
   // no map, so the engine would search one.
@@ -209,6 +235,52 @@ test.describe("Hedge School", () => {
     await expect(await settingsPanel(page)).toContainText(note("HedgeFund 0.2"));
     await expect.poll(() => keptNetwork(page)).toBe(FULL.id);
   });
+
+  test("a removal of earlier results in another tab, between a file's load and the board's start, takes none of the file's results", async ({ page, baseURL }) => {
+    await page.setViewportSize(WIDTHS[0]);
+    await page.goto(new URL("/analysis", baseURL).href);
+    await boardShows(page, 180_000); // the page's first load in the browser
+    // An earlier engine's results that no game reads: the removal takes them
+    const earlier = asSearch(FIXTURE.analyses.slice(0, 20), "0e000001");
+    await putResults(page, earlier);
+    // The file of HedgeFund 0.1 Lite, with the browser on HedgeFund 0.2. The page's next load, after the file's results
+    // are in the store, waits while the removal runs in another tab.
+    let release!: () => void;
+    const released = new Promise<void>(r => { release = r; }), held = holdNextLoad(page, released);
+    await fileInput(page).setInputFiles(HS_FILE);
+    await held;
+    const kept = await removeInAnotherTab(page, baseURL!, engineFiles(LOCK));
+    expect(kept).toEqual(expect.arrayContaining(FIXTURE.analyses.map(([key]) => key)));
+    expect(kept.filter(key => earlier.some(([k]) => k === key))).toEqual([]);
+    // The board starts: the file's results, with no search, and the file's network
+    const load = page.waitForEvent("load", { timeout: 60_000 });
+    release();
+    await load;
+    await resultsWithNoSearch(page);
+    await expect(await settingsPanel(page)).toContainText(note(FIXTURE.review.networkName));
+  });
+
+  test("a file of a network that Hedge School no longer ships asks first, and a removal in another tab takes nothing of the board's", async ({ page, baseURL }) => {
+    await page.setViewportSize(WIDTHS[0]);
+    // The board of a file of HedgeFund 0.1 Lite: its own network, and its results in the store
+    await loadOnBoard(page, baseURL!, HS_FILE);
+    await resultsWithNoSearch(page);
+    await fileInput(page).setInputFiles(analysisFile("hedge-school-analysis", HS_BOARD, asModel(FIXTURE.analyses, GONE),
+      { network: "b0c0-s0-d0", networkName: "HedgeFund 0.0", model: GONE, search: readAnalysisKey(FIXTURE.analyses[0][0]).search }));
+    const dialog = page.getByRole("dialog", { name: "The file's network is not available" });
+    await expect(dialog).toBeVisible({ timeout: 60_000 });
+    await expect(dialog).toContainText("The results in this analysis file are from HedgeFund 0.0, a network that Hedge " +
+      "School does not have now.");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    const kept = await removeInAnotherTab(page, baseURL!, engineFiles(LOCK));
+    expect(kept).toEqual(expect.arrayContaining(FIXTURE.analyses.map(([key]) => key)));
+    expect(kept.filter(key => key.includes(GONE))).toEqual([]);
+    expect(await keptNetwork(page)).toBe(FIXTURE.review.network);
+    // The board again: its results, with no search
+    await page.reload();
+    await resultsWithNoSearch(page);
+  });
 });
 
 test.describe("Cyanotype", () => {
@@ -233,13 +305,15 @@ test.describe("Cyanotype", () => {
     });
   }
 
-  test("a file of a network that Cyanotype does not have asks first, and Cancel keeps the board and none of its results", async ({ page }) => {
+  test("a file of a network that Cyanotype does not have asks first, Cancel keeps the board and none of its results, and a removal in another tab takes nothing of the board's", async ({ page }) => {
     const skip = await noReview(page);
     test.skip(!!skip, skip);
     await keep(page, CYANOTYPE!, { [CYANOTYPE_ENGINE]: { on: false, ...LITE } });
     await page.goto(new URL("/analysis#record=" + encodeURIComponent(testRecord(3)), CYANOTYPE).href);
     await expect(moves(page)).toHaveCount(5, { timeout: 180_000 }); // turn 1 has one move, each other turn two
-    const stored = readStored(), gone = "ab".repeat(32);
+    // The board's results in the store: the stored review's, of the site's search and network
+    const stored = readStored(), gone = GONE;
+    await putResults(page, stored.analyses);
     await fileInput(page).setInputFiles(analysisFile("cyanotype-analysis", boardOfLine(parseCyanotypeRecord(testRecord()).moves),
       asModel(stored.analyses, gone), { network: "b0c0-s0-d0", networkName: "Stamp Duty 0.0", model: gone, search: stored.search }));
     const dialog = page.getByRole("dialog", { name: "The file's network is not available" });
@@ -252,5 +326,11 @@ test.describe("Cyanotype", () => {
     await expect(dialog).toBeHidden();
     await expect(moves(page)).toHaveCount(5);
     expect((await keptResults(page)).filter(([key]) => key.includes(gone))).toEqual([]);
+    // A removal in another tab takes nothing of the board's: its results stay, and the board opens again as it was
+    const kept = await removeInAnotherTab(page, CYANOTYPE!, engineFiles(CYANOTYPE_LOCK));
+    expect(kept).toEqual(expect.arrayContaining(stored.analyses.map(([key]) => key)));
+    expect(kept.filter(key => key.includes(gone))).toEqual([]);
+    await page.reload();
+    await expect(moves(page)).toHaveCount(5, { timeout: 180_000 });
   });
 });

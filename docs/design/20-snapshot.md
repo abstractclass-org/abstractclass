@@ -155,7 +155,9 @@ look at a past review pays it each time, and the earlier results are still in th
   of a real review, 13.8 kB each on average as JSON) and two games. The transaction removed 5,063 of them in 224 to
   360 ms over five runs. Hedge School runs the same code. No run measured it on Hedge School's site.
 - **Two tabs:** one transaction reads and removes, so no write comes between. The load of a review file keeps the
-  game's mark before its results, so a removal in another tab between the two takes none of them. A change of what
+  game's mark before its results, so a removal in another tab between the two takes none of them. An analysis file
+  keeps only results of the site's search and of a network that the lock ships (design 21), so a removal takes none
+  of them, also while the page loads the file's board. A change of what
   the games need while a removal runs keeps the removal due. A tab of an earlier release that starts after a later
   release's can take the later engine's results of a review not yet done. That review then searches them again.
 - **Results that stay longer:** a variation deleted after Review again, before the new review ends, keeps its earlier

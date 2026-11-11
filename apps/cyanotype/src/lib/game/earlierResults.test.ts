@@ -6,19 +6,24 @@
 // the file removes nothing, and nor does one that adds a network beside it. A release with a new search, or one whose
 // lock drops the file, removes the old results that no stored game's review snapshot reads. Cyanotype's lock ships one
 // network, and does not keep the earlier ones yet (design 33, "The networks", abscls-8tl1.54): a review snapshot needs
-// its network. Run: npm test.
+// its network. An analysis file's board keeps its own network (Hedge School's design 21), and the removal takes none
+// of the results that the board reads, also when it runs between the file's load and the board's start (the last two
+// tests: the browser's cases are in apps/hedgeschool/tests/analysis-file-network.spec.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
-import { analysisKey, lineKeyMoves, readAnalysisKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
-import type { KeptBranches } from "@abstractclass/analysis/kept.ts";
-import { moduleOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
+import { analysisKey, engineFiles, lineKeyMoves, readAnalysisKey, searchHolding, snapshotPositions } from "@abstractclass/analysis/cache.ts";
+import { BOARD_ID, boardOfLine, type KeptBranches } from "@abstractclass/analysis/kept.ts";
+import { ANALYSIS_FILE_VERSION, addressNetwork, type NetworkQuestion } from "@abstractclass/analysis/files.ts";
+import { removeUnneeded } from "@abstractclass/analysis/earlierResults.ts";
+import { moduleOf, modelOf, searchModules, type Manifest } from "@abstractclass/engine/client.ts";
 import lock from "../../../engine.lock.json" with { type: "json" };
 import { readStored, testRecord } from "../../../../hedgeschool/tests/cyanotype-fixture.ts";
 import { parseRecord } from "./record.ts";
-import { gameId, reviewAgainWhy, reviewCovers, reviewMark, type ReviewMark } from "./store.ts";
+import { gameId, readGames, reviewAgainWhy, reviewCovers, reviewMark, type ReviewMark } from "./store.ts";
 import { removeEarlierResults, unneededResults } from "./earlierResults.ts";
+import { ANALYSIS_FORMAT, openAnalysisFile } from "./analysisFile.ts";
 
 const db = memoryDb(); // the browser's store
 
@@ -130,4 +135,48 @@ test("the removal in the browser's store: earlier results go, the site's own res
   assert.deepEqual([...db.rows(STORES.analysis).keys()].sort(), [...KEYS, ...shown(read), ...atVariation].sort());
   assert.deepEqual([...db.rows(STORES.games)], [[id, game]]);
   assert.deepEqual([...db.rows(STORES.branches)], [[id, branches]]);
+});
+
+/** An analysis file of the test game's line with the stored review's results, as another browser's board writes it
+ *  (files.ts, fileEngine): of the network `network`, named `name`, whose file's SHA-256 `model` its results' keys name. */
+const analysisFileText = (network: string, name: string, model: string) => JSON.stringify({
+  format: ANALYSIS_FORMAT, version: ANALYSIS_FILE_VERSION, exported: "", site: "x",
+  engine: { network, networkName: name, model, search: STORED.search }, board: boardOfLine(MOVES),
+  analyses: STORED.analyses.map(([k, v]) => [k.replace(`|${STORED.model}|`, `|${model}|`), v]) });
+/** Empties the browser's store of the tests before. */
+const emptyStore = () => { for (const s of [STORES.analysis, STORES.games, STORES.branches]) db.rows(s).clear(); };
+
+test("a removal between an analysis file's load and the board's start takes none of the results of the board's own network", async () => {
+  emptyStore();
+  // A release that adds a later network beside Stamp Duty 0.2, the browser's setting, and a file of the later network:
+  // the board takes the file's network as its own, and the load asks nothing
+  const later = "e".repeat(64), two = release({ added: [["a later network", later]] });
+  const address = await openAnalysisFile(analysisFileText("a later network", "Stamp Duty 0.3", later), two,
+                                         async () => assert.fail("the load asked the player"));
+  const ships = (id: string) => !!modelOf(two, id);
+  assert.equal(addressNetwork(new URLSearchParams(address!.split("#")[1]), ships), "a later network");
+  const file = withFile(later).sort();
+  assert.deepEqual([...db.rows(STORES.analysis).keys()].sort(), file);
+  // An earlier engine's results that no game reads, then the removal, as another tab runs it before the board starts
+  for (const key of searchedBy("e0")) db.rows(STORES.analysis).set(key, {});
+  await removeUnneeded(engineFiles(two), two, readGames);
+  // The board reads the file's results with its own network: they all stay, and the earlier engine's go
+  assert.deepEqual([...db.rows(STORES.analysis).keys()].sort(), file);
+});
+
+test("an analysis file of a network that the lock dropped asks first: a cancel keeps the board, and the removal takes nothing of the board's", async () => {
+  emptyStore();
+  // The board kept here, with the site's own results of its positions
+  const board = boardOfLine(MOVES);
+  db.rows(STORES.branches).set(BOARD_ID, board);
+  for (const [key, value] of STORED.analyses) db.rows(STORES.analysis).set(key, value);
+  let asked: NetworkQuestion | undefined;
+  const gone = "ab".repeat(32);
+  const address = await openAnalysisFile(analysisFileText("b0c0-s0-d0", "Stamp Duty 0.0", gone), SITE,
+                                         async q => { asked = q; return null; });
+  assert.equal(address, null);
+  assert.equal(asked?.title, "The file's network is not available");
+  await removeEarlierResults(engineFiles(SITE));
+  assert.deepEqual([...db.rows(STORES.analysis).keys()].sort(), [...KEYS].sort());
+  assert.deepEqual(db.rows(STORES.branches).get(BOARD_ID), board);
 });
