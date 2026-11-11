@@ -495,8 +495,9 @@ edit in the same commit), so their changes still apply.
   `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and header, and adds
   its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node, and it reads the
   engine's files with the engine package's `artifacts.ts`. It is the one file of the site package that imports the
-  engine package, and no page imports it. So the site package depends on the engine package, and the frame's code in the
-  browser still has none of the engine.
+  engine package, and no page imports it. So the site package depends on the engine package, and the frame's code in
+  the browser still has none of the engine. `releaseLock.ts`, which only `release-check.mjs` imports: the commit that
+  the check reads, given or from the home page's footer, and that commit's engine lock as Git keeps it.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review

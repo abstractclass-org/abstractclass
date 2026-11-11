@@ -2,24 +2,35 @@
 // address: the live site, the project's pages.dev address, or a preview. Each site runs them from its own
 // scripts/release-check.mjs, which gives the site's parts and adds its own checks:
 //   node scripts/release-check.mjs <base URL> [<commit>]      in the site's folder
-// <commit> is the commit that the deploy built, in any form that Git reads (a hash, origin/main). Without it: the live
-// site and the project's pages.dev address take origin/main, and dev's preview takes origin/dev, as of the last
-// `git fetch`. An address that does not end in .pages.dev is the live site: it has no X-Robots-Tag, and its domain's
-// answers are signed (DNSSEC). The check reads the engine's files as the page does, by the site's manifest, and checks
-// them against the site's engine.lock.json: with <commit>, the lock of that commit, as Git keeps it, so that a check
-// after a rollback uses the release's own engine files. Without it, the lock of this checkout. The first line names the
-// lock. The check stops before any request, with exit code 2, when the clone does not have the commit (a shallow clone,
-// or a commit not fetched yet): its line says to run `git fetch`. It stops in the same way when the commit has no lock
-// in the site's folder (a commit from before the site moved into apps/): its line names the path. It reads public
-// pages only, and a site's own checks may send a request that stores nothing. Each line says PASS, FAIL or INFO. The
-// last line is `release-check: PASS` or `release-check: FAIL`.
+// <commit> is the commit that the deploy built, in any form that Git reads (a hash, origin/main). The footer's version
+// must be that commit. Without it: the live site and the project's pages.dev address take origin/main, and dev's
+// preview takes origin/dev, as of the last `git fetch`. Another address needs <commit>. An address that does not end in
+// .pages.dev is the live site: it has no X-Robots-Tag, and its domain's answers are signed (DNSSEC). The check reads
+// the engine's files as the page does, by the site's manifest, and checks them against the site's engine.lock.json of
+// a commit, as Git keeps it, never the checkout's file: so a check after a rollback uses the release's own engine
+// files. That commit is <commit>, else the commit that the home page's footer names, the deployed commit. So the
+// footer's line is the one line that fails when the address serves another commit than its branch's, as after a
+// rollback. The first line names the lock's commit and where it came from. The check stops with exit code 2 when the
+// footer names no commit, and when the clone does not have the commit (a shallow clone, or a commit not fetched yet):
+// its line says to run `git fetch`. A <commit> stops it before any request, the footer's commit after the home page
+// only. It stops in the same way when the commit has no lock in the site's folder (a commit from before the site moved
+// into apps/): its line names the path.
+//
+// The header's links, the pages that lead home and the site's own checks come from this checkout's script, not from
+// the commit: a site's script gives them as code, which a commit cannot give as data, and a rollback goes to a commit
+// that is older than any such file. Their lines end with "(from this checkout)". A rollback past a change to them can
+// say FAIL on their line although the rollback worked.
+//
+// It reads public pages only, and a site's own checks may send a request that stores nothing. Each line says PASS,
+// FAIL or INFO. The last line is `release-check: PASS` or `release-check: FAIL`.
 //
 // It runs in Node only, and no page imports it: it is why this package depends on @abstractclass/engine (design 29).
 import { fetchArtifact } from "@abstractclass/engine/artifacts.ts";
-import { commitAndLock } from "./releaseLock.ts";
+import { commitOf, footerCommit, lockAt } from "./releaseLock.ts";
 
 /** Runs the checks on the command line's address, prints a line for each, and ends the process: exit code 0 when all
- *  pass, 1 when one fails, 2 for a wrong command line or a commit that gives no lock. The site's parts:
+ *  pass, 1 when one fails, 2 for a wrong command line, a footer that names no commit, or a commit that gives no
+ *  lock. The site's parts:
  *  - `lock`: the URL of the site's engine.lock.json.
  *  - `branchOf`: the commit of each pages.dev address: the project's, origin/main, and dev's preview, origin/dev.
  *  - `menu`: the links that the header shows.
@@ -35,19 +46,34 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   const base = baseArg.replace(/\/+$/, "");
   const host = new URL(base).hostname;
   const live = !host.endsWith(".pages.dev");
-  const ref = commitArg ?? (live ? "origin/main" : branchOf[host]);
-  if (!ref) {
+  const branch = live ? "origin/main" : branchOf[host];
+  if (commitArg === undefined && !branch) {
     console.error(`${host}: name the commit that the deploy built`);
     process.exit(2);
   }
-  const atCommit = commitArg !== undefined;
-  let commit, lock;
-  try {
-    ({ commit, lock } = commitAndLock(lockUrl, ref, { atCommit }));
-  } catch (error) {
-    console.error(error.message);
+  // A commit that the clone does not have, or that has no lock, stops the check with exit code 2.
+  const orStop = read => {
+    try {
+      return read();
+    } catch (error) {
+      console.error(error.message);
+      process.exit(2);
+    }
+  };
+  // With <commit>, its lock, before any request. The commit that the footer must name.
+  const given = commitArg === undefined ? undefined : orStop(() => lockAt(lockUrl, commitArg));
+  const commit = given?.commit ?? orStop(() => commitOf(lockUrl, branch));
+
+  // The home page: its footer's version gives the lock without <commit>.
+  const home = await fetch(`${base}/`);
+  const html = await home.text();
+  const version = footerCommit(html);
+  if (!given && !version) {
+    console.error(`${base}/ answers ${home.status}, and no footer on it names a commit. Name the commit that the `
+      + `deploy built: node scripts/release-check.mjs ${base} <commit>`);
     process.exit(2);
   }
+  const { commit: lockCommit, lock } = given ?? orStop(() => lockAt(lockUrl, version));
 
   const results = [];
   const check = (name, pass, detail = "") => {
@@ -56,21 +82,20 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   };
   const cacheOf = r => r.headers.get("cache-control") ?? "";
 
-  console.log(`INFO  ${base}, ${live ? "the live site" : "not the live site"}, commit ${commit} (${ref}), `
-    + `the engine lock of ${atCommit ? `commit ${commit}` : "this checkout"}`);
+  const fromCheckout = " (from this checkout)";
+  console.log(`INFO  ${base}, ${live ? "the live site" : "not the live site"}, commit ${commit} `
+    + `(${given ? `given: ${commitArg}` : branch}), the engine lock of commit ${lockCommit}`
+    + (given ? "" : ", read from the footer"));
 
-  // The home page: the footer's version, the robots' header, the header's links.
-  const home = await fetch(`${base}/`);
-  const html = await home.text();
   check("the home page answers 200", home.status === 200, String(home.status));
-  const version = html.match(/version ([0-9a-f]{7})\b/)?.[1];
   check(`the footer's version is ${commit}`, version === commit, String(version));
   const robots = home.headers.get("x-robots-tag");
   check(live ? "no X-Robots-Tag" : "X-Robots-Tag: noindex", live ? robots === null : /noindex/.test(robots ?? ""),
     String(robots));
   const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? "";
   const links = [...header.matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map(m => m[1].trim());
-  check(`the header shows ${menu.join(", ")}`, menu.every(name => links.includes(name)), links.join(", "));
+  check(`the header shows ${menu.join(", ")}${fromCheckout}`, menu.every(name => links.includes(name)),
+    links.join(", "));
 
   const unknown = await fetch(`${base}/no-such-page-${Date.now()}`);
   check("an unknown address answers 404", unknown.status === 404, String(unknown.status));
@@ -80,7 +105,7 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     const body = r.status === 200 ? await r.text() : "";
     const leads = (r.status >= 300 && r.status < 400 && new URL(r.headers.get("location") ?? "", base).pathname === "/")
       || /http-equiv="refresh" content="0;\s*url=\/"/.test(body);
-    check(`${path} leads home`, leads, `${r.status} ${r.headers.get("location") ?? ""}`.trim());
+    check(`${path} leads home${fromCheckout}`, leads, `${r.status} ${r.headers.get("location") ?? ""}`.trim());
   }
 
   // The caches: a year, never checked again, for the build's hashed code and the engine's files (static/_headers).
@@ -127,7 +152,7 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   await checkWhole(networks[0], "the largest network");
   await checkWhole(lock.artifacts.find(a => a.kind === "terms"), "the terms");
 
-  if (ownChecks) await ownChecks(base, check);
+  if (ownChecks) await ownChecks(base, (name, pass, detail) => check(name + fromCheckout, pass, detail));
 
   if (live) {
     const dns = await (await fetch(`https://dns.google/resolve?name=${host}&type=A&do=1`)).json();
