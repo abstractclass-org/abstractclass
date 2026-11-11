@@ -24,9 +24,8 @@ export const PLAYER_NAME = ["Blue", "Red"] as const;
 export const WHOLE = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
 /** A score as the players' cards, the Report and an image's caption show it: whole, with thousands separated. */
 export const fmtScore = (s: number) => WHOLE.format(Math.round(s));
-/** The result by the scores and by a record, by the one rule for a draw: the analysis's (result.ts), which its value
- *  at the game's end takes too. The view's words below and Practice's record take it from here. */
-export { resultOfRecord, resultOfScores, type ScoreResult } from "@abstractclass/analysis/result.ts";
+// The one rule for a draw (the analysis's result.ts), passed on with the view's words below for their importers.
+export { resultOfRecord, resultOfScores } from "@abstractclass/analysis/result.ts";
 /** A win's margin that one decimal writes as 0.0, with as many decimals as it needs, up to the record's six: "0.03".
  *  Undefined for a margin that one decimal writes as a number. Each format of a margin starts with it, so that a win
  *  never reads "won by 0.0". */

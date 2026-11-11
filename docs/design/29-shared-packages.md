@@ -243,9 +243,9 @@ edit in the same commit), so their changes still apply.
      six decimals, as a record writes it (`r+377.651497`), and a draw when that is 0 (`resultOfScores`). Enclosure's
      areas are exact rationals, so a margin can be any number (design 24, "Whole points"). A win by 0.03 is a win, and
      the rounding takes away only the error of a floating-point sum. A record's result by the scores (`b+28.5`, `0`)
-     takes the same rule (`resultOfRecord`). The rule is in `@abstractclass/analysis`'s `result.ts`, because the
-     analysis's value at the game's end takes it too (`resultWin`: the win bar and the chart at the end), and the
-     analysis does not import the review. The view's `game.ts` passes it on with its words. The words are "A draw", or
+     takes the same rule (`resultOfRecord`). The rule is in `@abstractclass/analysis`'s `result.ts`. The analysis's
+     value at the game's end takes it too (`resultWin`: the win bar and the chart at the end), and the analysis does
+     not import the review. The view's `game.ts` passes it on with its words. The words are "A draw", or
      the winner and the margin with no unit: "Blue won by 28.5" (`resultText`, with the game's `fmtMargin`). A margin
      that one decimal writes as 0.0 takes as many decimals as it needs, up to six: "Red won by 0.03" (`smallMargin`, in
      each game's format). The review uses them in each game's `ending` (`endingWords`: the result, a resignation, a
@@ -529,7 +529,8 @@ review's view in packages/review" (2026-10-25), "The review's styles in packages
 review takes two moves that give one position as one move" (2026-11-05), "Cyanotype on Stamp Duty 0.2, with the GPU
 and the threaded bot" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"
 (2026-11-08), "Cyanotype's review files, as Hedge School's" (2026-11-08), "Cyanotype's review snapshot and
-annotated record from the store" (2026-11-08), and "Cyanotype removes earlier engine results, as Hedge School"
+annotated record from the store" (2026-11-08), "Cyanotype removes earlier engine results, as Hedge School"
+(2026-11-11), and "One rule for a draw in the value at the game's end and in Cyanotype's kept result"
 (2026-11-11).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06), and "A new feature starts in a package" (2026-11-08).

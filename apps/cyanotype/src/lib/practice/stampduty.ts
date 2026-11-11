@@ -34,8 +34,7 @@ const HALFLIFE = 19;
 export const botCommands = (bot: BotSettings, komi = 0) => settingsCommands(bot, HALFLIFE, komi);
 
 /** The result of a game that the rules ended, at its last position (`b+N`, `r+N` or `0`): from the scores with the
- *  komi (Hedge School's design 24), by the one rule for a draw (scoreResult), at every komi. The rules' own result
- *  leaves the komi out, and the page's line and the review read the scores by that rule. */
+ *  komi (Hedge School's design 24), by the one rule for a draw. Not the rules' own result: it leaves the komi out. */
 export const endResult = (end: Pick<GamePosition, "scores">, komi: number): string =>
   scoreResult(withKomi(end, komi).scores);
 

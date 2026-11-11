@@ -11053,9 +11053,9 @@ a new search or a new file of the network would add a set.
   `resultWin` now takes the record's rule (`resultOfScores`): the margin rounded to six decimals, and a draw when that
   is 0. The bar then shows 50%. Only a game that ends within the record's rounding changes.
 - **Where the rule is:** `packages/analysis/src/result.ts`. The analysis knows a game only through the game interface
-  and does not import the review (design 29), and the rule is the same for every game. The review's `game.ts` passes
-  it on with its words, so the view's importers do not change. Its tests moved to `result.test.ts`.
+  and does not import the review (design 29). The rule is the same for every game. The review's `game.ts` passes it
+  on with its words, so the view's importers do not change. Its tests moved to `result.test.ts`.
 - **Cyanotype's kept result at komi 0:** `endResult` (`apps/cyanotype/src/lib/practice/stampduty.ts`) took the
   engine's own result at komi 0 and the scores by the rule at any other komi. It now takes the scores by the rule
-  (`scoreResult`) at every komi. The two agree on every real game, since Blueprints' points are whole. The review's
-  test game still keeps `r+730` at komi 0.
+  (`scoreResult`) at every komi. The two agree on every real game, since Blueprints' points are whole. Cyanotype's
+  engine test game still keeps `r+730` at komi 0 (`stampduty.engine.test.ts`).

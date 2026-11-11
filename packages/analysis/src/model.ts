@@ -328,10 +328,10 @@ export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefin
                      && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
-/** Blue's win chance at the game's end, from the score difference (Blue less Red): 1, 0, or 0.5 for a draw, by the
- *  one rule for a draw (result.ts, resultOfScores). So the win bar and the line at the end say the same. */
-export function resultWin(blueLead: number): number {
-  const { winner } = resultOfScores([blueLead, 0]);
+/** Blue's win chance at the game's end, from the final margin (Blue's score less Red's): 1, 0, or 0.5 for a draw by
+ *  the record's rule (result.ts), so that the win bar and the line at the end agree. */
+export function resultWin(finalMargin: number): number {
+  const { winner } = resultOfScores([finalMargin, 0]);
   return winner === null ? 0.5 : winner === 0 ? 1 : 0;
 }
 

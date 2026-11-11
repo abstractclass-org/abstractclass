@@ -1,7 +1,6 @@
 // A game's result by the scores: one rule for a draw, the same in every game (docs/design/29-shared-packages.md, "The
-// result by the scores"). It is here, in the analysis package, because the analysis takes it for the value at the
-// game's end (model.ts, resultWin), and the analysis does not import the review. The review's words
-// (@abstractclass/review/game.ts) and Practice's record (@abstractclass/practice/practice.ts, scoreResult) take it too.
+// result by the scores"). It is in the analysis package because the analysis's value at the game's end takes it
+// (model.ts, resultWin), and the analysis does not import the review.
 import type { Player } from "./game.ts";
 
 /** A game's result by the scores: the winner, or null for a draw, and the margin (the winner's score less the loser's)

@@ -1,5 +1,5 @@
-// A game's result by the scores (result.ts): one rule for a draw, which the review's words, Practice's record and the
-// analysis's value at the game's end (model.ts, resultWin) all take. Run: npm test.
+// A game's result by the scores (result.ts, the one rule for a draw), and the value at the game's end, which takes that
+// rule (model.ts, resultWin). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resultOfRecord, resultOfScores } from "./result.ts";
