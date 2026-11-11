@@ -6,8 +6,9 @@
   interface Props {
     /** The SVG favicon's address, as the site's build gives it (`import favicon from "…/favicon.svg"`). */
     favicon: string;
-    /** The site's name and its address, with no "/" at the end. */
+    /** The site's name. */
     name: string;
+    /** The site's address, with no "/" at the end. */
     origin: string;
     /** The preview picture's words, for those who cannot see it. */
     imageAlt: string;

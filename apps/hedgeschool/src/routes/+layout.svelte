@@ -62,7 +62,7 @@
 </script>
 
 <!-- The icons, the collie (design 12), and the link previews' tags that every page shares (design 23). The preview
-     picture is drawn from scripts/social-card.html. -->
+     picture comes from scripts/social-card.html. -->
 <SiteHead {favicon} name={SITE_NAME} origin={SITE_ORIGIN}
           imageAlt="Hedge School: learn Enclosure. A board with Blue's and Red's edges." />
 

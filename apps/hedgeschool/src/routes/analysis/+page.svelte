@@ -283,11 +283,12 @@
   }
   async function loadFile(file: File) {
     notice = "";
-    const loaded = await loadBoardFile(file, fileKind, text => openAnalysisFile(text, session.manifest, networkChoice.ask));
-    if ("problem" in loaded) {
-      notice = loaded.problem;
+    const problem = await loadBoardFile(file, fileKind, text => openAnalysisFile(text, session.manifest, networkChoice.ask),
+                                        address => importAddress(address.split("#")[1]));
+    if (problem) {
+      notice = problem;
       trackLoadFailed("analysis_file", "file");
-    } else if (loaded.address) importAddress(loaded.address.split("#")[1]);
+    }
   }
 
   /** The board shared or exported (design 21): a link to it, or its record with the lines as variations. */

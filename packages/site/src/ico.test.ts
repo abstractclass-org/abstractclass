@@ -1,3 +1,4 @@
+// Checks the ICO file of a site's favicon (ico.ts): its header, its entries and its images. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { icoFile } from "./ico.ts";

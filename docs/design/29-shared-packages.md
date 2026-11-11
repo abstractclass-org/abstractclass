@@ -312,15 +312,15 @@ edit in the same commit), so their changes still apply.
     notation, the reader of a game site's page) and the pages that connect the shared parts. A feature that only one
     game has, such as Enclosure's area map, stays in that game's site. Code that a site copied from another site moves
     into a package too: abscls-8tl1.58 (the logo's files and the Export menu) and abscls-8tl1.15 (Practice's page
-    parts). From abscls-8tl1.58, the site's package holds the favicon's ICO file (`ico.ts`), Chromium's switches off
-    the GPU for the browser tests and scripts (`chromium.ts`), the head's icons and link preview tags
-    (`SiteHead.svelte`), and the theme tokens of every block of a theme (`themeTokens.ts`, which Cyanotype's link
-    preview picture reads). The engine's holds the error text as a sentence's end (`errorSentence`). The review's
-    Export menu (`exports.ts`) holds the review link's note and copy (`shareNote`, `copyReviewLink`) and the Analysis
-    board's exports (`deliverBoardExport`, `boardRecordNote`). The analysis package holds the board's file load
-    (`loadBoardFile`) and its notice of what it cannot take (`boardRefusal`). The
-    shared review's intro (Hedge School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site:
-    its words differ between the two copies, and one text for both is a visible change.
+    parts). The site's package holds the favicon's ICO file (`ico.ts`) and the head's icons and link preview tags
+    (`SiteHead.svelte`). It also holds Chromium's switches off the GPU for the browser tests and scripts
+    (`chromium.ts`), and the theme tokens (`themeTokens.ts`, which Cyanotype's link preview picture reads). The
+    engine's package holds the error text as a sentence's end (`errorSentence`). The review's Export menu
+    (`exports.ts`) holds the review link's note and copy (`shareNote`, `copyReviewLink`) and the Analysis board's
+    exports (`deliverBoardExport`, `boardRecordNote`). The analysis package holds the board's file load
+    (`loadBoardFile`) and its notice of what it cannot take (`boardRefusal`). The shared review's intro (Hedge
+    School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site. Its words differ between the two
+    copies, and one text for both is a visible change.
 
 ## Why
 

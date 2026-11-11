@@ -1,3 +1,5 @@
+// Checks the reading of a site's theme tokens (themeTokens.ts): every block of a theme, and no nested block. Run:
+// npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { block, themes } from "./themeTokens.ts";

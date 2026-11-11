@@ -131,14 +131,21 @@ test("the Analysis board loads an analysis file at its address, and refuses a re
     readAnalysisFile(text, "Test", "test-analysis", 5000); // throws for a file that does not read
     return "/analysis#packed=AAAA";
   };
-  const blob = (data: unknown) => new Blob([JSON.stringify(data)]);
-  assert.deepEqual(await loadBoardFile(new Blob([file({ version: 2, main: [], nodes: [] })]), kind, open),
-                   { address: "/analysis#packed=AAAA" });
-  assert.deepEqual(await loadBoardFile(blob({ format: "test-review" }), kind, open),
-                   { problem: "The Analysis board cannot load this file: this is a review file: load it in the Review tab." });
-  assert.deepEqual(await loadBoardFile(blob({ format: "test-analysis", cancel: true }), kind, open), { address: null });
-  assert.deepEqual(await loadBoardFile(blob({ format: "other" }), kind, open),
-                   { problem: "The Analysis board cannot load this file: This is not a Test analysis file." });
+  /** The addresses that the board went to. */
+  const went: string[] = [];
+  const load = (data: unknown, go = (address: string) => { went.push(address); }) =>
+    loadBoardFile(new Blob([typeof data === "string" ? data : JSON.stringify(data)]), kind, open, go);
+  assert.equal(await load(file({ version: 2, main: [], nodes: [] })), null);
+  assert.equal(await load({ format: "test-analysis", cancel: true }), null);
+  assert.deepEqual(went, ["/analysis#packed=AAAA"]);
+  assert.equal(await load({ format: "test-review" }),
+               "The Analysis board cannot load this file: this is a review file: load it in the Review tab.");
+  assert.equal(await load({ format: "other" }),
+               "The Analysis board cannot load this file: This is not a Test analysis file.");
+  // A board that cannot go to the address says so too
+  assert.equal(await load(file({ version: 2, main: [], nodes: [] }), () => { throw new Error("the address is refused"); }),
+               "The Analysis board cannot load this file: the address is refused.");
+  assert.deepEqual(went, ["/analysis#packed=AAAA"]);
 });
 
 test("the Analysis board's notice says what it cannot take, and why, as one sentence", () => {

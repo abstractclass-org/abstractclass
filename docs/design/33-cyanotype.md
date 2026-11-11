@@ -1386,12 +1386,12 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
 7. **How each file is made.** The drawings are SVG in code (`src/lib/brand/logo.ts`, and the card in `card.ts`). The
    card takes its colours from the site's tokens in the dark theme (`@abstractclass/site/themeTokens.ts`), and its
    cells' size from the board's (`CELL_SIZE`, `src/lib/board/cellMarks.ts`). `scripts/brand.mjs` writes the
-   favicon's SVG file from them, and draws the PNG files in headless Chromium, each at its own size, off the GPU on
-   Windows as the layout test (`@abstractclass/site/chromium.ts`). It joins the favicon's sizes in the ICO file that
-   Hedge School's favicon has too (`@abstractclass/site/ico.ts`). The icons' tags and the link preview's are the
-   sites' shared head (`@abstractclass/site/SiteHead.svelte`). Run the script again after a change of the drawings:
-   `node scripts/brand.mjs` in `apps/cyanotype`. A test (`logo.test.ts`) keeps the favicon's file equal to the simple
-   drawing.
+   favicon's SVG file from them. It draws the PNG files in headless Chromium, each at its own size. On Windows,
+   Chromium runs off the GPU, as in the layout test (`@abstractclass/site/chromium.ts`). The script joins the
+   favicon's sizes in one ICO file, as Hedge School's favicon does (`@abstractclass/site/ico.ts`). The icons' tags and
+   the link preview's are the sites' shared head (`@abstractclass/site/SiteHead.svelte`). Run the script again after
+   a change of the drawings: `node scripts/brand.mjs` in `apps/cyanotype`. A test (`logo.test.ts`) keeps the
+   favicon's file equal to the simple drawing.
 
 ## The gaps from Hedge School
 

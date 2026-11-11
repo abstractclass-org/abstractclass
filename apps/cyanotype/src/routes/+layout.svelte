@@ -40,7 +40,7 @@
 </script>
 
 <!-- The icons, the logo (design 33, "The logo"), and the link previews' tags that every page shares (Hedge School's
-     design 23). The preview picture is drawn by scripts/brand.mjs from src/lib/brand/card.ts. -->
+     design 23). scripts/brand.mjs draws the preview picture from src/lib/brand/card.ts. -->
 <SiteHead {favicon} name={SITE_NAME} origin={SITE_ORIGIN}
           imageAlt="Cyanotype: learn Blueprints. The logo, and a corner of a board with Blue's and Red's cells." />
 

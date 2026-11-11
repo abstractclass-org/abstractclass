@@ -46,9 +46,9 @@ export async function copyReviewLink(link: string): Promise<ExportResult> {
 }
 
 /** Delivers a file or the annotated record, as both sites' reviews and Analysis boards do (Hedge School's designs 13
- *  and 21): the review file or the analysis file that `file` makes, as a download named `name`; or the annotated
- *  record, which `annotated` writes when it is asked for, copied (`record_copy`) or as a download (any other kind)
- *  named `recordName`: by default the file's name with `.txt`. */
+ *  and 21). The review file or the analysis file, which `file` makes, goes out as a download named `name`. The
+ *  annotated record, which `annotated` writes, is copied (`record_copy`), or else goes out as a download named
+ *  `recordName`: by default the file's name with `.txt`. */
 export async function deliverFileOrRecord(kind: ExportKind, name: string, file: () => Promise<unknown>,
                                           annotated: () => string | Promise<string>,
                                           recordName = name.replace(/\.json$/, ".txt")): Promise<void> {
@@ -64,8 +64,8 @@ export const RECORD_EXPORTS: ExportItem[] = [
   ["record_file", "Annotated record as a file", "", "Annotated record saved"],
 ];
 
-/** What the Analysis board exports: its link, its analysis file and the file's name, and its annotated record. The
- *  link, the file and the record are made only when they are asked for. */
+/** What the Analysis board exports: its link, its analysis file and the file's name, and its annotated record. Each
+ *  function makes its export only when the player asks for it. */
 export interface BoardExport {
   link: () => string;
   file: () => Promise<unknown>;
@@ -73,12 +73,13 @@ export interface BoardExport {
   annotated: () => string;
 }
 
-/** The note of the Analysis board's annotated record: the site, and the network of the engine's results. */
-export const boardRecordNote = (site: string, networkName: string, network: string) =>
-  `${site}'s Analysis board, with ${networkName} (the network ${network}).`;
+/** The note of the Analysis board's annotated record: the site, and the network of the engine's results, by its name
+ *  and its id. */
+export const boardRecordNote = (site: string, networkName: string, networkId: string) =>
+  `${site}'s Analysis board, with ${networkName} (the network ${networkId}).`;
 
-/** Delivers an export of the Analysis board (Hedge School's design 21), as both sites' boards do: its link, copied;
- *  its analysis file as a download; or its annotated record, copied or as `analysis.txt`. */
+/** Delivers an export of the Analysis board (Hedge School's design 21), as both sites' boards do. The link is copied.
+ *  The analysis file goes out as a download. The annotated record is copied, or goes out as `analysis.txt`. */
 export async function deliverBoardExport(kind: ExportKind, board: BoardExport): Promise<ExportResult | void> {
   if (kind === "share_link") return copyLink(board.link());
   return deliverFileOrRecord(kind, board.fileName, board.file, board.annotated, "analysis.txt");

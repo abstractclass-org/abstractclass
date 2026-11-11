@@ -5,7 +5,7 @@
 //   ICO file's form is the sites' one (@abstractclass/site/ico.ts).
 // - static/apple-touch-icon.png: the full print on a full square of 180 pixels, for iOS's home screen.
 // - static/brand/card.png: the link preview picture, 1,200 × 630 pixels.
-// Each picture is drawn by headless Chromium at its own size, off the GPU on Windows, as the layout test runs it
+// Headless Chromium draws each picture at its own size, off the GPU on Windows, as the layout test runs it
 // (@abstractclass/site/chromium.ts). Run it again after a change of the drawings:
 //   cd apps/cyanotype && node scripts/brand.mjs
 import { writeFileSync } from "node:fs";

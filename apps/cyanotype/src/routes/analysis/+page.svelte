@@ -294,13 +294,14 @@
    *  loads in the Review tab, as on Hedge School. */
   async function loadFile(file: File) {
     notice = "";
-    const loaded = await loadBoardFile(file, fileKind, text => openAnalysisFile(text, session.manifest, networkChoice.ask));
-    if ("problem" in loaded) {
-      notice = loaded.problem;
+    const problem = await loadBoardFile(file, fileKind, text => openAnalysisFile(text, session.manifest, networkChoice.ask),
+                                        address => { // `/analysis#packed=…`
+                                          history.replaceState(null, "", address);
+                                          location.reload();
+                                        });
+    if (problem) {
+      notice = problem;
       trackLoadFailed("analysis_file", "file");
-    } else if (loaded.address) { // `/analysis#packed=…`
-      history.replaceState(null, "", loaded.address);
-      location.reload();
     }
   }
 

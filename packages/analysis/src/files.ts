@@ -49,25 +49,27 @@ export function fileKind(text: string, review: string, analysis: string): "revie
   }
 }
 
-/** The Analysis board's notice of what it was given and cannot take (Hedge School's design 21): it cannot `verb` this
- *  `what` (a file, a link, a record, a position), and why (an error, or a problem's text). */
-export const boardRefusal = (verb: string, what: string, why: unknown) =>
-  `The Analysis board cannot ${verb} this ${what}: ${errorSentence(why)}`;
+/** The Analysis board's notice of what it cannot take (Hedge School's design 21): it cannot `verb` this `what`, and
+ *  why (an error, or a problem's text). */
+export const boardRefusal = (verb: "load" | "open" | "analyze" | "import", what: "file" | "link" | "record" | "position",
+                             why: unknown) => `The Analysis board cannot ${verb} this ${what}: ${errorSentence(why)}`;
 
-/** A file loaded on the Analysis board (Hedge School's design 21), as both sites' boards load one from the New menu:
- *  `kind` tells a review file, which the board refuses (it loads in the Review tab), and `open` keeps an analysis
- *  file's results and answers the board's address (each site's openAnalysisFile), or null after a cancel. Answers the
- *  address, or the problem that the board shows: why the file did not load. */
+/** A file loaded on the Analysis board from the New menu (Hedge School's design 21), as both sites' boards load one.
+ *  `kind` tells a review file, which the board refuses: it loads in the Review tab. `open` keeps an analysis file's
+ *  results, and answers the board's address (each site's openAnalysisFile), or null after a cancel. `go` opens the
+ *  board at that address. Answers the problem that the board shows when one of these steps fails, else null. */
 export async function loadBoardFile(file: Blob, kind: (text: string) => "review" | "analysis" | null,
-                                    open: (text: string) => Promise<string | null>):
-  Promise<{ address: string | null } | { problem: string }> {
+                                    open: (text: string) => Promise<string | null>,
+                                    go: (address: string) => void): Promise<string | null> {
   const content = await file.text();
   try {
     if (kind(content) === "review") throw new Error("this is a review file: load it in the Review tab");
     // A file whose network the board cannot take alone asks first: a cancel keeps the board as it is.
-    return { address: await open(content) };
+    const address = await open(content);
+    if (address) go(address);
+    return null;
   } catch (e) {
-    return { problem: boardRefusal("load", "file", e) };
+    return boardRefusal("load", "file", e);
   }
 }
 

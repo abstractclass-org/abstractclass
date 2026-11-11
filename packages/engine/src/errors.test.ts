@@ -1,3 +1,4 @@
+// Checks the error texts for the page (errors.ts): an error's message alone, and as the end of a sentence. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { errorSentence, errorText } from "./errors.ts";
