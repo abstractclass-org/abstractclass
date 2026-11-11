@@ -9,14 +9,14 @@ import { branchNodes, loadGame, setGameSettings, type KeptBranches } from "./sto
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import { networkName } from "#lib/analysis/engineSettings.ts";
 import { ENCLOSURE_CODE, sharedRecord, type SharedReview } from "./share.ts";
-import { reviewLink, shareNote } from "@abstractclass/analysis/share.ts";
+import { reviewLink } from "@abstractclass/analysis/share.ts";
 import { importRecord, type MoveCheck } from "./import.ts";
 import { saveToPartner, type GamePartner } from "./partners.ts";
 import { mergeBranches, positionKeys } from "@abstractclass/analysis/kept.ts";
 import { shippedModels } from "@abstractclass/analysis/files.ts";
 import { reviewFiles } from "@abstractclass/analysis/reviewFile.ts";
 import { download } from "@abstractclass/site/download.ts";
-import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, deliverFileOrRecord, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, copyReviewLink, deliverFileOrRecord, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
 export { REVIEW_FILE_VERSION, gameAnalyses, shippedModules, type FileReview, type ReviewFile } from "@abstractclass/analysis/reviewFile.ts";
@@ -110,11 +110,7 @@ export async function deliverExport(kind: ExportKind, id: string, record: string
     await saveToPartner(partner, file);
     return { note: `Saved to ${partner.name}.` };
   }
-  if (kind === "share_link") {
-    const link = await shareLink(id, location.origin);
-    await navigator.clipboard.writeText(link);
-    return { linkLength: link.length, note: shareNote(link.length) };
-  }
+  if (kind === "share_link") return copyReviewLink(await shareLink(id, location.origin));
   return deliverFileOrRecord(kind, reviewFileName(record, id), () => exportReview(id, site, shippedModels(manifest)), annotated);
 }
 

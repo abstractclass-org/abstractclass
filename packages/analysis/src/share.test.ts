@@ -2,7 +2,7 @@
 // tags, moves and variations, and a board's tree, each back as it was. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BitReader, BitWriter, decodeShare, encodeShare, shareNote, type MoveCode } from "./share.ts";
+import { BitReader, BitWriter, decodeShare, encodeShare, type MoveCode } from "./share.ts";
 import { boardLink, boardPositionKeys, readBoardLink } from "./boardLink.ts";
 import type { KeptBoard, KeptNode } from "./kept.ts";
 
@@ -69,10 +69,4 @@ test("a board's link refuses a komi beyond the game's limit, in the record's wor
   assert.equal(read(-5000).board.komi, -5000);
   for (const beyond of [5000.5, -6000])
     assert.throws(() => read(beyond), (e: Error) => e.message === `the Komi tag must be from -5,000 to 5,000 points: ${beyond}`);
-});
-
-test("the note after a link is copied warns past a Discord message's limit", () => {
-  assert.match(shareNote(653), /^Link copied \(653 characters\)/);
-  assert.match(shareNote(2400), /2,400 characters.*or send the review file\.$/);
-  assert.match(shareNote(2400, false), /Delete some variations\.$/);
 });

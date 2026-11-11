@@ -171,12 +171,3 @@ export const reviewLink = (origin: string, run: ReviewRun, game: { tags: Record<
                            branches: KeptNode[], code: MoveCode): string =>
   `${origin}/review#packed=${encodeShare({ module: run.module.slice(0, 8), model: run.model.slice(0, 8), visits: run.visits,
                                            tags: game.tags, moves: game.moves, branches }, code)}`;
-
-/** The note after a review's link is copied: its length, and a warning past a Discord message's limit. `reviewFile`:
- *  whether the site exports review files, which the warning offers in the link's place. */
-export function shareNote(length: number, reviewFile = true): string {
-  const n = length.toLocaleString("en");
-  return length > DISCORD_LIMIT
-    ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some variations${reviewFile ? ", or send the review file" : ""}.`
-    : `Link copied (${n} characters). The recipient's browser reviews the game again.`;
-}

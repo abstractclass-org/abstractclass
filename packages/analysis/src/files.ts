@@ -13,6 +13,7 @@ import { boardPositionKeys } from "./boardLink.ts";
 import { isKomi, komiLimitProblem } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { modelOf, moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
+import { errorSentence } from "@abstractclass/engine/errors.ts";
 
 /** Reads a file of `site` in `format` (`noun`: "review file", "analysis file"), its fields not yet checked but its
  *  results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
@@ -45,6 +46,23 @@ export function fileKind(text: string, review: string, analysis: string): "revie
     return f?.format === analysis ? "analysis" : f?.format === review ? "review" : null;
   } catch {
     return null;
+  }
+}
+
+/** A file loaded on the Analysis board (Hedge School's design 21), as both sites' boards load one from the New menu:
+ *  `kind` tells a review file, which the board refuses (it loads in the Review tab), and `open` keeps an analysis
+ *  file's results and answers the board's address (each site's openAnalysisFile), or null after a cancel. Answers the
+ *  address, or the problem that the board shows: why the file did not load. */
+export async function loadBoardFile(file: Blob, kind: (text: string) => "review" | "analysis" | null,
+                                    open: (text: string) => Promise<string | null>):
+  Promise<{ address: string | null } | { problem: string }> {
+  const content = await file.text();
+  try {
+    if (kind(content) === "review") throw new Error("this is a review file: load it in the Review tab");
+    // A file whose network the board cannot take alone asks first: a cancel keeps the board as it is.
+    return { address: await open(content) };
+  } catch (e) {
+    return { problem: `The Analysis board cannot load this file: ${errorSentence(e)}` };
   }
 }
 

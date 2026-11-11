@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { analysisKey } from "./cache.ts";
-import { ANALYSIS_FILE_VERSION, addressNetwork, belongs, boardNetwork, exportAnalysis, fileEngine, fileNetwork, readAnalysisFile,
-         withNetwork, type AnalysisFile } from "./files.ts";
+import { ANALYSIS_FILE_VERSION, addressNetwork, belongs, boardNetwork, exportAnalysis, fileEngine, fileKind, fileNetwork,
+         loadBoardFile, readAnalysisFile, withNetwork, type AnalysisFile } from "./files.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import type { KeptBoard } from "./kept.ts";
 import { STORES, dbPut } from "@abstractclass/storage/db.ts";
@@ -122,4 +122,19 @@ test("an analysis file names the board's network, out and back in, and not the b
     assert.equal(readAnalysisFile(JSON.stringify({ ...out, engine: bad }), "Test", FORMAT, NO_LIMIT).engine, undefined, JSON.stringify(bad));
   // An older file has none
   assert.equal(readAnalysisFile(file({ version: 2, main: [], nodes: [] }), "Test", FORMAT, NO_LIMIT).engine, undefined);
+});
+
+test("the Analysis board loads an analysis file at its address, and refuses a review file or a broken one", async () => {
+  const kind = (text: string) => fileKind(text, "test-review", "test-analysis");
+  const open = async (text: string) => {
+    if (text.includes("cancel")) return null;
+    readAnalysisFile(text, "Test", "test-analysis", 5000); // throws for a file that does not read
+    return "/analysis#packed=AAAA";
+  };
+  const file = (data: unknown) => new Blob([JSON.stringify(data)]);
+  assert.deepEqual(await loadBoardFile(file({ format: "test-review" }), kind, open),
+                   { problem: "The Analysis board cannot load this file: this is a review file: load it in the Review tab." });
+  assert.deepEqual(await loadBoardFile(file({ format: "test-analysis", cancel: true }), kind, open), { address: null });
+  assert.deepEqual(await loadBoardFile(file({ format: "other" }), kind, open),
+                   { problem: "The Analysis board cannot load this file: This is not a Test analysis file." });
 });

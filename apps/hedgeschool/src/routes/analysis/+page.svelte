@@ -27,13 +27,13 @@
   import { modelOf } from "@abstractclass/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, shipsNetwork, withBoardNetwork,
            type EngineSettings } from "#lib/analysis/engineSettings.ts";
-  import { addressNetwork, fileEngine } from "@abstractclass/analysis/files.ts";
+  import { addressNetwork, fileEngine, loadBoardFile } from "@abstractclass/analysis/files.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
-  import { download, shippedModels, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
-  import { BOARD_EXPORTS } from "@abstractclass/review/exports.ts";
+  import { shippedModels, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
+  import { BOARD_EXPORTS, deliverBoardExport } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { parseRecord, startTags, withStart } from "#lib/game/record.ts";
@@ -283,39 +283,27 @@
   }
   async function loadFile(file: File) {
     notice = "";
-    const content = await file.text();
-    try {
-      if (fileKind(content) === "review") throw new Error("this is a review file: load it in the Review tab");
-      // A file whose network the board cannot take alone asks first: a cancel keeps the board as it is.
-      const address = await openAnalysisFile(content, session.manifest, networkChoice.ask);
-      if (address) importAddress(address.split("#")[1]);
-    } catch (e) {
-      notice = `The Analysis board cannot load this file: ${errorSentence(e)}`;
+    const loaded = await loadBoardFile(file, fileKind, text => openAnalysisFile(text, session.manifest, networkChoice.ask));
+    if ("problem" in loaded) {
+      notice = loaded.problem;
       trackLoadFailed("analysis_file", "file");
-    }
+    } else if (loaded.address) importAddress(loaded.address.split("#")[1]);
   }
 
   /** The board shared or exported (design 21): a link to it, or its record with the lines as variations. */
   async function exportAs(kind: ExportKind, unit: Unit): Promise<ExportResult | void> {
     const g = game, r = R;
     if (!g || !r) return;
-    if (kind === "share_link") {
-      const at = mainIndex(current, g.mainNames) ?? 0;
-      const link = boardLink(location.origin, g.keptBoard(), at);
-      await navigator.clipboard.writeText(link);
-      return { linkLength: link.length };
-    }
-    if (kind === "analysis_file") {
+    return deliverBoardExport(kind, {
+      link: () => boardLink(location.origin, g.keptBoard(), mainIndex(current, g.mainNames) ?? 0),
       // The file names the board's network, which the board that opens it takes (design 21).
-      download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest),
-                                                                       fileEngine(session.manifest, session.network))));
-      return;
-    }
-    const tags = startTags(g.startPosition, g.komi);
-    const text = annotatedRecord({ R: r, unit, tags, result: "*", branches: g.branches, annotator: SITE_NAME,
-                                   note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
-    if (kind === "record_copy") await navigator.clipboard.writeText(text);
-    else download("analysis.txt", text, "text/plain");
+      file: () => exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest),
+                                 fileEngine(session.manifest, session.network)),
+      fileName: () => analysisFileName(),
+      annotated: () => annotatedRecord({ R: r, unit, tags: startTags(g.startPosition, g.komi), result: "*",
+                                         branches: g.branches, annotator: SITE_NAME,
+                                         note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` }),
+    });
   }
 </script>
 

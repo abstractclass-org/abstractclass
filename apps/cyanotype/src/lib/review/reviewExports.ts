@@ -7,9 +7,8 @@
 import { STORES, dbGet } from "@abstractclass/storage/db.ts";
 import { branchNodes, type KeptBranches } from "@abstractclass/analysis/kept.ts";
 import { shippedModels } from "@abstractclass/analysis/files.ts";
-import { shareNote } from "@abstractclass/analysis/share.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
-import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, deliverFileOrRecord, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, copyReviewLink, deliverFileOrRecord, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 import { exportReview, reviewFileName } from "../game/reviewFile.ts";
 import { reviewLink } from "../game/share.ts";
 import { loadGame } from "../game/store.ts";
@@ -33,11 +32,7 @@ async function shareLink(id: string, origin: string): Promise<string> {
  *  asked for, copied or as a download. Answers what to tell the player, when that is more than the menu's own note. */
 export async function deliverExport(kind: ExportKind, id: string, record: string, manifest: Manifest | null,
                                     annotated: () => string | Promise<string>): Promise<ExportResult | void> {
-  if (kind === "share_link") {
-    const link = await shareLink(id, location.origin);
-    await navigator.clipboard.writeText(link);
-    return { linkLength: link.length, note: shareNote(link.length) };
-  }
+  if (kind === "share_link") return copyReviewLink(await shareLink(id, location.origin));
   if (kind !== "review_file" && kind !== "record_copy" && kind !== "record_file") throw new Error("the review has no such export");
   return deliverFileOrRecord(kind, reviewFileName(record, id), () => exportReview(id, SITE_VERSION, shippedModels(manifest)),
                              annotated);

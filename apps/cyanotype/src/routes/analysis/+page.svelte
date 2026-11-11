@@ -37,10 +37,9 @@
   import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
   import NewMenu from "@abstractclass/review/NewMenu.svelte";
   import ImportDialog from "@abstractclass/review/ImportDialog.svelte";
-  import { BOARD_EXPORTS, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
-  import { addressNetwork, fileEngine, shippedModels } from "@abstractclass/analysis/files.ts";
+  import { BOARD_EXPORTS, deliverBoardExport, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+  import { addressNetwork, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
-  import { download } from "@abstractclass/site/download.ts";
   import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
@@ -294,17 +293,13 @@
    *  loads in the Review tab, as on Hedge School. */
   async function loadFile(file: File) {
     notice = "";
-    const content = await file.text();
-    try {
-      if (fileKind(content) === "review") throw new Error("this is a review file: load it in the Review tab");
-      // A file whose network the board cannot take alone asks first: a cancel keeps the board as it is.
-      const address = await openAnalysisFile(content, session.manifest, networkChoice.ask); // `/analysis#packed=…`
-      if (!address) return;
-      history.replaceState(null, "", address);
-      location.reload();
-    } catch (e) {
-      notice = `The Analysis board cannot load this file: ${errorSentence(e)}`;
+    const loaded = await loadBoardFile(file, fileKind, text => openAnalysisFile(text, session.manifest, networkChoice.ask));
+    if ("problem" in loaded) {
+      notice = loaded.problem;
       trackLoadFailed("analysis_file", "file");
+    } else if (loaded.address) { // `/analysis#packed=…`
+      history.replaceState(null, "", loaded.address);
+      location.reload();
     }
   }
 
@@ -313,22 +308,16 @@
   async function exportAs(kind: ExportKind, unit: Unit): Promise<ExportResult | void> {
     const g = game, r = R;
     if (!g || !r) return;
-    if (kind === "share_link") {
-      const link = boardLink(location.origin, g.keptBoard(), mainIndex(current, g.mainNames) ?? 0);
-      await navigator.clipboard.writeText(link);
-      return { linkLength: link.length };
-    }
-    if (kind === "analysis_file") {
+    return deliverBoardExport(kind, {
+      link: () => boardLink(location.origin, g.keptBoard(), mainIndex(current, g.mainNames) ?? 0),
       // The file names the board's network, which the board that opens it takes (Hedge School's design 21).
-      download(analysisFileName(), JSON.stringify(await exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest),
-                                                                       fileEngine(session.manifest, session.network))));
-      return;
-    }
-    const text = annotatedRecord({ R: r, unit, tags: startTags(g.startPosition, g.komi), result: "*",
-                                   branches: g.branches, annotator: SITE_NAME,
-                                   note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` });
-    if (kind === "record_copy") await navigator.clipboard.writeText(text);
-    else download("analysis.txt", text, "text/plain");
+      file: () => exportAnalysis(g.keptBoard(), SITE_VERSION, shippedModels(session.manifest),
+                                 fileEngine(session.manifest, session.network)),
+      fileName: () => analysisFileName(),
+      annotated: () => annotatedRecord({ R: r, unit, tags: startTags(g.startPosition, g.komi), result: "*",
+                                         branches: g.branches, annotator: SITE_NAME,
+                                         note: `${SITE_NAME}'s Analysis board, with ${networkName(session.network)} (the network ${session.network}).` }),
+    });
   }
 </script>
 

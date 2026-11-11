@@ -1,6 +1,8 @@
 // The Export menu's entries (ExportMenu.svelte, Hedge School's designs 13 and 21): what each export makes, its label,
 // and what it tells the player. Each page lists its own entries: the review's, the Analysis board's. The entries that
-// every site's pages share are here, so that their words stay one, with the delivery of the review's files.
+// every site's pages share are here, so that their words stay one, with the delivery of the review's files, of its
+// link and of the Analysis board's exports.
+import { DISCORD_LIMIT } from "@abstractclass/analysis/share.ts";
 import { download } from "@abstractclass/site/download.ts";
 
 /** What an export makes, by name (Hedge School's design 17): a share link, a review file or an analysis file, the
@@ -23,6 +25,21 @@ export const REVIEW_LINK: ExportItem =
 export const REVIEW_FILE: ExportItem =
   ["review_file", "Review file, to load later or elsewhere", "With the engine's results: the review opens at once.", "Review file saved"];
 
+/** The note after a review's link is copied: its length, and a warning past a Discord message's limit. `reviewFile`:
+ *  whether the site exports review files, which the warning offers in the link's place. */
+export function shareNote(length: number, reviewFile = true): string {
+  const n = length.toLocaleString("en");
+  return length > DISCORD_LIMIT
+    ? `Link copied: ${n} characters, more than a Discord message takes (${DISCORD_LIMIT.toLocaleString("en")}). Delete some variations${reviewFile ? ", or send the review file" : ""}.`
+    : `Link copied (${n} characters). The recipient's browser reviews the game again.`;
+}
+
+/** Copies a review's link (Hedge School's design 13, item 8), and answers its length and the note on it (shareNote). */
+export async function copyReviewLink(link: string): Promise<ExportResult> {
+  await navigator.clipboard.writeText(link);
+  return { linkLength: link.length, note: shareNote(link.length) };
+}
+
 /** Delivers a game's review file or its annotated record, as both sites' reviews do (Hedge School's design 13): the
  *  file that `file` makes, as a download named `name`; or the annotated record, which `annotated` writes when it is
  *  asked for, copied (`record_copy`) or as a download (any other kind) whose name is the file's with `.txt`. */
@@ -39,6 +56,33 @@ export const RECORD_EXPORTS: ExportItem[] = [
   ["record_copy", "Copy the annotated record", "", "Annotated record copied"],
   ["record_file", "Annotated record as a file", "", "Annotated record saved"],
 ];
+
+/** What the Analysis board exports, each made when it is asked for: its link, its analysis file and the file's name, and
+ *  its annotated record. */
+export interface BoardExport {
+  link(): string;
+  file(): Promise<unknown>;
+  fileName(): string;
+  annotated(): string;
+}
+
+/** Delivers an export of the Analysis board (Hedge School's design 21), as both sites' boards do: its link, copied; its
+ *  analysis file as a download; or its annotated record, copied or as `analysis.txt`. A link's length is counted
+ *  (Hedge School's design 17). */
+export async function deliverBoardExport(kind: ExportKind, board: BoardExport): Promise<ExportResult | void> {
+  if (kind === "share_link") {
+    const link = board.link();
+    await navigator.clipboard.writeText(link);
+    return { linkLength: link.length };
+  }
+  if (kind === "analysis_file") {
+    download(board.fileName(), JSON.stringify(await board.file()));
+    return;
+  }
+  const text = board.annotated();
+  if (kind === "record_copy") await navigator.clipboard.writeText(text);
+  else download("analysis.txt", text, "text/plain");
+}
 
 /** The Analysis board's entries (Hedge School's design 21): the analysis by link, as a file with the engine's results,
  *  or as the annotated record. */
