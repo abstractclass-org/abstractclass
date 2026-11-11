@@ -328,10 +328,10 @@ export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefin
                      && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
-/** Blue's win chance at the game's end, from the final margin (Blue's score less Red's): 1, 0, or 0.5 for a draw by
- *  the record's rule (result.ts), so that the win bar and the line at the end agree. */
-export function resultWin(finalMargin: number): number {
-  const { winner } = resultOfScores([finalMargin, 0]);
+/** Blue's win chance at the game's end, from the final scores (Blue's, then Red's): 1, 0, or 0.5 for a draw by the
+ *  record's rule (result.ts), so that the win bar and the line at the end agree. */
+export function resultWin(scores: readonly [number, number]): number {
+  const { winner } = resultOfScores(scores);
   return winner === null ? 0.5 : winner === 0 ? 1 : 0;
 }
 
@@ -348,8 +348,7 @@ export interface AfterValues { blueWin: number; blueScore: number | undefined; v
 export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind: ScoreKind = "lead", minVisits = 0):
     AfterValues | undefined {
   if (p.over) {
-    const d = p.scores[0] - p.scores[1];
-    return { blueWin: resultWin(d), blueScore: d };
+    return { blueWin: resultWin(p.scores), blueScore: p.scores[0] - p.scores[1] };
   }
   return deepEnough(a, minVisits) ? { blueWin: a.blueWin, blueScore: scoreOf(a, kind), visits: a.visits, ...(a.book ? { book: a.book } : {}) }
     : undefined;
@@ -389,7 +388,7 @@ function summarize(items: Judged[]): [PlayerSummary, PlayerSummary] {
 
 export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, kind: ScoreKind = "lead", minVisits = 0): Review<G> {
   const blueResult = data.result.blue - data.result.red;
-  const final = resultWin(blueResult);
+  const final = resultWin([data.result.blue, data.result.red]);
   const n = data.moves.length, over = data.positions[n]?.over ?? true;
   // The position after the last edge is the end when the game is over: its value is the result. A line that stops
   // before (an unfinished game, the Analysis board's line) has a search there, as any position.

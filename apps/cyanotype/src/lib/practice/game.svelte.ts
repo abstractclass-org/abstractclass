@@ -39,7 +39,9 @@ function playedOf(name: string, before: GamePosition, after: GamePosition): Play
  *  moves (`rules`) are on the latest position where the player moved last: they stay through the bot's turn, so that
  *  the board's view, which fits their anchor hexes, does not change at each turn. */
 export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMove, InputRules> {
-  result = $state<string | null>(null); // the rules' result once the game is over: `b+N`, `r+N` or `0`
+  // The game's result once the rules have ended it: `b+N`, `r+N` or `0`, from the scores with the komi by the one rule
+  // for a draw (stampduty.ts, endResult). Not the rules' own result, which leaves the komi out.
+  result = $state<string | null>(null);
   private described = $state.raw<GamePosition[]>([]); // the engine's positions, each with what the move to it did
   // The set-up start in the engine's one-line form, or null: the standard start. prepare() sets it once the check has
   // read the start, so that a start that the engine cannot read stops the game, not the page.
@@ -81,7 +83,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     this.described = this.described.slice(0, -undone.length);
   }
 
-  /** The game is over: by the rules, with their result, or by Resign, with none. */
+  /** The game is over: by the rules, with its result by the scores, or by Resign, with none. */
   protected async finished() {
     const end = this.described.at(-1);
     if (end?.outcome) this.result = endResult(end, this.kept.komi ?? 0);

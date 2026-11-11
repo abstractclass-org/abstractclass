@@ -1610,7 +1610,7 @@
   // The win chance above the board: the board's own where it has one (Openings: the book's at a book position, design
   // 32), else the review's or the search's
   const blueWin = $derived(game?.winAt(path) ?? (mainAt !== null ? R.blueWin[mainAt]
-    : over ? resultWin(position.scores[0] - position.scores[1]) : analysis?.blueWin ?? NaN));
+    : over ? resultWin(position.scores) : analysis?.blueWin ?? NaN));
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
   // the engine's lead, which KaTrain's graph plots (B+n) and from which the loss in the lead comes. Under it, the score and the
   // area of the lines shown: the lines are scaled and have no axis, so their numbers are only here.
@@ -1634,6 +1634,10 @@
     const { winner, margin } = resultOfScores(scores);
     return winner === null ? even : `${PLAYER_NAME[winner]} +${smallMargin(margin) ?? ONE_DIGIT.format(margin)}`;
   };
+  // The lead after a move, in the move list's note. After a game's last move, when the rules ended it, the lead is the
+  // result: by the rule for a draw and in the chart tip's form (resultSide), so that a win by 0.03 never reads "even".
+  const leadAfter = (i: number) => i === last && endedByRules ? resultSide([R.data.result.blue, R.data.result.red])
+    : R.blueScore[i] === undefined ? undefined : sideText(R.blueScore[i]!, 1);
   const sideShort = (blue: number) =>
     Math.abs(blue) >= 999.5 ? `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${shortPoints(Math.abs(blue))}` : sideText(blue, 0, "0");
   // Made for the position pointed at only: the chart asks for one note at a time.
@@ -2151,7 +2155,7 @@
 {#snippet turnMoves(t: TurnReview<G>)}
   {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
   {#each t.edges as e (e.index)}
-    {@const after = R.blueScore[e.index + 1]}
+    {@const after = leadAfter(e.index + 1)}
     {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
     {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : mainUnlabeled) : ""}
     {@const shown = forSide(e.player) ? e.label : null}
@@ -2159,7 +2163,7 @@
     <!-- On the board too, where the position has a result: from the complexity, as the board's `hard` is the record's,
          on the moves evaluated only (onlyJudged). -->
     {@const hard = forSide(e.player) && isHard(e.complexity)}
-    {@const tip = tooltip(judged, after !== undefined ? `Lead: ${sideText(after, 1)}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : "")}
+    {@const tip = tooltip(judged, after !== undefined ? `Lead: ${after}` : "", unit === "edge" && board ? searchNote(hard, [R.data.analysis[e.index]]) : "")}
     <!-- A move fills its column. By edge, its label, the hard position's ◆ and its loss stand together at the
          column's right, as a turn's do at the turn's right, so that they line up down the list. The loss is
          last, where Lichess's move list has its evaluation: the mover's loss in the lead, so that a number never needs

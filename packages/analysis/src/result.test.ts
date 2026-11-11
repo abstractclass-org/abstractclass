@@ -29,8 +29,8 @@ test("a record's result by the scores takes the same rule: a resignation, a forf
 });
 
 test("the value at the game's end takes the same rule: a draw within the record's rounding is 0.5", () => {
-  assert.deepEqual([resultWin(27.5), resultWin(-3), resultWin(0)], [1, 0, 0.5]);
+  assert.deepEqual([resultWin([40, 12.5]), resultWin([3, 6]), resultWin([20, 20])], [1, 0, 0.5]);
   // Scores of 10.0000004 and 10: the line says "A draw", and the win bar shows 50%, not Blue at 100%.
-  assert.deepEqual([resultWin(4e-7), resultWin(-4e-7), resultWin(10.0000004 - 10)], [0.5, 0.5, 0.5]);
-  assert.deepEqual([resultWin(0.03), resultWin(-0.03)], [1, 0]); // a win by 0.03 is a win
+  assert.deepEqual([resultWin([10.0000004, 10]), resultWin([10, 10.0000004]), resultWin([0.1 + 0.2, 0.3])], [0.5, 0.5, 0.5]);
+  assert.deepEqual([resultWin([10.03, 10]), resultWin([10, 10.03])], [1, 0]); // a win by 0.03 is a win
 });

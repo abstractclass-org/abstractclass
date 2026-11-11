@@ -440,11 +440,11 @@ How strong each setting plays against people is not measured yet.
   analysis file at a komi). Here: `practice.test.ts`, `stored.test.ts`, `store.test.ts`, `reviewFile.test.ts`,
   `analysisFile.test.ts`, `board.test.ts`, the book's `game.test.ts` ("the review of a game at a komi takes nothing
   from the book …") and `reviewBook.test.ts`. Cyanotype's: `store.test.ts`, `import.test.ts`, `board.test.ts`,
-  `analysisFile.test.ts` and `stampduty.engine.test.ts` (the result at a game's end). In the browser:
-  `tests/practice-komi.spec.ts` (the
-  card, a game at a komi, its review, the opening book at a komi, also in a reviewed game whose moves have their
-  labels, and the Analysis board's record and analysis file out and back in), `tests/openings.spec.ts` (a record with
-  a komi) and Cyanotype's in `tests/cyanotype-practice.spec.ts`.
+  `analysisFile.test.ts`, `stampduty.engine.test.ts` (the result at a game's end) and `stampduty.test.ts` (the result
+  takes the rule for a draw at every komi). In the browser: `tests/practice-komi.spec.ts` (the card, a game at a komi,
+  its review, the opening book at a komi, also in a reviewed game whose moves have their labels, and the Analysis
+  board's record and analysis file out and back in), `tests/openings.spec.ts` (a record with a komi) and Cyanotype's
+  in `tests/cyanotype-practice.spec.ts`.
 
 ## Log entries
 

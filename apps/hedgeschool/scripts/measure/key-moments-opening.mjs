@@ -85,7 +85,7 @@ function engineLine(ps, s, e, budget) {
 function judge(g, budgetOf) {
   const ps = g.ps, n = ps.length, { scores, end } = g.facts, scored = !end || end === "score";
   const value = i => {
-    if (i >= n) return scored ? { win: resultWin(scores.b - scores.r), lead: scores.b - scores.r } : undefined;
+    if (i >= n) return scored ? { win: resultWin([scores.b, scores.r]), lead: scores.b - scores.r } : undefined;
     const r = ps[i]?.budgets[budgetOf(i)];
     return r && { win: r.winrate, lead: r.scoreLead };
   };

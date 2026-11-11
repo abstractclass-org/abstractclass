@@ -249,7 +249,8 @@ edit in the same commit), so their changes still apply.
      the winner and the margin with no unit: "Blue won by 28.5" (`resultText`, with the game's `fmtMargin`). A margin
      that one decimal writes as 0.0 takes as many decimals as it needs, up to six: "Red won by 0.03" (`smallMargin`, in
      each game's format). The review uses them in each game's `ending` (`endingWords`: the result, a resignation, a
-     forfeit, or no end yet), in the board's line at the game's end, and in the chart's result and the final margin.
+     forfeit, or no end yet), in the board's line at the game's end, in the chart's result and the final margin, and in
+     the move list's note on the game's last move ("Lead: Red +0.03").
      Practice uses them in its stored result and its outcome (`@abstractclass/practice`'s `scoreResult` and
      `practiceOutcome`), and in each site's line at the game's end.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its

@@ -220,7 +220,7 @@ export function turnsOf<M extends { player: Player }>(played: readonly M[], text
 export const resignResult = (human: Player) => (human === 0 ? "r+R" : "b+R");
 
 /** The result of a game that the rules ended, from its scores (Blue's, then Red's): `b+12.5`, `r+3`, or `0`, by the
- *  view's rule for a draw, with the margin to six decimals (resultOfScores). */
+ *  one rule for a draw, with the margin to six decimals (resultOfScores, in the analysis package's result.ts). */
 export function scoreResult(scores: [number, number]): string {
   const { winner, margin } = resultOfScores(scores);
   return winner === null ? "0" : `${winner === 0 ? "b" : "r"}+${margin}`;
@@ -228,8 +228,8 @@ export function scoreResult(scores: [number, number]): string {
 
 export type PracticeOutcome = "won" | "lost" | "draw" | "resigned" | "aborted";
 
-/** The player's outcome of a game that the rules ended, from the scores (Blue's, then Red's) by the view's rule for a
- *  draw (resultOfScores), or of a resignation. */
+/** The player's outcome of a game that the rules ended, from the scores (Blue's, then Red's) by the one rule for a
+ *  draw (resultOfScores, in the analysis package's result.ts), or of a resignation. */
 export function practiceOutcome(scores: [number, number], human: Player, resigned: boolean): PracticeOutcome {
   const { winner } = resultOfScores(scores);
   return resigned ? "resigned" : winner === null ? "draw" : winner === human ? "won" : "lost";

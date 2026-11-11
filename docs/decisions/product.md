@@ -10962,6 +10962,57 @@ load. In both, the Practice page showed no content after a load.
   `packages/analysis/src/kept.ts` gives both forms. Both sites take it: Hedge School's kept board beyond the limit, and
   Cyanotype's kept board with a komi or with a start that no game reaches.
 
+### One rule and one text for a game's result (2026-11-10)
+
+Beads abscls-3mzd. Design 29 ("The result by the scores") holds the design now.
+
+- **The problem:** a tie on the board read "Red won by 0.0". Four places wrote a game's result, each with its own code.
+  The board's line at the game's end (`packages/review/src/ReviewView.svelte`) took Red on equal scores and always
+  wrote one decimal. Each game's `endingText` (Hedge School's `enclosure.ts`, Cyanotype's `blueprints.ts`) wrote "A
+  draw" or "Blue won by 27.5". Hedge School's Practice wrote "Game over: a draw." or "Game over: Blue wins by 27.5.",
+  and Cyanotype's Practice read its words from the stored result. Practice also had two rules for a draw: the stored
+  result (`scoreResult`) took equal scores, and the outcome for the analytics (`practiceOutcome`) a margin under 0.05.
+- **The rule for a draw:** the margin rounded to six decimals, as a record writes it (`r+377.651497`), and a draw when
+  that is 0. The audit of abscls-70t7 took 0.05 as a tolerance for floating-point error only, because every real
+  margin was whole or half (engines' design 08: 737 games). That is not true of Enclosure. Its areas are exact
+  rationals, so a margin can be any number at any komi (design 24, "Whole points"). The game of the fixture
+  `tests/fixtures/hedgefund-review.json` ends `r+377.651497`. A tolerance of 0.05 would make a win by 0.03 a draw.
+  The first build had it, and the review took it out. The record's rounding takes away only the error of a
+  floating-point sum, and the record's result and the words then always agree. `resultOfScores` gives the winner, or
+  none for a draw, and the margin. `resultOfRecord` reads a record's result by the same rule, and gives none for a
+  resignation (`b+R`), a forfeit (`r+F`) or no result (`*`). Both were in `packages/review/src/game.ts`. abscls-5lga
+  moved them to `packages/analysis/src/result.ts` ("One rule for a draw in the value at the game's end …").
+- **The one text:** "A draw", or the winner and the margin with no unit, "Blue won by 28.5" (`resultText`, with the
+  game's own format of a margin, `fmtMargin`). A margin that one decimal writes as 0.0 takes as many decimals as it
+  needs, up to six: "Red won by 0.03" (`smallMargin`). Before, it read "won by 0.0". The two games' `endingText` now
+  share one `endingWords`. The board's line, the review's status line at the last move, the Highlights, the chart's
+  "Result:" and the engine box's "Final margin" (before: "Result: even" and "Final margin 0" for a win by 0.03), both
+  Practice pages' lines, the stored result and the analytics' outcome take the rule.
+- **Practice's words:** the review's words, after each site's frame and a full stop: "Game over. Red won by 377.7."
+  (before: "Game over: Red wins by 377.7."), "Game over. A draw." and Cyanotype's "The game is over. Blue won by 24."
+  The other form kept Practice's "wins by" and "a draw" with a second form of the words. One text in every place was
+  the goal, so the review's words were chosen. A look at Hedge School's Practice on the built site (dev `e3897254`
+  and the branch, headless Chromium, the fixture's whole game kept in Practice at komi 0) showed the win. It
+  showed no tie: no test game ends within 0.05 of one, and Practice and the Analysis board take only a whole or half
+  komi. Cyanotype's line now has the review's thousands separator ("Red won by 1,030"). Its words come from the
+  position's scores with the komi, which agree with its stored result at every komi tested.
+- **Blueprints' margin with a half komi:** the record reader takes a half komi for every game, and Blueprints'
+  engine takes it. Its format of a margin rounded to whole points, so 24.5 read "won by 25". It now keeps one
+  decimal: "24", "24.5", "1,024". Blueprints' records keep their half komi.
+- **Tests:** a tie and a floating-point tie in `packages/review/src/game.test.ts`,
+  `packages/practice/src/practice.test.ts` and Hedge School's `src/lib/review/enclosure.test.ts`, with the records
+  `r+0.03` (a win), `b+0.0000004` (a draw) and `b+0.000001`. Cyanotype's new `blueprints.test.ts` has `b+24.5` and
+  `r+0.5`. Cyanotype's `stampduty.engine.test.ts` checks that the Practice line and the stored result say the same at
+  komis 0, 300, -300, -730 and -1000 ("Red won by 730" to "Blue won by 270", and "A draw" at -730). Hedge School's
+  `src/lib/practice/practice.test.ts` had the case `practiceOutcome([50.02, 50])`: it was a draw by the old rule,
+  and is a loss now.
+- **Checks:** `npm run check:all` passed all 18 steps, with no node test skipped, and the layout tests 243 of 243 in
+  Chromium. Merged to dev `9a3e86f7` in one train with abscls-x2d0 and abscls-fqm7: the site suite on the train passed
+  244 with no skip. The Tests workflow passed, and the release check passed on both dev sites.
+- **Left for later** (abscls-5lga): the value at the game's end (`resultWin`) took a strict sign, and Cyanotype's
+  stored result at komi 0 took the engine's own result. The importers keep the other site's winner, because their
+  records state that site's result.
+
 ### An analysis file opens with its own network (2026-11-11)
 
 - **The problem** (abscls-mgme): a player's analysis file held HedgeFund 0.2's results, and the browser's setting was
@@ -11138,3 +11189,19 @@ hook as of c2cdbc1, engines 769a2f1b); this repository's hook now does the same.
   with a newline, which Git for Windows refuses to stage), and 29 with 1 skipped in WSL with dash and Linux Git (no
   node there). check:all passed all 19 steps. The branch's commits went through the new hook. The workflow Documents
   runs the test on each push to `dev`.
+
+### The move list's note on a game's last move takes the result's rule (2026-11-11)
+
+Beads abscls-iynz, the later steps of abscls-5lga.
+
+- **The note:** the move list's note on a move gives the lead after it, with one decimal. After the game's last move,
+  when the rules ended the game, the lead is the result. A win by 0.03 then read "Lead: even", while the board's line
+  said "Red won by 0.03" and the chart's tip "Result: Red +0.03". The note now takes the rule for a draw and the
+  chart's form there (`resultSide` in `packages/review/src/ReviewView.svelte`): "Lead: Red +0.03". Only a game that
+  ends less than 0.05 apart reads differently. A draw still reads "Lead: even".
+- **The value at the game's end takes the two scores:** `resultWin` (`packages/analysis/src/model.ts`) takes Blue's
+  and Red's scores, as `resultOfScores` does, in place of their difference. Its callers in the analysis, the view and
+  `apps/hedgeschool/scripts/measure/key-moments-opening.mjs` give it the scores. Its values do not change.
+- **Comments:** Practice's `scoreResult` and `practiceOutcome` name the rule's place, `result.ts` of the analysis
+  package. Cyanotype's practice game says that its `result` is the scores' with the komi (`endResult`), not the
+  rules' own result.
