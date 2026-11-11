@@ -11,7 +11,7 @@
 // apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves there. Each test opens a
 // fresh browser context, so its store starts empty. The tests skip, with a message, when the preview has no engine
 // files. Run: npx playwright test tests/cyanotype-editor.spec.ts, with CYANOTYPE_BASE_URL.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
 import { writePosition } from "../../cyanotype/src/lib/game/position.ts";

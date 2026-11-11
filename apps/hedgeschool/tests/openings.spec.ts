@@ -6,7 +6,7 @@
 // it, on the CPU only.
 // The test book is served by the dev and preview servers only, and Openings is in the early edition's builds that they
 // serve (edition.ts, OPENINGS): elsewhere the tests are skipped.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 
 const ENGINE_KEY = "learn-enclosure:engine:2", DISPLAY_KEY = "learn-enclosure:review-display:1";
 const WAITS = "The engine waits at a book position. To search, select Candidates.";

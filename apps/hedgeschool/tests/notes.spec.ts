@@ -5,7 +5,7 @@
 // line drawn the other way is the same line: it has no head. A left click on the board clears the position's notes.
 // The notes stay with their position for the visit. Cyanotype's notes are in cyanotype-notes.spec.ts. Run: npx
 // playwright test tests/notes.spec.ts.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { rightClick, rightDrag } from "./cyanotype-notes.ts";
 

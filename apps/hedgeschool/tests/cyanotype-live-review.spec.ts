@@ -4,7 +4,7 @@
 // file of its own: cyanotype-review.spec.ts runs its tests in turn, and skips the rest after a failure. Without the
 // engine's files the test skips, with a message, and fails in CI. Run: npm run test:layout --
 // tests/cyanotype-live-review.spec.ts, with CYANOTYPE_BASE_URL.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./page-log.ts";
 import { LIVE_TURNS, LIVE_WAIT, engineWork, keptResults, noReview, reviewFirstTurns, storedResults }
   from "./cyanotype-review.ts";
 

@@ -11,7 +11,7 @@
 // - An older mark, which names no search. Its review is older than the book and searched every position.
 // The engine is off, so that nothing searches. Run: npm run test:layout (the site running first).
 import { readFileSync } from "node:fs";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";

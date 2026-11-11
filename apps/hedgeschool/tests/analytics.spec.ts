@@ -2,7 +2,7 @@
 // (scripts/check-all.mjs). No request reaches PostHog: tests/posthog.ts answers its addresses in its place, and keeps
 // what the pages sent. That a build without the key holds none of PostHog's code is check:all's step
 // `cyanotype-no-posthog`, on a build of Cyanotype without the key.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor } from "./posthog.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;

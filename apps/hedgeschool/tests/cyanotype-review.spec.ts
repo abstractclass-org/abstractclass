@@ -10,7 +10,8 @@
 // Analysis board's check of a record brought to it, and its refusal of a kept board with a komi. Without the engine's
 // files the tests skip, with a message. Run:
 // npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
-import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
+import type { BrowserContext, Locator } from "@playwright/test";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
 import { readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";

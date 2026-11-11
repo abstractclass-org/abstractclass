@@ -5,7 +5,7 @@
 // request reaches PostHog: the context's route (tests/posthog.ts) answers in its place and keeps the events that the
 // pages sent, across the pages' loads, with the beacons that a page sends as it goes. The Review tab loads the page
 // again once it keeps a review file, so its event load_saved goes in such a beacon.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import { EDGE_RANGES, range } from "../../../packages/site/src/measure.ts";
 import { EARLIER_REVIEWED, earlierReview, fileInput } from "./review-file.ts";
 import { CYANOTYPE, MOVES, STORED, exportedFile, loadStoredFile, noReview, openReviewTab, reviewStoredFile }

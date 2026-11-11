@@ -13,7 +13,7 @@
 //     version that the page names. A build with no engine files (before `npm run engine`) skips this test, and fails
 //     it in CI, where the Tests workflow builds each site with them.
 // Run: npm run test:layout -- tests/notices.spec.ts
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 
 // The packages' files, by their paths from apps/hedgeschool, where the browser tests run. The font's LICENSE file has

@@ -8,8 +8,9 @@
 // candidate takes the hex that it pressed. Hedge School's notes are in notes.spec.ts. The review's notes are in
 // cyanotype-review.spec.ts, which reviews the game once. Without the engine's files the tests skip, with a message.
 // Run: npx playwright test tests/cyanotype-notes.spec.ts, with CYANOTYPE_BASE_URL.
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "./page-log.ts";
 import { readFileSync } from "node:fs";
+import { keepBefore } from "./keep-before.ts";
 import { CYANOTYPE, MOVES, noReview, reviewTestGame } from "./cyanotype-review.ts";
 import { analysisAt, BRUSHES, field, hexSpot, hexUnder, marksOn, middleHex, notesOn, rightClick, rightDrag, spot }
   from "./cyanotype-notes.ts";
@@ -244,11 +245,10 @@ test.describe("with the engine's files", () => {
     const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
     const moves = fixtures.find(f => f.name === "A middle game")!.moves; // Red to move
     await page.setViewportSize({ width: 1376, height: 952 });
-    await page.goto(new URL("/practice", CYANOTYPE).href);
-    await page.evaluate(kept => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify(kept)),
+    await keepBefore(page, "cyanotype:practice-game:1",
       { version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
         human: 1, name: "", seed: 1, moves, builds: [], started: new Date().toISOString() });
-    await page.reload();
+    await page.goto(new URL("/practice", CYANOTYPE).href);
     await expect(page.getByTestId("practice-status")).toHaveText(/^Your turn/, { timeout: 120_000 });
     await rightClick(page, await spot(page, -60, 0), ["Control"]);
     await rightDrag(page, await spot(page, -60, 40), await spot(page, 60, 40));

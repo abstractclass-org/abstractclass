@@ -5,7 +5,7 @@
 // run has two pool sizes and stays short. The test hides the tab during the measure of 2 workers: that measure stops,
 // and "Run it again" runs it and ends the run. The block that "Copy results" copies holds every measure. The browser
 // here gives no GPU adapter (playwright.config.ts runs Chromium off the GPU), so the GPU part says that it did not run.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 const PATH = "/lab/measure?seconds=4";

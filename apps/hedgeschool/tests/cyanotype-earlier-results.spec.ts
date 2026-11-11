@@ -10,7 +10,7 @@
 // The test also times the removal's transaction: from the browser's mark that a removal runs (cache.ts, earlierRemoval)
 // to the mark that it ended. The test skips, with a message, when the preview has no engine files, and fails in CI.
 // Run: npx playwright test tests/cyanotype-earlier-results.spec.ts, with CYANOTYPE_BASE_URL.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import type { Manifest } from "../../../packages/engine/src/client.ts";
 import { EARLIER_MARK, SHAPE_MARK, SHAPE, engineFiles, lineKeyMoves, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";

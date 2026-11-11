@@ -5,7 +5,7 @@
 // three moves (the first turn's other move, then a turn of two), each evaluated. In a review, the same variation, with
 // "Review for" set to Blue: Red's moves show no wait, by edge and by turn.
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
 import { boardLink } from "../src/lib/game/board.ts";
 import { fileInput } from "./review-file.ts";
 

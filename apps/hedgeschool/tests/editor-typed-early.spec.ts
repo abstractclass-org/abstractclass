@@ -7,7 +7,7 @@
 // run when CYANOTYPE_BASE_URL gives its preview with the engine files. Run, with BASE_URL (and CYANOTYPE_BASE_URL):
 //   npm run test:layout -- tests/editor-typed-early.spec.ts --project=chromium
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
 import { writePosition } from "../../cyanotype/src/lib/game/position.ts";
 import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
 import { EDITOR_KEY } from "../../cyanotype/src/lib/site.ts";

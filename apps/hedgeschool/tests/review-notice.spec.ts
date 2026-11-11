@@ -4,7 +4,7 @@
 // narrowest), so a larger text size cuts it, as a player's browser setting would. The review is of
 // tests/fixtures/hedgefund-review.json's game, from no stored result, in a window 360 pixels wide. Run: npm run
 // test:layout (the site running first).
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 
 const record = JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record as string;

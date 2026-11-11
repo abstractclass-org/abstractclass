@@ -25,6 +25,8 @@ const steps = [
   { name: "engine-kinds", cwd: root, command: "node scripts/engine-kinds.mjs" },
   // No package imports a site (design 29, item 1).
   { name: "package-imports", cwd: root, command: "node scripts/package-imports.mjs" },
+  // Each spec file takes its test from tests/page-log.ts, which keeps the page log of a failing case.
+  { name: "spec-page-log", cwd: root, command: "node scripts/spec-page-log.mjs" },
   // Each block of the owner's steps in the documents names its own URL, clicks and values, and sends the reader to no
   // other section for what to do (scripts/owner-steps.mjs).
   { name: "owner-steps", cwd: root, command: "node scripts/owner-steps.mjs" },

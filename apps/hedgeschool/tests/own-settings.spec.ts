@@ -2,7 +2,7 @@
 // at a preset's visits keeps its row, and a game from a review file stores each change. The layout test's game
 // (tests/fixtures/hedgefund-review.json, HedgeFund 0.1 Lite at 512 visits) as it loads, then the same game without its
 // settings: its review's mark names 0.1 Lite, and it stores none. The engine is off, so nothing searches.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json", EARLIER = "b10c128-s66625408-d13350730";

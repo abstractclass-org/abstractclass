@@ -21,8 +21,10 @@
 // Every page's sweep checks the header in one row, with Openings' fourth tab where the build has it. A last test checks
 // the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site
 // running first).
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
+import type { Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { keepBefore } from "./keep-before.ts";
 import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewStoredFile, storeReview, toolLink }
   from "./cyanotype-review.ts";
@@ -367,11 +369,10 @@ test("layout of a practice game on Cyanotype", async ({ page }) => {
             "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build");
   const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
   const moves = fixtures.find(f => f.name === "A middle game")!.moves; // Red to move
-  await page.goto(new URL("/practice", CYANOTYPE).href);
-  await page.evaluate(kept => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify(kept)),
+  await keepBefore(page, "cyanotype:practice-game:1",
     { version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
       human: 1, name: "", seed: 1, moves, builds: [], started: new Date().toISOString() });
-  await page.reload();
+  await page.goto(new URL("/practice", CYANOTYPE).href);
   await expect(page.getByTestId("practice-status")).toHaveText(/^Your turn/, { timeout: 120_000 });
   const own = (p: Page) => p.evaluate(() => {
     const out: string[] = [], status = document.querySelector('[data-testid="practice-status"]');
@@ -718,12 +719,11 @@ test("the sentence under the book's table keeps the move list in place", async (
  *  edges, the player to move next, so that the bot does not search. */
 async function practiceGame(page: Page) {
   const moves = fixtureRecord().replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
-  await page.goto("/practice");
-  await page.evaluate(kept => localStorage.setItem("hedge-school:practice-game:1", JSON.stringify(kept)), {
+  await keepBefore(page, "hedge-school:practice-game:1", {
     version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "", seed: 1,
     moves, builds: [], started: new Date().toISOString(),
   });
-  await page.reload();
+  await page.goto("/practice");
   await expect(page.locator(".mv").first()).toBeVisible({ timeout: 120_000 });
 }
 

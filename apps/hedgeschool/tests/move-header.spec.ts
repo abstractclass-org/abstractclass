@@ -3,7 +3,7 @@
 // at the position after move 20, on a phone 360 pixels wide. There M12-O13 is cut and the other names are smaller, and
 // the open column is wider than the table's box. At 1,920 pixels the names have room, but M12-O13 is cut in its slot
 // (4.1 em of its own size): the header shows its mark there too.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./page-log.ts";
 import { checkMoveHeader, readTable, tableBox, toMove } from "./move-header.ts";
 import { loadReviewFile } from "./review-file.ts";
 

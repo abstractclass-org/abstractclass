@@ -23,6 +23,7 @@ import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
 import { hexKey, parseHex, shift, TOUCHING } from "../../cyanotype/src/lib/board/hex.ts";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { LITE } from "./cyanotype-review.ts";
+import { keepBefore } from "./keep-before.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 const STATUS = '[data-testid="practice-status"]';
@@ -86,13 +87,6 @@ async function botManifest(page: Page): Promise<BotManifest> {
   test.skip(!bot, why);
   return manifest;
 }
-
-/** Keeps `value` in the browser's storage at `key` before the page's code runs, on each load from now on, as from an
- *  earlier visit. A write after page.goto can come before the first load's code reads the storage (abscls-z0jz):
- *  docs/working-notes.md, "A page's code runs after page.goto returns". */
-const keepBefore = (page: Page, key: string, value: object) => page.addInitScript(([k, v]) => {
-  try { localStorage.setItem(k, v); } catch { /* about:blank has no storage */ }
-}, [key, JSON.stringify(value)]);
 
 /** Opens Practice with the card's choices kept: the bot at 32 visits with the preview's network, and `more`. */
 async function openWithChoices(page: Page, manifest: BotManifest, more: object = {}) {

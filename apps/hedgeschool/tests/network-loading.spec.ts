@@ -2,7 +2,7 @@
 // network…" in the place of the visits, on the review and on the Analysis board, and the visits come back once the
 // network is loaded. The test holds the network's files until it has read the header. The layout test's game
 // (tests/fixtures/hedgefund-review.json, with its results), with the engine off, so that nothing searches.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json", WORDS = "Loading the engine's network…";

@@ -11,7 +11,7 @@
 // - The exports: the annotated record from the review page and from the store (the Review tab's Export) are one text,
 //   and the review file that the review page exports opens the review in a new browser with no search.
 // The tests skip, with a message, when the preview has no engine files, and fail in CI.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import { belongs } from "../../../packages/analysis/src/files.ts";
 import { positionKeys } from "../../../packages/analysis/src/kept.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";

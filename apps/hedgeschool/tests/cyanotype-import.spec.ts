@@ -8,7 +8,7 @@
 // so its store starts empty. The tests that need the engine skip, with a message, when the preview has no engine files.
 // Run: npx playwright test tests/cyanotype-import.spec.ts, with CYANOTYPE_BASE_URL.
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
 import { writePosition } from "../../cyanotype/src/lib/game/position.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";

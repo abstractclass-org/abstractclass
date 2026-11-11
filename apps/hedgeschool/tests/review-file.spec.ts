@@ -6,7 +6,7 @@
 // - a file's game comes in as a pasted record does (design 13, src/lib/game/import.ts): the engine's rules check its
 //   moves, its record gets its cut marks, and a browser that cannot keep games says so in the paste's words.
 import { readFileSync } from "node:fs";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { fileInput, loadReviewFile } from "./review-file.ts";
 

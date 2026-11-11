@@ -16,7 +16,7 @@
 // engine's files. Run: npm run test:layout -- tests/analysis-file-network.spec.ts --project=chromium, with BASE_URL (and
 // CYANOTYPE_BASE_URL).
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
 import { ANALYSIS_FILE_VERSION } from "../../../packages/analysis/src/files.ts";
 import { EARLIER_MARK, engineFiles, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { BOARD_ID, boardOfLine, type KeptBoard } from "../../../packages/analysis/src/kept.ts";

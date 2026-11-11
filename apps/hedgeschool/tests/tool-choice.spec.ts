@@ -4,7 +4,7 @@
 // the click, with its reason. A tool from before the import page opens the review, which asks too. A partner's link
 // goes straight to the review (design 18). On the review, a link's record gets the Review tab. Each test opens a
 // fresh browser context, so its store starts empty.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./page-log.ts";
 
 const record = '[Event "meaf.us game"]\n[Site "meaf.us"]\n[Blue "Ann"]\n[Red "Bo"]\n[Result "*"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *\n';
 /** The link that the bookmarklet opens on meaf.us for `game` (by default the record above): `at` is the position that

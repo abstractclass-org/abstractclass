@@ -2,7 +2,8 @@
 // the case's own context, with the time since the case started. A case that fails gets the log as the file
 // page-log.txt in its folder of test-results, which keeps it after the run, so that a failure that happens only under
 // load keeps its evidence (abscls-z0jz). A case that passes writes nothing. A spec file takes it in place of
-// @playwright/test's own: `import { expect, test } from "./page-log.ts"`. A context that a case makes itself
+// @playwright/test's own: `import { expect, test } from "./page-log.ts"`. `npm run check:all` refuses a spec that takes
+// `test` from @playwright/test (scripts/spec-page-log.mjs). A context that a case makes itself
 // (browser.newContext) is not in the log. Playwright's trace keeps the same events, but it also writes each
 // response's body, the engine's files too, for every case.
 import { writeFile } from "node:fs/promises";

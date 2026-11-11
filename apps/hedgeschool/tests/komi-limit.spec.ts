@@ -7,7 +7,7 @@
 // Cyanotype's case runs when CYANOTYPE_BASE_URL gives its running preview. Run:
 // npm run test:layout -- tests/komi-limit.spec.ts --project=chromium, with BASE_URL (and CYANOTYPE_BASE_URL).
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
 import { ANALYSIS_FILE_VERSION } from "../../../packages/analysis/src/files.ts";
 import { BOARD_ID, boardOfLine, type KeptBoard } from "../../../packages/analysis/src/kept.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";

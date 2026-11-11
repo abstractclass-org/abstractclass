@@ -5,7 +5,8 @@
 // the token's (`--sign-green`, `--sign-yellow` in packages/review/src/review.css). By edge and by turn, in the light
 // theme, then the board and the legend of the last position in both themes. Run:
 // npx playwright test tests/area-map-signs.spec.ts --project=chromium.
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./page-log.ts";
+import type { Locator } from "@playwright/test";
 import { loadReviewFile } from "./review-file.ts";
 import { toMove } from "./move-header.ts";
 
