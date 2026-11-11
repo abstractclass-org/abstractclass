@@ -13,7 +13,8 @@
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's home
 // page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Four check the
 // header's "Early Access" link, on each site in each theme. Two check Cyanotype's
-// Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
+// Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check that
+// a practice game's one column agrees with itself between 799 and 800 pixels wide, on each site. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
 // book's table, where the build has it (edition.ts, OPENINGS), while the engine's network loads and once it has
@@ -22,6 +23,7 @@
 // Every page's sweep checks the header in one row, with Openings' fourth tab where the build has it. A last test checks
 // the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site
 // running first).
+import type { BrowserType, LaunchOptions } from "@playwright/test";
 import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { keepBefore } from "./keep-before.ts";
@@ -750,6 +752,66 @@ async function practiceGame(page: Page) {
 test("layout of a practice game", async ({ page }) => {
   await practiceGame(page);
   expect(await sweep(page, "/practice in a game")).toBe("");
+});
+
+// Practice at a width between 799 and 800 pixels, as a browser's zoom or a screen's scale gives it. The frame's one
+// column, the fixed step bar and Cyanotype's hands under the board take one query, the one column's (ONE_COLUMN,
+// packages/review/src/oneColumn.ts), so they agree at that width. Chromium gives an iframe and an emulated window whole
+// pixels, so the case starts a browser of its own, with the project's launch options, at a scale of 1.5 (Windows'
+// 150 %): its window of 799 pixels is 1,199 device pixels, and its page is 799.33 pixels wide. The page log
+// (page-log.ts) does not read that browser: a failure's evidence is the case's message and its numbers. On each site,
+// a game in progress.
+const ONE_COLUMN = "(max-width: 799px)";
+const BETWEEN = ["--force-device-scale-factor=1.5", "--window-size=799,900"];
+/** Where the frame's columns, the step bar's place and (with `hands`) the hands' place disagree with the one column's
+ *  query, on `origin`'s /practice between 799 and 800 pixels wide, with `kept` in the browser under `key`, once `ready`
+ *  shows. */
+async function oneColumnBetween(browserType: BrowserType, launchOptions: LaunchOptions, origin: string, key: string,
+                                kept: object, ready: RegExp, hands: boolean) {
+  const browser = await browserType.launch({ ...launchOptions, args: [...(launchOptions.args ?? []), ...BETWEEN] });
+  try {
+    const page = await (await browser.newContext({ viewport: null })).newPage();
+    await page.goto(new URL("/notices", origin).href); // a page of the site that starts no engine
+    await page.evaluate(({ key, kept }) => localStorage.setItem(key, JSON.stringify(kept)), { key, kept });
+    await page.goto(new URL("/practice", origin).href);
+    await expect(page.getByText(ready).first()).toBeVisible({ timeout: 120_000 });
+    return await page.evaluate(({ query, hands }) => {
+      const out: string[] = [];
+      if (!matchMedia("(799px < width < 800px)").matches) return [`the page is ${visualViewport?.width} pixels wide, not between 799 and 800`];
+      const one = matchMedia(query).matches, matches = one ? "matches" : "does not match";
+      const bar = document.querySelector(".step-dock"), main = bar?.closest("main");
+      const columns = main ? getComputedStyle(main).gridTemplateColumns.split(" ").length : 0;
+      if (columns !== (one ? 1 : 2)) out.push(`the frame has ${columns} columns, and the one column's query ${matches}`);
+      if (bar && (getComputedStyle(bar).position === "fixed") !== one)
+        out.push(`the step bar is ${one ? "not " : ""}fixed to the window's foot, and the one column's query ${matches}`);
+      if (hands && !!document.querySelector(".hands-panel") === one)
+        out.push(`the hands are ${one ? "in their panel" : "under the board"}, and the one column's query ${matches}`);
+      return out;
+    }, { query: ONE_COLUMN, hands });
+  } finally {
+    await browser.close();
+  }
+}
+
+test("a practice game's one column between 799 and 800 pixels wide", async ({ browser, launchOptions, baseURL }) => {
+  const moves = fixtureRecord().replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
+  expect(await oneColumnBetween(browser.browserType(), launchOptions, baseURL!, "hedge-school:practice-game:1", {
+    version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "", seed: 1,
+    moves, builds: [], started: new Date().toISOString(),
+  }, /^Your turn/, false)).toEqual([]);
+});
+
+test("a practice game's one column on Cyanotype between 799 and 800 pixels wide", async ({ browser, launchOptions, page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json()).catch(() => null);
+  test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
+            "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build");
+  const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
+  expect(await oneColumnBetween(browser.browserType(), launchOptions, CYANOTYPE!, "cyanotype:practice-game:1", {
+    version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
+    human: 1, name: "", seed: 1, moves: fixtures.find(f => f.name === "A middle game")!.moves, builds: [],
+    started: new Date().toISOString(),
+  }, /^Your turn/, true)).toEqual([]);
 });
 
 /** Where the step bar on a phone fails, as text: at every 100 pixels down the page, the board in view and the step back

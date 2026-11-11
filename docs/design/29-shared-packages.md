@@ -521,8 +521,9 @@ edit in the same commit), so their changes still apply.
   `PracticeCard.svelte` (the settings card), `PracticeFrame.svelte` (the game's layout: a square board or one that fills
   the room), `ReplaceGame.svelte` (the question when a start comes while a game is in progress), `game.svelte.ts` (the
   game's flow, which each site's game extends, with its tests on a game of words), `page.svelte.ts` (the page's flow,
-  with each site's parts), `PracticeActions.svelte` and `ConfirmEnd.svelte` (Take back, Abort and Resign, and the
-  question before Abort or Resign), `bot.ts`,
+  with each site's parts), `practiceEvents.ts` (its events' parameters), `PracticeActions.svelte` and
+  `ConfirmEnd.svelte` (Take back, Abort and Resign, and the question before Abort or Resign), `PlayersSkeleton.svelte`
+  and `PracticeMoves.svelte` (the row above the board while the bot starts, and the move list's frame), `bot.ts`,
   `botWorker.ts` and `botMessages.ts` (the page's side of the practice bot and its worker), `botForms.ts` and
   `botFormsWorker.ts` (the bot's forms, and their worker module with the threaded bot's evaluators), and `practice.css`
   (the package's Tailwind source). `practice.css` also holds the utility `btn-danger`, the style of a button that ends

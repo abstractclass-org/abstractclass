@@ -2,8 +2,8 @@
   // The practice game's frame (Hedge School's design 24): the review's layout (design 06). The row above the board (the
   // players and the score's bar), the board's box, and a side column of Lichess's width (250 to 350 pixels), which ends
   // with the review's step bar: the steps through the positions on the left and the game's actions on the right. One
-  // column below 800 pixels (`max-[800px]`, a width under 800), as the review and the fixed step bar (review.css in
-  // packages/review). The board's box has one of two forms:
+  // column below 800 pixels (`one-column-layout`, the query of ONE_COLUMN), as the review and the fixed step bar
+  // (review.css in packages/review). The board's box has one of two forms:
   // - "square": the window's height, less the row above it, or the width that the side column leaves at its least, as
   //   on Lichess's game page (Hedge School: Enclosure's board). With the gauge, the board's column is the gauge's width
   //   wider, and the row starts at the board's edge.
@@ -40,28 +40,28 @@
   <main class="grid items-start justify-center gap-x-5 gap-y-3 my-4 px-4 select-none
                [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] [--broad:calc(100cqw-250px-1.25rem-var(--gauge-w)-2rem-20px)]
                [--board:min(var(--tall),var(--broad))] grid-cols-[calc(var(--board)+var(--gauge-w))_minmax(250px,350px)]
-               max-[800px]:[--board:calc(100cqw-2rem-var(--gauge-w))] max-[800px]:grid-cols-1"
+               one-column-layout:[--board:calc(100cqw-2rem-var(--gauge-w))] one-column-layout:grid-cols-1"
         style:--strip={stripRoom} style:--gauge-w={gaugeWidth}>
     <section class="min-w-0">
       <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
       <div class="flex">
         {@render beside?.()}
-        <div class="relative w-(--board) max-[800px]:flex-1 aspect-square rounded overflow-hidden bg-board">{@render board()}</div>
+        <div class="relative w-(--board) one-column-layout:flex-1 aspect-square rounded overflow-hidden bg-board">{@render board()}</div>
       </div>
     </section>
-    <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--board))] max-[800px]:h-auto px-4 py-3 bg-panel border border-line rounded-md">
+    <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--board))] one-column-layout:h-auto px-4 py-3 bg-panel border border-line rounded-md">
       {@render sideAndBar()}
     </section>
   </main>
 {:else}
   <main class="grid items-start gap-x-5 gap-y-3 my-4 px-4 select-none grid-cols-[minmax(0,1fr)_minmax(250px,350px)]
-               [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] max-[800px]:grid-cols-1"
+               [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] one-column-layout:grid-cols-1"
         style:--strip={stripRoom} style:--fill-h={fillHeight}>
     <section class="min-w-0">
       <div class={["mb-2", stripBox(false)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
-      <div class="relative min-h-0 h-(--tall) max-[800px]:h-(--fill-h)">{@render board()}</div>
+      <div class="relative min-h-0 h-(--tall) one-column-layout:h-(--fill-h)">{@render board()}</div>
     </section>
-    <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--tall))] max-[800px]:h-auto px-4 py-3 bg-panel border border-line rounded-md">
+    <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--tall))] one-column-layout:h-auto px-4 py-3 bg-panel border border-line rounded-md">
       {@render sideAndBar()}
     </section>
   </main>

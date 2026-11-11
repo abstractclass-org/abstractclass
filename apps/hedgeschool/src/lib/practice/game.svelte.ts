@@ -1,7 +1,7 @@
 // A practice game (docs/design/24-practice.md): the player against the practice bot. The positions and the player's legal
 // edges come from the analysis module's rules worker, as on the Analysis board: the board draws what the site's rules
 // say. Each move goes to the bot too, so that the two play the same game. The game's moves and settings are kept in
-// this browser after each move (hedgefund.ts, keep), so that a reload, or a new build, continues it from its moves.
+// this browser after each move (hedgefund.ts, keptGame), so that a reload, or a new build, continues it from its moves.
 // The turns, the takeback, Resign and Abort are the practice's (@abstractclass/practice/game.svelte.ts).
 import { boardPosition, rulesOf, type DescribeReply, type GamePosition } from "#lib/engine/position.ts";
 import type { EngineWorker } from "@abstractclass/engine/client.ts";
@@ -12,7 +12,7 @@ import { parseRecord } from "#lib/game/record.ts";
 import { saveGame } from "#lib/game/store.ts";
 import type { Move, Player, Position } from "#lib/review/enclosure.ts";
 import { withKomi } from "@abstractclass/analysis/game.ts";
-import { botCommands, gtpColor, keep, practiceRecord, resignResult, scoreResult, type KeptPractice, type PracticeOutcome } from "./hedgefund.ts";
+import { botCommands, gtpColor, keptGame, practiceRecord, resignResult, scoreResult, type KeptPractice, type PracticeOutcome } from "./hedgefund.ts";
 import { sendPractice, storedGame, type StoredPractice } from "./send.ts";
 import { browserNumber } from "#lib/analytics.svelte.ts";
 import { PracticeGame as BaseGame } from "@abstractclass/practice/game.svelte.ts";
@@ -28,7 +28,7 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
 
   get mover(): Player | null { return (this.position?.player as Player | undefined) ?? null; }
   protected get over(): boolean { return !this.position || !!this.position.over; }
-  protected keep(k: KeptPractice | null) { keep(k); }
+  protected keep(k: KeptPractice | null) { keptGame.keep(k); }
 
   /** A position from the rules, its scores with the game's komi as a starting score (design 24). */
   private positionOf(fields: GamePosition): Position {
@@ -92,7 +92,7 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
     (this.kept.ms ??= []).push(ms);
-    keep(this.kept);
+    keptGame.keep(this.kept);
     const [, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves), from)).reply.positions;
     this.played = [...this.played, moveOf(this.positions[from], name, after)];
     this.positions = [...this.positions, this.positionOf(after)];

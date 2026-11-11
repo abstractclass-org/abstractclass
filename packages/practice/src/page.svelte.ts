@@ -2,23 +2,21 @@
 // card or the game), the engine's rules, the bot's start and the game's, a new game from the card, the steps through
 // the game's positions and their keys, the bot's thinking time, Abort and Resign with their question, the question when
 // a start comes while a game is in progress, the player's notes by position, and the game's events (design 17). Each
-// site gives its game, its storage, its engine settings and its analytics (PracticeSite), and the page's text, board
-// and score. Make it as the page's component starts: it starts effects.
+// site gives its game, its storage, its networks' names, its engine settings and its analytics (PracticeSite), and the
+// page's text, board and score. Make it as the page's component starts: it starts effects.
 import { onDestroy, untrack } from "svelte";
 import type { Player } from "@abstractclass/analysis/game.ts";
 import type { EngineSettings } from "@abstractclass/analysis/settings.ts";
 import { EngineWorker, type Manifest } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import type { BoardNote } from "@abstractclass/review/notes.ts";
+import type { EventParams } from "@abstractclass/site/analytics.svelte.ts";
 import type { PracticeBot } from "./bot.ts";
 import { startBot } from "./botForms.ts";
 import type { PracticeGame } from "./game.svelte.ts";
 import { newPractice, practiceFrom, practiceOutcome, type Brought, type KeptPractice, type PracticeChoices,
          type PracticeFrom, type PracticeOutcome } from "./practice.ts";
-
-/** An event's parameters, as the site's analytics take them (@abstractclass/site/analytics.svelte.ts's EventParams).
- *  Not imported: that module reads Vite's `import.meta.env`, which this package's type check does not know. */
-type EventParams = Record<string, string | number | boolean>;
+import { practiceEvents } from "./practiceEvents.ts";
 
 /** A site's practice game, as the page uses it. */
 type Game<K extends KeptPractice> = PracticeGame<K, { scores: readonly [number, number] }, { player: Player }, unknown>;
@@ -26,14 +24,11 @@ type Game<K extends KeptPractice> = PracticeGame<K, { scores: readonly [number, 
 /** What a site gives its Practice page. */
 export interface PracticeSite<K extends KeptPractice, G extends Game<K>> {
   game: string; // the game's name in the bot's commands (startBot)
-  loadChoices(): PracticeChoices;
-  saveChoices(choices: PracticeChoices): void;
-  loadKept(): K | null;
-  keep(kept: K | null): void;
+  choices: { load(): PracticeChoices; save(choices: PracticeChoices): void }; // the player's choices (choicesStore)
+  kept: { load(): K | null; keep(kept: K | null): void }; // the game in progress (keptStore)
+  networkName(id: string): string; // a network's name in the events (practiceEvents)
   engine(): EngineSettings; // the engine settings, for the bot's form
   create(kept: K, rules: EngineWorker, bot: PracticeBot): G;
-  params(kept: K, form: string, cores: number): EventParams; // practice_start's
-  endParams(kept: K, form: string, cores: number, outcome: PracticeOutcome, moves: number): EventParams; // practice_end's
   track(name: string, params?: EventParams): void;
   trackOnce(key: string, name: string, params?: EventParams): void;
   ended?(game: G, outcome: PracticeOutcome): void; // the site's part of a game's end, after its event
@@ -78,10 +73,12 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   private rules: EngineWorker | null = null;
   private endSent: G | null = null;
   private site: PracticeSite<K, G>;
+  private events: ReturnType<typeof practiceEvents>;
 
   constructor(site: PracticeSite<K, G>) {
     this.site = site;
-    this.choices = site.loadChoices();
+    this.events = practiceEvents(site.networkName);
+    this.choices = site.choices.load();
     $effect(() => {
       if (this.game?.thinkingSince == null) return;
       this.now = performance.now();
@@ -107,7 +104,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
    *  that another tab ends meanwhile gives way to the card, and the question on a start brought does not ask about
    *  it. */
   async mount(bringing: boolean, manifest: () => Promise<Manifest>, check?: (rules: EngineWorker) => Promise<void>) {
-    const found = this.site.loadKept();
+    const found = this.site.kept.load();
     if (found?.moves.length && this.brought) this.replacing = true; // the player chooses: the game in progress, or the start
     this.phase = found && !bringing ? "game" : "settings";
     try {
@@ -118,7 +115,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       await check?.(w);
       this.ready = true;
       if (!found || this.game) return;
-      const kept = this.site.loadKept(); // the game found, unless another tab ended it
+      const kept = this.site.kept.load(); // the game found, unless another tab ended it
       // The player chooses between the game in progress and the start brought. A start brought that the rules refused
       // leaves the game in progress, which goes on.
       if (this.brought) this.replacing = !!(found.moves.length && kept?.moves.length);
@@ -156,10 +153,10 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   newGame(side: "blue" | "red" | "random") {
     this.choices.side = side;
     const chosen = $state.snapshot(this.choices);
-    this.site.saveChoices(chosen);
+    this.site.choices.save(chosen);
     const kept = newPractice(chosen, this.brought) as K, from = practiceFrom(this.brought);
     this.brought = null;
-    this.site.keep(kept);
+    this.site.kept.keep(kept);
     void this.play(kept, from);
   }
 
@@ -188,10 +185,10 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
    *  the game in progress. It answers once the rules are loaded. */
   async answer(fromBrought: boolean) {
     this.replacing = false;
-    const kept = this.site.loadKept();
+    const kept = this.site.kept.load();
     if (fromBrought) {
       if (kept && this.rules) await this.site.setAside?.(kept, this.rules);
-      this.site.keep(null);
+      this.site.kept.keep(null);
     } else if (kept) { // a game that another tab ended leaves the start brought
       this.brought = null;
       await this.play(kept, "resumed");
@@ -244,13 +241,14 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   }
 
   /** A game's settings, with each event about it: counts and settings, never a move or the player's name. */
-  private params(g: G) { return this.site.params(g.kept, g.mode, navigator.hardwareConcurrency); }
+  private params(g: G) { return this.events.practiceParams(g.kept, g.mode, navigator.hardwareConcurrency); }
 
   /** A game's end, once: its event, then the site's part. */
   private trackEnd(g: G, outcome: PracticeOutcome) {
     if (this.endSent === g) return;
     this.endSent = g;
-    this.site.track("practice_end", this.site.endParams(g.kept, g.mode, navigator.hardwareConcurrency, outcome, g.played.length));
+    const params = this.events.practiceEndParams(g.kept, g.mode, navigator.hardwareConcurrency, outcome, g.played.length);
+    this.site.track("practice_end", params);
     this.site.ended?.(g, outcome);
   }
 }

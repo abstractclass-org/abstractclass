@@ -1,7 +1,7 @@
 // Practice (docs/design/24-practice.md): a game against HedgeFund, the engine's practice bot, in the player's browser.
 // Hedge School's part of it: the shared part (@abstractclass/practice/practice.ts: the bot's settings, the kept game,
 // the GTP helpers, the takeback's reach, the results) with Hedge School's keys and networks, and Enclosure's own: the
-// bot's half-life, the turns after a set-up start, the analytics' parameters and the game's record.
+// bot's half-life, the turns after a set-up start and the game's record.
 import { NETWORKS, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
 import { startTags, writeRecord } from "#lib/game/record.ts";
 import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
@@ -10,17 +10,15 @@ import {
   type PracticeOutcome,
 } from "@abstractclass/practice/practice.ts";
 import type { BotMode } from "@abstractclass/practice/botMessages.ts";
-import { practiceEvents } from "@abstractclass/practice/practiceEvents.ts";
 
 export * from "@abstractclass/practice/practice.ts";
 
 /** The game in progress, with where the bot ran as Hedge School's bot names it. */
 export type KeptPractice = Kept<BotMode>;
 
-const choices = choicesStore("hedge-school:practice-choices:1", NETWORKS[0].id, offersNetwork);
-export const { load: loadChoices, save: saveChoices } = choices;
-const kept = keptStore<BotMode>("hedge-school:practice-game:1");
-export const { load: loadKept, keep } = kept;
+/** The player's choices on the settings card, and the game in progress, in this browser. */
+export const practiceChoices = choicesStore("hedge-school:practice-choices:1", NETWORKS[0].id, offersNetwork);
+export const keptGame = keptStore<BotMode>("hedge-school:practice-game:1");
 
 /** Variety's half-life: KataGo's 19 moves of Go, as Enclosure's edges (design 24). */
 const HALFLIFE = 19;
@@ -36,10 +34,6 @@ export const botName = (bot: BotSettings) => botLabel(networkName(bot.network), 
 /** The turn of a game's first move: 1 from the standard start, else the set-up start's, from its edge count, and
  *  whether that move opens its turn (the engine repository's design 04, "The turns after a set-up start"). */
 export const practiceTurn = (k: Pick<KeptPractice, "start">) => turnFromCount(k.start ? Number(k.start.split(" ")[4]) : 0);
-
-/** What PostHog receives about a practice game (design 17, @abstractclass/practice/practiceEvents.ts):
- *  `practice_start`'s parameters, and `practice_end`'s, with the network by its name. */
-export const { practiceParams, practiceEndParams } = practiceEvents(networkName);
 
 /** The record's event for a practice game: the review knows a practice game by it (design 17, `practice_game`). */
 export const PRACTICE_EVENT = "Hedge School practice";

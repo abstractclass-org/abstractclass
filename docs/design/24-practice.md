@@ -378,7 +378,9 @@ How strong each setting plays against people is not measured yet.
   the engine's start, a new game, the steps and their keys, the bot's thinking time, the question on a start brought,
   the player's notes and the game's events. `PracticeActions.svelte` (Take back, Abort and Resign in the step bar) and
   `ConfirmEnd.svelte` (the question before Abort or Resign, with each site's words). The page gives the site's parts:
-  its game, its storage, its engine settings, its analytics, and what a game's end sends (design 25).
+  its game, its storage (the choices and the kept game), its networks' names for the events, its engine settings,
+  its analytics, and what a game's end sends (design 25). The page's event parameters are the package's
+  (`practiceEvents.ts`).
 - **The bot,** in `@abstractclass/practice` (design 29), for both sites: `packages/practice/src/botForms.ts` (the
   form to start, with a fall back to the next, and where each form runs for the line under the board) and
   `botFormsWorker.ts` (the threaded bot's evaluators in the bot's worker, with ONNX Runtime set up as the GPU worker
@@ -391,12 +393,15 @@ How strong each setting plays against people is not measured yet.
   card's line `broughtLine`, the new game `newPractice`, and its `practice_from`, `practiceFrom`). Hedge School's part
   in `src/lib/practice/hedgefund.ts`: its keys (the kept game `hedge-school:practice-game:1` and the choices
   `hedge-school:practice-choices:1`, in the browser's local storage), its networks, the bot's half-life, the turns after
-  a set-up start, the analytics' parameters and the record. Tests: `practice.test.ts` here, and the package's own on a
+  a set-up start and the record. Tests: `practice.test.ts` here, and the package's own on a
   game of words. The score's display settings are kept under `hedge-school:practice-display:2`.
 - **The card and the frame:** `packages/practice/src/PracticeCard.svelte` (the settings card) and
   `PracticeFrame.svelte` (the game's layout: the row, the square board, the side column and the step bar), which
-  Cyanotype's practice shares (design 33). The page gives their content. `ReplaceGame.svelte`: the question when a
-  start comes while a game is in progress, with each site's words.
+  Cyanotype's practice shares (design 33). The page gives their content. `PlayersSkeleton.svelte`: the row above the
+  board while the bot starts. `PracticeMoves.svelte`: the move list's frame, which keeps the position shown in view,
+  and its skeleton while the bot starts. The page gives the list's rows. The frame and the move list go to one column
+  by the review's query (`ONE_COLUMN`, the `one-column-layout` variant in `packages/review/src/review.css`).
+  `ReplaceGame.svelte`: the question when a start comes while a game is in progress, with each site's words.
 - **The files:** the release's practice files in `engine.lock.json`, which `npm run engine` (`scripts/engine.mjs`)
   puts in `static/engine/`: the libraries in the folder that the lock gives them (`dir`), and the bot's two modules
   and its evaluator each in a folder of its own.

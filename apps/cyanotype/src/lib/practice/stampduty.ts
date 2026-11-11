@@ -2,7 +2,6 @@
 // of @abstractclass/practice (Hedge School's design 24). Its keys in this browser, its networks, the bot's half-life,
 // and the bot's name. Its visits are Hedge School's, 1 to 8,192.
 import { botLabel, choicesStore, keptStore, scoreResult, settingsCommands, type BotSettings } from "@abstractclass/practice/practice.ts";
-import { practiceEvents } from "@abstractclass/practice/practiceEvents.ts";
 import { withKomi } from "@abstractclass/analysis/game.ts";
 import { NETWORKS, networkName, offersNetwork } from "../analysis/engineSettings.ts";
 import type { GamePosition } from "../board/described.ts";
@@ -16,15 +15,9 @@ export { NETWORKS, networkName, offersNetwork };
  *  from the bot itself. */
 export type { KeptPractice } from "@abstractclass/practice/practice.ts";
 
-const choices = choicesStore("cyanotype:practice-choices:1", NETWORKS[0].id, offersNetwork);
-export const { load: loadChoices, save: saveChoices } = choices;
-const kept = keptStore("cyanotype:practice-game:1");
-export const { load: loadKept, keep } = kept;
-
-/** What PostHog receives about a practice game (Hedge School's design 17,
- *  @abstractclass/practice/practiceEvents.ts): `practice_start`'s parameters, and `practice_end`'s, with the network by
- *  its name. */
-export const { practiceParams, practiceEndParams } = practiceEvents(networkName);
+/** The player's choices on the settings card, and the game in progress, in this browser. */
+export const practiceChoices = choicesStore("cyanotype:practice-choices:1", NETWORKS[0].id, offersNetwork);
+export const keptGame = keptStore("cyanotype:practice-game:1");
 
 /** Variety's half-life: GTP's default of 19 moves, as the engine's practice bot gives it for both games (its README,
  *  "The play settings"). */

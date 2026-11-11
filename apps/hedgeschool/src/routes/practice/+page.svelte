@@ -19,16 +19,18 @@
   import { SETTINGS_HEAD } from "@abstractclass/site/settings.ts";
   import PlayerCard from "@abstractclass/review/PlayerCard.svelte";
   import PlayerRow from "@abstractclass/review/PlayerRow.svelte";
-  import PlayerCardSkeleton, { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
+  import { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
   import ConfirmEnd from "@abstractclass/practice/ConfirmEnd.svelte";
   import PracticeActions from "@abstractclass/practice/PracticeActions.svelte";
   import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
+  import PracticeMoves from "@abstractclass/practice/PracticeMoves.svelte";
+  import PlayersSkeleton from "@abstractclass/practice/PlayersSkeleton.svelte";
   import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
   import { PracticePage, seconds } from "@abstractclass/practice/page.svelte.ts";
-  import { broughtLine, turnsOf } from "@abstractclass/practice/practice.ts";
+  import { broughtLine } from "@abstractclass/practice/practice.ts";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
-  import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
+  import { MOVE_HERE, TURN_NUMBER, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { loadManifest } from "@abstractclass/engine/client.ts";
   import { edgeName, setUpStart } from "#lib/engine/notation.ts";
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
@@ -44,8 +46,8 @@
   import { sendPractice } from "#lib/practice/send.ts";
   import { BOT_WHERE } from "@abstractclass/practice/botForms.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
-  import { BOT_NAME, botName, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceParams, practiceTurn,
-           saveChoices, type KeptPractice } from "#lib/practice/hedgefund.ts";
+  import { BOT_NAME, botName, keptGame, komiLine, practiceChoices, practiceTurn, type KeptPractice }
+    from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   // Practice's own display settings (design 24): the points' bar between the players or beside the board, with each
@@ -73,9 +75,9 @@
   // The page's flow, with Hedge School's game. A game's end goes to the site too (design 25), and a game set aside by a
   // record brought goes into Your games, unfinished.
   const page = new PracticePage<KeptPractice, PracticeGame>({
-    game: "enclosure", loadChoices, saveChoices, loadKept, keep, engine: loadEngine,
+    game: "enclosure", choices: practiceChoices, kept: keptGame, networkName, engine: loadEngine,
     create: (kept, rules, bot) => new PracticeGame(kept, rules, bot),
-    params: practiceParams, endParams: practiceEndParams, track, trackOnce,
+    track, trackOnce,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
     settings: () => { settingsOpen = false; notice = ""; },
@@ -147,13 +149,9 @@
     return `Your turn: ${p.movesLeft} ${p.movesLeft === 1 ? "edge" : "edges"} to play.`;
   });
 
-  // The move list: each turn's number and its edges, as the review lists them, each edge with its position's index. Its
-  // numbers start at the start's own turn.
+  // The move list's turn numbers start at the start's own turn.
   const firstTurn = $derived(practiceTurn(game?.kept ?? {}));
-  const turns = $derived(turnsOf(game?.played ?? [], moveNotation));
   const gaugeW = $derived(!score.bar || score.form !== "gauge" ? "0px" : score.area ? "1.875rem" : "1.375rem");
-  let moveList = $state<HTMLElement | null>(null);
-  $effect(() => { void shown; void turns; keepInView(moveList); });
 </script>
 
 <svelte:window onkeydown={ev => page.keydown(ev, settingsOpen || !!input.pending, () => { settingsOpen = false; input.reset(); })} />
@@ -203,13 +201,8 @@
             {#snippet bar()}{@render pointsBar(pos.scores, pos.areas ?? [0, 0], false)}{/snippet}
           </PlayerRow>
         {:else}
-          <!-- The skeleton (the review's, PlayerCardSkeleton) while the bot starts: the row's height is the cards'. -->
           {@const k = g?.kept ?? page.starting}
-          <PlayerRow {gauge} label="Players and scores">
-            {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} second={AREA.word} />{/snippet}
-            {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} second={AREA.word} />{/snippet}
-            {#snippet bar()}{#if score.bar}<div class="h-[1.15rem] {BONE}"></div>{:else}<div></div>{/if}{/snippet}
-          </PlayerRow>
+          <PlayersSkeleton {gauge} names={k ? [nameOf(k, 0), nameOf(k, 1)] : undefined} second={AREA.word} bar={score.bar} />
         {/if}
     {/snippet}
     {#snippet beside()}
@@ -236,15 +229,9 @@
           {#if g && !page.atLatest && g.status !== "over"}Looking back at {shown ? `edge ${shown}` : "the start"}: End returns to the game.
           {:else if g?.lastTurnMs != null && g.status !== "over"}HedgeFund's last turn took {seconds(g.lastTurnMs)}.{/if}
         </p>
-        <!-- The review's move list (moveList.ts): one row a turn, each edge a step to its position. A click on a move does
-             not focus it, as in the review. -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div bind:this={moveList} class={[MOVE_LIST, "min-h-24 max-[800px]:max-h-64"]}
-             onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
-          {#if !g || g.status === "starting"}
-            {#each Array(page.starting?.moves.length ? 12 : 0) as _, k (k)}<div class="h-4 mb-2.5 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}
-          {/if}
-          {#each turns as t, k (k)}
+        <!-- The review's move list (moveList.ts): one row a turn, each edge a step to its position. -->
+        <PracticeMoves {page} text={moveNotation}>
+          {#snippet row(t, k)}
             <div class={turnRow()}>
               <span class={TURN_NUMBER}>{firstTurn.turn + k}.</span>
               <!-- A set-up start at a turn's second edge: its first edge was played before the start. -->
@@ -254,8 +241,8 @@
                         aria-current={shown === m.at ? "step" : undefined} onclick={() => page.step(m.at)}><span class={MOVE_TEXT}>{m.text}</span></button>
               {/each}
             </div>
-          {/each}
-        </div>
+          {/snippet}
+        </PracticeMoves>
         {#if g?.status === "over"}
           <div class="flex flex-wrap gap-2 mt-3">
             <!-- The Review tab reviews games from the standard start: a set-up start's game opens on the Analysis board. -->

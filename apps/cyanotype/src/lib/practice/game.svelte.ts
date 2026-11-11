@@ -3,7 +3,7 @@
 // move did and the player's legal moves come from the engine's rules worker (describe, describe_game): the board draws
 // what the engine says, and the site has no rules. Each move goes to the bot too, so that the two play the same game,
 // and each of the bot's moves must be in the rules' legal moves. The game's moves and settings are kept in this
-// browser after each move (stampduty.ts, keep), so that a reload, or a new build, continues it from its moves.
+// browser after each move (stampduty.ts, keptGame), so that a reload, or a new build, continues it from its moves.
 // A game that ends is no longer kept: the site has no Your games yet.
 // A game can start from a position (Hedge School's design 24, item 4), as the Analysis board's "Play the bot from
 // here" brings it. A game's position goes to the bot as its moves from the standard start (`blueprints-set-game`), as
@@ -22,7 +22,7 @@ import { moveText } from "../game/notation.ts";
 import { enginePosition } from "../game/position.ts";
 import { rulesBy, startProblem } from "../review/recordCheck.ts";
 import { ENGINE_NAME } from "../site.ts";
-import { botCommands, endResult, keep, type KeptPractice } from "./stampduty.ts";
+import { botCommands, endResult, keptGame, type KeptPractice } from "./stampduty.ts";
 
 /** A move played: its player, its text with its capture mark, and what the board draws of it. */
 export interface PlayedMove { player: Player; text: string; move: BoardMove }
@@ -52,7 +52,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
   /** The moves left in the mover's turn, this one included. */
   get movesLeft(): number { return this.described.at(-1)?.movesLeft ?? 0; }
   protected get over(): boolean { return !!this.described.at(-1)?.outcome; }
-  protected keep(k: KeptPractice | null) { keep(k); }
+  protected keep(k: KeptPractice | null) { keptGame.keep(k); }
 
   /** A position from the rules, its scores with the game's komi as a starting score (Hedge School's design 24). */
   private positionOf(fields: Parameters<typeof sitePosition>[0]): SitePosition {
@@ -93,7 +93,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
   protected async add(name: string) {
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
-    keep(this.kept);
+    keptGame.keep(this.kept);
     const [before, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.setUp, this.kept.moves), from)).reply.positions;
     this.described = [...this.described, after];
     this.played = [...this.played, playedOf(name, before, after)];

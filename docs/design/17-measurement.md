@@ -299,9 +299,10 @@ Cyanotype's.
   `packages/review/src/exportEvents.ts`), the settings' changes in `src/lib/analysis/settingChanges.ts` (on
   `packages/analysis/src/settingChanges.ts`),
   `packages/analysis/src/gpu.svelte.ts` (`gpu_test`, the GPU's failure), `workerSpeed` in
-  `packages/engine/src/pool.ts`, `src/routes/practice/+page.svelte` (Practice's events and features), with their
-  parameters in `src/lib/practice/hedgefund.ts` (`practiceParams`, `practiceEndParams`, on
-  `packages/practice/src/practiceEvents.ts`, tested in `practice.test.ts`).
+  `packages/engine/src/pool.ts`, `packages/practice/src/page.svelte.ts` and `src/routes/practice/+page.svelte`
+  (Practice's events and features), with their parameters in `packages/practice/src/practiceEvents.ts`
+  (`practiceParams`, `practiceEndParams`, with the networks' names that each site gives, tested with Hedge School's
+  in `src/lib/practice/practice.test.ts`).
 - The privacy page: `src/routes/privacy/+page.svelte`.
 
 ## Log entries

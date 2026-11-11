@@ -3,10 +3,14 @@
 // test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NETWORKS } from "#lib/analysis/engineSettings.ts";
+import { NETWORKS, networkName } from "#lib/analysis/engineSettings.ts";
 import { parseRecord } from "#lib/game/record.ts";
-import { BOT_NAME, botCommands, gtpAnswer, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams, practiceRecord,
-         practiceTurn, resignResult, saveChoices, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./hedgefund.ts";
+import { practiceEvents } from "@abstractclass/practice/practiceEvents.ts";
+import { BOT_NAME, botCommands, gtpAnswer, keptGame, komiLine, practiceChoices, practiceOutcome, practiceRecord, practiceTurn,
+         resignResult, scoreResult, takebackCount, VISIT_STOPS, visitsStop, type KeptPractice } from "./hedgefund.ts";
+
+// The events' parameters with Hedge School's names of its networks, as its Practice page gives them.
+const { practiceParams, practiceEndParams } = practiceEvents(networkName);
 
 // The browser's local storage, in memory: Node has none.
 const stored = new Map<string, string>();
@@ -17,8 +21,8 @@ globalThis.localStorage = {
 
 test("the saved choices keep any whole number of visits from 1 to 8,192, and else the default", () => {
   const visits = (v: unknown) => {
-    saveChoices({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" }, komi: 0, side: "random", name: "" });
-    return loadChoices().bot.visits;
+    practiceChoices.save({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" }, komi: 0, side: "random", name: "" });
+    return practiceChoices.load().bot.visits;
   };
   for (const v of [1, 3, 100, 1000, 1024, 5000, 8191, 8192]) assert.equal(visits(v), v);
   for (const v of [0, -4, 8193, 16384, 1.5, "64", null]) assert.equal(visits(v), 64);
@@ -71,12 +75,12 @@ test("the slider's stops are the doublings from 1 to 8,192, and a typed number s
 
 test("the kept game comes back with any whole number of visits from 1 to 8,192, and not with others", () => {
   const visits = (v: unknown) => {
-    keep(game({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" } }));
-    return loadKept()?.bot.visits ?? null;
+    keptGame.keep(game({ bot: { network: NETWORKS[0].id, visits: v as number, variety: "low" } }));
+    return keptGame.load()?.bot.visits ?? null;
   };
   for (const v of [1, 3, 1000, 8192]) assert.equal(visits(v), v);
   for (const v of [0, 8193, 2.5, undefined]) assert.equal(visits(v), null);
-  keep(null);
+  keptGame.keep(null);
 });
 
 test("the record names both sides and the bot, and reads back with its moves and cut marks", () => {
@@ -105,21 +109,21 @@ test("a game at a komi: the bot gets it, its record keeps it as Red's starting s
   assert.equal(komiLine(game({ komi: -300, human: 1 }), BOT_NAME), "HedgeFund starts 300 points ahead.");
   assert.equal(komiLine(game()), "");
   // A game kept from an earlier visit goes on with its komi; a game at 0 has no tag, as before the komi
-  keep(ahead);
-  assert.equal(loadKept()?.komi, -300);
-  keep(null);
+  keptGame.keep(ahead);
+  assert.equal(keptGame.load()?.komi, -300);
+  keptGame.keep(null);
   assert.equal(practiceRecord(game({ komi: 0 }), [0, 1, 1, 0], [false, false, true, false], "*"),
                practiceRecord(game(), [0, 1, 1, 0], [false, false, true, false], "*"));
   assert.doesNotMatch(practiceRecord(game(), [0, 1, 1, 0], [false, false, true, false], "*"), /Komi/);
   // The player's head start is kept for the next game
-  saveChoices({ bot, komi: 250, side: "red", name: "" });
-  assert.equal(loadChoices().komi, 250);
+  practiceChoices.save({ bot, komi: 250, side: "red", name: "" });
+  assert.equal(practiceChoices.load().komi, 250);
 });
 
 test("a game kept with a network off the menu goes on with it, and names it: HedgeFund 0.1 Lite", () => {
-  keep(game({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" } }));
-  const k = loadKept()!;
-  keep(null);
+  keptGame.keep(game({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" } }));
+  const k = keptGame.load()!;
+  keptGame.keep(null);
   assert.equal(k.bot.network, "b10c128-s66625408-d13350730");
   const r = parseRecord(practiceRecord(k, [0, 1, 1, 0], [false, false, false, false], "*"));
   assert.equal(r.tags.Red, "HedgeFund 0.1 Lite, 64 visits, Low variety");
@@ -127,8 +131,8 @@ test("a game kept with a network off the menu goes on with it, and names it: Hed
 });
 
 test("the saved choices of a network off the menu take the default", () => {
-  saveChoices({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, komi: 0, side: "random", name: "" });
-  assert.equal(loadChoices().bot.network, "b10c128-s89066368-d17827487"); // HedgeFund 0.2 Lite
+  practiceChoices.save({ bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, komi: 0, side: "random", name: "" });
+  assert.equal(practiceChoices.load().bot.network, "b10c128-s89066368-d17827487"); // HedgeFund 0.2 Lite
 });
 
 test("a game from a set-up start has its Position tag, and numbers its turns from the start's own (design 04)", () => {

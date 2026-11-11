@@ -87,6 +87,9 @@
   --color-blunder: var(--blunder);
 }
 
+/* The pages' one column (design 06), on a screen and on paper: the query of ONE_COLUMN (oneColumn.ts) and of the
+   review's layout (ReviewView.svelte). Practice's frame and its side column take it. */
+@custom-variant one-column-layout (@media (max-width: 799px));
 /* One column on a screen, where the step bar is fixed to the window's foot (the step bar on a phone, below). */
 @custom-variant one-column (@media screen and (max-width: 799px));
 
