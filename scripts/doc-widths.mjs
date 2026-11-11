@@ -6,6 +6,8 @@
 // A line may be longer where it cannot wrap: a table row, a line in a code block, or a line whose length comes from
 // URLs (a link's target, `<https://…>`, a bare URL). The text around a URL still counts. A moved file's lines are not
 // added. Code keeps its own lengths.
+// The rules of a Markdown line that both this check and scripts/owner-steps.mjs read are here: `prose` (the fenced
+// code blocks) and `LINK_TARGET`.
 // Tests: node --test "scripts/*.test.mjs"
 import { execFileSync } from "node:child_process";
 
@@ -14,24 +16,35 @@ export const WIDTH = 120;
 /** The line's length in characters (code points), as an editor counts them. */
 export const chars = s => [...s].length;
 
+/** A link's target, `](…)` with no space in it. Replace it to read a link's text alone. */
+export const LINK_TARGET = /\]\([^)\s]*\)/g;
+
+const FENCE = /^\s*(`{3,}|~{3,})/;
+
+/** The lines of a Markdown text, without their `\r`, with each line of a fenced code block, its fences too, empty. A
+ *  fence closes at a fence of its own character, at least as long, with nothing after it. */
+export function prose(text) {
+  let fence = null;
+  return text.split("\n").map(raw => {
+    const line = raw.replace(/\r$/, "");
+    const mark = line.match(FENCE)?.[1];
+    if (!fence) {
+      if (!mark) return line;
+      fence = mark;
+    } else if (mark && mark[0] === fence[0] && mark.length >= fence.length && !line.trim().slice(mark.length)) {
+      fence = null;
+    }
+    return "";
+  });
+}
+
 const withoutUrls = line =>
-  line.replace(/\]\([^)\s]*\)/g, "]()").replace(/<https?:\/\/[^>\s]*>/g, "<>").replace(/https?:\/\/\S*/g, "");
+  line.replace(LINK_TARGET, "]()").replace(/<https?:\/\/[^>\s]*>/g, "<>").replace(/https?:\/\/\S*/g, "");
 
 /** The added lines (numbers from 1) of a Markdown text that are over the width and can wrap. */
 export function overlong(text, added) {
   const found = [];
-  let fence = null;
-  text.split("\n").forEach((raw, i) => {
-    const line = raw.replace(/\r$/, "");
-    const mark = line.match(/^\s*(`{3,}|~{3,})/)?.[1];
-    if (fence) {
-      if (mark && mark[0] === fence[0] && mark.length >= fence.length && !line.trim().slice(mark.length)) fence = null;
-      return;
-    }
-    if (mark) {
-      fence = mark;
-      return;
-    }
+  prose(text).forEach((line, i) => {
     if (!added.has(i + 1) || line.trimStart().startsWith("|") || chars(withoutUrls(line)) <= WIDTH) return;
     found.push({ line: i + 1, chars: chars(line) });
   });

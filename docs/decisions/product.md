@@ -11210,3 +11210,68 @@ Beads abscls-iynz, the later steps of abscls-5lga.
 - **Comments:** Practice's `scoreResult` and `practiceOutcome` name the rule's place, `result.ts` of the analysis
   package. Cyanotype's practice game says that its `result` is the scores' with the komi (`endResult`), not the
   rules' own result.
+
+### A check that each step for the owner stands alone (2026-11-11)
+
+Beads abscls-pkdr (the check, merged to dev `4b2ea528`) and abscls-opig (this entry, the writing rule, one helper for
+both document checks, and the steps to roll back).
+
+- **Why:** on 2026-11-09 the owner asked for the steps to set up Cyanotype's analytics. The section of
+  `docs/hosting.md` that gave them (abscls-8tl1.48's branch, `54e1c960`) sent the reader elsewhere for what to do:
+  "do the four steps of section 4's 'The owner's own visits'", "as design 17's … lists them", "as section 5, step 2,
+  does" and "as Hedge School's property has them". The coordinator passed them on as they were, and the owner could
+  not follow them. The retro of that day asked for a check, so that a document cannot give such a step again.
+- **The check:** `scripts/owner-steps.mjs`, the step `owner-steps` of `npm run check:all` (after `package-imports`),
+  and so of the Tests workflow. It reads every Markdown file under `docs/`, the decision logs too, and each app's and
+  package's README. Each refusal prints the file, the line and the phrase, with "Write the URL, the clicks and the
+  values in the step itself."
+- **Where a block starts and ends:** a block starts at a line that holds the marker in bold (two asterisks, then "The
+  owner's steps"), or at a heading that holds "owner's steps" in any case. A heading's block runs to the next heading
+  of the same or a higher level. A bold line's block runs to the next heading of any level. The other reading, to the
+  next heading of the level of the heading above the bold line, would take in hosting.md's "Cyanotype's analytics",
+  where a description gives a false refusal.
+- **The seven phrases:** "steps of section", "as section N", "as … does" (at most 6 words between), "as …'s … has" (at
+  most 4 words on each side), "as design NN lists" (also with "'s" and a quoted section's title), "repeat the" and "the
+  same as". The words of one phrase stay in one sentence, and a phrase may wrap onto the next line. Of two phrases that
+  overlap, the first one gives the one refusal. The check reads a link's text, not its target, so a link for
+  information stays allowed. A fenced code block does not count. The list is short and exact: a wider list refuses
+  descriptions that are complete.
+- **Measured:**
+  - On dev `e3897254`, before more passages had the marker: 3 blocks in 86 files, and one refusal, false:
+    `hosting.md:357`, "as the job `hub` does", with the command on the line itself. The step now names the
+    terminal, the folder and the command, with no comparison.
+  - The review marked sections 1, 4, 5 and 7 of hosting.md: 7 blocks in 86 files on dev `4b2ea528`. The markers gave
+    one more false refusal: section 5, step 1, "as one PostHog project does", a description. The sentence dropped the
+    comparison.
+  - On `54e1c960`'s hosting.md, the check refuses each of the four real lines (503, 509, 511 and 517) once. It also
+    refuses two lines whose action is on the line: 378 (dev's line 357 above) and 499, "as section 3's are". There,
+    "as … does" found no true case that another phrase did not find too. It stays, because the issue listed it.
+  - Misses in the review's 34 probe phrases, reported and not added: "the same settings as the first site" ("the
+    same as" needs the three words together), "Repeat steps 1 to 3", "as in section 5", "as for Hedge School", "see
+    above", "follow section 4", "like the hub's", "Set up the property as Hedge School's:" (the start of the real line
+    508), and a quoted section's name as the action ("The launch switch", below). Only the last one was in a block on
+    dev: section 9, step 3, which now names the file, the job and the lines.
+  - With the new steps to roll back: 8 blocks in 86 files on dev `9d92fee1` and this change, and no refusal.
+- **Not checked:** the owner's actions outside a block. A rule that refuses an action outside a block (a bold click
+  path or a dashboard's URL) also refuses descriptions. The guard there is the writing rule in
+  `docs/working-notes.md`, beside the width rule: a block of steps starts with its marker, and each step names its
+  URL, its clicks and its values in the step itself. The steps to register the site in Google Search Console go with
+  abscls-hus.
+- **The decision logs stay in the check:** they hold one block, a pointer to hosting.md (this file, "The owner's
+  visits marked as internal traffic"), and it gives no refusal. A past entry keeps its words: a refusal there calls
+  for a decision on the check's scope, not for a rewrite.
+- **One helper for both document checks:** the check and the width check (`scripts/doc-widths.mjs`) read a Markdown
+  line by the same rules: a fenced code block does not count (`prose`), and a link's target is `](…)` with no space
+  (`LINK_TARGET`). Both are in `doc-widths.mjs`, and `owner-steps.mjs` imports them. They are not in a file of their
+  own, because `scripts/pre-commit.test.sh` copies `doc-widths.mjs` alone into its test repository. The results did
+  not change: both checks gave the same output before and after on the 93 tracked Markdown files, on `54e1c960`'s
+  hosting.md and on three made-up texts (CRLF, fences of both kinds, long links). Both test files passed unchanged.
+- **Roll back:** hosting.md, "Deploy, check and roll back", named no URL and no project for a rollback. It now has a
+  block of steps: the dashboard's **Workers & Pages** page, the project of each site (`hedgeschool`, `cyanotype`,
+  `abstractclass`), **Deployments**, the **All deployments** list, the three dotted actions menu, **Rollback to this
+  deployment** and the confirmation, then the release check with the restored commit, and the revert on `dev`.
+  The words come from Cloudflare's documentation, read on 2026-11-11: the rollbacks page of Pages
+  (<https://developers.cloudflare.com/pages/configuration/rollbacks/>, updated 2026-04-21) for **Deployments**, **All
+  deployments**, the menu, **Rollback to this deployment**, the confirmation window, and which deployments can come
+  back. Its other Pages pages give the **Workers & Pages** page, its URL and "Select your Pages project". No page
+  names the confirmation's button, or says what the list shows of a deployment that Wrangler uploaded.

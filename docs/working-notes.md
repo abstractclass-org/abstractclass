@@ -34,6 +34,14 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **The documents wrap at 120 characters.** The workflow Documents refuses an added Markdown line over 120 characters
   in a push to `dev`. A table row, a line in a code block and the length of a URL do not count. The pre-commit hook
   runs the same check on each commit. To check a branch: `node scripts/doc-widths.mjs origin/dev` at the root.
+- **Each block of the owner's steps is complete.** Start each block of steps that the owner follows with its marker:
+  a paragraph in bold that starts with the words "The owner's steps" (as in docs/hosting.md, section 5), or a heading
+  that holds "owner's steps". Each step names its URL, its clicks (the menu words in bold, as the page shows them) and
+  its values in the step itself. A step does not send the owner to another section, design or site for what to do:
+  write the action out again. A link for information may stay beside it. `npm run check:all` runs
+  `scripts/owner-steps.mjs`, which refuses the phrases that send the reader elsewhere (such as "as section 5 does",
+  "repeat the" and "the same as") in a block. It does not read steps outside a block, so the marker is the writer's
+  work.
 - **After a deploy, check the site:** `node scripts/release-check.mjs <base URL>` in the site's folder,
   `apps/hedgeschool` or `apps/cyanotype` (docs/hosting.md, "Deploy, check and roll back").
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a

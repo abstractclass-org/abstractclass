@@ -587,13 +587,35 @@ a push to `main` that the owner did not say to make. The owner's word to release
   - on the live site only: the domain's answers are signed (DNSSEC validated).
 
   A release's own changes need their own checks beside these.
-- **Roll back:** in the project's deployments, choose an earlier production deployment and **Rollback**. The next push
-  deploys again.
 - **A new engine:** change `engine.lock.json` to the new release (its tag, each asset's name, SHA-256 and size), and
   push. The paths under `/engine/` name the build and the network, so browsers download the new files and keep no stale
   ones. So a changed file needs a new path: a new id in the lock, and a new `dir` for a file that has one. Never give
   a deployed path other bytes, for example an asset replaced in its release, or a network exported again under its
   name. A browser keeps the old file for a year.
+- **Roll back:** a rollback makes an earlier production deployment of one site live again, at once, with no build.
+  Pages keeps each deployment. Only a production deployment that was built successfully can come back, not a preview.
+  A rollback changes nothing in Git: the next push to `main`, or a run of **Deploy** on `main`, deploys `main` again
+  to every launched site and so ends the rollback. **Deploy** gives each deployment its commit
+  (`--commit-hash=$GITHUB_SHA`).
+
+  **The owner's steps, for each site to roll back.**
+
+  1. Open the Cloudflare dashboard's **Workers & Pages** page,
+     <https://dash.cloudflare.com/?to=/:account/workers-and-pages>, in the account of the Pages projects.
+  2. Select the site's Pages project: `hedgeschool` for Hedge School (`https://hedgeschool.abstractclass.org`),
+     `cyanotype` for Cyanotype (`https://cyanotype.abstractclass.org`), or `abstractclass` for the hub
+     (`https://abstractclass.org`).
+  3. Go to **Deployments**. In the **All deployments** list, find the production deployment (branch `main`) of the
+     release before the one to undo, and note its commit. `git log --oneline origin/main` in a checkout gives the
+     commits of `main`, the newest first.
+  4. Select the three dotted actions menu of that deployment, then **Rollback to this deployment**. A confirmation
+     window opens. Confirm it. The site's production deployment changes at once.
+  5. Check the site. For Hedge School: in `apps/hedgeschool`, run
+     `node scripts/release-check.mjs https://hedgeschool.abstractclass.org <the commit of step 3>`. For Cyanotype: in
+     `apps/cyanotype`, run `node scripts/release-check.mjs https://cyanotype.abstractclass.org <the commit of step 3>`.
+     The last line must say `release-check: PASS`. For the hub: open `https://abstractclass.org` in a browser.
+  6. Before the next release, undo the bad change on `dev`: `git revert <the bad commit>` on `dev`, or a fix, then
+     `git push origin dev`. Otherwise the next push to `main` deploys it again.
 
 ## What Cloudflare shows
 

@@ -7,7 +7,8 @@
 // heading of any level. In a block, the check refuses each phrase of PATTERNS: each sends the reader elsewhere for
 // what to do. A link to a page for the reader's information stays allowed: the check reads a link's text, not its
 // target. A fenced code block does not count. A phrase may wrap from one line to the next. Where two phrases overlap,
-// the check refuses the first one only.
+// the check refuses the first one only. The rules of a fenced code block and of a link's target are the width check's
+// (scripts/doc-widths.mjs).
 //
 // The check reads the decision logs (docs/decisions/) too. They are history: a past entry keeps its words, so a
 // refusal there calls for a decision on the check's scope, not for a rewrite.
@@ -19,6 +20,7 @@
 // Tests: node --test "scripts/*.test.mjs"
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { LINK_TARGET, prose } from "./doc-widths.mjs";
 
 /** A word that does not end a sentence or a clause: the words of one phrase stay in one sentence. */
 const WORD = String.raw`\S*[^\s.:;!?]`;
@@ -38,22 +40,6 @@ export const PATTERNS = [
 const HEADING = /^(#{1,6})\s/;
 const BOLD_START = /\*\*The owner['’]s steps/;
 const HEADING_START = /owner['’]s steps/i;
-const FENCE = /^\s*(`{3,}|~{3,})/;
-
-/** The lines of a Markdown text as the check reads them: each line of a fenced code block, its fences too, empty. */
-function prose(text) {
-  let fence = null;
-  return text.split(/\r?\n/).map(line => {
-    const mark = line.match(FENCE)?.[1];
-    if (!fence) {
-      if (!mark) return line;
-      fence = mark;
-    } else if (mark && mark[0] === fence[0] && mark.length >= fence.length && !line.trim().slice(mark.length)) {
-      fence = null;
-    }
-    return "";
-  });
-}
 
 /** The blocks of the owner's steps in the lines of `prose`: each block's first and last line (numbers from 1). */
 function blocksInLines(lines) {
@@ -83,7 +69,7 @@ export function refusals(text) {
   const lines = prose(text);
   const found = [];
   for (const { start, end } of blocksInLines(lines)) {
-    const block = lines.slice(start - 1, end).map(line => line.replace(/\]\([^)\s]*\)/g, "").replace(/[[*]/g, ""))
+    const block = lines.slice(start - 1, end).map(line => line.replace(LINK_TARGET, "").replace(/[[*]/g, ""))
       .join("\n");
     const matches = PATTERNS.flatMap(pattern => [...block.matchAll(pattern)])
       .sort((a, b) => a.index - b.index || b[0].length - a[0].length);
