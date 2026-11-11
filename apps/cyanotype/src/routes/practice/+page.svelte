@@ -34,7 +34,7 @@
   import Board from "#lib/board/Board.svelte";
   import { BlueprintInput } from "#lib/board/blueprintInput.svelte.ts";
   import { firstStatus, inputStatus } from "#lib/board/input.ts";
-  import { handsAt, keptPanel, ONE_COLUMN_HEIGHT } from "#lib/board/keptPanel.svelte.ts";
+  import { handsPlace, keptPanel, ONE_COLUMN_HEIGHT } from "#lib/board/keptPanel.svelte.ts";
   import { STARS, starsOf, type Player } from "#lib/board/position.ts";
   import { moveName } from "#lib/game/notation.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -124,8 +124,7 @@
 
   // The hands: in a panel over the board on a computer, under the board in one column (below 800 pixels, as the
   // frame's one column). The panel's place and size are the player's: kept in this browser.
-  let innerWidth = $state(0);
-  const hands = $derived(handsAt(innerWidth));
+  const hands = handsPlace();
   const panel = keptPanel();
 
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : ENGINE_NAME);
@@ -159,7 +158,7 @@
   $effect(() => { void shown; void turns; keepInView(moveList); });
 </script>
 
-<svelte:window onkeydown={ev => page.keydown(ev, !!input.pending, () => input.reset())} bind:innerWidth />
+<svelte:window onkeydown={ev => page.keydown(ev, !!input.pending, () => input.reset())} />
 
 <PageMeta title="Practice · {SITE_NAME}"
           description="Practise Blueprints against {ENGINE_NAME} in your browser: choose its visits, variety and komi, then play." />
@@ -213,7 +212,7 @@
     {/snippet}
     {#snippet board()}
       {#if g && pos}
-        <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={taking} {hands}
+        <Board position={pos} last={into?.move ?? null} layers={{ candidates: false }} {input} inputOn={taking} hands={hands.current}
                bind:place={panel.place} bind:size={panel.size} notes={page.notesAt[shown] ?? []} onnotes={n => page.note(n)} />
       {:else}
         <div class="size-full rounded bg-board"></div>

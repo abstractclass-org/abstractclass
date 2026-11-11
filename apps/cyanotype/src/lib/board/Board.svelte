@@ -51,8 +51,8 @@
     from "@abstractclass/review/notes.ts";
   import { viewHexes } from "../review/blueprintsMap.ts";
   import { clamp, fit, fitAround, pan, pinch, toArea, toPlane, viewBox, zoomAt, type Rect, type Size, type View } from "./view.ts";
-  import { FIRST_PLACE, FIRST_SIZE, fitWithPanel, handleSide, handsOf, HANDS_GAP, PANEL_GRIP, PANEL_PAD, panelRect,
-           panelSizeIn, placeAt, resized,
+  import { FIELD_GAP, FIRST_PLACE, FIRST_SIZE, fitWithPanel, handleSide, handsOf, HANDS_GAP, PANEL_GRIP, PANEL_PAD, panelRect,
+           panelSizeIn, placeAt, resized, UNDER_HAND, ZOOM_BUTTONS, ZOOM_WIDTH,
            type PanelPlace } from "./panel.ts";
 
   interface Props {
@@ -127,18 +127,16 @@
   // the area, and a third of that high at most.
   let width = $state(0), height = $state(0);
   const sides = $derived(handsForm === "box" && width > 1.25 * height);
-  const GAP = 6; // between the hands and the field
   const handSize = $derived(sides ? clamp(width * 0.13, 72, 170)
-    : handsForm === "under" ? Math.min(104, width / 3) : clamp(height * 0.17, 52, 120));
+    : handsForm === "under" ? Math.min(UNDER_HAND.max, width / UNDER_HAND.parts) : clamp(height * 0.17, 52, 120));
   const field = $derived(handsForm === "panel" ? { width, height }
-    : sides ? { width: Math.max(0, width - 2 * (handSize + GAP)), height }
-    : { width, height: Math.max(0, height - 2 * (handSize + GAP)) });
-  const ZOOM_BUTTONS = { width: 3 * 30 + 2 * 4, height: 30, inset: 6 }; // the buttons at the field's lower right
-  // The field's foot that the panel keeps off: the zoom's buttons, and with controls the strip that holds them too
+    : sides ? { width: Math.max(0, width - 2 * (handSize + FIELD_GAP)), height }
+    : { width, height: Math.max(0, height - 2 * (handSize + FIELD_GAP)) });
+  // The field's foot that the panel keeps off: the zoom's buttons (panel.ts, ZOOM_BUTTONS), and with controls the strip
+  // that holds them too
   const zoomRect: Rect = $derived.by(() => {
-    const y = field.height - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.height, x = field.width - ZOOM_BUTTONS.inset - ZOOM_BUTTONS.width;
-    return controls ? { x: ZOOM_BUTTONS.inset, y, width: field.width - 2 * ZOOM_BUTTONS.inset, height: ZOOM_BUTTONS.height }
-      : { x, y, width: ZOOM_BUTTONS.width, height: ZOOM_BUTTONS.height };
+    const { size, inset } = ZOOM_BUTTONS, y = field.height - inset - size, x = field.width - inset - ZOOM_WIDTH;
+    return controls ? { x: inset, y, width: field.width - 2 * inset, height: size } : { x, y, width: ZOOM_WIDTH, height: size };
   });
   // The panel's size within its limits in this area, and while the player resizes it, the size that the handle shows.
   let resizeTo = $state<Rect | null>(null);
@@ -551,7 +549,7 @@
   };
   // The zoom's buttons: two steps double the scale.
   const zoomBy = (factor: number) => { manual = zoomAt(view, field, factor, field.width / 2, field.height / 2); };
-  const TOOL = ["grid size-[30px] place-items-center rounded-md border border-line bg-panel/90 p-0",
+  const TOOL = ["grid size-(--zoom-size) place-items-center rounded-md border border-line bg-panel/90 p-0",
                 "text-[17px] leading-none font-semibold hover:bg-panel-2"];
 </script>
 
@@ -578,7 +576,9 @@
 <svelte:window onpointerdowncapture={() => (menuGuard = false)} oncontextmenu={guardMenu} />
 
 <div class="board {handsForm}" class:sides bind:clientWidth={width} bind:clientHeight={height}
-     style:--hand="{handSize}px" style:--gap="{GAP}px">
+     style:--hand="{handSize}px" style:--gap="{FIELD_GAP}px" style:--zoom-size="{ZOOM_BUTTONS.size}px"
+     style:--zoom-gap="{ZOOM_BUTTONS.gap}px" style:--zoom-inset="{ZOOM_BUTTONS.inset}px"
+     style:--zoom-room="{4 * ZOOM_BUTTONS.inset + ZOOM_WIDTH}px">
   {#if handsForm !== "panel"}
     {#each players as p (p)}
       <div class="hand-area p{p}">
@@ -821,13 +821,15 @@
         </div>
       {/if}
       {#if controls}
-        <div class={["absolute bottom-1.5 left-1.5 flex h-[30px] max-w-[calc(100%-122px)] items-center gap-2 rounded px-1",
+        <!-- The controls' strip, left of the zoom's buttons, and twice their inset from them -->
+        <div class={["absolute bottom-(--zoom-inset) left-(--zoom-inset) flex h-(--zoom-size) max-w-[calc(100%-var(--zoom-room))]",
+                     "items-center gap-2 rounded px-1",
                      "bg-panel/85 pointer-events-none"]}>
           {@render controls()}
         </div>
       {/if}
       {#if !still}
-        <div class="absolute right-1.5 bottom-1.5 flex gap-1">
+        <div class="absolute right-(--zoom-inset) bottom-(--zoom-inset) flex gap-(--zoom-gap)">
           <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT2)} aria-label="Zoom in" title="Zoom in">+</button>
           <button type="button" class={[TOOL, "text-ink"]} onclick={() => zoomBy(Math.SQRT1_2)} aria-label="Zoom out" title="Zoom out">−</button>
           <button type="button" class={[TOOL, manual || placedByPlayer ? "text-ink" : "text-muted"]} onclick={fitAll}

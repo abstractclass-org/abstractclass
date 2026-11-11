@@ -29,15 +29,14 @@
   // so far are marked together: the last move and an earlier one of its turn. The player's notes go to the board as
   // they are: the view keeps them by position, and gives none while a preview shows another position.
   import type { BoardProps } from "@abstractclass/review/game.ts";
-  import { innerWidth } from "svelte/reactivity/window";
   import Board, { type BoardCandidate, type BoardLabel } from "../board/Board.svelte";
-  import { handsAt, keptPanel } from "../board/keptPanel.svelte.ts";
+  import { handsPlace, keptPanel } from "../board/keptPanel.svelte.ts";
   import { moves } from "../game/notation.ts";
 
   let { position, last, earlier, candidates, pointed, line, marks, layers, input, inputOn, areaMap, areaOf, oncandidate,
         oncandidateclick, onpointat, mapControls, notes, onnotes }: BoardProps<Blueprints> = $props();
 
-  const hands = $derived(handsAt(innerWidth.current ?? 0));
+  const hands = handsPlace();
   const panel = keptPanel();
 
   const boardCandidates = $derived(candidates.map((c): BoardCandidate =>
@@ -55,7 +54,7 @@
 
 <Board {position} last={last?.drawn ?? null} earlier={earlier.map(m => m.drawn)} candidates={boardCandidates}
        pointed={pointed && moveName(pointed)} line={boardLines}
-       layers={{ candidates: layers.candidates }} {input} {inputOn} {hands} bind:place={panel.place} bind:size={panel.size}
+       layers={{ candidates: layers.candidates }} {input} {inputOn} hands={hands.current} bind:place={panel.place} bind:size={panel.size}
        {labels} {areaMap} {areaOf} controls={mapControls} {notes} {onnotes}
        oncandidate={name => oncandidate(name ? moves.parseMove(name) : null)}
        oncandidateclick={name => oncandidateclick(moves.parseMove(name))}

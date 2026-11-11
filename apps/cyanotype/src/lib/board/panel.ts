@@ -13,6 +13,16 @@ export const CORNERS: readonly PanelPlace[] = [{ fx: 1, fy: 0 }, { fx: 0, fy: 0 
 export const FIRST_PLACE: PanelPlace = CORNERS[0];
 /** The panel's room from the area's edges and from the zoom's buttons, in pixels. */
 export const INSET = 6;
+/** The room between the hands and the field, in pixels, when the hands are beside it or under it (Board.svelte). */
+export const FIELD_GAP = 6;
+/** The hands under the field, in one column (Board.svelte, `hands: "under"`): each a row as wide as the area, and a
+ *  `parts`th of that high, `max` pixels at most. A page's one column counts them (keptPanel.svelte.ts). */
+export const UNDER_HAND = { max: 104, parts: 3 };
+/** The zoom's buttons at the field's lower right (Board.svelte): `count` squares of `size` pixels, `gap` pixels apart,
+ *  `inset` pixels from the field's edges. The board draws them at these sizes, and the panel keeps off them. */
+export const ZOOM_BUTTONS = { count: 3, size: 30, gap: 4, inset: 6 };
+/** The zoom's buttons' width, in pixels. */
+export const ZOOM_WIDTH = ZOOM_BUTTONS.count * ZOOM_BUTTONS.size + (ZOOM_BUTTONS.count - 1) * ZOOM_BUTTONS.gap;
 
 /** The panel's parts, in pixels: its padding, the strip at its top that drags it, the gap between its two hands, and
  *  its border. */

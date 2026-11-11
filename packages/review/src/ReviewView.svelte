@@ -7,6 +7,7 @@
   import ShareBar from "./ShareBar.svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
   import StepBar from "./StepBar.svelte";
+  import { ONE_COLUMN } from "./oneColumn.ts"; // the analysis under the board, as the style below has it
   import { intoView, pageScrollTop } from "@abstractclass/site/pageScroll.ts";
   import { GROUP_HOVER, MOVE_HERE, MOVE_HOVER, MOVE_LIST, ROUND_GROUP, ROUND_HERE, ROUND_HOVER, TURN_NUMBER, TURN_REM, keepInView, moveButton,
            turnRow } from "./moveList.ts";
@@ -98,8 +99,6 @@
   /** Three columns from Lichess's width for them (its $x-large, 1,260 pixels): the summary gets its own column, and the
    *  Report is no longer a tab. */
   export const WIDE = "min-width: 1260px";
-  /** One column below 800 pixels (Lichess's $small), as the style below has it: the analysis under the board. */
-  const ONE_COLUMN = "(max-width: 799px)";
   const PANEL = "min-w-0 px-4 py-3 bg-panel border border-line rounded-md";
   /** The note under the progress while the review has work to run (design 06, item 7): a browser gives a hidden tab's
    *  processes the lowest priority (Chromium on Windows: the Idle class and power throttling), so a review there can be
