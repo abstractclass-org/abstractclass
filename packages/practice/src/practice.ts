@@ -200,6 +200,21 @@ export function takebackCount(movers: readonly Player[], human: Player, brought 
   return end === brought ? 0 : movers.length - k;
 }
 
+/** A turn in the move list: its player, and its moves, each with its text and its position's index. */
+export interface Turn { player: Player; moves: { text: string; at: number }[] }
+
+/** The move list's turns: the moves of one player in a row, each with its text (`text`) and the index of the position
+ *  after it. */
+export function turnsOf<M extends { player: Player }>(played: readonly M[], text: (move: M) => string): Turn[] {
+  const out: Turn[] = [];
+  played.forEach((m, i) => {
+    const t = out.at(-1), move = { text: text(m), at: i + 1 };
+    if (t && t.player === m.player) t.moves.push(move);
+    else out.push({ player: m.player, moves: [move] });
+  });
+  return out;
+}
+
 /** The result when the player resigns: the bot's win, as Hedge School's records write a resignation (`r+R` when Red
  *  wins). */
 export const resignResult = (human: Player) => (human === 0 ? "r+R" : "b+R");

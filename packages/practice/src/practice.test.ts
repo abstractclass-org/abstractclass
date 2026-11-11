@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   botLabel, broughtLine, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, newPractice,
-  practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, settingsCommands, takebackCount, visitsStop,
+  practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, settingsCommands, takebackCount, turnsOf, visitsStop,
   visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
@@ -152,4 +152,14 @@ test("a new game: the choices, the player's side, and a start brought, whose mov
   const alone = newPractice({ ...choices, side: "random" }, { start: "s", moves: [] }, () => 0.7);
   assert.deepEqual([alone.human, alone.start, alone.brought], [1, "s", undefined]);
   assert.equal(newPractice({ ...choices, side: "random" }, null, () => 0.2).human, 0);
+});
+
+test("the move list's turns: the moves of one player in a row, each with its position's index", () => {
+  const played = [{ player: 0, word: "a" }, { player: 1, word: "b" }, { player: 1, word: "c" }, { player: 0, word: "d" }] as const;
+  assert.deepEqual(turnsOf(played, m => m.word.toUpperCase()), [
+    { player: 0, moves: [{ text: "A", at: 1 }] },
+    { player: 1, moves: [{ text: "B", at: 2 }, { text: "C", at: 3 }] },
+    { player: 0, moves: [{ text: "D", at: 4 }] },
+  ]);
+  assert.deepEqual(turnsOf([], () => ""), []);
 });

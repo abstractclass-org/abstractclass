@@ -1,0 +1,32 @@
+// Practice's start (design 24; the practice's page, @abstractclass/practice/page.svelte.ts): the page resumes a kept
+// game only when it found one as it mounted. A game that another tab keeps while this tab's engine loads does not
+// replace the settings card that the player sees. The engine's manifest waits here until that game is kept.
+// Cyanotype's Practice has the same case (cyanotype-practice.spec.ts). Run:
+// npm run test:layout -- tests/practice-start.spec.ts --project=chromium, with BASE_URL.
+import { expect, test } from "./page-log.ts";
+
+const GAME = "hedge-school:practice-game:1";
+
+test("a game kept after the page mounts, while the engine loads, does not open: the settings card stays", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.addInitScript(() => {
+    try { localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" })); } catch { /* about:blank */ }
+  });
+  let keptElsewhere = () => {};
+  const kept = new Promise<void>(r => (keptElsewhere = r));
+  await page.route("**/engine/manifest.json", async route => { await kept; await route.continue(); });
+  await page.goto("/practice");
+  const blue = page.getByRole("button", { name: "Play as Blue" });
+  await expect(blue).toBeDisabled({ timeout: 60_000 }); // the settings card, before the rules are loaded
+  // Another tab starts a game now.
+  await page.evaluate(([key, game]) => localStorage.setItem(key, JSON.stringify(game)), [GAME, {
+    version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "", seed: 1,
+    moves: [], builds: [], started: new Date().toISOString(),
+  }] as const);
+  keptElsewhere();
+  await expect(blue).toBeEnabled({ timeout: 120_000 }); // the rules are loaded, and the card stays
+  await expect(page.getByRole("button", { name: "Abort" })).toHaveCount(0);
+  expect(await page.evaluate(key => localStorage.getItem(key), GAME)).not.toBeNull(); // the other tab's game stays kept
+  expect(errors).toEqual([]);
+});

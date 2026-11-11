@@ -7,7 +7,8 @@
 // the bot at 1 and 2 visits has its own test (apps/cyanotype/src/lib/practice/bot.engine.test.ts). The tests skip,
 // with a message, when the preview has no practice bot: run `npm run engine` in apps/cyanotype before its build, as the
 // Tests workflow does (design 33, "The engine's files"). In CI, they fail instead. A last test keeps a game whose
-// network the site does not ship: the page drops it and shows the settings card. In a game, the confirm button of
+// network the site does not ship: the page drops it and shows the settings card. A game that another tab keeps while
+// the engine loads does not replace the settings card. In a game, the confirm button of
 // Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility itself (`btn-danger`),
 // so that it runs without the engine's files too. The last tests start Practice from a position: the Analysis board's
 // "Play the bot from here" on a game's position and on a set-up start, a start that no game reaches, and the question
@@ -155,6 +156,30 @@ test("a kept game whose network the site does not ship gives way to the settings
     .toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("button", { name: "Play as Blue" })).toBeEnabled({ timeout: 60_000 });
   expect(await keptMoves(page)).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+// The shared start (@abstractclass/practice/page.svelte.ts), as on Hedge School's Practice (its practice-start.spec.ts):
+// the page resumes a kept game only when it found one as it mounted. The engine's manifest waits until another tab
+// has kept a game.
+test("a game kept after the page mounts, while the engine loads, does not open: the settings card stays", async ({ page }) => {
+  const network = modelOf(await botManifest(page));
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  let keptElsewhere = () => {};
+  const kept = new Promise<void>(r => (keptElsewhere = r));
+  await page.route("**/engine/manifest.json", async route => { await kept; await route.continue(); });
+  await page.goto(at("/practice"));
+  const blue = page.getByRole("button", { name: "Play as Blue" });
+  await expect(blue).toBeDisabled({ timeout: 60_000 }); // the settings card, before the rules are loaded
+  await page.evaluate(game => localStorage.setItem("cyanotype:practice-game:1", JSON.stringify(game)), {
+    version: 1, bot: { network, visits: 8, variety: "low" }, human: 0, name: "", seed: 1, moves: [], builds: [],
+    started: new Date().toISOString(),
+  });
+  keptElsewhere();
+  await expect(blue).toBeEnabled({ timeout: 120_000 }); // the rules are loaded, and the card stays
+  await expect(page.locator(STATUS)).toHaveCount(0);
+  expect(await keptGame(page)).not.toBeNull(); // the other tab's game stays kept
   expect(errors).toEqual([]);
 });
 

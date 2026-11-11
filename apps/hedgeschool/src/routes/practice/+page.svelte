@@ -7,13 +7,12 @@
   // review's move list, the steps through the game's positions, Take back, Abort and Resign. One game in progress, kept
   // in this browser and resumed. A game that ends goes into Your games. Its way in, which the Analysis board's Play
   // gives (design 22): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address
-  // at once, then the analytics start.
-  import { onDestroy, onMount, untrack } from "svelte";
+  // at once, then the analytics start. The page's flow is the practice's (@abstractclass/practice/page.svelte.ts).
+  import { onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
-  import type { BoardNote } from "@abstractclass/review/notes.ts";
-  import Icon from "@abstractclass/site/Icon.svelte";
   import ShareBar, { ownShare } from "@abstractclass/review/ShareBar.svelte";
+  import Icon from "@abstractclass/site/Icon.svelte";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import SoundSettings from "#lib/ui/SoundSettings.svelte";
@@ -21,14 +20,16 @@
   import PlayerCard from "@abstractclass/review/PlayerCard.svelte";
   import PlayerRow from "@abstractclass/review/PlayerRow.svelte";
   import PlayerCardSkeleton, { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
+  import ConfirmEnd from "@abstractclass/practice/ConfirmEnd.svelte";
+  import PracticeActions from "@abstractclass/practice/PracticeActions.svelte";
   import PracticeCard from "@abstractclass/practice/PracticeCard.svelte";
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
   import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
-  import { broughtLine, newPractice, practiceFrom, type Brought, type PracticeFrom }
-    from "@abstractclass/practice/practice.ts";
+  import { PracticePage, seconds } from "@abstractclass/practice/page.svelte.ts";
+  import { broughtLine, turnsOf } from "@abstractclass/practice/practice.ts";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import { MOVE_HERE, MOVE_LIST, TURN_NUMBER, keepInView, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
-  import { EngineWorker, loadManifest, type Manifest } from "@abstractclass/engine/client.ts";
+  import { loadManifest } from "@abstractclass/engine/client.ts";
   import { edgeName, setUpStart } from "#lib/engine/notation.ts";
   import { NETWORKS, loadEngine, networkMB, networkName } from "#lib/analysis/engineSettings.ts";
   import { parseRecord, withStart } from "#lib/game/record.ts";
@@ -41,13 +42,11 @@
   import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { sendPractice } from "#lib/practice/send.ts";
-  import { BOT_WHERE, startBot } from "@abstractclass/practice/botForms.ts";
+  import { BOT_WHERE } from "@abstractclass/practice/botForms.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
-  import { BOT_NAME, botName, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceOutcome, practiceParams,
-           practiceTurn, saveChoices, type KeptPractice, type PracticeOutcome } from "#lib/practice/hedgefund.ts";
+  import { BOT_NAME, botName, keep, komiLine, loadChoices, loadKept, practiceEndParams, practiceParams, practiceTurn,
+           saveChoices, type KeptPractice } from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-
-  const DANGER = "hover:not-disabled:text-blunder hover:not-disabled:border-blunder"; // Abort and Resign, as Lichess's
 
   // Practice's own display settings (design 24): the points' bar between the players or beside the board, with each
   // player's area against their points in a second lane.
@@ -64,29 +63,27 @@
     const now = $state.snapshot(score), was = shownScore;
     writeLocal(SCORE_KEY, JSON.stringify(now));
     for (const [k, name] of [["bar", "practice bar"], ["area", "practice area"], ["form", "practice direction"]] as const)
-      if (now[k] !== was[k]) used(name);
+      if (now[k] !== was[k]) page.used(name);
     shownScore = now;
   });
 
-  // What the page shows: nothing until the script knows whether a game is in progress (the prerendered page cannot
-  // know), then the settings card or the game.
-  let phase = $state<"loading" | "settings" | "game">("loading");
-  let choices = $state(loadChoices());
-  let manifest: Manifest | null = null;
-  let rules: EngineWorker | null = null;
-  let game = $state<PracticeGame | null>(null);
-  let starting = $state.raw<KeptPractice | null>(null); // the game whose bot starts: its players' names, for the skeleton
-  let failed = $state(""); // the engine could not start
   let notice = $state(""); // a record brought that cannot be played
-  let aborted = $state(false); // the last game was aborted, and is in Your games
-  // The next game's start, from the Analysis board's Play: a set-up start (null: the standard start), and a record's
-  // moves from it.
-  let brought = $state.raw<Brought | null>(null);
-  let ready = $state(false); // the rules are loaded: a game can start
-  let replacing = $state(false); // the dialog that asks before a record brought sets the game in progress aside
-  let confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
   let settingsOpen = $state(false); // the display settings, in the moves' place
-  let notesAt = $state<Record<number, BoardNote[]>>({}); // the player's notes on the board, by position (design 07)
+
+  // The page's flow, with Hedge School's game. A game's end goes to the site too (design 25), and a game set aside by a
+  // record brought goes into Your games, unfinished.
+  const page = new PracticePage<KeptPractice, PracticeGame>({
+    game: "enclosure", loadChoices, saveChoices, loadKept, keep, engine: loadEngine,
+    create: (kept, rules, bot) => new PracticeGame(kept, rules, bot),
+    params: practiceParams, endParams: practiceEndParams, track, trackOnce,
+    ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
+    setAside: saveUnfinished,
+    playing: () => (notice = ""),
+    settings: () => (settingsOpen = false),
+    forward: into => { if (display.sound) void playMove(display.volume, display.moveSound, !!into.cut); },
+  });
+  const game = $derived(page.game);
+  const shown = $derived(page.shown);
 
   onMount(() => {
     const hash = new URLSearchParams(location.hash.slice(1)), record = hash.get("record"), position = setUpStart(hash.get("position")) ?? null;
@@ -97,139 +94,22 @@
         // A record's own Position tag, or the start given beside it (withStart), with its turns numbered from there.
         const r = record ? parseRecord(withStart(record, position)) : null, problem = r && variantProblem(r, "practice");
         if (problem) throw new Error(problem);
-        brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
+        page.brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
       } catch (e) {
         notice = `Practice cannot start from this record: ${errorText(e)}`;
       }
     }
-    const kept = loadKept();
-    if (kept?.moves.length && brought) replacing = true; // the player chooses: the game in progress, or the record
-    phase = kept && !brought ? "game" : "settings";
-    void (async () => {
-      try {
-        manifest = await loadManifest();
-        if (!manifest) throw new Error("no engine on this site: run `npm run engine` first");
-        const w = new EngineWorker();
-        await w.init(manifest);
-        rules = w;
-        ready = true;
-        const resume = loadKept();
-        if (phase === "game" && !game && resume) await play(resume, "resumed");
-      } catch (e) {
-        failed = errorText(e);
-      }
-    })();
+    void page.mount(page.brought !== null, async () => {
+      const manifest = await loadManifest();
+      if (!manifest) throw new Error("no engine on this site: run `npm run engine` first");
+      return manifest;
+    });
   });
-  onDestroy(() => { game?.end(); rules?.terminate(); });
-
-  /** Starts the bot for a game, and the game: a new one, one from the Analysis board's Play (a record brought), or one
-   *  kept from an earlier visit (`from`, for design 17's `practice_start`). */
-  async function play(kept: KeptPractice, from: PracticeFrom) {
-    if (!manifest || !rules) return;
-    phase = "game";
-    starting = kept;
-    notice = "";
-    aborted = false;
-    viewAt = null;
-    notesAt = {};
-    try {
-      const bot = await startBot("enclosure", manifest, kept.bot.network, loadEngine(), kept.seed);
-      const g = (game = new PracticeGame(kept, rules, bot));
-      await g.start();
-      if (g.status !== "failed") track("practice_start", { ...gameParams(g), practice_from: from });
-      if (g.status !== "failed" && kept.komi) used("practice komi"); // design 17's feature: a game with a komi
-    } catch (e) {
-      failed = errorText(e);
-      track("engine_error", { error_kind: "practice" });
-    }
-  }
-
-  /** A new game with the settings chosen and the side picked, from the standard start or the record brought. The
-   *  card's komi, the player's head start, becomes the engine's, Red's starting score, by the side (design 24). */
-  function newGame(side: "blue" | "red" | "random") {
-    choices.side = side;
-    const chosen = $state.snapshot(choices);
-    saveChoices(chosen);
-    const kept: KeptPractice = newPractice(chosen, brought);
-    const from = practiceFrom(brought);
-    brought = null;
-    keep(kept);
-    void play(kept, from);
-  }
-
-  /** Back to the settings card, for the next game. */
-  function toSettings() {
-    game?.end();
-    game = null;
-    confirming = null;
-    settingsOpen = false;
-    phase = "settings";
-  }
-
-  async function confirmAction() {
-    const g = game, what = confirming;
-    confirming = null;
-    if (!g || !what) return;
-    if (what === "resign") return g.resign();
-    trackEnd(g, "aborted");
-    const id = await g.abort();
-    toSettings();
-    aborted = !!id;
-  }
-
-  /** A takeback, from the latest position: the board shows it after. */
-  function takeback() {
-    used("practice takeback");
-    viewAt = null;
-    void game?.takeback();
-  }
-
-  /** The dialog's answer: play from the record (the game in progress goes into Your games, unfinished), or go on with
-   *  the game in progress. It answers once the rules are loaded. */
-  async function answerReplace(fromRecord: boolean) {
-    replacing = false;
-    const kept = loadKept();
-    if (fromRecord) {
-      if (kept && rules) await saveUnfinished(kept, rules);
-      keep(null);
-      return;
-    }
-    brought = null;
-    if (kept) await play(kept, "resumed");
-  }
-
-  // The position on the board: the game's latest (null), or an earlier one, to look back. Moves are made only at the
-  // latest, as in a game on Lichess.
-  let viewAt = $state<number | null>(null);
-  const last = $derived(game ? game.positions.length - 1 : 0);
-  const shown = $derived(viewAt === null ? last : Math.min(viewAt, last));
-  const atLatest = $derived(shown === last);
-  function step(to: number) {
-    if (!game || last < 0) return;
-    const k = Math.max(0, Math.min(last, to));
-    if (k === shown) return;
-    const into = k > shown ? game.played[k - 1] : null; // the edge stepped through, forward
-    if (k < shown) used("practice look back");
-    viewAt = k === last ? null : k;
-    if (into && display.sound) void playMove(display.volume, display.moveSound, !!into.cut);
-  }
-  function onkeydown(ev: KeyboardEvent) {
-    if (ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey || !game) return;
-    const target = ev.target instanceof Element ? ev.target : null;
-    if (target?.closest('input, textarea, [role="dialog"], [role="radiogroup"], [role="menu"]')) return;
-    if (ev.key === "Escape" && (confirming || settingsOpen || input.pending)) { confirming = null; settingsOpen = false; input.reset(); }
-    else if (ev.key === "ArrowLeft" || ev.key === "k") step(shown - 1);
-    else if (ev.key === "ArrowRight" || ev.key === "j") step(shown + 1);
-    else if (ev.key === "ArrowUp" || ev.key === "Home") step(0);
-    else if (ev.key === "ArrowDown" || ev.key === "End") step(last);
-    else return;
-    ev.preventDefault();
-  }
 
   // The player's edges: two clicks, on the rules of the position (EdgeInput), at the latest position only.
   const input = new EdgeInput(edge => void game?.play(edgeName(edge)));
   $effect(() => {
-    const r = game?.status === "human" && atLatest ? game.rules : null;
+    const r = game?.status === "human" && page.atLatest ? game.rules : null;
     input.reset();
     input.rules = r;
   });
@@ -239,7 +119,7 @@
   $effect(() => {
     const now = $state.snapshot(display), was = shownDisplay;
     saveDisplay(now);
-    for (const k of Object.keys(now) as (keyof typeof now)[]) if (JSON.stringify(now[k]) !== JSON.stringify(was[k])) used(`display ${k}`);
+    for (const k of Object.keys(now) as (keyof typeof now)[]) if (JSON.stringify(now[k]) !== JSON.stringify(was[k])) page.used(`display ${k}`);
     shownDisplay = now;
   });
   $effect(() => { if (display.sound) preload(display.moveSound); });
@@ -248,19 +128,10 @@
   let heard = 0;
   $effect(() => {
     const played = game?.played ?? [];
-    if (played.length > heard && game?.status !== "starting" && viewAt === null && display.sound)
+    if (played.length > heard && game?.status !== "starting" && page.viewAt === null && display.sound)
       void playMove(display.volume, display.moveSound, !!played.at(-1)?.cut);
     heard = played.length;
   });
-  // The seconds the bot has thought, while it searches.
-  let now = $state(0);
-  $effect(() => {
-    if (game?.thinkingSince == null) return;
-    now = performance.now();
-    const tick = setInterval(() => (now = performance.now()), 250);
-    return () => clearInterval(tick);
-  });
-  const seconds = (ms: number) => `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
 
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : networkName(k.bot.network));
   // The bot's settings and where it runs, then the komi from the player's side (design 24)
@@ -273,59 +144,29 @@
       if (g.resigned) return "You resigned: HedgeFund wins.";
       return `Game over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`; // the review's words and rule (game.ts)
     }
-    if (g.status === "bot") return `HedgeFund is thinking… ${g.thinkingSince === null ? "" : seconds(Math.max(0, now - g.thinkingSince))}`;
+    if (g.status === "bot") return `HedgeFund is thinking… ${g.thinkingSince === null ? "" : seconds(Math.max(0, page.now - g.thinkingSince))}`;
     return `Your turn: ${p.movesLeft} ${p.movesLeft === 1 ? "edge" : "edges"} to play.`;
   });
-  // What PostHog receives (design 17): counts and settings, never a move or the player's name. A game's
-  // settings, with each event about it. Its end, once, by the rules, Resign or Abort. A feature's first use in a game.
-  const gameParams = (g: PracticeGame) => practiceParams(g.kept, g.mode, navigator.hardwareConcurrency);
-  let endSent: PracticeGame | null = null;
-  // A game's end, once: its event (design 17), and the game itself to the site (design 25).
-  function trackEnd(g: PracticeGame, outcome: PracticeOutcome) {
-    if (endSent === g) return;
-    endSent = g;
-    track("practice_end", practiceEndParams(g.kept, g.mode, navigator.hardwareConcurrency, outcome, g.played.length));
-    sendPractice(g.stored(outcome, browserNumber()));
-  }
-  $effect(() => {
-    const g = game, status = g?.status;
-    if (!g || (status !== "over" && status !== "failed")) return;
-    untrack(() => {
-      if (status === "failed") { trackOnce(`${g.kept.started} failed`, "engine_error", { error_kind: "practice" }); return; }
-      trackEnd(g, practiceOutcome(g.position!.scores, g.human, g.resigned));
-    });
-  });
-  function used(name: string) {
-    if (game) trackOnce(`${game.kept.started} ${name}`, "feature", { feature_name: name });
-  }
 
   // The move list: each turn's number and its edges, as the review lists them, each edge with its position's index. Its
   // numbers start at the start's own turn.
   const firstTurn = $derived(practiceTurn(game?.kept ?? {}));
-  const turns = $derived.by(() => {
-    const out: { player: Player; moves: { text: string; at: number }[] }[] = [];
-    (game?.played ?? []).forEach((m, i) => {
-      const t = out.at(-1), move = { text: moveNotation(m), at: i + 1 };
-      if (t && t.player === m.player) t.moves.push(move);
-      else out.push({ player: m.player, moves: [move] });
-    });
-    return out;
-  });
+  const turns = $derived(turnsOf(game?.played ?? [], moveNotation));
   const gaugeW = $derived(!score.bar || score.form !== "gauge" ? "0px" : score.area ? "1.875rem" : "1.375rem");
   let moveList = $state<HTMLElement | null>(null);
   $effect(() => { void shown; void turns; keepInView(moveList); });
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window onkeydown={ev => page.keydown(ev, settingsOpen || !!input.pending, () => { settingsOpen = false; input.reset(); })} />
 
 <PageMeta title="Practice · Hedge School"
           description="Practise Enclosure against the engine's bot in your browser: choose its network, visits, variety and komi, then review the game." />
 
-{#if failed}
-  <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{failed}</p></main>
-{:else if phase === "settings"}
+{#if page.failed}
+  <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{page.failed}</p></main>
+{:else if page.phase === "settings"}
   {@render settingsCard()}
-{:else if phase === "game"}
+{:else if page.phase === "game"}
   {@render gameView()}
 {:else}
   <main class="min-h-[60vh]" aria-busy="true"></main>
@@ -334,14 +175,14 @@
 <!-- The settings card (Lichess's "Play with the computer", @abstractclass/practice): the bot, the player's name, then the
      side, which starts the game. -->
 {#snippet settingsCard()}
-  <PracticeCard bind:choices networks={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
-                networkHelp="The larger network plays stronger, and takes longer." bot={BOT_NAME} {ready} onside={newGame}>
+  <PracticeCard bind:choices={page.choices} networks={NETWORKS.map(n => [n.id, `${networkName(n.id)} (${networkMB(n.id)} MB)`])}
+                networkHelp="The larger network plays stronger, and takes longer." bot={BOT_NAME} ready={page.ready} onside={side => page.newGame(side)}>
     {#snippet intro()}A game against the engine, in your browser, with no clock: the bot searches each move to the visits
       you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}
       {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
-      {#if aborted}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
-      {#if brought}<p class="mb-1 text-sm">{broughtLine(brought, ["edge", "edges"])}</p>{/if}
+      {#if page.abortedId}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
+      {#if page.brought}<p class="mb-1 text-sm">{broughtLine(page.brought, ["edge", "edges"])}</p>{/if}
     {/snippet}
   </PracticeCard>
 {/snippet}
@@ -354,7 +195,7 @@
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
   {@const gauge = score.form === "gauge" && score.bar}
-  <PracticeFrame form="square" {gauge} gaugeWidth={gaugeW} {shown} {last} onstep={step}>
+  <PracticeFrame form="square" {gauge} gaugeWidth={gaugeW} {shown} last={page.last} onstep={to => page.step(to)}>
     {#snippet strip()}
         {#if g && pos}
           <PlayerRow {gauge} label="Players and scores">
@@ -364,7 +205,7 @@
           </PlayerRow>
         {:else}
           <!-- The skeleton (the review's, PlayerCardSkeleton) while the bot starts: the row's height is the cards'. -->
-          {@const k = g?.kept ?? starting}
+          {@const k = g?.kept ?? page.starting}
           <PlayerRow {gauge} label="Players and scores">
             {#snippet blue()}<PlayerCardSkeleton player={0} name={k ? nameOf(k, 0) : undefined} second={AREA.word} />{/snippet}
             {#snippet red()}<PlayerCardSkeleton player={1} name={k ? nameOf(k, 1) : undefined} second={AREA.word} />{/snippet}
@@ -382,7 +223,7 @@
             <Board position={pos} cut={into?.cut ?? null}
                    layers={{ candidates: false, marks: false, regions: display.layers.regions, protected: display.layers.protected }}
                    pending={input.pending} ends={input.ends} active={input.active} onpoint={input.rules ? input.click : undefined} onlyActive
-                   notes={notesAt[shown] ?? []} onnotes={n => { if (n.length > (notesAt[shown]?.length ?? 0)) used("note drawn"); notesAt[shown] = n; }} />
+                   notes={page.notesAt[shown] ?? []} onnotes={n => page.note(n)} />
           {/if}
     {/snippet}
     {#snippet side()}
@@ -393,7 +234,7 @@
         {#if g}<p class="text-xs text-muted">{botLine(g)}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
         <p class={["mt-2 text-sm font-medium", g?.status === "failed" && "text-blunder"]} role="status" aria-live="polite">{statusText}</p>
         <p class="min-h-[1.25rem] mb-1.5 text-xs text-muted">
-          {#if g && !atLatest && g.status !== "over"}Looking back at {shown ? `edge ${shown}` : "the start"}: End returns to the game.
+          {#if g && !page.atLatest && g.status !== "over"}Looking back at {shown ? `edge ${shown}` : "the start"}: End returns to the game.
           {:else if g?.lastTurnMs != null && g.status !== "over"}HedgeFund's last turn took {seconds(g.lastTurnMs)}.{/if}
         </p>
         <!-- The review's move list (moveList.ts): one row a turn, each edge a step to its position. A click on a move does
@@ -402,7 +243,7 @@
         <div bind:this={moveList} class={[MOVE_LIST, "min-h-24 max-[800px]:max-h-64"]}
              onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
           {#if !g || g.status === "starting"}
-            {#each Array(starting?.moves.length ? 12 : 0) as _, k (k)}<div class="h-4 mb-2.5 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}
+            {#each Array(page.starting?.moves.length ? 12 : 0) as _, k (k)}<div class="h-4 mb-2.5 {BONE}" style:width="{k % 3 === 2 ? 55 : 85}%"></div>{/each}
           {/if}
           {#each turns as t, k (k)}
             <div class={turnRow()}>
@@ -411,7 +252,7 @@
               {#if k === 0 && !firstTurn.first}<span class="px-[0.2rem] text-muted">…</span>{/if}
               {#each t.moves as m (m.at)}
                 <button type="button" class={moveButton(t.player, shown === m.at ? MOVE_HERE : undefined)} tabindex="-1"
-                        aria-current={shown === m.at ? "step" : undefined} onclick={() => step(m.at)}><span class={MOVE_TEXT}>{m.text}</span></button>
+                        aria-current={shown === m.at ? "step" : undefined} onclick={() => page.step(m.at)}><span class={MOVE_TEXT}>{m.text}</span></button>
               {/each}
             </div>
           {/each}
@@ -422,34 +263,22 @@
             {#if g.savedId && g.kept.start}<a class="btn-primary px-3 py-1 rounded text-sm no-underline"
                 href="/analysis#{new URLSearchParams({ record: g.record(), via: 'practice' })}" data-sveltekit-reload>Analyze the game</a>
             {:else if g.savedId}<a class="btn-primary px-3 py-1 rounded text-sm no-underline" href="/review#game={g.savedId}" data-sveltekit-reload>Review the game</a>{/if}
-            <button type="button" class="text-sm" onclick={toSettings}>New game</button>
+            <button type="button" class="text-sm" onclick={() => page.toSettings()}>New game</button>
           </div>
         {/if}
-        {#if confirming && g}
-          <div class="mt-3 p-2 rounded border border-line bg-panel-2 text-sm" role="alertdialog" aria-label={confirming === "resign" ? "Resign" : "Abort"}
-               {@attach intoView}>
-            <p class="mb-2">{confirming === "resign" ? "Resign? HedgeFund wins, and the game goes into Your games."
-                                                     : "Abort the game? It goes into Your games, unfinished."}</p>
-            <div class="flex gap-2">
-              <button type="button" class="btn-danger text-sm" onclick={confirmAction}>{confirming === "resign" ? "Resign" : "Abort"}</button>
-              <button type="button" class="text-sm" onclick={() => (confirming = null)}>Keep playing</button>
-            </div>
-          </div>
+        {#if page.confirming && g}
+          <ConfirmEnd what={page.confirming} words={{ resign: "Resign? HedgeFund wins, and the game goes into Your games.",
+                                                       abort: "Abort the game? It goes into Your games, unfinished." }}
+                      onconfirm={() => page.confirm()} onkeep={() => (page.confirming = null)} />
         {/if}
       {/if}
     {/snippet}
     <!-- The game's actions and the display settings' button, right of the steps in the frame's step bar. -->
     {#snippet tools()}
-          <!-- The actions show, off, while the bot starts, so that the bar keeps its layout. -->
-          {#if g?.status !== "over"}
-            <button class="btn-icon" aria-label="Take back" title="Takeback" disabled={!g?.canTakeBack || settingsOpen} onclick={takeback}><Icon name="takeback" /></button>
-            <button class={["btn-icon", DANGER]} aria-label="Abort" title="Abort" disabled={!g || g.status === "starting" || settingsOpen}
-                    onclick={() => (confirming = "abort")}><Icon name="abort" /></button>
-            <button class={["btn-icon", DANGER]} aria-label="Resign" title="Resign"
-                    disabled={!g || g.status === "starting" || g.status === "failed" || settingsOpen} onclick={() => (confirming = "resign")}><Icon name="resign" /></button>
-          {/if}
-          <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
-                  aria-expanded={settingsOpen} onclick={() => (settingsOpen = !settingsOpen)}><Icon name="menu" /></button>
+          <PracticeActions game={g} off={settingsOpen} ontakeback={() => page.takeback()} onask={what => (page.confirming = what)}>
+            <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
+                    aria-expanded={settingsOpen} onclick={() => (settingsOpen = !settingsOpen)}><Icon name="menu" /></button>
+          </PracticeActions>
     {/snippet}
   </PracticeFrame>
 {/snippet}
@@ -502,6 +331,6 @@
 {/snippet}
 
 <!-- A record brought while a game is in progress: the player chooses, once the rules are loaded. -->
-<ReplaceGame open={replacing} {ready} title="Play from this record?" play="Play from the record"
+<ReplaceGame open={page.replacing} ready={page.ready} title="Play from this record?" play="Play from the record"
              description="Your game in progress goes into Your games, unfinished, so you can still review it. This browser keeps one game in progress."
-             onanswer={answerReplace} />
+             onanswer={fromRecord => page.answer(fromRecord)} />
