@@ -5,8 +5,7 @@
 // The engine is off, so that nothing searches. The test book is served by the dev and preview servers only, and the
 // review shows the book in the early edition only: elsewhere the test is skipped.
 import { readFileSync } from "node:fs";
-import { test, expect, type Page, type Request } from "./page-log.ts";
-import type { Locator } from "@playwright/test";
+import { test, expect, type Locator, type Page, type Request } from "./page-log.ts";
 import { loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { toMove } from "./move-header.ts";
 

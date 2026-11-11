@@ -21,8 +21,7 @@
 // Every page's sweep checks the header in one row, with Openings' fourth tab where the build has it. A last test checks
 // the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site
 // running first).
-import { expect, test, type Page } from "./page-log.ts";
-import type { Locator } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { keepBefore } from "./keep-before.ts";
 import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
