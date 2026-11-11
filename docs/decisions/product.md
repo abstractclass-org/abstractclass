@@ -11103,3 +11103,15 @@ with Hedge School") changed. Cyanotype's Practice copied parts of Hedge School's
   `cyanotype-practice.spec.ts`). The practice cases of both sites and the layout cases of their Practice pages pass:
   30 cases, none skipped, the whole games against Stamp Duty with a reload among them. The layout test's whole run is
   the merge's check.
+- **The review's checks,** in the same Chromium, on the CPU:
+  - Each new case of the start fails without its fix and passes with it. With the rule "a game found at mount" taken
+    out, both sites' cases on a game kept after the mount fail. On dev's code, Cyanotype's case on a game kept after
+    the mount fails, and both sites' cases on a game ended meanwhile fail. On the code before the question's fix,
+    Cyanotype's case on a start brought fails. The new node case on the end's guard fails without the guard.
+  - Dev against the branch: Practice on both sites (the card and a game) and Cyanotype's review, at 1,280 and 360
+    pixels, in both themes: 20 screenshots and the boxes of the pages' parts. Every box is the same to the
+    sub-pixel. One screenshot differs by 13 pixels, at the rounded corner of the side column of Hedge School's game
+    at 1,280 pixels. Two runs of dev's code differ by the same 13 pixels, and three runs of the branch's code do not
+    differ. So the difference comes from the rendering, not from the change.
+  - The site suite on the branch's final code: check:all passes, and the whole layout test passes: 259 cases, none
+    skipped, none flaky.
