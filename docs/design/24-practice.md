@@ -376,7 +376,9 @@ How strong each setting plays against people is not measured yet.
   the end and the save into Your games.
 - **The page's flow:** `packages/practice/src/page.svelte.ts` (`PracticePage`), for both sites: the card or the game,
   the engine's start, a new game, the steps and their keys, the bot's thinking time, the question on a start brought,
-  the player's notes and the game's events. `PracticeActions.svelte` (Take back, Abort and Resign in the step bar) and
+  the player's notes, the game's events, and the order of what the status line tells (`line`: a game that stopped
+  says why first, then the bot's start, the game's end and whose move it is; each site gives the words).
+  `PracticeActions.svelte` (Take back, Abort and Resign in the step bar) and
   `ConfirmEnd.svelte` (the question before Abort or Resign, with each site's words). The page gives the site's parts:
   its game, its storage (the choices and the kept game), its networks' names for the events, its engine settings,
   its analytics, and what a game's end sends (design 25). The page's event parameters are the package's

@@ -11601,10 +11601,12 @@ above). Designs 17, 24, 29 and 33 changed.
   `MOVE_LIST`, and a click on a move that does not focus it), its skeleton while the bot starts, and `keepInView`. It
   groups the moves into turns (`turnsOf`) with the site's text of a move, and each page gives the rows of a turn.
   `PlayersSkeleton.svelte` holds the row above the board while the bot starts. The markup did not change.
-- **The status line stays in each page.** Hedge School's tests the start before the failure. So a game that fails
-  before its first position shows "Starting HedgeFund…", in the colour of an error. Cyanotype's tests
-  the failure first and says why the game stopped. One order for both changes what Hedge School shows in that case,
-  and this work changes nothing that players see. So the shared order waits for a decision.
+- **One order for the status line, Cyanotype's:** `PracticePage.line` (`PracticeLine` in `page.svelte.ts`) gives
+  what the line tells, and each page gives its words. A game that stopped says why first, then the bot's start, the
+  game's end by Resign or by the rules, and whose move it is. Before, Hedge School's page tested the start before the
+  failure: a game that failed before its first position (a kept start that the engine cannot read) showed "Starting
+  HedgeFund…", in the colour of an error. It now shows "The game stopped:" and the engine's reason, as Cyanotype's
+  page did. A new case of `practice-start.spec.ts` checks it.
 - **One query for the one column:** a browser's zoom or a screen's scale can give a width between 799 and 800 pixels
   (a window of 799 pixels at a scale of 1.5 is 799.33 pixels wide). There, Practice's frame (`max-[800px]`, a width
   under 800) had one column, but the review's query (`ONE_COLUMN`, `(max-width: 799px)`) did not match. So the step
@@ -11612,20 +11614,23 @@ above). Designs 17, 24, 29 and 33 changed.
   window. The frame, the move list's height and Cyanotype's status line now take the variant `one-column-layout` of
   `review.css`: the query of `ONE_COLUMN`, on a screen and on paper. (The variant `one-column`, for the fixed step
   bar, is on a screen only.) At that width the page now has two columns, as at 800 pixels.
-- **A gap that stays, in the review:** `ReviewView.svelte` takes `(min-width: 800px)` and `(max-width: 799px)`.
-  Between 799 and 800 pixels neither matches, so the side columns take the column's height in place of the height to
-  the window's bottom. This work does not change the review.
+- **The review's two columns take the negation of the same query:** `ReviewView.svelte` took `(min-width: 800px)`
+  for the side columns' height to the window's bottom, and `(max-width: 799px)` for the one column. Between 799 and
+  800 pixels neither matched, so the side columns took the column's height: on Hedge School's review at 799.33
+  pixels, 623 pixels in place of the 820 that the script measured. The first query is now `not all and (max-width:
+  799px)`, the negation of `ONE_COLUMN`. On Cyanotype's review the two heights were the same at that width (its board
+  fills the room), so only the query showed the gap there.
 - **How a test gets that width:** Chromium gives an iframe and an emulated window whole pixels (an iframe 799.5
   pixels wide has a page 800 pixels wide), and CDP's device metrics take whole widths only. A browser started with
   `--force-device-scale-factor=1.5` and `--window-size=799,900` has a window of 1,199 device pixels and a page
-  799.33 pixels wide. So the layout test's two new cases start a browser of their own with the chromium project's
-  launch options and those two flags.
+  799.33 pixels wide. So the layout test's four new cases (Practice and the review, on each site) start a browser of
+  their own with the chromium project's launch options and those two flags. The page log (`tests/page-log.ts`) does
+  not read that browser. The review's cases also check each media query of the review's own styles at 799 or 800
+  pixels: it matches as `ONE_COLUMN`, or as its negation for a query of the two columns.
 - **Checked** in headless Chromium (the chromium project, on the CPU), on both sites' builds:
-  - On dev's code, both new cases fail ("the frame has 1 columns, and the one column's query does not match"). On
-    the branch's code they pass. Screenshots at 799.33 pixels show, on dev's code, the board as wide as the window
-    with the side column under it, and Cyanotype's hands' panel over the board. On the branch's code, they show two
-    columns, as at 800 pixels.
+  - On dev's code (34058e5d) the five new cases fail: the frame's one column on both sites, the review's query
+    `(width >= 800px)` on both sites and its side column of 623 pixels on Hedge School, and the failed start's
+    status line. On the branch's code they pass.
   - The type checks of both sites and of the practice and review packages pass, and so do the unit tests.
-  - The site suite on the branch's code: check:all passes. The layout test: 266 cases pass, none skipped, and one
-    fails: Cyanotype's import page with a refused record, which stayed at "Opening the game…" for 120 seconds. On the
-    same builds, that case and its neighbour then passed twice each. This work does not change the import page.
+  - The site suite on the branch's code: check:all passes, and the whole layout test passes: 270 cases, none
+    skipped, none flaky.

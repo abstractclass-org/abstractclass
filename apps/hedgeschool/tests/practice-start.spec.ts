@@ -4,6 +4,7 @@
 // The engine's manifest waits here until the other tab has kept or ended its game.
 // Cyanotype's Practice has the same case (cyanotype-practice.spec.ts). Run:
 // npm run test:layout -- tests/practice-start.spec.ts --project=chromium, with BASE_URL.
+import { keepBefore } from "./keep-before.ts";
 import { expect, test } from "./page-log.ts";
 
 const GAME = "hedge-school:practice-game:1";
@@ -55,5 +56,21 @@ test("a game that another tab ends while the engine loads gives way to the setti
   endedElsewhere();
   await expect(page.getByRole("button", { name: "Play as Blue" })).toBeEnabled({ timeout: 120_000 });
   await expect(page.getByRole("button", { name: "Abort" })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+// A kept game whose start the engine cannot read stops before its first position. The status line says why, as on
+// Cyanotype's Practice (one order for both sites, page.svelte.ts's PracticeLine), and not that the bot starts.
+test("a game that fails before its first position says why it stopped", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await keepBefore(page, "hedge-school:consent:2", { games: "denied" });
+  await keepBefore(page, GAME, {
+    version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "", seed: 1,
+    moves: [], builds: [], started: new Date().toISOString(), start: "no position",
+  });
+  await page.goto("/practice");
+  await expect(page.getByRole("status").filter({ hasText: /^The game stopped: \S/ })).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText("Starting HedgeFund…")).toHaveCount(0);
   expect(errors).toEqual([]);
 });

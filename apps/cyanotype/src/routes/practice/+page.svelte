@@ -128,20 +128,18 @@
 
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : ENGINE_NAME);
   // The status line, in the step bar, two lines high: whose move it is, and on the player's turn what the board takes
-  // next. Strict Simplified Technical English (CLAUDE.md, "Writing the site's text").
+  // next, in the order that both sites share (page.line). Strict Simplified Technical English (CLAUDE.md, "Writing the
+  // site's text").
   const statusText = $derived.by(() => {
-    const g = game, p = g?.position;
-    // A game that fails as it starts has no position yet: it says why, not that it starts.
-    if (g?.status === "failed") return `The game stopped: ${g.error}`;
-    if (!g || g.status === "starting" || !p) return `${ENGINE_NAME} starts…`;
-    if (g.status === "over") {
-      if (g.resigned) return `You resigned. ${ENGINE_NAME} wins.`;
-      // The review's words and its rule for a draw (@abstractclass/review/game.ts)
-      return `The game is over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`;
-    }
+    const g = game, p = g?.position, line = page.line;
+    if (line === "failed") return `The game stopped: ${g!.error}`;
+    if (line === "starting" || !g || !p) return `${ENGINE_NAME} starts…`;
+    if (line === "resigned") return `You resigned. ${ENGINE_NAME} wins.`;
+    // The review's words and its rule for a draw (@abstractclass/review/game.ts)
+    if (line === "over") return `The game is over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`;
     if (!page.atLatest) return `You look at move ${shown}. To go back to the game, go to the last move.`;
-    if (g.status === "bot") return `${ENGINE_NAME} thinks… ${page.thinking}`;
-    if (g.status !== "human") return "";
+    if (line === "bot") return `${ENGINE_NAME} thinks… ${page.thinking}`;
+    if (line !== "human") return "";
     const n = g.movesLeft;
     return inputStatus(input, g.human) ?? `Your turn: ${n} ${n === 1 ? "move" : "moves"}. ${firstStatus(input, g.human)}`;
   });

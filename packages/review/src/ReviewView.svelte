@@ -3097,11 +3097,13 @@
   /* The analysis column is as high as the board's column; the move list takes what is left. */
   .side { grid-area: side; height: var(--column); }
   /* The side columns are as high as --side-h (set in the script): to the window's bottom, from the board's bottom edge
-     at least. Their height is set, so they do not make the row taller. */
-  @media (min-width: 800px) {
+     at least. Their height is set, so they do not make the row taller. Outside the one column: the negation of its
+     query (ONE_COLUMN, oneColumn.ts), so that a width between 799 and 800 pixels, which a browser's zoom gives, takes
+     one of the two layouts. */
+  @media not all and (max-width: 799px) {
     .review .side, .review .summary-col { height: var(--side-h, var(--column)); max-height: none; }
   }
-  /* One column below 800 pixels (Lichess's $small): the board as wide as the window, then the analysis. */
+  /* One column below 800 pixels (Lichess's $small, ONE_COLUMN): the board as wide as the window, then the analysis. */
   @media (max-width: 799px) {
     .review, .review.wide {
       --board: calc(100cqw - 2rem - var(--gauge-w));

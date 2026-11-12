@@ -10,19 +10,18 @@
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
-// monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's home
-// page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Four check the
-// header's "Early Access" link, on each site in each theme. Two check Cyanotype's
-// Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check that
-// a practice game's one column agrees with itself between 799 and 800 pixels wide, on each site. Two check
-// Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
-// board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
-// book's table, where the build has it (edition.ts, OPENINGS), while the engine's network loads and once it has
-// loaded. One checks that the sentence under the book's table keeps the move list in place, on Openings and the
-// Analysis board (the review's book table test checks the review).
-// Every page's sweep checks the header in one row, with Openings' fourth tab where the build has it. A last test checks
-// the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site
-// running first).
+// monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's
+// home page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Four check the
+// header's "Early Access" link, on each site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its
+// page, and a game in progress when the site has its practice bot. Four check that a practice game's and a review's one
+// column agree with themselves between 799 and 800 pixels wide, on each site. Two check Cyanotype's import page: the
+// choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's board with the player's notes,
+// at design 06's sizes. One checks Openings (design 32) on the test book, with the book's table, where the build has it
+// (edition.ts, OPENINGS), while the engine's network loads and once it has loaded. One checks that the sentence under
+// the book's table keeps the move list in place, on Openings and the Analysis board (the review's book table test
+// checks the review). Every page's sweep checks the header in one row, with Openings' fourth tab where the build has
+// it. A last test checks the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm
+// run test:layout (the site running first).
 import type { BrowserType, LaunchOptions } from "@playwright/test";
 import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
@@ -754,51 +753,90 @@ test("layout of a practice game", async ({ page }) => {
   expect(await sweep(page, "/practice in a game")).toBe("");
 });
 
-// Practice at a width between 799 and 800 pixels, as a browser's zoom or a screen's scale gives it. The frame's one
-// column, the fixed step bar and Cyanotype's hands under the board take one query, the one column's (ONE_COLUMN,
-// packages/review/src/oneColumn.ts), so they agree at that width. Chromium gives an iframe and an emulated window whole
-// pixels, so the case starts a browser of its own, with the project's launch options, at a scale of 1.5 (Windows'
-// 150 %): its window of 799 pixels is 1,199 device pixels, and its page is 799.33 pixels wide. The page log
+// Practice and the review at a width between 799 and 800 pixels, as a browser's zoom or a screen's scale gives it.
+// Their one column, the fixed step bar and Cyanotype's hands under the board take one query, the one column's
+// (ONE_COLUMN, packages/review/src/oneColumn.ts), so they agree at that width: the page has the one column's layout,
+// or two columns with the side column as high as the script measures it. Chromium gives an iframe and an emulated
+// window whole pixels, so each case starts a browser of its own, with the project's launch options, at a scale of 1.5
+// (Windows' 150 %): its window of 799 pixels is 1,199 device pixels, and its page is 799.33 pixels wide. The page log
 // (page-log.ts) does not read that browser: a failure's evidence is the case's message and its numbers. On each site,
-// a game in progress.
+// a game in progress on Practice, and the review of the test game.
 const ONE_COLUMN = "(max-width: 799px)";
 const BETWEEN = ["--force-device-scale-factor=1.5", "--window-size=799,900"];
-/** Where the frame's columns, the step bar's place and (with `hands`) the hands' place disagree with the one column's
- *  query, on `origin`'s /practice between 799 and 800 pixels wide, with `kept` in the browser under `key`, once `ready`
- *  shows. */
-async function oneColumnBetween(browserType: BrowserType, launchOptions: LaunchOptions, origin: string, key: string,
-                                kept: object, ready: RegExp, hands: boolean) {
+/** What `check` finds on a page of a browser of its own, between 799 and 800 pixels wide, once `open` has opened it.
+ *  Relative addresses go to `baseURL`. */
+async function between(browserType: BrowserType, launchOptions: LaunchOptions, baseURL: string,
+                       open: (page: Page) => Promise<void>, check: (page: Page) => Promise<string[]>) {
   const browser = await browserType.launch({ ...launchOptions, args: [...(launchOptions.args ?? []), ...BETWEEN] });
   try {
-    const page = await (await browser.newContext({ viewport: null })).newPage();
-    await page.goto(new URL("/notices", origin).href); // a page of the site that starts no engine
-    await page.evaluate(({ key, kept }) => localStorage.setItem(key, JSON.stringify(kept)), { key, kept });
-    await page.goto(new URL("/practice", origin).href);
-    await expect(page.getByText(ready).first()).toBeVisible({ timeout: 120_000 });
-    return await page.evaluate(({ query, hands }) => {
-      const out: string[] = [];
-      if (!matchMedia("(799px < width < 800px)").matches) return [`the page is ${visualViewport?.width} pixels wide, not between 799 and 800`];
-      const one = matchMedia(query).matches, matches = one ? "matches" : "does not match";
-      const bar = document.querySelector(".step-dock"), main = bar?.closest("main");
-      const columns = main ? getComputedStyle(main).gridTemplateColumns.split(" ").length : 0;
-      if (columns !== (one ? 1 : 2)) out.push(`the frame has ${columns} columns, and the one column's query ${matches}`);
-      if (bar && (getComputedStyle(bar).position === "fixed") !== one)
-        out.push(`the step bar is ${one ? "not " : ""}fixed to the window's foot, and the one column's query ${matches}`);
-      if (hands && !!document.querySelector(".hands-panel") === one)
-        out.push(`the hands are ${one ? "in their panel" : "under the board"}, and the one column's query ${matches}`);
-      return out;
-    }, { query: ONE_COLUMN, hands });
+    const page = await (await browser.newContext({ viewport: null, baseURL })).newPage();
+    await open(page);
+    await settle(page);
+    const width = await page.evaluate(() => matchMedia("(799px < width < 800px)").matches ? null : visualViewport?.width);
+    return width === null ? await check(page) : [`the page is ${width} pixels wide, not between 799 and 800`];
   } finally {
     await browser.close();
   }
 }
 
+/** Where Practice's frame, the step bar's place and (with `hands`) the hands' place disagree with the one column's
+ *  query. */
+const practiceColumns = (hands: boolean) => (page: Page) => page.evaluate(({ query, hands }) => {
+  const out: string[] = [], one = matchMedia(query).matches, matches = one ? "matches" : "does not match";
+  const bar = document.querySelector(".step-dock"), main = bar?.closest("main");
+  const columns = main ? getComputedStyle(main).gridTemplateColumns.split(" ").length : 0;
+  if (columns !== (one ? 1 : 2)) out.push(`the frame has ${columns} columns, and the one column's query ${matches}`);
+  if (bar && (getComputedStyle(bar).position === "fixed") !== one)
+    out.push(`the step bar is ${one ? "not " : ""}fixed to the window's foot, and the one column's query ${matches}`);
+  if (hands && !!document.querySelector(".hands-panel") === one)
+    out.push(`the hands are ${one ? "in their panel" : "under the board"}, and the one column's query ${matches}`);
+  return out;
+}, { query: ONE_COLUMN, hands });
+
+/** Where the review's columns disagree with the one column's query: each media query of the review's own styles (its
+ *  rules' selectors name `.review`) at 799 or 800 pixels, which matches as the one column's query, or as its negation
+ *  for a query of the two columns (min-width, `>` or `not`); the review's column count; and outside the one column,
+ *  the side column's height against the height to the window's bottom that the script measures (--side-h). */
+const reviewColumns = (page: Page) => page.evaluate(query => {
+  const out: string[] = [], one = matchMedia(query).matches, matches = one ? "matches" : "does not match";
+  const review = document.querySelector<HTMLElement>("main.review"), side = review?.querySelector(".side");
+  if (!review || !side) return ["the page has no review"];
+  const queries = new Set<string>();
+  const walk = (rules: CSSRuleList) => {
+    for (const r of rules) {
+      if (r instanceof CSSMediaRule && [...r.cssRules].some(i => i instanceof CSSStyleRule && i.selectorText.includes(".review")))
+        queries.add(r.conditionText);
+      if (r instanceof CSSGroupingRule) walk(r.cssRules);
+    }
+  };
+  for (const sheet of document.styleSheets) {
+    try { walk(sheet.cssRules); } catch { /* a sheet of another origin: its rules are not the review's */ }
+  }
+  for (const q of queries) {
+    if (!/\b(799|800)px/.test(q)) continue;
+    const twoColumns = /min-width|>|\bnot\b/.test(q), now = matchMedia(q).matches;
+    if (now !== (twoColumns ? !one : one))
+      out.push(`the review's query ${q} ${now ? "matches" : "does not match"}, and the one column's query ${matches}`);
+  }
+  const columns = getComputedStyle(review).gridTemplateColumns.split(" ").length;
+  if ((columns === 1) !== one) out.push(`the review has ${columns} columns, and the one column's query ${matches}`);
+  const measured = parseFloat(review.style.getPropertyValue("--side-h")), height = side.getBoundingClientRect().height;
+  if (!one && measured && Math.abs(height - measured) > 1)
+    out.push(`the side column is ${height.toFixed(1)} pixels high, not the ${measured.toFixed(1)} that the script ` +
+             `measures, and the one column's query ${matches}`);
+  return out;
+}, ONE_COLUMN);
+
 test("a practice game's one column between 799 and 800 pixels wide", async ({ browser, launchOptions, baseURL }) => {
   const moves = fixtureRecord().replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
-  expect(await oneColumnBetween(browser.browserType(), launchOptions, baseURL!, "hedge-school:practice-game:1", {
-    version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "", seed: 1,
-    moves, builds: [], started: new Date().toISOString(),
-  }, /^Your turn/, false)).toEqual([]);
+  expect(await between(browser.browserType(), launchOptions, baseURL!, async page => {
+    await keepBefore(page, "hedge-school:practice-game:1", {
+      version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "", seed: 1,
+      moves, builds: [], started: new Date().toISOString(),
+    });
+    await page.goto("/practice");
+    await expect(page.getByText(/^Your turn/).first()).toBeVisible({ timeout: 120_000 });
+  }, practiceColumns(false))).toEqual([]);
 });
 
 test("a practice game's one column on Cyanotype between 799 and 800 pixels wide", async ({ browser, launchOptions, page }) => {
@@ -807,11 +845,31 @@ test("a practice game's one column on Cyanotype between 799 and 800 pixels wide"
   test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
             "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build");
   const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
-  expect(await oneColumnBetween(browser.browserType(), launchOptions, CYANOTYPE!, "cyanotype:practice-game:1", {
-    version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
-    human: 1, name: "", seed: 1, moves: fixtures.find(f => f.name === "A middle game")!.moves, builds: [],
-    started: new Date().toISOString(),
-  }, /^Your turn/, true)).toEqual([]);
+  expect(await between(browser.browserType(), launchOptions, CYANOTYPE!, async p => {
+    await keepBefore(p, "cyanotype:practice-game:1", {
+      version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
+      human: 1, name: "", seed: 1, moves: fixtures.find(f => f.name === "A middle game")!.moves, builds: [],
+      started: new Date().toISOString(),
+    });
+    await p.goto("/practice");
+    await expect(p.getByTestId("practice-status")).toHaveText(/^Your turn/, { timeout: 120_000 });
+  }, practiceColumns(true))).toEqual([]);
+});
+
+test("a review's one column between 799 and 800 pixels wide", async ({ browser, launchOptions, baseURL }) => {
+  expect(await between(browser.browserType(), launchOptions, baseURL!, async page => {
+    await reviewedGame(page);
+    await expect(page.locator("main.review .side")).toBeVisible({ timeout: 120_000 });
+  }, reviewColumns)).toEqual([]);
+});
+
+test("a review's one column on Cyanotype between 799 and 800 pixels wide", async ({ browser, launchOptions, page }) => {
+  const skip = await noReview(page);
+  test.skip(!!skip, skip);
+  expect(await between(browser.browserType(), launchOptions, CYANOTYPE!, async p => {
+    await reviewStoredFile(p);
+    await expect(p.locator("main.review .side")).toBeVisible();
+  }, reviewColumns)).toEqual([]);
 });
 
 /** Where the step bar on a phone fails, as text: at every 100 pixels down the page, the board in view and the step back

@@ -137,15 +137,14 @@
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : networkName(k.bot.network));
   // The bot's settings and where it runs, then the komi from the player's side (design 24)
   const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${BOT_WHERE[g.mode]}.${g.kept.komi ? ` ${komiLine(g.kept, BOT_NAME)}` : ""}`;
+  // The status line, in the order that both sites share (page.line): a game that stopped says why first.
   const statusText = $derived.by(() => {
-    const g = game, p = g?.position;
-    if (!g || g.status === "starting" || !p) return "Starting HedgeFund…";
-    if (g.status === "failed") return `The game stopped: ${g.error}`;
-    if (g.status === "over") {
-      if (g.resigned) return "You resigned: HedgeFund wins.";
-      return `Game over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`; // the review's words and rule (game.ts)
-    }
-    if (g.status === "bot") return `HedgeFund is thinking… ${page.thinking}`;
+    const g = game, p = g?.position, line = page.line;
+    if (line === "failed") return `The game stopped: ${g!.error}`;
+    if (line === "starting" || !p) return "Starting HedgeFund…";
+    if (line === "resigned") return "You resigned: HedgeFund wins.";
+    if (line === "over") return `Game over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`; // the review's words and rule (game.ts)
+    if (line === "bot") return `HedgeFund is thinking… ${page.thinking}`;
     return `Your turn: ${p.movesLeft} ${p.movesLeft === 1 ? "edge" : "edges"} to play.`;
   });
 

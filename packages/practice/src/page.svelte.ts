@@ -40,6 +40,11 @@ export interface PracticeSite<K extends KeptPractice, G extends Game<K>> {
 /** Seconds, as the side column gives the bot's time: one decimal under 10. */
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
 
+/** What the status line tells, in one order on both sites: a game that stopped says why first (a game that fails as it
+ *  starts has no position yet), then the bot's start, the game's end by Resign or by the rules, and whose move it is.
+ *  "playing": the player's move on its way to the bot and the rules. Each site gives the words. */
+export type PracticeLine = "failed" | "starting" | "resigned" | "over" | "bot" | "human" | "playing";
+
 export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   // What the page shows: nothing until the script knows whether a game is in progress (the prerendered page cannot
   // know), then the settings card or the game.
@@ -63,6 +68,14 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   shown = $derived(this.viewAt === null ? this.last : Math.min(this.viewAt, this.last));
   atLatest = $derived(this.shown === this.last);
   taking = $derived(this.game?.status === "human" && this.atLatest); // the board takes the player's move
+  /** What the status line tells (PracticeLine). */
+  line = $derived.by((): PracticeLine => {
+    const g = this.game;
+    if (g?.status === "failed") return "failed";
+    if (!g || g.status === "starting" || !g.position) return "starting";
+    if (g.status === "over") return g.resigned ? "resigned" : "over";
+    return g.status;
+  });
   private now = $state(0); // the clock of the bot's thinking time, while it searches (performance.now)
   /** The bot's thinking time on its turn so far, as "2.3 s", while it searches. Else empty. */
   thinking = $derived.by(() => {
