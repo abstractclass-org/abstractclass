@@ -579,7 +579,8 @@ a push to `main` that the owner did not say to make. The owner's word to release
   own checks come from the checkout's script, not from the commit. When the code that gives them (the site's script
   and `packages/site/src/release-check.mjs`) differs between the commit and the checkout, each of their lines says
   `(from this checkout)` after the name of its check. A request after the home page that gets no answer says FAIL on
-  its check's line, with the reason, and the check goes on. The checks, all true on Hedge School's live site on
+  its check's line, with `the request failed` and the reason, and the check goes on. Another error of a check, such
+  as a body that is not JSON, says FAIL with its message. The checks, all true on Hedge School's live site on
   2026-10-18 at commit `b4f0472`, and on its dev preview on 2026-10-20 at commit `f50704c`:
   - the footer's version is the commit that the deploy built.
   - the live address answers with no `X-Robots-Tag`, the project's address (`hedgeschool.pages.dev`,
@@ -635,17 +636,20 @@ a push to `main` that the owner did not say to make. The owner's word to release
        The first line must end with `the engine lock of commit` and the first 7 characters of the commit of the
        release before. The last line must say `release-check: PASS`. If a line says that the commit is not a commit
        in this clone, run the command that the line gives, then run the check again. If a line says
-       `the request failed`, make sure that the computer is connected to the internet, then run the check again. A
-       line that says `(from this checkout)` takes what it checks from the checkout, not from the commit: the header's
-       links, the pages that lead home (`/puzzles`, `/learn` and `/lab/engine`, on Hedge School only) and Hedge
-       School's Function on `/api/practice-games`. A line says it only when the checkout's code of the check differs
-       from the code of the commit of the release before. If the release that you undid changed them, such a line can
-       say FAIL although the rollback worked. For a FAIL on the header's links or on a page that leads home, open the
-       site's address (`https://hedgeschool.abstractclass.org` or `https://cyanotype.abstractclass.org`) in a browser.
-       Make sure that the header and those pages are as they were before that release. For a FAIL on the Function, run
-       `git log --oneline <the commit of the release before>..<the commit of the deployment undone> -- functions` in
-       the folder `apps/hedgeschool`. If it lists no commit, the release that you undid did not change the Function,
-       and the FAIL is a fault of the site. If it lists commits, the FAIL can come from their change.
+       `the request failed`, make sure that the computer is connected to the internet, then run the check again. The
+       check takes three parts from the checkout, not from the commit: the header's links, the pages that lead home
+       (`/puzzles`, `/learn` and `/lab/engine`, on Hedge School only) and Hedge School's Function on
+       `/api/practice-games`. When the checkout's code of the check differs from its code at the commit of the
+       release before, the lines of these parts say `(from this checkout)`. Such a line can say FAIL although the
+       rollback worked, because the checkout's check can expect a change that the rollback undid. A FAIL on a line
+       without `(from this checkout)` shows a fault of the site. For a FAIL with `(from this checkout)` on the
+       header's links or on a page that leads home, open the site's address (`https://hedgeschool.abstractclass.org`
+       or `https://cyanotype.abstractclass.org`) in a browser. Make sure that the header and those pages are as they
+       were before the release that you undid. For a FAIL with `(from this checkout)` on the Function, run
+       `git log --oneline <the commit of the release before>..HEAD -- scripts/release-check.mjs` in the folder
+       `apps/hedgeschool`. It lists the commits after the release before that changed Hedge School's check script. If
+       it lists no commit, the FAIL shows a fault of the site. If it lists commits, the FAIL can come from their
+       change.
      - For the hub, open `https://abstractclass.org` in a browser and reload the page. The hub shows no version and
        has no check script: check that the change to undo is gone.
   6. Before the next release, undo the bad change on `dev`. In a terminal, in a checkout of `dev`, run `git fetch`,

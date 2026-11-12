@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
@@ -9,10 +9,11 @@ import { checkoutDiffers, commitOf, footerCommit, lockAt } from "./releaseLock.t
 
 // A clone with a site's folder, apps/x: a commit with no lock and no script, a commit with lock "one" and script "one",
 // a commit with lock "two" and script "two", and lock "three" in the working tree, not committed. The working tree's
-// script is commit "two"'s.
+// script is commit "two"'s. The working tree also has a script that Git does not track.
 let root = "";
 let lockUrl: URL;
 let scriptUrl: URL;
+let untrackedUrl: URL;
 const commits: Record<string, string> = {};
 const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 const lockTagged = (tag: string) => ({ tag, artifacts: [] });
@@ -26,8 +27,7 @@ const commitAs = (name: string) => {
 before(() => {
   root = mkdtempSync(join(tmpdir(), "release-lock-"));
   git("init", "-q");
-  mkdirSync(join(root, "apps", "x"), { recursive: true });
-  mkdirSync(join(root, "apps", "x", "scripts"));
+  mkdirSync(join(root, "apps", "x", "scripts"), { recursive: true });
   const lock = join(root, "apps", "x", "engine.lock.json");
   const script = join(root, "apps", "x", "scripts", "check.mjs");
   lockUrl = pathToFileURL(lock);
@@ -36,10 +36,13 @@ before(() => {
   for (const tag of ["one", "two"]) {
     writeFileSync(lock, JSON.stringify(lockTagged(tag)));
     writeFileSync(script, `// script ${tag}\n`);
-    git("add", "apps/x/engine.lock.json", "apps/x/scripts/check.mjs");
+    git("add", "apps/x");
     commitAs(tag);
   }
   writeFileSync(lock, JSON.stringify(lockTagged("three")));
+  const untracked = join(root, "apps", "x", "scripts", "new.mjs");
+  writeFileSync(untracked, "// a new script\n");
+  untrackedUrl = pathToFileURL(untracked);
 });
 
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -81,4 +84,26 @@ test("the checkout's code differs from a commit's: a file that changed since, or
   assert.equal(checkoutDiffers(lockUrl, commits.none, [scriptUrl]), true);
   // A change in the working tree counts: it holds lock "three", which no commit has. One file of several is enough.
   assert.equal(checkoutDiffers(lockUrl, commits.two, [scriptUrl, lockUrl]), true);
+});
+
+test("the checkout's code differs when Git cannot compare it: an untracked file, another letter case, a bad commit, "
+  + "a file outside the clone", () => {
+  assert.equal(checkoutDiffers(lockUrl, commits.two, [scriptUrl, untrackedUrl]), true);
+  assert.equal(checkoutDiffers(lockUrl, commits.two, [new URL("Check.mjs", scriptUrl)]), true);
+  assert.equal(checkoutDiffers(lockUrl, "0123456789abcdef0123456789abcdef01234567", [scriptUrl]), true);
+  assert.equal(checkoutDiffers(lockUrl, commits.two, [pathToFileURL(join(tmpdir(), "outside.mjs"))]), true);
+});
+
+// checkoutDiffers gets a site's check script and release-check.mjs. A part that a site's script imported from another
+// file could change with no mark, so the script imports nothing but the shared check.
+test("each site's check script imports only the shared check", () => {
+  const apps = new URL("../../../apps/", import.meta.url);
+  const scripts = readdirSync(apps).map(app => new URL(`${app}/scripts/release-check.mjs`, apps)).filter(existsSync);
+  assert.ok(scripts.length >= 2, "the check scripts of Hedge School and Cyanotype");
+  for (const script of scripts) {
+    const text = readFileSync(script, "utf8");
+    const imports = [...text.matchAll(/^import\b[^"']*["']([^"']+)["']/gm)].map(m => m[1]);
+    assert.deepEqual(imports, ["@abstractclass/site/release-check.mjs"], script.pathname);
+    assert.doesNotMatch(text, /\bimport\s*\(/, script.pathname);
+  }
 });

@@ -29,7 +29,8 @@
 // check the same things.
 //
 // A request after the home page that gets no answer (a connection that drops, a server that does not answer) gives
-// FAIL on its check's line, with the reason, and the check goes on to its last line.
+// FAIL on its check's line, with the reason, and the check goes on to its last line. Another error of a check, such
+// as a body that is not JSON or a wrong SHA-256, gives FAIL with its message.
 //
 // It reads public pages only, and a site's own checks may send a request that stores nothing. Each line says PASS,
 // FAIL or INFO. The last line is `release-check: PASS` or `release-check: FAIL`.
@@ -67,8 +68,10 @@ function orStop(read, prefix = "") {
  *  - `leadHome`: the pages that lead home: a redirect, or a page that refreshes to /. None by default.
  *  - `ownChecks(base, check)`: the site's own checks, after the engine's files. `await check(name, run)` prints a line
  *    and counts it. `run()` sends the requests and gives `[pass, detail]`. When a request fails, the line says FAIL
- *    with the reason. The name takes "(from this checkout)" after it when the site's script differs from the commit's.
- */
+ *    with the reason.
+ *  The site's script gives `menu`, `leadHome` and `ownChecks` in its own file, not from a file that it imports: their
+ *  lines say "(from this checkout)" when the site's script or this file differs from the commit's, and Git compares
+ *  only these two files. */
 export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [], ownChecks }) {
   const [baseArg, commitArg] = process.argv.slice(2);
   if (!baseArg) stop("usage: node scripts/release-check.mjs <base URL> [<commit>]");
@@ -99,22 +102,20 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     results.push(pass);
     console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? `: ${detail}` : ""}`);
   };
-  // A check whose requests can fail: `run()` gives `[pass, detail]`, and a failed request gives FAIL with its reason.
-  const checkRequest = async (name, run, record = check) => {
-    let pass = false;
-    let detail;
+  // A check whose requests can fail: `run()` gives `[pass, detail]`. A request that gets no answer (an error with a
+  // cause, as Node's fetch gives it) gives FAIL with its reason, and another error FAIL with its message.
+  const checkRequest = async (name, run) => {
     try {
-      [pass, detail] = await run();
+      check(name, ...(await run()));
     } catch (error) {
-      detail = `the request failed (${reasonOf(error)})`;
+      check(name, false, error.cause ? `the request failed (${reasonOf(error)})` : error.message);
     }
-    record(name, pass, detail);
   };
-  // A check of a part that this checkout's site script gives, not the commit: marked when that code differs.
-  const fromCheckout = checkoutDiffers(lockUrl, lockCommit,
+  // The name of a check of a part that this checkout's site script gives, not the commit: marked when that code
+  // differs.
+  const codeDiffers = checkoutDiffers(lockUrl, lockCommit,
     [pathToFileURL(realpathSync(process.argv[1])), new URL(import.meta.url)]);
-  const checkoutCheck = (name, pass, detail) =>
-    check(fromCheckout ? `${name} (from this checkout)` : name, pass, detail);
+  const marked = name => codeDiffers ? `${name} (from this checkout)` : name;
   const cacheOf = r => r.headers.get("cache-control") ?? "";
 
   console.log(`INFO  ${base}, ${live ? "the live site" : "not the live site"}, commit ${commit} `
@@ -128,7 +129,7 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     String(robots));
   const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? "";
   const links = [...header.matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map(m => m[1].trim());
-  checkoutCheck(`the header shows ${menu.join(", ")}`, menu.every(name => links.includes(name)), links.join(", "));
+  check(marked(`the header shows ${menu.join(", ")}`), menu.every(name => links.includes(name)), links.join(", "));
 
   await checkRequest("an unknown address answers 404", async () => {
     const unknown = await fetch(`${base}/no-such-page-${Date.now()}`);
@@ -136,14 +137,14 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   });
 
   for (const path of leadHome) {
-    await checkRequest(`${path} leads home`, async () => {
+    await checkRequest(marked(`${path} leads home`), async () => {
       const r = await fetch(base + path, { redirect: "manual" });
       const body = r.status === 200 ? await r.text() : "";
       const location = r.headers.get("location");
       const leads = (r.status >= 300 && r.status < 400 && new URL(location ?? "", base).pathname === "/")
         || /http-equiv="refresh" content="0;\s*url=\/"/.test(body);
       return [leads, `${r.status} ${location ?? ""}`.trim()];
-    }, checkoutCheck);
+    });
   }
 
   // The caches: a year, never checked again, for the build's hashed code and the engine's files (static/_headers).
@@ -155,11 +156,15 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     });
   } else check("the home page names a file in /_app/immutable/", false);
 
-  // A manifest that does not answer, or that is not JSON, names no file.
+  // A manifest that does not answer, or that is not JSON, names no file. A body that breaks off (an error with a
+  // cause) fails the request.
   let manifest = { artifacts: [] };
   await checkRequest("/engine/manifest.json is not immutable", async () => {
     const r = await fetch(`${base}/engine/manifest.json`);
-    manifest = await r.json().catch(() => manifest);
+    manifest = await r.json().catch(error => {
+      if (error.cause) throw error;
+      return manifest;
+    });
     return [r.status === 200 && !/immutable/.test(cacheOf(r)), `${r.status} ${cacheOf(r)}`];
   });
   const stored = new Map(manifest.artifacts.map(a => [a.id, a]));
@@ -179,25 +184,23 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
 
   // A file downloads whole as the page reads it (@abstractclass/engine/artifacts.ts): its parts joined and
   // decompressed, and its SHA-256 checked, here against the lock.
-  const checkWhole = async (artifact, name) => {
+  const checkWhole = (artifact, name) => {
     const label = `${name} ${artifact.id}/${artifact.file} downloads whole (${artifact.bytes.toLocaleString("en")} `
       + "bytes, the lock's SHA-256)";
     const entry = stored.get(artifact.id);
-    if (!entry) return check(label, false, "not in the manifest");
-    try {
+    return checkRequest(label, async () => {
+      if (!entry) return [false, "not in the manifest"];
       const bytes = await fetchArtifact({
         ...entry, sha256: artifact.sha256, url: base + entry.url, parts: entry.parts?.map(part => base + part),
       });
-      check(label, bytes.length === artifact.bytes, `${bytes.length.toLocaleString("en")} bytes`);
-    } catch (error) {
-      check(label, false, error.message);
-    }
+      return [bytes.length === artifact.bytes, `${bytes.length.toLocaleString("en")} bytes`];
+    });
   };
   const networks = lock.artifacts.filter(a => a.kind === "model").sort((a, b) => b.bytes - a.bytes);
   await checkWhole(networks[0], "the largest network");
   await checkWhole(lock.artifacts.find(a => a.kind === "terms"), "the terms");
 
-  if (ownChecks) await ownChecks(base, (name, run) => checkRequest(name, run, checkoutCheck));
+  if (ownChecks) await ownChecks(base, (name, run) => checkRequest(marked(name), run));
 
   if (live) {
     await checkRequest("the domain's answers are signed (DNSSEC validated)", async () => {

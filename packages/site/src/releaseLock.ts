@@ -52,12 +52,16 @@ export function lockAt(lockUrl: URL, ref: string): { commit: string; lock: Engin
 }
 
 /** Whether one of the files `files`, in the clone of the site's lock `lockUrl`, differs between commit `ref` and the
- *  checkout's working tree. A file that one side lacks differs. When Git cannot compare them, they differ too: the
- *  caller marks what comes from the checkout, and a mark too many misleads less than one too few. */
+ *  checkout's working tree. A file that one side lacks differs, and so does a file that Git does not track. When Git
+ *  cannot compare them, they differ too: the caller marks what comes from the checkout, and a mark too many misleads
+ *  less than one too few. */
 export function checkoutDiffers(lockUrl: URL, ref: string, files: URL[]): boolean {
   const lockPath = fileURLToPath(lockUrl);
   const paths = files.map(file => relative(dirname(lockPath), fileURLToPath(file)).replaceAll("\\", "/"));
   try {
+    // `git diff` finds no difference in a path that Git does not track: a new file, or a path in another letter case
+    // on Windows. `ls-files --error-unmatch` fails for such a path.
+    git(lockPath, "ls-files", "--error-unmatch", "--", ...paths);
     git(lockPath, "diff", "--quiet", ref, "--", ...paths);
     return false;
   } catch {
