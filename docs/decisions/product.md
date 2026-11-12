@@ -11926,3 +11926,29 @@ layout test saw it: the children stayed in one row and inside the header's conte
   - Hedge School's full edition, which the workflows do not build, has nine links. In DejaVu Sans they do not fit
     from 1,024 to about 1,045 pixels (the header is 72.5 pixels high), and from 1,080 to about 1,095 (78.5). In Segoe
     UI they fit, with 78 pixels to spare at 1,024.
+
+### The end of a record that ends early is a first estimate until its search is deep (2026-11-13)
+
+abscls-fcvt. Design 06 changed.
+
+- **Why:** the advantage chart counted the last position as settled for every record. A record that ends before the
+  rules end the game has a search at its end, as any position: the review searches it in both passes
+  (`analysis.svelte.ts`, `passCount`). So while the end had only the first pass's result (the sweep's 32 visits), the
+  chart drew it full, and its note at the end had no " · first estimate". The review's model already had the right
+  rule: its end is the result only when the rules ended the game.
+- **One rule:** the review's model (`packages/analysis/src/model.ts`, `review`) gives `endedByRules` on the review,
+  from its own rule for the end. The view (`chartSettled` and `leadOrResult` in
+  `packages/review/src/ReviewView.svelte`) and the annotated record (`packages/analysis/src/annotate.ts`) read it, and
+  no longer work it out again from the last position. The two rules differed only for a record with no last position,
+  which the model counts as ended: no page makes one.
+- **What players see,** on both sites (the review is shared), by move and by turn: at the end of a record that ends
+  early, while the second pass has not reached the end, the chart's line is faint there, the legend shows "Win chance,
+  first estimate", and the note says "Lead: Red +21.9 · first estimate" in place of "Lead: Red +21.9" (Hedge School's
+  test record; Cyanotype's: "Lead: Red +106.7 · first estimate"). Once the end's search has the review's depth,
+  nothing changes. A game that the rules ended keeps "Result:" with no " · first estimate" ("Result: Red +377.7",
+  "Result: Red +730.0"), before and after.
+- **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by move and by turn, with the engine off. On Hedge
+  School it opens `tests/fixtures/twin-turn-review.json` with its end's result at the sweep's visits. On Cyanotype it
+  opens the test game up to turn 20 with the stored results without the end's result at the review's depth. Each of
+  the 4 cases failed on builds of both sites from dev's code: the note had no " · first estimate". Each passes after
+  the change, with the spec's other 8 cases.

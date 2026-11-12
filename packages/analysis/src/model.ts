@@ -127,6 +127,9 @@ export interface Review<G extends GameTypes> {
   summary: Record<Unit, [PlayerSummary, PlayerSummary]>;
   blueWin: number[]; // the engine's win chance by position (NaN until analysed), the last from the result
   blueScore: (number | undefined)[]; // by position, the score that measures a loss beside the win chance (ScoreKind), from Blue's side
+  // The rules ended the game at the last position: its values are the result's, and it is settled. A record that ends
+  // before (an unfinished game, the Analysis board's line) has a search there, as any position.
+  endedByRules: boolean;
 }
 
 export const moverWin = (blueWin: number, p: Player) => (p === 0 ? blueWin : 1 - blueWin);
@@ -445,7 +448,8 @@ export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, 
                         data.seconds?.[t.start + 1], earlier(t.start), kind, minVisits);
     if (j) Object.assign(t, j);
   }
-  return { data, edges, turns, turnOf, blueWin, blueScore, summary: { turn: summarize(turns), edge: summarize(edges) } };
+  return { data, edges, turns, turnOf, blueWin, blueScore, endedByRules: over,
+           summary: { turn: summarize(turns), edge: summarize(edges) } };
 }
 
 /** A chart's mark (chartMarks): a labelled turn's or edge's last edge, and its label. */

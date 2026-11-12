@@ -9,12 +9,19 @@
 // tests/fixtures/cyanotype-whole-review.json, which the rules end at r+730) and up to turn 20 (STORED). The engine is
 // off: the tooltips take the stored results. Without Cyanotype's preview or its engine's files, its tests skip, with a
 // message.
+// The chart's note at the end of a record that ends before the rules end the game: the review searches that end in
+// both passes (analysis.svelte.ts, passCount), so while the end has only the first pass's result, the note says
+// " · first estimate" (ReviewView.svelte, chartSettled; design 06, item 8). The same games that end early, with the
+// first pass's result at the end in place of the review's: Hedge School's review file with its end's result at the
+// sweep's visits, and Cyanotype's stored results without the end's result at the review's depth.
 // Run: npx playwright test tests/last-move-result.spec.ts, with BASE_URL and CYANOTYPE_BASE_URL.
+import { readFileSync } from "node:fs";
+import { SWEEP_VISITS, analysisKey, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { expect, type Page, test } from "./page-log.ts";
 import { keepBefore } from "./keep-before.ts";
-import { loadReviewFile } from "./review-file.ts";
-import { OTHER_STORED, noReview, pasteRecord, putResults, readStored, reviewTestGame, storeReview, testRecord }
-  from "./cyanotype-review.ts";
+import { type ReviewFileInput, loadReviewFile } from "./review-file.ts";
+import { OTHER_STORED, MOVES, TURNS, noReview, pasteRecord, putResults, readStored, reviewTestGame, storeReview,
+         storedResults, testRecord } from "./cyanotype-review.ts";
 
 const ENDED = "tests/fixtures/hedgefund-review.json";
 const CUT = "tests/fixtures/twin-turn-review.json";
@@ -53,9 +60,50 @@ async function checkTips(page: Page, end: "Result:" | "Lead:") {
   expect(tips.at(-1)!.split(" · "), "the last move's tooltip, with the chart's words").toContain(words);
 }
 
+/** The review file at `path`, of a record that ends before the rules end the game, with the first pass's result at the
+ *  record's end: the end's result at the review's depth becomes one at the sweep's visits (SWEEP_VISITS), as while
+ *  the second pass has not searched the end yet. */
+function firstPassEnd(path: string): ReviewFileInput {
+  const file = JSON.parse(readFileSync(path, "utf8"));
+  // The record's moves, in the results' keys' form: its edges without the moves' numbers and the result
+  const moves = (file.record as string).split("\n\n").at(-1)!.split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t))
+    .join(" ");
+  let ends = 0;
+  file.analyses = file.analyses.map(([key, value]: [string, Record<string, unknown>]) => {
+    const k = readAnalysisKey(key);
+    if (k.map || k.moves !== moves) return [key, value];
+    ends++;
+    return [analysisKey(k.search, k.model, moves.split(" "), SWEEP_VISITS, k.shape), { ...value, visits: SWEEP_VISITS }];
+  });
+  if (ends !== 1) throw new Error(`${path} has ${ends} results of its record's end, not 1`);
+  return { name: "first-pass-end.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
+}
+
+/** Cyanotype's stored results (STORED) without the result of the end of the test game's first TURNS turns at the
+ *  review's depth: the end keeps the first pass's result only. */
+function firstPassEndResults(): [string, unknown][] {
+  const deep = storedResults(TURNS).filter(([key]) => {
+    const k = readAnalysisKey(key);
+    return k.moves.split(" ").length === MOVES && k.visits > SWEEP_VISITS;
+  }).map(([key]) => key);
+  if (deep.length !== 1) throw new Error(`the stored review has ${deep.length} results of the end at its depth, not 1`);
+  return readStored().analyses.filter(([key]) => key !== deep[0]);
+}
+
+/** The chart's note at the end, with the pointer over the chart's last position, once every move's tooltip has its
+ *  lead: the review has read the stored results. Cyanotype's paste goes on to the review's page: a read that the
+ *  navigation stops counts as not yet, since expect.poll does not retry an error. */
+async function chartEndOnceRead(page: Page): Promise<string> {
+  await expect.poll(async () => {
+    const tips = await moveTips(page).catch(() => []);
+    return tips.length > 1 && tips.every(tip => /(^| · )Lead: /.test(tip));
+  }, { message: "every move's tooltip has its lead", timeout: 120_000 }).toBe(true);
+  return chartEnd(page);
+}
+
 /** Opens the review file `file` on Hedge School, with the engine off and the labels judging `judge`, and waits for the
  *  review. */
-async function reviewOnHedgeSchool(page: Page, file: string, judge: "edge" | "turn") {
+async function reviewOnHedgeSchool(page: Page, file: ReviewFileInput, judge: "edge" | "turn") {
   await keepBefore(page, "learn-enclosure:engine:2", { on: false });
   await keepBefore(page, "learn-enclosure:review-display:1", { judge });
   await keepBefore(page, "hedge-school:consent:2", { games: "denied" });
@@ -96,6 +144,21 @@ for (const judge of ["edge", "turn"] as const) {
     test("says Lead: when the record ends before the rules end the game", async ({ page }) => {
       await reviewTestGame(page, { judge });
       await checkTips(page, "Lead:");
+    });
+  });
+
+  test.describe(`the chart's note at the end of a record that ends early, by ${judge}`, () => {
+    test("says first estimate on Hedge School while the end has the first pass's result only", async ({ page }) => {
+      await reviewOnHedgeSchool(page, firstPassEnd(CUT), judge);
+      expect(await chartEndOnceRead(page), "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
+    });
+
+    test("says first estimate on Cyanotype while the end has the first pass's result only", async ({ page }) => {
+      const why = await noReview(page);
+      test.skip(why !== "", why);
+      await storeReview(page, { judge }, { results: firstPassEndResults() });
+      await pasteRecord(page, testRecord(TURNS));
+      expect(await chartEndOnceRead(page), "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
     });
   });
 }

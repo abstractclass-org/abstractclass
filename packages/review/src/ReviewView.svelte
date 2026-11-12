@@ -1580,7 +1580,7 @@
   let chart = $state<"advantage" | "difficulty">("advantage");
   let showArea = $derived(display.areaLine);
   const ending = $derived(view.ending(R.data)); // the game's outcome, by the rules or by the record (the game's)
-  const endedByRules = $derived(!!R.data.positions[last]?.over);
+  const endedByRules = $derived(R.endedByRules); // the model's rule for the end (model.ts, review)
   const status = $derived.by(() => {
     // The position's own turn, in a variation and on the board: the turn as in the game.
     const turnHere = () => {
@@ -1654,16 +1654,18 @@
     const label = e ? shownLabel(e.index) : null;
     const move = !e ? "" : unit === "edge" ? moveText(e.index) : `${t!.number}. ${t!.edges.map(m => view.notation(m)).join(" ")}`;
     const title = e ? `${move}${listed(label) ? ` [${LABEL_TEXT[label]}]` : ""}` : "The start";
-    // The game's end is settled (chartSettled), so its result never reads as a first estimate.
+    // The end of a game that the rules ended is settled (chartSettled): its result never reads as a first estimate.
     const words = leadOrResult(i);
     const value = words === undefined ? "Not analyzed yet" : `${words}${chartSettled[i] ? "" : " · first estimate"}`;
     const details = [showScore && i !== last && `Score: ${sideText(scoreDiff[i], 1)}`,
                      showArea && !!view.second && `${view.second.name}: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
     return { title, value, details };
   }
-  // The positions whose search has the review's depth (or the end, whose value is the result, or the book's values): the
-  // chart draws the rest as a first estimate.
-  const chartSettled = $derived(R.data.positions.map((_, i) => i === last || deepEnough(R.data.analysis[i], reviewVisits)));
+  // The positions whose search has the review's depth (or the book's values), and the end when the rules ended the
+  // game, whose value is the result: the chart draws the rest as a first estimate. The end of a record that ends before
+  // has a search, which the review's passes deepen (analysis.svelte.ts, passCount), as any position's.
+  const chartSettled = $derived(R.data.positions.map((_, i) =>
+    (i === last && endedByRules) || deepEnough(R.data.analysis[i], reviewVisits)));
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends
   // (searchLine.ts, searchFill). With the threat on, the header shows the threat's search, as Lichess's engine box shows

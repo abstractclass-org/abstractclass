@@ -197,11 +197,13 @@ export function keptResults(page: Page, values = false): Promise<[string, unknow
  *  This makes the database with the site's stores, so the site's upgrade adds none (db.ts adds only the stores that
  *  are missing). A page that opens next takes the results as its own. With the engine on, a search of a position takes
  *  its stored result (analysis.svelte.ts, search), and asks nothing of the engine. Then expectNoSearch checks that the
- *  page asked the engine for no search. */
-export async function storeReview(page: Page, display: object = {}, { on = false } = {}) {
+ *  page asked the engine for no search. `results`: the stored results that the store takes (all by default). */
+export async function storeReview(page: Page, display: object = {},
+                                  { on = false, results = readStored().analyses }:
+                                    { on?: boolean; results?: readonly (readonly [string, unknown])[] } = {}) {
   await checkStored(page);
   await keepSettings(page, { on, ...LITE }, display);
-  await putResults(page, readStored().analyses);
+  await putResults(page, results);
 }
 
 /** Fails when the preview's engine is not the one that made the stored review's results (STORED), or when the site no

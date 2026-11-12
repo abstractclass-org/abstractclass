@@ -34,6 +34,20 @@ test("each move is a turn of its own, numbered by the game", () => {
   assert.deepEqual(R.turns.map(t => t.best), [["a"], ["x"], ["c"]]);
 });
 
+test("the end is the result where the rules ended the game, and a search where the record ends before", () => {
+  const data = (over: boolean): ReviewData<Words> => ({
+    players: { blue: "First", red: "Second" }, result: { blue: 3, red: 1 },
+    moves: ["a", "b"].map((m, k) => words.played(m, wordFields(k), wordFields(k + 1))),
+    positions: [0, 1, 2].map(k => words.position(wordFields(k, k === 2 && over))),
+    analysis: [analysis(0.5, "a"), analysis(0.5, "b"), analysis(0.4, "c", SWEEP_VISITS)],
+  });
+  const ended = review(words, data(true), "lead", 256), cut = review(words, data(false), "lead", 256);
+  assert.equal(ended.endedByRules, true);
+  assert.equal(ended.blueScore[2], 2); // the result, Blue less Red
+  assert.equal(cut.endedByRules, false);
+  assert.equal(cut.blueWin[2], 0.4); // the end's search
+});
+
 test("a move's loss labels it, from the mover's side", () => {
   const positions = [0, 1, 2].map(k => words.position(wordFields(k)));
   const data: ReviewData<Words> = {
