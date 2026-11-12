@@ -118,8 +118,8 @@ jobs:
   # preview, as for the site. A push to main deploys the live site only after Cyanotype's launch (the launch switch, at
   # the top). Its pages are prerendered, and the canonical address is the live one in src/lib/site.ts. Its userscript
   # holds the build's own address, as the site's does, so its build takes the branch variables too. Wrangler is the
-  # site job's version. It runs in apps/cyanotype, which has no functions/ folder: in the workflow's default folder, it
-  # would upload Hedge School's Function.
+  # site job's version. It runs in apps/cyanotype, so that it uploads Cyanotype's own Function in its functions/ folder
+  # (docs/hosting.md, "Cyanotype's practice games"): in the workflow's default folder, it would upload Hedge School's.
   cyanotype:
     # The launch switch (the comment at the top): previews only, until Cyanotype's launch. When the owner says to
     # launch Cyanotype, the launch commit removes this `if:` and this comment (docs/hosting.md, "The launch switch").
@@ -172,10 +172,13 @@ jobs:
       # The build's edition: the repository variable VITE_EDITION, as for the site's build. Its analytics
       # (docs/hosting.md, "Cyanotype's analytics"): the one PostHog project of all the sites, POSTHOG_KEY, and the
       # domain's one Cloudflare Web Analytics site, VITE_CF_ANALYTICS_TOKEN, as for the site's build. Only the live site
-      # has them: previews are not counted.
+      # has them: previews are not counted. Its practice games' storage: the repository variable
+      # CYANOTYPE_STORE_PRACTICE_GAMES, which the owner sets to `on` once Cyanotype's databases are bound (docs/hosting.md,
+      # "Cyanotype's practice games").
       - run: npm run engine -- --deploy && npm run check && npm test && npm run build
         env:
           VITE_EDITION: ${{ vars.VITE_EDITION }}
+          VITE_STORE_PRACTICE_GAMES: ${{ vars.CYANOTYPE_STORE_PRACTICE_GAMES }}
           VITE_POSTHOG_KEY: ${{ github.ref_name == 'main' && vars.POSTHOG_KEY || '' }}
           VITE_CF_ANALYTICS_TOKEN: ${{ github.ref_name == 'main' && vars.VITE_CF_ANALYTICS_TOKEN || '' }}
 

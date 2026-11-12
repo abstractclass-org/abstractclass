@@ -64,7 +64,7 @@ test("Hedge School: the consent banner asks only about the practice games' rando
   expect(await page.evaluate(() => localStorage.getItem("hedge-school:consent:2"))).toBe(JSON.stringify({ games: "granted" }));
 });
 
-test("Cyanotype, a build with PostHog's key: its page views carry internal: true after ?internal=on, and it asks for no consent and keeps nothing for PostHog", async ({ context }) => {
+test("Cyanotype, a build with PostHog's key: its page views carry internal: true after ?internal=on, it asks only for the games' link, and keeps nothing for PostHog", async ({ context }) => {
   test.skip(CYANOTYPE === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   const at = (path: string) => new URL(path, CYANOTYPE).href;
   const sent = await answerPostHog(context);
@@ -80,13 +80,21 @@ test("Cyanotype, a build with PostHog's key: its page views carry internal: true
   expect(views().every(e => e.properties.internal === true && e.properties.$cookieless_mode === true)).toBe(true);
   expect([...new Set(sent.map(e => e.path))]).toEqual(["/e/"]);
 
-  // No consent: no banner, no choices on the privacy page, and no choice kept. Nothing of PostHog's in the browser.
+  // The consent, in a build that stores practice games (check:all's): the banner asks for the games' link only, as
+  // Hedge School's does, and the privacy page holds the same choice. Nothing of PostHog's in the browser, and no cookie.
   await page.goto(at("/privacy"));
   await expect(page.getByRole("heading", { name: "Privacy" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Your choices" })).toHaveCount(0);
-  await expect(page.getByRole("switch")).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Help Cyanotype get better" })).toHaveCount(0);
+  const banner = page.getByRole("region", { name: "Help Cyanotype get better" });
+  await expect(banner.getByRole("listitem")).toHaveCount(1);
+  await expect(banner.getByRole("listitem")).toContainText("A random ID in this browser groups your games against bots");
+  await expect(banner).not.toContainText(/cookie|Google|PostHog/i);
+  await expect(page.getByRole("heading", { name: "Your choices" })).toBeVisible();
+  const link = page.getByRole("switch", { name: /Group my games/ });
+  await expect(link).not.toBeChecked();
+  await banner.getByRole("button", { name: "Decline" }).click();
+  await expect(banner).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("cyanotype:consent:1"))).toBe(JSON.stringify({ games: "denied" }));
   const { cookies, keys } = await kept(page);
   expect(cookies).toBe("");
-  expect(keys.filter(k => /consent|(^|_)ph_|posthog/i.test(k))).toEqual([]);
+  expect(keys.filter(k => /(^|_)ph_|posthog/i.test(k))).toEqual([]);
 });

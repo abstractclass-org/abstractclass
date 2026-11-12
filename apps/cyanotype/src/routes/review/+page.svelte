@@ -58,6 +58,7 @@
   import SharedArrival from "#lib/review/SharedArrival.svelte";
   import PartnerArrival from "#lib/review/PartnerArrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
+  import { PRACTICE_EVENT } from "#lib/practice/stampduty.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
 
@@ -130,7 +131,7 @@
       network: networkName(settings.network), depth, depth_on_screen: engine.visits, time_limit: engine.seconds ?? 0,
       workers: engine.workers, gpu_mode: engine.gpu, cores: range(navigator.hardwareConcurrency || 1, CORE_RANGES),
       edges: range(kept?.record.moves.length ?? 0, EDGE_RANGES), own_settings: !!own,
-      practice_game: false, // Cyanotype keeps no practice game in the player's games yet (abscls-8tl1.50)
+      practice_game: kept?.record.tags.Event === PRACTICE_EVENT, // a game against the bot (Hedge School's design 24)
     };
   }
   $effect(() => {

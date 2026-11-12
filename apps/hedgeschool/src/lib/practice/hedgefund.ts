@@ -6,8 +6,8 @@ import { NETWORKS, networkName, offersNetwork } from "#lib/analysis/engineSettin
 import { startTags, writeRecord } from "#lib/game/record.ts";
 import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
 import {
-  botLabel, choicesStore, keptStore, settingsCommands, VARIETY_NAME, type BotSettings, type KeptPractice as Kept,
-  type PracticeOutcome,
+  botLabel, choicesStore, keptStore, practiceTags, practiceTurns, settingsCommands, type BotSettings,
+  type KeptPractice as Kept,
 } from "@abstractclass/practice/practice.ts";
 import type { BotMode } from "@abstractclass/practice/botMessages.ts";
 
@@ -44,22 +44,11 @@ export const PRACTICE_EVENT = "Hedge School practice";
  *  tag's (`normal`, `resignation`) for a game that ended. */
 export function practiceRecord(k: KeptPractice, movers: Player[], cuts: boolean[], result: string,
                                termination?: "normal" | "resignation"): string {
-  const human = k.name.trim() || "You", bot = botName(k.bot);
-  const date = new Date(k.started), two = (n: number) => String(n).padStart(2, "0");
   const tags: Record<string, string> = {
-    Event: PRACTICE_EVENT, Site: "Hedge School", Date: `${date.getFullYear()}.${two(date.getMonth() + 1)}.${two(date.getDate())}`,
-    Blue: k.human === 0 ? human : bot, Red: k.human === 1 ? human : bot,
-    Bot: `${networkName(k.bot.network)} (${k.bot.network}), ${k.bot.visits} ${k.bot.visits === 1 ? "visit" : "visits"} a move, ` +
-         `${VARIETY_NAME[k.bot.variety]} variety, ` +
-         `engine ${k.builds.join(", then ")}`,
+    ...practiceTags(k, { event: PRACTICE_EVENT, site: "Hedge School", bot: botName(k.bot), network: networkName(k.bot.network) }),
     ...startTags(k.start, k.komi),
     ...(termination ? { Termination: termination } : {}),
   };
   // The turns from the start's own number, and `N...` when it is at a turn's second edge (practiceTurn).
-  const first = practiceTurn(k), turns: { number: number; moves: number; second?: boolean }[] = [];
-  movers.forEach((p, i) => {
-    if (i > 0 && p === movers[i - 1]) turns[turns.length - 1].moves++;
-    else turns.push({ number: first.turn + turns.length, moves: 1, ...(i === 0 && !first.first ? { second: true } : {}) });
-  });
-  return writeRecord(tags, k.moves.map((m, i) => (cuts[i] ? `${m}x` : m)), turns, result);
+  return writeRecord(tags, k.moves.map((m, i) => (cuts[i] ? `${m}x` : m)), practiceTurns(movers, practiceTurn(k)), result);
 }

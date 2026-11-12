@@ -1,5 +1,5 @@
 // Checks Cyanotype's part of the player's games (store.ts): a game's id, as the review kept it before the list, covers
-// its komi (Hedge School's design 24), and a game that the review kept before the list is in the list. Run: npm test.
+// its komi (Hedge School's design 24) and its set-up start, and a game that the review kept before the list is in the list. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -15,6 +15,13 @@ test("a game's id: its moves alone at komi 0, as before, and its komi with them"
   assert.equal(gameId(MOVES, 0), gameId(MOVES));
   assert.notEqual(gameId(MOVES, 300), gameId(MOVES));
   assert.notEqual(gameId(MOVES, 300), gameId(MOVES, -300));
+});
+
+test("a game's id covers its set-up start (a practice game from the Analysis board's position), and none keeps the id", () => {
+  assert.equal(gameId(MOVES, 0, undefined), "review-3-b8d5ec7d");
+  assert.notEqual(gameId(MOVES, 0, "a start"), gameId(MOVES));
+  assert.notEqual(gameId(MOVES, 0, "a start"), gameId(MOVES, 0, "another start"));
+  assert.notEqual(gameId(MOVES, 300, "a start"), gameId(MOVES, 0, "a start"));
 });
 
 test("a game that the review kept before the list (its record and when it came) opens and is in the list", async () => {

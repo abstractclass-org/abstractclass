@@ -56,7 +56,7 @@
   import { startTags, type GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
-  import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem, refuseKomi } from "#lib/game/board.ts";
+  import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
@@ -71,7 +71,7 @@
 
   let game = $state<GameAnalysis<Blueprints> | null>(null);
   let error = $state("");
-  let notice = $state(""); // a line brought, or a kept board (refuseKomi), that could not open
+  let notice = $state(""); // a line brought, or a kept board (keptKomiProblem), that could not open
   let start = $state<string[] | null>(null); // where the view opens
   let current = $state<string[]>([]); // the position on screen
   const engine = $state(loadEngine());
@@ -119,23 +119,23 @@
    *  The address names the source (`via`): a tool's game from the import page, or the Import's paste. A record or a
    *  position with none is a link's. The board editor's position is the site's own: neither. */
   let imported: ImportSource | undefined, loaded: LoadSource | undefined;
-  /** Why the board kept here could not open (a komi, or a start that no game reaches), or null. A board brought then
-   *  replaces it at once, and the notice names no new board. */
+  /** Why the board kept here could not open (a komi beyond the limit, or a start that no game reaches), or null. A
+   *  board brought then replaces it at once, and the notice names no new board. */
   let keptGone: string | null = null;
-  const OWN: string[] = ["editor"];
+  // The site's own pages that bring a board: the board editor's position, a practice game's "Analyze the game", and a
+  // game from a set-up start in Your games. Neither an import nor a load.
+  const OWN: string[] = ["editor", "practice", "your_games"];
   /** The board kept here, as it opens: its own network only while the site ships it (kept.ts, keptShipped). A kept
-   *  board with a komi (Hedge School's design 24), which the board cannot analyze, does not open: a defence, as only a
-   *  board at komi 0 is kept here. A new board opens, and replaces it in the store at its first change. */
+   *  board beyond the komi's limit (Hedge School's design 24), kept from a link before the link's check, does not open,
+   *  as on Hedge School: the engine's numbers mean nothing beyond its cap. A new board opens, and replaces it in the
+   *  store at its first change. */
   async function keptBoard(): Promise<KeptBoard | null> {
     const kept = keptShipped((await dbGet<KeptBoard>(STORES.branches, BOARD_ID)) ?? null, shipsNetwork);
-    try {
-      refuseKomi(kept?.komi);
-      return kept;
-    } catch (e) {
-      keptGone = errorText(e);
-      notice = keptBoardNotice(keptGone, false);
-      return null;
-    }
+    const problem = keptKomiProblem(kept);
+    if (!problem) return kept;
+    keptGone = problem;
+    notice = keptBoardNotice(keptGone, false);
+    return null;
   }
   /** The board kept here (`kept`, from keptBoard), at its kept place, and a board brought after the `#`, which leaves
    *  the address: a record's line (`record`, from its `Position` tag or from `position`), a set-up start alone
@@ -164,8 +164,7 @@
     }
     if (text === null) return { kept, at: keptAt, brought: { board: boardOfLine([], setUpStart(position)), at: 0, kind: "position" } };
     try {
-      const record = readPasted(text, position).record, komi = recordKomiProblem(record);
-      if (komi) { refuse(komi, "record", true); return { kept, at: keptAt }; }
+      const record = readPasted(text, position).record;
       const atMain = Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0);
       return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: atMain, kind: "record", record } };
     } catch (e) {
@@ -174,7 +173,7 @@
     }
   }
   /** The notice of a board brought that cannot open: the board kept here opens. Where the kept board could not open
-   *  either (chooseBoard's notice, a kept board with a komi), that notice stays first and names the new board. The
+   *  either (keptBoard's notice, a kept board beyond the komi's limit), that notice stays first and names the new board. The
    *  failure counts by why: a link or a file that does not read, a record that does not read, or a line that the
    *  engine's rules refuse (`rules`). */
   function refuse(problem: string, kind: Brought["kind"], rules = false) {
@@ -204,7 +203,8 @@
       const g = await session.start(async pool => {
         const chosen = await opening, b = chosen.brought, rules = rulesBy(pool.rules);
         // A kept board whose start no game reaches (kept before protocol 0.8.0's check) does not open, as a kept board
-        // with a komi does not (chooseBoard): a new board opens, and replaces it in the store at its first change.
+        // beyond the komi's limit does not (keptBoard): a new board opens, and replaces it in the store at its first
+        // change.
         let kept = chosen.kept;
         const keptProblem = kept?.start ? await startProblem(rules, kept.start, "its start") : null;
         if (keptProblem) {
@@ -222,7 +222,8 @@
         board = brought?.board ?? kept;
         own = board?.network ?? null;
         keptAt = chosen.at;
-        return new GameAnalysis(blueprints, pool, [], BOARD_ID, board?.start ?? null);
+        // The board's start and komi (Hedge School's design 24) are the chosen board's.
+        return new GameAnalysis(blueprints, pool, [], BOARD_ID, board?.start ?? null, { komi: board?.komi });
       }, async (g, pool) => {
         await g.start();
         if (board) await g.loadBoard(board);
@@ -279,7 +280,7 @@
       return;
     }
     const read = readPasted(pasted, position || null);
-    const problem = recordKomiProblem(read.record) ?? await checkRecord(read.record, "their start");
+    const problem = await checkRecord(read.record, "their start");
     if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${errorSentence(problem)}`);
     importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}),
                                         via: position ? "pasted_position" : "pasted_record" }));

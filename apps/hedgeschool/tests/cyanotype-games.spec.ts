@@ -7,6 +7,7 @@
 // stored review with the engine off (storeReview): nothing searches here. The tests skip, with a message, when the
 // preview has no engine files. Run: npx playwright test tests/cyanotype-games.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type Page } from "./page-log.ts";
+import { declineGames } from "./cyanotype-consent.ts";
 import { modelOf, moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { reviewLink } from "../../cyanotype/src/lib/game/share.ts";
@@ -47,6 +48,9 @@ const keptIds = (page: Page) => page.evaluate(([name, store]) => new Promise<str
   };
 }), [NAME, STORES.games] as const);
 const rows = (page: Page) => page.getByRole("region", { name: "Review a game" }).locator("li");
+
+// The visitor's Decline of the practice games' link: the consent banner would cover the page (cyanotype-consent.ts).
+test.beforeEach(async ({ context }) => { await declineGames(context); });
 
 test.describe("with the engine's files", () => {
   test.beforeEach(async ({ page }) => {

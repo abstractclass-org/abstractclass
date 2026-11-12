@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import { boardOfLine, type KeptBoard } from "@abstractclass/analysis/kept.ts";
 import { FIXTURE_DATA } from "../board/fixtures.ts";
 import { encodeShare } from "./share.ts";
-import { boardLink, boardOfRecord, readBoardLink, recordKomiProblem } from "./board.ts";
+import { boardPositionKeys } from "@abstractclass/analysis/boardLink.ts";
+import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "./board.ts";
 import { STANDARD_START, writePosition } from "./position.ts";
 import { parseRecord } from "./record.ts";
 
@@ -56,12 +57,16 @@ test("a record's board: its line, from its Position tag", () => {
   assert.equal(boardOfRecord(parseRecord("1. 2@-6,-2 *")).start, undefined);
 });
 
-test("a record with a komi: the board cannot open it, and says where it can (Hedge School's design 24)", () => {
-  assert.equal(recordKomiProblem(parseRecord("1. 2@-6,-2 *")), null);
-  assert.match(recordKomiProblem(parseRecord('[Komi "300"]\n\n1. 2@-6,-2 *')) ?? "", /a komi\. Open the record in the review$/);
-  // From a set-up start, the review does not take it either (setUpProblem)
-  assert.match(recordKomiProblem(parseRecord(`[Position "${MIDDLE}"]\n[Komi "300"]\n\n2@5,-2 *`)) ?? "",
-               /a komi\. The Analysis board can analyze only at komi 0$/);
+test("a record's komi is the board's, and its link and keys keep it (Hedge School's design 24)", () => {
+  const board = boardOfRecord(parseRecord('[Komi "-300"]\n\n1. 2@-6,-2 *'));
+  assert.equal(board.komi, -300);
+  const hash = new URLSearchParams(new URL(boardLink("https://example.com", board, 0)).hash.slice(1));
+  assert.equal(readBoardLink(hash.get("packed")!, null).board.komi, -300);
+  assert.deepEqual([...boardPositionKeys(board)], ["komi=-300", "komi=-300 2@-6,-2"]);
+  // A board at komi 0 has no komi, and its keys are the moves alone
+  const even = boardOfRecord(parseRecord("1. 2@-6,-2 *"));
+  assert.equal(even.komi, undefined);
+  assert.deepEqual([...boardPositionKeys(even)], ["", "2@-6,-2"]);
 });
 
 test("a broken link says so", () => {
@@ -74,11 +79,17 @@ const readAtKomi = (komi: number) => {
   return readBoardLink(new URLSearchParams(url.hash.slice(1)).get("packed")!, null);
 };
 
-test("a link whose board has a komi says that the board cannot open it (Hedge School's design 24)", () => {
-  // The board's analysis searches at komi 0 (design 33, "The komi"): it cannot search a link's board at a komi.
-  assert.throws(() => readAtKomi(-300), /komi/);
+test("a link at a komi opens the board at it, up to the komi that a record can give (Hedge School's design 24)", () => {
+  assert.equal(readAtKomi(-300).board.komi, -300);
+  assert.equal(readAtKomi(90_980).board.komi, 90_980);
+  assert.equal(readAtKomi(-90_980).board.komi, -90_980);
+  assert.throws(() => readAtKomi(90_980.5), (e: Error) => e.message === "the Komi tag must be from -90,980 to 90,980 points: 90980.5");
+  assert.throws(() => readAtKomi(90_981), /from -90,980 to 90,980 points: 90981$/);
 });
 
-test("a link beyond the komi that a record can give says so first, in the record's words", () => {
-  assert.throws(() => readAtKomi(90_980.5), (e: Error) => e.message === "the Komi tag must be from -90,980 to 90,980 points: 90980.5");
+test("a kept board beyond the komi that a record can give does not open, and one within it does", () => {
+  assert.equal(keptKomiProblem(null), null);
+  assert.equal(keptKomiProblem({ ...BOARD, komi: -300 }), null);
+  assert.equal(keptKomiProblem({ ...BOARD, komi: 90_980 }), null);
+  assert.match(keptKomiProblem({ ...BOARD, komi: 100_000 }) ?? "", /its komi must be from -90,980 to 90,980 points: 100000/);
 });

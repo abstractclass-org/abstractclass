@@ -38,11 +38,7 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
   /** Gives the bot the game's settings, its komi and its start (a set-up start, interface 0.1.1), plays the game's
    *  moves into it (a game kept from an earlier visit, or a record brought), and notes a new build. */
   protected async prepare() {
-    // A game kept before the stored game's fields, or resumed: its own id, where the bot runs now, and a time for each
-    // move (unknown for the moves before this visit's).
-    this.kept.id ??= crypto.randomUUID();
-    this.kept.form = this.mode;
-    this.kept.ms = Array.from(this.kept.moves, (_, i) => this.kept.ms?.[i] ?? null);
+    this.noteStored();
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);
     const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
@@ -53,10 +49,7 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
   }
 
   /** A takeback, for the stored game: its record, and the times of the edges taken back out. */
-  protected undid(undone: string[]) {
-    this.kept.ms?.splice(-undone.length);
-    this.kept.undone = [...(this.kept.undone ?? []), { at: this.kept.moves.length + undone.length, undone }];
-  }
+  protected undid(undone: string[]) { this.noteTakeback(undone); }
 
   /** The game's result: the bot's win when the player resigned, the scores' once the rules have ended it, else `*`. */
   result(): string {
@@ -91,7 +84,7 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
   protected async add(name: string, ms: number | null) {
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
-    (this.kept.ms ??= []).push(ms);
+    this.noteTime(ms);
     keptGame.keep(this.kept);
     const [, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves), from)).reply.positions;
     this.played = [...this.played, moveOf(this.positions[from], name, after)];

@@ -11963,3 +11963,36 @@ abscls-fcvt. Design 06 changed.
   settles failed the "Lead:" cases of a deep early end at the tooltip. A legend that is on at every early end failed
   them at the legend. The model's `endedByRules` always true, or always false, fails the unit test
   (`packages/analysis/src/game.test.ts`).
+
+### Cyanotype keeps its practice games, as Hedge School's (2026-11-13)
+
+abscls-8tl1.50, from the decision of 2026-11-06 on design 33's gaps (build it), with the Analysis board's komi of
+2026-11-07 in the same work. A game against Stamp Duty that ends goes into Your games for its review, and in a build
+that stores games, to Cyanotype's own D1 database through a Pages Function, as Hedge School's games against HedgeFund
+(design 25, design 33, "The stored games").
+
+- **Before the change,** on a build of dev at 5183d8a: a game that ended left the browser. The page showed only "New
+  game", the Review tab listed nothing, Abort said "You cannot continue it after this", and the Privacy page said
+  "no server of its own".
+- **Moved, not copied** (design 29): the stored game and its check, the Function's handlers, the sending and its queue,
+  the record's tags and turns, the stored game's bookkeeping in the game's flow, and the Privacy page's section and
+  choices, into `packages/practice`. Hedge School's files call them, with its behaviour and words unchanged: its
+  `stored.test.ts` and `practice.test.ts` pass as before. Each site gives its game's part: a move's form for the
+  takebacks, and the count of a record's moves, which the schema keeps (`edges` on Hedge School, `moves` on Cyanotype).
+- **A record's moves on the server:** a regular expression of a Blueprints move with its capture mark, which counts as
+  the record's reader does (`stored.test.ts` compares them). The Function's bundle cannot take the notation's reader,
+  which imports the analysis package.
+- **The id in Your games** covers a set-up start, so that a practice game from the Analysis board's set-up position is
+  kept apart from the same moves from the standard start. A game from the standard start keeps its id, so the games
+  kept before stay where they were.
+- **Its own switch:** the deploy gives Cyanotype's build the repository variable `CYANOTYPE_STORE_PRACTICE_GAMES`, not
+  Hedge School's, so that its sending and its consent banner start after its databases are bound (docs/hosting.md,
+  "Cyanotype's practice games").
+- **The Analysis board's komi:** the board analyzes at the board's komi, as Hedge School's does. Its refusals of a
+  record's, a link's, a file's and a kept board's komi go. Only a komi beyond 90,980 points, Blueprints' cap, does not
+  open, in the record's words.
+- **Checked:** the Function in Wrangler 4.144.0's local mode, on a local D1 database with the migration: a request that
+  is not JSON answered 400, a game 201 and the same game again 200, a delete with a wrong number 400, and with no
+  binding 503. The kept row had the outcome, the bot's form and the move count. The unit tests run the Function on the
+  schema in Node's SQLite, as Hedge School's do. The browser test plays the shortest game that the bot allows (1 visit,
+  the player Red, a Resign after the bot's first move) and opens its review.

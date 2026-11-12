@@ -15,6 +15,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { parseRecord, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { readPasted } from "#lib/game/paste.ts";
+  import { setUpStart } from "#lib/game/position.ts";
   import { importRecord } from "#lib/game/import.ts";
   import { deleteGame, lastReview, listGames, reviewAgainWhy, reviewCovers, reviewMark,
            type StoredGame } from "#lib/game/store.ts";
@@ -160,17 +161,20 @@
   const movesText = (n: number) => `${n} ${n === 1 ? "move" : "moves"}`;
   // "Continue your last review": two lines on a phone and one from 640 pixels, and the link cuts its game to fit.
   const CONTINUE = "flex-col sm:flex-row sm:items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg";
-  // The list's rows (GameList). The Export's text when it does not open: text that a player follows, in strict
-  // Simplified Technical English.
+  // The list's rows (GameList). A game from a set-up start (a practice game from the Analysis board's Play) opens on the
+  // Analysis board, as on Hedge School, since the Review tab reviews games from the standard start. The Export's text
+  // when it does not open: text that a player follows, in strict Simplified Technical English.
   const rows = $derived(games.map(({ game, record }): GameRow => {
-    const want = wanted(game);
+    const setUp = !!setUpStart(record.tags.Position), want = wanted(game);
     return {
-      id: game.id, title: title(record), href: `/review#game=${game.id}`,
+      id: game.id, title: title(record),
+      href: setUp ? `/analysis#${new URLSearchParams({ record: game.record, via: "your_games" })}` : `/review#game=${game.id}`,
       detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
         + `added ${new Date(game.added).toLocaleDateString()}`,
       exports: { run: kind => exportGame(game.id, game.record, kind), items: reviewExports(), ontrack: trackExport,
         ready: reviewCovers(game.reviewed, want),
-        why: !game.reviewed ? "Open the game to review it, then export."
+        why: setUp ? "A game from a set-up start opens on the Analysis board: export it there."
+          : !game.reviewed ? "Open the game to review it, then export."
           : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game, choose Review again, then export."
           : "Open the game to finish its review with the engine settings now, then export." },
     };

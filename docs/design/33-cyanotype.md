@@ -19,7 +19,9 @@ early access is built, as Hedge School's ("Decision", item 11). The player's gam
 Hedge School's (abscls-8tl1.38, "The player's games"), with their review files (abscls-8tl1.34, "The review files"), the
 review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are built, with no partner
 yet: their buttons and their sections of /developers come next ("Partner sites"). The analytics are built as Hedge
-School's (abscls-8tl1.48), with PostHog in place of Google Analytics and no consent (abscls-xb0k, "Analytics").
+School's (abscls-8tl1.48), with PostHog in place of Google Analytics (abscls-xb0k, "Analytics"). Practice's games are
+kept as Hedge School's: in the player's games, and on the site's own server in a build that stores them, with the
+consent banner for their link (abscls-8tl1.50). The Analysis board takes a komi (abscls-8tl1.50, "The komi").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -29,7 +31,8 @@ issue yet waits for one. The check `engine-kinds` of `npm run check:all` holds t
 import page's choice: 2026-11-01. The name Cyanotype: 2026-11-04. Hedge School's features: 2026-11-05. A position's
 notation and the board editor: 2026-11-07. The early access: 2026-11-07. The player's games: 2026-11-07. Partner sites:
 2026-11-08. The import page keeps the game: 2026-11-08. The review files: 2026-11-08. The position check: 2026-11-09.
-The analytics: 2026-11-06, with PostHog and no consent: 2026-11-09. Practice from a position: 2026-11-09.
+The analytics: 2026-11-06, with PostHog and no consent: 2026-11-09. Practice from a position: 2026-11-09. The stored
+practice games: 2026-11-06. The Analysis board's komi: 2026-11-07.
 
 ## Context
 
@@ -500,8 +503,9 @@ analytics, as Hedge School's Practice does: the layout does not start them while
    start's own (`startTurn`), with `51...` when the start is at a turn's second move. The settings card says where the
    game starts ("The game starts from the Analysis board's set-up position, after the record's 3 moves.").
 5. **A game in progress:** the page asks first, once the rules have checked the start ("Play from this position?",
-   `@abstractclass/practice/ReplaceGame.svelte`, Hedge School's question). Cyanotype keeps no practice game, so the
-   game in progress ends ("Practice against Stamp Duty", item 2 of the departures). A start that the rules refuse
+   `@abstractclass/practice/ReplaceGame.svelte`, Hedge School's question). The game in progress goes into Your games,
+   unfinished, and to the site as set aside, as on Hedge School ("The stored games", below). A start that the rules
+   refuse
    leaves the game in progress, which goes on with the notice in the side column.
 
 **Below 16 visits,** Practice plays the threaded bot, as Hedge School's Practice does at every setting (design 24,
@@ -529,24 +533,22 @@ id in this browser covers the komi, from a record and from a shared review. A re
 way, Blueprints' engine's cap, is an error in the record (design 24, item 15), and so is a link's or an analysis file's.
 Past the cap, a practice module refuses the komi. The analysis module searches with no error, but its numbers mean
 nothing: at komi 100,000 every candidate gives Blue 0.0%, and the lead is about 2.4 times the komi. The Analysis board
-does not take a komi yet. Its page builds the board's analysis after it chooses the board, but at komi 0. So it refuses
-a record, a link or an analysis file with a komi, with a notice. The analysis takes the board's komi in a later change
-(abscls-8tl1.50). The Import refuses a record with a komi in its dialog, for the same reason: it puts the record in the
-page's address, and the page opens it as a record. The board does not open a kept board with a komi either, and opens a
-new board with a notice. The board keeps only boards at komi 0, so this is a defence. A position's notation has no komi.
-Nothing on Cyanotype writes the tag yet, as its practice games are not kept. The board takes a komi as Hedge School's
-does when Cyanotype keeps its practice games ("The gaps from Hedge School").
+analyzes at a board's komi, as Hedge School's does: a record with a `Komi` tag, a link and an analysis file open the
+board at their komi, and its link, its file and its annotated record keep it. Its page builds the board's analysis
+after it chooses the board, with that board's komi, and the Import puts its record in the page's address, so a komi
+needs no step of its own. A link's or an analysis file's komi beyond the cap is an error in the link's or the file's
+words. A board kept here beyond the cap (kept from a link before the link's check) does not open: a new board opens,
+with a notice (`keptKomiProblem`, `packages/analysis/src/kept.ts`, with the cap). A position's notation has no komi.
+A practice game's record has the game's `Komi` tag, Red's komi as the engine takes it, and no tag at komi 0.
 
 **How it departs from Hedge School's Practice (design 24):**
 
 1. **A search of more views takes its best check, with no temperature,** and a move of another view keeps no tree for
    the next move (the engine's README, "The search"). The variety then does not act on that move. Request 25 accepts
    this.
-2. **No practice game in Your games, no stored game and no review of a game played here:** the site keeps no practice
-   game, and has no backend (design 25) yet. These are gaps, each in "The gaps from Hedge School". So a game that ends
-   is no longer kept: the next visit starts a new one. Abort ends the game, and it is gone. The site ships only its
-   lock's networks, so a new build can drop a kept game's network. Such a game cannot go on: the page drops it, and the
-   settings card says so.
+2. **A kept game whose network the site no longer ships cannot go on:** the site ships only its lock's networks, so a
+   new build can drop a kept game's network. The page drops the game, and the settings card says so. Hedge School's
+   lock keeps its earlier networks (abscls-8tl1.54).
 3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
    page has no sounds. The player's notes are on the board ("The player's notes"). These are gaps too ("The gaps from
    Hedge School").
@@ -598,8 +600,33 @@ actions and their question (`PracticeActions.svelte`, `ConfirmEnd.svelte`), the 
 list's frame (`PlayersSkeleton.svelte`, `PracticeMoves.svelte`), and the bot's page side, its forms and its
 worker (`bot.ts`, `botForms.ts`, `botWorker.ts`, `botFormsWorker.ts`, `botMessages.ts`). Each site gives the game's
 name in the bot's commands. The forms and their worker moved out of Hedge School when Blueprints' release had the
-threaded bot (abscls-8tl1.29). Hedge School's stored games (design 25) stay in Hedge School until Cyanotype has a
-backend: the server's check names Enclosure's edges, and the Pages Function bundles it alone.
+threaded bot (abscls-8tl1.29). The stored games' parts are shared too ("The stored games", below).
+
+**The stored games** (Hedge School's design 25), as Hedge School keeps its games against HedgeFund:
+
+1. **Your games:** a game that ends, by the rules or by Resign, goes into the player's games, with its record
+   (`practiceRecord` in `src/lib/practice/stampduty.ts`: both sides named, the event `Cyanotype practice`, the bot in
+   full, the set-up start's `Position` tag and the `Komi` tag when the game has them, each move with its capture mark,
+   and the turns from the start's own number). "Review the game" opens its review. A game from a set-up start opens on
+   the Analysis board ("Analyze the game"), as the Review tab reviews games from the standard start. Abort keeps a game
+   with moves, unfinished (`*`). A game in progress set aside by a start brought goes there too, unfinished
+   (`saveUnfinished`). A game's id in the list covers its set-up start ("The player's games", item 4).
+2. **The site's database:** in a build that stores games (`VITE_STORE_PRACTICE_GAMES=on`), the game goes to the site
+   when it ends: its moves, its record with no name, the bot's settings and where it ran (`form`), each move's time and
+   each takeback, the result, the player's side and outcome, and the moves brought (`brought`). A game set aside goes
+   with the outcome `set_aside`. A Pages Function (`functions/api/practice-games.ts`) keeps it in Cyanotype's own D1
+   database, with Hedge School's schema and Blueprints' count of moves (`migrations/`; docs/hosting.md, "Cyanotype's
+   practice games"). Without its database, it answers 503, and the game waits in the browser for a later visit.
+3. **The consent:** with the visitor's consent, a random ID in this browser goes with each game, as on Hedge School.
+   The consent banner asks once, and the Privacy page has the section on the games and "Your choices", with "Delete my
+   practice games" ("Analytics", item 3).
+4. **Shared, not copied** (design 29): the stored game and its check (`@abstractclass/practice/stored.ts`, with each
+   game's move form and its count of a record's moves as `StoredRules`), the Function's handlers (`storedFunction.ts`),
+   the sending and its queue (`send.ts`), the stored game's bookkeeping in the game's flow (`noteStored`,
+   `noteTakeback`, `noteTime` in `game.svelte.ts`), the record's tags and turns (`practiceTags`, `practiceTurns`), and
+   the Privacy page's parts (`StoredGamesNotice.svelte`, `GamesChoices.svelte`). Each site gives its game's part: its
+   check of a move (`src/lib/practice/stored.ts`), its keys, and its record. The Function's bundle takes only the shared
+   check and the site's, which import nothing at run time but each other.
 
 ## How a game comes in from strategyjam.org
 
@@ -1015,9 +1042,10 @@ settings of its design 09 and the marks of its design 13), in the code that both
    (`/review#record=…`) gets the Review tab, as on Hedge School (its design 22): only the import page takes one.
 3. **The komi:** the review takes a record with a `Komi` tag, and searches at it ("Practice against Stamp Duty",
    "The komi"). A game's id covers its komi, so the same moves at another komi are another game. The Analysis board
-   still refuses a komi, until abscls-8tl1.50.
+   takes a komi too.
 4. **A game's id** is the id that the review used before the list: FNV-1a of the komi and the moves
-   (`src/lib/game/store.ts`, `gameId`). So the games that the review kept before the list, each with its record and
+   (`src/lib/game/store.ts`, `gameId`), and of the set-up start before them for a practice game from one. So the games
+   that the review kept before the list, each with its record and
    the time that it came, show in the list, and open with their variations. The review kept them before the engine's
    rules checked them, so the list can hold one that the review refuses: its review then says why, and its Delete
    removes it. Hedge School's id is a SHA-256, which also covers a set-up start: Cyanotype's review takes no set-up
@@ -1063,8 +1091,6 @@ settings of its design 09 and the marks of its design 13), in the code that both
 
 - **No marks before the first paint:** until the page's code runs, `/review` shows the line "Reading the game with the
   engine's rules…", not the Review tab. abscls-8tl1.45.
-- **No game from a set-up start in the list:** the review takes none, and Cyanotype's practice games are not kept yet
-  (abscls-8tl1.40, abscls-8tl1.50). Hedge School's list opens such a game on the Analysis board.
 
 ### The review files
 
@@ -1295,12 +1321,13 @@ corner (`hex.ts`). A cell's body has the radius 0.93, so that a gap shows betwee
 ## Analytics
 
 Cyanotype measures its visits and its events as Hedge School does (its designs 11 and 17), in the code that both sites
-share (design 29). It asks for no consent: its visit counts set no cookies, and it stores no practice games.
+share (design 29). Its visit counts set no cookies, so it asks no consent for them. A build that stores practice games
+asks for the consent's one purpose, the random number that links them, as Hedge School's does.
 
 1. **The shared parts,** moved from Hedge School: in `packages/site`, the analytics (`analytics.svelte.ts`: one
    `Analytics` for each site, with its build's two services and its keys), the flag of internal traffic
    (`internalTraffic.ts`), the ranges (`measure.ts`), the card at the window's lower left with the site's mark
-   (`CornerCard.svelte`) and the consent banner (`ConsentBanner.svelte`), which Cyanotype does not show, and PostHog's
+   (`CornerCard.svelte`) and the consent banner (`ConsentBanner.svelte`), and PostHog's
    client (`posthog.ts`). The engine settings' changes (`packages/analysis/src/settingChanges.ts`), the
    exports (`packages/review/src/exportEvents.ts`) and a practice game's parameters
    (`packages/practice/src/practiceEvents.ts`), beside the import's events (`packages/import/src/importEvents.ts`).
@@ -1313,9 +1340,12 @@ share (design 29). It asks for no consent: its visit counts set no cookies, and 
    the repository variable `POSTHOG_KEY` as `VITE_POSTHOG_KEY`, and the domain's token `VITE_CF_ANALYTICS_TOKEN` as it
    is, for `main` only. Without them, as in development and on the previews, nothing is measured, and the build holds
    none of PostHog's code. [docs/hosting.md](../hosting.md), "Cyanotype's analytics", gives the setup.
-3. **No consent:** PostHog's cookieless mode sets no cookies and keeps nothing in the browser, and Cyanotype stores no
-   practice games yet (abscls-8tl1.50), so it has no random number that links them. So Cyanotype shows no banner, and
-   its Privacy page has no "Your choices". The Privacy page says what is measured, in Hedge School's words. The
+3. **The consent, for the practice games' link only:** PostHog's cookieless mode sets no cookies and keeps nothing in
+   the browser, so the visits need no consent. A build that stores practice games ("Practice against Stamp Duty", "The
+   stored games") shows Hedge School's banner, with the logo and the title "Help Cyanotype get better", for the random
+   number that links the games, and its Privacy page has "Your choices" with the switch and "Delete my practice games".
+   The browser keeps the choice under `cyanotype:consent:1` and the number under `cyanotype:browser-number:1`. A build
+   that stores none shows no banner. The Privacy page says what is measured, in Hedge School's words. The
    browser keeps the flag of internal traffic under `cyanotype:internal-traffic:1`: each site keeps its own. No
    build of Cyanotype measured with Google Analytics, so no visitor gave the consent that it asked for.
 4. **The events have Hedge School's names and parameters** where the thing is the same, so that the two sites' reports
@@ -1345,9 +1375,10 @@ share (design 29). It asks for no consent: its visit counts set no cookies, and 
    - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the
      reports have one dimension for a game's length.
    - **`network`** names Stamp Duty's networks (Stamp Duty 0.2).
-   - **`practice_game` is always false:** Cyanotype keeps no practice game in the player's games yet (abscls-8tl1.50).
-     `practice_from` takes Hedge School's values: `new`, `analysis_board` for the board's "Play the bot from here",
-     `set_up_start` for a set-up start, and `resumed` (`practiceFrom` in `@abstractclass/practice/practice.ts`).
+   - **`practice_game`** is true for a game whose record's event is Cyanotype's practice (`PRACTICE_EVENT`), as on
+     Hedge School. `practice_from` takes Hedge School's values: `new`, `analysis_board` for the board's "Play the bot
+     from here", `set_up_start` for a set-up start, and `resumed` (`practiceFrom` in
+     `@abstractclass/practice/practice.ts`).
    - **Practice's features** (`feature_name`): `practice komi`, `practice takeback`, `practice look back` and `note
      drawn`. Cyanotype's Practice has no display settings of Hedge School's, so it sends none of their features.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
@@ -1356,7 +1387,8 @@ share (design 29). It asks for no consent: its visit counts set no cookies, and 
 5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's
    builds of both sites, each with a made-up PostHog key. Playwright's routes answer PostHog's addresses in its place
    and keep the events that the pages sent. Cyanotype's case checks its page views, with `internal` after
-   `?internal=on`, and that it asks for no consent and keeps nothing in the browser. `tests/cyanotype-events.spec.ts`
+   `?internal=on`, that its banner asks only for the practice games' link, and that it keeps nothing of PostHog's in
+   the browser. `tests/cyanotype-events.spec.ts`
    checks the events of the review files and the review snapshot in the same way. It checks a review file loaded and a
    file that cannot load. It checks the exports of the review file and of the annotated record, from the review and
    from the Review tab. It checks the review snapshot's open and Review again. A build without the key holds none of
@@ -1447,12 +1479,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The weak walls** (`review/weakWalls.ts`, design 30): the rings on the walls that the engine expects to fall.
   Blueprints' walls are cells, not Enclosure's edges, and its engine gives no field for them. abscls-8tl1.17 decides
   with the area map what Blueprints shows in their place. Cyanotype's display settings keep them off.
-- **Practice's stored games** (`practice/send.ts`, `practice/stored.ts`, with the site's `functions/` and
-  `migrations/`, design 25), and an ended game in the player's games for its review. Cyanotype has no backend
-  ("Practice against Stamp Duty", item 2). abscls-8tl1.50.
-- **The Analysis board at a komi** (design 24, item 15): a record, a link or an analysis file with a `Komi` tag opens
-  at its komi and keeps it in the board's link and file. The board refuses them until then (the komi, above).
-  abscls-8tl1.50.
 - **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`, design 08), on the review and on Practice. abscls-8tl1.42.
 - **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`, design 07, item 17).
   abscls-8tl1.43.
@@ -1583,9 +1609,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `engine.lock.json`, and names the engine's release or the network.
 - `apps/cyanotype/scripts/release-check.mjs`: the check of a deployed site ([hosting.md](../hosting.md), "Deploy,
   check and roll back"), with the checks that both sites share (`packages/site/src/release-check.mjs`). It gives them
-  no pages that lead home, because Cyanotype's early access hides no page ("Decision", item 11), and adds no check of
-  a Function, because Cyanotype has none ("The gaps from Hedge School", "Practice's stored games"). When that gap
-  closes, its check comes into this script as in Hedge School's.
+  no pages that lead home, because Cyanotype's early access hides no page ("Decision", item 11), and adds Hedge
+  School's check of the practice games' Function: a request that is not JSON answers 400.
 - `apps/cyanotype/src/lib/game/`: the game's notation and records, as Hedge School's `src/lib/game/` holds
   Enclosure's records. `notation.ts`: the moves (Blueprints' part of the game interface: `moves`), their capture
   marks, and the turns. `record.ts`: the record, on the shared frame. `check.ts`: the capture marks' check against
@@ -1638,9 +1663,12 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   evaluator with the manifest's sizes, which plays the one-thread bot's moves at 1, 4 and 8 visits.
   `scripts/practice-forms.mjs`: whole games of the threaded bot against the one-thread bot's from one seed, below 16
   visits ("Practice against Stamp Duty"). `src/lib/board/described.ts`: the engine's describe and describe_game as the
-  board draws them, for the lab and Practice.
+  board draws them, for the lab and Practice. The stored games ("The stored games"): `src/lib/practice/stored.ts`
+  (Blueprints' check, with `stored.test.ts`, which also runs the Function on the schema in Node's SQLite), `send.ts`,
+  `functions/api/practice-games.ts`, `migrations/0001_practice_games.sql` and `static/_routes.json`.
 - `apps/hedgeschool/tests/cyanotype-practice.spec.ts`: whole games against the bot, with each side to start, and a
-  reload in the middle. `layout.spec.ts`: the layout of `/practice` and of a game in progress. Both run with
+  reload in the middle; a game that ends goes into Your games and to the site, and its review opens; a game set aside
+  goes into Your games. `layout.spec.ts`: the layout of `/practice` and of a game in progress. Both run with
   `CYANOTYPE_BASE_URL`, and the games skip when the site has no bot.
 - `.github/workflows/deploy.yml`, the job `cyanotype`: the deploy, with the engine's release files, to the Pages
   project `cyanotype` ([hosting.md](../hosting.md), "Cyanotype").
@@ -1820,5 +1848,6 @@ games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before
 School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach the position" (2026-11-09),
 "Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), "Cyanotype's Play the bot from here, and
 Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), "Cyanotype removes
-earlier engine results, as Hedge School" (2026-11-11), and "Cyanotype's header links show from 740 pixels"
-(2026-11-12). The earlier entries name the site by its first name, Drawing Board.
+earlier engine results, as Hedge School" (2026-11-11), "Cyanotype's header links show from 740 pixels"
+(2026-11-12), and "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13). The earlier entries name
+the site by its first name, Drawing Board.

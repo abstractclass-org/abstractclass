@@ -1,7 +1,7 @@
 // The site's edition (design 11): the full site, for development, or the early access, which shows the review only.
 // The build sets it: VITE_EDITION=early, read in @abstractclass/site/edition.ts, which Cyanotype reads too. The version
 // is the commit the site was built from (vite.config.ts).
-import { EARLY_ACCESS } from "@abstractclass/site/edition.ts";
+import { EARLY_ACCESS, STORES_PRACTICE_GAMES } from "@abstractclass/site/edition.ts";
 export { EARLY_ACCESS };
 /** Openings, the opening book's own page (design 32), with its header tab and its entry points: in the early edition,
  *  and only in a build that a server with the test book serves (vite.config.ts, VITE_TEST_BOOK). The deploy's builds
@@ -19,6 +19,6 @@ export const KOFI = "https://ko-fi.com/yshandev";
 export const SITE_VERSION: string = __SITE_VERSION__;
 /** The engine files that the build ships (vite.config.ts): its CPU module and networks, by SHA-256. */
 export const ENGINE_FILES: string = __ENGINE_FILES__;
-/** Whether this build stores practice games (design 25): VITE_STORE_PRACTICE_GAMES=on in the production and preview
- *  deployments, each with a database of its own. A build on a developer's machine sends nothing. */
-export const STORES_PRACTICE_GAMES = import.meta.env.VITE_STORE_PRACTICE_GAMES === "on";
+/** Whether this build stores practice games (design 25): @abstractclass/site/edition.ts reads the build's
+ *  VITE_STORE_PRACTICE_GAMES. */
+export { STORES_PRACTICE_GAMES };

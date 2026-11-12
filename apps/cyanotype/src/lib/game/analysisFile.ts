@@ -6,7 +6,7 @@
 import * as shared from "@abstractclass/analysis/files.ts";
 import type { KeptBoard } from "@abstractclass/analysis/kept.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
-import { boardLink, refuseKomi } from "./board.ts";
+import { boardLink } from "./board.ts";
 import { MAX_RECORD_KOMI } from "./record.ts";
 import { REVIEW_FORMAT } from "./reviewFile.ts";
 import { SITE_NAME } from "../site.ts";
@@ -42,7 +42,6 @@ export const readAnalysisFile = (text: string): shared.AnalysisFile =>
 export async function openAnalysisFile(text: string, manifest: Manifest | null,
                                        choose: (q: shared.NetworkQuestion) => Promise<string | null>): Promise<string | null> {
   const file = readAnalysisFile(text);
-  refuseKomi(file.board.komi); // before its results go to the store
   const board = await shared.boardNetwork(file, manifest, NETWORK_NAMES, choose);
   if (!board) return null;
   await shared.keepAnalyses(file, manifest);

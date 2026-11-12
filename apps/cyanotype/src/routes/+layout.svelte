@@ -1,13 +1,16 @@
 <script lang="ts">
   // The site's frame (design 33): Hedge School's header, page area, theme, page metadata and site menu
   // (packages/site), with Cyanotype's name, links and keys. The analytics, as Hedge School's (design 33, "Analytics"),
-  // with no consent banner: Cyanotype asks for no consent.
+  // and in a build that stores practice games, Hedge School's consent banner for its one purpose, the random number
+  // that links the games (Hedge School's design 25).
   import "../app.css";
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { removeUnreadResults } from "@abstractclass/analysis/cache.ts";
-  import { startAnalytics } from "#lib/analytics.svelte.ts";
+  import { ASKS_CONSENT, analytics, consentChosen, startAnalytics } from "#lib/analytics.svelte.ts";
+  import { flushPractice } from "#lib/practice/send.ts";
+  import ConsentBanner from "@abstractclass/site/ConsentBanner.svelte";
   import favicon from "#lib/assets/favicon.svg";
   import Logo from "#lib/brand/Logo.svelte";
   import { ENGINE_FILES, PLACES_KEY, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "#lib/site.ts";
@@ -29,9 +32,12 @@
 
   // The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
   // of the address starts them then (Hedge School's design 22). The import page always takes its game out first, and
-  // starts them itself.
+  // starts them itself. The banner shows in the browser only, never in the prerendered page.
+  let mounted = $state(false);
   onMount(() => {
+    mounted = true;
     if (page.route.id !== "/import" && !holdsGame(location.hash)) startAnalytics();
+    void flushPractice(); // the practice games that could not be sent before (Hedge School's design 25)
     // The stored analyses that no reader reads: once after a change of their shape, and an earlier engine's that no
     // stored game needs, once after a change of the engine or of what the games need (Hedge School's design 20). The
     // removal's code loads only then, when the page is idle.
@@ -65,3 +71,6 @@
   {@render children()}
 </SiteFrame>
 
+<!-- The card's logo, at 48 pixels, as Hedge School's card has its collie. -->
+{#snippet logo()}<Logo size={48} />{/snippet}
+{#if mounted && ASKS_CONSENT && !consentChosen()}<ConsentBanner {analytics} site={SITE_NAME} title="Help Cyanotype get better" mark={logo} />{/if}

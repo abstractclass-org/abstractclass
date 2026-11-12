@@ -87,12 +87,21 @@ test("an analysis file from a set-up start opens from it, with the results of it
   assert.deepEqual([...db.rows(STORES.analysis).keys()], [key(keyed)]);
 });
 
-test("an analysis file whose board has a komi says that the board cannot open it, and keeps none of its results", async () => {
-  // Hedge School's design 24: the board searches at komi 0, so a komi's results are of no use to it.
+test("an analysis file at a komi opens the board at it, with its results (Hedge School's design 24)", async () => {
   db.rows(STORES.analysis).clear();
   const file = { format: ANALYSIS_FORMAT, version: 1, exported: "", site: "x", board: { ...BOARD, komi: -300 },
                  analyses: [[key("komi=-300"), { blueWin: 0.9 }]] };
-  await assert.rejects(openAnalysisFile(JSON.stringify(file), MANIFEST, noQuestion), /komi/);
+  const hash = new URLSearchParams((await opened(JSON.stringify(file))).split("#")[1]);
+  assert.equal(readBoardLink(hash.get("packed")!, null).board.komi, -300);
+  assert.deepEqual([...db.rows(STORES.analysis).keys()], [key("komi=-300")]);
+});
+
+test("an analysis file beyond the komi that a record can give does not open, and keeps none of its results", async () => {
+  db.rows(STORES.analysis).clear();
+  const file = { format: ANALYSIS_FORMAT, version: 1, exported: "", site: "x", board: { ...BOARD, komi: 90_981 },
+                 analyses: [[key("komi=90981"), { blueWin: 0.9 }]] };
+  await assert.rejects(openAnalysisFile(JSON.stringify(file), MANIFEST, noQuestion),
+    (e: Error) => e.message === "the analysis file's komi must be from -90,980 to 90,980 points: 90981");
   assert.deepEqual([...db.rows(STORES.analysis).keys()], []);
 });
 

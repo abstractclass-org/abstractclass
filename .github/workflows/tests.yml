@@ -141,6 +141,7 @@ jobs:
         working-directory: apps/cyanotype
         env:
           VITE_EDITION: early
+          VITE_STORE_PRACTICE_GAMES: "on"
 
       # Playwright keeps its browsers in the user's AppData on Windows.
       - name: Cache Playwright's browsers

@@ -1,14 +1,21 @@
 <script lang="ts">
   // What the site keeps, and where (Hedge School's design 11), in Hedge School's words: what the browser keeps, the
-  // games that come in an address, the visits and what PostHog receives (design 33, "Analytics"). Cyanotype asks for
-  // no consent: it stores no practice games, and its visit counts set no cookies. It has no Support Us yet, so the page
-  // has neither part of Hedge School's. The section on addresses follows Cyanotype's code: the tools' import address
+  // games that come in an address, the visits and what PostHog receives (design 33, "Analytics"), and in a build that
+  // stores practice games, the games against Stamp Duty and the switch of the consent's one purpose, the games' link,
+  // with Hedge School's parts (@abstractclass/practice: StoredGamesNotice.svelte, GamesChoices.svelte). Its visit counts
+  // set no cookies. It has no Support Us yet, so the page has no part on Ko-fi. The section on addresses follows
+  // Cyanotype's code: the tools' import address
   // (@abstractclass/import/bookmarklet.ts and userscript.ts), the import page's version check (routes/import), the
   // share links (game/share.ts, game/board.ts), and a partner site's link and "Save to" (game/partners.ts, design 33,
   // "Partner sites").
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-  import { SITE_NAME } from "#lib/site.ts";
+  import { STORES_PRACTICE_GAMES } from "@abstractclass/site/edition.ts";
+  import StoredGamesNotice from "@abstractclass/practice/StoredGamesNotice.svelte";
+  import GamesChoices from "@abstractclass/practice/GamesChoices.svelte";
+  import { analytics } from "#lib/analytics.svelte.ts";
+  import { deletePractice } from "#lib/practice/send.ts";
+  import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 </script>
 
@@ -16,13 +23,21 @@
 
 <main class={PROSE}>
   <h1>Privacy</h1>
-  <p>{SITE_NAME} has no accounts and no server of its own. The engine runs in your browser, so your games and their
-    reviews stay on your computer.</p>
+  {#if STORES_PRACTICE_GAMES}
+    <p>{SITE_NAME} has no accounts. The engine runs in your browser, so the games that you review, and their reviews,
+      stay on your computer. Your games against {ENGINE_NAME} go to the site's own database when they end
+      (<a href="#practice-games">below</a>).</p>
+  {:else}
+    <p>{SITE_NAME} has no accounts and no server of its own. The engine runs in your browser, so your games and their
+      reviews stay on your computer.</p>
+  {/if}
 
   <h2>What your browser keeps</h2>
   <p>Your browser keeps the games that you review, with their reviews and analyses. It also keeps your work on the
     Analysis board and in the board editor, the practice game in progress, your settings and your choices. They stay
     in this browser on this computer. To delete them, clear this site's data in your browser's settings.</p>
+
+  {#if STORES_PRACTICE_GAMES}<StoredGamesNotice bot={ENGINE_NAME} />{/if}
 
   <h2>Games in an address</h2>
   <p>The bookmarklet and the userscript bring a game from strategyjam.org after the <code>#</code> in the address of
@@ -68,6 +83,7 @@
     cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Only PostHog's code of
     the day links one count to another.</p>
 
+  <GamesChoices {analytics} stores={STORES_PRACTICE_GAMES} site={SITE_NAME} bot={ENGINE_NAME} ondelete={deletePractice} />
 </main>
 
 <SiteFooter />

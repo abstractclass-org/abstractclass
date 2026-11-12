@@ -6,7 +6,8 @@
   // with the points' bar above the board, the hands in a panel over the board (under it on a phone), and a side column
   // with the bot's line, the move list, and the step bar with the status line. The player's notes on the board, by
   // position, for the visit, as on Hedge School's Practice (design 33, "The player's notes"). One game in progress,
-  // kept in this browser and resumed. The rules run in the engine's worker, and the bot in its own, in the first of its
+  // kept in this browser and resumed. A game that ends goes into Your games, and to the site (Hedge School's design
+  // 25), and a game set aside by a start brought goes into Your games, unfinished. The rules run in the engine's worker, and the bot in its own, in the first of its
   // forms that this browser runs, as on Hedge School's Practice: on the GPU or on the CPU workers through the threaded
   // bot, else on one thread (@abstractclass/practice/botForms.ts), with the engine settings' GPU and workers. The page
   // counts a game's start and end, the engine's errors and the features used, as Hedge School's does (its design 17).
@@ -45,11 +46,12 @@
   import { fmtMargin } from "#lib/review/blueprints.ts";
   import { resultOfScores, resultText } from "@abstractclass/review/game.ts";
   import { loadEngine } from "#lib/analysis/engineSettings.ts";
-  import { PracticeGame } from "#lib/practice/game.svelte.ts";
+  import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
+  import { sendPractice } from "#lib/practice/send.ts";
   import { NETWORKS, botName, keptGame, networkName, offersNetwork, practiceChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
   import { broughtLine, komiLine } from "@abstractclass/practice/practice.ts";
-  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
@@ -57,11 +59,14 @@
   let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
   let notice = $state(""); // a start brought that cannot be played
 
-  // The page's flow, with Cyanotype's game.
+  // The page's flow, with Cyanotype's game. A game's end goes to the site too (Hedge School's design 25), and a game set
+  // aside by a start brought goes into Your games, unfinished.
   const page = new PracticePage<KeptPractice, PracticeGame>({
     game: "blueprints", choices: practiceChoices, kept: keptGame, networkName, engine: loadEngine,
     create: (kept, rules, bot) => new PracticeGame(kept, rules, bot),
     track, trackOnce,
+    ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
+    setAside: saveUnfinished,
     settings: () => (notice = ""),
   });
   const game = $derived(page.game);
@@ -165,9 +170,10 @@
                 nameHelp={'The name above the board. Without a name, the page shows "You".'}
                 bot={ENGINE_NAME} ready={page.ready} onside={newGame}>
     {#snippet intro()}A game against {ENGINE_NAME}, the engine, in your browser, with no clock: it searches each move to
-      the visits you set. This browser keeps the game until it ends.{/snippet}
+      the visits you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}
       {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
+      {#if page.abortedId}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
       {#if page.brought}<p class="mb-1 text-sm">{broughtLine(page.brought, ["move", "moves"])}</p>{/if}
       {#if dropped}<p class="mb-1 text-sm" role="status">This site does not have the network of your last game. You cannot
         continue that game.</p>{/if}
@@ -229,11 +235,17 @@
       </PracticeMoves>
       {#if g?.status === "over"}
         <div class="flex flex-wrap gap-2 mt-3">
-          <button type="button" class="btn-primary px-3 py-1 rounded text-sm" onclick={() => page.toSettings()}>New game</button>
+          <!-- The Review tab reviews games from the standard start: a set-up start's game opens on the Analysis board. -->
+          {#if g.savedId && g.kept.start}<a class="btn-primary px-3 py-1 rounded text-sm no-underline"
+              href="/analysis#{new URLSearchParams({ record: g.record(), via: 'practice' })}" data-sveltekit-reload>Analyze the game</a>
+          {:else if g.savedId}<a class="btn-primary px-3 py-1 rounded text-sm no-underline" href="/review#game={g.savedId}"
+              data-sveltekit-reload>Review the game</a>{/if}
+          <button type="button" class="text-sm" onclick={() => page.toSettings()}>New game</button>
         </div>
       {/if}
       {#if page.confirming && g}
-        <ConfirmEnd what={page.confirming} words={{ resign: `Resign? ${ENGINE_NAME} wins.`, abort: "Abort the game? You cannot continue it after this." }}
+        <ConfirmEnd what={page.confirming} words={{ resign: `Resign? ${ENGINE_NAME} wins, and the game goes into Your games.`,
+                                                     abort: "Abort the game? It goes into Your games, unfinished." }}
                     onconfirm={() => page.confirm()} onkeep={() => (page.confirming = null)} />
       {/if}
     {/snippet}
@@ -269,5 +281,5 @@
 
 <!-- A start brought while a game is in progress: the player chooses, once the rules have checked the start. -->
 <ReplaceGame open={page.replacing} ready={page.ready} title="Play from this position?" play="Play from the position"
-             description="Your game in progress stops. You cannot continue it. This browser keeps one game in progress."
+             description="Your game in progress goes into Your games, unfinished, so you can still review it. This browser keeps one game in progress."
              onanswer={fromBrought => page.answer(fromBrought)} />

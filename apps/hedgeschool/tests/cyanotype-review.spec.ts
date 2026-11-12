@@ -11,6 +11,7 @@
 // files the tests skip, with a message. Run:
 // npm run test:layout -- tests/cyanotype-review.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type BrowserContext, type Locator, type Page } from "./page-log.ts";
+import { declineGames } from "./cyanotype-consent.ts";
 import { checkMoveHeader, readTable, tableBox, toMove as stepTo } from "./move-header.ts";
 import { readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
@@ -30,6 +31,7 @@ const SIZE = { viewport: { width: 1376, height: 952 } };
 test.beforeAll(async ({ browser }, info) => {
   info.setTimeout(5 * 60_000);
   context = await browser.newContext(SIZE);
+  await declineGames(context); // the consent banner would cover the page (cyanotype-consent.ts)
   page = await context.newPage();
   page.on("pageerror", e => errors.push(String(e)));
   skipped = await noReview(page);
@@ -386,6 +388,7 @@ test("the Analysis board refuses a record whose capture mark the engine does not
   // The test game's first three turns, with an x on 2@1,-5, which captures nothing. In a browser of its own: the
   // board kept there, empty, opens instead, with a notice.
   const own = await browser.newContext(SIZE);
+  await declineGames(own);
   try {
     const board = await own.newPage();
     const record = "1. 1:-1,1>2:0,-1 2. 1:-1,1>2:-2,1 1:0,2>2:0,3 3. 1:0,2>2:2,2 2@1,-5x *";
@@ -400,15 +403,15 @@ test("the Analysis board refuses a record whose capture mark the engine does not
   }
 });
 
-test("the Analysis board does not open a kept board with a komi: a new board, with a notice", async ({ browser }) => {
-  // The board analyzes at komi 0 only (Hedge School's design 24). Only a board at komi 0 is kept, so this is a
-  // defence: a board kept with a komi, one move from the start, in a browser of its own.
+test("the Analysis board opens a kept board at its komi, and not one beyond the komi's limit (Hedge School's design 24)", async ({ browser }) => {
+  // A board kept at a komi, one move from the start, in a browser of its own: it opens at its komi. One beyond the
+  // komi that a record can give (kept from a link before the link's check) does not: a new board, with a notice.
   const own = await browser.newContext(SIZE);
+  await declineGames(own);
   try {
     const board = await own.newPage();
-    await board.goto(new URL("/about", CYANOTYPE).href);
     const move = "1:-1,1>2:0,-1";
-    await board.evaluate(([name, stores, store, id, kept]) => new Promise<void>((resolve, reject) => {
+    const keep = (komi: number) => board.evaluate(([name, stores, store, id, kept]) => new Promise<void>((resolve, reject) => {
       const open = indexedDB.open(name);
       open.onupgradeneeded = () => { for (const s of stores) open.result.createObjectStore(s); };
       open.onerror = () => reject(open.error);
@@ -418,27 +421,25 @@ test("the Analysis board does not open a kept board with a komi: a new board, wi
         tx.oncomplete = () => { open.result.close(); resolve(); };
         tx.onerror = tx.onabort = () => reject(tx.error);
       };
-    }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID,
-         { version: 2, main: [move], nodes: [[move, 0]], komi: -300 }] as const);
+    }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID, { version: 2, main: [move], nodes: [[move, 0]], komi }] as const);
+    await board.goto(new URL("/about", CYANOTYPE).href);
+    await keep(-300);
     await board.goto(new URL("/analysis", CYANOTYPE).href);
-    await expect(board.getByRole("alert")).toHaveText("The Analysis board cannot open your own analysis: it has a komi. " +
-      "The Analysis board can analyze only at komi 0. A new board is here instead.", { timeout: 120_000 });
+    await expect(board.locator(".movelist button[data-path]")).toHaveCount(1, { timeout: 120_000 });
+    await expect(board.getByRole("alert")).toHaveCount(0);
+    // Beyond the limit: a new board
+    const gone = "The Analysis board cannot open your own analysis: its komi must be from -90,980 to 90,980 points: 90981.";
+    await board.goto(new URL("/about", CYANOTYPE).href);
+    await keep(90_981);
+    await board.goto(new URL("/analysis", CYANOTYPE).href);
+    await expect(board.getByRole("alert")).toHaveText(`${gone} A new board is here instead.`, { timeout: 120_000 });
     await expect(board.getByRole("button", { name: "New" })).toBeVisible({ timeout: 120_000 }); // the board is ready
     await expect(board.locator(".movelist button[data-path]")).toHaveCount(0);
-    // A record brought that cannot open either: the kept board's notice stays first, and names the new board.
+    // A record brought at a komi opens at it: it takes the kept board's place, and the notice names no new board.
     await board.goto(new URL("/about", CYANOTYPE).href);
-    const record = '[Komi "300"]\n\n1. 2@-6,-2 *';
-    await board.goto(new URL(`/analysis#${new URLSearchParams({ record })}`, CYANOTYPE).href);
-    await expect(board.getByRole("alert")).toHaveText("The Analysis board cannot open your own analysis: it has a komi. " +
-      "The Analysis board can analyze only at komi 0. A new board is here instead. The Analysis board cannot open " +
-      "this record: the record has a komi. Open the record in the review.", { timeout: 120_000 });
-    await expect(board.locator(".movelist button[data-path]")).toHaveCount(0);
-    // A record brought that opens: it takes the kept board's place, and the notice names no new board.
-    await board.goto(new URL("/about", CYANOTYPE).href);
-    await board.goto(new URL(`/analysis#${new URLSearchParams({ record: `1. ${move} *` })}`, CYANOTYPE).href);
+    await board.goto(new URL(`/analysis#${new URLSearchParams({ record: `[Komi "300"]\n\n1. ${move} *` })}`, CYANOTYPE).href);
     await expect(board.locator(".movelist button[data-path]")).toHaveCount(1, { timeout: 120_000 });
-    await expect(board.getByRole("alert")).toHaveText("The Analysis board cannot open your own analysis: it has a komi. " +
-      "The Analysis board can analyze only at komi 0.");
+    await expect(board.getByRole("alert")).toHaveText(gone);
   } finally {
     await own.close();
   }

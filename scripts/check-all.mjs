@@ -2,7 +2,7 @@
 // the workflow and people both run: `npm run check:all` at the root, after `npm ci`. One list of steps, here.
 // Each step runs with the environment that the workflow gave it. Each site's engine step takes --deploy: it refuses a
 // local engine file, as the deploy does. Each site's build is the production build of the browser tests, in the early
-// edition (VITE_EDITION=early), with a made-up PostHog key, and Hedge School's has the practice games' storage on.
+// edition (VITE_EDITION=early), with a made-up PostHog key and the practice games' storage on.
 // Cyanotype is also built once without the key, for the check that such a build holds none of PostHog's code. A
 // failed step does not stop the steps after it, except an engine step: the others need its files.
 // The output ends with one line: `check:all: PASS` or `check:all: FAIL`, then each step with PASS, FAIL or SKIP.
@@ -63,7 +63,7 @@ const steps = [
   { name: "cyanotype-no-posthog", cwd: root, command: "node scripts/no-posthog.mjs apps/cyanotype/build" },
   {
     name: "cyanotype-build", cwd: cyanotype, command: "npm run build",
-    env: { VITE_EDITION: "early", VITE_POSTHOG_KEY: TEST_POSTHOG_KEY },
+    env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on", VITE_POSTHOG_KEY: TEST_POSTHOG_KEY },
   },
   { name: "cyanotype-build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/cyanotype/build" },
 ];

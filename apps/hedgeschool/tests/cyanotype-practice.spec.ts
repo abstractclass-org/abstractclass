@@ -13,9 +13,12 @@
 // Abort and Resign has the blunder's red in both themes. A test with no bot checks the utility itself (`btn-danger`),
 // so that it runs without the engine's files too. The last tests start Practice from a position: the Analysis board's
 // "Play the bot from here" on a game's position and on a set-up start, a start that no game reaches, and the question
-// when a start comes while a game is in progress. Run:
+// when a start comes while a game is in progress, which sets the game in progress aside into Your games. The shortest
+// game that the bot allows (1 visit, a Resign after its first move) goes into Your games, and to the site
+// (/api/practice-games, answered here), and its review opens. Run:
 // npm run test:layout -- tests/cyanotype-practice.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type Page } from "./page-log.ts";
+import { declineGames } from "./cyanotype-consent.ts";
 import { readFileSync } from "node:fs";
 import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
 import { STANDARD_START, writePosition } from "../../cyanotype/src/lib/game/position.ts";
@@ -24,8 +27,12 @@ import { hexKey, parseHex, shift, TOUCHING } from "../../cyanotype/src/lib/board
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { LITE } from "./cyanotype-review.ts";
 import { keepBefore } from "./keep-before.ts";
+import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
+
+// The visitor's Decline of the practice games' link: the consent banner would cover the page (cyanotype-consent.ts).
+test.beforeEach(async ({ context }) => { await declineGames(context); });
 const STATUS = '[data-testid="practice-status"]';
 const at = (path: string) => new URL(path, CYANOTYPE).href;
 
@@ -71,6 +78,16 @@ const seeded = (s: number) => () => {
   return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
 };
 const listed = (page: Page) => page.locator(".movelist .mv").allTextContents();
+/** The records of the games in the site's store (Your games). */
+const storedRecords = (page: Page) => page.evaluate(([name, store]) => new Promise<string[]>((resolve, reject) => {
+  const open = indexedDB.open(name);
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    if (!open.result.objectStoreNames.contains(store)) { open.result.close(); resolve([]); return; }
+    const all = open.result.transaction(store, "readonly").objectStore(store).getAll();
+    all.onsuccess = () => { open.result.close(); resolve(all.result.map(g => String((g as { record: string }).record))); };
+  };
+}), [NAME, STORES.games] as const);
 
 type BotManifest = { artifacts: { kind: string; id: string }[] };
 /** The practice bot's network in the preview's engine manifest. */
@@ -442,7 +459,58 @@ test("a start brought while a game is in progress: the player chooses, and Go on
   await page.goto(bring);
   await question.getByRole("button", { name: "Play from the position" }).click({ timeout: 120_000 });
   await expect(page.getByText("The game starts after the record's 9 moves.")).toBeVisible();
-  expect(await keptGame(page)).toBeNull();
+  await expect.poll(() => keptGame(page)).toBeNull(); // once the game is set aside
+  // The game set aside is in Your games, unfinished (Hedge School's saveUnfinished)
+  const setAside = await storedRecords(page);
+  expect(setAside).toHaveLength(1);
+  expect(setAside[0]).toMatch(/\[Event "Cyanotype practice"\][^]*\[Result "\*"\]/);
+  expect(errors).toEqual([]);
+});
+
+test("a game that ends goes into Your games and to the site, and its review opens it", async ({ page }) => {
+  const manifest = await botManifest(page);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  const sent: Record<string, unknown>[] = [];
+  await page.route("**/api/practice-games", async r => {
+    if (r.request().method() === "POST") sent.push(JSON.parse(r.request().postData()!));
+    await r.fulfill({ status: 201, contentType: "application/json", body: '{"added":true}' });
+  });
+  // The visitor's Decline of the games' link (the consent banner would cover the side column), and the shortest game
+  // that the bot allows: 1 visit, the player Red, a Resign after the bot's first move.
+  await keepBefore(page, "cyanotype:consent:1", { games: "denied" });
+  await page.setViewportSize({ width: 1376, height: 952 });
+  await keepBefore(page, "cyanotype:practice-choices:1",
+                   { bot: { network: modelOf(manifest), visits: 1, variety: "low" }, side: "random", name: "Ann" });
+  await page.goto(at("/practice"));
+  await page.getByRole("button", { name: "Play as Red" }).click({ timeout: 60_000 });
+  expect(await turn(page)).toMatch(/^Your turn/);
+  const [botMove] = (await keptGame(page))!.moves;
+  await page.getByRole("button", { name: "Resign" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Resign" }).click();
+  expect(await turn(page)).toBe("You resigned. Stamp Duty wins.");
+  const reviewLink = page.getByRole("link", { name: "Review the game" });
+  await expect(reviewLink).toBeVisible();
+  // The stored game, as the site receives it: no name, no number without the visitor's consent, where the bot ran
+  const records = await storedRecords(page);
+  expect(records).toHaveLength(1);
+  expect(records[0]).toMatch(/\[Event "Cyanotype practice"\]/);
+  for (const tag of ['[Red "Ann"]', '[Result "b+R"]', '[Termination "resignation"]']) expect(records[0]).toContain(tag);
+  await expect.poll(() => sent.length, { timeout: 30_000 }).toBe(1);
+  expect(sent[0]).toMatchObject({ version: 1, browser: null, side: "red", outcome: "resigned", result: "b+R", brought: 0,
+                                  bot: { network: modelOf(manifest), visits: 1, variety: "low" } });
+  expect(["gpu", "cpu", "single"]).toContain((sent[0].bot as { form: string }).form);
+  expect(sent[0].ms).toHaveLength(1);
+  expect(String(sent[0].record)).toContain(`1. ${botMove}`);
+  expect(String(sent[0].record)).not.toContain("Ann"); // the stored game has no name that the player typed
+  // The review opens the game
+  await reviewLink.click();
+  await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith("#game=review-1-"), { timeout: 60_000 });
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
+  // and the Review tab lists it
+  await page.goto(at("/review"));
+  await expect(page.getByRole("region", { name: "Review a game" }).locator("li").getByRole("link"))
+    .toHaveText([/^Stamp Duty .* against Ann$/], { timeout: 60_000 });
   expect(errors).toEqual([]);
 });
 

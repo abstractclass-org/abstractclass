@@ -69,6 +69,27 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     for (const line of commands) await this.bot.command(line);
   }
 
+  /** For prepare(), on a site that stores its games (Hedge School's design 25): a game kept before the stored game's
+   *  fields, or resumed, gets its own id, where the bot runs now, and a time for each move (unknown for the moves
+   *  before this visit's). */
+  protected noteStored() {
+    const k: KeptPractice = this.kept;
+    k.id ??= crypto.randomUUID();
+    k.form = this.mode;
+    k.ms = Array.from(k.moves, (_, i) => k.ms?.[i] ?? null);
+  }
+
+  /** For undid(), on a site that stores its games: the takeback, and the times of the moves that it took out. */
+  protected noteTakeback(undone: string[]) {
+    this.kept.ms?.splice(-undone.length);
+    this.kept.undone = [...(this.kept.undone ?? []), { at: this.kept.moves.length + undone.length, undone }];
+  }
+
+  /** For add(), on a site that stores its games: the move's time. */
+  protected noteTime(ms: number | null) {
+    (this.kept.ms ??= []).push(ms);
+  }
+
   /** Starts the game: its start and the moves kept (a game from an earlier visit, or a start brought), then the turn. */
   async start() {
     try {

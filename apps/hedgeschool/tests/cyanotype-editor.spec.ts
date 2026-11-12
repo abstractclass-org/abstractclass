@@ -330,31 +330,44 @@ test("an analysis file with a set-up start loads from it", async ({ page }) => {
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
-test("the Import, a link and an analysis file with a komi: the board says that it analyzes only at komi 0", async ({ page }) => {
-  const komi0 = "The Analysis board can analyze only at komi 0.";
-  // The Import: a record from a set-up start, with a Komi tag. The dialog says why, and the board stays.
+test("the Import, a link and an analysis file with a komi: the board opens at it and keeps it (Hedge School's design 24)", async ({ page }) => {
+  const komiOf = async () => ((await keptBoard(page)) as { komi?: number } | null)?.komi;
+  // The Import: a record from a set-up start, with a Komi tag. The board opens it at its komi.
   await page.goto(at("/analysis"));
   await newMenu(page, /Import a position or moves/);
   const dialog = page.getByRole("dialog", { name: "Import a position or moves" });
   await dialog.getByLabel("Position").fill(MIDDLE);
   await dialog.getByLabel("Moves").fill(`[Komi "300"]\n\n${MOVE} *`);
   await dialog.getByRole("button", { name: "Import" }).click();
-  await expect(dialog.getByRole("alert")).toHaveText(`Cyanotype cannot open these moves: the record has a komi. ${komi0}`,
-                                                     { timeout: 120_000 });
-  await page.keyboard.press("Escape");
-  // A link and an analysis file from a set-up start, at a komi
-  const board = { version: 2 as const, main: [MOVE], nodes: [[MOVE, -1]] as [string, number][], start: MIDDLE, komi: 300 };
+  await expectBoard(page, MIDDLE, [MOVE]);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect.poll(komiOf).toBe(300);
+  // A link and an analysis file from a set-up start, at another komi
+  const board = { version: 2 as const, main: [MOVE], nodes: [[MOVE, -1]] as [string, number][], start: MIDDLE, komi: -200 };
   await page.goto("about:blank"); // else the link changes only the address's hash, and the board does not read it
   await page.goto(boardLink(CYANOTYPE!, board, 1));
-  await expect(page.getByRole("alert")).toHaveText(
-    `The Analysis board cannot load this link: it has a komi. ${komi0} Your own analysis is here instead.`, { timeout: 120_000 });
-  const file = { format: "cyanotype-analysis", version: 1, exported: "2026-11-07T00:00:00.000Z", site: "test", board, analyses: [] };
+  await page.getByRole("button", { name: "Replace it" }).click({ timeout: 120_000 }); // the Import's board has a move
+  await expectBoard(page, MIDDLE, [MOVE]);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect.poll(komiOf).toBe(-200);
+  const file = { format: "cyanotype-analysis", version: 1, exported: "2026-11-07T00:00:00.000Z", site: "test",
+                 board: { ...board, komi: 500 }, analyses: [] };
   await page.getByRole("button", { name: "New", exact: true }).click({ timeout: 120_000 });
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("menuitem", { name: /Load an analysis file/ }).click();
   await (await chooser).setFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
-  await expect(page.getByRole("alert")).toHaveText(`The Analysis board cannot load this file: it has a komi. ${komi0}`);
-  expect((await keptBoard(page))?.start).toBeUndefined();
+  await page.getByRole("button", { name: "Replace it" }).click({ timeout: 120_000 });
+  await expect.poll(komiOf, { timeout: 120_000 }).toBe(500);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  // A file beyond the komi that a record can give does not load
+  const beyond = { ...file, board: { ...board, komi: 90_981 } };
+  await page.getByRole("button", { name: "New", exact: true }).click({ timeout: 120_000 });
+  const again = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: /Load an analysis file/ }).click();
+  await (await again).setFiles({ name: "analysis.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(beyond)) });
+  await expect(page.getByRole("alert")).toHaveText(
+    "The Analysis board cannot load this file: the analysis file's komi must be from -90,980 to 90,980 points: 90981.");
+  expect(await komiOf()).toBe(500);
   // The editor's field takes a position, which has no komi: a record there is no position
   await page.goto(at("/editor"));
   await expect(page.getByRole("status").filter({ hasText: "position" }))

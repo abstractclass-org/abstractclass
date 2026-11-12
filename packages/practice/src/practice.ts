@@ -189,6 +189,36 @@ export function gtpAnswer(response: string): string {
 export const botLabel = (network: string, bot: BotSettings) =>
   `${network}, ${bot.visits} ${bot.visits === 1 ? "visit" : "visits"}, ${VARIETY_NAME[bot.variety]} variety`;
 
+/** A site's names in a practice game's record: the record's event (the review knows a practice game by it, design 17),
+ *  the site, the bot as the board names it (botLabel's form) and its network's name. */
+export interface RecordNames { event: string; site: string; bot: string; network: string }
+
+/** A practice game's record tags before its start's (design 24): the event, the site, the date that it started, both
+ *  sides named (the player "You" without a name), and the bot in full: its network, visits, variety and engine
+ *  builds. */
+export function practiceTags(k: KeptPractice, names: RecordNames): Record<string, string> {
+  const human = k.name.trim() || "You";
+  const date = new Date(k.started), two = (n: number) => String(n).padStart(2, "0");
+  return {
+    Event: names.event, Site: names.site, Date: `${date.getFullYear()}.${two(date.getMonth() + 1)}.${two(date.getDate())}`,
+    Blue: k.human === 0 ? human : names.bot, Red: k.human === 1 ? human : names.bot,
+    Bot: `${names.network} (${k.bot.network}), ${k.bot.visits} ${k.bot.visits === 1 ? "visit" : "visits"} a move, ` +
+         `${VARIETY_NAME[k.bot.variety]} variety, ` +
+         `engine ${k.builds.join(", then ")}`,
+  };
+}
+
+/** A practice record's turns: a turn is the moves of one player in a row (`movers`, by move), numbered from the start's
+ *  own turn (`first`), with `N...` when the start is at a turn's second move. */
+export function practiceTurns(movers: readonly Player[], first: { turn: number; first: boolean }) {
+  const turns: { number: number; moves: number; second?: boolean }[] = [];
+  movers.forEach((p, i) => {
+    if (i > 0 && p === movers[i - 1]) turns[turns.length - 1].moves++;
+    else turns.push({ number: first.turn + turns.length, moves: 1, ...(i === 0 && !first.first ? { second: true } : {}) });
+  });
+  return turns;
+}
+
 /** How many moves a takeback undoes (design 24): the bot's turn after the player's last turn, then that turn, whole,
  *  as Lichess undoes the player's move and the reply. `movers` is the player of each move. None before the player's
  *  first move. The first `brought` moves came with the game's start (design 24, item 4): a takeback stops at them. */
