@@ -19,11 +19,13 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   once, in the main checkout, and a worker does not run them:
   - `git config core.hooksPath .githooks` turns on the three hooks. The commit-msg hook refuses a subject or a body line
     over 72 characters (CLAUDE.md in the planning folder, "Commit messages"). A body line of one word, such as a URL,
-    may be longer. It also refuses a message with no blank line after its subject. The commit-msg hook and the
-    pre-commit hook both refuse a private word (a login, a host name or an address of the owner's machines) in the
-    message, in a line that the commit adds or in a new path, and print the word as `<private>`. The planning folder's
-    `scripts/private-check` checks it, with that machine's list. A clone with no planning folder around it, or a
-    machine with no list, skips this check. The pre-commit hook refuses a staged Markdown line over 120 characters, by
+    may be longer. It also refuses a message with no blank line after its subject. Both hooks refuse a private word: a
+    login, a host name or an address of the owner's machines. The commit-msg hook checks the message. The pre-commit
+    hook checks each line that the commit adds and each path that it adds, renames or changes. Each hook shows the word
+    as `<private>` in its message. The planning folder's `scripts/private-check` finds the words. Its list is
+    `.machine/private-words` in the planning folder's main checkout, out of Git, so each machine keeps its own list. A
+    clone with no planning folder around it, a machine with no list and a shell with no python skip this check. The
+    pre-commit hook refuses a staged Markdown line over 120 characters, by
     the rules of the workflow Documents (below). It also refuses a staged file that starts with `#!` at mode 100644,
     and gives the command that sets the mode to 100755: `git update-index --chmod=+x -- <file>`. Git for Windows stages
     each new file at mode 100644, so the hook refuses the first commit of each new script. A refused commit is not

@@ -252,6 +252,16 @@ else
 	check "  it names the path" has "private-check: <private>.txt holds a private word: <private>.txt"
 	check "  it hides the word" hides hostbox
 
+	# --name-only gives each path that the commit changes too: an old path stops each edit of its file, as an old line
+	# does not.
+	fresh
+	stage 100644 hostbox.txt "fine$nl"
+	g commit -q -m old --no-verify
+	stage 100644 hostbox.txt "fine, edited$nl"
+	commit
+	check "an edit of a file whose path holds a listed word is refused" exits 1
+	check "  it names the path" has "private-check: <private>.txt holds a private word: <private>.txt"
+
 	fresh
 	stage 100644 notes.txt "the hostboxes$nl"
 	commit
@@ -286,6 +296,7 @@ else
 	stage 100644 notes.txt "ssh to hostbox$nl"
 	commit
 	check "a machine with no list passes" exits 0
+	check "  it says that the check is off" has "the check is off"
 	PRIVATE_WORDS=$dir/words
 
 	rm "$dir/org/scripts/private-check"
@@ -293,6 +304,13 @@ else
 	stage 100644 notes.txt "ssh to hostbox$nl"
 	commit
 	check "a clone with no planning folder around it passes" exits 0
+	check "  it prints nothing" quiet
+	g worktree add -q -b wt2 "$dir/org/wt2"
+	printf 'ssh to hostbox\n' > "$dir/org/wt2/notes.txt"
+	git -C "$dir/org/wt2" add -- notes.txt
+	git -C "$dir/org/wt2" -c core.hooksPath="$dir/hooks" commit -q -m notes > "$dir/out" 2>&1
+	status=$?
+	check "  and so does a commit in its worktree" exits 0
 	check "  it prints nothing" quiet
 fi
 

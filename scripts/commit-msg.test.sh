@@ -15,45 +15,32 @@ failed=0
 git init -q --template= "$dir/plain"
 where=$dir/plain
 
-# expect <0 or 1> <name> <message>: runs the hook in $where.
+# expect <0 or 1> <name> <message>: runs the hook in $where on the message, and checks its exit status.
 expect() {
 	printf '%s' "$3" > "$dir/msg"
 	(cd "$where" && sh "$hook" "$dir/msg") 2> "$dir/err"
-	result "$1" "$2" $?
+	status=$?
+	check "$2" exits "$1"
 }
 
-# result <0 or 1> <name> <status>: PASS when the last test exited with the status expected.
-result() {
-	if [ "$3" -eq "$1" ]; then
-		echo "PASS  $2"
+# check <name> <test> [<argument> ...]: PASS when the test holds. A FAIL gives why, then the hook's messages.
+check() {
+	name=$1
+	shift
+	if "$@"; then
+		echo "PASS  $name"
 	else
-		echo "FAIL  $2: exit $3, expected $1"
+		echo "FAIL  $name: $why"
 		sed 's/^/      /' "$dir/err"
 		failed=1
 	fi
 }
 
-# has <name> <text>: PASS when the last test's output holds the text.
-has() {
-	if grep -qF -- "$2" "$dir/err"; then
-		echo "PASS  $1"
-	else
-		echo "FAIL  $1: no \"$2\" in the output"
-		sed 's/^/      /' "$dir/err"
-		failed=1
-	fi
-}
-
-# lacks <name> <text>: PASS when the last test's output does not hold the text, in any case.
-lacks() {
-	if grep -qiF -- "$2" "$dir/err"; then
-		echo "FAIL  $1: \"$2\" in the output"
-		sed 's/^/      /' "$dir/err"
-		failed=1
-	else
-		echo "PASS  $1"
-	fi
-}
+# The tests, as in scripts/pre-commit.test.sh: each returns 0 when it holds, or sets $why and returns 1.
+exits() { [ "$status" -eq "$1" ] || { why="exit $status, expected $1"; return 1; }; }
+has() { grep -qF -- "$1" "$dir/err" || { why="no \"$1\" in the output"; return 1; }; }
+lacks() { ! grep -qF -- "$1" "$dir/err" || { why="\"$1\" in the output"; return 1; }; }
+hides() { ! grep -qiF -- "$1" "$dir/err" || { why="the output holds the word"; return 1; }; }
 
 s72=$(printf '%072d' 0 | tr 0 a)
 s73=$(printf '%073d' 0 | tr 0 a)
@@ -91,7 +78,7 @@ expect 0 "the subject of a merge of a remote-tracking branch" "Merge remote-trac
 expect 1 "a subject that only starts with Merge" "Merge the two caches $s73$nl"
 expect 1 "a long subject and a long body line" "$s73$nl${nl}a $s73$nl"
 expect 1 "a body glued to the subject" "The subject (abscls-x)$nl- a body line glued on$nl"
-has "  it says why" "commit-msg: the line after the subject is not blank"
+check "  it says why" has "commit-msg: the line after the subject is not blank"
 expect 0 "a comment, then a blank line, after the subject" "Subject$nl# a comment$nl${nl}The body$nl"
 expect 1 "a body glued to the subject past a comment" "Subject$nl# a comment${nl}The body$nl"
 
@@ -120,9 +107,9 @@ else
 
 	where=$org/clone
 	expect 1 "a message with a listed word, in a main checkout" "The subject$nl${nl}ssh to HostBox$nl"
-	has "  it names the line" "private-check: the commit message, line 3 holds a private word: ssh to <private>"
-	lacks "  it hides the word" hostbox
-	has "  it says what to do" "commit-msg: no commit. Take the private word out of the message"
+	check "  it names the line" has "private-check: the commit message, line 3 holds a private word: ssh to <private>"
+	check "  it hides the word" hides hostbox
+	check "  it says what to do" has "commit-msg: no commit. Take the private word out of the message"
 	expect 1 "a subject with a listed word" "Ssh to hostbox$nl"
 	expect 0 "a listed word inside a longer name" "The subject$nl${nl}the hostboxes$nl"
 	expect 0 "a listed word in a comment" "The subject$nl${nl}A body$nl# Git's comment: hostbox$nl"
@@ -138,12 +125,14 @@ else
 	printf '%s' "$leak" > "$dir/msg"
 	(unset PRIVATE_WORDS; git -C "$org/clone/worktrees/wt" -c core.hooksPath="$dir/hooks" -c user.email=t@t \
 		-c user.name=t commit -q --allow-empty -F "$dir/msg") > "$dir/err" 2>&1
-	result 1 "a commit in a worktree with a listed word is refused" $?
-	has "  it names the line" "line 3 holds a private word: ssh to <private>"
-	lacks "  it finds the list" "the check is off"
+	status=$?
+	check "a commit in a worktree with a listed word is refused" exits 1
+	check "  it names the line" has "line 3 holds a private word: ssh to <private>"
+	check "  it finds the list" lacks "the check is off"
 
 	PRIVATE_WORDS=$dir/no-such-list
 	expect 0 "a machine with no list passes" "$leak"
+	check "  it says that the check is off" has "the check is off"
 	PRIVATE_WORDS=$dir/words
 
 	rm "$org/scripts/private-check"

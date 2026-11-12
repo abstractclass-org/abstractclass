@@ -48,8 +48,8 @@ fi
 # machine's list (a login, a host name, an address). The planning folder's scripts/private-check checks them, with its
 # list .machine/private-words (out of Git). It is found from the main checkout: abstractclass/ in the planning
 # folder, so a worktree finds it too. A clone with no planning folder around it skips this check. Each staged path
-# goes as "path<TAB>path", from --name-only: a pure rename and an empty new file have no +++ line in the diff
-# (abscls-j6bq's builder: `git mv` to a private name passed). Each added line goes as "path:line<TAB>text".
+# goes as "path<TAB>path", from --name-only: a pure rename and an empty new file have no +++ line in the diff. Each
+# added line goes as "path:line<TAB>text".
 main=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && main=$(dirname "$main")
 check=
 for c in "$main/scripts/private-check" "$main/../scripts/private-check"; do

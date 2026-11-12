@@ -4,9 +4,8 @@
 # (docs/working-notes.md). POSIX sh, with LF line ends: Git for Windows runs it in its own sh. The same hook as the
 # planning folder's and the engine repository's (../.githooks/commit-msg and ../engines/.githooks/commit-msg): keep
 # the three the same.
-# The line after the subject is blank: Git takes the lines up to the first blank one as the subject (planning
-# 577c0b5's first try, 2026-11-12, had its body glued on). The message holds no private word (the check at the
-# end).
+# The line after the subject is blank: Git takes the lines up to the first blank one as the subject. The message
+# holds no private word (the check at the end).
 #
 # The hook reads the message as Git hands it, before Git takes out its comments. So it skips comment lines, and stops
 # at the scissors line of `git commit -v`. It counts characters, not bytes. A body line with no space after its
