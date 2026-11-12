@@ -665,10 +665,11 @@ function bookTableProblems(page: Page) {
 }
 
 // Openings (design 32, items 5 and 10): its first view at the start, with the book's table, and a fold of the move
-// list open. Only where the build has Openings, which the test book's servers serve. The engine header has two states,
-// and the sweep checks each one at every size: first while the network loads, as the test holds the network's files
-// (its words then take the place of the visits), and then with the network loaded. A sweep that does not hold the
-// network sees the words only while the network happens to load (abscls-0nax).
+// list open. Only where the build has Openings, which the test book's servers serve. The engine header has two states
+// (design 06, item 7), and the case sweeps every size in each one. For the first sweep, the test holds the network's
+// files, so the header's line says "Loading the engine's network…". Then it lets the files go, and the second sweep
+// starts when the network has loaded. Without the hold, a sweep sees the words only while the network happens to load
+// (abscls-0nax).
 test("layout of /openings", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
@@ -683,10 +684,12 @@ test("layout of /openings", async ({ page }) => {
   await page.locator("button[aria-expanded]", { hasText: "instead of A10-D9" }).click({ timeout: 60_000 });
   await expect(page.locator('button[aria-expanded="true"]')).toHaveCount(1);
   const line = await headerLine(page);
-  /** The engine header's state at each size: the words show while the network loads, and only then. */
+  /** The engine header's state at each size: the line has the words while the network loads, and only then. A line
+   *  that the page hides or removes is a problem at that size: the rule does not wait for it. */
   const says = (loads: boolean): OwnRules => async () => {
-    const words = ((await line.textContent()) ?? "").includes(NETWORK_WORDS);
-    return words === loads ? [] : [loads ? "the engine header does not say that the network loads"
+    if (!await line.count()) return ["the engine header's line is hidden or gone"];
+    if (((await line.textContent({ timeout: 5_000 })) ?? "").includes(NETWORK_WORDS) === loads) return [];
+    return [loads ? "the engine header does not say that the network loads"
       : "the engine header still says that the network loads"];
   };
   await expect(line).toContainText(NETWORK_WORDS);

@@ -6,8 +6,8 @@ import type { Page } from "@playwright/test";
 /** The engine header's words while the network loads (NETWORK_LOADS in packages/review/src/ReviewView.svelte). */
 export const NETWORK_WORDS = "Loading the engine's network…";
 
-/** Holds each request for a network's file (client.ts, checked) until `release` runs. A later hold comes first: the
- *  route added last answers first. */
+/** Holds each request for a network's file (packages/engine/src/client.ts, checked) until `release` runs. A later
+ *  hold comes first: the route added last answers first. */
 export async function holdNetworks(page: Page) {
   let release!: () => void;
   const released = new Promise<void>(resolve => (release = resolve));

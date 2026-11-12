@@ -4,7 +4,7 @@
 // (tests/fixtures/hedgefund-review.json, with its results), with the engine off, so that nothing searches.
 import { test, expect } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
-import { NETWORK_WORDS as WORDS, headerLine, holdNetworks } from "./network-hold.ts";
+import { NETWORK_WORDS, headerLine, holdNetworks } from "./network-hold.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 
@@ -16,7 +16,7 @@ test("the engine header says that the network loads, on the review and on the An
   // to review it (src/routes/review/+page.svelte, otherGame), from the browser's store.
   await loadReviewFile(page, FIXTURE);
   let line = await headerLine(page);
-  await expect(line).toContainText(WORDS);
+  await expect(line).toContainText(NETWORK_WORDS);
   await expect(line).not.toContainText("visits");
   release();
   await expect(line).toContainText("visits", { timeout: 120_000 });
@@ -25,7 +25,7 @@ test("the engine header says that the network loads, on the review and on the An
   release = await holdNetworks(page);
   await page.goto("/analysis");
   line = await headerLine(page);
-  await expect(line).toContainText(WORDS);
+  await expect(line).toContainText(NETWORK_WORDS);
   release();
-  await expect(line).not.toContainText(WORDS, { timeout: 120_000 });
+  await expect(line).not.toContainText(NETWORK_WORDS, { timeout: 120_000 });
 });
