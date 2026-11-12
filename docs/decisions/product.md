@@ -11740,28 +11740,29 @@ protocol 1), its list, its texts and its events.
 
 - **The partners' code** is in `packages/import/src/partners.ts`. `partnerSite` takes the site's parts: the start of
   its messages' names (`hedge-school`), its name in the texts (`Hedge School`), its list of partners and its test
-  switch. It gives `partnerOf`, `gamePartner`, `saveToPartner`, `receiveFromPartner` and `receiveKeptReview`, as
-  `gameStore` gives a site's store. The test site ("the local test site", `127.0.0.1` and `localhost`) is in the
-  package. Each site reads its own `VITE_PARTNER_TEST`. Hedge School's `src/lib/game/partners.ts` keeps `PARTNERS`
-  (enclosuregame.com) and gives its parts.
+  switch. It gives `partnerOf`, `gamePartner`, `saveToPartner` and `receiveKeptReview`, as `gameStore` gives a site's
+  store. `receiveFromPartner` stays inside: only `receiveKeptReview` calls it. The test site ("the local test
+  site", `127.0.0.1` and `localhost`) is in the package. Each site reads its own `VITE_PARTNER_TEST`. Hedge School's
+  `src/lib/game/partners.ts` keeps `PARTNERS` (enclosuregame.com) and gives its parts.
 - **The site's name is a part too.** The issue named three parts: the messages' name, the list and the test switch.
   The receiving step refuses a site that is not a partner with "the link names a site that is not one of Hedge
   School's partners". The site's name keeps that text.
-- **A kept review's receiving step** (`receiveKeptReview`) finds the partner by its page's origin, tells the page the
-  partner's name (`waiting`), receives the file, loads it with the site's loader (`load`) and keeps the save page
-  (`keep`, the shared store's `setGamePartner`). Hedge School's `Arrival.svelte` keeps its phases, its texts, its
-  events and the review's opening. The import package depends on no other package, so the store's call is a step
-  that the site gives.
+- **A kept review's receiving step** (`receiveKeptReview`) finds the partner by its page's origin. It tells the page
+  the partner's name (`waiting`) and receives the file. It loads the file with the site's loader (`load`), and keeps
+  the save page (`keep`, the shared store's `setGamePartner`). Hedge School's `Arrival.svelte` keeps its phases, its
+  texts, its events and the review's opening. The import package depends on no other package, so the store's call is
+  a step that the site gives.
 - **The stored game's partner** (`partner`, `setGamePartner`) is in `packages/analysis/src/games.ts`. Its type there,
   `KeptPartner`, has the shape of the import package's `GamePartner`: the analysis package does not depend on the
-  import package, and the move adds no dependency between the packages.
+  import package, and the move adds no dependency between the packages. `gameStore` no longer takes a site's own
+  type of stored game: Hedge School's partner was the only field that a site kept beyond the shared ones.
 - **"Save to …"** (`reviewExports`) is in `packages/review/src/exports.ts`. Hedge School's `reviewFile.ts` gives it on,
   and keeps `deliverExport`'s partner case, which calls the shared `saveToPartner`. Cyanotype's menu stays as it is
   until abscls-8tl1.75.
 - **The tests:** `packages/import/src/partners.test.ts` checks the shared code with a made-up partner and a site's
   own messages: the save page's checks, the test switch, and both exchanges of messages with a page's window made in
   the test. Hedge School's `partners.test.ts`, which checks its list, is unchanged.
-- **The bodies, compared** line by line with the code before the move: the only changes are the site's parts in place
-  of Hedge School's constants (the messages' names, `PARTNERS`, the test site's switch, the site's name, and the
-  arrival's steps), the messages' type, which now reads any name, and one local name in `receiveFromPartner` (the
-  review received is `sent`, as `review` names the message).
+- **The bodies, compared** line by line with the code before the move. The site's parts replace Hedge School's
+  constants: the messages' names, `PARTNERS`, the test site's switch, the site's name and the arrival's steps. The
+  messages' type now reads any name. One local name in `receiveFromPartner` changed: the review received is `sent`,
+  because `review` names the message. Nothing else changed.

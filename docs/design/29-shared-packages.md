@@ -321,10 +321,10 @@ edit in the same commit), so their changes still apply.
     (`loadBoardFile`) and its notice of what it cannot take (`boardRefusal`). The shared review's intro (Hedge
     School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site. Its words differ between the two
     copies, and one text for both is a visible change. Hedge School's partner code (design 18) moved into the
-    packages before Cyanotype uses it (abscls-8tl1.74, design 33, "Partner sites"): the partners' checks, the window
-    messages and the receiving of a kept review (`@abstractclass/import`'s `partners.ts`), the stored game's partner
-    (the analysis package's `games.ts`) and the Export menu's "Save to …" (`exports.ts`'s `reviewExports`). Each site
-    gives its messages' name, its list of partners and its test switch.
+    packages before Cyanotype uses it (abscls-8tl1.74, design 33, "Partner sites"). The import package's
+    `partners.ts` holds the partners' checks, the window messages and the receiving of a kept review. The analysis
+    package's `games.ts` holds the stored game's partner. `exports.ts`'s `reviewExports` holds the Export menu's
+    "Save to …". Each site gives its messages' name, its own name, its list of partners and its test switch.
 
 ## Why
 
@@ -513,10 +513,10 @@ edit in the same commit), so their changes still apply.
   and the Analysis board, with each site's words (design 33, "How a game comes in from strategyjam.org"), and
   `import.css`, which lets Tailwind find its classes. `openReview.ts`: the review's opening of a game that a way in has
   kept (the import page's, a shared review's, a partner's), by the game's id. `partners.ts`: the partner sites
-  (design 18), with each site's messages' name, list and test switch as parameters (`partnerSite`): the checks of a
-  save page (`partnerOf`, `gamePartner`), the window messages (`saveToPartner`, `receiveFromPartner`) and the
-  receiving of a kept review with the site's loader (`receiveKeptReview`). `apps/hedgeschool/src/lib/game/tools.ts`,
-  `sources.ts` and `partners.ts`: Hedge School's parts.
+  (design 18), with each site's messages' name, name, list and test switch as parameters (`partnerSite`). It holds
+  the checks of a save page (`partnerOf`, `gamePartner`) and the window messages (`saveToPartner`,
+  `receiveFromPartner`). It also receives a kept review with the site's loader (`receiveKeptReview`).
+  `apps/hedgeschool/src/lib/game/tools.ts`, `sources.ts` and `partners.ts`: Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files (`fetchEngine`). Each site runs it in its own folder (`npm run engine`) by its `scripts/engine.mjs`, which
   gives the step its record's komi limit. `practice-check.ts`: the engine step's check of the practice modules'

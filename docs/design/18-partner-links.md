@@ -145,10 +145,10 @@ must make costs both of them a release.
 
 ## Where it is
 
-- `packages/import/src/importHash.ts` (the link). `packages/import/src/partners.ts` (the partners' checks, the
-  handshake, the test site and the receiving of a kept review), which both sites share: each site gives its messages'
-  name, its list and its test switch (`partnerSite`). Hedge School's parts: `src/lib/game/partners.ts` (`PARTNERS`,
-  `hedge-school`, `VITE_PARTNER_TEST`).
+- `packages/import/src/importHash.ts` (the link). `packages/import/src/partners.ts`: the partners' checks, the
+  handshake, the test site and the receiving of a kept review. A site gives its parts to it (`partnerSite`): its
+  messages' name, its own name, its list and its test switch. Hedge School's parts: `src/lib/game/partners.ts`
+  (`PARTNERS`, `hedge-school`, `Hedge School`, `VITE_PARTNER_TEST`).
 - `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `packages/analysis/src/games.ts`
   (the stored game's `partner`, `setGamePartner`).
 - `src/routes/import/+page.svelte` and `src/lib/review/Arrival.svelte` (the link's import, and a kept review's),

@@ -3,8 +3,8 @@
 // a partner's own host, over https, so that the Export menu's "Save to …" sends a review only to the site that the game
 // came from. A partner's page can also open a review that it kept (`from`): it sends the review file to the import page
 // or the review. Either way the review travels in the player's browser, by window messages between the two pages, when
-// the player asks: the sites have no server. Each site gives its parts (partnerSite): its messages' name, its list of
-// partners and the partners' test switch. Hedge School's are in its src/lib/game/partners.ts.
+// the player asks: the sites have no server. Each site gives its parts (partnerSite) in its src/lib/game/partners.ts:
+// its messages' name, its name, its list of partners and the partners' test switch.
 
 export interface Partner { name: string; hosts: string[] }
 
@@ -141,5 +141,5 @@ export function partnerSite(site: PartnerSite) {
     return loaded;
   }
 
-  return { partnerOf, gamePartner, saveToPartner, receiveFromPartner, receiveKeptReview };
+  return { partnerOf, gamePartner, saveToPartner, receiveKeptReview };
 }
