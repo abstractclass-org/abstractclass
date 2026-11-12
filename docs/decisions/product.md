@@ -11625,16 +11625,15 @@ above). Designs 17, 24, 29 and 33 changed.
   `--force-device-scale-factor=1.5` and `--window-size=799,900` has a window of 1,199 device pixels and a page
   799.33 pixels wide. So each of the layout test's four new cases (Practice and the review, on each site) starts a
   browser of its own. That browser takes its project's launch options, channel and headless setting, and those two
-  flags. The page log
-  (`tests/page-log.ts`) does not read it. The review's cases also check the media queries of the review's own styles.
-  Each query that turns between 798 and 800 pixels must match as `ONE_COLUMN` when it matches at 798 pixels, and
-  else as its negation. Two frames of 798 and 800 pixels in the page read each query at those widths. So the check
-  goes by what a query does, not by how it is written. (At a scale of 1.5, a frame of 799 pixels has no page of 799
-  pixels.)
+  flags. The page log (`tests/page-log.ts`) does not read it. The review's cases also check the media queries of the
+  review's own styles. Each query that turns between 798 and 800 pixels must match as `ONE_COLUMN` when it matches at
+  798 pixels, and else as its negation. Two frames of 798 and 800 pixels in the page read each query at those widths.
+  So the check goes by what a query does, not by how it is written. (At a scale of 1.5, a frame of 799 pixels has no
+  page of 799 pixels.)
 - **Checked** in headless Chromium (the chromium project, on the CPU), on both sites' builds:
   - On dev's code (34058e5d) the five new cases fail: the frame's one column on both sites, the review's query
-    `(width >= 800px)` on both sites and its side column of 623 pixels on Hedge School, and the failed start's
-    status line. On the branch's code they pass.
+    `(width >= 800px)` on both sites, and the failed start's status line ("Starting HedgeFund…"). Hedge School's
+    review case reports the query there, not the side column's height. On the branch's code they pass.
   - The type checks of both sites and of the practice and review packages pass, and so do the unit tests.
   - The site suite on the branch's code: check:all passes, and the whole layout test passes: 270 cases, none
     skipped, none flaky.
