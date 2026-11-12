@@ -11722,3 +11722,11 @@ abscls-vg8i, a later step of abscls-iynz. Designs 06 and 29 changed.
   turn 20. It fails when the last move's tooltip does not hold the chart's note at the end, when that note does not
   say "Result:" for a game that the rules ended or "Lead:" for a record that ends early, and when any other tooltip
   says "Result:".
+- **Each check fails for its own fault,** in each of the 8 cases (both sites, by move and by turn, both endings),
+  on builds of both sites from a changed `ReviewView.svelte`:
+  - `leadOrResult` gives "Result:" on the wrong last move (the record that ends early, not the game that the rules
+    ended): the chart's note at the end has the wrong word ("Lead: Red +377.7", "Result: Red +2.2").
+  - The last move's tooltip alone takes the other word: the tooltip does not hold the chart's note ("Lead: Red
+    +377.7" in the tooltip, "Result: Red +377.7" in the note).
+  - The tooltip of the move before the last says "Result:": the check of the other moves names it ("move 119:
+    Excellent: 0.0% · +1.4 · Result: Red +377.4").
