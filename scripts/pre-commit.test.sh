@@ -7,9 +7,10 @@
 # hold, such as 0:foo, is staged too. Git for Windows refuses a path with a colon or a newline, so those two tests run
 # only on other systems, such as the workflow's Linux. The tests of private words lay out a throwaway planning folder:
 # a copy of the planning folder's scripts/private-check, the throwaway repository in it, and a worktree of that
-# repository. Their list of words is made up (PRIVATE_WORDS). A checkout with no planning folder around it (the
-# workflow's) or a shell with no python skips them. The last test reads this repository's own index: each script of it
-# has its exec bit, or the hook refuses its next edit.
+# repository. Their list of words is made up: PRIVATE_WORDS names it, except for the commit in the worktree, which
+# goes through Git and reads the throwaway planning folder's own list. A checkout with no planning folder around it
+# (the workflow's) or a shell with no python skips them. The last test reads this repository's own index: each script
+# of it has its exec bit, or the hook refuses its next edit.
 
 hook=$(pwd)/.githooks/pre-commit
 dir=$(mktemp -d)
@@ -48,10 +49,10 @@ stage() {
 	g update-index --add --cacheinfo "$1,$blob,$2" || { echo "FAIL  git cannot stage $2"; failed=1; }
 }
 
-# commit: runs the hook at the root of the throwaway repository (or of the worktree that $at names), as Git runs it
-# before a commit. It leaves its exit status in $status and its messages in $dir/out.
+# commit: runs the hook at the throwaway repository's root, as Git runs it before a commit. It leaves its exit status
+# in $status and its messages in $dir/out.
 commit() {
-	(cd "${at:-$repo}" && sh "$hook") > "$dir/out" 2>&1
+	(cd "$repo" && sh "$hook") > "$dir/out" 2>&1
 	status=$?
 }
 
@@ -212,6 +213,7 @@ elif ! command -v python > /dev/null 2>&1 && ! command -v python3 > /dev/null 2>
 	echo "SKIP  the private words: no python"
 else
 	mkdir -p "$dir/org/scripts"
+	git init -q --template= "$dir/org"  # a repository, as the planning folder is
 	cp "$source" "$dir/org/scripts/private-check"
 	printf 'hostbox\n' > "$dir/words"
 	export PRIVATE_WORDS="$dir/words"
@@ -231,6 +233,25 @@ else
 	check "  it names the path" has "private-check: <private>.md holds a private word: <private>.md"
 	check "  it hides the word" hides hostbox
 
+	# A pure rename and an empty new file add no line, and their diff has no +++ line: the path comes from
+	# --name-only.
+	fresh
+	printf 'fine\n' > "$repo/notes.txt"
+	g add -- notes.txt
+	g commit -q -m notes --no-verify
+	g mv -- notes.txt hostbox.txt
+	commit
+	check "a pure rename to a path with a listed word is refused" exits 1
+	check "  it names the path" has "private-check: <private>.txt holds a private word: <private>.txt"
+	check "  it hides the word" hides hostbox
+
+	fresh
+	stage 100644 hostbox.txt ""
+	commit
+	check "an empty new file with a listed word in its path is refused" exits 1
+	check "  it names the path" has "private-check: <private>.txt holds a private word: <private>.txt"
+	check "  it hides the word" hides hostbox
+
 	fresh
 	stage 100644 notes.txt "the hostboxes$nl"
 	commit
@@ -244,16 +265,21 @@ else
 	check "an old line with a listed word stops no edit of the file" exits 0
 	check "  it prints nothing" quiet
 
+	# A commit in a worktree goes through Git, as a worker's does: Git exports GIT_DIR to the hook there. The list is
+	# the throwaway planning folder's own .machine/private-words, with no PRIVATE_WORDS, as on a real machine.
 	fresh
-	at=$dir/org/wt
-	rm -rf "$at"
-	g worktree add -q -b wt "$at"
-	printf 'ssh to hostbox\n' > "$at/notes.txt"
-	git -C "$at" add -- notes.txt
-	commit
-	check "an added line with a listed word is refused in a worktree" exits 1
+	g worktree add -q -b wt "$dir/org/wt"
+	printf 'ssh to hostbox\n' > "$dir/org/wt/notes.txt"
+	git -C "$dir/org/wt" add -- notes.txt
+	mkdir -p "$dir/org/.machine" "$dir/hooks"
+	cp "$dir/words" "$dir/org/.machine/private-words"
+	cp "$hook" "$dir/hooks/pre-commit"
+	chmod +x "$dir/hooks/pre-commit"
+	(unset PRIVATE_WORDS; git -C "$dir/org/wt" -c core.hooksPath="$dir/hooks" commit -q -m notes) > "$dir/out" 2>&1
+	status=$?
+	check "a commit in a worktree with a listed word is refused" exits 1
 	check "  it names the line" has "private-check: notes.txt:1 holds a private word: ssh to <private>"
-	at=
+	check "  it finds the list" lacks "the check is off"
 
 	PRIVATE_WORDS=$dir/no-such-list
 	fresh
@@ -268,7 +294,6 @@ else
 	commit
 	check "a clone with no planning folder around it passes" exits 0
 	check "  it prints nothing" quiet
-	repo=$dir/repo
 fi
 
 # This repository's index: each file that starts with #! has mode 100755. git grep reads the staged content of every
