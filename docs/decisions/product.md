@@ -11649,7 +11649,7 @@ scroll sideways.
 - **Measured on dev, before the change,** in headless Chromium at the layout test's widths, at a height of 860: the
   right edge of each child of the header against the header's content box. In Segoe UI (Windows), 640 and 650 pixels
   failed: the button ran from 615.5 to 643.5 pixels, 19.5 pixels past the content edge at 640. The row first fitted at
-  660, with no room to spare. In DejaVu Sans (Linux, as in CI's runs; the fonts of WSL's Ubuntu, loaded as web fonts
+  660, with no room to spare. In DejaVu Sans (Linux's, as in CI's runs: the fonts of WSL's Ubuntu, loaded as web fonts
   over the page's own), every width from 640 to 720 failed. At 640 the button ended at 708.7, 84.7 pixels past the
   edge, and the second nav went past it too. The row first fitted at 730 pixels, with 5 pixels to spare. Hedge School's
   header fitted at every width in both fonts.
@@ -11661,9 +11661,12 @@ scroll sideways.
   where it fits. The navs' own gaps (18 pixels, four of them) and the header's (24 pixels, three of them) give at most
   60 pixels back at 640, and DejaVu Sans needs 85. A width of 730 fits with 5 pixels to spare, too few for one more
   link, so the change takes 740.
-- **The test:** a layout case for each site, "the header's row stays inside the header": at each width of the sweep,
-  at a height of 700, each child of the header that shows stays inside the header's content box. It failed on dev's
-  build at 640 and 650 pixels on Cyanotype, and it passes with the change. The site's menu case now opens Cyanotype's
-  menu below 740 pixels. The general rule "a child of a one-line flex row stays inside its row" stays out
-  (abscls-0nax found it too wide for every page).
+- **The test:** a rule of the sweep, beside "the header is one row" (`problems()` in the layout test): each child of
+  the header that shows stays inside the header's content box, within half a pixel. So every page's sweep checks it,
+  on both sites, at every width and height. The rule looks at the header's own children only. The general rule "a
+  child of a one-line flex row stays inside its row" stays out (abscls-0nax found it too wide for every page). On
+  dev's build, the sweep of Cyanotype's home page failed with it at 640 and 650 pixels at each of the three heights:
+  the theme menu's button ran from 615.5 to 643.5 in a content box from 16 to 624. In DejaVu Sans, the same rule
+  failed on dev's About page at every width from 640 to 720, at each height. The site's menu case now opens
+  Cyanotype's menu below 740 pixels.
 - **Measured after the change,** in the same way: no width fails on Cyanotype in either font.

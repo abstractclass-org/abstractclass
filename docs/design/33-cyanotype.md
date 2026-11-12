@@ -663,8 +663,9 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites". A link's record
    (`/import#record=…`) gets the same choice as a tool's.
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
-   Technical English with the glossary's words. Its link is in the site's menu from a tablet's width, in the header
-   from 740 pixels, and in the footer on a phone, as Hedge School's (design 22).
+   Technical English with the glossary's words. Its link is in the footer below 640 pixels, in the site's menu from
+   640 pixels, and in the header from 740 pixels. Hedge School's is in the same places, with its header from 1,024
+   pixels (design 22).
 
 The tools have not run on strategyjam.org itself: they run in the player's own logged-in page, and that test waits for
 the owner (abscls-8tl1.12). The tests use page states that they make, with moves that Stamp Duty's early build played
@@ -1788,6 +1789,6 @@ games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before
 (2026-11-08), "Cyanotype's partner sites: the design" (2026-11-08), "Cyanotype's analytics and consent, as Hedge
 School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach the position" (2026-11-09),
 "Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), "Cyanotype's Play the bot from here, and
-Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), and "Cyanotype
-removes earlier engine results, as Hedge School" (2026-11-11). The earlier entries name the site by its first name,
-Drawing Board.
+Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), "Cyanotype removes
+earlier engine results, as Hedge School" (2026-11-11), and "Cyanotype's header links show from 740 pixels"
+(2026-11-12). The earlier entries name the site by its first name, Drawing Board.
