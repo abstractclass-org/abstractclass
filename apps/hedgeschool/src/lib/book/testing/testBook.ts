@@ -1,5 +1,6 @@
-// The test books' files for the book's unit tests (tests/fixtures/test-book, scripts/test-book.mjs): each file by its
-// address on the servers, as the loader reads it (book.ts, BookReader). One reader for every test of the book.
+// The test books' files for the tests that read the book from disk (tests/fixtures/test-book, scripts/test-book.mjs):
+// the book's unit tests and the label snapshot (review/labels.snapshot.test.ts). Each file by its address on the
+// servers, as the loader reads it (book.ts, BookReader). One reader for every test that reads the book.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
