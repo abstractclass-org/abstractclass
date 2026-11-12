@@ -160,9 +160,11 @@ test("in a position that is its own mirror image, an edge plays its twin's book 
 });
 
 test("a line that leaves the book and comes back is found at its start and its end", async () => {
-  const book = await openBook(TEST_BOOK, files());
+  const log: string[] = [];
+  const book = await openBook(TEST_BOOK, files(log));
   assert.deepEqual(LINE_B_POSITIONS.map(p => book.peek(p) !== null), [true, false, false, false, false, false, false, true]);
   assert.equal(await book.get(LINE_B_POSITIONS[3]), null);
+  assert.deepEqual(log, [TEST_BOOK, "/test-book/prototype/0.json"], "a position not in the book reads no part");
 });
 
 test("the cases: a position that move orders from two turns reach, and a line through a mirror image", async () => {
@@ -334,6 +336,27 @@ test("the loader refuses a file that is not a book's, or a book of another form,
   assert.equal(book.peek(position), undefined, "the part counts as not loaded");
   assert.equal((await book.get(position))?.position, position);
   assert.equal(log.filter(u => u === PART).length, 3, "each lookup reads the part again");
+});
+
+test("a part that lacks a position that the index gives it fails that lookup, and a later lookup reads it again",
+     async () => {
+  const PART = "/test-book/prototype/1.json", position = LINE_B_POSITIONS[7], log: string[] = [];
+  const other = PROTOTYPE.index.parts[1].positions.find(p => p !== position)!;
+  let lacks = 1;
+  const read: BookReader = async url => {
+    log.push(url);
+    const file = readJson(url) as BookPart;
+    if (url !== PART || lacks-- <= 0) return file;
+    return { ...file, positions: file.positions.filter(p => p.position !== position) };
+  };
+  const book = await openBook(TEST_BOOK, read);
+  assert.equal((await book.get(other))?.position, other, "the part loads");
+  assert.equal(book.peek(position), undefined, "a part that lacks the position counts as not loaded");
+  await assert.rejects(book.get(position), (e: unknown) =>
+    e instanceof BookLoadError && e.url === PART && /it lacks the position/.test(e.message));
+  assert.equal(book.peek(position), undefined, "the part counts as not loaded");
+  assert.equal((await book.get(position))?.position, position, "\"Try again\" reads the part again");
+  assert.equal(log.filter(u => u === PART).length, 2);
 });
 
 test("an area map keeps each point's ownership in hundredths, and its mirror image turns the rows over", () => {

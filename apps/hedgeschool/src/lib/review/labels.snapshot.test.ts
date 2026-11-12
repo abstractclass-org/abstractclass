@@ -9,8 +9,9 @@
 // Each line holds two labels. The first is the label with no book: no deployed site serves a book, so its review
 // searches every position. The second is the label with the test book (tests/fixtures/test-book/prototype). The dev
 // and preview servers serve that book, and the early edition's review reads it (book/place.svelte.ts). The test gives
-// the review the book's values with reviewBook.ts's giveBook, with the book read from disk. Both labels come from the
-// steps of storedReview.ts, which the review page's review snapshot and the annotated record of a stored game take too.
+// the review the book's values with reviewBook.ts's giveBook, with the book read from disk
+// (book/testing/testBook.ts). Both labels come from the steps of storedReview.ts, which the review page's review
+// snapshot and the annotated record of a stored game take too.
 //
 // The stored reviews: hedgefund-review.json (the layout test's game: the Greats, and turns of two edges that play the
 // engine's best turn in the other order), the book games, which meet the test book (scripts/test-fixture.mjs), and
@@ -41,6 +42,7 @@ import { STORES, dbPutMany } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 import { parseRecord, playerNames } from "#lib/game/record.ts";
 import { readReviewFile } from "#lib/game/reviewFile.ts";
+import { TEST_BOOK, files } from "#lib/book/testing/testBook.ts";
 import { enclosure, moveName, PLAYER_NAME, review, sameEdge, type Review } from "./enclosure.ts";
 
 memoryDb(queueMicrotask); // the store that fromStore reads
@@ -61,8 +63,7 @@ const rules = {
   describeGame: async (q: PositionQuery, from = 0) =>
     ({ reply: engine!.call({ id: "g", action: "describe_game", ...q, from }) }),
 };
-const readJson = async (url: string) => JSON.parse(readFileSync(join(fixtures, url), "utf8"));
-const testBook = new OpeningBook("/test-book/prototype/index.json", readJson);
+const testBook = new OpeningBook(TEST_BOOK, files());
 
 /** A stored review's quality labels, with no book (`plain`) and with the test book (`booked`). `inBook`: the positions
  *  that take the book's values. */
