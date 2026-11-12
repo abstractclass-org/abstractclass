@@ -39,10 +39,16 @@ const at = (path: string) => new URL(path, CYANOTYPE).href;
 /** The player's move, as a click on a blueprint, then on one of its marked anchor hexes, at random. A blueprint with
  *  no legal placement gives way to the next. With none, an edit: a cell, then one of its marked new places. */
 async function humanMove(page: Page, player: 0 | 1, random: () => number): Promise<string> {
+  // Only a dot that a click reaches: not one under the hands' panel, and not one outside the board's view.
   const pick = async (dots: ReturnType<Page["locator"]>) => {
-    const n = await dots.count();
-    if (!n) return false;
-    const box = (await dots.nth(Math.floor(random() * n)).boundingBox())!;
+    const reached = (await dots.evaluateAll(els => els.map(el => {
+      const r = el.getBoundingClientRect(), at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      let svg = (el as SVGElement).ownerSVGElement; // the dot's own drawing: the board, or a hand
+      while (svg?.ownerSVGElement) svg = svg.ownerSVGElement;
+      return !!at && !!svg && svg.contains(at);
+    }))).flatMap((ok, i) => (ok ? [i] : []));
+    if (!reached.length) return false;
+    const box = (await dots.nth(reached[Math.floor(random() * reached.length)]).boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     return true;
   };
@@ -143,6 +149,8 @@ for (const side of ["Blue", "Red"] as const) {
       moves++;
       status = await turn(page);
     }
+    // The game goes into Your games first, then leaves the game in progress (Hedge School's order)
+    await expect.poll(() => keptMoves(page), { timeout: 30_000 }).toBeNull();
     const kept = await keptMoves(page), all = await listed(page);
     const points = await page.locator('[aria-label="Players and scores"] > div > div:first-child strong').allTextContents();
     console.log(`${side}: ${all.length} moves, ${moves} of them the player's; ${status} The cards' points: ${points.join(", ")}.`);
