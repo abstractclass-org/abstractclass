@@ -19,9 +19,9 @@
 
   let { children } = $props();
 
-  // The game's pages on the header's left, as Hedge School's (design 22), from a tablet's width. The pages about the
-  // site on its right: Tools from a tablet's width, since the tools are for a computer's browser, and the footer leads
-  // to it on a phone. The others are in the footer.
+  // The game's pages on the header's left, as Hedge School's (design 22), from 740 pixels. The pages about the site on
+  // its right: Tools from a tablet's width (in the site's menu below 740 pixels), since the tools are for a computer's
+  // browser, and the footer leads to it on a phone. The others are in the footer.
   const NAV = [{ href: "/practice", label: "Practice" }, { href: "/review", label: "Review" }, { href: "/analysis", label: "Analysis" }];
   const ABOUT = [{ href: "/tools", label: "Tools", wide: true }, { href: "/notation", label: "Notation" },
                  { href: "/about", label: "About" }];
@@ -48,14 +48,15 @@
   {#snippet header()}
     <!-- The logo before the name, at 28 pixels, as Hedge School's collie, and in the early access "Early Access" beside
          the name, in the accent colour, which leads to the About page's section on it (SiteName). The links fit in one
-         row from a tablet's width. On a phone, they go into the site's menu at the left (SiteMenu), as Hedge School's
-         below 1,024 pixels, and the header keeps the logo, the name, "Early Access" and the theme menu. -->
-    <span class="sm:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
-    <SiteName class="max-sm:mr-auto"><Logo size={28} />{SITE_NAME}</SiteName>
-    <nav class="flex gap-4.5 max-sm:hidden">
+         row from 740 pixels. The row needs 660 in Segoe UI (Windows) and 730 in DejaVu Sans (Linux), with the header's
+         wider gaps from 640 (SiteFrame). Below 740, they go into the site's menu at the left (SiteMenu), as Hedge
+         School's below 1,024 pixels, and the header keeps the logo, the name, "Early Access" and the theme menu. -->
+    <span class="min-[740px]:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
+    <SiteName class="max-[740px]:mr-auto"><Logo size={28} />{SITE_NAME}</SiteName>
+    <nav class="flex gap-4.5 max-[740px]:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
-    <nav class="flex gap-4.5 ml-auto text-sm max-sm:hidden">
+    <nav class="flex gap-4.5 ml-auto text-sm max-[740px]:hidden">
       {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
     <ThemeMenu />

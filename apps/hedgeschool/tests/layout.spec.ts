@@ -12,7 +12,8 @@
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's
 // home page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Four check the
-// header's "Early Access" link, on each site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its
+// header's "Early Access" link, on each site in each theme. Two check that each child of the header stays inside its
+// content box, on each site. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its
 // page, and a game in progress when the site has its practice bot. Four check that a practice game's and a review's one
 // column agree with themselves between 799 and 800 pixels wide, on each site. Two check Cyanotype's import page: the
 // choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's board with the player's notes,
@@ -242,10 +243,10 @@ const answerConsent = () => {
 
 // The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header
 // shows it, by steps of 10, at the lowest of the sweep's heights: Hedge School's below 1,024 pixels, Cyanotype's below
-// 640. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
+// 740. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
 // pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. The visitor has
 // answered the consent notice, which would cover the menu until they choose.
-for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 640]] as const) {
+for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 740]] as const) {
   test(`layout of the site's menu on ${site}`, async ({ page }) => {
     test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     await page.addInitScript(answerConsent);
@@ -335,6 +336,51 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as c
       expect(found).toEqual([]);
     });
   }
+}
+
+/** What leaves the header's content box (inside its padding), as text: each child of the header that shows, and that
+ *  starts before the box's left edge or ends after its right edge. The header is one flex row that does not wrap
+ *  (SiteFrame.svelte), so a row that does not fit pushes its last child into the padding and past the window's edge,
+ *  where nothing clips it and the page does not scroll sideways. */
+function headerRowProblems(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const header = document.querySelector("header");
+    if (!header) return ["the page has no header"];
+    const s = getComputedStyle(header), r = header.getBoundingClientRect();
+    const left = r.left + parseFloat(s.borderLeftWidth) + parseFloat(s.paddingLeft);
+    const right = r.right - parseFloat(s.borderRightWidth) - parseFloat(s.paddingRight);
+    const name = (e: Element) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ""}.${[...e.classList].slice(0, 4).join(".")}`;
+    return [...header.children].filter(c => (c as HTMLElement).offsetWidth > 0).flatMap(c => {
+      const b = c.getBoundingClientRect();
+      return b.left < left - 0.5 || b.right > right + 0.5
+        ? [`the header's child ${name(c)} leaves its content box (${b.left.toFixed(1)} to ${b.right.toFixed(1)} ` +
+           `in ${left.toFixed(1)} to ${right.toFixed(1)})`]
+        : [];
+    });
+  });
+}
+
+// The header's row (packages/site/src/SiteFrame.svelte) on both sites, at each width of the sweep, at the lowest of its
+// heights: each child of the header stays inside the header's content box. The sweep's rules do not see a child that
+// goes into the header's padding or past the window's edge, since nothing clips it and the page does not scroll
+// sideways (abscls-8tl1.89: Cyanotype's theme menu at 640 and 650 pixels). The header is the same on each page of a
+// site, so one page stands for all: the About page.
+for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as const) {
+  test(`the header's row stays inside the header on ${site}`, async ({ page }) => {
+    test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    await page.addInitScript(answerConsent);
+    await page.goto(base ? new URL("/about", base).href : "/about");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => document.fonts.ready);
+    const found: ProblemAt[] = [];
+    const height = HEIGHTS[0];
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height });
+      await settle(page);
+      for (const problem of await headerRowProblems(page)) found.push({ width, height, problem });
+    }
+    expect(report(`${site}'s header`, found)).toBe("");
+  });
 }
 
 // Cyanotype's Practice (its design 33, "Practice against Stamp Duty"), when CYANOTYPE_BASE_URL gives its preview. The

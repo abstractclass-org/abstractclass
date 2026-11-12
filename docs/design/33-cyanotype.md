@@ -663,8 +663,8 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites". A link's record
    (`/import#record=…`) gets the same choice as a tool's.
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
-   Technical English with the glossary's words. Its link is in the header from a tablet's width, and in the footer on
-   a phone, as Hedge School's (design 22).
+   Technical English with the glossary's words. Its link is in the site's menu from a tablet's width, in the header
+   from 740 pixels, and in the footer on a phone, as Hedge School's (design 22).
 
 The tools have not run on strategyjam.org itself: they run in the player's own logged-in page, and that test waits for
 the owner (abscls-8tl1.12). The tests use page states that they make, with moves that Stamp Duty's early build played
@@ -1537,8 +1537,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   (`https://cyanotype.abstractclass.org`, the canonical address of each page) and the storage keys
   (`cyanotype:…`). `src/routes/+layout.svelte`: the icons, the link previews' tags, and the header, with the logo, the
   name and its "Early Access" link (`SiteName.svelte` and `edition.ts` of `packages/site`, "Decision", item 11), the
-  game's pages, the pages about the site and the theme menu, and below a tablet's width the site's menu
-  (`SiteMenu.svelte` of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels.
+  game's pages, the pages about the site and the theme menu, and below 740 pixels the site's menu (`SiteMenu.svelte`
+  of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels. The links' row
+  needs 660 pixels in Segoe UI and 730 in DejaVu Sans, with the header's gaps of 24 pixels from 640.
   `src/lib/SiteFooter.svelte`: the footer, with How reviews work, Privacy and Notices. `src/app.css`: the accent
   (Hedge School's lavender) and the board's colour tokens, after the shared style and the view's
   (`@abstractclass/review/review.css`).

@@ -11637,3 +11637,33 @@ above). Designs 17, 24, 29 and 33 changed.
   - The type checks of both sites and of the practice and review packages pass, and so do the unit tests.
   - The site suite on the branch's code: check:all passes, and the whole layout test passes: 270 cases, none
     skipped, none flaky.
+
+### Cyanotype's header links show from 740 pixels (2026-11-12)
+
+abscls-8tl1.89. At 640 and 650 pixels, Cyanotype's theme menu went past the header's content box, and at 640 pixels
+past the window, which cut the ◐. The layout sweep did not see it: nothing clips the button, and the page does not
+scroll sideways.
+
+- **The cause:** from 640 pixels (Tailwind's `sm`), the header's gap goes from 12 to 24 pixels (SiteFrame), and
+  Cyanotype's two navs show (its root layout). Both come at the same width, and the row did not fit them.
+- **Measured on dev, before the change,** in headless Chromium at the layout test's widths, at a height of 860: the
+  right edge of each child of the header against the header's content box. In Segoe UI (Windows), 640 and 650 pixels
+  failed: the button ran from 615.5 to 643.5 pixels, 19.5 pixels past the content edge at 640. The row first fitted at
+  660, with no room to spare. In DejaVu Sans (Linux, as in CI's runs; the fonts of WSL's Ubuntu, loaded as web fonts
+  over the page's own), every width from 640 to 720 failed. At 640 the button ended at 708.7, 84.7 pixels past the
+  edge, and the second nav went past it too. The row first fitted at 730 pixels, with 5 pixels to spare. Hedge School's
+  header fitted at every width in both fonts.
+- **The change:** Cyanotype's navs show from 740 pixels (`min-[740px]`, `max-[740px]` in its root layout), in place of
+  640. Below 740, the site's menu holds the links, as below 640 before. The menu shows Tools from 640, as before, so
+  the footer's Tools link stays a phone's alone. At 740 the row has 15 pixels to spare in DejaVu Sans and 80 in Segoe
+  UI. The header is as before at 740 pixels and wider, and on Hedge School at every width.
+- **Why not a smaller gap:** the header's gap is SiteFrame's, so it would change Hedge School's header too, at widths
+  where it fits. The navs' own gaps (18 pixels, four of them) and the header's (24 pixels, three of them) give at most
+  60 pixels back at 640, and DejaVu Sans needs 85. A width of 730 fits with 5 pixels to spare, too few for one more
+  link, so the change takes 740.
+- **The test:** a layout case for each site, "the header's row stays inside the header": at each width of the sweep,
+  at a height of 700, each child of the header that shows stays inside the header's content box. It failed on dev's
+  build at 640 and 650 pixels on Cyanotype, and it passes with the change. The site's menu case now opens Cyanotype's
+  menu below 740 pixels. The general rule "a child of a one-line flex row stays inside its row" stays out
+  (abscls-0nax found it too wide for every page).
+- **Measured after the change,** in the same way: no width fails on Cyanotype in either font.
