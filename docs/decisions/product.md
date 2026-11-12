@@ -11775,13 +11775,14 @@ empty, so the live site keeps no save page and its Export menu offers no "Save t
 
 - **Cyanotype's parts** are in `apps/cyanotype/src/lib/game/partners.ts`: the messages' name `cyanotype`
   (`cyanotype:ready`, `:review`, `:saved` and `:failed`), the name `Cyanotype`, the empty list, and the partners'
-  test switch. `cyanotypeSite` gives these parts with the switch on or off, so that the unit test checks the partners'
-  test build's list too: Node runs the test with no Vite variables.
+  test switch, in the form of Hedge School's file.
 - **A link's game goes straight to the review.** The import page reads `/import#record=…&save=…`, and the rules check
   the record as for a tool's game. Then the page keeps the game, with the save page when it is on a partner's host,
   and opens the review. It asks no choice, as Hedge School's arrival step does. While the rules check the game, the
   page says "Importing the game…". A link with no `record=` gets "Cyanotype could not read the game: the link has no
-  record=, which carries the game." in Hedge School's words. The import page still refuses `from=` (abscls-8tl1.76).
+  record=, which carries the game." Its reason is in Hedge School's words. Its start is the page's own for a game
+  that it cannot read, where Hedge School's says "Hedge School could not import the game:". The import page still
+  refuses `from=` (abscls-8tl1.76).
 - **"Save to …"**: the review reads the game's partner and gives it to the shared `reviewExports`, and
   `deliverExport` in `apps/cyanotype/src/lib/review/reviewExports.ts` keeps Cyanotype's partner case. It sends the
   review file (`cyanotype-review`) with the shared `saveToPartner`. The Review tab's menu has no partner entry, as on
@@ -11791,9 +11792,10 @@ empty, so the live site keeps no save page and its Export menu offers no "Save t
 - **Hedge School's `partners.test.ts`** now checks only its list. Its other checks moved, unchanged, to the files that
   they check: the variant checks and the arrival's refusals to `src/lib/game/import.test.ts`, and the game's own page
   from its `Site` tag (`gamePage`) to `packages/record/src/record.test.ts`.
-- **The tests:** `apps/cyanotype/src/lib/game/partners.test.ts` checks the empty list and the test site's switch.
-  `tests/cyanotype-import.spec.ts` checks a link on the CI build: the review opens with no choice, a save page off a
-  partner's host is not kept, and a link with no `record=` is refused. The whole exchange needs the partners' test
+- **The tests:** `apps/cyanotype/src/lib/game/partners.test.ts` checks the empty list, and that a build without the
+  switch counts no test site. The package's test checks the switch.
+  `tests/cyanotype-import.spec.ts` checks a link on the CI build: the review opens with no choice, the page keeps no
+  save page off a partner's host, and it refuses a link with no `record=`. The whole exchange needs the partners' test
   build, so it is a script, `apps/hedgeschool/scripts/cyanotype-partner-check.mjs`, and not a case of the layout test.
   Playwright's routes serve the partner's pages on `http://localhost`, and no request leaves the browser.
 - **Measured:** the layout test (`scripts/site-suite`, Chromium, CPU only) passed 280 cases with none skipped. The

@@ -9,14 +9,14 @@
   // site's link (`record=`, with a partner's `save=`: design 33, "Partner sites") asks no choice: the page keeps its
   // game, with the partner's save page when `save=` is on a partner's host (game/partners.ts), and opens its review at
   // once. A link with no `record=` says so. A browser that cannot keep the game stays on this page, with why: the
-  // tools page does not help it, so the page does not offer it there. The Analysis board opens by its own address with the record, at the position that the
-  // game's page showed, and asks before the game replaces the board kept here. A game from a set-up start offers the
-  // board only: the review refuses it, so the choice says so before the click (setUpProblem). For an out-of-date tool,
-  // the page also says how to update it, and counts it. The page counts the import as Hedge School's does (its design
-  // 17): the review's import once the game is kept, by its source, and the board's by the source that its address
-  // names (`via`), which the board counts. A game that the page cannot read, open or keep counts as a failed import to
-  // the review. The analytics start once the game has left the address. The page alone goes to the tools, and counts
-  // nothing.
+  // tools page does not help it, so the page does not offer it there. The Analysis board opens by its own address with
+  // the record, at the position that the game's page showed, and asks before the game replaces the board kept here. A
+  // game from a set-up start offers the board only: the review refuses it, so the choice says so before the click
+  // (setUpProblem). For an out-of-date tool, the page also says how to update it, and counts it. The page counts the
+  // import as Hedge School's does (its design 17): the review's import once the game is kept, by its source, and the
+  // board's by the source that its address names (`via`), which the board counts. A game that the page cannot read,
+  // open or keep counts as a failed import to the review. The analytics start once the game has left the address. The
+  // page alone goes to the tools, and counts nothing.
   import { onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
@@ -81,22 +81,18 @@
     if (checked.problem) {
       trackImportFailed("review", source, "rejected");
       phase = { at: "failed", message: `${SITE_NAME} cannot open this game: ${errorSentence(checked.problem)}`, keeping: false };
-    } else if (sent.link) await review(sent, record, source, checked);
+    } else if (sent.link) await keepAndReview({ sent, record, source, checked });
     else phase = { at: "choose", sent, record, source, checked };
   });
 
   // Each choice replaces this page in the history: Back then leads to the page before it.
   /** The review's choice. */
-  function reviewChosen() {
-    if (phase.at !== "choose") return;
-    const { sent, record, source, checked } = phase;
-    void review(sent, record, source, checked);
-  }
+  const reviewChosen = () => { if (phase.at === "choose") void keepAndReview(phase); };
   /** The review: the game kept with this page's check, with its partner's save page when a link names one, then its
    *  review. The import counts by its source and the game's length, and a failure as rejected (Hedge School's design
    *  17). A failure says why in Hedge School's words ("… could not import the game:"), then the import's own
    *  (game/import.ts), in whole sentences. */
-  async function review(sent: ImportHash, record: GameRecord, source: ImportSource, checked: Checked) {
+  async function keepAndReview({ sent, record, source, checked }: Omit<Extract<Phase, { at: "choose" }>, "at">) {
     phase = { at: "keeping" };
     try {
       const id = await keepChecked(sent.record, record, checked);

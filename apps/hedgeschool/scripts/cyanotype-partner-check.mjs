@@ -7,7 +7,7 @@
 // stored review's results (tests/cyanotype-review.ts, storeReview), with the engine off. Run it in apps/hedgeschool,
 // on a build of Cyanotype made with VITE_PARTNER_TEST=1:
 //
-//   CYANOTYPE_BASE_URL=http://127.0.0.1:4213 node scripts/cyanotype-partner-check.mjs
+//   CYANOTYPE_BASE_URL=http://127.0.0.1:4174 node scripts/cyanotype-partner-check.mjs
 //
 // It runs headless, with the layout test's launch options (playwright.config.ts): off the GPU.
 import { chromium } from "@playwright/test";

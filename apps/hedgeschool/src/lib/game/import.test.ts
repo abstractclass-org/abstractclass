@@ -5,9 +5,7 @@ import { variantProblem, wayRefusals } from "./import.ts";
 import { parseRecord } from "./record.ts";
 
 /** A record with these tags and moves. */
-const game = (tags: string, moves = "1. D10-E13") => parseRecord(`${tags}
-
-${moves} *`);
+const game = (tags: string, moves = "1. D10-E13") => parseRecord(`${tags}\n\n${moves} *`);
 const setUp = game('[Position "A10-D10,D10-G10* Q10-T10 r2 0/0 1"]', "2. N9-Q10"); // the start's own turn, Red's
 const rulesGame = game('[Rules "Race to 2000"]');
 

@@ -115,15 +115,24 @@ What the repository holds for the deploy and for Pages:
 - **A partner's test pages** (design 18, and Cyanotype's [design 33](design/33-cyanotype.md), "Partner sites"): the
   build of the branch `partner_test` also takes a partner's save page and `from` on the developer's own computer
   (`localhost`, `127.0.0.1`), so that a partner can test before its own site is live. Each site's `vite.config.ts`
-  sets `VITE_PARTNER_TEST` for that branch: Hedge School's, and Cyanotype's (section 9). The live sites and the `dev`
-  previews take only the partners' own https hosts. To give a partner a test site:
-  1. Push the commit to test to `partner_test`: `git push origin dev:partner_test`. The deploy puts each site on Pages
-     as a preview, in its own project: `hedgeschool` for Hedge School, `cyanotype` for Cyanotype.
-  2. In the partner's site's Pages project, open **Deployments**, open the `partner_test` deployment, and copy its own
-     address, not the branch's address: `https://<hash>.hedgeschool.pages.dev` for Hedge School,
-     `https://<hash>.cyanotype-ztp.pages.dev` for Cyanotype.
-  3. Give the partner that address. It shows that deployment only, and a later push gives a new address.
-  4. To withdraw it, delete the deployment (its **⋯** menu, **Delete deployment**).
+  sets `VITE_PARTNER_TEST` for that branch: Hedge School's, and Cyanotype's (section 9). Cyanotype takes the save page
+  only: its pages do not take `from` yet. The live sites and the `dev` previews take only the partners' own https
+  hosts.
+
+  **The owner's steps, to give a partner a test site.**
+
+  1. Open a terminal in a checkout of `dev` that holds the commit to test. Run `git push origin dev:partner_test`.
+     The workflow **Deploy** then puts each site on Pages as a preview, in its own project.
+  2. Open the Cloudflare dashboard's **Workers & Pages** page,
+     <https://dash.cloudflare.com/?to=/:account/workers-and-pages>. If the dashboard asks for an account, select the
+     account that holds the projects `hedgeschool` and `cyanotype`.
+  3. Select the Pages project of the partner's site: **hedgeschool** for a partner of Hedge School, **cyanotype** for
+     a partner of Cyanotype.
+  4. Go to **Deployments**. In the **All deployments** list, find the deployment of the branch `partner_test`. Copy
+     its own address, not the branch's address: `https://<hash>.hedgeschool.pages.dev` in **hedgeschool**,
+     `https://<hash>.cyanotype-ztp.pages.dev` in **cyanotype**.
+  5. Give the partner that address. It shows that deployment only, and a later push gives a new address.
+  6. To withdraw the address, select the deployment's **⋯** menu, then **Delete deployment**.
 
 To try the build as the deploy runs it: `VITE_EDITION=early npm run build:cloudflare`, in `apps/hedgeschool`. From a
 clean clone, run `npm ci` at the root first.

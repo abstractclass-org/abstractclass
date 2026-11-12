@@ -1194,7 +1194,8 @@ Enclosure's alone.
 `partner_test`, and a local build with `VITE_PARTNER_TEST=1`, count `127.0.0.1` and `localhost` as "the local test
 site". Cyanotype's `vite.config.ts` sets it for that branch, as Hedge School's does. The deploy already builds a
 preview of Cyanotype for each branch that is not `main`, `partner_test` too. `docs/hosting.md` gives the steps for
-both projects.
+both projects. On a local build with the switch, `apps/hedgeschool/scripts/cyanotype-partner-check.mjs` runs a
+partner's whole exchange ("Where it is").
 
 **Enclosure's alone, and not in Cyanotype:** enclosuregame.com as a partner, and the tools for meaf.us and
 Constellation's export ("The gaps from Hedge School"). Hedge School's history stays its own too: the
@@ -1731,8 +1732,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `cyanotype-notes.ts`, which the review's test, the layout test of the board with notes and Hedge School's test of
   its notes (`notes.spec.ts`) use too.
   `cyanotype-import.spec.ts`: the import page's choice, the game that it keeps for the review, the Analysis board's
-  question over a kept analysis, a record that the engine refuses, a game that the browser cannot keep and the notice
-  of an out-of-date tool, and `layout.spec.ts` the page's layout. They
+  question over a kept analysis, a record that the engine refuses, a game that the browser cannot keep, the notice
+  of an out-of-date tool, another site's link, which asks no choice, and a link with no record, and `layout.spec.ts`
+  the page's layout. They
   run where the site has the engine's files, the Tests workflow too: without them they skip.
   The tests of the review, and the layout test's review and Analysis board, load a stored review of the test game
   and ask the engine for no search: `tests/fixtures/cyanotype-review.json`, a review file, which
@@ -1764,6 +1766,14 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   for a GPU that does not start. It prints the adapters, the device that ONNX Runtime asks for, and each step of the
   start, in Playwright's full Chromium and in its headless shell, the control. It is a GPU-path run too
   ([working-notes.md](../working-notes.md), "Faults with the WebGPU flags").
+- `apps/hedgeschool/scripts/cyanotype-partner-check.mjs`: the check of a partner's whole exchange ("Partner sites",
+  items 1 to 6), on a build of Cyanotype made with `VITE_PARTNER_TEST=1`. A partner's game page opens its link, the
+  review opens with no choice, and the game keeps the save page. "Save to the local test site" then sends the review
+  file, and the save page answers `cyanotype:saved`. Playwright's routes serve the partner's pages on
+  `http://localhost`, so no request leaves the browser. The layout test's build has the switch off, so the check is a
+  script that runs by hand, on the CPU, with the layout test's launch options. Run it in `apps/hedgeschool`:
+  `CYANOTYPE_BASE_URL=http://127.0.0.1:4174 node scripts/cyanotype-partner-check.mjs`. Run it after a change to the
+  partner code or to the review's Export menu.
 - `apps/hedgeschool/scripts/measure/pool-start.mjs`: the start of the engine's pool on the Analysis board of a build
   of either site, on the CPU: each worker's start and memory, the time of the search's answers and of a visit, and the
   memory of the browser's renderers ([decisions/engine.md](../decisions/engine.md), "Cyanotype's engine pool at Hedge

@@ -37,16 +37,14 @@ async function shareLink(id: string, origin: string): Promise<string> {
 export async function deliverExport(kind: ExportKind, id: string, record: string, manifest: Manifest | null,
                                     annotated: () => string | Promise<string>,
                                     partner?: GamePartner): Promise<ExportResult | void> {
-  // The review file to the partner site the game came from, as Hedge School's: its save page opens first, within the
-  // click, and the file goes to it once the page is ready.
+  const fileName = reviewFileName(record, id), file = () => exportReview(id, SITE_VERSION, shippedModels(manifest));
+  // As Hedge School's: the save page opens first, within the click, and the file goes to it once the page is ready.
   if (kind === "partner_save") {
     if (!partner) throw new Error("this game came from no partner site");
-    const file = exportReview(id, SITE_VERSION, shippedModels(manifest)).then(review => ({ name: reviewFileName(record, id), review }));
-    await saveToPartner(partner, file);
+    await saveToPartner(partner, file().then(review => ({ name: fileName, review })));
     return { note: `Saved to ${partner.name}.` };
   }
   if (kind === "share_link") return copyReviewLink(await shareLink(id, location.origin));
   if (kind !== "review_file" && kind !== "record_copy" && kind !== "record_file") throw new Error("the review has no such export");
-  return deliverFileOrRecord(kind, reviewFileName(record, id), () => exportReview(id, SITE_VERSION, shippedModels(manifest)),
-                             annotated);
+  return deliverFileOrRecord(kind, fileName, file, annotated);
 }
