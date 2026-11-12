@@ -222,8 +222,8 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      +38.2"): a note is read closely. The move list, the header and the table give whole numbers. **After the game's
      last move, when the rules ended the game,** the move's tooltip and the chart's note give the game's result, not
      the engine's estimate, so their word is "Result:" ("Result: Red +0.03"), by the rule for a draw (design 29). One
-     rule in the review's view (`leadLine`) gives the word and the number to both. A record that ends before the rules
-     end the game keeps "Lead:" on its last move: there the number is the engine's estimate.
+     rule in the review's view (`leadOrResult`) gives the word and the number to both. A record that ends before the
+     rules end the game keeps "Lead:" on its last move: there the number is the engine's estimate.
    - **What a move cost:** the mover's loss against the engine's best. It needs no side: it is always the mover's. In
      the move list, the loss in the lead at the right of each move (by turn, of each turn), where Lichess's move list
      has its evaluation: "−136". In every note, the loss in win chance first and then the loss in the lead, each with

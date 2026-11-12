@@ -1,11 +1,11 @@
-// The word before the number in a move's tooltip in the move list, by edge and by turn, on both sites (the shared
-// review, packages/review/src/ReviewView.svelte, leadLine; design 06, item 8). After a game's last move, when the rules
-// ended the game, the number is the game's result: the tooltip says "Result:", with the same words as the chart's note
-// on that position. Every other move's tooltip, and the last move's of a record that ends before the rules end the
-// game, says "Lead:": there the number is the engine's estimate. By turn, a move's tooltip gives its lead only: the
-// turn's label and loss are in the turn's own tooltip, which has no lead. The games: Hedge School's layout game
-// (tests/fixtures/hedgefund-review.json, which the rules end at r+377.651497) and a record that ends after turn 7
-// (tests/fixtures/twin-turn-review.json); Cyanotype's test game, whole (the results of
+// The word before the number in a move's tooltip in the move list, by move (Hedge School's edge) and by turn, on both
+// sites (the shared review, packages/review/src/ReviewView.svelte, leadOrResult; design 06, item 8). After a game's
+// last move, when the rules ended the game, the number is the game's result: the tooltip says "Result:", with the same
+// words as the chart's note on that position. Every other move's tooltip, and the last move's of a record that ends
+// before the rules end the game, says "Lead:": there the number is the engine's estimate. By turn, a move's tooltip
+// gives its lead only: the turn's label and loss are in the turn's own tooltip, which has no lead. The games: Hedge
+// School's layout game (tests/fixtures/hedgefund-review.json, which the rules end at r+377.651497) and a record that
+// ends after turn 7 (tests/fixtures/twin-turn-review.json); Cyanotype's test game, whole (the results of
 // tests/fixtures/cyanotype-whole-review.json, which the rules end at r+730) and up to turn 20 (STORED). The engine is
 // off: the tooltips take the stored results. Without Cyanotype's preview or its engine's files, its tests skip, with a
 // message.
@@ -37,16 +37,19 @@ async function chartEnd(page: Page): Promise<string> {
 }
 
 /** Checks the moves' tooltips once the review has given each a lead: the last move's holds the chart's words at the
- *  game's end, which say "Result:" when `ended` and "Lead:" when not, and no other move's says "Result:". */
-async function checkTips(page: Page, ended: boolean) {
-  await expect.poll(async () => (await moveTips(page)).every(tip => /(^| · )(Lead|Result): /.test(tip)),
-                    { message: "every move's tooltip has its lead", timeout: 120_000 }).toBe(true);
+ *  game's end, which start with `end`, and no other move's says "Result:". */
+async function checkTips(page: Page, end: "Result:" | "Lead:") {
+  // The last move and one more at least: an empty list, before the list draws its rows, has no move to check.
+  await expect.poll(async () => {
+    const tips = await moveTips(page);
+    return tips.length > 1 && tips.every(tip => /(^| · )(Lead|Result): /.test(tip));
+  }, { message: "every move's tooltip has its lead", timeout: 120_000 }).toBe(true);
   const tips = await moveTips(page);
-  expect(tips.length).toBeGreaterThan(10);
   expect(tips.slice(0, -1).flatMap((tip, i) => tip.includes("Result:") ? [`move ${i + 1}: ${tip}`] : []),
          "the other moves' tooltips that say Result:").toEqual([]);
   const words = await chartEnd(page);
-  expect(words, "the chart's note at the end").toMatch(ended ? /^Result: ((Blue|Red) \+[\d.]+|even)$/ : /^Lead: /);
+  expect(words, "the chart's note at the end")
+    .toMatch(end === "Result:" ? /^Result: ((Blue|Red) \+[\d.]+|even)$/ : /^Lead: /);
   expect(tips.at(-1)!.split(" · "), "the last move's tooltip, with the chart's words").toContain(words);
 }
 
@@ -62,20 +65,21 @@ async function reviewOnHedgeSchool(page: Page, file: string, judge: "edge" | "tu
   await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
 }
 
+// The setting "Review by", by its stored value: "edge" is "Edge" on Hedge School and "Move" on Cyanotype.
 for (const judge of ["edge", "turn"] as const) {
   test.describe(`the last move's tooltip on Hedge School, by ${judge}`, () => {
     test("says Result: when the rules ended the game", async ({ page }) => {
       await reviewOnHedgeSchool(page, ENDED, judge);
-      await checkTips(page, true);
+      await checkTips(page, "Result:");
     });
 
     test("says Lead: when the record ends before the rules end the game", async ({ page }) => {
       await reviewOnHedgeSchool(page, CUT, judge);
-      await checkTips(page, false);
+      await checkTips(page, "Lead:");
     });
   });
 
-  test.describe(`the last move's tooltip on Cyanotype, by ${judge}`, () => {
+  test.describe(`the last move's tooltip on Cyanotype, by ${judge === "edge" ? "move" : judge}`, () => {
     test.beforeEach(async ({ page }) => {
       const why = await noReview(page);
       test.skip(why !== "", why);
@@ -86,12 +90,12 @@ for (const judge of ["edge", "turn"] as const) {
       await putResults(page, readStored(WHOLE).analyses);
       await pasteRecord(page, testRecord(Infinity));
       await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
-      await checkTips(page, true);
+      await checkTips(page, "Result:");
     });
 
     test("says Lead: when the record ends before the rules end the game", async ({ page }) => {
       await reviewTestGame(page, { judge });
-      await checkTips(page, false);
+      await checkTips(page, "Lead:");
     });
   });
 }

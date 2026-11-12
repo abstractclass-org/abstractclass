@@ -11706,16 +11706,16 @@ abscls-vg8i, a later step of abscls-iynz. Designs 06 and 29 changed.
   the move's tooltip in the move list gives the game's result there (since abscls-iynz), not an estimate. The chart's
   note on the same position wrote it as "Result: Red +0.03", and the tooltip as "Lead: Red +0.03": one number had two
   names on one page. Both now say "Result:".
-- **One rule:** `leadLine` in `packages/review/src/ReviewView.svelte` gives the word and the number together, to the
-  move's tooltip and to the chart's note. The condition (the last position, and the rules ended the game) is in it
+- **One rule:** `leadOrResult` in `packages/review/src/ReviewView.svelte` gives the word and the number together, to
+  the move's tooltip and to the chart's note. The condition (the last position, and the rules ended the game) is in it
   only. The chart adds " · first estimate" only where a search is shallow, and the game's end is always settled.
-- **What players see,** on both sites (the review is shared), by edge, and by turn on the last move's button (the move
-  buttons come from one snippet): a win by 0.03 read "Lead: Red +0.03" and now reads "Result: Red +0.03". A win by
-  0.5 or more ("Lead: Red +27.5") and a draw ("Lead: even") read "Result: Red +27.5" and "Result: even", as the
-  chart's note already did. Every other move keeps "Lead:". A record that ends before the rules end the game keeps
-  "Lead:" on its last move, because there the number is the engine's estimate. By turn, the turn's own tooltip has
-  no lead, so nothing changes there.
-- **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by edge and by turn, with the engine off. On Hedge
+- **What players see,** on both sites (the review is shared), by move (Hedge School's "Edge"), and by turn on the last
+  move's button (the move buttons come from one snippet): a win by 0.03 read "Lead: Red +0.03" and now reads "Result:
+  Red +0.03". A win by 0.5 or more ("Lead: Red +27.5") and a draw ("Lead: even") read "Result: Red +27.5" and "Result:
+  even", as the chart's note already did. Every other move keeps "Lead:". A record that ends before the rules end the
+  game keeps "Lead:" on its last move, because there the number is the engine's estimate. By turn, the turn's own
+  tooltip has no lead, so nothing changes there.
+- **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by move and by turn, with the engine off. On Hedge
   School it opens `tests/fixtures/hedgefund-review.json` (the rules end it at `r+377.651497`) and
   `tests/fixtures/twin-turn-review.json` (the record ends after turn 7). On Cyanotype it opens the whole test game
   with the results of `tests/fixtures/cyanotype-whole-review.json` (the rules end it at `r+730`) and the game up to

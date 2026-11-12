@@ -250,10 +250,9 @@ edit in the same commit), so their changes still apply.
      that one decimal writes as 0.0 takes as many decimals as it needs, up to six: "Red won by 0.03" (`smallMargin`, in
      each game's format). The review uses them in each game's `ending` (`endingWords`: the result, a resignation, a
      forfeit, or no end yet), in the board's line at the game's end, in the chart's result and the final margin, and in
-     the tooltip of the game's last move in the move list ("Result: Red +0.03", as the chart's note writes it: design
-     06).
-     Practice uses them in its stored result and its outcome (`@abstractclass/practice`'s `scoreResult` and
-     `practiceOutcome`), and in each site's line at the game's end.
+     the tooltip of the game's last move in the move list when the rules ended the game ("Result: Red +0.03", as the
+     chart's note writes it: design 06). Practice uses them in its stored result and its outcome
+     (`@abstractclass/practice`'s `scoreResult` and `practiceOutcome`), and in each site's line at the game's end.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
      board's own layers (`layers`: Enclosure's regions before the area map's settings, and its invincible edges after
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
