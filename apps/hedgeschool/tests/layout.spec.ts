@@ -16,8 +16,9 @@
 // Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
-// book's table, where the build has it (edition.ts, OPENINGS). One checks that the sentence under the book's table
-// keeps the move list in place, on Openings and the Analysis board (the review's book table test checks the review).
+// book's table, where the build has it (edition.ts, OPENINGS), while the engine's network loads and once it has
+// loaded. One checks that the sentence under the book's table keeps the move list in place, on Openings and the
+// Analysis board (the review's book table test checks the review).
 // Every page's sweep checks the header in one row, with Openings' fourth tab where the build has it. A last test checks
 // the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site
 // running first).
@@ -29,6 +30,7 @@ import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewStoredFile, stor
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
 import { toMove } from "./move-header.ts";
+import { NETWORK_WORDS, headerLine, holdNetworks } from "./network-hold.ts";
 
 const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
 const HEIGHTS = [700, 860, 1000];
@@ -663,7 +665,10 @@ function bookTableProblems(page: Page) {
 }
 
 // Openings (design 32, items 5 and 10): its first view at the start, with the book's table, and a fold of the move
-// list open. Only where the build has Openings, which the test book's servers serve.
+// list open. Only where the build has Openings, which the test book's servers serve. The engine header has two states,
+// and the sweep checks each one at every size: first while the network loads, as the test holds the network's files
+// (its words then take the place of the visits), and then with the network loaded. A sweep that does not hold the
+// network sees the words only while the network happens to load (abscls-0nax).
 test("layout of /openings", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
@@ -673,10 +678,23 @@ test("layout of /openings", async ({ page }) => {
   });
   await page.goto("/about");
   test.skip(!(await page.locator('header a[href="/openings"]').count()), "a build without Openings");
+  const release = await holdNetworks(page);
   await page.goto("/openings");
   await page.locator("button[aria-expanded]", { hasText: "instead of A10-D9" }).click({ timeout: 60_000 });
   await expect(page.locator('button[aria-expanded="true"]')).toHaveCount(1);
-  expect(await sweep(page, "/openings")).toBe("");
+  const line = await headerLine(page);
+  /** The engine header's state at each size: the words show while the network loads, and only then. */
+  const says = (loads: boolean): OwnRules => async () => {
+    const words = ((await line.textContent()) ?? "").includes(NETWORK_WORDS);
+    return words === loads ? [] : [loads ? "the engine header does not say that the network loads"
+      : "the engine header still says that the network loads"];
+  };
+  await expect(line).toContainText(NETWORK_WORDS);
+  const reports = [await sweep(page, "/openings, while the network loads", says(true))];
+  release();
+  await expect(line).not.toContainText(NETWORK_WORDS, { timeout: 120_000 });
+  reports.push(await sweep(page, "/openings, the network loaded", says(false)));
+  expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 
 // The sentence under the book's table keeps the move list in place (design 32, item 6), on Openings and on the
