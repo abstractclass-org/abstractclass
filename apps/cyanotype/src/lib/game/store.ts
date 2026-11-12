@@ -8,7 +8,7 @@ import { komiPrefix } from "@abstractclass/record/record.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
 import { LAST_REVIEW_KEY } from "../site.ts";
 // The marks of a game's review and its own settings: the shared store's.
-export { markReviewed, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type ReviewMark,
+export { markReviewed, reviewAgainWhy, reviewCovers, reviewMark, setGamePartner, setGameSettings, type ReviewMark,
          type StoredGame } from "@abstractclass/analysis/games.ts";
 
 /** A short name of a game's moves, its key in this browser's store: two games with the same moves are one game, and

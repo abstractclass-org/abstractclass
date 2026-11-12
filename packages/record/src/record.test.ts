@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  isKomi, komiLimitProblem, komiOf, komiPrefix, komiRange, markMoves, pastedError, readRecord, RecordError, setUpRefusal, startTags, withStartTag, withTags,
+  gamePage, isKomi, komiLimitProblem, komiOf, komiPrefix, komiRange, markMoves, pastedError, readRecord, RecordError, setUpRefusal, startTags, withStartTag, withTags,
   writeRecord, writeTags, type Notation,
 } from "./record.ts";
 
@@ -180,4 +180,11 @@ test("a pasted record's problem says where it is in the pasted text, without the
   const pasted = "apple\nbee 9z", tagged = withStartTag(pasted, "x");
   assert.equal(pastedError(problem(pasted), pasted, pasted).message, "not a word, a turn label or a result: 9z (line 2, column 5).");
   assert.equal(pastedError(problem(tagged), pasted, tagged).message, "not a word, a turn label or a result: 9z (line 2, column 5).");
+});
+
+test("the game's own page comes from a web address in Site, and from nothing else", () => {
+  assert.deepEqual(gamePage({ Site: "https://www.enclosuregame.com/game/abc" }), { href: "https://www.enclosuregame.com/game/abc", host: "enclosuregame.com" });
+  assert.equal(gamePage({ Site: "meaf.us" }), null);
+  assert.equal(gamePage({ Site: "javascript:alert(1)" }), null);
+  assert.equal(gamePage({}), null);
 });

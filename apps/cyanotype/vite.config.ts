@@ -21,6 +21,12 @@ const origin = process.env.SITE_ORIGIN
 	?? (process.env.CF_PAGES_BRANCH === 'main' ? 'https://cyanotype.abstractclass.org'
 		: process.env.CF_PAGES_URL ?? 'http://127.0.0.1:4173');
 
+// The partner sites' test (src/lib/game/partners.ts, design 33, "Partner sites"), as Hedge School's: the deploy's build
+// of the branch partner_test also takes a partner's pages on the developer's own computer (localhost), so that a
+// partner can test before its own site is live. The live site and the dev preview never do. For a local build,
+// VITE_PARTNER_TEST=1 sets it. Vite reads the VITE_ variables after it loads this file.
+if (process.env.CF_PAGES_BRANCH === 'partner_test') process.env.VITE_PARTNER_TEST ??= '1';
+
 // The userscript's versions (src/lib/game/tools.ts), as Hedge School's. For Tampermonkey: the build's time (UTC), which
 // grows with each build. For the import page: a hash of the files that make its code (its frame in packages/import,
 // and Cyanotype's page code), so that it tells a player of an out-of-date userscript only when that code changed.

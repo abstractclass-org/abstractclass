@@ -50,7 +50,8 @@
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
   import { SITE_NAME } from "#lib/site.ts";
-  import { REVIEW_EXPORTS, deliverExport } from "#lib/review/reviewExports.ts";
+  import { deliverExport, reviewExports } from "#lib/review/reviewExports.ts";
+  import type { GamePartner } from "#lib/game/partners.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
   import SharedArrival from "#lib/review/SharedArrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
@@ -64,7 +65,9 @@
   // The review snapshot's analysis, an earlier engine's results. It stays after Review again, which ends the review
   // snapshot, until the new review's analysis replaces it (ReviewBar's `stale`).
   let snapshotGame = $state.raw<GameAnalysis<Blueprints> | null>(null);
-  let kept = $state.raw<{ id: string; text: string; record: GameRecord } | null>(null); // the game in review
+  let kept = $state.raw<{ id: string; text: string; record: GameRecord; partner?: GamePartner } | null>(null); // the game in review
+  // The partner site the game came from by its link (design 33, "Partner sites"), for the Export menu's "Save to …".
+  const partnerName = $derived(kept?.partner?.name ?? null);
   let packed = $state<string | null>(null); // a shared review's link, which the page shows first
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree
@@ -237,7 +240,7 @@
       throw new Error(`This browser has no game ${id}.`);
     }
     rememberReview(id);
-    kept = { id, text: stored.game.record, record: stored.record };
+    kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
     markBefore = stored.game.reviewed;
     own = ownSettings(stored.game); // a network that the site no longer ships: the browser's
     return stored.record;
@@ -324,16 +327,16 @@
   }
   onDestroy(stop);
 
-  /** The review exported (reviewExports.ts): its link, with what the game's mark names, its review file, with the
-   *  engine's results, or the annotated record, copied or as a file. The record's labels are the page's (by turn or by
-   *  move). */
+  /** The review exported (reviewExports.ts): its review file to the partner site the game came from, its link, with
+   *  what the game's mark names, its review file, with the engine's results, or the annotated record, copied or as a
+   *  file. The record's labels are the page's (by turn or by move). */
   async function exportAs(kind: ExportKind, unit: Unit): Promise<ExportResult | void> {
     const k = kept;
     if (!k) throw new Error("no game is open");
     return deliverExport(kind, k.id, k.text, session.manifest, () => {
       if (!R) throw new Error("the review is not ready");
       return annotatedText(R, unit, k.record, game?.branches ?? {}, session.network);
-    });
+    }, k.partner);
   }
 </script>
 
@@ -367,9 +370,9 @@
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })}
               ownSettings={own?.from} gpu={session.gpuView}>
     {#snippet tools(unit)}
-      <!-- Export (Hedge School's design 13): once the review is done, a link that shares it, its review file, or the
-           annotated record, labelled by the view's unit. -->
-      <ExportMenu icon run={kind => exportAs(kind, unit)} items={REVIEW_EXPORTS} ready={bar.done} ontrack={trackExport}
+      <!-- Export (Hedge School's design 13): once the review is done, "Save to …" first for a partner's game, a link
+           that shares it, its review file, or the annotated record, labelled by the view's unit. -->
+      <ExportMenu icon run={kind => exportAs(kind, unit)} items={reviewExports(partnerName)} ready={bar.done} ontrack={trackExport}
                   why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />
     {/snippet}
   </ReviewView>

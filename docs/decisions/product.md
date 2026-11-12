@@ -11766,3 +11766,38 @@ protocol 1), its list, its texts and its events.
   constants: the messages' names, `PARTNERS`, the test site's switch, the site's name and the arrival's steps. The
   messages' type now reads any name. One local name in `receiveFromPartner` changed: the review received is `sent`,
   because `review` names the message. Nothing else changed.
+
+### Cyanotype takes a partner's link and saves the review back (2026-11-13)
+
+Beads abscls-8tl1.75. Design 33 ("Partner sites", items 1 to 6, and "How a game comes in from strategyjam.org", item
+7) changed. Cyanotype uses the shared partner code of abscls-8tl1.74 with its own parts. Its list of partners is
+empty, so the live site keeps no save page and its Export menu offers no "Save to …".
+
+- **Cyanotype's parts** are in `apps/cyanotype/src/lib/game/partners.ts`: the messages' name `cyanotype`
+  (`cyanotype:ready`, `:review`, `:saved` and `:failed`), the name `Cyanotype`, the empty list, and the partners'
+  test switch. `cyanotypeSite` gives these parts with the switch on or off, so that the unit test checks the partners'
+  test build's list too: Node runs the test with no Vite variables.
+- **A link's game goes straight to the review.** The import page reads `/import#record=…&save=…`, and the rules check
+  the record as for a tool's game. Then the page keeps the game, with the save page when it is on a partner's host,
+  and opens the review. It asks no choice, as Hedge School's arrival step does. While the rules check the game, the
+  page says "Importing the game…". A link with no `record=` gets "Cyanotype could not read the game: the link has no
+  record=, which carries the game." in Hedge School's words. The import page still refuses `from=` (abscls-8tl1.76).
+- **"Save to …"**: the review reads the game's partner and gives it to the shared `reviewExports`, and
+  `deliverExport` in `apps/cyanotype/src/lib/review/reviewExports.ts` keeps Cyanotype's partner case. It sends the
+  review file (`cyanotype-review`) with the shared `saveToPartner`. The Review tab's menu has no partner entry, as on
+  Hedge School. `REVIEW_EXPORTS` is gone: `reviewExports()` gives the same entries.
+- **The partners' test:** Cyanotype's `vite.config.ts` sets `VITE_PARTNER_TEST` for the branch `partner_test`, as
+  Hedge School's does. `docs/hosting.md` gives the steps for both Pages projects.
+- **Hedge School's `partners.test.ts`** now checks only its list. Its other checks moved, unchanged, to the files that
+  they check: the variant checks and the arrival's refusals to `src/lib/game/import.test.ts`, and the game's own page
+  from its `Site` tag (`gamePage`) to `packages/record/src/record.test.ts`.
+- **The tests:** `apps/cyanotype/src/lib/game/partners.test.ts` checks the empty list and the test site's switch.
+  `tests/cyanotype-import.spec.ts` checks a link on the CI build: the review opens with no choice, a save page off a
+  partner's host is not kept, and a link with no `record=` is refused. The whole exchange needs the partners' test
+  build, so it is a script, `apps/hedgeschool/scripts/cyanotype-partner-check.mjs`, and not a case of the layout test.
+  Playwright's routes serve the partner's pages on `http://localhost`, and no request leaves the browser.
+- **Measured:** the layout test (`scripts/site-suite`, Chromium, CPU only) passed 280 cases with none skipped. The
+  check script, on a Cyanotype build with `VITE_PARTNER_TEST=1`, passed each check: the link opens the review with no
+  choice, the game keeps the test site's save page, the menu's first entry is "Save to the local test site", the save
+  page gets one `cyanotype:review` message (protocol 1) with a `cyanotype-review` file, the review says "Saved to the
+  local test site.", and no request went to another site.

@@ -4,8 +4,11 @@
 // first: a record that they refuse shows why and opens nothing. Else the review's choice keeps the game on the import
 // page, as Hedge School's does, and opens its review by the game's id: a game that the browser cannot keep stays on
 // the import page, with why. The Analysis board opens at the position that the game's page showed, and asks before the
-// game replaces an analysis kept there. An out-of-date tool gets its notice. Each test opens a fresh browser context,
-// so its store starts empty. The tests that need the engine skip, with a message, when the preview has no engine files.
+// game replaces an analysis kept there. An out-of-date tool gets its notice. Another site's link (`record=`, design 33,
+// "Partner sites") asks no choice: its game is kept and reviewed at once, and its `save=` is kept only on a partner's
+// host (Cyanotype has none: scripts/cyanotype-partner-check.mjs checks a partner's whole exchange on the partners' test
+// build). A link with no `record=` says so. Each test opens a fresh browser context, so its store starts empty. The
+// tests that need the engine skip, with a message, when the preview has no engine files.
 // Run: npx playwright test tests/cyanotype-import.spec.ts, with CYANOTYPE_BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
@@ -21,6 +24,8 @@ const boardAt = (at?: number, record = testRecord()) => parseRecord(record).move
 const local = (page: Page, key: string) => page.evaluate(k => localStorage.getItem(k), key);
 /** The page's address has no game: the import page takes it out at once. */
 const noHash = (page: Page) => expect.poll(() => new URL(page.url()).hash).toBe("");
+/** Another site's link to the import page, with these parameters after the `#`. */
+const siteLink = (params: Record<string, string>) => new URL(`/import#${new URLSearchParams(params)}`, CYANOTYPE).href;
 /** A tool's game on the Analysis board: the choice once the engine has checked the record, then the board. */
 async function analyze(page: Page, link: string) {
   await page.goto(link);
@@ -81,6 +86,19 @@ test.describe("with the engine's files", () => {
     const games = page.getByRole("region", { name: "Review a game" }).locator("li");
     await expect(games.getByRole("link", { name: PLAYERS })).toBeVisible({ timeout: 60_000 });
     await expect(games).toHaveCount(1);
+  });
+
+  test("another site's link: no choice, the game is kept and reviewed, and a save page off a partner's host is not kept", async ({ page }) => {
+    // Hedge School's partner is not Cyanotype's: Cyanotype's list is empty
+    await page.goto(siteLink({ record: testRecord(), save: "https://www.enclosuregame.com/cyanotype/save" }));
+    await noHash(page);
+    // No click: the import page keeps the game and opens its review by its id
+    await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith(`#game=review-${MOVES}-`), { timeout: 120_000 });
+    await expect.poll(() => local(page, LAST_REVIEW_KEY).catch(() => null), { timeout: 60_000 })
+      .toMatch(new RegExp(`^review-${MOVES}-`));
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    const id = new URLSearchParams(new URL(page.url()).hash.slice(1)).get("game")!;
+    expect((await keptGame(page, id)).partner, "the game keeps no partner").toBeUndefined();
   });
 
   for (const [name, at, text] of [
@@ -186,6 +204,17 @@ test.describe("with the engine's files", () => {
       // The notice stays when the choice comes after the check
       await expect(page.getByRole("status").filter({ hasText: notice })).toBeVisible();
     });
+});
+
+// The preview alone: the page refuses the link before the engine checks anything
+test("a link with no record=: the page says so, and opens nothing", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  await page.goto(siteLink({ pgn: testRecord(), save: "https://www.enclosuregame.com/cyanotype/save" }));
+  await noHash(page);
+  await expect(page.getByRole("alert")).toHaveText("Cyanotype could not read the game: the link has no record=, which "
+                                                   + "carries the game.", { timeout: 60_000 });
+  await expect(page).toHaveURL(url => url.pathname === "/import");
+  expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
 });
 
 // The preview alone: no engine is needed to go to the tools

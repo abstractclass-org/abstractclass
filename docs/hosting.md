@@ -112,14 +112,16 @@ What the repository holds for the deploy and for Pages:
   these two variables, with the names that Cloudflare's own build gave them. Its `CF_PAGES_URL` is the branch's
   preview address, `https://<branch>.hedgeschool.pages.dev`. The variable `SITE_ORIGIN` sets another address, for a
   test.
-- **A partner's test pages** (design 18): the build of the branch `partner_test` also takes a partner's save page
-  and `from` on the developer's own computer (`localhost`, `127.0.0.1`), so that a partner can test before its own
-  site is live (`vite.config.ts` sets `VITE_PARTNER_TEST`). The live site and the `dev` preview take only the
-  partners' own https hosts. To give a partner a test site:
-  1. Push the commit to test to `partner_test`: `git push origin dev:partner_test`. The deploy puts it on Pages as a
-     preview.
-  2. In the Pages project's **Deployments**, open the `partner_test` deployment, and copy its own address
-     (`https://<hash>.hedgeschool.pages.dev`), not the branch's address.
+- **A partner's test pages** (design 18, and Cyanotype's [design 33](design/33-cyanotype.md), "Partner sites"): the
+  build of the branch `partner_test` also takes a partner's save page and `from` on the developer's own computer
+  (`localhost`, `127.0.0.1`), so that a partner can test before its own site is live. Each site's `vite.config.ts`
+  sets `VITE_PARTNER_TEST` for that branch: Hedge School's, and Cyanotype's (section 9). The live sites and the `dev`
+  previews take only the partners' own https hosts. To give a partner a test site:
+  1. Push the commit to test to `partner_test`: `git push origin dev:partner_test`. The deploy puts each site on Pages
+     as a preview, in its own project: `hedgeschool` for Hedge School, `cyanotype` for Cyanotype.
+  2. In the partner's site's Pages project, open **Deployments**, open the `partner_test` deployment, and copy its own
+     address, not the branch's address: `https://<hash>.hedgeschool.pages.dev` for Hedge School,
+     `https://<hash>.cyanotype-ztp.pages.dev` for Cyanotype.
   3. Give the partner that address. It shows that deployment only, and a later push gives a new address.
   4. To withdraw it, delete the deployment (its **⋯** menu, **Delete deployment**).
 
@@ -427,6 +429,9 @@ nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only:
   its version (`ort-<version>`). So a new release or a new network gets a new path, and `/engine/manifest.json` stays
   out of the rule.
   `static/robots.txt` names its sitemap.
+- **A partner's test pages,** as Hedge School's (section 2, "A partner's test pages"): the build of the branch
+  `partner_test` also takes a partner's pages on the developer's own computer (`vite.config.ts` sets
+  `VITE_PARTNER_TEST`). Cyanotype has no partner yet, so this build is the only one that saves a review to a partner.
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
   have with it, and with status 404.
 - **No Function and no storage at Cloudflare.** The browser keeps the visitor's games, settings and choices (its

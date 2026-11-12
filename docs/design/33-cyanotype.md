@@ -658,10 +658,10 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    "Analyze on the board" opens the board by its own address with the record (`/analysis#record=…&at=`), which takes it
    out of the address again and checks it, as a link to the board does. The page counts the review's import once it
    keeps the game. The board's address names the tool's source (`via`), and the board counts the import by it
-   ("Analytics", item 4). A reload of the page after the game left its address goes to the tools page. A
-   partner's links (`from=`, `packed=`, a partner's `save=`) are Hedge School's (its design 18): the page refuses
-   `from=` and a link with no record, and reads no `save=`, until the steps of "Partner sites". A link's record
-   (`/import#record=…`) gets the same choice as a tool's.
+   ("Analytics", item 4). A reload of the page after the game left its address goes to the tools page. Another
+   site's link (`/import#record=…`, with a partner's `save=`) asks no choice: the page keeps its game, with the
+   partner's save page, and opens its review at once ("Partner sites", item 1). The page refuses a link with no
+   record, and refuses `from=` until the steps of "Partner sites" take it.
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the footer below 640 pixels, in the site's menu from
    640 pixels, and in the header from 740 pixels. Hedge School's is in the same places, with its header from 1,024
@@ -1126,9 +1126,10 @@ their review here. It can also keep its players' reviews with its own sign-in, a
 Hedge School has one partner, enclosuregame.com. Cyanotype has none yet. The build makes each part ready, and the
 partners' test runs the whole way. A new partner is then one line in a list and a release, as on Hedge School.
 
-Not built yet on Cyanotype. The shared parts are in the packages (abscls-8tl1.74): Hedge School's partner code
-moved there, with each site's parts as parameters (`partnerSite`). The steps for Cyanotype are abscls-8tl1.75 to
-abscls-8tl1.77 (the order is below).
+The shared parts are in the packages (abscls-8tl1.74): Hedge School's partner code moved there, with each site's
+parts as parameters (`partnerSite`). Cyanotype takes a partner's link and saves the review back (items 1 to 6, and
+the partners' test: abscls-8tl1.75). Its parts are in `src/lib/game/partners.ts`, with an empty list. A kept review
+opened again (item 7) and the rest are abscls-8tl1.76 and abscls-8tl1.77 (the order is below).
 
 ### Each part of Hedge School's design
 

@@ -21,7 +21,7 @@
   import { fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { loadReviewFile } from "#lib/game/reviewFile.ts";
   import { loadEngine, settingsFor } from "#lib/analysis/engineSettings.ts";
-  import { REVIEW_EXPORTS, deliverExport } from "./reviewExports.ts";
+  import { deliverExport, reviewExports } from "./reviewExports.ts";
   import { annotatedFromStore } from "./exportText.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
@@ -168,7 +168,7 @@
       id: game.id, title: title(record), href: `/review#game=${game.id}`,
       detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
         + `added ${new Date(game.added).toLocaleDateString()}`,
-      exports: { run: kind => exportGame(game.id, game.record, kind), items: REVIEW_EXPORTS, ontrack: trackExport,
+      exports: { run: kind => exportGame(game.id, game.record, kind), items: reviewExports(), ontrack: trackExport,
         ready: reviewCovers(game.reviewed, want),
         why: !game.reviewed ? "Open the game to review it, then export."
           : reviewAgainWhy(game.reviewed, want) ? "The engine has a new version: open the game, choose Review again, then export."

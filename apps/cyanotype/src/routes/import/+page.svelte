@@ -5,9 +5,11 @@
   // School. The engine's rules then check the record once, with each move's capture mark (recordCheck.ts, design 33,
   // item 11): a record that they refuse shows why, and opens nothing. Else the player chooses the review or the
   // Analysis board. The review's choice keeps the game in this browser here, as Hedge School's import page does
-  // (game/import.ts, keepChecked, with this page's check), then opens its review by the game's id (openReview). A
-  // browser that cannot keep the game stays on this page, with why: the tools page does not help it, so the page does
-  // not offer it there. The Analysis board opens by its own address with the record, at the position that the
+  // (game/import.ts, keepChecked, with this page's check), then opens its review by the game's id (openReview). Another
+  // site's link (`record=`, with a partner's `save=`: design 33, "Partner sites") asks no choice: the page keeps its
+  // game, with the partner's save page when `save=` is on a partner's host (game/partners.ts), and opens its review at
+  // once. A link with no `record=` says so. A browser that cannot keep the game stays on this page, with why: the
+  // tools page does not help it, so the page does not offer it there. The Analysis board opens by its own address with the record, at the position that the
   // game's page showed, and asks before the game replaces the board kept here. A game from a set-up start offers the
   // board only: the review refuses it, so the choice says so before the click (setUpProblem). For an out-of-date tool,
   // the page also says how to update it, and counts it. The page counts the import as Hedge School's does (its design
@@ -26,6 +28,8 @@
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import type { Checked } from "#lib/game/check.ts";
   import { keepChecked } from "#lib/game/import.ts";
+  import { gamePartner } from "#lib/game/partners.ts";
+  import { setGamePartner } from "#lib/game/store.ts";
   import { turnFromCount } from "#lib/game/notation.ts";
   import { parseRecord, playerNames, setUpProblem, type GameRecord } from "#lib/game/record.ts";
   import { checkRecordMarks } from "#lib/review/recordCheck.ts";
@@ -55,9 +59,10 @@
     try {
       sent = readImportHash(hash);
       if (sent.tool) source = toolSource(sent.tool);
-      // A partner's page that sends a kept review (`from=`) and a shared review (`packed=`) come with Hedge School's
-      // partners, which Cyanotype does not have.
-      if (sent.from || !sent.record) throw new Error("this link does not hold a game record");
+      // A partner's page that sends a kept review (`from=`) and a shared review (`packed=`) do not come in here.
+      if (sent.from) throw new Error("this link does not hold a game record");
+      if (!sent.record) throw new Error(sent.link ? "the link has no record=, which carries the game"
+        : "this link does not hold a game record");
       // Cyanotype's tools always send their version, so a record with no tool (a link's) has no tool to update.
       const old = staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
       stale = old === "older" ? null : old;
@@ -70,24 +75,33 @@
       trackImportFailed("review", source, failure);
       return;
     }
-    phase = { at: "checking", sent, record, source };
+    // Another site's link goes straight to the review: the page says that it imports the game while the rules check it.
+    phase = sent.link ? { at: "keeping" } : { at: "checking", sent, record, source };
     const checked = await checkRecordMarks(record);
-    if (checked.problem) trackImportFailed("review", source, "rejected");
-    phase = checked.problem
-      ? { at: "failed", message: `${SITE_NAME} cannot open this game: ${errorSentence(checked.problem)}`, keeping: false }
-      : { at: "choose", sent, record, source, checked };
+    if (checked.problem) {
+      trackImportFailed("review", source, "rejected");
+      phase = { at: "failed", message: `${SITE_NAME} cannot open this game: ${errorSentence(checked.problem)}`, keeping: false };
+    } else if (sent.link) await review(sent, record, source, checked);
+    else phase = { at: "choose", sent, record, source, checked };
   });
 
   // Each choice replaces this page in the history: Back then leads to the page before it.
-  /** The review: the game kept with this page's check, then its review. The import counts by its source and the
-   *  game's length, and a failure as rejected (Hedge School's design 17). A failure says why in Hedge School's words
-   *  ("… could not import the game:"), then the import's own (game/import.ts), in whole sentences. */
-  async function reviewChosen() {
+  /** The review's choice. */
+  function reviewChosen() {
     if (phase.at !== "choose") return;
     const { sent, record, source, checked } = phase;
+    void review(sent, record, source, checked);
+  }
+  /** The review: the game kept with this page's check, with its partner's save page when a link names one, then its
+   *  review. The import counts by its source and the game's length, and a failure as rejected (Hedge School's design
+   *  17). A failure says why in Hedge School's words ("… could not import the game:"), then the import's own
+   *  (game/import.ts), in whole sentences. */
+  async function review(sent: ImportHash, record: GameRecord, source: ImportSource, checked: Checked) {
     phase = { at: "keeping" };
     try {
       const id = await keepChecked(sent.record, record, checked);
+      const partner = gamePartner(sent.save);
+      if (partner) await setGamePartner(id, partner);
       trackImport("review", source, record.moves.length);
       openReview(id);
     } catch (e) {
