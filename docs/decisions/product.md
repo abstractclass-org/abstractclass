@@ -11559,3 +11559,26 @@ abscls-ntkp. The owner's verdict on 2026-11-12: stop. The prototype (the page `/
   - The cost: 2 more searches a case, a mean of 10.3 s each at 512 visits on one CPU thread.
 - **Why stop:** a comparison with a pass does not give a reason that a player can use. site-coord recommended stop.
   The full report is in the issue's comments.
+
+### The layout test holds the engine's network on /openings (2026-11-12)
+
+abscls-0nax, a later step of "The engine header's words fit a column of 360 pixels (2026-11-06)". That test reached
+the engine header's loading state only by chance: the words show until the network loads.
+
+- **The case "layout of /openings"** now holds the network's files (`holdNetworks`, moved with `headerLine` to
+  `tests/network-hold.ts`, which `network-loading.spec.ts` imports too). It sweeps every size while the header says
+  that the network loads, releases the files, waits for the words to go, and sweeps every size again. A rule of the
+  case checks the header's state at each size, so a sweep in the wrong state fails and names the sizes. A line that
+  is hidden or gone fails at that size at once.
+- **The test catches abscls-wb5y's fault**, put back for the runs (the words' span with `whitespace-nowrap` and no
+  ellipsis, as before 5c0059d), in DejaVu Sans (Linux's `system-ui`, in headless Chromium on Windows): 5 of 5 runs
+  failed with "the page area scrolls sideways: 347 in 345" at width 360. The old case failed 1 of 5. Without the
+  fault, the new case failed 0 of 6 runs (3 in Segoe UI, 3 in DejaVu Sans). In Segoe UI the fault puts the gear 10
+  pixels into the column's padding, and the case passed 3 of 3: no rule sees an overflow that passes no clipping box
+  and no edge. CI's Linux job uses DejaVu Sans, so CI catches it.
+- **Not kept: a rule that each child of a one-line flex row stays inside its row.** It caught the Segoe UI case, but
+  with no fault it failed on Hedge School's and Cyanotype's /analysis (the analysis table's move cells and its "⇅",
+  8.2 to 23.2 pixels at widths 360 to 390; the "›" of a button, 2.5 to 12.5 pixels at 360 and 370) and in Cyanotype's
+  header at 640 and 650 (the theme button, on every page: abscls-8tl1.89).
+- **The menu case** ("layout of the site's menu on <site>") took `problems()`, which gives Problem objects since
+  abscls-wb5y, as strings: a broken rule threw a TypeError in place of the report. It now takes `allProblems()`.
