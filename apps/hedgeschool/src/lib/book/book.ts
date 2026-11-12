@@ -16,12 +16,12 @@ export interface Book {
   /** The start, in the position notation. */
   readonly start: string;
   /** The book's position, with its part loaded. Null when the book does not hold it. It rejects with a
-   *  BookLoadError when the part does not load, is not a book's part of this form, does not answer in its time
-   *  limit (BOOK_TIME_LIMIT), or lacks the position, and a later call tries again. It always settles: the review's
-   *  evaluation waits for it before it searches. */
+   *  BookLoadError when its part fails, and a later call tries again. A part fails when it does not load, is not a
+   *  book's part of this form, lacks a position that the index gives it, or does not answer in its time limit
+   *  (BOOK_TIME_LIMIT). It always settles: the review's evaluation waits for it before it searches. */
   get(position: string): Promise<BookPosition | null>;
   /** The book's position at once: null when the book does not hold it (from the index alone), undefined while its
-   *  part is not loaded or when its part lacks it. */
+   *  part is not loaded. */
   peek(position: string): BookPosition | null | undefined;
 }
 
@@ -106,29 +106,25 @@ class FileBook implements Book {
   readonly source: BookSource;
   readonly start: string;
   private readonly urls: string[];
+  private readonly listed: string[][]; // each part's positions, as the index gives them
   private readonly read: TimedReader;
   private readonly where = new Map<string, number>(); // each stored position's part
-  // Each part while it loads, then when it is loaded. A part that did not load, or not in the time limit, or that
-  // lacks a position that the index gives it, has neither, so a later lookup tries again ("Try again", design 32).
+  // Each part while it loads, then when it is loaded. A part that failed (`load`) has neither, so a later lookup tries
+  // again ("Try again", design 32).
   private readonly parts: (Promise<Part> | Part | undefined)[] = [];
 
   constructor(index: BookIndex, base: string, read: TimedReader) {
     this.source = index.source;
     this.start = index.start;
     this.urls = index.parts.map(p => base + p.file);
+    this.listed = index.parts.map(p => p.positions);
     this.read = read;
     index.parts.forEach((part, i) => part.positions.forEach(p => this.where.set(p, i)));
   }
 
   async get(position: string): Promise<BookPosition | null> {
     const place = this.place(position);
-    if (!place) return null;
-    const part = await (this.parts[place.part] ??= this.load(place.part)), found = this.found(place, part);
-    if (found) return found;
-    // A part that lacks a position that the index gives it fails as a part that does not load: a later lookup reads
-    // it again. Another lookup can have cleared it already, or started its next read.
-    if (this.parts[place.part] === part) this.parts[place.part] = undefined;
-    throw new BookLoadError(this.urls[place.part], `it lacks the position ${place.stored}`);
+    return place && this.found(place, await (this.parts[place.part] ??= this.load(place.part)));
   }
 
   peek(position: string): BookPosition | null | undefined {
@@ -143,19 +139,22 @@ class FileBook implements Book {
     return imagePart === undefined ? null : { stored: image, part: imagePart, mirrored: true };
   }
 
-  /** The position in its loaded part, as the player reached it. Undefined when the part lacks it: `peek` then counts
-   *  the part as not loaded, and `get` fails. */
-  private found({ stored, mirrored }: Place, positions: Part): BookPosition | undefined {
-    const position = positions.get(stored);
-    return position && reached(position, mirrored);
+  /** The position in its loaded part, as the player reached it. The part holds it: `load` checks that a part holds
+   *  each position that the index gives it. */
+  private found({ stored, mirrored }: Place, positions: Part): BookPosition {
+    return reached(positions.get(stored)!, mirrored);
   }
 
-  /** Loads part `i`. A part that is not a book's, or of another form, fails as a part that does not load. */
+  /** Loads part `i`. A part that is not a book's, is of another form, or lacks a position that the index gives it,
+   *  fails as a part that does not load. */
   private async load(i: number): Promise<Part> {
     const url = this.urls[i];
     try {
       const file = checked((await this.read(url)) as BookPart);
-      return (this.parts[i] = new Map(file.positions.map(p => [p.position, p])));
+      const part: Part = new Map(file.positions.map(p => [p.position, p]));
+      const missing = this.listed[i].find(p => !part.has(p));
+      if (missing !== undefined) throw new Error(`it lacks the position ${missing}`);
+      return (this.parts[i] = part);
     } catch (e) {
       this.parts[i] = undefined;
       throw new BookLoadError(url, e);

@@ -338,24 +338,22 @@ test("the loader refuses a file that is not a book's, or a book of another form,
   assert.equal(log.filter(u => u === PART).length, 3, "each lookup reads the part again");
 });
 
-test("a part that lacks a position that the index gives it fails that lookup, and a later lookup reads it again",
-     async () => {
+test("a part that lacks a position of the index fails each lookup in it, as a part that does not load", async () => {
   const PART = "/test-book/prototype/1.json", position = LINE_B_POSITIONS[7], log: string[] = [];
   const other = PROTOTYPE.index.parts[1].positions.find(p => p !== position)!;
-  let lacks = 1;
-  const read: BookReader = async url => {
-    log.push(url);
-    const file = readJson(url) as BookPart;
-    if (url !== PART || lacks-- <= 0) return file;
+  let first = true; // only the first read of the part lacks the position
+  const read: BookReader = async (url, signal) => {
+    const file = (await files(log)(url, signal)) as BookPart;
+    if (url !== PART || !first) return file;
+    first = false;
     return { ...file, positions: file.positions.filter(p => p.position !== position) };
   };
   const book = await openBook(TEST_BOOK, read);
-  assert.equal((await book.get(other))?.position, other, "the part loads");
-  assert.equal(book.peek(position), undefined, "a part that lacks the position counts as not loaded");
-  await assert.rejects(book.get(position), (e: unknown) =>
-    e instanceof BookLoadError && e.url === PART && /it lacks the position/.test(e.message));
-  assert.equal(book.peek(position), undefined, "the part counts as not loaded");
-  assert.equal((await book.get(position))?.position, position, "\"Try again\" reads the part again");
+  await assert.rejects(book.get(other), (e: unknown) =>
+    e instanceof BookLoadError && e.url === PART && e.message.endsWith(`it lacks the position ${position}`));
+  assert.equal(book.peek(other), undefined, "the part counts as not loaded");
+  assert.equal((await book.get(position))?.position, position, "a later lookup reads the part again");
+  assert.equal(book.peek(other)?.position, other, "the part holds its other positions again");
   assert.equal(log.filter(u => u === PART).length, 2);
 });
 
