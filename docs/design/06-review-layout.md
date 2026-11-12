@@ -59,7 +59,9 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      score line is teal (`--score`) and the area line magenta (`--area`), apart from the accent's lavender. **The
      chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area of the
      lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are only
-     there. At the game's end the result replaces the score. **The score and area lines show or hide** in two ways: the
+     there. At the game's last position the note has no score. When the rules ended the game, the game's result takes
+     the lead's place there, as in the move's tooltip ("Result: Red +0.03", item 8). **The score and area lines show or
+     hide** in two ways: the
      display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its name
      in the legend shows or hides it for the moment, without changing the setting. A line that is off by setting keeps
      its place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still step
@@ -217,7 +219,11 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      move's note ("Lead: Blue +38", the same word as the header's and the chart's) and the chart's notes. The win
      chance is the mover's, and its column names the side ("Red wins"). The gauge, the chart and the players' tags
      show both sides. Every note gives the lead and the loss in the lead to one decimal ("−143.3", "Lead: Blue
-     +38.2"): a note is read closely. The move list, the header and the table give whole numbers.
+     +38.2"): a note is read closely. The move list, the header and the table give whole numbers. **After the game's
+     last move, when the rules ended the game,** the move's tooltip and the chart's note give the game's result, not
+     the engine's estimate, so their word is "Result:" ("Result: Red +0.03"), by the rule for a draw (design 29). One
+     rule in the review's view (`leadLine`) gives the word and the number to both. A record that ends before the rules
+     end the game keeps "Lead:" on its last move: there the number is the engine's estimate.
    - **What a move cost:** the mover's loss against the engine's best. It needs no side: it is always the mover's. In
      the move list, the loss in the lead at the right of each move (by turn, of each turn), where Lichess's move list
      has its evaluation: "−136". In every note, the loss in win chance first and then the loss in the lead, each with
