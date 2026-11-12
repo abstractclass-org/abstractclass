@@ -5,8 +5,11 @@
 # holds one commit: a copy of scripts/doc-widths.mjs, and old.sh, a script at mode 100644 (as a script from Windows
 # lands). Most tests stage a file in the index only (git update-index --cacheinfo), so a path that a file system cannot
 # hold, such as 0:foo, is staged too. Git for Windows refuses a path with a colon or a newline, so those two tests run
-# only on other systems, such as the workflow's Linux. The last test reads this repository's own index: each script of
-# it has its exec bit, or the hook refuses its next edit.
+# only on other systems, such as the workflow's Linux. The tests of private words lay out a throwaway planning folder:
+# a copy of the planning folder's scripts/private-check, the throwaway repository in it, and a worktree of that
+# repository. Their list of words is made up (PRIVATE_WORDS). A checkout with no planning folder around it (the
+# workflow's) or a shell with no python skips them. The last test reads this repository's own index: each script of it
+# has its exec bit, or the hook refuses its next edit.
 
 hook=$(pwd)/.githooks/pre-commit
 dir=$(mktemp -d)
@@ -45,10 +48,10 @@ stage() {
 	g update-index --add --cacheinfo "$1,$blob,$2" || { echo "FAIL  git cannot stage $2"; failed=1; }
 }
 
-# commit: runs the hook at the throwaway repository's root, as Git runs it before a commit. It leaves its exit status
-# in $status and its messages in $dir/out.
+# commit: runs the hook at the root of the throwaway repository (or of the worktree that $at names), as Git runs it
+# before a commit. It leaves its exit status in $status and its messages in $dir/out.
 commit() {
-	(cd "$repo" && sh "$hook") > "$dir/out" 2>&1
+	(cd "${at:-$repo}" && sh "$hook") > "$dir/out" 2>&1
 	status=$?
 }
 
@@ -70,6 +73,7 @@ exits() { [ "$status" -eq "$1" ] || { why="expected exit $1"; return 1; }; }
 has() { grep -qF -- "$1" "$dir/out" || { why="no \"$1\" in the output"; return 1; }; }
 lacks() { ! grep -qF -- "$1" "$dir/out" || { why="\"$1\" in the output"; return 1; }; }
 quiet() { [ ! -s "$dir/out" ] || { why="the output is not empty"; return 1; }; }
+hides() { ! grep -qiF -- "$1" "$dir/out" || { why="the output holds the word"; return 1; }; }
 
 fresh
 printf '%s' "$script" > "$repo/new.sh"  # on disk too: the fix reads it there
@@ -193,6 +197,78 @@ if command -v node > /dev/null 2>&1; then
 	check "  it names the long line" has "new.md:3: 150 characters"
 else
 	echo "SKIP  the width check: no node"
+fi
+
+# The check of private words. The source of private-check: the planning folder around this repository's main
+# checkout, as the hook finds it.
+main=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && main=$(dirname "$main")
+source=
+for c in "$main/scripts/private-check" "$main/../scripts/private-check"; do
+	[ -f "$c" ] && { source=$c; break; }
+done
+if [ -z "$source" ]; then
+	echo "SKIP  the private words: no planning folder around this checkout"
+elif ! command -v python > /dev/null 2>&1 && ! command -v python3 > /dev/null 2>&1; then
+	echo "SKIP  the private words: no python"
+else
+	mkdir -p "$dir/org/scripts"
+	cp "$source" "$dir/org/scripts/private-check"
+	printf 'hostbox\n' > "$dir/words"
+	export PRIVATE_WORDS="$dir/words"
+	repo=$dir/org/repo
+
+	fresh
+	stage 100644 notes.txt "fine${nl}ssh to HostBox now$nl"
+	commit
+	check "an added line with a listed word is refused" exits 1
+	check "  it names the line" has "private-check: notes.txt:2 holds a private word: ssh to <private> now"
+	check "  it hides the word" hides hostbox
+
+	fresh
+	stage 100644 hostbox.md "fine$nl"
+	commit
+	check "a new path with a listed word is refused" exits 1
+	check "  it names the path" has "private-check: <private>.md holds a private word: <private>.md"
+	check "  it hides the word" hides hostbox
+
+	fresh
+	stage 100644 notes.txt "the hostboxes$nl"
+	commit
+	check "a listed word inside a longer name passes" exits 0
+
+	fresh
+	stage 100644 old.txt "an old hostbox line${nl}short$nl"
+	g commit -q -m old --no-verify
+	stage 100644 old.txt "an old hostbox line${nl}short, edited$nl"
+	commit
+	check "an old line with a listed word stops no edit of the file" exits 0
+	check "  it prints nothing" quiet
+
+	fresh
+	at=$dir/org/wt
+	rm -rf "$at"
+	g worktree add -q -b wt "$at"
+	printf 'ssh to hostbox\n' > "$at/notes.txt"
+	git -C "$at" add -- notes.txt
+	commit
+	check "an added line with a listed word is refused in a worktree" exits 1
+	check "  it names the line" has "private-check: notes.txt:1 holds a private word: ssh to <private>"
+	at=
+
+	PRIVATE_WORDS=$dir/no-such-list
+	fresh
+	stage 100644 notes.txt "ssh to hostbox$nl"
+	commit
+	check "a machine with no list passes" exits 0
+	PRIVATE_WORDS=$dir/words
+
+	rm "$dir/org/scripts/private-check"
+	fresh
+	stage 100644 notes.txt "ssh to hostbox$nl"
+	commit
+	check "a clone with no planning folder around it passes" exits 0
+	check "  it prints nothing" quiet
+	repo=$dir/repo
 fi
 
 # This repository's index: each file that starts with #! has mode 100755. git grep reads the staged content of every

@@ -19,14 +19,19 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   once, in the main checkout, and a worker does not run them:
   - `git config core.hooksPath .githooks` turns on the three hooks. The commit-msg hook refuses a subject or a body line
     over 72 characters (CLAUDE.md in the planning folder, "Commit messages"). A body line of one word, such as a URL,
-    may be longer. The pre-commit hook refuses a staged Markdown line over 120 characters, by the rules of the workflow
-    Documents (below). It also refuses a staged file that starts with `#!` at mode 100644, and gives the command that
-    sets the mode to 100755: `git update-index --chmod=+x -- <file>`. Git for Windows stages each new file at mode
-    100644, so the hook refuses the first commit of each new script. A refused commit is not made: correct the message,
-    the lines or the mode, and commit again. The pre-push hook never refuses a push. For a push to `dev` while a run of
-    the workflow Tests on `dev` is not completed, it names each such run (its id, its commit and its start) and the
-    command that watches it. A push to `dev` cancels no run, because Tests has a group for each commit, so each commit
-    keeps its result. When `gh` fails, the hook warns that the check did not run, and the push goes ahead.
+    may be longer. It also refuses a message with no blank line after its subject. The commit-msg hook and the
+    pre-commit hook both refuse a private word (a login, a host name or an address of the owner's machines) in the
+    message, in a line that the commit adds or in a new path, and print the word as `<private>`. The planning folder's
+    `scripts/private-check` checks it, with that machine's list. A clone with no planning folder around it, or a
+    machine with no list, skips this check. The pre-commit hook refuses a staged Markdown line over 120 characters, by
+    the rules of the workflow Documents (below). It also refuses a staged file that starts with `#!` at mode 100644,
+    and gives the command that sets the mode to 100755: `git update-index --chmod=+x -- <file>`. Git for Windows stages
+    each new file at mode 100644, so the hook refuses the first commit of each new script. A refused commit is not
+    made: correct the message, the lines or the mode, and commit again. The pre-push hook never refuses a push. For a
+    push to `dev` while a run of the workflow Tests on `dev` is not completed, it names each such run (its id, its
+    commit and its start) and the command that watches it. A push to `dev` cancels no run, because Tests has a group
+    for each commit, so each commit keeps its result. When `gh` fails, the hook warns that the check did not run, and
+    the push goes ahead.
   - `git config merge.decision-log.driver "git merge-file --union --diff3 %A %O %B"` turns on the union merge of
     the decision logs (`.gitattributes`, docs/decisions/README.md). A rebase over another branch's new entry then
     keeps both entries, with no conflict. So add each entry at the end of its file. Two edits of the same lines give
