@@ -1,8 +1,9 @@
 // The commit that release-check.mjs checks a deployed site at, and the engine lock that it checks the site's engine
-// files against: the lock of a commit, as Git keeps it, never the checkout's file. It runs in Node only, from
+// files against: the lock of a commit, as Git keeps it, never the checkout's file. Also whether the checkout's code of
+// the check differs from a commit's, for the lines that come from the checkout. It runs in Node only, from
 // release-check.mjs, whose header gives the reasons.
 import { execFileSync } from "node:child_process";
-import { basename, dirname } from "node:path";
+import { basename, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The engine lock's parts that release-check.mjs reads. */
@@ -48,4 +49,18 @@ export function lockAt(lockUrl: URL, ref: string): { commit: string; lock: Engin
     throw new Error(`commit ${commit} has no ${pathInRepo}`);
   }
   return { commit, lock: JSON.parse(text) };
+}
+
+/** Whether one of the files `files`, in the clone of the site's lock `lockUrl`, differs between commit `ref` and the
+ *  checkout's working tree. A file that one side lacks differs. When Git cannot compare them, they differ too: the
+ *  caller marks what comes from the checkout, and a mark too many misleads less than one too few. */
+export function checkoutDiffers(lockUrl: URL, ref: string, files: URL[]): boolean {
+  const lockPath = fileURLToPath(lockUrl);
+  const paths = files.map(file => relative(dirname(lockPath), fileURLToPath(file)).replaceAll("\\", "/"));
+  try {
+    git(lockPath, "diff", "--quiet", ref, "--", ...paths);
+    return false;
+  } catch {
+    return true;
+  }
 }

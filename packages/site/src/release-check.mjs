@@ -21,21 +21,33 @@
 //
 // The header's links, the pages that lead home and the site's own checks come from this checkout's script, not from
 // the commit. A site's script gives them as code, not as data that the check could read from a commit, and a rollback
-// goes to an older commit, which would not have such data. Each of their lines says "(from this checkout)" after the
-// name of its check. A rollback past a change to them can say FAIL on their line although the rollback worked.
+// goes to an older commit, which would not have such data. When the code that gives these lines differs between the
+// commit and this checkout, each of their lines says "(from this checkout)" after the name of its check: a rollback
+// past a change to them can say FAIL on their line although the rollback worked. That code is the site's script and
+// this file. Their other imports give none of these lines: releaseLock.ts gives the commits and the lock, and the
+// engine's artifacts.ts the downloads. When the code is the same, no line says it, because the commit's script would
+// check the same things.
+//
+// A request after the home page that gets no answer (a connection that drops, a server that does not answer) gives
+// FAIL on its check's line, with the reason, and the check goes on to its last line.
 //
 // It reads public pages only, and a site's own checks may send a request that stores nothing. Each line says PASS,
 // FAIL or INFO. The last line is `release-check: PASS` or `release-check: FAIL`.
 //
 // It runs in Node only, and no page imports it: it is why this package depends on @abstractclass/engine (design 29).
 import { fetchArtifact } from "@abstractclass/engine/artifacts.ts";
-import { commitOf, footerCommit, lockAt } from "./releaseLock.ts";
+import { realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+import { checkoutDiffers, commitOf, footerCommit, lockAt } from "./releaseLock.ts";
 
 // The check cannot run: the line says why and what to do, and the exit code is 2.
 function stop(message) {
   console.error(message);
   process.exit(2);
 }
+
+// Why a request failed: Node's fetch says "fetch failed" and gives the reason as its cause.
+const reasonOf = error => error.cause?.message || error.cause?.code || error.message;
 
 // What `read` gives, else a stop with its Error's message after `prefix`.
 function orStop(read, prefix = "") {
@@ -53,8 +65,10 @@ function orStop(read, prefix = "") {
  *  - `branchOf`: the commit of each pages.dev address: the project's, origin/main, and dev's preview, origin/dev.
  *  - `menu`: the links that the header shows.
  *  - `leadHome`: the pages that lead home: a redirect, or a page that refreshes to /. None by default.
- *  - `ownChecks(base, check)`: the site's own checks, after the engine's files. `check(name, pass, detail)` prints a
- *    line, with "(from this checkout)" after the name, and counts it. */
+ *  - `ownChecks(base, check)`: the site's own checks, after the engine's files. `await check(name, run)` prints a line
+ *    and counts it. `run()` sends the requests and gives `[pass, detail]`. When a request fails, the line says FAIL
+ *    with the reason. The name takes "(from this checkout)" after it when the site's script differs from the commit's.
+ */
 export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [], ownChecks }) {
   const [baseArg, commitArg] = process.argv.slice(2);
   if (!baseArg) stop("usage: node scripts/release-check.mjs <base URL> [<commit>]");
@@ -72,9 +86,9 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   const commit = given?.commit ?? orStop(() => commitOf(lockUrl, branch));
 
   // The home page: its footer's version gives the lock without <commit>.
-  const home = await fetch(`${base}/`).catch(error => stop(`${base}/ does not answer `
-    + `(${error.cause?.message || error.message}). Check the address, then run the check again.`));
-  const html = await home.text();
+  const { home, html } = await fetch(`${base}/`).then(async home => ({ home, html: await home.text() }))
+    .catch(error => stop(`${base}/ does not answer (${reasonOf(error)}). `
+      + "Check the address, then run the check again."));
   const version = footerCommit(html);
   if (!given && !version) stop(`${base}/ answers ${home.status}, and no footer on it names a commit. ${commitHint}`);
   const { commit: lockCommit, lock } = given
@@ -85,8 +99,22 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     results.push(pass);
     console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? `: ${detail}` : ""}`);
   };
-  // A check of a part that this checkout's site script gives, not the commit.
-  const checkoutCheck = (name, pass, detail) => check(`${name} (from this checkout)`, pass, detail);
+  // A check whose requests can fail: `run()` gives `[pass, detail]`, and a failed request gives FAIL with its reason.
+  const checkRequest = async (name, run, record = check) => {
+    let pass = false;
+    let detail;
+    try {
+      [pass, detail] = await run();
+    } catch (error) {
+      detail = `the request failed (${reasonOf(error)})`;
+    }
+    record(name, pass, detail);
+  };
+  // A check of a part that this checkout's site script gives, not the commit: marked when that code differs.
+  const fromCheckout = checkoutDiffers(lockUrl, lockCommit,
+    [pathToFileURL(realpathSync(process.argv[1])), new URL(import.meta.url)]);
+  const checkoutCheck = (name, pass, detail) =>
+    check(fromCheckout ? `${name} (from this checkout)` : name, pass, detail);
   const cacheOf = r => r.headers.get("cache-control") ?? "";
 
   console.log(`INFO  ${base}, ${live ? "the live site" : "not the live site"}, commit ${commit} `
@@ -102,28 +130,38 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   const links = [...header.matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map(m => m[1].trim());
   checkoutCheck(`the header shows ${menu.join(", ")}`, menu.every(name => links.includes(name)), links.join(", "));
 
-  const unknown = await fetch(`${base}/no-such-page-${Date.now()}`);
-  check("an unknown address answers 404", unknown.status === 404, String(unknown.status));
+  await checkRequest("an unknown address answers 404", async () => {
+    const unknown = await fetch(`${base}/no-such-page-${Date.now()}`);
+    return [unknown.status === 404, String(unknown.status)];
+  });
 
   for (const path of leadHome) {
-    const r = await fetch(base + path, { redirect: "manual" });
-    const body = r.status === 200 ? await r.text() : "";
-    const leads = (r.status >= 300 && r.status < 400 && new URL(r.headers.get("location") ?? "", base).pathname === "/")
-      || /http-equiv="refresh" content="0;\s*url=\/"/.test(body);
-    checkoutCheck(`${path} leads home`, leads, `${r.status} ${r.headers.get("location") ?? ""}`.trim());
+    await checkRequest(`${path} leads home`, async () => {
+      const r = await fetch(base + path, { redirect: "manual" });
+      const body = r.status === 200 ? await r.text() : "";
+      const location = r.headers.get("location");
+      const leads = (r.status >= 300 && r.status < 400 && new URL(location ?? "", base).pathname === "/")
+        || /http-equiv="refresh" content="0;\s*url=\/"/.test(body);
+      return [leads, `${r.status} ${location ?? ""}`.trim()];
+    }, checkoutCheck);
   }
 
   // The caches: a year, never checked again, for the build's hashed code and the engine's files (static/_headers).
   const immutable = html.match(/\/_app\/immutable\/[^"']+\.js/)?.[0];
   if (immutable) {
-    const r = await fetch(base + immutable, { method: "HEAD" });
-    check("/_app/immutable/ is immutable", /immutable/.test(cacheOf(r)), `${immutable} ${cacheOf(r)}`);
+    await checkRequest("/_app/immutable/ is immutable", async () => {
+      const r = await fetch(base + immutable, { method: "HEAD" });
+      return [/immutable/.test(cacheOf(r)), `${immutable} ${cacheOf(r)}`];
+    });
   } else check("the home page names a file in /_app/immutable/", false);
 
-  const manifestR = await fetch(`${base}/engine/manifest.json`);
-  check("/engine/manifest.json is not immutable", manifestR.status === 200 && !/immutable/.test(cacheOf(manifestR)),
-    `${manifestR.status} ${cacheOf(manifestR)}`);
-  const manifest = await manifestR.json().catch(() => ({ artifacts: [] }));
+  // A manifest that does not answer, or that is not JSON, names no file.
+  let manifest = { artifacts: [] };
+  await checkRequest("/engine/manifest.json is not immutable", async () => {
+    const r = await fetch(`${base}/engine/manifest.json`);
+    manifest = await r.json().catch(() => manifest);
+    return [r.status === 200 && !/immutable/.test(cacheOf(r)), `${r.status} ${cacheOf(r)}`];
+  });
   const stored = new Map(manifest.artifacts.map(a => [a.id, a]));
 
   // The engine's files: the manifest names each one of the lock, with the lock's SHA-256.
@@ -132,10 +170,12 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
 
   const engineModule = lock.artifacts.find(a => a.kind === "module");
   const moduleEntry = stored.get(engineModule.id);
-  const moduleR = moduleEntry ? await fetch(base + moduleEntry.url, { method: "HEAD" }) : null;
-  check(`the module ${engineModule.id} is application/wasm and immutable`,
-    moduleR?.headers.get("content-type") === "application/wasm" && /immutable/.test(cacheOf(moduleR)),
-    moduleR ? `${moduleR.status} ${moduleR.headers.get("content-type")} ${cacheOf(moduleR)}` : "not in the manifest");
+  await checkRequest(`the module ${engineModule.id} is application/wasm and immutable`, async () => {
+    if (!moduleEntry) return [false, "not in the manifest"];
+    const r = await fetch(base + moduleEntry.url, { method: "HEAD" });
+    const type = r.headers.get("content-type");
+    return [type === "application/wasm" && /immutable/.test(cacheOf(r)), `${r.status} ${type} ${cacheOf(r)}`];
+  });
 
   // A file downloads whole as the page reads it (@abstractclass/engine/artifacts.ts): its parts joined and
   // decompressed, and its SHA-256 checked, here against the lock.
@@ -157,11 +197,13 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   await checkWhole(networks[0], "the largest network");
   await checkWhole(lock.artifacts.find(a => a.kind === "terms"), "the terms");
 
-  if (ownChecks) await ownChecks(base, checkoutCheck);
+  if (ownChecks) await ownChecks(base, (name, run) => checkRequest(name, run, checkoutCheck));
 
   if (live) {
-    const dns = await (await fetch(`https://dns.google/resolve?name=${host}&type=A&do=1`)).json();
-    check("the domain's answers are signed (DNSSEC validated)", dns.AD === true, `AD=${dns.AD} Status=${dns.Status}`);
+    await checkRequest("the domain's answers are signed (DNSSEC validated)", async () => {
+      const dns = await (await fetch(`https://dns.google/resolve?name=${host}&type=A&do=1`)).json();
+      return [dns.AD === true, `AD=${dns.AD} Status=${dns.Status}`];
+    });
   }
 
   const pass = results.every(Boolean);

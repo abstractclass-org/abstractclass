@@ -5,12 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { pathToFileURL } from "node:url";
-import { commitOf, footerCommit, lockAt } from "./releaseLock.ts";
+import { checkoutDiffers, commitOf, footerCommit, lockAt } from "./releaseLock.ts";
 
-// A clone with a site's folder, apps/x: a commit with no lock, a commit with lock "one", a commit with lock "two", and
-// lock "three" in the working tree, not committed.
+// A clone with a site's folder, apps/x: a commit with no lock and no script, a commit with lock "one" and script "one",
+// a commit with lock "two" and script "two", and lock "three" in the working tree, not committed. The working tree's
+// script is commit "two"'s.
 let root = "";
 let lockUrl: URL;
+let scriptUrl: URL;
 const commits: Record<string, string> = {};
 const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 const lockTagged = (tag: string) => ({ tag, artifacts: [] });
@@ -25,12 +27,16 @@ before(() => {
   root = mkdtempSync(join(tmpdir(), "release-lock-"));
   git("init", "-q");
   mkdirSync(join(root, "apps", "x"), { recursive: true });
+  mkdirSync(join(root, "apps", "x", "scripts"));
   const lock = join(root, "apps", "x", "engine.lock.json");
+  const script = join(root, "apps", "x", "scripts", "check.mjs");
   lockUrl = pathToFileURL(lock);
+  scriptUrl = pathToFileURL(script);
   commitAs("none");
   for (const tag of ["one", "two"]) {
     writeFileSync(lock, JSON.stringify(lockTagged(tag)));
-    git("add", "apps/x/engine.lock.json");
+    writeFileSync(script, `// script ${tag}\n`);
+    git("add", "apps/x/engine.lock.json", "apps/x/scripts/check.mjs");
     commitAs(tag);
   }
   writeFileSync(lock, JSON.stringify(lockTagged("three")));
@@ -67,4 +73,12 @@ test("the footer's commit: the 7 characters after its word version, none for a b
   assert.equal(footerCommit(footer("34058e5")), "34058e5");
   assert.equal(footerCommit(footer("unknown")), undefined);
   assert.equal(footerCommit("<p>a page with no footer</p>"), undefined);
+});
+
+test("the checkout's code differs from a commit's: a file that changed since, or that the commit lacks", () => {
+  assert.equal(checkoutDiffers(lockUrl, commits.two, [scriptUrl]), false);
+  assert.equal(checkoutDiffers(lockUrl, commits.one, [scriptUrl]), true);
+  assert.equal(checkoutDiffers(lockUrl, commits.none, [scriptUrl]), true);
+  // A change in the working tree counts: it holds lock "three", which no commit has. One file of several is enough.
+  assert.equal(checkoutDiffers(lockUrl, commits.two, [scriptUrl, lockUrl]), true);
 });

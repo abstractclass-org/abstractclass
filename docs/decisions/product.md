@@ -11492,3 +11492,35 @@ abscls-h6md, later steps of abscls-kn89 ("release-check reads the lock of the co
   exit code 2 and its line. A rollback, simulated read-only: the check gave `dev.hedgeschool.pages.dev` the branch
   `origin/main` (`8621232`) while it served `34058e5`. It read the lock of `34058e5` from the footer and said FAIL on
   the footer's line alone, 13 of 14.
+
+### release-check: a failed request is a FAIL line, and the checkout's marker shows only where it differs (2026-11-12)
+
+abscls-5ouq, later steps of abscls-h6md ("release-check with no commit reads the deployed commit's lock").
+
+- **A failed request after the home page** gives FAIL on its check's line, with the reason (`the request failed (other
+  side closed)`), and the check goes on to its last line and its count. Before, a connection that dropped in the
+  middle of a run, or no answer from `dns.google` for the DNSSEC line, ended the check with Node's stack trace and exit
+  code 1. A home page that does not answer still stops the check with exit code 2, and so does a home page whose body
+  breaks off. A site's own checks take the same form: `check(name, run)`, where `run()` sends the requests and gives
+  the result, so a failed request names its check.
+- **The marker `(from this checkout)`** now shows only when the code that gives the marked lines differs between the
+  checked commit and the checkout's working tree (`git diff --quiet <commit> -- <files>`, in
+  `packages/site/src/releaseLock.ts`, `checkoutDiffers`). The checked commit is the commit whose lock the check reads:
+  the given commit, else the footer's. The files are the site's `scripts/release-check.mjs` and
+  `packages/site/src/release-check.mjs`. They are enough: the marked lines' names, expected values and requests are in
+  these two files. Their other imports give none of the marked lines: `releaseLock.ts` gives the commits and the lock,
+  and the engine's `artifacts.ts` the downloads. The whole of `packages/site` is not compared: its components change
+  with most releases, and a change there does not change what the check expects. A commit from before a file's move
+  lacks it, so it differs. When Git cannot compare, the lines are marked, because a mark too many misleads less than
+  one too few. So a run on a deployment of the checkout's own commit shows no marker, and a marked FAIL after a
+  rollback means that the check's code changed since that release: hosting.md's "Roll back", step 5, then sends the
+  owner to the browser, or to `git log` for the Function.
+- **Checked on 2026-11-12, read-only, from a checkout of the change on dev `0e119d5`:** `dev.hedgeschool.pages.dev`
+  with no commit, PASS, 15 of 15. The live site with no commit (`8621232`), PASS, 16 of 16.
+  `dev.cyanotype-ztp.pages.dev` with no commit, PASS, 11 of 11. `dev.hedgeschool.pages.dev` with `06ff7684` (before
+  abscls-h6md changed the shared script), FAIL, 14 of 15: the footer alone. Each of these runs marked its lines, as it
+  should: the change itself makes the checkout's two files differ from each deployed commit. A local server whose
+  footer named a commit of the change gave no marker on either site. A local server that dropped each connection after
+  the home page, and a `dns.google` that did not answer, gave FAIL with the reason on each line after the home page,
+  and `release-check: FAIL ..., 3 of 16 checks`, exit code 1. A port that refused the connection, with and without a
+  commit, stopped with exit code 2.

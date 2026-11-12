@@ -576,9 +576,11 @@ a push to `main` that the owner did not say to make. The owner's word to release
   says PASS, FAIL or INFO, and the last line says `release-check: PASS` or `release-check: FAIL`. The checks that both
   sites share are in `packages/site/src/release-check.mjs`. Each site's script gives its addresses, its header's links
   and its pages that lead home, and adds its own checks. The header's links, the pages that lead home and the site's
-  own checks come from the checkout's script, not from the commit. Each of their lines says `(from this checkout)`
-  after the name of its check. The checks, all true on Hedge School's live site on 2026-10-18 at commit `b4f0472`, and
-  on its dev preview on 2026-10-20 at commit `f50704c`:
+  own checks come from the checkout's script, not from the commit. When the code that gives them (the site's script
+  and `packages/site/src/release-check.mjs`) differs between the commit and the checkout, each of their lines says
+  `(from this checkout)` after the name of its check. A request after the home page that gets no answer says FAIL on
+  its check's line, with the reason, and the check goes on. The checks, all true on Hedge School's live site on
+  2026-10-18 at commit `b4f0472`, and on its dev preview on 2026-10-20 at commit `f50704c`:
   - the footer's version is the commit that the deploy built.
   - the live address answers with no `X-Robots-Tag`, the project's address (`hedgeschool.pages.dev`,
     `cyanotype-ztp.pages.dev`) and the previews with `noindex` (design 23), and an unknown address answers 404.
@@ -632,13 +634,15 @@ a push to `main` that the owner did not say to make. The owner's word to release
 
        The first line must end with `the engine lock of commit` and the first 7 characters of the commit of the
        release before. The last line must say `release-check: PASS`. If a line says that the commit is not a commit
-       in this clone, run the command that the line gives, then run the check again. A line that says
-       `(from this checkout)` takes what it checks from the checkout, not from the commit: the header's links, the
-       pages that lead home (`/puzzles`, `/learn` and `/lab/engine`, on Hedge School only) and Hedge School's Function
-       on `/api/practice-games`. If the release that you undid changed them, such a line can say FAIL although the
-       rollback worked. For a FAIL on the header's links or on a page that leads home, open the site's address
-       (`https://hedgeschool.abstractclass.org` or `https://cyanotype.abstractclass.org`) in a browser. Make sure
-       that the header and those pages are as they were before that release. For a FAIL on the Function, run
+       in this clone, run the command that the line gives, then run the check again. If a line says
+       `the request failed`, make sure that the computer is connected to the internet, then run the check again. A
+       line that says `(from this checkout)` takes what it checks from the checkout, not from the commit: the header's
+       links, the pages that lead home (`/puzzles`, `/learn` and `/lab/engine`, on Hedge School only) and Hedge
+       School's Function on `/api/practice-games`. A line says it only when the checkout's code of the check differs
+       from the code of the commit of the release before. If the release that you undid changed them, such a line can
+       say FAIL although the rollback worked. For a FAIL on the header's links or on a page that leads home, open the
+       site's address (`https://hedgeschool.abstractclass.org` or `https://cyanotype.abstractclass.org`) in a browser.
+       Make sure that the header and those pages are as they were before that release. For a FAIL on the Function, run
        `git log --oneline <the commit of the release before>..<the commit of the deployment undone> -- functions` in
        the folder `apps/hedgeschool`. If it lists no commit, the release that you undid did not change the Function,
        and the FAIL is a fault of the site. If it lists commits, the FAIL can come from their change.

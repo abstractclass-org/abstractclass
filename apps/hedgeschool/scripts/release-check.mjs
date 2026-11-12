@@ -15,10 +15,11 @@ await releaseCheck({
   leadHome: ["/puzzles", "/learn", "/lab/engine"],
   // The practice games' Function.
   ownChecks: async (base, check) => {
-    const practiceGames = await fetch(`${base}/api/practice-games`, {
-      method: "POST", body: "not json", headers: { "content-type": "text/plain" },
+    await check("the Function on /api/practice-games answers 400 to a request that is not JSON", async () => {
+      const practiceGames = await fetch(`${base}/api/practice-games`, {
+        method: "POST", body: "not json", headers: { "content-type": "text/plain" },
+      });
+      return [practiceGames.status === 400, String(practiceGames.status)];
     });
-    check("the Function on /api/practice-games answers 400 to a request that is not JSON",
-      practiceGames.status === 400, String(practiceGames.status));
   },
 });
