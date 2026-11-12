@@ -6,7 +6,8 @@
 //     with an ellipsis or a fade at its end, which shows that it is cut (the analysis table's moves), what no one sees (hidden for screen readers alone, or unseen, as the
 //     players' row's twin cards), a code block, which scrolls sideways on purpose, a text field, which scrolls its
 //     text by design (the board editor's position), and a moving gleam that its bar clips (Lichess's bar-glider);
-//   - the header is one row, and each child of the header stays inside the header's content box.
+//   - the header is one row, each child of the header stays inside the header's content box, and the header keeps its
+//     height (--site-header).
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
@@ -34,7 +35,9 @@ import { analysisAt, drawEach } from "./cyanotype-notes.ts";
 import { toMove } from "./move-header.ts";
 import { NETWORK_WORDS, headerLine, holdNetworks } from "./network-hold.ts";
 
-const WIDTHS = Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k);
+/** Every 10 pixels, and the first width of each of the header's rows that is not on a step: 1,024, where Hedge
+ *  School's links show. Each row is tightest at its first width, since the room grows with the window. */
+const WIDTHS = [...Array.from({ length: (1920 - 360) / 10 + 1 }, (_, k) => 360 + 10 * k), 1024].sort((a, b) => a - b);
 const HEIGHTS = [700, 860, 1000];
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 /** The fixture's game record. */
@@ -107,6 +110,19 @@ function problems(page: Page): Promise<Problem[]> {
       for (const { c, r } of shown) if (r.left < left - 0.5 || r.right > right + 0.5)
         out.push({ problem: `the header's child ${name(c)} leaves its content box ` +
                             `(${r.left.toFixed(1)} to ${r.right.toFixed(1)} in ${left.toFixed(1)} to ${right.toFixed(1)})` });
+      // The header keeps its height, --site-header (site.css), from which pages size their boards. A row that is short
+      // of room can keep its children in one row and in the box, and still grow: a nav wraps, or a name goes onto a
+      // second line (abscls-s36t, in DejaVu Sans, CI's Linux font). The tolerance takes subpixel rounding only.
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:absolute;visibility:hidden;height:var(--site-header)";
+      document.body.append(probe);
+      const want = probe.getBoundingClientRect().height;
+      probe.remove();
+      if (Math.abs(box.height - want) > 0.5) {
+        const tallest = shown.reduce((a, b) => (b.r.height > a.r.height ? b : a));
+        out.push({ problem: `the header is ${box.height.toFixed(1)} pixels high, not --site-header's ${want.toFixed(1)} ` +
+                            `(its tallest child: ${name(tallest.c)}, ${tallest.r.height.toFixed(1)})` });
+      }
     }
     return out;
   });
@@ -299,9 +315,9 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
 // the early edition that check:all and the workflows build (VITE_EDITION=early), at 360 and 1,280 pixels, in each
 // theme (the theme menu's System, on the browser's scheme). On the home page, the link is in the header, after the
 // name, in the accent colour, in the window, with nothing over it. The sweeps of each home page check the header's own
-// rules (one row, inside its content box) at every width. A click on the link opens the About page at its section on
-// the early access, in the window. The header is never over the page (SiteFrame.svelte: the page area is below it, or
-// scrolls with it), so it cannot cover the section.
+// rules (one row, inside its content box, its own height) at every width. A click on the link opens the About page at
+// its section on the early access, in the window. The header is never over the page (SiteFrame.svelte: the page area
+// is below it, or scrolls with it), so it cannot cover the section.
 for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as const) {
   for (const colorScheme of ["light", "dark"] as const) {
     test(`the Early Access link on ${site}, ${colorScheme}`, async ({ page }) => {
