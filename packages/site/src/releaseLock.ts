@@ -14,36 +14,36 @@ export function footerCommit(html: string): string | undefined {
   return html.match(/version ([0-9a-f]{7})\b/)?.[1];
 }
 
-// Git in the lock's folder, the site's folder.
-const gitAt = (lockUrl: URL) => (...args: string[]) => execFileSync("git", args,
-  { cwd: dirname(fileURLToPath(lockUrl)), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+// Git in the folder of the site's lock, `lockPath`.
+const git = (lockPath: string, ...args: string[]) =>
+  execFileSync("git", args, { cwd: dirname(lockPath), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
-const fullHash = (lockUrl: URL, ref: string) => {
+function fullHash(lockPath: string, ref: string): string {
   try {
-    return gitAt(lockUrl)("rev-parse", "--verify", "--quiet", `${ref}^{commit}`).trim();
+    return git(lockPath, "rev-parse", "--verify", "--quiet", `${ref}^{commit}`).trim();
   } catch {
     throw new Error(`${ref} is not a commit in this clone. Run \`git fetch\` (in a shallow clone, `
       + "`git fetch --unshallow`), then run the check again.");
   }
-};
+}
 
 /** The commit that `ref` names, as its first 7 characters (the footer's rule). It throws an Error that the command
  *  line prints when the clone, the clone of the site's lock `lockUrl`, does not have the commit. */
 export function commitOf(lockUrl: URL, ref: string): string {
-  return fullHash(lockUrl, ref).slice(0, 7);
+  return fullHash(fileURLToPath(lockUrl), ref).slice(0, 7);
 }
 
 /** The commit that `ref` names, as `commitOf` gives it, and the site's engine lock of that commit: the file at the
  *  path of `lockUrl`, as Git keeps it. It throws an Error that the command line prints when the clone does not have the
  *  commit, and when the commit has no lock at the lock's path. */
 export function lockAt(lockUrl: URL, ref: string): { commit: string; lock: EngineLock } {
-  const hash = fullHash(lockUrl, ref);
+  const lockPath = fileURLToPath(lockUrl);
+  const hash = fullHash(lockPath, ref);
   const commit = hash.slice(0, 7);
-  const git = gitAt(lockUrl);
-  const pathInRepo = git("rev-parse", "--show-prefix").trim() + basename(fileURLToPath(lockUrl));
+  const pathInRepo = git(lockPath, "rev-parse", "--show-prefix").trim() + basename(lockPath);
   let text: string;
   try {
-    text = git("show", `${hash}:${pathInRepo}`);
+    text = git(lockPath, "show", `${hash}:${pathInRepo}`);
   } catch {
     throw new Error(`commit ${commit} has no ${pathInRepo}`);
   }

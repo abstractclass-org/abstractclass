@@ -11460,22 +11460,35 @@ abscls-h6md, later steps of abscls-kn89 ("release-check reads the lock of the co
   checkout's lock. No workflow runs the check, and the documented runs give no commit: Cyanotype's launch checks,
   working-notes.md's "After a deploy, check the site" and the README. Each said FAIL when the checkout's lock differed
   from the deployed commit's. A commit on the command line still wins. The footer's line still checks the branch's
-  commit (`origin/main`, `origin/dev`), so a run with no commit after a rollback fails on that line alone. The script
-  never reads the checkout's lock now (`packages/site/src/releaseLock.ts`: `commitOf`, `lockAt` and `footerCommit`).
+  commit (`origin/main`, `origin/dev`), so a run with no commit after a rollback fails on that line, and checks the
+  engine's files against the deployed commit's lock. The script never reads the checkout's lock now
+  (`packages/site/src/releaseLock.ts`: `commitOf`, `lockAt` and `footerCommit`).
 - **The first line** names the lock's commit and where it came from: `(given: <commit>)`, or `, read from the footer`
   at its end. With a commit, it still ends with `the engine lock of commit` and the commit's 7 characters, as
   hosting.md's "Roll back", step 5, reads it.
-- **A footer that names no commit,** or a footer's commit that the clone does not have, stops the check with exit
-  code 2 after the home page, before the engine's checks. A given commit still stops it before any request.
-- **The header's links, the pages that lead home and a site's own checks stay the checkout's,** and their lines end
-  with `(from this checkout)`. To take them from the commit, the check would have to run the commit's script, or read
-  a data file that only commits after the change would have. Each site's script gives them as code, and its form
-  changed with the moves into `apps/` and into the site package. A rollback goes to an older commit, so a new data
-  file would not help the first rollbacks after it. Step 5 tells the owner to look at the marked lines in a browser
-  when one says FAIL.
-- **Checked on 2026-11-12, read-only, from this branch on dev `34058e5`:** `dev.hedgeschool.pages.dev` with no commit
-  read the lock of `34058e5` from the footer, PASS, 15 of 15. With `origin/dev`, PASS, 15 of 15. With `25e94e45`
-  (the lock before the engine changes of 2026-11-09), FAIL, 11 of 15: the footer, the manifest, the module and the
-  terms. The live site with no commit read the lock of `8621232` from the footer, PASS, 16 of 16, where kn89's run
-  from a dev checkout said FAIL, 13 of 16. `dev.cyanotype-ztp.pages.dev` with no commit, PASS, 11 of 11. The hub,
-  whose footer names no commit, stopped with exit code 2, and so did a preview address with no commit.
+- **The stops with exit code 2.** A home page that does not answer stops the check, with or without a commit. Before,
+  Node's stack trace ended it with exit code 1. A footer that names no commit, or a footer's commit that the clone
+  does not have, stops it after the home page, before the engine's checks. The line for a footer's commit names the
+  footer, because the command did not name that commit. A given commit still stops it before any request. A preview
+  address with no commit stops before any request too, as before: only the live site and the addresses of a site's
+  `branchOf` have a branch. Its line now gives the command with `<commit>`.
+- **The header's links, the pages that lead home and a site's own checks stay the checkout's,** and each of their
+  lines says `(from this checkout)` after the name of its check. To take them from the commit, the check would have
+  to run the commit's script, or read a data file that only commits after the change would have. Each site's script
+  gives them as code, and its form changed with the moves into `apps/` and into the site package. A rollback goes to
+  an older commit, so a new data file would not help the first rollbacks after it. When a marked line says FAIL,
+  step 5 tells the owner to look at the header and the pages in a browser, and, for Hedge School's Function, to list
+  the commits of the release that changed `functions`.
+- **Checked on 2026-11-12, read-only, from a checkout of the change on dev `34058e5`:** `dev.hedgeschool.pages.dev`
+  with no commit read the lock of `34058e5` from the footer, PASS, 15 of 15. With `origin/dev`, PASS, 15 of 15. With
+  `25e94e45` (the lock before the engine changes of 2026-11-09), FAIL, 11 of 15: the footer, the manifest, the module
+  and the terms. The live site with no commit read the lock of `8621232` from the footer, PASS, 16 of 16, where
+  abscls-kn89's run from a dev checkout said FAIL, 13 of 16. `dev.cyanotype-ztp.pages.dev` with no commit, PASS, 11
+  of 11. The hub, whose footer names no commit, stopped with exit code 2, and so did a preview address with no
+  commit.
+- **The review repeated these runs on 2026-11-12,** with the same counts. A local server gave the other stops: a
+  footer that names `abcdef0`, which the clone does not have, a footer of a build with no commit, a home page that
+  answers 500 with no footer, a port that refuses the connection, and a host that does not exist. Each stopped with
+  exit code 2 and its line. A rollback, simulated read-only: the check gave `dev.hedgeschool.pages.dev` the branch
+  `origin/main` (`8621232`) while it served `34058e5`. It read the lock of `34058e5` from the footer and said FAIL on
+  the footer's line alone, 13 of 14.
