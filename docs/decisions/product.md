@@ -11538,3 +11538,24 @@ abscls-5ouq, later steps of abscls-h6md ("release-check with no commit reads the
   line was `release-check: FAIL ..., 4 of 16 checks` (Cyanotype's, 4 of 12), exit code 1. A manifest whose body broke
   off gave FAIL with `the request failed (other side closed)` on its line. A home page whose body broke off, and a
   port that refused the connection, each with and without a commit, stopped with exit code 2.
+
+### Why a move is bad: the three futures' prototype stops (2026-11-12)
+
+abscls-ntkp. The owner's verdict on 2026-11-12: stop. The prototype (the page `/lab/three-futures` and the script
+`scripts/measure/three-futures.mjs`, commit `cfbcb0a6`) stays on the local branch `prototype/abscls-ntkp`, not on dev.
+
+- **The idea:** at a Mistake or a Blunder, compare the mover's score lead after three choices: the engine's best turn,
+  the turn played, and a pass (the search of Show threat). The pattern of the three was to name the reason: a threat
+  that the player ignored, a turn worse than a pass, or a smaller move.
+- **What the prototype measured:** 20 cases (9 Mistakes, 11 Blunders) in 4 games: the test fixture's game and three
+  games of the practice bot against itself at 1 visit a side. Each search used the Lite review's setting (HedgeFund
+  0.2 Lite, 512 visits).
+  - A pass costs a whole turn: the best turn less the pass, median 405.6 points (25.8 to 526.5). In Enclosure a pass
+    measures what a turn is worth, not a threat.
+  - The turn played kept most of that: median 0.80 of it (0.37 to 0.91). So no pattern of the issue fired: 20 of 20
+    cases gave only the three numbers.
+  - A rule by where the two turns stand against the threat's line gave 4 "Ignored a threat", 2 "A smaller move" and
+    14 cases with only the numbers. It needed a second round on the owner's games to test it.
+  - The cost: 2 more searches a case, a mean of 10.3 s each at 512 visits on one CPU thread.
+- **Why stop:** a comparison with a pass does not give a reason that a player can use. site-coord recommended stop.
+  The full report is in the issue's comments.
