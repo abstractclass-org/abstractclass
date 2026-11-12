@@ -11655,8 +11655,13 @@ scroll sideways.
   header fitted at every width in both fonts.
 - **The change:** Cyanotype's navs show from 740 pixels (`min-[740px]`, `max-[740px]` in its root layout), in place of
   640. Below 740, the site's menu holds the links, as below 640 before. The menu shows Tools from 640, as before, so
-  the footer's Tools link stays a phone's alone. At 740 the row has 15 pixels to spare in DejaVu Sans and 80 in Segoe
-  UI. The header is as before at 740 pixels and wider, and on Hedge School at every width.
+  the footer's Tools link stays a phone's alone. The header is as before at 740 pixels and wider, and on Hedge School
+  at every width.
+- **The room at 740 pixels,** measured in the review as the content box less the children's widths and the gaps
+  between them, at a height of 700: about 50 pixels in Segoe UI. In DejaVu Sans the children stay inside the box, but
+  only because the name narrows. From 740 to 760 pixels, "Early Access" goes onto a second line and the header grows
+  by one pixel, to 49 (at 740 the name gives up 23 pixels, from 248 to 225). From 770 the row fits on one line of
+  text, with 7 pixels to spare.
 - **Why not a smaller gap:** the header's gap is SiteFrame's, so it would change Hedge School's header too, at widths
   where it fits. The navs' own gaps (18 pixels, four of them) and the header's (24 pixels, three of them) give at most
   60 pixels back at 640, and DejaVu Sans needs 85. A width of 730 fits with 5 pixels to spare, too few for one more
