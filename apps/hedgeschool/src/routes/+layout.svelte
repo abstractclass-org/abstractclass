@@ -71,20 +71,23 @@
 <SiteFrame origin={SITE_ORIGIN} themeKey="hedge-school:theme:1" placesKey="hedge-school:scroll-places:1">
 {#snippet header()}
 	<!-- The header's gaps narrow on a phone, so that the theme menu fits in 360 pixels. Below 1,024 pixels, where the
-	     links and "Support Us" no longer fit in one row (they need 860 pixels), the links go into the site's menu at the
-	     left (SiteMenu), as on Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into
-	     the menu too. -->
+	     links and "Support Us" no longer fit in one row, the links go into the site's menu at the left (SiteMenu), as on
+	     Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into the menu too. The
+	     row's widths are Linux's font's (DejaVu Sans, the Tests workflow's), which is wider than Windows' Segoe UI
+	     (design 22): from 1,024 pixels the row needs 1,014 pixels with the gaps of 1,080, and 976 with the narrower
+	     gaps below 1,080. Below 400 pixels the name is smaller, and its gap to "Early Access" narrower: the row needs
+	     361 pixels in DejaVu Sans without them. -->
 	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
 	<!-- The name, and the early access in the accent colour beside it: what it means is on the About page (SiteName). -->
-	<SiteName><Collie size={28} />{SITE_NAME}</SiteName>
-	<nav class="flex flex-wrap gap-4.5 max-lg:hidden">
+	<SiteName class="max-[400px]:gap-1"><Collie size={28} /><span class="max-[400px]:text-lg">{SITE_NAME}</span></SiteName>
+	<nav class="flex flex-wrap gap-3 min-[1080px]:gap-4.5 max-lg:hidden">
 		{#each NAV as item (item.label)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
 	</nav>
-	<nav class="flex flex-wrap gap-4.5 ml-auto text-sm max-lg:hidden">
+	<nav class="flex flex-wrap gap-3 min-[1080px]:gap-4.5 ml-auto text-sm max-lg:hidden">
 		{#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
 	</nav>
 	<!-- The accent's colour in each theme, as the site's other main buttons. -->
-	<span class="flex items-center gap-3 sm:gap-6 ml-auto lg:ml-0">
+	<span class="flex items-center gap-3 sm:gap-6 lg:max-[1080px]:gap-4 ml-auto lg:ml-0">
 		<button type="button" class="btn-primary max-sm:hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-semibold
 		                             hover:brightness-110" onclick={support}><Icon name="heart" />Support Us</button>
 		<ThemeMenu />

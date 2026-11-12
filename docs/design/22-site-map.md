@@ -79,8 +79,13 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      the Review tab lead to it.
    - **The site's menu below 1,024 pixels,** as on Lichess's phone pages: a ☰ at the header's left holds its links
      (the tabs, then the pages about the site, Tools again from a tablet's width), and the header keeps the site's
-     name, "Support Us" and the theme menu, in one row. The links and "Support Us" need 860 pixels for one row:
-     narrower, they took a second row, and Tools a third (`packages/site/src/SiteMenu.svelte`). Below 640 pixels,
+     name, "Support Us" and the theme menu, in one row. With Openings, the header's row needs 912 pixels in Windows'
+     font (Segoe UI), and 1,014 in Linux's (DejaVu Sans, as in the Tests workflow's runs), which is wider. So from
+     1,024 to 1,079 pixels the gaps between the links are 12 pixels in place of 18, and the gap before the theme menu
+     16 in place of 24: the row then needs 976 pixels in DejaVu Sans, and has 992 at 1,024. The links stay in the
+     header at those widths, where they fit in Segoe UI with 80 pixels to spare, in place of going into the menu
+     below a wider width. Narrower than 1,024 pixels, the
+     links took a second row, and Tools a third (`packages/site/src/SiteMenu.svelte`). Below 640 pixels,
      "Support Us" goes into the menu too, after the pages about the site: the name and the theme menu fill a phone's
      header.
    - **"Support Us," for tips through Ko-fi,** in the accent's colour of each theme, as the site's other main buttons,

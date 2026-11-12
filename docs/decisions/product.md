@@ -11857,3 +11857,56 @@ site is not a partner.
   `tests/cyanotype-import.spec.ts` passed. The one failure was Hedge School's `book-review.spec.ts:901` (by edge,
   variations as text): its page could not load a script, with `net::ERR_ADDRESS_IN_USE` from the browser, so the
   page never started. Its six cases then passed twice each (12 of 12) on a new preview.
+
+### The header keeps its height, in Linux's font too (2026-11-13)
+
+abscls-s36t. In DejaVu Sans (Linux's font, as in the Tests workflow's runs), Hedge School's header was 78.5 pixels
+high in place of 48 (`--site-header`) from 1,024 to 1,040 pixels: its navs wrapped, and the name and "Support Us"
+went onto two lines. It was 73 pixels high from 360 to 390 pixels, where the name went onto two lines. Cyanotype's was
+49 pixels high from 740 to 760 pixels, where "Early Access" went onto a second line. Neither header rule of the
+layout test saw it: the children stayed in one row and inside the header's content box.
+
+- **Measured on dev, before the change,** in headless Chromium with the layout test's launch options, at a height of
+  860, on the About page: the header's height, and the width that its row needs (the header at `max-content`, less
+  its padding) against its content box. DejaVu Sans came from WSL's Ubuntu (`/usr/share/fonts/truetype/dejavu/`),
+  loaded as web fonts over the page's own.
+  - Hedge School, from 1,024 pixels, with Openings: the row needs 1,014 pixels in DejaVu Sans and 912 in Segoe UI. At
+    1,024 the box is 992, so DejaVu Sans lacks 22 pixels and Segoe UI has 80 to spare. The row first fits at 1,050,
+    with 4 pixels to spare.
+  - Hedge School, below 640 pixels: the menu's button, the name, "Early Access" and the theme menu need 361 pixels in
+    DejaVu Sans and 318 in Segoe UI. At 360 the box is 328, so DejaVu Sans lacks 33 pixels. The row first fits at 400,
+    with 7 pixels to spare.
+  - Cyanotype, from 740 pixels: with "Early Access" on one line, the row needs 731 pixels in DejaVu Sans and 657 in
+    Segoe UI. At 740 the box is 708, so DejaVu Sans lacks 23 pixels and Segoe UI has 51 to spare. Cyanotype's phone
+    row needs 326 pixels in DejaVu Sans: 2 to spare at 360.
+- **The rule:** in `problems()` of the layout test, beside the header's other two rules: the header is as high as
+  `--site-header` (a probe's height of `var(--site-header)`), within half a pixel, for subpixel rounding alone. A
+  header one pixel higher means that a word went onto a second line. So every page's sweep checks it, on both sites,
+  at every width and height. The failure names the header's tallest child.
+- **The sweep's widths:** every 10 pixels, and 1,024. Each of the header's rows is tightest at its first width, since
+  the row's width stays and the room grows with the window. The rows start at 400, 640, 740, 780, 1,024 and 1,080
+  pixels, and 1,024 alone is not on a step of 10.
+- **On dev's build, the rule failed** in DejaVu Sans (the same fonts, added in the sweep), on Hedge School's `/` and
+  `/about`: "the header is 78.5 pixels high, not --site-header's 48.0 (its tallest child: nav…, 61.5)" from 1,024
+  to 1,040 pixels, and 73.0 pixels high (the name, 56.0) from 360 to 390, at each of the three heights. On
+  Cyanotype's `/`: 49.0 pixels high (the name, 32.0) from 740 to 760, at each height.
+- **"Early Access" and the name stay on one line** (`whitespace-nowrap` in `packages/site/src/SiteName.svelte`, both
+  sites). The header's row makes the room for them.
+- **Hedge School from 1,024 to 1,079 pixels:** the gaps between the links are 12 pixels in place of 18, and the gap
+  before the theme menu 16 in place of 24. The row then needs 976 pixels in DejaVu Sans, 16 fewer than the box at
+  1,024, and 874 in Segoe UI. From 1,080 the header is as before.
+- **Not taken: the links in the site's menu below 1,080 pixels.** It fits too, but it takes seven links out of the
+  header from 1,024 to 1,079 pixels in every font, where in Segoe UI they fit with 80 pixels to spare.
+- **Hedge School below 400 pixels:** the name is 18 pixels in place of 20, and its gap to "Early Access" 4 pixels in
+  place of 8. The name keeps its collie.
+- **The header's sides and gaps below 400 pixels** (`packages/site/src/SiteFrame.svelte`, both sites): 12 pixels at
+  each side in place of 16, and gaps of 8 in place of 12. With the smaller name, Hedge School's row needs 334 pixels
+  in DejaVu Sans, in a box of 336 at 360. Cyanotype's phone row gets 16 pixels more room.
+- **Not taken: no collie below 400 pixels.** It alone fits Hedge School's row at 360 in DejaVu Sans, with 3 pixels to
+  spare, but it takes the site's mark away on most phones, in every font.
+- **Cyanotype from 740 to 779 pixels:** the gaps between the links are 10 pixels in place of 18. The row then needs
+  699 pixels in DejaVu Sans, 9 fewer than the box at 740. The links still show from 740 pixels. From 780 the header
+  is as before.
+- **Measured after the change,** in the same way: the header is 48 pixels high at every width measured, in both fonts,
+  on both sites. Room in DejaVu Sans: Hedge School 2.4 pixels at 360, 6.9 at 400, 16 at 1,024 and 34 at 1,080.
+  Cyanotype 17.6 at 360, 9 at 740 and 17 at 780. In Segoe UI the least room is Hedge School's 42.8 at 360.
