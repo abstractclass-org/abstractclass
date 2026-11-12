@@ -22,9 +22,10 @@
 // checks the review). Every page's sweep checks the header in one row, with Openings' fourth tab where the build has
 // it. A last test checks the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm
 // run test:layout (the site running first).
-import type { BrowserType, LaunchOptions } from "@playwright/test";
+import type { Browser, LaunchOptions } from "@playwright/test";
 import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
+import { ONE_COLUMN } from "../../../packages/review/src/oneColumn.ts";
 import { keepBefore } from "./keep-before.ts";
 import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewStoredFile, storeReview, toolLink }
@@ -364,18 +365,30 @@ test("layout of Cyanotype's /practice", async ({ page }) => {
   expect(await sweep(page, "Cyanotype's /practice")).toBe("");
 });
 
-test("layout of a practice game on Cyanotype", async ({ page }) => {
+/** The practice bot's network in Cyanotype's preview, from its engine manifest. Skips the test when there is no
+ *  Cyanotype preview, or when it has no practice bot. */
+async function cyanotypeBot(page: Page): Promise<string> {
   test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json()).catch(() => null);
   test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
             "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build");
+  return manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id;
+}
+
+/** Opens Cyanotype's Practice in a game in progress against the bot with the network `model`, kept in this browser:
+ *  the board's test position "A middle game", the player (Red) to move. */
+async function cyanotypePracticeGame(page: Page, model: string) {
   const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
   const moves = fixtures.find(f => f.name === "A middle game")!.moves; // Red to move
   await keepBefore(page, "cyanotype:practice-game:1",
-    { version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
-      human: 1, name: "", seed: 1, moves, builds: [], started: new Date().toISOString() });
+    { version: 1, bot: { network: model, visits: 32, variety: "low" }, human: 1, name: "", seed: 1, moves, builds: [],
+      started: new Date().toISOString() });
   await page.goto(new URL("/practice", CYANOTYPE).href);
   await expect(page.getByTestId("practice-status")).toHaveText(/^Your turn/, { timeout: 120_000 });
+}
+
+test("layout of a practice game on Cyanotype", async ({ page }) => {
+  await cyanotypePracticeGame(page, await cyanotypeBot(page));
   const own = (p: Page) => p.evaluate(() => {
     const out: string[] = [], status = document.querySelector('[data-testid="practice-status"]');
     if (status && status.scrollHeight > status.clientHeight + 1) out.push(`the status line cuts its text (${status.scrollHeight} in ${status.clientHeight})`);
@@ -757,25 +770,29 @@ test("layout of a practice game", async ({ page }) => {
 // Their one column, the fixed step bar and Cyanotype's hands under the board take one query, the one column's
 // (ONE_COLUMN, packages/review/src/oneColumn.ts), so they agree at that width: the page has the one column's layout,
 // or two columns with the side column as high as the script measures it. Chromium gives an iframe and an emulated
-// window whole pixels, so each case starts a browser of its own, with the project's launch options, at a scale of 1.5
+// window whole pixels, so each case starts a browser of its own, as its project starts one, at a scale of 1.5
 // (Windows' 150 %): its window of 799 pixels is 1,199 device pixels, and its page is 799.33 pixels wide. The page log
 // (page-log.ts) does not read that browser: a failure's evidence is the case's message and its numbers. On each site,
 // a game in progress on Practice, and the review of the test game.
-const ONE_COLUMN = "(max-width: 799px)";
 const BETWEEN = ["--force-device-scale-factor=1.5", "--window-size=799,900"];
-/** What `check` finds on a page of a browser of its own, between 799 and 800 pixels wide, once `open` has opened it.
- *  Relative addresses go to `baseURL`. */
-async function between(browserType: BrowserType, launchOptions: LaunchOptions, baseURL: string,
+/** The test's browser as its project starts it: its type, its launch options, its channel (Edge's project) and whether
+ *  it shows its window. */
+type Launch = { browser: Browser; launchOptions: LaunchOptions; channel?: string; headless: boolean };
+/** What `check` finds on a page of a browser of its own (the test's, as its project starts it), between 799 and 800
+ *  pixels wide, once `open` has opened it. Relative addresses go to `baseURL`. */
+async function between({ browser, launchOptions, channel, headless }: Launch, baseURL: string,
                        open: (page: Page) => Promise<void>, check: (page: Page) => Promise<string[]>) {
-  const browser = await browserType.launch({ ...launchOptions, args: [...(launchOptions.args ?? []), ...BETWEEN] });
+  const own = await browser.browserType().launch({
+    ...launchOptions, channel, headless, args: [...(launchOptions.args ?? []), ...BETWEEN],
+  });
   try {
-    const page = await (await browser.newContext({ viewport: null, baseURL })).newPage();
+    const page = await (await own.newContext({ viewport: null, baseURL })).newPage();
     await open(page);
     await settle(page);
     const width = await page.evaluate(() => matchMedia("(799px < width < 800px)").matches ? null : visualViewport?.width);
     return width === null ? await check(page) : [`the page is ${width} pixels wide, not between 799 and 800`];
   } finally {
-    await browser.close();
+    await own.close();
   }
 }
 
@@ -793,14 +810,22 @@ const practiceColumns = (hands: boolean) => (page: Page) => page.evaluate(({ que
   return out;
 }, { query: ONE_COLUMN, hands });
 
-/** Where the review's columns disagree with the one column's query: each media query of the review's own styles (its
- *  rules' selectors name `.review`) at 799 or 800 pixels, which matches as the one column's query, or as its negation
- *  for a query of the two columns (min-width, `>` or `not`); the review's column count; and outside the one column,
- *  the side column's height against the height to the window's bottom that the script measures (--side-h). */
+/** Where the review's columns disagree with the one column's query. Three checks: the review's column count, the side
+ *  column's height outside the one column (the height to the window's bottom that the script measures, --side-h), and
+ *  each media query of the review's own styles (its rules' selectors name `.review`) that turns between 798 and 800
+ *  pixels. Such a query must match here as the one column's query does when it matches at 798 pixels, and else as its
+ *  negation. Two frames of 798 and 800 pixels read each query at those widths. (At a scale of 1.5, a frame of 799
+ *  pixels has no page of 799 pixels.) */
 const reviewColumns = (page: Page) => page.evaluate(query => {
   const out: string[] = [], one = matchMedia(query).matches, matches = one ? "matches" : "does not match";
   const review = document.querySelector<HTMLElement>("main.review"), side = review?.querySelector(".side");
   if (!review || !side) return ["the page has no review"];
+  const columns = getComputedStyle(review).gridTemplateColumns.split(" ").length;
+  if ((columns === 1) !== one) out.push(`the review has ${columns} columns, and the one column's query ${matches}`);
+  const measured = parseFloat(review.style.getPropertyValue("--side-h")), height = side.getBoundingClientRect().height;
+  if (!one && measured && Math.abs(height - measured) > 1)
+    out.push(`the side column is ${height.toFixed(1)} pixels high, not the ${measured.toFixed(1)} that the script ` +
+             `measures, and the one column's query ${matches}`);
   const queries = new Set<string>();
   const walk = (rules: CSSRuleList) => {
     for (const r of rules) {
@@ -812,61 +837,48 @@ const reviewColumns = (page: Page) => page.evaluate(query => {
   for (const sheet of document.styleSheets) {
     try { walk(sheet.cssRules); } catch { /* a sheet of another origin: its rules are not the review's */ }
   }
+  const frameOf = (width: number) => {
+    const frame = document.createElement("iframe");
+    frame.style.cssText = `position: absolute; top: 0; left: 0; width: ${width}px; height: 20px; border: 0; visibility: hidden`;
+    document.body.append(frame);
+    frame.getBoundingClientRect(); // lays the frame out, so that its page has the frame's width
+    return frame.contentWindow!;
+  };
+  const narrow = frameOf(798), broad = frameOf(800);
+  if (!narrow.matchMedia(query).matches || broad.matchMedia(query).matches)
+    out.push(`the frames of 798 and 800 pixels read the one column's query as ${narrow.innerWidth} and ${broad.innerWidth} ` +
+             "pixels wide");
   for (const q of queries) {
-    if (!/\b(799|800)px/.test(q)) continue;
-    const twoColumns = /min-width|>|\bnot\b/.test(q), now = matchMedia(q).matches;
-    if (now !== (twoColumns ? !one : one))
+    const below = narrow.matchMedia(q).matches, now = matchMedia(q).matches;
+    if (below !== broad.matchMedia(q).matches && now !== (below ? one : !one))
       out.push(`the review's query ${q} ${now ? "matches" : "does not match"}, and the one column's query ${matches}`);
   }
-  const columns = getComputedStyle(review).gridTemplateColumns.split(" ").length;
-  if ((columns === 1) !== one) out.push(`the review has ${columns} columns, and the one column's query ${matches}`);
-  const measured = parseFloat(review.style.getPropertyValue("--side-h")), height = side.getBoundingClientRect().height;
-  if (!one && measured && Math.abs(height - measured) > 1)
-    out.push(`the side column is ${height.toFixed(1)} pixels high, not the ${measured.toFixed(1)} that the script ` +
-             `measures, and the one column's query ${matches}`);
   return out;
 }, ONE_COLUMN);
 
-test("a practice game's one column between 799 and 800 pixels wide", async ({ browser, launchOptions, baseURL }) => {
-  const moves = fixtureRecord().replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
-  expect(await between(browser.browserType(), launchOptions, baseURL!, async page => {
-    await keepBefore(page, "hedge-school:practice-game:1", {
-      version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "", seed: 1,
-      moves, builds: [], started: new Date().toISOString(),
-    });
-    await page.goto("/practice");
-    await expect(page.getByText(/^Your turn/).first()).toBeVisible({ timeout: 120_000 });
-  }, practiceColumns(false))).toEqual([]);
+test("a practice game's one column between 799 and 800 pixels wide", async ({ browser, launchOptions, channel, headless, baseURL }) => {
+  const launch = { browser, launchOptions, channel, headless };
+  expect(await between(launch, baseURL!, practiceGame, practiceColumns(false))).toEqual([]);
 });
 
-test("a practice game's one column on Cyanotype between 799 and 800 pixels wide", async ({ browser, launchOptions, page }) => {
-  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
-  const manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json()).catch(() => null);
-  test.skip(!manifest?.artifacts?.some((a: { kind: string }) => a.kind === "practice-module"),
-            "Cyanotype's preview has no practice bot: run `npm run engine` in apps/cyanotype before its build");
-  const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as { name: string; moves: string[] }[];
-  expect(await between(browser.browserType(), launchOptions, CYANOTYPE!, async p => {
-    await keepBefore(p, "cyanotype:practice-game:1", {
-      version: 1, bot: { network: manifest.artifacts.find((a: { kind: string }) => a.kind === "model").id, visits: 32, variety: "low" },
-      human: 1, name: "", seed: 1, moves: fixtures.find(f => f.name === "A middle game")!.moves, builds: [],
-      started: new Date().toISOString(),
-    });
-    await p.goto("/practice");
-    await expect(p.getByTestId("practice-status")).toHaveText(/^Your turn/, { timeout: 120_000 });
-  }, practiceColumns(true))).toEqual([]);
+test("a practice game's one column on Cyanotype between 799 and 800 pixels wide", async ({ browser, launchOptions, channel, headless, page }) => {
+  const launch = { browser, launchOptions, channel, headless }, model = await cyanotypeBot(page);
+  expect(await between(launch, CYANOTYPE!, p => cyanotypePracticeGame(p, model), practiceColumns(true))).toEqual([]);
 });
 
-test("a review's one column between 799 and 800 pixels wide", async ({ browser, launchOptions, baseURL }) => {
-  expect(await between(browser.browserType(), launchOptions, baseURL!, async page => {
+test("a review's one column between 799 and 800 pixels wide", async ({ browser, launchOptions, channel, headless, baseURL }) => {
+  const launch = { browser, launchOptions, channel, headless };
+  expect(await between(launch, baseURL!, async page => {
     await reviewedGame(page);
     await expect(page.locator("main.review .side")).toBeVisible({ timeout: 120_000 });
   }, reviewColumns)).toEqual([]);
 });
 
-test("a review's one column on Cyanotype between 799 and 800 pixels wide", async ({ browser, launchOptions, page }) => {
+test("a review's one column on Cyanotype between 799 and 800 pixels wide", async ({ browser, launchOptions, channel, headless, page }) => {
   const skip = await noReview(page);
   test.skip(!!skip, skip);
-  expect(await between(browser.browserType(), launchOptions, CYANOTYPE!, async p => {
+  const launch = { browser, launchOptions, channel, headless };
+  expect(await between(launch, CYANOTYPE!, async p => {
     await reviewStoredFile(p);
     await expect(p.locator("main.review .side")).toBeVisible();
   }, reviewColumns)).toEqual([]);

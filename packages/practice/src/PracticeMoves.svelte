@@ -7,18 +7,20 @@
   import type { Player } from "@abstractclass/analysis/game.ts";
   import { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
   import { MOVE_LIST, keepInView } from "@abstractclass/review/moveList.ts";
+  import type { PracticeLine } from "./page.svelte.ts";
   import { turnsOf, type Turn } from "./practice.ts";
 
   interface Props {
-    // The page (PracticePage): its game, the game whose bot starts, and the position on the board.
-    page: { game: { status: string; played: readonly M[] } | null; starting: { moves: readonly string[] } | null; shown: number };
+    // The page (PracticePage): its game, the game whose bot starts, the position on the board, and what the status line
+    // tells ("starting": the bot starts).
+    page: { game: { played: readonly M[] } | null; starting: { moves: readonly string[] } | null; shown: number; line: PracticeLine };
     text: (move: M) => string; // a move's text in the list
     row: Snippet<[turn: Turn, k: number]>; // the rows of the turn `k`, from 0 at the game's first turn
   }
   let { page, text, row }: Props = $props();
 
   const turns = $derived(turnsOf(page.game?.played ?? [], text));
-  const bones = $derived(!page.game || page.game.status === "starting" ? (page.starting?.moves.length ? 12 : 0) : 0);
+  const bones = $derived(page.line === "starting" && page.starting?.moves.length ? 12 : 0);
   let list = $state<HTMLElement | null>(null);
   $effect(() => { void page.shown; void turns; keepInView(list); });
 </script>

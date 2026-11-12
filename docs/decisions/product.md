@@ -11594,8 +11594,8 @@ above). Designs 17, 24, 29 and 33 changed.
 - **The stores and the events:** `hedgefund.ts` and `stampduty.ts` export their stores, `practiceChoices` and
   `keptGame`. Their exports `loadChoices`, `saveChoices`, `loadKept`, `keep`, `practiceParams` and
   `practiceEndParams` went. `PracticeSite` takes `choices`, `kept` and `networkName` in place of six functions
-  (`loadChoices`, `saveChoices`, `loadKept`, `keep`, `params` and `endParams`), and the page calls `practiceEvents`
-  with the site's `networkName`. The events did not change: the same functions make their parameters, with the same
+  (`loadChoices`, `saveChoices`, `loadKept`, `keep`, `params` and `endParams`). The page calls `practiceEvents` with
+  the site's `networkName`. The events did not change: the same functions make their parameters, with the same
   names of the networks. Hedge School's `practice.test.ts` checks them through `practiceEvents`.
 - **The move list and the players' skeleton:** `PracticeMoves.svelte` holds the move list's frame (the review's
   `MOVE_LIST`, and a click on a move that does not focus it), its skeleton while the bot starts, and `keepInView`. It
@@ -11616,17 +11616,21 @@ above). Designs 17, 24, 29 and 33 changed.
   bar, is on a screen only.) At that width the page now has two columns, as at 800 pixels.
 - **The review's two columns take the negation of the same query:** `ReviewView.svelte` took `(min-width: 800px)`
   for the side columns' height to the window's bottom, and `(max-width: 799px)` for the one column. Between 799 and
-  800 pixels neither matched, so the side columns took the column's height: on Hedge School's review at 799.33
-  pixels, 623 pixels in place of the 820 that the script measured. The first query is now `not all and (max-width:
-  799px)`, the negation of `ONE_COLUMN`. On Cyanotype's review the two heights were the same at that width (its board
-  fills the room), so only the query showed the gap there.
-- **How a test gets that width:** Chromium gives an iframe and an emulated window whole pixels (an iframe 799.5
-  pixels wide has a page 800 pixels wide), and CDP's device metrics take whole widths only. A browser started with
+  800 pixels neither matched, so the side columns took the column's height. On Hedge School's review at 799.33
+  pixels, that was 623 pixels in place of the 820 that the script measured. The first query is now
+  `not all and (max-width: 799px)`, the negation of `ONE_COLUMN`. On Cyanotype's review the two heights were the same
+  at that width (its board fills the room), so only the query showed the gap there.
+- **How a test gets that width:** Chromium gives an iframe and an emulated window whole pixels: an iframe 799.5
+  pixels wide has a page 800 pixels wide. CDP's device metrics take whole widths only. A browser started with
   `--force-device-scale-factor=1.5` and `--window-size=799,900` has a window of 1,199 device pixels and a page
-  799.33 pixels wide. So the layout test's four new cases (Practice and the review, on each site) start a browser of
-  their own with the chromium project's launch options and those two flags. The page log (`tests/page-log.ts`) does
-  not read that browser. The review's cases also check each media query of the review's own styles at 799 or 800
-  pixels: it matches as `ONE_COLUMN`, or as its negation for a query of the two columns.
+  799.33 pixels wide. So each of the layout test's four new cases (Practice and the review, on each site) starts a
+  browser of its own. That browser takes its project's launch options, channel and headless setting, and those two
+  flags. The page log
+  (`tests/page-log.ts`) does not read it. The review's cases also check the media queries of the review's own styles.
+  Each query that turns between 798 and 800 pixels must match as `ONE_COLUMN` when it matches at 798 pixels, and
+  else as its negation. Two frames of 798 and 800 pixels in the page read each query at those widths. So the check
+  goes by what a query does, not by how it is written. (At a scale of 1.5, a frame of 799 pixels has no page of 799
+  pixels.)
 - **Checked** in headless Chromium (the chromium project, on the CPU), on both sites' builds:
   - On dev's code (34058e5d) the five new cases fail: the frame's one column on both sites, the review's query
     `(width >= 800px)` on both sites and its side column of 623 pixels on Hedge School, and the failed start's

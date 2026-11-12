@@ -8,6 +8,11 @@ import { keepBefore } from "./keep-before.ts";
 import { expect, test } from "./page-log.ts";
 
 const GAME = "hedge-school:practice-game:1";
+/** A kept game (hedgefund.ts, KeptPractice) with no moves, the player Blue, and `more`. */
+const keptPractice = (more: object = {}) => ({
+  version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "", seed: 1,
+  moves: [], builds: [], started: new Date().toISOString(), ...more,
+});
 
 test("a game kept after the page mounts, while the engine loads, does not open: the settings card stays", async ({ page }) => {
   const errors: string[] = [];
@@ -22,10 +27,7 @@ test("a game kept after the page mounts, while the engine loads, does not open: 
   const blue = page.getByRole("button", { name: "Play as Blue" });
   await expect(blue).toBeDisabled({ timeout: 60_000 }); // the settings card, before the rules are loaded
   // Another tab starts a game now.
-  await page.evaluate(([key, game]) => localStorage.setItem(key, JSON.stringify(game)), [GAME, {
-    version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "", seed: 1,
-    moves: [], builds: [], started: new Date().toISOString(),
-  }] as const);
+  await page.evaluate(([key, game]) => localStorage.setItem(key, JSON.stringify(game)), [GAME, keptPractice()] as const);
   keptElsewhere();
   await expect(blue).toBeEnabled({ timeout: 120_000 }); // the rules are loaded, and the card stays
   await expect(page.getByRole("button", { name: "Abort" })).toHaveCount(0);
@@ -43,10 +45,7 @@ test("a game that another tab ends while the engine loads gives way to the setti
       localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
       localStorage.setItem("hedge-school:practice-game:1", game);
     } catch { /* about:blank */ }
-  }, JSON.stringify({
-    version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "", seed: 1,
-    moves: [], builds: [], started: new Date().toISOString(),
-  }));
+  }, JSON.stringify(keptPractice()));
   let endedElsewhere = () => {};
   const ended = new Promise<void>(r => (endedElsewhere = r));
   await page.route("**/engine/manifest.json", async route => { await ended; await route.continue(); });
@@ -65,10 +64,7 @@ test("a game that fails before its first position says why it stopped", async ({
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
   await keepBefore(page, "hedge-school:consent:2", { games: "denied" });
-  await keepBefore(page, GAME, {
-    version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "", seed: 1,
-    moves: [], builds: [], started: new Date().toISOString(), start: "no position",
-  });
+  await keepBefore(page, GAME, keptPractice({ start: "no position" }));
   await page.goto("/practice");
   await expect(page.getByRole("status").filter({ hasText: /^The game stopped: \S/ })).toBeVisible({ timeout: 120_000 });
   await expect(page.getByText("Starting HedgeFund…")).toHaveCount(0);

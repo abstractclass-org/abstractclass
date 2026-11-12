@@ -1546,7 +1546,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `packages/site/src/analytics.svelte.ts`, with the flag of internal traffic (`src/lib/internalTraffic.ts`, read as the
   site starts in `src/hooks.client.ts`), the sources and the imports' and exports' events (`src/lib/game/sources.ts`),
   the settings' changes (`src/lib/analysis/settingChanges.ts`) and a practice game's parameters
-  (`src/lib/practice/stampduty.ts`). The layout starts the analytics. The deploy's two variables: the job `cyanotype` of
+  (`packages/practice/src/practiceEvents.ts`, with the names of `src/lib/practice/stampduty.ts`'s networks). The layout
+  starts the analytics. The deploy's two variables: the job `cyanotype` of
   `.github/workflows/deploy.yml`.
 - `apps/cyanotype/src/lib/brand/`: the logo ("The logo"). `logo.ts` (the drawings), `Logo.svelte` (the logo at a size),
   `card.ts` (the link preview picture) and `logo.test.ts`. `scripts/brand.mjs` draws the files from them:

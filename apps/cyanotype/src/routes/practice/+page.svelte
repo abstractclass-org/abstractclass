@@ -241,7 +241,7 @@
          that changes does not move the board: the bar is fixed under the board, and the board's box counts its
          height. The input's texts fit two lines of a phone (input.ts). -->
     {#snippet above()}
-      <p class={["min-h-10 one-column-layout:h-10 one-column-layout:overflow-hidden mb-1.5 text-sm", g?.status === "failed" && "text-blunder"]}
+      <p class={["min-h-10 one-column-layout:h-10 one-column-layout:overflow-hidden mb-1.5 text-sm", page.line === "failed" && "text-blunder"]}
          role="status" aria-live="polite"
          data-testid="practice-status">{statusText}</p>
     {/snippet}

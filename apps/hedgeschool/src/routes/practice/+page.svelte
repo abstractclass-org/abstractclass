@@ -223,7 +223,7 @@
       {:else}
         <h1 class="text-lg font-bold">Practice</h1>
         {#if g}<p class="text-xs text-muted">{botLine(g)}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
-        <p class={["mt-2 text-sm font-medium", g?.status === "failed" && "text-blunder"]} role="status" aria-live="polite">{statusText}</p>
+        <p class={["mt-2 text-sm font-medium", page.line === "failed" && "text-blunder"]} role="status" aria-live="polite">{statusText}</p>
         <p class="min-h-[1.25rem] mb-1.5 text-xs text-muted">
           {#if g && !page.atLatest && g.status !== "over"}Looking back at {shown ? `edge ${shown}` : "the start"}: End returns to the game.
           {:else if g?.lastTurnMs != null && g.status !== "over"}HedgeFund's last turn took {seconds(g.lastTurnMs)}.{/if}
