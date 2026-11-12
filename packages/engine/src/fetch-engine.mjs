@@ -34,6 +34,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node
 import { findPackageJSON } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
+import { fetchReason } from "./errors.ts";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
 import { checkPracticeModules, checkThreadedBot } from "./practice-check.ts";
@@ -67,18 +68,17 @@ async function get(artifact) {
  *  names `id`, the URL and the HTTP status or the network's error: no answer, or a file that stops before its end. */
 async function download(id, tag, asset) {
   const url = `https://github.com/${lock.repository}/releases/download/${tag}/${asset}`;
-  const cause = e => e.cause?.code ?? e.cause?.message ?? e.message;
   let response;
   try {
     response = await fetch(url);
   } catch (e) {
-    throw new Error(`${id}: ${url} gave no answer (${cause(e)})`, { cause: e });
+    throw new Error(`${id}: ${url} gave no answer (${fetchReason(e)})`, { cause: e });
   }
   if (!response.ok) throw new Error(`${id}: ${url} gave HTTP ${response.status}`);
   try {
     return Buffer.from(await response.arrayBuffer());
   } catch (e) {
-    throw new Error(`${id}: ${url} stopped before the end of the file (${cause(e)})`, { cause: e });
+    throw new Error(`${id}: ${url} stopped before the end of the file (${fetchReason(e)})`, { cause: e });
   }
 }
 

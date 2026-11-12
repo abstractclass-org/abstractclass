@@ -24,9 +24,9 @@
 // goes to an older commit, which would not have such data. When the code that gives these lines differs between the
 // commit and this checkout, each of their lines says "(from this checkout)" after the name of its check: a rollback
 // past a change to them can say FAIL on their line although the rollback worked. That code is the site's script and
-// this file. Their other imports give none of these lines: releaseLock.ts gives the commits and the lock, and the
-// engine's artifacts.ts the downloads. When the code is the same, no line says it, because the commit's script would
-// check the same things.
+// this file. Their other imports give none of these lines: releaseLock.ts gives the commits and the lock, the engine's
+// artifacts.ts the downloads, and its errors.ts the reason of a request that failed (text after a FAIL, never a PASS
+// or a FAIL). When the code is the same, no line says it, because the commit's script would check the same things.
 //
 // A request after the home page that gets no answer (a connection that drops, a server that does not answer) gives
 // FAIL on its check's line, with the reason, and the check goes on to its last line. Another error of a check, such
@@ -37,6 +37,7 @@
 //
 // It runs in Node only, and no page imports it: it is why this package depends on @abstractclass/engine (design 29).
 import { fetchArtifact } from "@abstractclass/engine/artifacts.ts";
+import { fetchReason } from "@abstractclass/engine/errors.ts";
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { checkoutDiffers, commitOf, footerCommit, lockAt } from "./releaseLock.ts";
@@ -46,9 +47,6 @@ function stop(message) {
   console.error(message);
   process.exit(2);
 }
-
-// Why a request failed: Node's fetch says "fetch failed" and gives the reason as its cause.
-const reasonOf = error => error.cause?.message || error.cause?.code || error.message;
 
 // What `read` gives, else a stop with its Error's message after `prefix`.
 function orStop(read, prefix = "") {
@@ -90,7 +88,7 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
 
   // The home page: its footer's version gives the lock without <commit>.
   const { home, html } = await fetch(`${base}/`).then(async home => ({ home, html: await home.text() }))
-    .catch(error => stop(`${base}/ does not answer (${reasonOf(error)}). `
+    .catch(error => stop(`${base}/ does not answer (${fetchReason(error)}). `
       + "Check the address, then run the check again."));
   const version = footerCommit(html);
   if (!given && !version) stop(`${base}/ answers ${home.status}, and no footer on it names a commit. ${commitHint}`);
@@ -108,7 +106,7 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     try {
       check(name, ...(await run()));
     } catch (error) {
-      check(name, false, error.cause ? `the request failed (${reasonOf(error)})` : error.message);
+      check(name, false, error.cause ? `the request failed (${fetchReason(error)})` : error.message);
     }
   };
   // The name of a check of a part that this checkout's site script gives, not the commit: marked when that code
