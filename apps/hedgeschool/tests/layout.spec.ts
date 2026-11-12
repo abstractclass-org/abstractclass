@@ -248,7 +248,7 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
     await page.goto(base ? new URL("/about", base).href : "/about");
     await page.waitForLoadState("networkidle");
     const header = await page.locator("header nav a").evaluateAll(as => as.map(a => a.getAttribute("href")!));
-    const found: { width: number; height: number; problem: string }[] = [];
+    const found: ProblemAt[] = [];
     const height = HEIGHTS[0];
     for (const width of WIDTHS.filter(w => w < below)) {
       await page.setViewportSize({ width, height });
@@ -258,7 +258,7 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
       await expect(menu).toBeVisible();
       await settle(page);
       const expected = header.filter(href => width >= 640 || href !== "/tools");
-      const own = await menu.evaluate((box, expected) => {
+      const own: OwnRules = () => menu.evaluate((box, expected) => {
         const out: string[] = [], r = box.getBoundingClientRect();
         if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight)
           out.push(`the menu leaves the window (${Math.round(r.left)}, ${Math.round(r.top)}, ${Math.round(r.right)}, ${Math.round(r.bottom)})`);
@@ -274,7 +274,7 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
         }
         return out;
       }, expected);
-      for (const problem of [...await problems(page), ...own]) found.push({ width, height, problem });
+      for (const p of await allProblems(page, own)) found.push({ width, height, ...p });
       await page.keyboard.press("Escape");
       await expect(menu).toBeHidden();
     }
