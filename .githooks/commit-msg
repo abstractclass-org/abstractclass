@@ -2,8 +2,8 @@
 # The commit message's form (CLAUDE.md in the planning folder, "Commit messages"): a subject of at most 72
 # characters, and body lines of at most 72. Git runs this hook when core.hooksPath names this folder
 # (docs/working-notes.md). POSIX sh, with LF line ends: Git for Windows runs it in its own sh. The same hook as the
-# planning folder's and the engine repository's (../.githooks/commit-msg and ../engines/.githooks/commit-msg): keep
-# the three the same.
+# planning folder's and the engine repository's (../.githooks/commit-msg and ../engines/.githooks/commit-msg): only
+# the header comments differ. The planning folder's scripts/tests/test_hooks.py (SameHook) checks the three.
 # The line after the subject is blank: Git takes the lines up to the first blank one as the subject. The message
 # holds no private word (the check at the end).
 #
@@ -52,16 +52,24 @@ LC_ALL=C awk '
 	}
 	END { exit bad }
 ' "$1" >&2 || {
-	echo "commit-msg: no commit. A subject, a blank line, then the body, wrapped at 72 characters; commit again." >&2
+	echo "commit-msg: no commit. Write a subject of at most 72 characters, a blank line, then the body wrapped at 72," \
+		"and commit again." >&2
 	exit 1
 }
 # Private words (abscls-jgc0): the message holds no word of the machine's list, as pre-commit checks the added lines
-# (the planning folder's scripts/private-check, found from the main checkout). With no planning folder, no check.
-main=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && main=$(dirname "$main")
-py=$(command -v python || command -v python3)  # the Mac: python comes from mise in a login shell, python3 always
+# (the planning folder's scripts/private-check, found from the main checkout). With no planning folder, no check. The
+# check reads the lines that the awk above reads: with no CR, none from the scissors line on, no comment line. So a
+# CRLF message of `git commit -v` sends no line of its diff (a commit that takes a word out was refused for it).
+main=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && main=${main%/*}
+if command -v python > /dev/null 2>&1; then py=python; else py=python3; fi  # the Mac: python3 when mise's is not on
 for c in "$main/scripts/private-check" "$main/../scripts/private-check"; do
-	[ -f "$c" ] && [ -n "$py" ] || continue
-	sed -e '/^# -* >8 -*$/,$d' -e '/^#/d' "$1" | PYTHONUTF8=1 "$py" "$c" --label "the commit message" >&2 || {
+	[ -f "$c" ] || continue
+	if ! command -v "$py" > /dev/null 2>&1; then
+		echo "commit-msg: no python, so the check of private words is off" >&2
+		break
+	fi
+	LC_ALL=C awk '{ sub(/\r$/, "") } /^# -+ >8 -+$/ { exit } /^#/ { next } { print }' "$1" |
+		PYTHONUTF8=1 "$py" "$c" --label "the commit message" >&2 || {
 		echo "commit-msg: no commit. Take the private word out of the message, then commit again." >&2
 		exit 1
 	}

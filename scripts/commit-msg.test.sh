@@ -115,6 +115,14 @@ else
 	expect 0 "a listed word in a comment" "The subject$nl${nl}A body$nl# Git's comment: hostbox$nl"
 	expect 0 "a listed word below the scissors line" \
 		"Subject$nl# ------------------------ >8 ------------------------$nl+ hostbox$nl"
+	# A CRLF message of git commit -v: Linux's and macOS's sed keep the CR, so the scissors line must match without it.
+	cr=$(printf '\r')
+	cut="# ------------------------ >8 ------------------------$cr$nl"
+	expect 0 "a listed word below the scissors line of a CRLF message" \
+		"Take a word out$cr$nl$cr${nl}The body$cr$nl$cut-ssh to hostbox$cr$nl"
+	expect 1 "a listed word above the scissors line of a CRLF message" \
+		"Take a word out$cr$nl$cr${nl}ssh to hostbox$cr$nl$cut"
+	check "  it names the line" has "private-check: the commit message, line 3 holds a private word: ssh to <private>"
 
 	# A commit in a worktree goes through Git, as a worker's does: Git exports GIT_DIR to the hook there. The list
 	# is the throwaway planning folder's own .machine/private-words, with no PRIVATE_WORDS, as on a real machine.

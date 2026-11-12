@@ -44,19 +44,21 @@ fi
 if command -v node >/dev/null 2>&1; then
 	node scripts/doc-widths.mjs --staged || bad=1
 fi
-# Private words (abscls-jgc0): no line that the commit adds, in any file, and no path that it adds holds a word of the
-# machine's list (a login, a host name, an address). The planning folder's scripts/private-check checks them, with its
-# list .machine/private-words (out of Git). It is found from the main checkout: abstractclass/ in the planning
-# folder, so a worktree finds it too. A clone with no planning folder around it skips this check. Each staged path
-# goes as "path<TAB>path", from --name-only: a pure rename and an empty new file have no +++ line in the diff. Each
-# added line goes as "path:line<TAB>text".
-main=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && main=$(dirname "$main")
+# Private words (abscls-jgc0): no line that the commit adds, in any file, and no path that it adds, renames or
+# changes holds a word of the machine's list (a login, a host name, an address). The planning folder's
+# scripts/private-check checks them, with its list .machine/private-words (out of Git). It is found from the main
+# checkout: abstractclass/ in the planning folder, so a worktree finds it too. A clone with no planning folder around
+# it skips this check. Each staged path goes as "path<TAB>path", from --name-only: a pure rename and an empty new file
+# have no +++ line in the diff. Each added line goes as "path:line<TAB>text".
+main=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && main=${main%/*}
 check=
 for c in "$main/scripts/private-check" "$main/../scripts/private-check"; do
 	[ -f "$c" ] && { check=$c; break; }
 done
-py=$(command -v python || command -v python3)  # the Mac: python comes from mise in a login shell, python3 always
-if [ -n "$check" ] && [ -n "$py" ]; then
+if command -v python > /dev/null 2>&1; then py=python; else py=python3; fi  # the Mac: python3 when mise's is not on
+if [ -n "$check" ] && ! command -v "$py" > /dev/null 2>&1; then
+	echo "pre-commit: no python, so the check of private words is off"
+elif [ -n "$check" ]; then
 	{
 		git diff --cached --name-only -z -M --no-ext-diff --diff-filter=AMR | tr '\0' '\n' |
 			awk '{ printf "%s\t%s\n", $0, $0 }'
