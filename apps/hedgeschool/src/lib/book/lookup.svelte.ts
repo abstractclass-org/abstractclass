@@ -1,7 +1,8 @@
 // The opening book as a page reads it (design 32, item 11): the book's state at the position on screen, which a page
-// reads in a $derived and which changes when a part loads or fails. The book loads in parts (book.ts): a position
-// whose part still loads is "loading", and a part that did not load is "failed" until "Try again" (`retry`). The pages
-// work while the book loads or fails: the state only tells the table what to show.
+// reads in a $derived and which changes when a part loads or fails. The book loads in parts (book.ts). A position
+// whose part still loads is "loading". A position whose part did not load is "failed" until "Try again" (`retry`).
+// OpeningBook keeps each failure by position. In a part that failed, the lookup of a position that has not failed
+// reads the part again. The pages work while the book loads or fails: the state only tells the table what to show.
 import { BookLoadError, openBook, type Book, type BookReader } from "./book.ts";
 import type { BookPosition, BookSource } from "./form.ts";
 

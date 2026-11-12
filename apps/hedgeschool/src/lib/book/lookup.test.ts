@@ -56,32 +56,30 @@ test("a part that does not load fails until Try again, and the index's failure t
 test("a part that lacks a position of the index fails until Try again, which reads the part again", async () => {
   const index = readJson(CASES), PART = "/test-book/cases/1.json";
   const position: string = index.parts.find((p: { file: string }) => p.file === "1.json").positions[1];
-  const log: string[] = [], reads = () => log.filter(u => u === PART).length;
-  let first = true; // only the first read of the part lacks the position
-  const read: BookReader = async (url, signal) => {
-    const file = (await files(log)(url, signal)) as BookPart;
-    if (url !== PART || !first) return file;
-    first = false;
-    return { ...file, positions: file.positions.filter(p => p.position !== position) };
+  let reads = 0; // the reads of the part: only the first lacks the position
+  const read: BookReader = async url => {
+    const file = readJson(url) as BookPart;
+    if (url !== PART) return file;
+    reads++;
+    return reads > 1 ? file : { ...file, positions: file.positions.filter(p => p.position !== position) };
   };
   const book = new OpeningBook(CASES, read);
-  await settle();
+  await book.opened();
   assert.equal(book.at(position).state, "loading");
   await settle(); await settle();
   const failed = book.at(position);
   assert.equal(failed.state, "failed");
   assert.equal(failed.state === "failed" && failed.error.url, PART);
-  await settle();
   assert.equal(book.at(position).state, "failed", "the position fails until Try again");
-  await settle(); await settle();
-  assert.equal(reads(), 1, "without Try again, a later lookup reads no file again");
+  await settle();
+  assert.equal(reads, 1, "without Try again, a later lookup of the position reads the part no more");
   book.retry();
   assert.equal(book.book?.peek(position), undefined, "the part counts as not loaded");
   assert.equal(book.at(position).state, "loading");
   await settle(); await settle();
   const found = book.at(position);
   assert.equal(found.state === "in" && found.position.position, position, "Try again reads the part again");
-  assert.equal(reads(), 2);
+  assert.equal(reads, 2);
 });
 
 test("the book once its index loads, for the review's values, and null when the index does not load", async () => {
