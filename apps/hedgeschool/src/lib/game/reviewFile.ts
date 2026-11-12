@@ -16,7 +16,7 @@ import { mergeBranches, positionKeys } from "@abstractclass/analysis/kept.ts";
 import { shippedModels } from "@abstractclass/analysis/files.ts";
 import { reviewFiles } from "@abstractclass/analysis/reviewFile.ts";
 import { download } from "@abstractclass/site/download.ts";
-import { RECORD_EXPORTS, REVIEW_FILE, REVIEW_LINK, copyReviewLink, deliverFileOrRecord, type ExportItem, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
+import { copyReviewLink, deliverFileOrRecord, type ExportKind, type ExportResult } from "@abstractclass/review/exports.ts";
 
 export const REVIEW_FORMAT = "hedge-school-review";
 export { REVIEW_FILE_VERSION, gameAnalyses, shippedModules, type FileReview, type ReviewFile } from "@abstractclass/analysis/reviewFile.ts";
@@ -63,16 +63,9 @@ const exportReview = files.exportReview;
  *  (@abstractclass/review/exports.ts). */
 export type { ExportItem, ExportKind, ExportResult } from "@abstractclass/review/exports.ts";
 
-/** The review's Export menu (design 13): a link that shares the review, the review file, with the engine's results, or
- *  the annotated record, copied or as a file. The link and the file differ most in what the other end gets: the link
- *  holds no results. A game that came from a partner site by its link (design 18) can go back to it: the review file,
- *  to the player's account there, first in the menu. */
-export const reviewExports = (partner: string | null = null): ExportItem[] => [
-  ...(partner ? [["partner_save", `Save to ${partner}`, "The review file, to your account there.", `Saved to ${partner}`] as ExportItem] : []),
-  REVIEW_LINK,
-  REVIEW_FILE,
-  ...RECORD_EXPORTS,
-];
+/** The review's Export menu (design 13), with "Save to …" first for a game that came from a partner site by its link
+ *  (design 18): the shared menu's. */
+export { reviewExports } from "@abstractclass/review/exports.ts";
 
 /** The link that shares a game's review (share.ts): its record, its variations, and the engine, network and visits of its
  *  review (the game's mark: the deepest review that ran to its end). */

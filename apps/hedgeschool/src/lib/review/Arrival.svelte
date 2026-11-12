@@ -22,7 +22,7 @@
   import { openReview } from "@abstractclass/import/openReview.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
   import { toolSource } from "#lib/game/tools.ts";
-  import { gamePartner, partnerOf, receiveFromPartner } from "#lib/game/partners.ts";
+  import { gamePartner, receiveKeptReview } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
   import { decodeShare, type SharedReview } from "#lib/game/share.ts";
   import { importShare, loadReviewFile } from "#lib/game/reviewFile.ts";
@@ -135,16 +135,14 @@
   }
 
   /** A review that a partner site kept (design 18): its page opened this one, and sends the review file when this page
-   *  asks. The file loads as in the Review tab, and the review opens at once. */
+   *  asks (partners.ts, receiveKeptReview). The file loads as in the Review tab, and the review opens at once. */
   async function receiveReview(from: string, save: string | null) {
-    const partner = partnerOf(from);
     try {
-      if (!partner) throw new Error("the link names a site that is not one of Hedge School's partners");
-      phase = { at: "receiving", sender: partner.name };
-      const sent = await receiveFromPartner(partner, from);
-      const { id, file } = await loadReviewFile(typeof sent === "string" ? sent : JSON.stringify(sent), await loadManifest());
-      const kept = gamePartner(save);
-      if (kept) await setGamePartner(id, kept);
+      const { id, file } = await receiveKeptReview(from, save, {
+        waiting: sender => { phase = { at: "receiving", sender }; },
+        load: async text => loadReviewFile(text, await loadManifest()),
+        keep: setGamePartner,
+      });
       trackLoad("partner_review", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
       openReview(id);
     } catch (e) {

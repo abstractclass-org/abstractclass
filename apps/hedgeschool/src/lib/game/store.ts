@@ -2,13 +2,11 @@
 // (@abstractclass/analysis/games.ts), with Hedge School's part. A game is stored as its record's text, so an export is
 // the record itself, and a later server can import it as it is. The id is the first 12 hex digits of the SHA-256 of its
 // moves: the same game imported twice is one game.
-import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
-import { gameStore, type StoredGame as SharedGame } from "@abstractclass/analysis/games.ts";
+import { gameStore } from "@abstractclass/analysis/games.ts";
 import { parseRecord, type GameRecord } from "./record.ts";
 import { komiPrefix } from "@abstractclass/record/record.ts";
 import { sha256Hex } from "@abstractclass/engine/artifacts.ts";
 import { setUpStart } from "#lib/engine/notation.ts";
-import type { GamePartner } from "./partners.ts";
 
 // The tree of a game's analysis as the browser keeps it, in the `branches` store: the shared analysis's
 // (@abstractclass/analysis/kept.ts). A kept node is a BranchNode here.
@@ -17,18 +15,11 @@ export { BOARD_ID, branchNodes, keptNode, type KeptBoard, type KeptBranches, typ
 // The marks of a game's review and its own settings: the shared store's.
 export { markReviewed, replacesAnother, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings, type GameSettings,
          type ReviewMark, type WantedReview } from "@abstractclass/analysis/games.ts";
+// A stored game, with the partner site it came from by a link (design 18), and the call that keeps that partner: the
+// shared store's.
+export { setGamePartner, type StoredGame } from "@abstractclass/analysis/games.ts";
 /** Openings' board (design 32), with the Analysis board's form, kept apart from the Analysis board's. */
 export const OPENINGS_ID = "openings";
-
-export interface StoredGame extends SharedGame {
-  partner?: GamePartner; // the partner site it came from by a link, which takes its review back (design 18)
-}
-
-/** Keeps the partner site that a game came from, and its save page (partners.ts). */
-export async function setGamePartner(id: string, partner: GamePartner) {
-  const game = await dbGet<StoredGame>(STORES.games, id);
-  if (game) await dbPut(STORES.games, id, { ...game, partner });
-}
 
 export async function gameId(moves: string[], start?: string, komi = 0): Promise<string> {
   // A set-up start and a komi come before the moves, so that the same moves from two starts, or at two komis, are two
@@ -47,7 +38,7 @@ export const LAST_REVIEW = "learn-enclosure:last-review:1";
  *  Review link's pointer to it, for good (design 11). `lastReview` and `rememberReview` read and keep the id of the last
  *  game reviewed in this browser. */
 export const { saveGame, loadGame, listGames, readGames, deleteGame, lastReview, rememberReview } =
-  gameStore<GameRecord, StoredGame>({
+  gameStore<GameRecord>({
     parse: parseRecord, lastReviewKey: LAST_REVIEW,
     id: record => gameId(record.moves, setUpStart(record.tags.Position), record.komi),
   });

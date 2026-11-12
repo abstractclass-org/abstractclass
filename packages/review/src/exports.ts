@@ -85,6 +85,17 @@ export async function deliverBoardExport(kind: ExportKind, board: BoardExport): 
   return deliverFileOrRecord(kind, board.fileName, board.file, board.annotated, "analysis.txt");
 }
 
+/** The review's Export menu (Hedge School's design 13): a link that shares the review, the review file, with the
+ *  engine's results, or the annotated record, copied or as a file. The link and the file differ most in what the other
+ *  end gets: the link holds no results. A game that came from a partner site by its link (Hedge School's design 18) can
+ *  go back to it: the review file, to the player's account there, first in the menu. `partner` is the partner's name. */
+export const reviewExports = (partner: string | null = null): ExportItem[] => [
+  ...(partner ? [["partner_save", `Save to ${partner}`, "The review file, to your account there.", `Saved to ${partner}`] as ExportItem] : []),
+  REVIEW_LINK,
+  REVIEW_FILE,
+  ...RECORD_EXPORTS,
+];
+
 /** The Analysis board's entries (Hedge School's design 21): the analysis by link, as a file with the engine's results,
  *  or as the annotated record. */
 export const BOARD_EXPORTS: ExportItem[] = [

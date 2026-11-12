@@ -1126,7 +1126,9 @@ their review here. It can also keep its players' reviews with its own sign-in, a
 Hedge School has one partner, enclosuregame.com. Cyanotype has none yet. The build makes each part ready, and the
 partners' test runs the whole way. A new partner is then one line in a list and a release, as on Hedge School.
 
-Not built yet. The steps are abscls-8tl1.74 to abscls-8tl1.77 (the order is below).
+Not built yet on Cyanotype. The shared parts are in the packages (abscls-8tl1.74): Hedge School's partner code
+moved there, with each site's parts as parameters (`partnerSite`). The steps for Cyanotype are abscls-8tl1.75 to
+abscls-8tl1.77 (the order is below).
 
 ### Each part of Hedge School's design
 

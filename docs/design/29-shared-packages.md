@@ -320,7 +320,11 @@ edit in the same commit), so their changes still apply.
     exports (`deliverBoardExport`, `boardRecordNote`). The analysis package holds the board's file load
     (`loadBoardFile`) and its notice of what it cannot take (`boardRefusal`). The shared review's intro (Hedge
     School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site. Its words differ between the two
-    copies, and one text for both is a visible change.
+    copies, and one text for both is a visible change. Hedge School's partner code (design 18) moved into the
+    packages before Cyanotype uses it (abscls-8tl1.74, design 33, "Partner sites"): the partners' checks, the window
+    messages and the receiving of a kept review (`@abstractclass/import`'s `partners.ts`), the stored game's partner
+    (the analysis package's `games.ts`) and the Export menu's "Save to …" (`exports.ts`'s `reviewExports`). Each site
+    gives its messages' name, its list of partners and its test switch.
 
 ## Why
 
@@ -443,7 +447,8 @@ edit in the same commit), so their changes still apply.
   `src/lib/review/storedReview.ts` and `exportText.ts` give their parts.
 - `packages/analysis/src/games.ts`: the store of the player's games (Hedge School's designs 11 and 22), with each
   site's record's reader, a game's id and the key of its last review as parameters (`gameStore`), and the marks of a
-  finished review (design 13). `reviewLock.ts`: one tab reviews a game at a time (design 11). `settings.ts`: the
+  finished review (design 13), and the partner site that a game came from (`setGamePartner`, design 18).
+  `reviewLock.ts`: one tab reviews a game at a time (design 11). `settings.ts`: the
   engine settings' general part, and a game's own network and depth, with each site's networks as a parameter
   (`ownSettingsOf`, design 09). Hedge School's `src/lib/game/store.ts` and `src/lib/analysis/engineSettings.ts` and
   Cyanotype's `src/lib/game/store.ts` and `src/lib/analysis/engineSettings.ts` give their parts.
@@ -470,7 +475,8 @@ edit in the same commit), so their changes still apply.
   board's Import (design 21), a position, moves or both pasted, with each site's examples, board editor address and
   check (`onimport`). `src/ExportMenu.svelte`
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages
-  share: the Analysis board's, the review's link, the review file and the annotated record. `src/NewMenu.svelte`: the
+  share: the Analysis board's, the review's link, the review file and the annotated record, and the review's menu with
+  "Save to …" for a partner's game (`reviewExports`, design 18). `src/NewMenu.svelte`: the
   Analysis board's New menu, with the ways that a site has (design 21). `src/PositionCheckStatus.svelte`: what the
   board editor says of its position, the engine's refusal, or whether a game can reach it with the engine's reasons,
   and each site's word for the places that the board marks (design 21, item 10). `src/howReviews/`: the sections that
@@ -506,8 +512,11 @@ edit in the same commit), so their changes still apply.
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review
   and the Analysis board, with each site's words (design 33, "How a game comes in from strategyjam.org"), and
   `import.css`, which lets Tailwind find its classes. `openReview.ts`: the review's opening of a game that a way in has
-  kept (the import page's, a shared review's, a partner's), by the game's id. `apps/hedgeschool/src/lib/game/tools.ts`
-  and `sources.ts`: Hedge School's parts.
+  kept (the import page's, a shared review's, a partner's), by the game's id. `partners.ts`: the partner sites
+  (design 18), with each site's messages' name, list and test switch as parameters (`partnerSite`): the checks of a
+  save page (`partnerOf`, `gamePartner`), the window messages (`saveToPartner`, `receiveFromPartner`) and the
+  receiving of a kept review with the site's loader (`receiveKeptReview`). `apps/hedgeschool/src/lib/game/tools.ts`,
+  `sources.ts` and `partners.ts`: Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files (`fetchEngine`). Each site runs it in its own folder (`npm run engine`) by its `scripts/engine.mjs`, which
   gives the step its record's komi limit. `practice-check.ts`: the engine step's check of the practice modules'
@@ -549,7 +558,7 @@ and the threaded bot" (2026-11-07), "Cyanotype refuses a set-up start before the
 (2026-11-08), "Cyanotype's review files, as Hedge School's" (2026-11-08), "Cyanotype's review snapshot and
 annotated record from the store" (2026-11-08), "Cyanotype removes earlier engine results, as Hedge School"
 (2026-11-11), "One rule for a draw in the value at the game's end and in Cyanotype's kept result" (2026-11-11),
-"Practice's page parts in packages/practice" (2026-11-11), and "The logo's files and the exports' glue in
-packages/" (2026-11-11).
+"Practice's page parts in packages/practice" (2026-11-11), "The logo's files and the exports' glue in
+packages/" (2026-11-11), and "Hedge School's partner code in packages/" (2026-11-13).
 [decisions/architecture.md](../decisions/architecture.md), "A launch switch in code replaces the approvals"
 (2026-11-06), and "A new feature starts in a package" (2026-11-08).

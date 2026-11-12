@@ -17,6 +17,17 @@ export interface StoredGame {
   added: string; // ISO date and time
   reviewed?: ReviewMark; // the deepest review that ran to its end with the engine named in it
   settings?: GameSettings; // the review settings it came with, when it keeps them
+  partner?: KeptPartner; // the partner site it came from by a link, which takes its review back (Hedge School's design 18)
+}
+
+/** What a game keeps of the partner site it came from: the partner's name and its save page. It is the shape of
+ *  @abstractclass/import/partners.ts's GamePartner, which makes it: this package does not depend on that one. */
+export interface KeptPartner { name: string; save: string }
+
+/** Keeps the partner site that a game came from, and its save page (@abstractclass/import/partners.ts). */
+export async function setGamePartner(id: string, partner: KeptPartner) {
+  const game = await dbGet<StoredGame>(STORES.games, id);
+  if (game) await dbPut(STORES.games, id, { ...game, partner });
 }
 
 /** The review settings that a game keeps (Hedge School's design 13): the network and the review's visits that an

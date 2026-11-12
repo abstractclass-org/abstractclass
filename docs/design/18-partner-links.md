@@ -43,9 +43,9 @@ must make costs both of them a release.
    `hedge-school:ready` (`protocol: 1`) to it, and the partner's page answers `hedge-school:review` with the file, or
    `hedge-school:failed`. The review takes the file only from the page that opened it, on that origin, and only
    from a partner. It loads the file as the Review tab does, and the review opens at once, with the engine's results
-   (`receiveFromPartner` in `src/lib/game/partners.ts`). The link can name the save page too, so that the game can be
-   saved again: the partner passes `save` on this link too. In the browser that ran the review, the partner's first
-   link also opens it again at once: the game's
+   (`receiveKeptReview` in `packages/import/src/partners.ts`). The link can name the save page too, so that the game
+   can be saved again: the partner passes `save` on this link too. In the browser that ran the review, the partner's
+   first link also opens it again at once: the game's
    id comes from its moves, and the browser keeps the engine's results. The player can always load the file in the
    Review tab.
    - **The tie between the two pages:** a link with a `target` cuts it (browsers then give the new page no opener),
@@ -145,17 +145,20 @@ must make costs both of them a release.
 
 ## Where it is
 
-- `packages/import/src/importHash.ts` (the link), `src/lib/game/partners.ts` (the partners, the handshake),
-  `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `src/lib/game/store.ts`
-  (`partner`, `setGamePartner`).
+- `packages/import/src/importHash.ts` (the link). `packages/import/src/partners.ts` (the partners' checks, the
+  handshake, the test site and the receiving of a kept review), which both sites share: each site gives its messages'
+  name, its list and its test switch (`partnerSite`). Hedge School's parts: `src/lib/game/partners.ts` (`PARTNERS`,
+  `hedge-school`, `VITE_PARTNER_TEST`).
+- `src/lib/game/import.ts` (`variantProblem`), `src/lib/game/record.ts` (`gamePage`), `packages/analysis/src/games.ts`
+  (the stored game's `partner`, `setGamePartner`).
 - `src/routes/import/+page.svelte` and `src/lib/review/Arrival.svelte` (the link's import, and a kept review's),
-  `src/lib/game/reviewFile.ts`
-  (`deliverExport`, kind `partner`, and "Save to …" in `reviewExports`), `packages/review/src/ReviewView.svelte`
-  (the link back), `src/routes/review/+page.svelte`.
+  `src/lib/game/reviewFile.ts` (`deliverExport`, kind `partner_save`), `packages/review/src/exports.ts` ("Save to …"
+  in `reviewExports`), `packages/review/src/ReviewView.svelte` (the link back), `src/routes/review/+page.svelte`.
 - The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. The head for
   the buttons: `static/brand/hedge-school.svg`, which `src/lib/collie.test.ts` keeps the same as the site's head. The
   privacy page: "Games in an address".
-- Tests: `src/lib/game/importHash.test.ts`, `src/lib/game/partners.test.ts`.
+- Tests: `src/lib/game/importHash.test.ts`, `src/lib/game/partners.test.ts` (Hedge School's list),
+  `packages/import/src/partners.test.ts` (the shared checks and messages).
 
 ## Log entries
 
