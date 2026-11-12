@@ -494,14 +494,13 @@ edit in the same commit), so their changes still apply.
   save. `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge School's
   `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and header, and adds
   its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node. It reads the engine's
-  files with the engine package's `artifacts.ts`, and it gives the reason of a request that failed with that package's
-  `fetchReason` (`errors.ts`), as the engine step (`fetch-engine.mjs`) does. It is the one file of the site package
-  that imports the engine package, and no page imports it. So the site package depends on the engine package, and the
-  frame's code in the browser still has none of the engine. `releaseLock.ts`, which only `release-check.mjs` imports:
-  the commit that the check reads, given or from the home page's footer, and that commit's engine lock as Git keeps
-  it. It also tells whether the check's code (the site's script and `release-check.mjs`) differs between that commit
-  and the checkout (`checkoutDiffers`). When it differs, the lines that come from the checkout say "(from this
-  checkout)".
+  files with the engine package's `artifacts.ts`. It takes a failed request's reason from that package's `fetchReason`
+  (`errors.ts`), as the engine step (`fetch-engine.mjs`) does. It is the one file of the site package that imports the
+  engine package, and no page imports it. So the site package depends on the engine package, and the frame's code in
+  the browser still has none of the engine. `releaseLock.ts`, which only `release-check.mjs` imports: the commit that
+  the check reads, given or from the home page's footer, and that commit's engine lock as Git keeps it. It also tells
+  whether the check's code (the site's script and `release-check.mjs`) differs between that commit and the checkout
+  (`checkoutDiffers`). When it differs, the lines that come from the checkout say `(from this checkout)`.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review

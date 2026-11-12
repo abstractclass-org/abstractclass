@@ -25,8 +25,8 @@
 // commit and this checkout, each of their lines says "(from this checkout)" after the name of its check: a rollback
 // past a change to them can say FAIL on their line although the rollback worked. That code is the site's script and
 // this file. Their other imports give none of these lines: releaseLock.ts gives the commits and the lock, the engine's
-// artifacts.ts the downloads, and its errors.ts the reason of a request that failed (text after a FAIL, never a PASS
-// or a FAIL). When the code is the same, no line says it, because the commit's script would check the same things.
+// artifacts.ts the downloads, and its errors.ts the reason of a request that failed, which decides no PASS or FAIL.
+// When the code is the same, no line says it, because the commit's script would check the same things.
 //
 // A request after the home page that gets no answer (a connection that drops, a server that does not answer) gives
 // FAIL on its check's line, with the reason, and the check goes on to its last line. Another error of a check, such

@@ -16,11 +16,18 @@ test("an error as a sentence's end has one period", () => {
 });
 
 test("a failed request's reason is its cause's message, else the cause's code, else its own message", () => {
-  const failed = (cause: object) => new TypeError("fetch failed", { cause });
-  assert.equal(fetchReason(failed({ code: "ENOTFOUND", message: "getaddrinfo ENOTFOUND example.org" })),
+  const failed = (cause: unknown) => new TypeError("fetch failed", { cause });
+  const withCode = (error: Error, code: string) => Object.assign(error, { code });
+  // A host that does not exist: the message names the host, and the code does not.
+  assert.equal(fetchReason(failed(withCode(new Error("getaddrinfo ENOTFOUND example.org"), "ENOTFOUND"))),
     "getaddrinfo ENOTFOUND example.org");
-  assert.equal(fetchReason(failed({ code: "UND_ERR_SOCKET", message: "" })), "UND_ERR_SOCKET");
-  assert.equal(fetchReason(failed({})), "fetch failed");
+  // localhost with no server: Node's cause is an AggregateError with an empty message.
+  assert.equal(fetchReason(failed(withCode(new AggregateError([], ""), "ECONNREFUSED"))), "ECONNREFUSED");
+  assert.equal(fetchReason(failed({ code: "ECONNREFUSED" })), "ECONNREFUSED");
+  // A cause with no message and no code.
+  for (const cause of [{}, "no route", null, undefined]) {
+    assert.equal(fetchReason(failed(cause)), "fetch failed", String(cause));
+  }
   assert.equal(fetchReason(new Error("terminated")), "terminated");
   assert.equal(fetchReason("no answer"), "no answer");
 });

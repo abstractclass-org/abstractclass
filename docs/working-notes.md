@@ -50,7 +50,11 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   the phrases that send the reader elsewhere, such as "as section 5 does", "repeat the" and "the same as". It does
   not read steps outside a block, so the marker is the writer's work.
 - **After a deploy, check the site:** `node scripts/release-check.mjs <base URL>` in the site's folder,
-  `apps/hedgeschool` or `apps/cyanotype` (docs/hosting.md, "Deploy, check and roll back").
+  `apps/hedgeschool` or `apps/cyanotype` (docs/hosting.md, "Deploy, check and roll back"). In a worktree, run
+  `npm ci` at its root first. Node looks for `node_modules` in the script's folder and in each folder above it. So a
+  worktree in `worktrees/` with no `node_modules` of its own takes `@abstractclass/site` and `@abstractclass/engine`
+  from the main checkout. The check then runs the main checkout's shared code, and each line that comes from the
+  checkout says `(from this checkout)`.
 - **The owner plays in this browser** (Edge, the local build): practice games and reviews of their own. Before a
   test that plays, save the keys that it changes (`hedge-school:practice-*`, the review's display settings) and the
   games' ids, and put them back after. Read the state again before each test: the owner plays between them.

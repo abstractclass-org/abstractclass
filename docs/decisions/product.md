@@ -11678,18 +11678,21 @@ scroll sideways.
 
 ### release-check and the engine step give one reason for a failed request (2026-11-12)
 
-abscls-n8en, later steps of abscls-5ouq.
+abscls-n8en, later steps of abscls-5ouq ("release-check: a failed request is a FAIL line, and the checkout's marker
+shows only where it differs").
 
 - **One reason for a failed request:** `fetchReason` in `packages/engine/src/errors.ts` gives it to both scripts that
   fetch in Node, the engine step (`fetch-engine.mjs`) and the shared release-check
   (`packages/site/src/release-check.mjs`). Before, each script had its own copy, in opposite orders. The shared one
   takes the cause's message first, then the cause's code, then the error's own message, as release-check did. The
   message says more than the code: Node's fetch to a host that does not exist gives `getaddrinfo ENOTFOUND
-  no-such-host.invalid` as its cause's message and `ENOTFOUND` as its code (Node 26, on this machine). So the
-  engine step's error now names the cause's message where it named the code. release-check's
-  lines do not change. The site package imports `errors.ts` from the engine package as it imports `artifacts.ts`, so
-  release-check still has the engine package as its one dependency outside the site package. `errors.ts` gives no
-  line's PASS or FAIL, only the text after a FAIL, so the marker `(from this checkout)` does not need to compare it.
+  no-such-host.invalid` as its cause's message and `ENOTFOUND` as its code. The code comes next, for a cause with an
+  empty message: Node's fetch to `localhost` on a port with no server gives an `AggregateError` with an empty message
+  and the code `ECONNREFUSED` (both on Node 26, on this machine). So the engine step's error now names the cause's
+  message where it named the code. release-check's lines do not change. The site package imports `errors.ts` from the
+  engine package as it imports `artifacts.ts`, so release-check still has the engine package as its one dependency
+  outside the site package. `errors.ts` decides no line's PASS or FAIL. It gives only the reason in a FAIL's line or
+  in a stop's line, so the marker `(from this checkout)` does not need to compare it.
 - **Design 29** now says that `releaseLock.ts` also gives `checkoutDiffers`, and that release-check takes the reason
   from the engine package.
 - **The marker stays coarse:** a change anywhere in the two compared files marks the lines, a comment too. This
