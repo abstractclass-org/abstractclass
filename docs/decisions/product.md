@@ -11700,7 +11700,7 @@ shows only where it differs").
 
 ### The last move's tooltip says "Result:" when the rules ended the game (2026-11-12)
 
-abscls-vg8i, after abscls-iynz. The owner chose the word on 2026-11-12.
+abscls-vg8i, a later step of abscls-iynz. Designs 06 and 29 changed.
 
 - **Why:** GLOSSARY.md's "Lead" is the engine's estimate. After a game's last move, when the rules ended the game,
   the move's tooltip in the move list gives the game's result there (since abscls-iynz), not an estimate. The chart's
@@ -11715,9 +11715,10 @@ abscls-vg8i, after abscls-iynz. The owner chose the word on 2026-11-12.
   chart's note already did. Every other move keeps "Lead:". A record that ends before the rules end the game keeps
   "Lead:" on its last move, because there the number is the engine's estimate. By turn, the turn's own tooltip has
   no lead, so nothing changes there.
-- **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by edge, with the engine off. On Hedge School it
-  opens `tests/fixtures/hedgefund-review.json` (the rules end it at `r+377.651497`) and
-  `tests/fixtures/twin-turn-review.json` (the record ends after turn 7). On Cyanotype it opens the whole test game with
-  its stored review `tests/fixtures/cyanotype-whole-review.json` (the rules end it at `r+730`) and the game up to turn
-  20. It fails when the last move's tooltip of a game that the rules ended says "Lead:" or differs from the chart's
-  note at the end, and when any other tooltip says "Result:".
+- **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by edge and by turn, with the engine off. On Hedge
+  School it opens `tests/fixtures/hedgefund-review.json` (the rules end it at `r+377.651497`) and
+  `tests/fixtures/twin-turn-review.json` (the record ends after turn 7). On Cyanotype it opens the whole test game
+  with the results of `tests/fixtures/cyanotype-whole-review.json` (the rules end it at `r+730`) and the game up to
+  turn 20. It fails when the last move's tooltip does not hold the chart's note at the end, when that note does not
+  say "Result:" for a game that the rules ended or "Lead:" for a record that ends early, and when any other tooltip
+  says "Result:".

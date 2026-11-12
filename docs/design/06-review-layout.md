@@ -59,9 +59,9 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      score line is teal (`--score`) and the area line magenta (`--area`), apart from the accent's lavender. **The
      chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area of the
      lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are only
-     there. At the game's last position the note has no score. When the rules ended the game, the game's result takes
-     the lead's place there, as in the move's tooltip ("Result: Red +0.03", item 8). **The score and area lines show or
-     hide** in two ways: the
+     there. At the game's last position the note has no score. When the rules ended the game,
+     the game's result takes the lead's place there, as in the move's tooltip ("Result: Red +0.03",
+     item 8). **The score and area lines show or hide** in two ways: the
      display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its name
      in the legend shows or hides it for the moment, without changing the setting. A line that is off by setting keeps
      its place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still step

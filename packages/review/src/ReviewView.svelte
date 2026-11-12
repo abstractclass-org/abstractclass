@@ -1611,9 +1611,6 @@
   // 32), else the review's or the search's
   const blueWin = $derived(game?.winAt(path) ?? (mainAt !== null ? R.blueWin[mainAt]
     : over ? resultWin(position.scores) : analysis?.blueWin ?? NaN));
-  // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
-  // the engine's lead, which KaTrain's graph plots (B+n) and from which the loss in the lead comes. Under it, the score and the
-  // area of the lines shown: the lines are scaled and have no axis, so their numbers are only here.
   // A turn's or an edge's loss in the move list: the mover's loss in the lead, in at most 5 characters (−1.2k), or the win
   // chance lost when the analysis has no scores. Nothing until it is judged.
   function lossShort(e: Pick<MoveJudgment<G["move"]>, "label" | "loss" | "pointsLost">): string {
@@ -1646,7 +1643,11 @@
   };
   const sideShort = (blue: number) =>
     Math.abs(blue) >= 999.5 ? `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${shortPoints(Math.abs(blue))}` : sideText(blue, 0, "0");
-  // Made for the position pointed at only: the chart asks for one note at a time.
+  // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
+  // the engine's lead, which KaTrain's graph plots (B+n) and from which the loss in the lead comes, or the game's
+  // result after its last move when the rules ended it (leadLine). Under it, the score and the area of the lines shown:
+  // the lines are scaled and have no axis, so their numbers are only here. Made for the position pointed at only: the
+  // chart asks for one note at a time.
   function chartTip(i: number) {
     const e = i > 0 ? R.edges[i - 1] : null, t = e ? R.turnOf[e.index] : null;
     // By turn, the chart shows the turns' ends only: the turn whole, with its label.
