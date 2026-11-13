@@ -21,15 +21,12 @@ import { readFileSync } from "node:fs";
 import { SWEEP_VISITS, analysisKey, keyMoves, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
 import { expect, type Page, test } from "./page-log.ts";
-import { keepBefore } from "./keep-before.ts";
-import { type ReviewFileInput, loadReviewFile } from "./review-file.ts";
-import { OTHER_STORED, MOVES, TURNS, noReview, pasteRecord, putResults, readStored, reviewTestGame, storeReview,
-         storedResults, testRecord } from "./cyanotype-review.ts";
+import { type ReviewFileInput, openReviewFile } from "./review-file.ts";
+import { MOVES, TURNS, WHOLE_STORED, noReview, pasteRecord, readStored, reviewTestGame, storeReview, storedResults,
+         testRecord } from "./cyanotype-review.ts";
 
 const ENDED = "tests/fixtures/hedgefund-review.json";
 const CUT = "tests/fixtures/twin-turn-review.json";
-/** Cyanotype's stored review of its whole test game. */
-const WHOLE = OTHER_STORED.find(s => s.turns === Infinity)!.file;
 /** The tooltip of the legend's first estimate, shown while a position has only the sweep's result (chartRough). */
 const ROUGH = "Refined as the review runs";
 
@@ -76,7 +73,9 @@ async function checkTips(page: Page, end: "Result:" | "Lead:") {
 
 /** The review file at `path`, of a record that ends before the rules end the game, with the sweep's result at the
  *  record's end: the end's result at the review's depth becomes one at the sweep's visits (SWEEP_VISITS). So the end
- *  is as it is before the label stage searches it. */
+ *  is as it is before the label stage searches it. The file holds results at the review's depth only, so the end
+ *  needs a result at the sweep's visits in its place. Cyanotype's stored results hold both depths: there
+ *  sweptEndResults drops the deep result. */
 function sweptEnd(path: string): ReviewFileInput {
   const file = JSON.parse(readFileSync(path, "utf8"));
   const record = parseRecord(file.record), moves = keyMoves(null, record.moves, record.komi);
@@ -112,15 +111,8 @@ async function checkFirstEstimateAtEnd(page: Page) {
 
 /** Opens the review file `file` on Hedge School, with the engine off and the labels judging `judge`, and waits for the
  *  review. */
-async function reviewOnHedgeSchool(page: Page, file: ReviewFileInput, judge: "edge" | "turn") {
-  await keepBefore(page, "learn-enclosure:engine:2", { on: false });
-  await keepBefore(page, "learn-enclosure:review-display:1", { judge });
-  await keepBefore(page, "hedge-school:consent:2", { games: "denied" });
-  await page.goto("/review");
-  await loadReviewFile(page, file);
-  await page.waitForURL(/#game=/);
-  await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
-}
+const reviewOnHedgeSchool = (page: Page, file: ReviewFileInput, judge: "edge" | "turn") =>
+  openReviewFile(page, file, { engine: { on: false }, display: { judge }, consent: { games: "denied" } });
 
 // The setting "Review by", by its stored value: "edge" is "Edge" on Hedge School and "Move" on Cyanotype.
 for (const judge of ["edge", "turn"] as const) {
@@ -143,10 +135,7 @@ for (const judge of ["edge", "turn"] as const) {
     });
 
     test("says Result: when the rules ended the game", async ({ page }) => {
-      await storeReview(page, { judge });
-      await putResults(page, readStored(WHOLE).analyses);
-      await pasteRecord(page, testRecord(Infinity));
-      await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 120_000 });
+      await reviewTestGame(page, { judge }, { turns: Infinity, results: readStored(WHOLE_STORED).analyses });
       await checkTips(page, "Result:");
     });
 

@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { boardLink } from "../src/lib/game/board.ts";
-import { fileInput } from "./review-file.ts";
+import { openReviewFile } from "./review-file.ts";
 
 test.describe.configure({ timeout: 120_000 });
 
@@ -68,13 +68,10 @@ for (const unit of ["edge", "turn"] as const) {
   test(`in a review by ${unit}, "Review for" Blue hides the wait of Red's evaluated moves`, async ({ page }) => {
     await settings(page, { judge: unit, branchForm: "text", reviewFor: "blue" });
     const file = JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8"));
-    await page.goto("/review");
-    await fileInput(page).and(page.locator("[data-ready]")).setInputFiles({
+    await openReviewFile(page, {
       name: "search-wait-review.json", mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify({ ...file, branches: { version: 2, nodes: variation } })),
-    });
-    await page.waitForURL(/#game=/);
-    await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 60_000 });
+    }, { ready: 60_000 });
     // At Playwright's 1,280 pixels, the Analysis has its own column: the tabs come below 1,260.
     await expect(page.locator('button.mv[data-path="D10-G12"]')).toBeVisible();
     // Blue's D10-G12 is a turn of one edge: by edge and by turn, it says why. Red's turn of two says nothing.

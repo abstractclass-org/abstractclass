@@ -1791,10 +1791,12 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   release. The script saves it from the review's Export menu, and adds the results of the Analysis board's position.
   The layout test's review loads it in the Review tab, as a player loads a review file (`cyanotype-review.ts`,
   `reviewStoredFile`). The other tests put its results in the browser's store (`storeReview`). The same script writes
-  the other stored reviews (`cyanotype-fixture.ts`, `OTHER_STORED`), which only Cyanotype's label snapshot reads
+  the other stored reviews (`cyanotype-fixture.ts`, `OTHER_STORED`), which Cyanotype's label snapshot reads
   (`apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`): the whole test game, and a second game of Stamp
-  Duty against itself to the end of turn 23 (`src/lib/review/fixtures/stamp-duty-seed12.txt`). They are not review
-  files: each holds its engine and its results. Their results have no ownership, because only the area map reads it.
+  Duty against itself to the end of turn 23 (`src/lib/review/fixtures/stamp-duty-seed12.txt`). The browser tests read
+  only the whole game's (`WHOLE_STORED`), for the end of a game that the rules ended (`last-move-result.spec.ts`).
+  They are not review files: each holds its engine and its results. Their results have no ownership, because only the
+  area map reads it, and no test reads the area map from them.
   With them, the label snapshot reaches each quality label by move, each one by turn but Great, the turns in the other
   order and the twins (item 9). `cyanotype-fixture.ts` reads the stored reviews, with no Playwright import, for the
   label snapshot too.

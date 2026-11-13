@@ -28,7 +28,7 @@ import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { ONE_COLUMN } from "../../../packages/review/src/oneColumn.ts";
 import { keepBefore } from "./keep-before.ts";
-import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { EARLIER_REVIEWED, earlierReview, openReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewStoredFile, storeReview, toolLink }
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
@@ -175,12 +175,9 @@ async function sweep(page: Page, label: string, ownRules?: OwnRules, heights = H
   return found.length ? report(label, found) : "";
 }
 
-/** Loads a review file in the Review tab, the fixture's by default, which opens its review. */
-async function reviewedGame(page: Page, file: ReviewFileInput = FIXTURE) {
-  await page.goto("/review");
-  await loadReviewFile(page, file);
-  await page.waitForURL(/#game=/);
-}
+/** Loads a review file in the Review tab, the fixture's by default, which opens its review, with the settings that the
+ *  case keeps already. The case waits for the review in its own way. */
+const reviewedGame = (page: Page, file: ReviewFileInput = FIXTURE) => openReviewFile(page, file, { ready: false });
 
 for (const path of ["/", "/about", "/privacy", "/notices", "/notation", "/developers", "/tools", "/editor", "/analysis",
                     "/practice"]) {

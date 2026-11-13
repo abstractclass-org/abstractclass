@@ -1,5 +1,5 @@
-// The stored reviews of Cyanotype (STORED and OTHER_STORED) and the games' records (testRecord), with no Playwright
-// import: the browser tests take them through cyanotype-review.ts, and Cyanotype's label snapshot
+// The stored reviews of Cyanotype (STORED, OTHER_STORED and its WHOLE_STORED) and the games' records (testRecord),
+// with no Playwright import: the browser tests take them through cyanotype-review.ts, and Cyanotype's label snapshot
 // (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts) takes them here, under Node's test runner.
 import { readFileSync } from "node:fs";
 import { firstTurns } from "./records.ts";
@@ -15,13 +15,17 @@ export const TURNS = 20;
 export const STORED = "tests/fixtures/cyanotype-review.json";
 /** The test game's file in apps/cyanotype/src/lib/review/fixtures. */
 export const TEST_GAME = "stamp-duty.txt";
+/** The stored review of the whole test game, one of OTHER_STORED. */
+export const WHOLE_STORED = "tests/fixtures/cyanotype-whole-review.json";
 /** The other stored reviews: the results of real reviews at the same visits, each with its file, its game (a file in
- *  apps/cyanotype/src/lib/review/fixtures) and the turns that it reviews (Infinity: the whole game). Only Cyanotype's
- *  label snapshot reads them: they reach the kinds of label and the rules that STORED does not reach (the snapshot
- *  test's header names them). So their results hold no ownership, which only the area map reads. They are not review
- *  files: each holds its engine and its results only. scripts/cyanotype-review-fixture.mjs writes them after STORED. */
+ *  apps/cyanotype/src/lib/review/fixtures) and the turns that it reviews (Infinity: the whole game). Cyanotype's label
+ *  snapshot reads them all: they reach the kinds of label and the rules that STORED does not reach (the snapshot
+ *  test's header names them). The browser tests read WHOLE_STORED alone, for a game that the rules ended
+ *  (last-move-result.spec.ts). No test reads the area map from them, so their results hold no ownership, which only
+ *  the area map reads. They are not review files: each holds its engine and its results only.
+ *  scripts/cyanotype-review-fixture.mjs writes them after STORED. */
 export const OTHER_STORED = [
-  { file: "tests/fixtures/cyanotype-whole-review.json", game: TEST_GAME, turns: Infinity },
+  { file: WHOLE_STORED, game: TEST_GAME, turns: Infinity },
   { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
 ] as const;
 

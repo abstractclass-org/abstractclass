@@ -6,7 +6,7 @@
 // theme, then the board and the legend of the last position in both themes. Run:
 // npx playwright test tests/area-map-signs.spec.ts --project=chromium.
 import { expect, test, type Locator, type Page } from "./page-log.ts";
-import { loadReviewFile } from "./review-file.ts";
+import { openReviewFile } from "./review-file.ts";
 import { toMove } from "./move-header.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
@@ -46,19 +46,14 @@ function expectInks(signs: Awaited<ReturnType<typeof signsOn>>, theme: Theme, wh
 for (const judge of ["edge", "turn"] as const) {
   test(`after vs before by ${judge}: a green plus where the forecast rose for the mover, a yellow minus where it fell`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
+    await page.setViewportSize({ width: 1376, height: 952 });
     // The engine off, and its candidates and the labels' badges off the board: the pointer on one shows its line
     // or its note, in the place of the numbers of the point
-    await page.addInitScript(display => {
-      localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-      localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify(display));
-    }, { judge, areaMap: { review: true, board: true }, mapStyle: "difference",
-         layers: { regions: true, protected: true, candidates: false, marks: false, coordinates: true } });
-    await page.setViewportSize({ width: 1376, height: 952 });
-    await page.goto("/review");
-    await loadReviewFile(page, FIXTURE);
-    await page.waitForURL(/#game=/);
-    await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
+    await openReviewFile(page, FIXTURE, {
+      engine: { on: false }, consent: { games: "denied" },
+      display: { judge, areaMap: { review: true, board: true }, mapStyle: "difference",
+                 layers: { regions: true, protected: true, candidates: false, marks: false, coordinates: true } },
+    });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
     // The positions from move 10 on, until a Blue move and a Red move have each shown both signs

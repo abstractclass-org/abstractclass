@@ -15,11 +15,11 @@ import { analysisKey, readAnalysisKey, readable } from "../../../packages/analys
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
-import { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord } from "./cyanotype-fixture.ts";
+import { OTHER_STORED, STORED, TEST_GAME, TURNS, WHOLE_STORED, readStored, testRecord } from "./cyanotype-fixture.ts";
 import { fileInput, type ReviewFileInput } from "./review-file.ts";
 
 // The stored reviews and the games' records: in a module with no Playwright import, for Cyanotype's label snapshot.
-export { OTHER_STORED, STORED, TEST_GAME, TURNS, readStored, testRecord };
+export { OTHER_STORED, STORED, TEST_GAME, TURNS, WHOLE_STORED, readStored, testRecord };
 
 export const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 export const MOVES = 1 + 2 * (TURNS - 1); // the first turn has one move, each other turn two
@@ -80,11 +80,14 @@ export async function keepSettings(page: Page, engine: object, display: object,
   }, [ENGINE_KEY, DISPLAY_KEY, engine, display] as const);
 }
 
-/** Reviews the test game in `page` from the stored review (storeReview), with the display settings `display` and the
- *  engine off, or on at Lite with `on`, and waits for the review's end. */
-export async function reviewTestGame(page: Page, display: object = {}, { on = false } = {}) {
-  await storeReview(page, display, { on });
-  await openReview(page, TURNS, 120_000);
+/** Reviews the test game up to the end of turn `turns` (TURNS by default, Infinity: the whole game) in `page` from
+ *  stored results (storeReview: STORED's, or `results`), with the display settings `display` and the engine off, or on
+ *  at Lite with `on`, and waits for the review's end. */
+export async function reviewTestGame(page: Page, display: object = {},
+                                     { on = false, turns = TURNS, results }:
+                                       { on?: boolean; turns?: number; results?: StoredResults } = {}) {
+  await storeReview(page, display, { on, results });
+  await openReview(page, turns, 120_000);
 }
 
 /** Reviews the test game in `page` from a review file (`file`, the stored review by default), which the Review tab's
@@ -192,15 +195,19 @@ export function keptResults(page: Page, values = false): Promise<[string, unknow
   }), [STORE, values] as const);
 }
 
+/** Stored results, each key with its result, as putResults takes them. */
+type StoredResults = Parameters<typeof putResults>[1];
+
 /** Puts the stored review's results (STORED) in the browser's store of analyses, with the display settings `display`,
- *  and the engine off, or on at Lite with `on` (checkStored first). The test's browser context is new, so the site has no database yet.
- *  This makes the database with the site's stores, so the site's upgrade adds none (db.ts adds only the stores that
- *  are missing). A page that opens next takes the results as its own. With the engine on, a search of a position takes
- *  its stored result (analysis.svelte.ts, search), and asks nothing of the engine. Then expectNoSearch checks that the
- *  page asked the engine for no search. `results`: the stored results that the store takes (all by default). */
+ *  and the engine off, or on at Lite with `on` (checkStored first). The test's browser context is new, so the site has
+ *  no database yet. This makes the database with the site's stores, so the site's upgrade adds none (db.ts adds only
+ *  the stores that are missing). A page that opens next takes the results as its own. With the engine on, a search of
+ *  a position takes its stored result (analysis.svelte.ts, search), and asks nothing of the engine. Then
+ *  expectNoSearch checks that the page asked the engine for no search. `results`: the stored results that the store
+ *  takes in their place (all of STORED's by default), such as another stored review's (OTHER_STORED). */
 export async function storeReview(page: Page, display: object = {},
                                   { on = false, results = readStored().analyses }:
-                                    { on?: boolean; results?: readonly (readonly [string, unknown])[] } = {}) {
+                                    { on?: boolean; results?: StoredResults } = {}) {
   await checkStored(page);
   await keepSettings(page, { on, ...LITE }, display);
   await putResults(page, results);

@@ -5,20 +5,13 @@
 // (4.1 em of its own size): the header shows its mark there too.
 import { expect, test } from "./page-log.ts";
 import { checkMoveHeader, readTable, tableBox, toMove } from "./move-header.ts";
-import { loadReviewFile } from "./review-file.ts";
+import { openReviewFile } from "./review-file.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 
 test("the Edge header opens the table's Edge column on Hedge School", async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-  });
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.goto("/review");
-  await loadReviewFile(page, FIXTURE);
-  await page.waitForURL(/#game=/);
-  await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
+  await openReviewFile(page, FIXTURE, { engine: { on: false }, consent: { games: "denied" } });
   await page.getByRole("tab", { name: "Analysis", exact: true }).click();
   await toMove(page, 20);
   const box = tableBox(page);
