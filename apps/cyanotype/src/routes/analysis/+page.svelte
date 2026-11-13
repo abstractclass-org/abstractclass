@@ -57,6 +57,7 @@
   import { readPasted } from "#lib/game/paste.ts";
   import { setUpStart, STANDARD_START, writePosition } from "#lib/game/position.ts";
   import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
+  import { linkAt } from "@abstractclass/analysis/boardLink.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
@@ -165,8 +166,7 @@
     if (text === null) return { kept, at: keptAt, brought: { board: boardOfLine([], setUpStart(position)), at: 0, kind: "position" } };
     try {
       const record = readPasted(text, position).record;
-      const atMain = Math.max(0, Math.floor(Number(p.get("at") ?? record.moves.length)) || 0);
-      return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: atMain, kind: "record", record } };
+      return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: linkAt(p.get("at")), kind: "record", record } };
     } catch (e) {
       refuse(errorText(e), "record");
       return { kept, at: keptAt };

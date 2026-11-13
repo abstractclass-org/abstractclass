@@ -65,7 +65,8 @@ engine does by itself.
 5. **The ways in:**
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),
-     with `&at=` for the position (design 22).
+     with `&at=` for the position (design 22). Without `at`, the board opens at the start (`linkAt` in
+     `packages/analysis/src/boardLink.ts`, which Cyanotype's board uses too).
    - **A game from the bookmarklet or the userscript** (design 11): the import page (`/import`, design 22) asks first,
      "Review the game" or "Analyze on the board" (`src/lib/review/Arrival.svelte`, in the choice's frame that
      Cyanotype shares, `packages/import/src/ToolChoice.svelte`). A player who watches a game on

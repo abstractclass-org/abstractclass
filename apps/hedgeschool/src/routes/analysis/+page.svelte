@@ -32,6 +32,7 @@
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
+  import { linkAt } from "@abstractclass/analysis/boardLink.ts";
   import { BOARD_EXPORTS, boardRecordNote, deliverBoardExport, type ExportKind,
            type ExportResult } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
@@ -190,7 +191,7 @@
     if (variant) throw new RecordProblem(variant, "rejected");
     const { problem } = await checkMoves(record);
     if (problem) throw new RecordProblem(problem, "rejected");
-    return { board: boardOfRecord(record), at: Math.max(0, Math.floor(Number(at)) || 0) };
+    return { board: boardOfRecord(record), at: linkAt(at) };
   }
   /** A position brought to the board, with no moves: the engine checks that it could occur (design 21). The standard
    *  start is no set-up start. */

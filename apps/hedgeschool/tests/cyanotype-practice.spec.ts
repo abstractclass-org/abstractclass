@@ -334,7 +334,7 @@ test("Play the bot from here, on a game's position: its moves are the game's sta
   await fromPosition(page);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(at(`/analysis#${new URLSearchParams({ record: middle.moves.join(" ") })}`));
+  await page.goto(at(`/analysis#${new URLSearchParams({ record: middle.moves.join(" "), at: String(middle.moves.length) })}`));
   await page.getByRole("button", PLAY_HERE).click({ timeout: 120_000 });
   await expect(page).toHaveURL(/\/practice$/); // the start leaves the address
   await expect(page.getByText("The game starts after the record's 9 moves.")).toBeVisible({ timeout: 120_000 });

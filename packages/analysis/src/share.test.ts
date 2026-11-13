@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BitReader, BitWriter, decodeShare, encodeShare, type MoveCode } from "./share.ts";
-import { boardLink, boardPositionKeys, readBoardLink } from "./boardLink.ts";
+import { boardLink, boardPositionKeys, linkAt, readBoardLink } from "./boardLink.ts";
 import type { KeptBoard, KeptNode } from "./kept.ts";
 
 /** A game whose moves are words of lowercase letters: each as its length, then 5 bits a letter. */
@@ -45,6 +45,17 @@ test("a board's link gives back its tree, its start and its place", () => {
   assert.deepEqual(back.board.nodes.map(n => n[0]), ["ab", "ab cd", "ab ef"]);
   // The keys of its positions in the store name its start.
   assert.deepEqual([...boardPositionKeys(board)], ["@a_set_up_start", "@a_set_up_start ab", "@a_set_up_start ab cd", "@a_set_up_start ab ef"]);
+});
+
+test("a link's place: its `at`, else the start (Hedge School's design 21, item 5)", () => {
+  assert.equal(linkAt("12"), 12);
+  assert.equal(linkAt("2.7"), 2);
+  for (const none of [null, "", "x", "-3"]) assert.equal(linkAt(none), 0, String(none));
+  // A board at its start shares a link with no `at`, which opens there again.
+  const board: KeptBoard = { version: 2, main: ["ab"], nodes: [["ab", -1]] };
+  const hash = new URLSearchParams(boardLink("", board, 0, WORDS).split("#")[1]);
+  assert.equal(hash.get("at"), null);
+  assert.equal(readBoardLink(hash.get("packed")!, hash.get("at"), WORDS, () => null, NO_LIMIT).at, 0);
 });
 
 test("a board's link keeps its komi, and refuses a komi that is not one (Hedge School's design 24)", () => {

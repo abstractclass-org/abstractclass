@@ -23,6 +23,11 @@ export function boardLink(origin: string, board: KeptBoard, at: number, code: Mo
   return `${origin}/analysis#packed=${packed}${at ? `&at=${at}` : ""}${via ? `&via=${via}` : ""}`;
 }
 
+/** The place on the main line that a link's `at` gives (a link's record or a shared board's): after that many moves.
+ *  A link with no `at`, or one that is not a number, opens at the start (Hedge School's design 21, item 5). The board
+ *  opens a place past the main line's end at its end. */
+export const linkAt = (at: string | null): number => Math.max(0, Math.floor(Number(at)) || 0);
+
 /** A board from a link's `packed` and `at`. `start` reads the link's `Position` tag as the board's set-up start: none
  *  for the standard start. The `Komi` tag is the board's komi: none for 0. `maxKomi` is the game's komi limit, either
  *  way (its record's `MAX_RECORD_KOMI`, its engine's cap): beyond it, the analysis module searches with no error, but
@@ -35,5 +40,5 @@ export function readBoardLink(packed: string, at: string | null, code: MoveCode,
   const beyond = komiLimitProblem(komi, maxKomi, s.tags.Komi ?? komi);
   if (beyond) throw new Error(beyond);
   return { board: { version: 2, main: [], nodes: s.branches, ...(from ? { start: from } : {}), ...(komi ? { komi } : {}) },
-           at: Math.max(0, Math.floor(Number(at)) || 0) };
+           at: linkAt(at) };
 }

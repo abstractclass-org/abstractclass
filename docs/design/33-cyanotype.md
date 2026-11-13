@@ -787,7 +787,12 @@ build). The decision log gives the measurements that led to each choice.
     keeps the board that this browser kept, and a notice says why it did not open the record. A record that the engine
     accepts replaces the board kept here. When that board has moves, the board first asks "Replace your analysis?":
     "Keep mine" keeps it. The question is Hedge School's (its design 21, item 6), in `packages/review`
-    (`ReplaceAnalysis.svelte`), which both boards use.
+    (`ReplaceAnalysis.svelte`), which both boards use. The board opens a record or a shared board at the place on the
+    main line that the link's `at` gives. Without `at`, it opens at the start, as Hedge School's does (its design 21,
+    item 5, `linkAt` in `packages/analysis/src/boardLink.ts`). The tools' games always send `at` (item 5 of "How a
+    game comes in from strategyjam.org"), and so does a shared board that is not at the start. Practice's "Analyze the
+    game", a game from a set-up start in the player's games and the board's Import send no `at`: they open at the
+    start.
 12. **The Export menus and the links,** as Hedge School's (its designs 13 and 21), in the shared menu
     (`packages/review/src/ExportMenu.svelte`):
     - **The Analysis board's Export:** a link that shares the board (`/analysis#packed=…`, `src/lib/game/board.ts`),

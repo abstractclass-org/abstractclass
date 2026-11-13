@@ -2,7 +2,8 @@
 // (CYANOTYPE_BASE_URL). The editor sets up a position that the engine's rules read and that a game can reach (the
 // engine's position check, protocol 0.8.0), and Analyze opens the board from it. A position that no game reaches gets
 // the engine's reasons, with their hexes marked, and Analyze waits. A drag with Shift puts cells along it, or removes
-// them. The Import takes a position and the moves from it. A link and an analysis file with a set-up start open from
+// them. The Import takes a position and the moves from it. A link's record opens at its `at`, and at the start without
+// one, as on Hedge School. A link and an analysis file with a set-up start open from
 // it, and a start that the rules refuse or that no game reaches leaves the board kept here, with a notice. A board kept
 // here whose start no game reaches gives way to a new board, with a notice. Each way in refuses a komi, which the board
 // does not take yet (design 33, "The komi"). The review's refusal of a game from a set-up start is in
@@ -303,6 +304,19 @@ test("the Import: a position and the moves from it, then a position alone", asyn
   await expectBoard(page, writePosition(fixtures.find(f => f.name === "A capture")!.position), []);
 });
 
+test("a link's record with no `at` opens at the start, and one with `at` at its place, as on Hedge School", async ({ page }) => {
+  // A partner's or a hand-made link: Hedge School's design 21, item 5. The move on screen is the list's `.here`.
+  const record = middle.moves.join(" "), here = page.locator(".movelist .mv.here");
+  await page.goto(at(`/analysis#${new URLSearchParams({ record })}`));
+  await expectBoard(page, undefined, middle.moves);
+  await expect(page.locator(".movelist .mv")).toHaveCount(middle.moves.length);
+  await expect(here).toHaveCount(0);
+  await page.goto(at("/about"));
+  await page.goto(at(`/analysis#${new URLSearchParams({ record, at: "4" })}`));
+  await page.getByRole("button", { name: "Replace it" }).click({ timeout: 120_000 });
+  await expect(here).toHaveCount(1, { timeout: 120_000 });
+  await expect(page.locator(".movelist .mv").nth(3)).toHaveClass(/\bhere\b/); // after the 4th move
+});
 test("a link with a set-up start opens from it", async ({ page }) => {
   await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [MOVE], nodes: [[MOVE, -1]], start: MIDDLE }, 1));
   await expectBoard(page, MIDDLE, [MOVE]);
