@@ -282,7 +282,8 @@ edit in the same commit), so their changes still apply.
       page, loads the address that `read` gives, and in the userscript opens the game once the reloaded page has its
       moves. So meaf.us's case stays in Hedge School's page code, and the frame knows no game site.
     - **The tools** (`UserscriptSite`, one object for both): the site's name, the tools' own name, its id (the name of
-      the userscript's files, of the elements that it adds and of its key), the button's picture, the button's place
+      the userscript's files, of the elements that it adds and of its key: an id with no hyphen adds `-tool` to the
+      elements' name, as a shadow root needs), the button's picture, the button's place
       on each game site, and the header's description, author, homepage and pages (`@match`). The bookmarklet takes
       the two names and the page code. The frame makes the words that name the tools from the two names: "the
       Review in Hedge School bookmark", "the Hedge School button", and the button's label, "Open this game in Hedge

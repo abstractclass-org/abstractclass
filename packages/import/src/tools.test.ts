@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { BOOKMARK_VERSION, bookmarkletHref, bookmarkletScript } from "./bookmarklet.ts";
 import type { Tool } from "./importHash.ts";
 import { pageCodeText, type Found } from "./pageCode.ts";
-import { userscriptHeader, userscriptSource, type UserscriptSite } from "./userscript.ts";
+import { hostTag, userscriptHeader, userscriptSource, type UserscriptSite } from "./userscript.ts";
 
 const ORIGIN = "https://words.example";
 
@@ -97,4 +97,19 @@ test("the userscript's header and file: the site's names, pages and files, and c
   for (const part of ['"code":"abc"', '"id":"words-site"', '"click":"the Words button"', '"open":"Open this game in Words"',
                       '"into":".bar"', site.icon(44).replaceAll('"', '\\"')])
     assert.ok(text.includes(part), part);
+});
+
+test("the button's elements take a shadow root: the site's id as their name, with a hyphen when it has none", () => {
+  // A shadow root needs an element of a custom element's name: a lowercase letter first, and a hyphen. Hedge School's
+  // id keeps its name, and Cyanotype's id ("cyanotype") takes one.
+  for (const [id, tag] of [["hedge-school", "hedge-school"], ["cyanotype", "cyanotype-tool"]]) {
+    assert.equal(hostTag(id), tag);
+    assert.match(tag, /^[a-z][a-z0-9]*-[a-z0-9-]*$/);
+  }
+  const site: UserscriptSite<typeof CODE> = {
+    name: "Words", toolName: "Open in Words", id: "words", icon: () => "<svg></svg>", places: {},
+    description: "Opens the game in Words.", author: "Someone", homepage: "https://someone.example",
+    matches: ["https://play.example/g/*"], page: CODE,
+  };
+  assert.ok(userscriptSource(site, ORIGIN, "1", "abc").includes('"tag":"words-tool"'));
 });

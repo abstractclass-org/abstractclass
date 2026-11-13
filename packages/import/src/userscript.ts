@@ -29,7 +29,7 @@ export interface UserscriptSite<P extends PageCode<P>> {
   name: string; // the site's name, which starts each message and names the button: "Hedge School"
   toolName: string; // the tools' own name: the script's in Tampermonkey's lists, and the bookmark's
   /** The name of the script's files (/<id>.user.js, and its header alone at /<id>.meta.js), of the elements that it adds
-   *  to the page, and of its key in the tab's storage: "hedge-school". */
+   *  to the page (`hostTag`), and of its key in the tab's storage: "hedge-school". */
   id: string;
   /** The button's picture: an SVG element of `size` pixels, on the button and in the header for Tampermonkey's lists. */
   icon(size: number): string;
@@ -41,10 +41,16 @@ export interface UserscriptSite<P extends PageCode<P>> {
   page: P;
 }
 
+/** The name of the elements that hold the button and its notes: the site's id, with "-tool" after an id with no
+ *  hyphen. A shadow root needs an element of a custom element's name, which has a hyphen: an element named
+ *  "cyanotype" refuses `attachShadow`, and the script then shows no button. Hedge School's "hedge-school" keeps its
+ *  name. */
+export const hostTag = (id: string) => (id.includes("-") ? id : `${id}-tool`);
+
 /** What the script's code takes of the site, as data: the site's address (`origin`), the version of the script's code
  *  (`code`), the site's texts and picture, and the button's places. */
 interface Data {
-  origin: string; code: string; name: string; id: string; click: string; open: string; icon: string;
+  origin: string; code: string; name: string; id: string; tag: string; click: string; open: string; icon: string;
   places: Record<string, ButtonPlace>; fixed: string;
 }
 
@@ -58,7 +64,7 @@ function main(d: Data, page: AnyPageCode) {
   // The button, and its notes above it, fixed in the window: each in a shadow root, which the page's styles do not
   // reach, of an element whose name the page's styles do not know.
   const shadow = (html: string) => {
-    const host = document.createElement(d.id);
+    const host = document.createElement(d.tag);
     host.attachShadow({ mode: "open" }).innerHTML = html;
     return host;
   };
@@ -170,7 +176,8 @@ export function userscriptHeader<P extends PageCode<P>>(site: UserscriptSite<P>,
  *  gives the button's label and the entry in Tampermonkey's menu (`open`). */
 export function userscriptSource<P extends PageCode<P>>(site: UserscriptSite<P>, origin: string, version: string,
                                                         code: string): string {
-  const data: Data = { origin, code, name: site.name, id: site.id, click: `the ${site.name} button`,
-                       open: `Open this game in ${site.name}`, icon: site.icon(44), places: site.places, fixed: FIXED_PLACE };
+  const data: Data = { origin, code, name: site.name, id: site.id, tag: hostTag(site.id),
+                       click: `the ${site.name} button`, open: `Open this game in ${site.name}`, icon: site.icon(44),
+                       places: site.places, fixed: FIXED_PLACE };
   return userscriptHeader(site, origin, version) + "\n" + `(${main})(${JSON.stringify(data)}, ${pageCodeText(site.page)});\n`;
 }
