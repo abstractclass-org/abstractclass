@@ -12078,3 +12078,31 @@ abscls-xud1. Design 07 (item 17) and design 21 changed.
   - Each frame styled with no check of the theme: only the animated image (one theme in all frames, and the new
     theme).
   - The note's "Save image" that draws a new image: only the image after a refused copy, its colours and its pixels.
+
+### Cyanotype's move sounds (2026-11-13)
+
+abscls-8tl1.42, from the decision of 2026-11-06 to build this gap of design 33. Cyanotype plays Hedge School's move
+sounds on the review, the Analysis board and Practice, with their settings (design 08, design 33, "The move sounds").
+
+- **Moved, not copied** (design 29): `sound.ts` and `SoundSettings.svelte` went from Hedge School's `src/lib` into
+  `packages/site`, with the notices page's items of the sounds' sources (`SoundNotices.svelte`). Hedge School's sets,
+  clips, defaults, words and times of play are as before. The shared code names its two sounds a move's and a
+  removal's, a move that removes the opponent's pieces, and the settings take the game's word for a move ("edge" on
+  Hedge School, so its text stays "A sound for each edge played or stepped through.").
+- **Blueprints' moves:** a placement that captures has the removal's sound (Hedge School's cut's), with points or
+  none. A placement that captures nothing, an edit and a pass have the move's sound. The game's end has none. A
+  capture removes the opponent's cells as a cut removes an edge, and a set keeps two fixed sounds, each with one
+  meaning.
+- **The clips:** Cyanotype's `static/sounds/` holds Hedge School's four files at the same paths, so one list of sets
+  serves both sites. A test keeps them equal, byte for byte. The files are 11 KB in all.
+- **Practice's display settings:** Cyanotype's Practice had none. They now open from the step bar's ☰ button, as on
+  Hedge School's Practice, and hold the Sound group.
+- **A kept setting from before:** Cyanotype's builds kept `sound: false` and `moveSound: "none"` with the review's
+  settings, and offered no switch. Such a setting now loads with the sounds on, and every other setting as kept. A
+  player's own choice of no sounds stays.
+- **Checked:** Cyanotype's unit tests of the moves' sounds, the clips and the kept setting, and `svelte-check` of both
+  apps and both packages. The site suite at ports 4216 and 4217: `check:all` passed, and the layout test passed 286
+  cases in Chromium with none skipped. Screenshots of the display settings in headless Chromium, before and after, at
+  1,280 and 390 pixels: Cyanotype's Analysis board shows the Sound group before the Keyboard group, and its Practice
+  shows the ☰ button and the Sound group. Hedge School's panels show as before. The sounds themselves were not heard
+  in a test.

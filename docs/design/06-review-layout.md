@@ -378,7 +378,7 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
 - The parts that Practice shares (design 24): the row above the board (`packages/review/src/PlayerRow.svelte`,
   `PlayerCard.svelte`), the win bar and gauge (`packages/review/src/ShareBar.svelte`), the move list's look
   (`packages/review/src/moveList.ts`), and the settings' rows (`packages/site/src/SettingChoice.svelte`,
-  `SettingToggle.svelte`, and Hedge School's `src/lib/ui/SoundSettings.svelte`).
+  `SettingToggle.svelte` and `SoundSettings.svelte`).
 - `src/lib/review/display.ts`: the display settings and their storage in the browser.
 - `src/routes/review/+page.svelte`: the skeleton until the review shows (`gameOpen`, `preloaded`).
 - `packages/site/src/site.css`: the monospaced font (`--font-mono`, its ligatures' setting

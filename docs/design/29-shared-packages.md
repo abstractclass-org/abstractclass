@@ -495,19 +495,20 @@ edit in the same commit), so their changes still apply.
   caption and file name. `src/lib/book/ReviewBookTable.svelte`: the book's table in the view.
 - `packages/site/src/`: the site's general controls that the view uses (`Icon.svelte`, `Toast.svelte`,
   `SettingChoice.svelte`, `SettingToggle.svelte`, `settings.ts`, `Swatch.svelte`, `side.ts`) and the page's scroll
-  (`pageScroll.ts`). `ConfirmDialog.svelte`: the question before an action that the player cannot undo (design 11), for
-  a game's Delete in the Review tab's list and for the privacy page's delete. Its action takes `btn-danger` from
-  `@abstractclass/practice`'s style, which both sites import. `download.ts`: a file that a page gives the player to
-  save. `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge School's
-  `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and header, and adds
-  its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node. It reads the engine's
-  files with the engine package's `artifacts.ts`. It takes a failed request's reason from that package's `fetchReason`
-  (`errors.ts`), as the engine step (`fetch-engine.mjs`) does. It is the one file of the site package that imports the
-  engine package, and no page imports it. So the site package depends on the engine package, and the frame's code in
-  the browser still has none of the engine. `releaseLock.ts`, which only `release-check.mjs` imports: the commit that
-  the check reads, given or from the home page's footer, and that commit's engine lock as Git keeps it. It also tells
-  whether the check's code (the site's script and `release-check.mjs`) differs between that commit and the checkout
-  (`checkoutDiffers`). When it differs, the lines that come from the checkout say `(from this checkout)`.
+  (`pageScroll.ts`). `sound.ts` and `SoundSettings.svelte`: the move sounds and their settings (design 08), which a
+  game's view gives the view (`sounds`). `ConfirmDialog.svelte`: the question before an action that the player cannot
+  undo (design 11), for a game's Delete in the Review tab's list and for the privacy page's delete. Its action takes
+  `btn-danger` from `@abstractclass/practice`'s style, which both sites import. `download.ts`: a file that a page gives
+  the player to save. `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge
+  School's `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and header,
+  and adds its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node. It reads the
+  engine's files with the engine package's `artifacts.ts`. It takes a failed request's reason from that package's
+  `fetchReason` (`errors.ts`), as the engine step (`fetch-engine.mjs`) does. It is the one file of the site package that
+  imports the engine package, and no page imports it. So the site package depends on the engine package, and the frame's
+  code in the browser still has none of the engine. `releaseLock.ts`, which only `release-check.mjs` imports: the commit
+  that the check reads, given or from the home page's footer, and that commit's engine lock as Git keeps it. It also
+  tells whether the check's code (the site's script and `release-check.mjs`) differs between that commit and the
+  checkout (`checkoutDiffers`). When it differs, the lines that come from the checkout say `(from this checkout)`.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
   tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review

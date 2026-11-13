@@ -369,7 +369,7 @@ How strong each setting plays against people is not measured yet.
   the win bar and gauge (`packages/review/src/ShareBar.svelte`), the move list's look
   (`packages/review/src/moveList.ts`, and Enclosure's width of a move, `MOVE_TEXT` in `src/lib/review/enclosure.ts`),
   the controls' icons (`packages/site/src/Icon.svelte`), and the settings' rows and the sound settings
-  (`packages/site/src/SettingChoice.svelte`, `SettingToggle.svelte`, and `src/lib/ui/SoundSettings.svelte`).
+  (`packages/site/src/SettingChoice.svelte`, `SettingToggle.svelte` and `SoundSettings.svelte`).
 - **The game:** the flow that both sites share in `packages/practice/src/game.svelte.ts` (`PracticeGame`: the turns,
   the bot's time, the takeback, Abort and Resign, with its tests on a game of words), and Enclosure's game in
   `src/lib/practice/game.svelte.ts`, which extends it: the moves to the bot and to the rules worker, each move's time,

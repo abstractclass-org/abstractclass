@@ -197,11 +197,13 @@ export interface SecondNumber<G extends GameTypes> {
  *  area map's settings, or after them. */
 export interface LayerSetting<K extends string = string> { key: K; label: string; help: string; afterMap?: boolean }
 
-/** The sounds' settings (Hedge School's ui/SoundSettings.svelte), in the display settings. */
+/** The sounds' settings (@abstractclass/site/SoundSettings.svelte), in the display settings. `move`: the game's word
+ *  for a move (`words.move`). */
 export interface SoundSettingsProps<D extends Display> {
   sound: boolean;
   moveSound: D["moveSound"];
   volume: number;
+  move: string;
   set: (v: Partial<Pick<D, "sound" | "moveSound" | "volume">>) => void;
 }
 
@@ -407,7 +409,7 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   /** The move sounds and their settings. None: the site has no sounds, and the settings do not offer them. */
   sounds?: {
     Settings: Component<SoundSettingsProps<G["display"]>>;
-    /** A move's sound, at a volume from 0 to 1: the set's sound for the move played. */
+    /** A move's sound, at a volume from 0 to 1: the set's sound for the move played (a move's, or a removal's). */
     play(volume: number, set: G["display"]["moveSound"], played: G["played"] | undefined): void;
     preload(set: G["display"]["moveSound"]): void; // fetches a set's sounds ahead
   };

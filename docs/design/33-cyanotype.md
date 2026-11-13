@@ -551,9 +551,9 @@ engine takes it, and no tag at komi 0.
 2. **A kept game whose network the site no longer ships cannot go on:** the site ships only its lock's networks, so a
    new build can drop a kept game's network. The page drops the game, and the settings card says so. Hedge School's
    lock keeps its earlier networks (abscls-8tl1.54).
-3. **Fewer display settings:** the points' bar always shows, with no second number (Blueprints has no area), and the
-   page has no sounds. The player's notes are on the board ("The player's notes"). These are gaps too ("The gaps from
-   Hedge School").
+3. **Fewer display settings:** they hold only the move sounds ("The move sounds"). The points' bar always shows, with
+   no second number (Blueprints has no area). The player's notes are on the board ("The player's notes"). These are
+   gaps too ("The gaps from Hedge School").
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
 5. **The stored games have their own switch:** the deploy gives Cyanotype's build the repository variable
@@ -1303,6 +1303,46 @@ section and the test's section on Cyanotype's page.
    here. A longer label for the saved review, such as "Open your review in Cyanotype", would differ from Hedge
    School's.
 
+## The move sounds
+
+Cyanotype has Hedge School's move sounds (design 08), with their settings, on the review and on Practice. The code is
+one in `packages/site`, and the clips are Hedge School's files: a set's sound for a move, and another for a move that
+removes the opponent's pieces (the removal's sound). Enclosure's removal is an edge that cuts. Blueprints' is a
+placement that captures.
+
+1. **Which move plays which sound:**
+
+   | Move | Sound |
+   | --- | --- |
+   | A placement that captures, with the capture mark `x` or `x+N` | The removal's sound: the button's "Select Button UI", or the pencil's higher stroke |
+   | A placement that captures nothing | The move's sound: the button's "Button Press", or the pencil's lower stroke |
+   | An edit | The move's sound |
+   | A pass | The move's sound, as on Hedge School |
+   | The game's end | No sound of its own, as on Hedge School |
+
+2. **When a sound plays,** as on Hedge School: on the review and the Analysis board, a step one move on, a move played
+   and a move clicked in the move list (design 08, item 5). On Practice, each new move of either side while the board
+   shows the latest position, and a step one move on. A turn's two moves play one sound each.
+3. **The settings,** as on Hedge School: "Move sounds" (on by default), "Sound" (Button, the default, or Pencil) and
+   "Volume" (0.4), in the Sound group of the review's display settings. Practice's display settings open from the
+   step bar's ☰ button, in the side column's place, as on Hedge School's Practice, and hold only the Sound group. The
+   two pages keep one set of settings, the review's. A browser that kept the review's settings before the sounds had
+   them off, with no switch to turn them on: the sounds then take the default, and every other setting stays.
+4. **The files:** `static/sounds/` holds Hedge School's four clips at its paths, so that one list of sets
+   (`MOVE_SOUNDS`) serves both sites. A test keeps them equal to Hedge School's, byte for byte. The notices page names
+   their sources, in Hedge School's words (`SoundNotices.svelte` of `packages/site`).
+
+**Why:**
+
+- **A capture has the removal's sound.** Design 08 gives an edge that cuts its own sound because a cut changes the
+  board more than an edge does, and a walk through a game then tells it by ear. A capture removes the opponent's cells
+  in the same way, and it is Blueprints' only move that scores.
+- **One removal's sound, with points or none.** A set has two fixed sounds, so that each carries one meaning
+  (design 08, items 1 and 4). A third sound for a capture that scores would break that, as the chime for a closed
+  region did on Hedge School. The move list and the board show the points.
+- **An edit and a pass have the move's sound.** Each move is a step through the game, and a step one move on plays a
+  sound (design 08, item 5). An edit removes nothing. A pass on Hedge School plays the edge's sound too.
+
 ## The cells' marks
 
 A cell has its owner's colour. A star cell and a wall also have a white mark, so that the shape tells the kinds apart,
@@ -1497,7 +1537,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The weak walls** (`review/weakWalls.ts`, design 30): the rings on the walls that the engine expects to fall.
   Blueprints' walls are cells, not Enclosure's edges, and its engine gives no field for them. abscls-8tl1.17 decides
   with the area map what Blueprints shows in their place. Cyanotype's display settings keep them off.
-- **Move sounds** (`sound.ts`, `ui/SoundSettings.svelte`, design 08), on the review and on Practice. abscls-8tl1.42.
 - **The image of a line** (`board/boardImage.ts`, `board/gif.ts`, `review/enclosureImage.ts`, design 07, item 17).
   abscls-8tl1.43.
 - **The opening book** in the review and on the Analysis board (`book/`, design 32). Put off with the Openings page:
@@ -1675,6 +1714,10 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   the fit's choice of corner (`fitWithPanel`). `view.ts`, `fitAround`: the fit that keeps the hexes out from under it.
   `Board.svelte`, its prop `hands`: the hands in the board's box ("box", the lab's), in the panel ("panel") or under
   the field ("under"), with the panel's `place` and `size`. Tests: `panel.test.ts` and `view.test.ts`.
+- `apps/cyanotype/src/lib/sound.ts`: which of a move's two sounds a Blueprints move plays ("The move sounds"), for
+  the review's view (`review/blueprintsView.ts`, `sounds`) and Practice. `sound.test.ts`: the moves' sounds, and the
+  clips of `static/sounds/` equal to Hedge School's. `review/display.ts`: the sounds' settings, with a kept setting
+  from before the sounds.
 - `apps/cyanotype/src/routes/practice/+page.svelte`: Practice. `src/lib/practice/game.svelte.ts`: the game, with the
   rules' worker and the bot, from the standard start or a start brought ("From a position"). `stampduty.ts`: the site's
   part of `@abstractclass/practice` (its keys, its networks, the half-life, the bot's name). The bot's forms and its
@@ -1871,6 +1914,6 @@ School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach t
 "Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), "Cyanotype's Play the bot from here, and
 Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), "Cyanotype removes
 earlier engine results, as Hedge School" (2026-11-11), "Cyanotype's header links show from 740 pixels"
-(2026-11-12), and "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13). The earlier entries name
-the site by its first name, Drawing Board. [decisions/architecture.md](../decisions/architecture.md), "The repository's
-variables name their site" (2026-11-13).
+(2026-11-12), "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13), and "Cyanotype's move sounds"
+(2026-11-13). The earlier entries name the site by its first name, Drawing Board.
+[decisions/architecture.md](../decisions/architecture.md), "The repository's variables name their site" (2026-11-13).

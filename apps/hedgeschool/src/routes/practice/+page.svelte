@@ -15,7 +15,7 @@
   import Icon from "@abstractclass/site/Icon.svelte";
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
-  import SoundSettings from "#lib/ui/SoundSettings.svelte";
+  import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
   import { SETTINGS_HEAD } from "@abstractclass/site/settings.ts";
   import PlayerCard from "@abstractclass/review/PlayerCard.svelte";
   import PlayerRow from "@abstractclass/review/PlayerRow.svelte";
@@ -39,7 +39,7 @@
   import { AREA, fmtMargin, LAYERS, MOVE_TEXT, moveNotation, type Player } from "#lib/review/enclosure.ts";
   import { resultOfScores, resultText } from "@abstractclass/review/game.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
-  import { playMove, preload } from "#lib/sound.ts";
+  import { playMove, preload } from "@abstractclass/site/sound.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
@@ -310,7 +310,8 @@
       {#each LAYERS as l (l.key)}
         <SettingToggle label={l.label} help={l.help} get={() => display.layers[l.key]} set={v => (display.layers[l.key] = v)} />
       {/each}
-      <SoundSettings sound={display.sound} moveSound={display.moveSound} volume={display.volume} set={v => Object.assign(display, v)} />
+      <SoundSettings sound={display.sound} moveSound={display.moveSound} volume={display.volume} move="edge"
+                     set={v => Object.assign(display, v)} />
     </div>
   </div>
 {/snippet}

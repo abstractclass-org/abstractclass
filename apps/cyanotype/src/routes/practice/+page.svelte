@@ -11,7 +11,9 @@
   // worker, and the bot in its own, in the first of its forms that this browser runs, as on Hedge School's Practice: on
   // the GPU or on the CPU workers through the threaded bot, else on one thread (@abstractclass/practice/botForms.ts),
   // with the engine settings' GPU and workers. The page counts a game's start and end, the engine's errors and the
-  // features used, as Hedge School's does (its design 17).
+  // features used, as Hedge School's does (its design 17). The move sounds and their settings are Hedge School's
+  // (@abstractclass/site/sound.ts, its design 08), in the display settings, which the step bar's button opens in the
+  // side column, as on Hedge School's Practice.
   // Its way in from a position, which the Analysis board's "Play the bot from here" gives (Hedge School's design 24,
   // item 4): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address at once,
   // then the analytics start. The engine's rules check them as the Analysis board checks a record or a start (recordCheck.ts): a start that no
@@ -54,11 +56,18 @@
   import { broughtLine, komiLine } from "@abstractclass/practice/practice.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
+  import Icon from "@abstractclass/site/Icon.svelte";
+  import { intoView } from "@abstractclass/site/pageScroll.ts";
+  import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
+  import { playMove, preload } from "@abstractclass/site/sound.ts";
+  import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
+  import { removes } from "#lib/sound.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
 
   let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
   let notice = $state(""); // a start brought that cannot be played
+  let settingsOpen = $state(false); // the display settings, in the side column's place
 
   // The page's flow, with Cyanotype's game. A game's end goes to the site too (Hedge School's design 25), and a game set
   // aside by a start brought goes into Your games, unfinished.
@@ -68,7 +77,8 @@
     track, trackOnce,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
-    settings: () => (notice = ""),
+    settings: () => { settingsOpen = false; notice = ""; },
+    forward: into => { if (display.sound) void playMove(display.volume, display.moveSound, removes(into.move)); },
   });
   const game = $derived(page.game);
   const shown = $derived(page.shown);
@@ -127,6 +137,26 @@
     input.rules = r;
   });
 
+  // The display settings that Practice shares with the review (Hedge School's design 08): the move sounds.
+  const display = $state(loadDisplay());
+  let shownDisplay = $state.snapshot(display);
+  $effect(() => {
+    const now = $state.snapshot(display), was = shownDisplay;
+    saveDisplay(now);
+    for (const k of Object.keys(now) as (keyof typeof now)[]) if (JSON.stringify(now[k]) !== JSON.stringify(was[k])) page.used(`display ${k}`);
+    shownDisplay = now;
+  });
+  $effect(() => { if (display.sound) preload(display.moveSound); });
+  // A new move's sound, for both sides' moves, while the board shows the latest position: not for the moves that a
+  // game's start replays. A placement that captures has the removal's sound (sound.ts).
+  let heard = 0;
+  $effect(() => {
+    const played = game?.played ?? [];
+    if (played.length > heard && game?.status !== "starting" && page.viewAt === null && display.sound)
+      void playMove(display.volume, display.moveSound, removes(played.at(-1)?.move));
+    heard = played.length;
+  });
+
   // The hands: in a panel over the board on a computer, under the board in one column (below 800 pixels, as the
   // frame's one column). The panel's place and size are the player's: kept in this browser.
   const hands = handsPlace();
@@ -158,7 +188,7 @@
   const turnLabel = (k: number) => `${firstTurn.turn + k}${k === 0 && !firstTurn.first ? "..." : "."}`;
 </script>
 
-<svelte:window onkeydown={ev => page.keydown(ev, !!input.pending, () => input.reset())} />
+<svelte:window onkeydown={ev => page.keydown(ev, settingsOpen || !!input.pending, () => { settingsOpen = false; input.reset(); })} />
 
 <PageMeta title="Practice · {SITE_NAME}"
           description="Practise Blueprints against {ENGINE_NAME} in your browser: choose its visits, variety and komi, then play." />
@@ -215,39 +245,43 @@
       {/if}
     {/snippet}
     {#snippet side()}
-      <h1 class="text-lg font-bold">Practice</h1>
-      <!-- A start brought that the rules refused, while the game in progress goes on. -->
-      {#if notice}<p class="mt-1 text-xs text-blunder" role="alert">{notice}</p>{/if}
-      {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, {BOT_WHERE[g.mode]}.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
-      <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
-        {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
-      </p>
-      <!-- The review's move list's look (moveList.ts), one move a line: each move a step to its position. -->
-      <PracticeMoves {page} text={m => m.text}>
-        {#snippet row(t, k)}
-          {#each t.moves as m, i (m.at)}
-            <div class="grid grid-cols-[2.2rem_minmax(0,1fr)] items-baseline gap-x-1">
-              <span class={TURN_NUMBER}>{i === 0 ? turnLabel(k) : ""}</span>
-              <button type="button" class={[moveButton(t.player, shown === m.at ? MOVE_HERE : undefined), "justify-self-start"]} tabindex="-1"
-                      aria-current={shown === m.at ? "step" : undefined} onclick={() => page.step(m.at)}>{m.text}</button>
-            </div>
-          {/each}
-        {/snippet}
-      </PracticeMoves>
-      {#if g?.status === "over"}
-        <div class="flex flex-wrap gap-2 mt-3">
-          <!-- The Review tab reviews games from the standard start: a set-up start's game opens on the Analysis board. -->
-          {#if g.savedId && g.kept.start}<a class="btn-primary px-3 py-1 rounded text-sm no-underline"
-              href="/analysis#{new URLSearchParams({ record: g.record(), via: 'practice' })}" data-sveltekit-reload>Analyze the game</a>
-          {:else if g.savedId}<a class="btn-primary px-3 py-1 rounded text-sm no-underline" href="/review#game={g.savedId}"
-              data-sveltekit-reload>Review the game</a>{/if}
-          <button type="button" class="text-sm" onclick={() => page.toSettings()}>New game</button>
-        </div>
-      {/if}
-      {#if page.confirming && g}
-        <ConfirmEnd what={page.confirming} words={{ resign: `Resign? ${ENGINE_NAME} wins, and the game goes into Your games.`,
-                                                     abort: "Abort the game? It goes into Your games, unfinished." }}
-                    onconfirm={() => page.confirm()} onkeep={() => (page.confirming = null)} />
+      {#if settingsOpen}
+        {@render displaySettings()}
+      {:else}
+        <h1 class="text-lg font-bold">Practice</h1>
+        <!-- A start brought that the rules refused, while the game in progress goes on. -->
+        {#if notice}<p class="mt-1 text-xs text-blunder" role="alert">{notice}</p>{/if}
+        {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, {BOT_WHERE[g.mode]}.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
+        <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
+          {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
+        </p>
+        <!-- The review's move list's look (moveList.ts), one move a line: each move a step to its position. -->
+        <PracticeMoves {page} text={m => m.text}>
+          {#snippet row(t, k)}
+            {#each t.moves as m, i (m.at)}
+              <div class="grid grid-cols-[2.2rem_minmax(0,1fr)] items-baseline gap-x-1">
+                <span class={TURN_NUMBER}>{i === 0 ? turnLabel(k) : ""}</span>
+                <button type="button" class={[moveButton(t.player, shown === m.at ? MOVE_HERE : undefined), "justify-self-start"]} tabindex="-1"
+                        aria-current={shown === m.at ? "step" : undefined} onclick={() => page.step(m.at)}>{m.text}</button>
+              </div>
+            {/each}
+          {/snippet}
+        </PracticeMoves>
+        {#if g?.status === "over"}
+          <div class="flex flex-wrap gap-2 mt-3">
+            <!-- The Review tab reviews games from the standard start: a set-up start's game opens on the Analysis board. -->
+            {#if g.savedId && g.kept.start}<a class="btn-primary px-3 py-1 rounded text-sm no-underline"
+                href="/analysis#{new URLSearchParams({ record: g.record(), via: 'practice' })}" data-sveltekit-reload>Analyze the game</a>
+            {:else if g.savedId}<a class="btn-primary px-3 py-1 rounded text-sm no-underline" href="/review#game={g.savedId}"
+                data-sveltekit-reload>Review the game</a>{/if}
+            <button type="button" class="text-sm" onclick={() => page.toSettings()}>New game</button>
+          </div>
+        {/if}
+        {#if page.confirming && g}
+          <ConfirmEnd what={page.confirming} words={{ resign: `Resign? ${ENGINE_NAME} wins, and the game goes into Your games.`,
+                                                       abort: "Abort the game? It goes into Your games, unfinished." }}
+                      onconfirm={() => page.confirm()} onkeep={() => (page.confirming = null)} />
+        {/if}
       {/if}
     {/snippet}
     <!-- The status line, over the steps: two lines high at least. In one column it is two lines high, so that a text
@@ -258,9 +292,13 @@
          role="status" aria-live="polite"
          data-testid="practice-status">{statusText}</p>
     {/snippet}
-    <!-- The game's actions, right of the steps: off while the bot starts, so that the bar keeps its layout. -->
+    <!-- The game's actions and the display settings' button, right of the steps: the actions are off while the bot
+         starts, so that the bar keeps its layout. -->
     {#snippet tools()}
-      <PracticeActions game={g} ontakeback={() => page.takeback()} onask={what => (page.confirming = what)} />
+      <PracticeActions game={g} off={settingsOpen} ontakeback={() => page.takeback()} onask={what => (page.confirming = what)}>
+        <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"
+                aria-expanded={settingsOpen} onclick={() => (settingsOpen = !settingsOpen)}><Icon name="menu" /></button>
+      </PracticeActions>
     {/snippet}
   </PracticeFrame>
 {/snippet}
@@ -278,6 +316,20 @@
   {@const total = scores[0] + scores[1]}
   <ShareBar upright={false} share={total > 0 ? scores[0] / total : NaN} sub={null}
             title={`Points: Blue ${scores[0]}, Red ${scores[1]}`} />
+{/snippet}
+
+<!-- The display settings, in the side column's place, as on Hedge School's Practice: the move sounds. -->
+{#snippet displaySettings()}
+  <div role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0" {@attach intoView}>
+    <div class="flex items-center justify-between mb-1">
+      <h2 class="font-semibold">Display settings</h2>
+      <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
+    </div>
+    <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+      <SoundSettings sound={display.sound} moveSound={display.moveSound} volume={display.volume} move="move"
+                     set={v => Object.assign(display, v)} />
+    </div>
+  </div>
 {/snippet}
 
 <!-- A start brought while a game is in progress: the player chooses, once the rules have checked the start. -->

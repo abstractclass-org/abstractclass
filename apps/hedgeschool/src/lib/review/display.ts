@@ -2,13 +2,13 @@
 // form, the board's layers, the chart's score line, and how the engine's line and the variations show (design 07). Kept
 // in this browser (@abstractclass/review/display.ts): there are no accounts yet.
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
-import { MOVE_SOUNDS, type MoveSound } from "#lib/sound.ts";
+import { isMoveSound, type MoveSound } from "@abstractclass/site/sound.ts";
 import { displayStore } from "@abstractclass/review/display.ts";
 import type { Display as ViewDisplay } from "@abstractclass/review/game.ts";
 
 /** The settings of the review's view (@abstractclass/review/game.ts, Display, which says what each does), with Hedge
  *  School's board's layers (board/Board.svelte: its regions and its invincible edges, beside the view's) and its sets of
- *  move sounds (src/lib/sound.ts). */
+ *  move sounds (@abstractclass/site/sound.ts). */
 export interface Display extends ViewDisplay {
   layers: BoardLayers;
   moveSound: MoveSound;
@@ -47,4 +47,4 @@ export const DEFAULT_DISPLAY: Display = {
 };
 
 export const { load: loadDisplay, save: saveDisplay } =
-  displayStore(KEY, DEFAULT_DISPLAY, (s): s is MoveSound => typeof s === "string" && s in MOVE_SOUNDS);
+  displayStore(KEY, DEFAULT_DISPLAY, isMoveSound);

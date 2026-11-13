@@ -1,10 +1,12 @@
 // Blueprints' part of the review's view (docs/design/29-shared-packages.md, item 9; the view's game interface,
 // @abstractclass/review/game.ts): the board with the player's own moves, the moves as the lists write and draw them, who
-// plays each move, the stars beside the points, the texts that say "move", the display settings and Stamp Duty's
-// networks. The pages give it to the view (@abstractclass/review/ReviewView.svelte) with Blueprints' game
+// plays each move, the stars beside the points, the texts that say "move", the display settings and the sounds, and
+// Stamp Duty's networks. The pages give it to the view (@abstractclass/review/ReviewView.svelte) with Blueprints' game
 // (blueprints.ts, `blueprints`), which it extends. The player's notes are Hedge School's, in its colours, at hexes of
-// the board, with the board's own keys (`NOTE_KEYS`, design 33, "The player's notes"). Cyanotype has no sounds, no
-// image of a line and no opening book yet (design 33), so the view offers none of them, and no area map (`AREA_MAP`).
+// the board, with the board's own keys (`NOTE_KEYS`, design 33, "The player's notes"). The move sounds are Hedge
+// School's (@abstractclass/site/sound.ts), and a placement that captures has the removal's sound (sound.ts). Cyanotype
+// has no image of a line and no opening book yet (design 33), so the view offers neither, and no area map
+// (`AREA_MAP`).
 // The board's box fills the room that the side columns leave, with the hands in a panel over it, and under it in one
 // column, as on Practice.
 import type { ViewGame } from "@abstractclass/review/game.ts";
@@ -21,6 +23,9 @@ import { asPlayed, blueprints, captureOf, endingText, fmtMargin, lineMovers, pla
          type Blueprints } from "./blueprints.ts";
 import { alignMap, boardState, mapIndex } from "./blueprintsMap.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
+import { playMove, preload } from "@abstractclass/site/sound.ts";
+import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
+import { removes } from "../sound.ts";
 import ReviewBoard from "./ReviewBoard.svelte";
 import EmptyBoard from "./EmptyBoard.svelte";
 import MoveLabel from "./MoveLabel.svelte";
@@ -106,6 +111,11 @@ export const blueprintsView: ViewGame<Blueprints> = {
   turnShortNote,
 
   display: { load: loadDisplay, save: saveDisplay },
+  sounds: {
+    Settings: SoundSettings,
+    play: (volume, set, played) => void playMove(volume, set, removes(played?.drawn)),
+    preload,
+  },
 
   networks: {
     offered: NETWORKS,

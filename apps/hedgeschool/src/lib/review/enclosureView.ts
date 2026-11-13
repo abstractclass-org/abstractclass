@@ -8,8 +8,8 @@ import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
 import { BRUSH_KEYS } from "@abstractclass/review/notes.ts";
 import { animatedBoardImage, boardImage, copyPng } from "#lib/board/boardImage.ts";
 import { pointName } from "#lib/engine/notation.ts";
-import { playMove, preload } from "#lib/sound.ts";
-import SoundSettings from "#lib/ui/SoundSettings.svelte";
+import { playMove, preload } from "@abstractclass/site/sound.ts";
+import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
 import { download } from "#lib/game/reviewFile.ts";
 import { EARLY_ACCESS, OPENINGS } from "#lib/edition.ts";
 import { BookPlace, siteBook } from "#lib/book/place.svelte.ts";
@@ -94,7 +94,7 @@ export const enclosureView: ViewGame<Enclosure> = {
   display: { load: loadDisplay, save: saveDisplay },
   sounds: {
     Settings: SoundSettings,
-    // An edge that cuts has a sound of its own (design 08)
+    // An edge that cuts has the removal's sound (design 08)
     play: (volume, set, played) => void playMove(volume, set, !!played?.cut),
     preload,
   },

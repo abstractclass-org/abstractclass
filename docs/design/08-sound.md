@@ -1,9 +1,10 @@
 # Move sounds
 
-**Status:** in force, built in the review. **Decided:** 2026-10-11, from Lichess's move sounds, the browsers' rules
-for sound, and the owner's choice by ear among recorded strokes. **Changed:** 2026-10-12, the crayon replaced by a
-button (the default) and a pencil, chosen in the display settings, each with one sound for an edge and another for an
-edge that cuts.
+**Status:** in force, built in the review and on Practice, on Hedge School and on Cyanotype. **Decided:** 2026-10-11,
+from Lichess's move sounds, the browsers' rules for sound, and the owner's choice by ear among recorded strokes.
+**Changed:** 2026-10-12, the crayon replaced by a button (the default) and a pencil, chosen in the display settings,
+each with one sound for an edge and another for an edge that cuts. 2026-11-13, the code shared in `packages/site`, and
+Cyanotype's sounds: a placement that captures has the cut's sound (design 33, "The move sounds").
 
 ## Context
 
@@ -119,22 +120,26 @@ How the sound was chosen (decisions/product.md, "Move sounds, and progress bars 
 
 - The site ships four small sound files (`static/sounds/button/` and `static/sounds/pencil/`, `edge.mp3` and
   `cut.mp3` in each, about 11 KB), and downloads the chosen set's when sound is on. A browser without Web Audio stays
-  silent.
-- A set adds its two files and a line in `MOVE_SOUNDS`, with each sound's speed.
+  silent. Cyanotype ships the same files at the same paths (design 33, "The move sounds").
+- A set adds its two files to each site and a line in `MOVE_SOUNDS`, with each sound's speed.
+- Another game's site takes the sounds from `packages/site`, and its view says which of its moves have the cut's
+  sound: the shared code calls it the removal's sound, a move that removes the opponent's pieces.
 - A browser that kept "Pencil" from the trial keeps it: the default changes only where nothing was chosen.
 - The puzzles and the lessons can use the same sound later (decisions/open-items.md).
 
 ## Where it is
 
 - `static/sounds/button/`, `static/sounds/pencil/`: the clips.
-- `src/lib/sound.ts`: the sets (`MOVE_SOUNDS`, with each sound's speed, and `MOVE_SOUND_NAMES`), `preload` and
-  `playMove`, with the sources and the clips' times.
-- `packages/review/src/ReviewView.svelte`: when the sound plays (`setPath`), and the Sound group of the display
-  settings. `src/lib/review/enclosureView.ts` (`sounds`): whether the move cuts, which chooses the cut's sound.
+- `packages/site/src/sound.ts`: the sets (`MOVE_SOUNDS`, with each sound's speed, and `MOVE_SOUND_NAMES`), `preload`
+  and `playMove`, with the sources and the clips' times. `SoundSettings.svelte`: the Sound group of the display
+  settings, on the review and on Practice. `SoundNotices.svelte`: the sources on the notices page.
+- `packages/review/src/ReviewView.svelte`: when the sound plays (`setPath`), and where the Sound group goes in the
+  display settings. `src/lib/review/enclosureView.ts` (`sounds`): whether the move cuts, which chooses the cut's sound.
+- `src/routes/practice/+page.svelte`: Practice's sounds (each new move, and a step one move on) and its Sound group.
 - `src/lib/review/display.ts`: `sound`, `moveSound` and `volume`.
 
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md), "Move sounds, and progress bars that show the work runs", "Move
   sounds: the crayon replaced by a pencil and a keyboard", "Move sounds: the pencil shortened, the phone keyboard
-  removed", "Move sounds: the button", "Move sounds: a sound for a cut".
+  removed", "Move sounds: the button", "Move sounds: a sound for a cut", "Cyanotype's move sounds".
