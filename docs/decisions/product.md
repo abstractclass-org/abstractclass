@@ -11956,3 +11956,10 @@ abscls-fcvt. Design 06 changed.
   4 cases checks the note and the legend. Each failed on builds of both sites from dev's code: the note had no
   " · first estimate". Each passes after the change, with the spec's other 8 cases. In those 8 cases every result has
   the review's depth, and they check that the legend shows no first estimate.
+- **Each case catches its own fault:** six breaks of the view's rule, each in a build of Hedge School, failed only
+  the cases meant to catch them, by edge and by turn. The old rule (`i === last || deepEnough`) failed the early-end
+  cases at the note. A legend that skips the last position failed them at the legend. `deepEnough` alone failed the
+  "Result:" cases at the note, and a legend by depth alone failed them at the legend. An end that only `endedByRules`
+  settles failed the "Lead:" cases of a deep early end at the tooltip. A legend that is on at every early end failed
+  them at the legend. The model's `endedByRules` always true, or always false, fails the unit test
+  (`packages/analysis/src/game.test.ts`).
