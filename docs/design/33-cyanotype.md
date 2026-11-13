@@ -1229,11 +1229,11 @@ Enclosure's alone.
    site's name, its live address (the examples name it), its messages' name and its word for a game's moves.
    **Blueprints' own part, and built:** the item on the games that the review refuses (a set-up start), and what
    its reader takes beyond what a writer writes (unknown tags, a placement without its capture marks, the moves
-   without turn numbers). Its partner list is empty, so the page says that it has none yet. The partners' test
-   section says what the test address does and names no place to ask for it, because Cyanotype has none: the
-   section's `ask` is optional, and Hedge School's gives its Discord. The list of changes starts with the first
-   release, which it names without a date. Its promises are Hedge School's: lenient reading, additions only, a
-   versioned handshake, the review file as the site's own.
+   without turn numbers). Its partner list is empty, so the page says that it has none yet. Its promises are Hedge
+   School's: lenient reading, additions only, a versioned handshake, the review file as the site's own. **Open, two
+   gaps from Hedge School's page:** the partners' test names no place to ask for the test address (Hedge School's
+   names its Discord, and Cyanotype has no such place), and the list of changes has one item, the first release,
+   with no date (Hedge School dates each item, design 18, item 9).
 10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
     a partner. Cyanotype's analytics are built ("Analytics and consent"), so the partner parts add these events.
 11. **Buttons as a kit, not a widget:** four labels (choice 3), the site's head as a file, a sample style and the

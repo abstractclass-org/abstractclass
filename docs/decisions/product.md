@@ -12126,9 +12126,11 @@ test and the list of changes (design 33, "Partner sites", items 9 and 11).
 - **The labels:** Hedge School's four, with Cyanotype's name (design 33, the third of "The three choices").
 - **The partners' test:** the shared section's `ask` is optional. Cyanotype has no place where a developer asks for a
   test address, so its text says what the test address does and names no place, as its partner list names none.
-  Hedge School's text keeps its Discord.
-- **The list of changes** starts with the first release, which it names without a date: the link to a review, the
-  link to the Analysis board, and the messages to save a review and open it again, protocol 1.
+  Hedge School's text keeps its Discord. This is a gap from Hedge School, open until a decision gives Cyanotype a
+  place to ask or leaves it out.
+- **The list of changes** starts with the first release: the link to a review, the link to the Analysis board, and
+  the messages to save a review and open it again, protocol 1. The item has no date, and Hedge School dates each
+  item (design 18, item 9): a gap, open until a decision.
 - **Hedge School's page reads as before.** Measured on the prerendered `build/developers.html`, before and after,
   both built as CI builds them: the text of `<main>` with its tags removed and its white space collapsed is the
   same, and so are its six code blocks and the buttons' style.
