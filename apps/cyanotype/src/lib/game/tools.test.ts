@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import data from "../board/fixtures.json" with { type: "json" };
 import { holdsGame, readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
-import { LOGO_SMALL, shapeMarkup } from "#lib/brand/logo.ts";
+import { LOGO_SMALL, svgElement } from "#lib/brand/logo.ts";
 import { parseRecord } from "./record.ts";
 import { TOOL_NAME, bookmarkletHref, bookmarkletScript, userscriptHeader, userscriptSource } from "./tools.ts";
 
@@ -14,27 +14,25 @@ const ORIGIN = "https://board.example";
 const START = data.fixtures.find(f => f.name === "The start")!.position;
 const MOVES = data.fixtures.find(f => f.name === "A middle game")!.moves;
 
+/** The values of the userscript's header lines `// @<key>`. */
+const meta = (text: string, key: string) => [...text.matchAll(new RegExp(`^// @${key} +(.*)$`, "gm"))].map(m => m[1]);
+
 test("the userscript's header names the script, its pages, its rights and its files", () => {
   const text = userscriptSource(ORIGIN, "2026.10.27.1200", "abc");
-  const meta = (key: string) => [...text.matchAll(new RegExp(`^// @${key} +(.*)$`, "gm"))].map(m => m[1]);
-  assert.deepEqual(meta("name"), [TOOL_NAME]);
-  assert.deepEqual(meta("match"), ["https://strategyjam.org/blueprints/game/*"]); // Blueprints' game pages alone
-  assert.deepEqual(meta("sandbox"), ["raw"]);
-  assert.deepEqual(meta("grant").sort(), ["GM_openInTab", "GM_registerMenuCommand"]);
-  assert.deepEqual(meta("updateURL"), [`${ORIGIN}/cyanotype.meta.js`]);
-  assert.deepEqual(meta("downloadURL"), [`${ORIGIN}/cyanotype.user.js`]);
-  assert.match(meta("icon")[0], /^data:image\/svg\+xml;base64,/);
+  assert.deepEqual(meta(text, "name"), [TOOL_NAME]);
+  assert.deepEqual(meta(text, "match"), ["https://strategyjam.org/blueprints/game/*"]); // Blueprints' game pages alone
+  assert.deepEqual(meta(text, "sandbox"), ["raw"]);
+  assert.deepEqual(meta(text, "grant").sort(), ["GM_openInTab", "GM_registerMenuCommand"]);
+  assert.deepEqual(meta(text, "updateURL"), [`${ORIGIN}/cyanotype.meta.js`]);
+  assert.deepEqual(meta(text, "downloadURL"), [`${ORIGIN}/cyanotype.user.js`]);
+  assert.match(meta(text, "icon")[0], /^data:image\/svg\+xml;base64,/);
   assert.ok(text.startsWith(userscriptHeader(ORIGIN, "2026.10.27.1200")));
 });
 
 test("the button and Tampermonkey's lists show the logo's simple drawing (design 33, \"The logo\")", () => {
   const text = userscriptSource(ORIGIN, "1", "abc");
-  const icon = atob(text.match(/^\/\/ @icon +data:image\/svg\+xml;base64,(.*)$/m)![1]);
-  const drawing = shapeMarkup(LOGO_SMALL);
-  assert.match(icon, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 100 100" width="64" height="64"/);
-  assert.ok(icon.includes(drawing));
-  const button = text.slice(text.indexOf("==/UserScript=="));
-  assert.ok(button.includes(JSON.stringify(drawing).slice(1, -1)), "the button's picture is the simple drawing");
+  assert.equal(atob(meta(text, "icon")[0].replace("data:image/svg+xml;base64,", "")), svgElement(LOGO_SMALL, 64));
+  assert.ok(text.includes(JSON.stringify(svgElement(LOGO_SMALL, 44)).slice(1, -1)), "the button's picture");
 });
 
 test("the code that the userscript and the bookmarklet carry parses, with the site's address and name in it", () => {

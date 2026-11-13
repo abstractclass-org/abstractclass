@@ -69,17 +69,19 @@ export const logoAt = (size: number): readonly Shape[] => (size < LARGE_FROM ? L
 export const shapeMarkup = (shapes: readonly Shape[], indent = "") =>
   shapes.map(([tag, a]) => `${indent}<${tag}${Object.entries(a).map(([k, v]) => ` ${k}="${v}"`).join("")}/>`).join("");
 
+/** A drawing's opening tag, `size` pixels for the drawings' view of 100 × 100, with the attributes `more`. */
+const svgTag = (size: number, more = "") =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}"${more}>`;
+
 /** A drawing as an SVG document of `size` pixels, which a browser draws as a file and an `<img>` shows. */
 export const svgDocument = (shapes: readonly Shape[], size = 100, comment = "") =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">`
-  + (comment && `\n  <!-- ${comment} -->`) + shapeMarkup(shapes, "\n  ") + "\n</svg>\n";
+  svgTag(size) + (comment && `\n  <!-- ${comment} -->`) + shapeMarkup(shapes, "\n  ") + "\n</svg>\n";
 
 /** A drawing as one SVG element of `size` pixels, on one line and hidden from screen readers, for a page that is not
  *  the site's own: the strategyjam.org tools' button and Tampermonkey's lists show the simple drawing
  *  (src/lib/game/tools.ts). */
 export const svgElement = (shapes: readonly Shape[], size: number) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">`
-  + shapeMarkup(shapes) + "</svg>";
+  svgTag(size, ' aria-hidden="true"') + shapeMarkup(shapes) + "</svg>";
 
 /** The favicon's file (src/lib/assets/favicon.svg): the simple drawing, the same on light and dark tabs. The page
  *  never uses it or the iOS icon, and the marks of pure calls keep both out of the page's code. */

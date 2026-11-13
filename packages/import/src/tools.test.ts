@@ -31,6 +31,13 @@ function read(page: typeof PAGE, tool: Tool, click: string, origin: string): Fou
 }
 const CODE = { read, ...PAGE };
 
+const SITE: UserscriptSite<typeof CODE> = {
+  name: "Words", toolName: "Open in Words", id: "words-site",
+  icon: size => `<svg width="${size}" height="${size}"></svg>`, places: { "play.example": { css: "display: block", into: ".bar" } },
+  description: "Opens the game in Words.", author: "Someone", homepage: "https://someone.example",
+  matches: ["https://play.example/g/*", "https://other.example/g/*"], page: CODE,
+};
+
 /** Runs the bookmarklet's code on a page with `game`: what it alerts, the tab that it opens, and the address that it
  *  loads in its own tab. `opens` says whether the browser lets the click open a tab. */
 function click(game: WordGame | null, opens = true) {
@@ -46,6 +53,27 @@ function click(game: WordGame | null, opens = true) {
   });
   new Function(bookmarkletScript({ name: "Words", toolName: "Words", page: CODE }))();
   return done;
+}
+
+/** Runs the userscript's code on a page of play.example with no game, and gives the names of the elements that took a
+ *  shadow root. As in a browser, `attachShadow` refuses an element whose name is not a custom element's name. */
+function install(site: UserscriptSite<typeof CODE>) {
+  const hosts: string[] = [], node = () => ({ style: {}, addEventListener() {}, append() {} });
+  const document = {
+    createElement(tag: string) {
+      const host: Record<string, unknown> = { ...node(), attachShadow() {
+        if (!/^[a-z][a-z0-9]*-[a-z0-9-]*$/.test(tag)) throw new Error(`<${tag}> refuses attachShadow`);
+        hosts.push(tag);
+        return (host.shadowRoot = { innerHTML: "", querySelector: node });
+      } };
+      return host;
+    },
+    querySelector: () => null, body: node(),
+  };
+  new Function("document", "location", "sessionStorage", "GM_registerMenuCommand", "setInterval",
+               userscriptSource(site, ORIGIN, "1", "abc"))(
+    document, { hostname: "play.example" }, { getItem: () => null }, () => {}, () => 0);
+  return hosts;
 }
 
 test("a page code as text: an object of the same functions, by name", () => {
@@ -80,36 +108,22 @@ test("the bookmark is a loader of the site's script, with its version and the si
 });
 
 test("the userscript's header and file: the site's names, pages and files, and code that parses", () => {
-  const site: UserscriptSite<typeof CODE> = {
-    name: "Words", toolName: "Open in Words", id: "words-site",
-    icon: size => `<svg width="${size}" height="${size}"></svg>`, places: { "play.example": { css: "display: block", into: ".bar" } },
-    description: "Opens the game in Words.", author: "Someone", homepage: "https://someone.example",
-    matches: ["https://play.example/g/*", "https://other.example/g/*"], page: CODE,
-  };
-  const text = userscriptSource(site, ORIGIN, "2026.10.27.1200", "abc");
+  const text = userscriptSource(SITE, ORIGIN, "2026.10.27.1200", "abc");
   const meta = (key: string) => [...text.matchAll(new RegExp(`^// @${key} +(.*)$`, "gm"))].map(m => m[1]);
   assert.deepEqual([meta("name"), meta("namespace"), meta("version")], [["Open in Words"], [`${ORIGIN}/`], ["2026.10.27.1200"]]);
-  assert.deepEqual(meta("match"), site.matches);
+  assert.deepEqual(meta("match"), SITE.matches);
   assert.deepEqual([meta("updateURL"), meta("downloadURL")], [[`${ORIGIN}/words-site.meta.js`], [`${ORIGIN}/words-site.user.js`]]);
-  assert.equal(atob(meta("icon")[0].replace("data:image/svg+xml;base64,", "")), site.icon(64));
-  assert.ok(text.startsWith(userscriptHeader(site, ORIGIN, "2026.10.27.1200")));
+  assert.equal(atob(meta("icon")[0].replace("data:image/svg+xml;base64,", "")), SITE.icon(64));
+  assert.ok(text.startsWith(userscriptHeader(SITE, ORIGIN, "2026.10.27.1200")));
   assert.doesNotThrow(() => new Function(text));
   for (const part of ['"code":"abc"', '"id":"words-site"', '"click":"the Words button"', '"open":"Open this game in Words"',
-                      '"into":".bar"', site.icon(44).replaceAll('"', '\\"')])
+                      '"into":".bar"', SITE.icon(44).replaceAll('"', '\\"')])
     assert.ok(text.includes(part), part);
 });
 
-test("the button's elements take a shadow root: the site's id as their name, with a hyphen when it has none", () => {
-  // A shadow root needs an element of a custom element's name: a lowercase letter first, and a hyphen. Hedge School's
-  // id keeps its name, and Cyanotype's id ("cyanotype") takes one.
-  for (const [id, tag] of [["hedge-school", "hedge-school"], ["cyanotype", "cyanotype-tool"]]) {
-    assert.equal(hostTag(id), tag);
-    assert.match(tag, /^[a-z][a-z0-9]*-[a-z0-9-]*$/);
-  }
-  const site: UserscriptSite<typeof CODE> = {
-    name: "Words", toolName: "Open in Words", id: "words", icon: () => "<svg></svg>", places: {},
-    description: "Opens the game in Words.", author: "Someone", homepage: "https://someone.example",
-    matches: ["https://play.example/g/*"], page: CODE,
-  };
-  assert.ok(userscriptSource(site, ORIGIN, "1", "abc").includes('"tag":"words-tool"'));
+test("the button and its notes take a shadow root: elements named by the id, with \"-tool\" if it has no hyphen", () => {
+  assert.deepEqual(install(SITE), ["words-site", "words-site"]);
+  assert.deepEqual(install({ ...SITE, id: "words" }), ["words-tool", "words-tool"]);
+  // Hedge School's element keeps its name, and Cyanotype's id takes the "-tool".
+  assert.deepEqual(["hedge-school", "cyanotype"].map(hostTag), ["hedge-school", "cyanotype-tool"]);
 });

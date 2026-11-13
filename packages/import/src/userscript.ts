@@ -31,7 +31,8 @@ export interface UserscriptSite<P extends PageCode<P>> {
   /** The name of the script's files (/<id>.user.js, and its header alone at /<id>.meta.js), of the elements that it adds
    *  to the page (`hostTag`), and of its key in the tab's storage: "hedge-school". */
   id: string;
-  /** The button's picture: an SVG element of `size` pixels, on the button and in the header for Tampermonkey's lists. */
+  /** The button's picture: an SVG element of `size` pixels, on the button and in the header for Tampermonkey's lists.
+   *  It has `xmlns`, so that the header's `@icon` draws it as a file, and `aria-hidden`: the button has its label. */
   icon(size: number): string;
   places: Record<string, ButtonPlace>; // the button's place on each game site, by the site's host
   description: string; // the header's, for Tampermonkey's lists
