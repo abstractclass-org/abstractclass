@@ -70,8 +70,11 @@ npm test --workspace=packages         # the packages' unit tests
 [enclosure-engine](https://github.com/abstractclass-org/enclosure-engine), which holds only the engine's releases, and
 checks each file's SHA-256 ([docs/design/03-stack.md](docs/design/03-stack.md)). `--deploy` refuses a local build.
 
-The deployed build also names its analytics: `VITE_GA_ID` (Google Analytics) and `VITE_CF_ANALYTICS_TOKEN` (Cloudflare
-Web Analytics). Without them, as in development, the build has neither.
+The deployed build also names its analytics: `VITE_POSTHOG_KEY` (PostHog) and `VITE_CF_ANALYTICS_TOKEN` (Cloudflare
+Web Analytics). Without them, as in development, the build has neither. The deploy gives each build's variable from a
+repository variable: `VITE_EDITION` from `HEDGESCHOOL_EDITION`, `VITE_STORE_PRACTICE_GAMES` from
+`HEDGESCHOOL_STORE_PRACTICE_GAMES`, `VITE_POSTHOG_KEY` from `POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN` from
+`CF_ANALYTICS_TOKEN` ([docs/hosting.md](docs/hosting.md), section 3).
 
 ## Layout
 

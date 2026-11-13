@@ -344,3 +344,21 @@ public repository and the history rewrites.
   On dev e672801, the eight packages' `src` folders hold about 17,200 lines, and Cyanotype's `src` 9,300, of which
   2,700 are tests and 2,100 Blueprints' board. 46 of Cyanotype's 104 files in `src` have a path that Hedge School has
   too, and about 30% of their lines are the same as Hedge School's.
+
+### The repository's variables name their site (2026-11-13)
+
+- **What:** the workflow Deploy reads the repository's variables under names that say whose they are. A variable that
+  one site reads has the site's name: `HEDGESCHOOL_EDITION`, `HEDGESCHOOL_STORE_PRACTICE_GAMES`, `CYANOTYPE_EDITION`
+  and `CYANOTYPE_STORE_PRACTICE_GAMES`. A shared one has no prefix: `POSTHOG_KEY`, `CF_ANALYTICS_TOKEN` and
+  `CLOUDFLARE_ACCOUNT_ID`. The prefix `VITE_` names only a build's variable inside the workflow, so the code does not
+  change. docs/hosting.md, section 3, has the table. abscls-5llg.
+- **Why:** `VITE_EDITION` was one edition for both sites, so Cyanotype could not leave the early access apart from
+  Hedge School. And a name with `VITE_` did not say which site's build reads it: Hedge School's practice games' switch
+  was `VITE_STORE_PRACTICE_GAMES`, beside Cyanotype's `CYANOTYPE_STORE_PRACTICE_GAMES`.
+- **The change over:** the new variables were set first, with the old ones' values (`early`, `on` and the same Web
+  Analytics token). `main` reads the old names until its next release. After that release, the owner deletes
+  `VITE_EDITION`, `VITE_STORE_PRACTICE_GAMES`, `VITE_CF_ANALYTICS_TOKEN`, and the unused `VITE_GA_ID` and
+  `CYANOTYPE_GA_ID` (docs/hosting.md, section 3, "The old names").
+- **Checked:** by reading `deploy.yml` against dev, each job's `env` block gives the same build's variables as before,
+  and only the repository variables' names changed. `tests.yml` sets its build's variables itself, with no repository
+  variable, so it does not change. `gh variable list` shows the new variables with the old ones' values.

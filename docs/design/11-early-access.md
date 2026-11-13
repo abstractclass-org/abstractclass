@@ -47,7 +47,9 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access, of Hedge School and of Cyanotype (design 33).
-   Without it, the build is the full site, for development.
+   Without it, the build is the full site, for development. The deploy gives each site's build its own repository
+   variable as `VITE_EDITION`: `HEDGESCHOOL_EDITION` for Hedge School and `CYANOTYPE_EDITION` for Cyanotype. So each
+   site leaves the early access on its own date.
 4. **Listed** (design 23, which replaced the first rule, unlisted): search engines index the live address, and
    Cloudflare's preview addresses answer with `noindex`. The Discord is where players report problems.
 5. **Hosting: Cloudflare Pages.** A GitHub Actions workflow builds the GitHub repository on every push, and
@@ -57,8 +59,9 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      The workflow installs the dependencies first (`npm ci`, at the repository's root), and builds in the site's
      folder, `apps/hedgeschool` (design 26).
    - **Node 24** (`.node-version`): Node 22 cannot run the tests' TypeScript without a flag.
-   -  **The build's variables:** `VITE_EDITION=early`, `VITE_POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN` (item 7). The
-     footer shows the commit that the build runs from.
+   -  **The build's variables:** `VITE_EDITION=early`, `VITE_POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN` (item 7), from
+     the repository variables `HEDGESCHOOL_EDITION`, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN` (hosting.md, section 3).
+     The footer shows the commit that the build runs from.
    - **The headers** (`static/_headers`): `noindex` on Cloudflare's preview addresses (design 23), and a year's cache,
      never checked again, for the build's hashed code (`/_app/immutable/`) and the engine's files
      (`/engine/<id>/<file>`): their paths name their content, so a file there never changes. `/engine/manifest.json`

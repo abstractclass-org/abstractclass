@@ -243,7 +243,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     section on the early access (`#early-access`). That section says first that everything can change (the pages and
     their addresses, the notation, the quality labels, the engine and its network, the files and links that the site
     makes, and what it keeps in the browser), then what the site does now. `VITE_EDITION=early` builds the early
-    access, and the Deploy and Tests workflows build Cyanotype with it, as they build Hedge School. The switch
+    access, and the Deploy and Tests workflows build Cyanotype with it, as they build Hedge School. The deploy gives it
+    from Cyanotype's own repository variable, `CYANOTYPE_EDITION`, apart from Hedge School's `HEDGESCHOOL_EDITION`, so
+    that Cyanotype leaves the early access on its own date. The switch
     (`edition.ts`) and the name with its link (`SiteName.svelte`) are in `packages/site`, for both sites. Cyanotype
     has none of Hedge School's prototype pages (Puzzles, Learn and the engine lab, "The gaps from Hedge School"), so
     its early access hides no page, and the link is all that the switch changes.
@@ -556,7 +558,8 @@ engine takes it, and no tag at komi 0.
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
 5. **The stored games have their own switch:** the deploy gives Cyanotype's build the repository variable
-   `CYANOTYPE_STORE_PRACTICE_GAMES`, not Hedge School's `VITE_STORE_PRACTICE_GAMES`. So Cyanotype's consent banner and
+   `CYANOTYPE_STORE_PRACTICE_GAMES`, not Hedge School's `HEDGESCHOOL_STORE_PRACTICE_GAMES`, as its
+   `VITE_STORE_PRACTICE_GAMES`. So Cyanotype's consent banner and
    its sending start only after its databases are bound (docs/hosting.md, "Cyanotype's practice games").
 6. **A game set aside whose start the engine cannot read is dropped:** a start brought replaces it, and the game goes
    neither into Your games nor to the site (`saveUnfinished`). Hedge School's lets the engine's error through. The
@@ -1348,9 +1351,10 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
    the same names, and each event names its host (`$host`), so that a report splits them. Cloudflare Web Analytics is
    the domain's one site, `abstractclass.org`, which takes the beacon of every subdomain and splits the visits by host.
    The build reads Hedge School's variable names, `VITE_POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN`. The deploy gives
-   the repository variable `POSTHOG_KEY` as `VITE_POSTHOG_KEY`, and the domain's token `VITE_CF_ANALYTICS_TOKEN` as it
-   is, for `main` only. Without them, as in development and on the previews, nothing is measured, and the build holds
-   none of PostHog's code. [docs/hosting.md](../hosting.md), "Cyanotype's analytics", gives the setup.
+   the shared repository variables `POSTHOG_KEY` as `VITE_POSTHOG_KEY` and the domain's token `CF_ANALYTICS_TOKEN` as
+   `VITE_CF_ANALYTICS_TOKEN`, for `main` only. Without them, as in development and on the previews, nothing is
+   measured, and the build holds none of PostHog's code. [docs/hosting.md](../hosting.md), "Cyanotype's analytics",
+   gives the setup.
 3. **The consent, for the practice games' link only:** PostHog's cookieless mode sets no cookies and keeps nothing in
    the browser, so the visits need no consent. A build that stores practice games ("Practice against Stamp Duty", "The
    stored games") shows Hedge School's banner, with the logo and the title "Help Cyanotype get better", for the random

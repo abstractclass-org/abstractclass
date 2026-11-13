@@ -177,10 +177,16 @@ from that file, not from the project's settings.
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | secret | A Cloudflare API token with one permission: Account, Cloudflare Pages, Edit |
 | `CLOUDFLARE_ACCOUNT_ID` | variable | The Cloudflare account's ID |
-| `VITE_EDITION` | variable | `early` |
-| `VITE_STORE_PRACTICE_GAMES` | variable | `on` |
+| `HEDGESCHOOL_EDITION` | variable | `early`, Hedge School's edition, given to its build as `VITE_EDITION` |
+| `HEDGESCHOOL_STORE_PRACTICE_GAMES` | variable | `on`, given to Hedge School's build as `VITE_STORE_PRACTICE_GAMES` (section 7) |
 | `POSTHOG_KEY` | variable | PostHog's project token, given to the builds as `VITE_POSTHOG_KEY` (section 4) |
-| `VITE_CF_ANALYTICS_TOKEN` | variable | Cloudflare Web Analytics' token (section 5) |
+| `CF_ANALYTICS_TOKEN` | variable | Cloudflare Web Analytics' token, given to the builds as `VITE_CF_ANALYTICS_TOKEN` (section 5) |
+
+**The variables' names** say whose they are. A variable that one site reads has the site's name, such as
+`HEDGESCHOOL_EDITION` or `CYANOTYPE_STORE_PRACTICE_GAMES`. A variable that all the sites read has no prefix, such as
+`POSTHOG_KEY`. The prefix `VITE_` names only a build's variable inside the workflow, the name that the code reads. Each
+site has its own edition, so that each site leaves the early access on its own date. Cyanotype's variables are in
+"Cyanotype", below.
 
 To make the token: in the Cloudflare dashboard, **Account API tokens → Create Token → Custom token**. Give it a name,
 the permission **Account → Cloudflare Pages → Edit**, then **Continue to summary → Create Token**
@@ -191,12 +197,26 @@ Paste its value into the repository's secret only. A token that was shown anywhe
 **The build's variables** are read when the site is built, so a change needs a new deploy: a push, or **Actions →
 Deploy → Run workflow** on the branch. The workflow gives production and the previews their own:
 
-| Variable | Production (`main`) | Preview (another branch) |
+| Build's variable | Production (`main`) | Preview (another branch) |
 |---|---|---|
-| `VITE_EDITION` | `early` | `early` |
+| `VITE_EDITION` | `HEDGESCHOOL_EDITION` (`early`) | `HEDGESCHOOL_EDITION` (`early`) |
 | `VITE_POSTHOG_KEY` | `POSTHOG_KEY` | none, so that previews are not counted |
-| `VITE_CF_ANALYTICS_TOKEN` | the token | none |
-| `VITE_STORE_PRACTICE_GAMES` | `on` | `on`, so that the previews store games too, in their own database (section 7) |
+| `VITE_CF_ANALYTICS_TOKEN` | `CF_ANALYTICS_TOKEN` | none |
+| `VITE_STORE_PRACTICE_GAMES` | `HEDGESCHOOL_STORE_PRACTICE_GAMES` (`on`) | the same, so that the previews store games too, in their own database (section 7) |
+
+**The old names.** Before the variables took their site's name, the workflow read `VITE_EDITION`,
+`VITE_STORE_PRACTICE_GAMES` and `VITE_CF_ANALYTICS_TOKEN` as repository variables. `main` reads them until its next
+release. Hedge School's builds before PostHog read `VITE_GA_ID`, and Cyanotype's read `CYANOTYPE_GA_ID` (section 4).
+
+**The owner's steps, once, after the first release of `main` that reads the new names** (abscls-5llg):
+
+1. Open `https://github.com/abstractclass-org/abstractclass/settings/variables/actions`.
+2. Click the delete button of each of these five repository variables: `VITE_EDITION`, `VITE_STORE_PRACTICE_GAMES`,
+   `VITE_CF_ANALYTICS_TOKEN`, `VITE_GA_ID` and `CYANOTYPE_GA_ID`. Or, in a clone of the repository, run
+   `gh variable delete <name>` once for each of the five names.
+3. Make sure that the page lists these seven variables only: `CF_ANALYTICS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+   `CYANOTYPE_EDITION`, `CYANOTYPE_STORE_PRACTICE_GAMES`, `HEDGESCHOOL_EDITION`, `HEDGESCHOOL_STORE_PRACTICE_GAMES` and
+   `POSTHOG_KEY`.
 
 **Why adapter-static, not Cloudflare's SvelteKit adapter:** Cloudflare's adapter renders pages on a server in a Worker.
 This site uses adapter-static, which writes plain files to `build/`, because the site is static by design
@@ -243,10 +263,8 @@ put them behind a sign-in (Cloudflare Access).
   a page of the site with `?internal=off`. To check it, keep the site open, and open PostHog's Activity
   (`https://us.posthog.com/activity/explore`): the browser's events show the property `internal`.
 - **Google Analytics, before PostHog:** Hedge School's property (`G-C5RY6DWGWN`) counted the site until the release
-  of 2026-11-09's change. No build sends to it after that release. Once the change is on `main`, delete the
-  repository variables `VITE_GA_ID` and `CYANOTYPE_GA_ID`: in GitHub, the repository's **Settings → Secrets and
-  variables → Actions → Variables**, the delete button of each, or `gh variable delete VITE_GA_ID` and
-  `gh variable delete CYANOTYPE_GA_ID` in a clone of the repository.
+  of 2026-11-09's change. No build sends to it after that release. The repository variables `VITE_GA_ID` and
+  `CYANOTYPE_GA_ID` go with the old names of section 3 ("The old names"): delete them in the steps there.
 
 ## 5. Cloudflare Web Analytics
 
@@ -261,7 +279,7 @@ put them behind a sign-in (Cloudflare Access).
    beacon must start only after a page removes a game from its address (design 22), and the site's own code
    makes sure of that.
 3. The snippet that Cloudflare then shows holds the site's token (`data-cf-beacon='{"token": "…"}'`). Set the token
-   alone, the 32 hexadecimal digits, as the repository variable `VITE_CF_ANALYTICS_TOKEN`: in GitHub, the
+   alone, the 32 hexadecimal digits, as the repository variable `CF_ANALYTICS_TOKEN`: in GitHub, the
    repository's **Settings → Secrets and variables → Actions → Variables → New repository variable**. Then deploy
    again: in GitHub, **Actions → Deploy → Run workflow** on `main`. The site adds the beacon itself
    (`src/lib/analytics.svelte.ts`): the snippet is not pasted anywhere. The beacon finds its token by its own script
@@ -324,8 +342,8 @@ databases and their bindings are set up once, in the Cloudflare dashboard.
    variable name `GAMES`, the database `hedgeschool-games-preview`, and **Save**. The name `GAMES` is the one that the
    Function reads, in both environments.
 4. **Turn the sending on:** in GitHub, the repository's **Settings → Secrets and variables → Actions → Variables →
-   New repository variable**, with the name `VITE_STORE_PRACTICE_GAMES` and the value `on`. The deploy gives it to
-   production and to the previews.
+   New repository variable**, with the name `HEDGESCHOOL_STORE_PRACTICE_GAMES` and the value `on`. The deploy gives it
+   to Hedge School's build as `VITE_STORE_PRACTICE_GAMES`, for production and for the previews.
 5. **Deploy again:** push to `dev`, or run the workflow **Deploy** on `dev` (**Actions → Deploy → Run workflow**). A
    binding and a variable take effect from the next deployment.
 6. **Check on the preview:** play a game against HedgeFund on `dev.hedgeschool.pages.dev` to its end, or abort it
@@ -406,14 +424,15 @@ and builds it on each push, as the site's job does: the packages' checks and tes
 (`npm run engine -- --deploy`), the site's type check, unit tests and build. Then it uploads `build/` with Wrangler:
 `main` to production, another branch to a preview at `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys
 nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only: a push to `main` does not run it
-("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and its variables
-`CLOUDFLARE_ACCOUNT_ID` and `VITE_EDITION` (section 3), Cyanotype's own two variables of its analytics
-("Cyanotype's analytics", below), and its switch of the practice games' storage, `CYANOTYPE_STORE_PRACTICE_GAMES`
-("Cyanotype's practice games", below).
+("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and the shared variable
+`CLOUDFLARE_ACCOUNT_ID` (section 3). It reads Cyanotype's own edition, `CYANOTYPE_EDITION` (below), the two shared
+variables of the analytics, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN` ("Cyanotype's analytics", below), and its switch of
+the practice games' storage, `CYANOTYPE_STORE_PRACTICE_GAMES` ("Cyanotype's practice games", below).
 
-- **The early access:** the build takes the repository variable `VITE_EDITION`, as the site's build does. With
-  `early`, it is Cyanotype's early access: the header shows "Early Access" beside the name, and it leads to the About
-  page's section on the early access ([design 33](design/33-cyanotype.md), "Decision", item 11).
+- **The early access:** the build takes the repository variable `CYANOTYPE_EDITION` as its `VITE_EDITION`. It is
+  Cyanotype's own, apart from Hedge School's `HEDGESCHOOL_EDITION`, so that Cyanotype leaves the early access on its
+  own date. With `early`, it is Cyanotype's early access: the header shows "Early Access" beside the name, and it
+  leads to the About page's section on the early access ([design 33](design/33-cyanotype.md), "Decision", item 11).
 
 - **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
   `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the
@@ -502,7 +521,7 @@ build without them measures nothing.
 | Name in the build | Repository variable | Value |
 |---|---|---|
 | `VITE_POSTHOG_KEY` | `POSTHOG_KEY` | The token of the one PostHog project of all the sites (section 4), as for Hedge School |
-| `VITE_CF_ANALYTICS_TOKEN` | `VITE_CF_ANALYTICS_TOKEN` | The token of the domain's Web Analytics site (section 5), as for Hedge School |
+| `VITE_CF_ANALYTICS_TOKEN` | `CF_ANALYTICS_TOKEN` | The token of the domain's Web Analytics site (section 5), as for Hedge School |
 
 - **Neither service needs a step of Cyanotype's own.** The account's one Web Analytics site, `abstractclass.org`
   (section 5), takes the beacon of every subdomain, and its dashboard splits the visits by host. The PostHog project
@@ -545,7 +564,7 @@ it, Cyanotype keeps each game in the player's games only, and asks for no consen
    ([the page](https://github.com/abstractclass-org/abstractclass/settings/variables/actions/new)), with the name
    `CYANOTYPE_STORE_PRACTICE_GAMES` and the value `on`, then **Add variable**. The job `cyanotype`
    gives it to the build as `VITE_STORE_PRACTICE_GAMES`, for production and for the previews. Hedge School's variable
-   `VITE_STORE_PRACTICE_GAMES` does not change Cyanotype's build.
+   `HEDGESCHOOL_STORE_PRACTICE_GAMES` does not change Cyanotype's build.
 5. **Deploy again:** push to `dev`, or run the workflow **Deploy** on `dev`
    ([the page](https://github.com/abstractclass-org/abstractclass/actions/workflows/deploy.yml): **Run workflow**, the
    branch `dev`, then **Run workflow**). A binding and a variable take effect from the next deployment.
