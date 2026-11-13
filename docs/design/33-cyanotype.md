@@ -17,9 +17,9 @@ the engine's check that a game can reach a position (abscls-8tl1.59). The Analys
 and Practice from a set-up start are built (abscls-8tl1.40, "Practice against Stamp Duty", "From a position"). The
 early access is built, as Hedge School's ("Decision", item 11). The player's games, kept in this browser, are built as
 Hedge School's (abscls-8tl1.38, "The player's games"), with their review files (abscls-8tl1.34, "The review files"), the
-review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are designed, not built
-("Partner sites"). The analytics are built as Hedge School's (abscls-8tl1.48), with PostHog in place of Google
-Analytics and no consent (abscls-xb0k, "Analytics").
+review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are built, with no partner
+yet: their buttons and their sections of /developers come next ("Partner sites"). The analytics are built as Hedge
+School's (abscls-8tl1.48), with PostHog in place of Google Analytics and no consent (abscls-xb0k, "Analytics").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -661,7 +661,8 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    ("Analytics", item 4). A reload of the page after the game left its address goes to the tools page. Another
    site's link (`/import#record=…`, with a partner's `save=`) asks no choice: the page keeps its game, with the
    partner's save page, and opens its review at once ("Partner sites", item 1). The page refuses a link with no
-   record, and refuses `from=` until the steps of "Partner sites" take it.
+   record. A partner's page that sends a review that it kept (`from=`) gets the review's arrival step ("Partner
+   sites", item 7).
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the footer below 640 pixels, in the site's menu from
    640 pixels, and in the header from 740 pixels. Hedge School's is in the same places, with its header from 1,024
@@ -1062,7 +1063,6 @@ settings of its design 09 and the marks of its design 13), in the code that both
 
 - **No marks before the first paint:** until the page's code runs, `/review` shows the line "Reading the game with the
   engine's rules…", not the Review tab. abscls-8tl1.45.
-- **No partner sites yet** ("Partner sites").
 - **No game from a set-up start in the list:** the review takes none, and Cyanotype's practice games are not kept yet
   (abscls-8tl1.40, abscls-8tl1.50). Hedge School's list opens such a game on the Analysis board.
 
@@ -1128,8 +1128,9 @@ partners' test runs the whole way. A new partner is then one line in a list and 
 
 The shared parts are in the packages (abscls-8tl1.74): Hedge School's partner code moved there, with each site's
 parts as parameters (`partnerSite`). Cyanotype takes a partner's link and saves the review back (items 1 to 6, and
-the partners' test: abscls-8tl1.75). Its parts are in `src/lib/game/partners.ts`, with an empty list. A kept review
-opened again (item 7) and the rest are abscls-8tl1.76 and abscls-8tl1.77 (the order is below).
+the partners' test: abscls-8tl1.75), and opens a review that a partner kept (item 7, abscls-8tl1.76). Its parts are
+in `src/lib/game/partners.ts`, with an empty list. The buttons and the partner sections of /developers are
+abscls-8tl1.77 (the order is below).
 
 ### Each part of Hedge School's design
 
@@ -1173,9 +1174,14 @@ Enclosure's alone.
    at once with the engine's results. A review by an earlier engine opens as a review snapshot (abscls-8tl1.35).
    **Shared:** the receiving step (the partner by its origin, the file received, loaded by the site's loader, and the
    save page kept) becomes one function in `packages/import/src/partners.ts`. Its call and its text ("Waiting for …
-   to send the review…") stay in each site's arrival step. Cyanotype's review takes `from=` (`reviewArrives`, already
-   shared), and its import page takes it too, as Hedge School's does. **The tie between the two pages:** Cyanotype
-   sends no `Cross-Origin-Opener-Policy` (its `static/_headers`), as Hedge School sends none.
+   to send the review…") stay in each site's arrival step. **Cyanotype's, and built:** its arrival step is
+   `src/lib/review/PartnerArrival.svelte`. The review takes `from=` as it takes a shared review: the address loses its
+   `#` part, the analytics start, and then the step runs. The import page takes `from=` too, as Hedge School's does.
+   The review does not use `reviewArrives`, because that also takes a tool's game from a tool older than the import
+   page: Cyanotype has no such tool, and its review shows the Review tab for that address. With the file's results,
+   the review searches nothing. A failure says why in Hedge School's words: "Cyanotype could not load the review: …".
+   **The tie between the two pages:** Cyanotype sends no `Cross-Origin-Opener-Policy`, as Hedge School sends none.
+   A comment in its `static/_headers` says why.
 8. **One save, which updates.** **Shared as it is:** the review file holds the whole review so far, and an opened
    file's variations merge with the browser's (`packages/analysis/src/kept.ts`).
 9. **One public description,** the /developers page. abscls-8tl1.51 builds Cyanotype's page, on a frame shared with
@@ -1333,9 +1339,9 @@ share (design 29). It asks for no consent: its visit counts set no cookies, and 
      and `strategyjam_userscript`. Cyanotype has no meaf.us tools (`bookmarklet`, `userscript`, `older_tool`) and no
      Constellation export (`pasted_constellation`): both are Enclosure's. Its tools always send their version, so
      `stale_tool` is never `older`.
-   - **Its saved work** (`load_source`): `review_file`, `review_share_link`, `analysis_share_link` and
-     `analysis_file`. Cyanotype has no partner sites yet, so it sends no `partner_review` and no `export_kind`
-     `partner_save`.
+   - **Its saved work** (`load_source`): `review_file`, `review_share_link`, `analysis_share_link`,
+     `analysis_file` and `partner_review`. Cyanotype has no partner site yet, so only the partners' test sends
+     `partner_review` and the `export_kind` `partner_save`.
    - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the
      reports have one dimension for a game's length.
    - **`network`** names Stamp Duty's networks (Stamp Duty 0.2).
@@ -1454,9 +1460,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   abscls-8tl1.53 (deferred).
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
 - **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
-- **Partner sites** (`game/partners.ts`, design 18): a partner's link that names where the review goes back, and a
-  kept review sent back to the review (`from=`). To be built: "Partner sites" gives the steps, abscls-8tl1.74 to
-  abscls-8tl1.77.
 - **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
   tools. Both play Enclosure only ("Decision", item 3), so they are left out.
 
@@ -1766,14 +1769,23 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   for a GPU that does not start. It prints the adapters, the device that ONNX Runtime asks for, and each step of the
   start, in Playwright's full Chromium and in its headless shell, the control. It is a GPU-path run too
   ([working-notes.md](../working-notes.md), "Faults with the WebGPU flags").
+- Partner sites ("Partner sites"): `src/lib/game/partners.ts` (Cyanotype's parts of the shared code, on
+  `packages/import/src/partners.ts`), the import page (a link's game with its save page),
+  `src/lib/review/reviewExports.ts` ("Save to …") and `src/lib/review/PartnerArrival.svelte` (a kept review sent
+  back, on the review and on the import page). `apps/hedgeschool/tests/cyanotype-import.spec.ts` tests a link's game
+  and a kept review sent from a site that is not a partner.
 - `apps/hedgeschool/scripts/cyanotype-partner-check.mjs`: the check of a partner's whole exchange ("Partner sites",
-  items 1 to 6), on a build of Cyanotype made with `VITE_PARTNER_TEST=1`. A partner's game page opens its link, the
+  items 1 to 7), on a build of Cyanotype made with `VITE_PARTNER_TEST=1`. A partner's game page opens its link, the
   review opens with no choice, and the game keeps the save page. "Save to the local test site" then sends the review
-  file, and the save page answers `cyanotype:saved`. Playwright's routes serve the partner's pages on
-  `http://localhost`, so no request leaves the browser. The layout test's build has the switch off, so the check is a
-  script that runs by hand, on the CPU, with the layout test's launch options. Run it in `apps/hedgeschool`:
-  `CYANOTYPE_BASE_URL=http://127.0.0.1:4174 node scripts/cyanotype-partner-check.mjs`. Run it after a change to the
-  partner code or to the review's Export menu.
+  file, and the save page answers `cyanotype:saved`. In a new browser context with no game, the partner's page then
+  opens `/review#from=…` with `window.open` and sends that file back: the review opens with its results, with the
+  engine on and no search. A partner's page that answers `cyanotype:failed`, or that does not answer in a minute, gets
+  its message. Playwright's routes serve the partner's pages on `http://localhost`, so no request leaves the browser.
+  The layout test's build has the switch off, so the check is a script that runs by hand, on the CPU, with the layout
+  test's launch options. Run it in `apps/hedgeschool`:
+  `CYANOTYPE_BASE_URL=http://127.0.0.1:4174 node scripts/cyanotype-partner-check.mjs`. It took 68 seconds on the
+  owner's machine, most of it the minute that the late answer waits. Run it after a change to the partner code, to
+  the review's Export menu or to the review's way in.
 - `apps/hedgeschool/scripts/measure/pool-start.mjs`: the start of the engine's pool on the Analysis board of a build
   of either site, on the CPU: each worker's start and memory, the time of the search's answers and of a visit, and the
   memory of the browser's renderers ([decisions/engine.md](../decisions/engine.md), "Cyanotype's engine pool at Hedge

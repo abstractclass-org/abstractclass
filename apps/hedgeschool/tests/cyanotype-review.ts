@@ -241,9 +241,10 @@ type EngineWork = { messages: number; searches: number };
 /** What the page asked of the engine's workers since it opened, when its settings came from keepSettings. */
 export const engineWork = (page: Page) =>
   page.evaluate(() => (window as unknown as { engineWork?: EngineWork }).engineWork);
-/** Counts what the page asks of the engine's workers (keepSettings adds it). A search is a message `search`, or a
- *  `call` whose request is an analysis (packages/engine/src/client.ts, analyse). */
-function countEngineWork() {
+/** Counts what the page asks of the engine's workers (keepSettings adds it, and a script can add it to a context's
+ *  pages). A search is a message `search`, or a `call` whose request is an analysis (packages/engine/src/client.ts,
+ *  analyse). */
+export function countEngineWork() {
   const work: EngineWork = { messages: 0, searches: 0 };
   (window as unknown as { engineWork: EngineWork }).engineWork = work;
   const post = Worker.prototype.postMessage as (this: Worker, ...args: unknown[]) => void;

@@ -7,8 +7,9 @@
 // game replaces an analysis kept there. An out-of-date tool gets its notice. Another site's link (`record=`, design 33,
 // "Partner sites") asks no choice: its game is kept and reviewed at once, and its `save=` is kept only on a partner's
 // host (Cyanotype has none: scripts/cyanotype-partner-check.mjs checks a partner's whole exchange on the partners' test
-// build). A link with no `record=` says so. Each test opens a fresh browser context, so its store starts empty. The
-// tests that need the engine skip, with a message, when the preview has no engine files.
+// build). A link with no `record=` says so, and a kept review sent from a site that is not a partner (`from=`) gets
+// its message on the review and on the import page. Each test opens a fresh browser context, so its store starts
+// empty. The tests that need the engine skip, with a message, when the preview has no engine files.
 // Run: npx playwright test tests/cyanotype-import.spec.ts, with CYANOTYPE_BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
@@ -214,6 +215,21 @@ test("a link with no record=: the page says so, and opens nothing", async ({ pag
   await expect(page.getByRole("alert")).toHaveText("Cyanotype could not read the game: the link has no record=, which "
                                                    + "carries the game.", { timeout: 60_000 });
   await expect(page).toHaveURL(url => url.pathname === "/import");
+  expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
+});
+
+// The preview alone: the arrival step refuses the sender before it asks for a review. enclosuregame.com is Hedge
+// School's partner, not Cyanotype's.
+test("a kept review sent from a site that is not a partner: the review and the import page say so", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  const params = new URLSearchParams({ from: "https://www.enclosuregame.com" });
+  for (const path of ["/review", "/import"]) {
+    await page.goto(new URL(`${path}#${params}`, CYANOTYPE).href);
+    await noHash(page);
+    await expect(page.getByRole("alert")).toHaveText("Cyanotype could not load the review: the link names a site that "
+                                                     + "is not one of Cyanotype's partners.", { timeout: 60_000 });
+    await expect(page).toHaveURL(url => url.pathname === path);
+  }
   expect(await local(page, LAST_REVIEW_KEY)).toBeNull();
 });
 

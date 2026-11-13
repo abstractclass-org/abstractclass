@@ -3,8 +3,9 @@
   // games that come in an address, the visits and what PostHog receives (design 33, "Analytics"). Cyanotype asks for
   // no consent: it stores no practice games, and its visit counts set no cookies. It has no Support Us yet, so the page
   // has neither part of Hedge School's. The section on addresses follows Cyanotype's code: the tools' import address
-  // (@abstractclass/import/bookmarklet.ts and userscript.ts), the import page's version check (routes/import), and the
-  // share links (game/share.ts, game/board.ts).
+  // (@abstractclass/import/bookmarklet.ts and userscript.ts), the import page's version check (routes/import), the
+  // share links (game/share.ts, game/board.ts), and a partner site's link and "Save to" (game/partners.ts, design 33,
+  // "Partner sites").
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { SITE_NAME } from "#lib/site.ts";
@@ -25,16 +26,18 @@
 
   <h2>Games in an address</h2>
   <p>The bookmarklet and the userscript bring a game from strategyjam.org after the <code>#</code> in the address of
-    this site's import page. A link that shares a review or an analysis carries its game or its lines in the same
-    place. Browsers never send that part of an address to a server, so Cloudflare does not receive the game. Each page
-    removes it from the address at once, before the analytics start. Anyone who has such a link can open what it
-    holds.</p>
+    this site's import page. A partner site's link brings a game in the same way. A link that shares a review or an
+    analysis carries its game or its lines in the same place. Browsers never send that part of an address to a
+    server, so Cloudflare does not receive the game. Each page removes it from the address at once, before the
+    analytics start. Anyone who has such a link can open what it holds.</p>
   <p>With each game, the bookmarklet and the userscript also send the tool's name and version, the game's site and the
     position that the game's page showed. With the tool's version, this site can tell you when the tool needs an
     update.</p>
   <p>A link that shares a review holds the game's record and the moves of your variations. The record has its tags,
     such as the players' names. The link also names the engine, the network and the depth of your review. A link that
     shares an analysis holds the lines of your Analysis board and the position on screen.</p>
+  <p>A partner site can keep your review: choose "Save to" it in the review's Export menu. Only then does the review
+    file go to that site, from your browser. That site keeps it under its own terms.</p>
 
   <h2>Visits</h2>
   <ul>

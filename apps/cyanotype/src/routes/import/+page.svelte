@@ -8,7 +8,9 @@
   // (game/import.ts, keepChecked, with this page's check), then opens its review by the game's id (openReview). Another
   // site's link (`record=`, with a partner's `save=`: design 33, "Partner sites") asks no choice: the page keeps its
   // game, with the partner's save page when `save=` is on a partner's host (game/partners.ts), and opens its review at
-  // once. A link with no `record=` says so. A browser that cannot keep the game stays on this page, with why: the
+  // once. A link with no `record=` says so. A partner's page that sends a review that it kept (`from=`) gets the
+  // review's arrival step (PartnerArrival.svelte), as on Hedge School, whose import page takes `from=` for a partner's
+  // older link: one step serves both pages. A browser that cannot keep the game stays on this page, with why: the
   // tools page does not help it, so the page does not offer it there. The Analysis board opens by its own address with
   // the record, at the position that the game's page showed, and asks before the game replaces the board kept here. A
   // game from a set-up start offers the board only: the review refuses it, so the choice says so before the click
@@ -37,13 +39,15 @@
   import { toolSource, trackImport, trackImportFailed, type ImportFailure, type ImportSource } from "#lib/game/sources.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
+  import PartnerArrival from "#lib/review/PartnerArrival.svelte";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-6 px-4 grid gap-4";
 
   // What the page shows: the game while the engine checks it, then the choice with the check's answer, the review's
-  // wait while the game is kept, or why the page opens nothing. `keeping`: the failure came while the page kept the
-  // game, not while it read or checked it. `source`: the import's source, for its events.
-  type Phase = { at: "reading" } | { at: "checking"; sent: ImportHash; record: GameRecord; source: ImportSource }
+  // wait while the game is kept, a partner's kept review, or why the page opens nothing. `keeping`: the failure came
+  // while the page kept the game, not while it read or checked it. `source`: the import's source, for its events.
+  type Phase = { at: "reading" } | { at: "partner"; from: string; save: string | null }
+    | { at: "checking"; sent: ImportHash; record: GameRecord; source: ImportSource }
     | { at: "choose"; sent: ImportHash; record: GameRecord; source: ImportSource; checked: Checked } | { at: "keeping" }
     | { at: "failed"; message: string; keeping: boolean };
   let phase = $state.raw<Phase>({ at: "reading" });
@@ -59,8 +63,9 @@
     try {
       sent = readImportHash(hash);
       if (sent.tool) source = toolSource(sent.tool);
-      // A partner's page that sends a kept review (`from=`) and a shared review (`packed=`) do not come in here.
-      if (sent.from) throw new Error("this link does not hold a game record");
+      // A partner's page that sends a kept review (`from=`): the review's arrival step. A shared review (`packed=`)
+      // does not come in here.
+      if (sent.from) { phase = { at: "partner", from: sent.from, save: sent.save }; return; }
       if (!sent.record) throw new Error(sent.link ? "the link has no record=, which carries the game"
         : "this link does not hold a game record");
       // Cyanotype's tools always send their version, so a record with no tool (a link's) has no tool to update.
@@ -145,6 +150,8 @@
     <p class="text-muted">Opening the game…</p>
   {:else if phase.at === "keeping"}
     <p class="text-muted">Importing the game…</p>
+  {:else if phase.at === "partner"}
+    <PartnerArrival from={phase.from} save={phase.save} />
   {:else if phase.at === "failed"}
     <p class="text-blunder" role="alert">{phase.message}</p>
     {#if !phase.keeping}<p>The newest bookmarklet and userscript are on the <a href="/tools">tools page</a>.</p>{/if}

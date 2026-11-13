@@ -11803,3 +11803,43 @@ empty, so the live site keeps no save page and its Export menu offers no "Save t
   choice, the game keeps the test site's save page, the menu's first entry is "Save to the local test site", the save
   page gets one `cyanotype:review` message (protocol 1) with a `cyanotype-review` file, the review says "Saved to the
   local test site.", and no request went to another site.
+
+### Cyanotype opens a review that a partner kept (2026-11-13)
+
+Beads abscls-8tl1.76. Design 33 ("Partner sites", item 7, the departures, the analytics' saved work and the gap
+list) changed. Cyanotype's partner parts are now complete except the buttons and the partner sections of /developers
+(abscls-8tl1.77). Its list of partners stays empty, so on the live site a `from=` link gets only the message that its
+site is not a partner.
+
+- **One arrival step on two pages.** `apps/cyanotype/src/lib/review/PartnerArrival.svelte` calls the shared
+  `receiveKeptReview` with Cyanotype's `loadReviewFile` and `setGamePartner`, with no change to the packages. The
+  review takes `/review#from=…` as it takes a shared review: the address loses its `#` part, the analytics start, and
+  then the step runs. The import page takes `from=` too, as Hedge School's does, in place of its refusal. The texts
+  are Hedge School's: "Waiting for … to send the review…", and a failure starts "Cyanotype could not load the
+  review:", as Cyanotype's shared review's does, then the reason as a whole sentence. A load counts as
+  `partner_review`, and a failure as `partner_review` `rejected`, as on Hedge School.
+- **Not `reviewArrives`.** Hedge School's review uses it, but it also takes a tool's game from a tool older than the
+  import page. Cyanotype has no such tool, and its review shows the Review tab for that address. So the review reads
+  `from` itself, as it reads `packed`. A `from=` address pasted over the Review tab loads the page again, as a shared
+  review's does.
+- **The tie between the pages:** a comment in `apps/cyanotype/static/_headers` says why the site sends no
+  `Cross-Origin-Opener-Policy`.
+- **Privacy:** Cyanotype's page now says that a partner site's link brings a game in the same way as the tools, and
+  that a partner site keeps a review only when the player chooses "Save to" it, in Hedge School's words.
+- **The tests:** `tests/cyanotype-import.spec.ts` checks, on the CI build, that `from=` from a site that is not a
+  partner gets its message on the review and on the import page, and that the address loses its `#` part.
+  `apps/hedgeschool/scripts/cyanotype-partner-check.mjs` adds item 7 on the partners' test build: in a new browser
+  context with no game, the partner's page opens `/review#from=…&save=…` with `window.open`, and sends the file that
+  the save page got. The review opens with the engine on at Lite on the CPU, and asks the engine for no search. A
+  `cyanotype:failed` answer and a page that does not answer get their messages. `countEngineWork` in
+  `tests/cyanotype-review.ts` is exported for the script.
+- **Measured:** the check script, on a Cyanotype build with `VITE_PARTNER_TEST=1`, passed each of its 13 checks in
+  68 seconds. The kept review opened with the file's results: the page sent 19 messages to the engine's workers and
+  no search. The game kept the test site's save page again. A `cyanotype:failed` answer gave "Cyanotype could not
+  load the review: the local test site: the review is gone.", and a page that did not answer gave "Waiting for the
+  local test site to send the review…", then "Cyanotype could not load the review: the local test site did not send
+  the review." No request went to another site. The suite (`scripts/site-suite`: `npm ci`, `npm run check:all` and
+  the layout test in Chromium, CPU only) passed `check:all` and 280 of 281 cases, with none skipped. The new case
+  passed. The case that failed is the link's case of abscls-8tl1.75: the import page opened the review
+  (`#game=…`) before the test's poll saw the empty `#`. Its own commit fixes the test: it waits until the address no
+  longer holds the record. Then `tests/cyanotype-import.spec.ts` passed 39 of 39 runs (each case three times).

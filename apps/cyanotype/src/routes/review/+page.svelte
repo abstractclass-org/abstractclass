@@ -4,9 +4,11 @@
   // `#game=ID` opens a game kept in this browser (game/store.ts), as on Hedge School. Without it, the page is the Review
   // tab (ReviewHome.svelte): a pasted record, the last review a click away, and the player's games. One tab reviews a
   // game at a time (@abstractclass/analysis/reviewLock.ts). A shared review after the `#` (`#packed=`, game/share.ts)
-  // leaves the address at once, and shows what it holds first (SharedArrival.svelte). A record there, which only the
-  // import page takes, gets the Review tab, as on Hedge School: the import page keeps the game, then opens its review.
-  // The board works from the engine's rules at once (describe_game), and the record's capture marks are checked
+  // leaves the address at once, and shows what it holds first (SharedArrival.svelte). So does a partner's page that sends
+  // a review that it kept (`#from=`, design 33, "Partner sites", item 7): the page waits for the review file, keeps it,
+  // and opens its review (PartnerArrival.svelte). A record there, which only the import page takes, gets the Review
+  // tab, as on Hedge School: the import page keeps the game, then opens its review. The board works from the engine's
+  // rules at once (describe_game), and the record's capture marks are checked
   // against what each move did. Then the sweep, the label stage, the Greats' confirmations, and deeper searches where
   // the player looks (Hedge School's design 05). The engine's settings apply as they change: the workers, the GPU and
   // the network. The GPU worker joins the pool once the network is loaded (Hedge School's design 15). A game that keeps
@@ -54,6 +56,7 @@
   import type { GamePartner } from "#lib/game/partners.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
   import SharedArrival from "#lib/review/SharedArrival.svelte";
+  import PartnerArrival from "#lib/review/PartnerArrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
@@ -69,6 +72,8 @@
   // The partner site the game came from by its link (design 33, "Partner sites"), for the Export menu's "Save to …".
   const partnerName = $derived(kept?.partner?.name ?? null);
   let packed = $state<string | null>(null); // a shared review's link, which the page shows first
+  // A partner's page that sends a review that it kept: its origin, and the link's save page.
+  let fromPartner = $state.raw<{ from: string; save: string | null } | null>(null);
   let error = $state("");
   let current = $state<string[]>([]); // the position on screen: its path in the game's tree
   const engine = $state(loadEngine());
@@ -168,15 +173,15 @@
   // The game shown, or none (null) for the Review tab. Undefined until the page has read its address.
   let shown = $state<string | null | undefined>(undefined);
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
-  // paste, an address typed, back and forward): the page reviews that one from the start. So does a shared review
-  // after the `#`, as a link pasted in the address bar over the Review tab brings it. A change of the `#` alone is the
-  // browser's own navigation, with no router's: it fires `hashchange`. Only once the page has chosen what it shows
-  // (`shown`): before, the address's game is the one it loads.
+  // paste, an address typed, back and forward): the page reviews that one from the start. So does a shared review or a
+  // partner's kept review after the `#`, as a link pasted in the address bar over the Review tab brings it. A change of
+  // the `#` alone is the browser's own navigation, with no router's: it fires `hashchange`. Only once the page has
+  // chosen what it shows (`shown`): before, the address's game is the one it loads.
   const addressHash = () => new URLSearchParams(location.hash.slice(1));
   const otherGame = () => {
     if (shown === undefined) return;
     const hash = addressHash();
-    if (hash.get("game") !== shown || hash.has("packed")) location.reload();
+    if (hash.get("game") !== shown || hash.has("packed") || hash.has("from")) location.reload();
   };
   afterNavigate(otherGame);
   onMount(() => {
@@ -196,9 +201,16 @@
   }
 
   onMount(async () => {
-    const hash = addressHash(), link = hash.get("packed");
-    // A shared review. The analytics start once the game has left the address (async: it changes once it resolves).
-    if (link !== null) { await replaceState("/review", {}); startAnalytics(); packed = link; return; }
+    const hash = addressHash(), link = hash.get("packed"), from = hash.get("from");
+    // A shared review, or a partner's kept review. The analytics start once the game has left the address (async: it
+    // changes once it resolves).
+    if (link !== null || from !== null) {
+      await replaceState("/review", {});
+      startAnalytics();
+      if (link !== null) packed = link;
+      else fromPartner = { from: from!, save: hash.get("save") };
+      return;
+    }
     // The game to review: the one named in the address. Without one, the Review tab.
     const id = hash.get("game");
     shown = id;
@@ -345,6 +357,8 @@
 
 {#if packed !== null}
   <SharedArrival {packed} class={MESSAGE} />
+{:else if fromPartner}
+  <main class={MESSAGE}><PartnerArrival from={fromPartner.from} save={fromPartner.save} /></main>
 {:else if elsewhere}
   <!-- Text that a player follows: strict Simplified Technical English. -->
   <div class={MESSAGE}>
