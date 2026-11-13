@@ -122,7 +122,7 @@ Lichess and chess.com keep every game played on them:
   the server refuses leaves the queue. A waiting game goes with the number only if the visitor still accepts the link
   when it goes, and the number is still the browser's. Only a build with `VITE_STORE_PRACTICE_GAMES=on` sends: production and the
   previews, so that a build on a developer's machine sends nothing. The deploy gives Hedge School's build the
-  repository variable `HEDGESCHOOL_STORE_PRACTICE_GAMES` as `VITE_STORE_PRACTICE_GAMES` (hosting.md, section 7).
+  repository variable `HEDGESCHOOL_STORE_PRACTICE_GAMES` as `VITE_STORE_PRACTICE_GAMES` (docs/hosting.md, section 7).
 - **The kept game** (`KeptPractice`) gains its id, where the bot ran, each takeback (the edges played before it, and
   the edges it undid) and each move's time: the player's from the moment the move was theirs, the bot's for its
   search of that edge. A move from before a visit's resumption has no time (null).
@@ -150,3 +150,4 @@ Lichess and chess.com keep every game played on them:
 - [decisions/product.md](../decisions/product.md): "Practice games stored" (2026-10-15), "A question before the
   practice games' delete, and the cancelled deletes counted" (2026-10-17), "PostHog in place of Google Analytics"
   (2026-11-09): the banner asks for the games' link only.
+- [decisions/architecture.md](../decisions/architecture.md): "The repository's variables name their site" (2026-11-13).

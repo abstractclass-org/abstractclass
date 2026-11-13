@@ -243,9 +243,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
     section on the early access (`#early-access`). That section says first that everything can change (the pages and
     their addresses, the notation, the quality labels, the engine and its network, the files and links that the site
     makes, and what it keeps in the browser), then what the site does now. `VITE_EDITION=early` builds the early
-    access, and the Deploy and Tests workflows build Cyanotype with it, as they build Hedge School. The deploy gives it
-    from Cyanotype's own repository variable, `CYANOTYPE_EDITION`, apart from Hedge School's `HEDGESCHOOL_EDITION`, so
-    that Cyanotype leaves the early access on its own date. The switch
+    access, and the Deploy and Tests workflows build Cyanotype with it, as they build Hedge School. The deploy reads it
+    from Cyanotype's own repository variable, `CYANOTYPE_EDITION` (design 11, "One build switch"). The switch
     (`edition.ts`) and the name with its link (`SiteName.svelte`) are in `packages/site`, for both sites. Cyanotype
     has none of Hedge School's prototype pages (Puzzles, Learn and the engine lab, "The gaps from Hedge School"), so
     its early access hides no page, and the link is all that the switch changes.
@@ -558,9 +557,9 @@ engine takes it, and no tag at komi 0.
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
 5. **The stored games have their own switch:** the deploy gives Cyanotype's build the repository variable
-   `CYANOTYPE_STORE_PRACTICE_GAMES`, not Hedge School's `HEDGESCHOOL_STORE_PRACTICE_GAMES`, as its
-   `VITE_STORE_PRACTICE_GAMES`. So Cyanotype's consent banner and
-   its sending start only after its databases are bound (docs/hosting.md, "Cyanotype's practice games").
+   `CYANOTYPE_STORE_PRACTICE_GAMES` as its `VITE_STORE_PRACTICE_GAMES`, not Hedge School's
+   `HEDGESCHOOL_STORE_PRACTICE_GAMES`. So Cyanotype's consent banner and its sending start only after its databases are
+   bound (docs/hosting.md, "Cyanotype's practice games").
 6. **A game set aside whose start the engine cannot read is dropped:** a start brought replaces it, and the game goes
    neither into Your games nor to the site (`saveUnfinished`). Hedge School's lets the engine's error through. The
    game could not go on anyway: the page refuses such a start when it prepares the game.
@@ -1867,4 +1866,5 @@ School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach t
 Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), "Cyanotype removes
 earlier engine results, as Hedge School" (2026-11-11), "Cyanotype's header links show from 740 pixels"
 (2026-11-12), and "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13). The earlier entries name
-the site by its first name, Drawing Board.
+the site by its first name, Drawing Board. [decisions/architecture.md](../decisions/architecture.md), "The repository's
+variables name their site" (2026-11-13).

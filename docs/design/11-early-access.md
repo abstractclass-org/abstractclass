@@ -60,8 +60,7 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      folder, `apps/hedgeschool` (design 26).
    - **Node 24** (`.node-version`): Node 22 cannot run the tests' TypeScript without a flag.
    -  **The build's variables:** `VITE_EDITION=early`, `VITE_POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN` (item 7), from
-     the repository variables `HEDGESCHOOL_EDITION`, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN` (hosting.md, section 3).
-     The footer shows the commit that the build runs from.
+     the repository's variables (hosting.md, section 3). The footer shows the commit that the build runs from.
    - **The headers** (`static/_headers`): `noindex` on Cloudflare's preview addresses (design 23), and a year's cache,
      never checked again, for the build's hashed code (`/_app/immutable/`) and the engine's files
      (`/engine/<id>/<file>`): their paths name their content, so a file there never changes. `/engine/manifest.json`
@@ -367,4 +366,5 @@ read the game from the player's own page.
   game's review links back to its game" (2026-10-21), "The Privacy page says what goes where, in less detail"
   (2026-10-22), "Cyanotype's early access, as Hedge School's" (2026-11-07), "PostHog in place of Google Analytics"
   (2026-11-09).
-- [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17).
+- [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17), "The
+  repository's variables name their site" (2026-11-13).

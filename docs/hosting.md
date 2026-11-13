@@ -177,16 +177,17 @@ from that file, not from the project's settings.
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | secret | A Cloudflare API token with one permission: Account, Cloudflare Pages, Edit |
 | `CLOUDFLARE_ACCOUNT_ID` | variable | The Cloudflare account's ID |
-| `HEDGESCHOOL_EDITION` | variable | `early`, Hedge School's edition, given to its build as `VITE_EDITION` |
-| `HEDGESCHOOL_STORE_PRACTICE_GAMES` | variable | `on`, given to Hedge School's build as `VITE_STORE_PRACTICE_GAMES` (section 7) |
-| `POSTHOG_KEY` | variable | PostHog's project token, given to the builds as `VITE_POSTHOG_KEY` (section 4) |
-| `CF_ANALYTICS_TOKEN` | variable | Cloudflare Web Analytics' token, given to the builds as `VITE_CF_ANALYTICS_TOKEN` (section 5) |
+| `HEDGESCHOOL_EDITION` | variable | `early` |
+| `HEDGESCHOOL_STORE_PRACTICE_GAMES` | variable | `on` (section 7) |
+| `CYANOTYPE_EDITION` | variable | `early` (section 9) |
+| `CYANOTYPE_STORE_PRACTICE_GAMES` | variable | `on` (section 9, "Cyanotype's practice games") |
+| `POSTHOG_KEY` | variable | PostHog's project token (section 4) |
+| `CF_ANALYTICS_TOKEN` | variable | Cloudflare Web Analytics' token (section 5) |
 
 **The variables' names** say whose they are. A variable that one site reads has the site's name, such as
-`HEDGESCHOOL_EDITION` or `CYANOTYPE_STORE_PRACTICE_GAMES`. A variable that all the sites read has no prefix, such as
-`POSTHOG_KEY`. The prefix `VITE_` names only a build's variable inside the workflow, the name that the code reads. Each
-site has its own edition, so that each site leaves the early access on its own date. Cyanotype's variables are in
-"Cyanotype", below.
+`HEDGESCHOOL_EDITION`. A variable that more than one site reads has no site's name and no `VITE_`, such as
+`POSTHOG_KEY`. The prefix `VITE_` names only a build's variable inside the workflow, the name that the code reads.
+Each site has its own edition, so that each site leaves the early access on its own date.
 
 To make the token: in the Cloudflare dashboard, **Account API tokens → Create Token → Custom token**. Give it a name,
 the permission **Account → Cloudflare Pages → Edit**, then **Continue to summary → Create Token**
@@ -195,28 +196,15 @@ Paste its value into the repository's secret only. A token that was shown anywhe
 (**Roll** on the token), and the new value goes into the secret.
 
 **The build's variables** are read when the site is built, so a change needs a new deploy: a push, or **Actions →
-Deploy → Run workflow** on the branch. The workflow gives production and the previews their own:
+Deploy → Run workflow** on the branch. The site's job gives its build these repository variables, for production and
+for the previews:
 
 | Build's variable | Production (`main`) | Preview (another branch) |
 |---|---|---|
-| `VITE_EDITION` | `HEDGESCHOOL_EDITION` (`early`) | `HEDGESCHOOL_EDITION` (`early`) |
+| `VITE_EDITION` | `HEDGESCHOOL_EDITION` | the same |
 | `VITE_POSTHOG_KEY` | `POSTHOG_KEY` | none, so that previews are not counted |
 | `VITE_CF_ANALYTICS_TOKEN` | `CF_ANALYTICS_TOKEN` | none |
-| `VITE_STORE_PRACTICE_GAMES` | `HEDGESCHOOL_STORE_PRACTICE_GAMES` (`on`) | the same, so that the previews store games too, in their own database (section 7) |
-
-**The old names.** Before the variables took their site's name, the workflow read `VITE_EDITION`,
-`VITE_STORE_PRACTICE_GAMES` and `VITE_CF_ANALYTICS_TOKEN` as repository variables. `main` reads them until its next
-release. Hedge School's builds before PostHog read `VITE_GA_ID`, and Cyanotype's read `CYANOTYPE_GA_ID` (section 4).
-
-**The owner's steps, once, after the first release of `main` that reads the new names** (abscls-5llg):
-
-1. Open `https://github.com/abstractclass-org/abstractclass/settings/variables/actions`.
-2. Click the delete button of each of these five repository variables: `VITE_EDITION`, `VITE_STORE_PRACTICE_GAMES`,
-   `VITE_CF_ANALYTICS_TOKEN`, `VITE_GA_ID` and `CYANOTYPE_GA_ID`. Or, in a clone of the repository, run
-   `gh variable delete <name>` once for each of the five names.
-3. Make sure that the page lists these seven variables only: `CF_ANALYTICS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
-   `CYANOTYPE_EDITION`, `CYANOTYPE_STORE_PRACTICE_GAMES`, `HEDGESCHOOL_EDITION`, `HEDGESCHOOL_STORE_PRACTICE_GAMES` and
-   `POSTHOG_KEY`.
+| `VITE_STORE_PRACTICE_GAMES` | `HEDGESCHOOL_STORE_PRACTICE_GAMES` | the same, so that the previews store games too, in their own database (section 7) |
 
 **Why adapter-static, not Cloudflare's SvelteKit adapter:** Cloudflare's adapter renders pages on a server in a Worker.
 This site uses adapter-static, which writes plain files to `build/`, because the site is static by design
@@ -228,6 +216,26 @@ Worker: the free plan's daily request limit would apply, and `_headers` does not
 **Preview deployments:** each push to a branch other than `main` deploys a preview. Preview addresses are public, and
 unlisted (`noindex`, design 23), while the live address is indexed. **Preview access** in the project's settings can
 put them behind a sign-in (Cloudflare Access).
+
+**The old names.** Before the variables took their site's name, the workflow read `VITE_EDITION`,
+`VITE_STORE_PRACTICE_GAMES` and `VITE_CF_ANALYTICS_TOKEN` as repository variables. `main` reads them until its next
+release. Hedge School's builds before PostHog read `VITE_GA_ID`, and Cyanotype's read `CYANOTYPE_GA_ID`.
+
+**The owner's steps, once, after the first release of `main` that reads the new names** (abscls-5llg):
+
+1. In a terminal where `gh` is signed in to GitHub, run these five commands. Each deletes one repository variable:
+
+   ```sh
+   gh variable delete VITE_EDITION --repo abstractclass-org/abstractclass
+   gh variable delete VITE_STORE_PRACTICE_GAMES --repo abstractclass-org/abstractclass
+   gh variable delete VITE_CF_ANALYTICS_TOKEN --repo abstractclass-org/abstractclass
+   gh variable delete VITE_GA_ID --repo abstractclass-org/abstractclass
+   gh variable delete CYANOTYPE_GA_ID --repo abstractclass-org/abstractclass
+   ```
+
+2. Open `https://github.com/abstractclass-org/abstractclass/settings/variables/actions`. Make sure that the page lists
+   these seven repository variables only: `CF_ANALYTICS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CYANOTYPE_EDITION`,
+   `CYANOTYPE_STORE_PRACTICE_GAMES`, `HEDGESCHOOL_EDITION`, `HEDGESCHOOL_STORE_PRACTICE_GAMES` and `POSTHOG_KEY`.
 
 ## 4. PostHog
 
@@ -246,6 +254,9 @@ put them behind a sign-in (Cloudflare Access).
   step `cyanotype-no-posthog` refuses a script of that build that holds PostHog's code.
 - **The site loads PostHog itself:** posthog-js from npm, in its slim bundle with no external loading
   (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
+- **Google Analytics, before PostHog:** Hedge School's property (`G-C5RY6DWGWN`) counted the site until the release
+  of 2026-11-09's change. No build sends to it after that release. Its repository variables, `VITE_GA_ID` and
+  `CYANOTYPE_GA_ID`, are among the old names of section 3.
 
 **The owner's steps.**
 
@@ -262,9 +273,6 @@ put them behind a sign-in (Cloudflare Access).
   someone clears the browser's data for the site. A private window forgets it when it closes. To remove the flag, open
   a page of the site with `?internal=off`. To check it, keep the site open, and open PostHog's Activity
   (`https://us.posthog.com/activity/explore`): the browser's events show the property `internal`.
-- **Google Analytics, before PostHog:** Hedge School's property (`G-C5RY6DWGWN`) counted the site until the release
-  of 2026-11-09's change. No build sends to it after that release. The repository variables `VITE_GA_ID` and
-  `CYANOTYPE_GA_ID` go with the old names of section 3 ("The old names"): delete them in the steps there.
 
 ## 5. Cloudflare Web Analytics
 
@@ -424,15 +432,15 @@ and builds it on each push, as the site's job does: the packages' checks and tes
 (`npm run engine -- --deploy`), the site's type check, unit tests and build. Then it uploads `build/` with Wrangler:
 `main` to production, another branch to a preview at `<branch>.cyanotype-ztp.pages.dev`. A failed step deploys
 nothing. Until Cyanotype's launch (step 3 below), the job deploys previews only: a push to `main` does not run it
-("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and the shared variable
-`CLOUDFLARE_ACCOUNT_ID` (section 3). It reads Cyanotype's own edition, `CYANOTYPE_EDITION` (below), the two shared
-variables of the analytics, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN` ("Cyanotype's analytics", below), and its switch of
-the practice games' storage, `CYANOTYPE_STORE_PRACTICE_GAMES` ("Cyanotype's practice games", below).
+("The launch switch", below). The job uses the site's secret `CLOUDFLARE_API_TOKEN` and the repository variables of
+section 3. The shared ones are `CLOUDFLARE_ACCOUNT_ID`, and `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN` for the analytics
+("Cyanotype's analytics", below). Cyanotype's own are its edition, `CYANOTYPE_EDITION` (below), and its switch of the
+practice games' storage, `CYANOTYPE_STORE_PRACTICE_GAMES` ("Cyanotype's practice games", below).
 
-- **The early access:** the build takes the repository variable `CYANOTYPE_EDITION` as its `VITE_EDITION`. It is
-  Cyanotype's own, apart from Hedge School's `HEDGESCHOOL_EDITION`, so that Cyanotype leaves the early access on its
-  own date. With `early`, it is Cyanotype's early access: the header shows "Early Access" beside the name, and it
-  leads to the About page's section on the early access ([design 33](design/33-cyanotype.md), "Decision", item 11).
+- **The early access:** the build takes Cyanotype's own repository variable, `CYANOTYPE_EDITION`, as its
+  `VITE_EDITION` (section 3). With `early`, it is Cyanotype's early access: the header shows "Early Access" beside the
+  name, and it leads to the About page's section on the early access ([design 33](design/33-cyanotype.md), "Decision",
+  item 11).
 
 - **The engine's files** come from Blueprints' release that `engine.lock.json` pins, in the public repository
   `abstractclass-org/blueprints-engine`. The step checks each file's SHA-256, and `--deploy` refuses a file from the

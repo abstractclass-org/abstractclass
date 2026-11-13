@@ -59,12 +59,9 @@ jobs:
         run: npm run check --workspace=packages && npm test --workspace=packages
         working-directory: .
 
-      # The build's variables, from the repository's variables under the names that the code reads. A variable that
-      # only this site reads has the site's name: its edition, HEDGESCHOOL_EDITION, and its practice games' storage,
-      # HEDGESCHOOL_STORE_PRACTICE_GAMES. A shared one has no prefix: PostHog's project key, POSTHOG_KEY (one project
-      # for all the sites), and the domain's one Cloudflare Web Analytics site, CF_ANALYTICS_TOKEN. Previews have no
-      # PostHog and no Web Analytics, so that their visits are not counted, and a build without the key holds none of
-      # PostHog's code.
+      # The build's variables, from the repository's variables (docs/hosting.md, section 3): this site's own ones have
+      # its name, and the shared ones have no site's name and no VITE_. Previews have no PostHog and no Web Analytics,
+      # so that their visits are not counted, and a build without the key holds none of PostHog's code.
       - run: npm run build:cloudflare
         env:
           VITE_EDITION: ${{ vars.HEDGESCHOOL_EDITION }}
@@ -172,10 +169,9 @@ jobs:
       - name: The packages' checks and tests
         run: npm run check --workspace=packages && npm test --workspace=packages
         working-directory: .
-      # The build's edition: the repository variable CYANOTYPE_EDITION, Cyanotype's own, so that it leaves early access
-      # on its own date. Its analytics (docs/hosting.md, "Cyanotype's analytics"): the one PostHog project of all the
-      # sites, POSTHOG_KEY, and the domain's one Cloudflare Web Analytics site, CF_ANALYTICS_TOKEN, as for the site's
-      # build. Only the live site has them: previews are not counted. Its practice games' storage: the repository
+      # The build's edition: Cyanotype's own repository variable, CYANOTYPE_EDITION (docs/hosting.md, section 3). Its
+      # analytics (docs/hosting.md, "Cyanotype's analytics"): the shared POSTHOG_KEY and CF_ANALYTICS_TOKEN, as for the
+      # site's build. Only the live site has them: previews are not counted. Its practice games' storage: the repository
       # variable CYANOTYPE_STORE_PRACTICE_GAMES, which the owner sets to `on` once Cyanotype's databases are bound
       # (docs/hosting.md, "Cyanotype's practice games").
       - run: npm run engine -- --deploy && npm run check && npm test && npm run build

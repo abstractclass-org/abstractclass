@@ -72,9 +72,7 @@ checks each file's SHA-256 ([docs/design/03-stack.md](docs/design/03-stack.md)).
 
 The deployed build also names its analytics: `VITE_POSTHOG_KEY` (PostHog) and `VITE_CF_ANALYTICS_TOKEN` (Cloudflare
 Web Analytics). Without them, as in development, the build has neither. The deploy gives each build's variable from a
-repository variable: `VITE_EDITION` from `HEDGESCHOOL_EDITION`, `VITE_STORE_PRACTICE_GAMES` from
-`HEDGESCHOOL_STORE_PRACTICE_GAMES`, `VITE_POSTHOG_KEY` from `POSTHOG_KEY` and `VITE_CF_ANALYTICS_TOKEN` from
-`CF_ANALYTICS_TOKEN` ([docs/hosting.md](docs/hosting.md), section 3).
+repository variable ([docs/hosting.md](docs/hosting.md), section 3).
 
 ## Layout
 
