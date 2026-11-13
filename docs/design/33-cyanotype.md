@@ -505,8 +505,7 @@ analytics, as Hedge School's Practice does: the layout does not start them while
 5. **A game in progress:** the page asks first, once the rules have checked the start ("Play from this position?",
    `@abstractclass/practice/ReplaceGame.svelte`, Hedge School's question). The game in progress goes into Your games,
    unfinished, and to the site as set aside, as on Hedge School ("The stored games", below). A start that the rules
-   refuse
-   leaves the game in progress, which goes on with the notice in the side column.
+   refuse leaves the game in progress, which goes on with the notice in the side column.
 
 **Below 16 visits,** Practice plays the threaded bot, as Hedge School's Practice does at every setting (design 24,
 item 14). KataGo's play settings give each search thread at least 8 of a move's new playouts, so a move below 16
@@ -534,12 +533,13 @@ way, Blueprints' engine's cap, is an error in the record (design 24, item 15), a
 Past the cap, a practice module refuses the komi. The analysis module searches with no error, but its numbers mean
 nothing: at komi 100,000 every candidate gives Blue 0.0%, and the lead is about 2.4 times the komi. The Analysis board
 analyzes at a board's komi, as Hedge School's does: a record with a `Komi` tag, a link and an analysis file open the
-board at their komi, and its link, its file and its annotated record keep it. Its page builds the board's analysis
-after it chooses the board, with that board's komi, and the Import puts its record in the page's address, so a komi
-needs no step of its own. A link's or an analysis file's komi beyond the cap is an error in the link's or the file's
-words. A board kept here beyond the cap (kept from a link before the link's check) does not open: a new board opens,
-with a notice (`keptKomiProblem`, `packages/analysis/src/kept.ts`, with the cap). A position's notation has no komi.
-A practice game's record has the game's `Komi` tag, Red's komi as the engine takes it, and no tag at komi 0.
+board at their komi, and its link, its file and its annotated record keep it. Its page builds the board's analysis after
+it chooses the board, with that board's komi, and the Import puts its record in the page's address, so a komi needs no
+step of its own. A komi beyond the cap is an error: a link's in the words of a record's `Komi` tag, which the link
+carries, and an analysis file's in the file's words. A board kept here beyond the cap (kept from a link before the
+link's check) does not open: a new board opens, with a notice (`keptKomiProblem`, `packages/analysis/src/kept.ts`, with
+the cap). A position's notation has no komi. A practice game's record has the game's `Komi` tag, Red's komi as the
+engine takes it, and no tag at komi 0.
 
 **How it departs from Hedge School's Practice (design 24):**
 
@@ -615,18 +615,18 @@ threaded bot (abscls-8tl1.29). The stored games' parts are shared too ("The stor
    when it ends: its moves, its record with no name, the bot's settings and where it ran (`form`), each move's time and
    each takeback, the result, the player's side and outcome, and the moves brought (`brought`). A game set aside goes
    with the outcome `set_aside`. A Pages Function (`functions/api/practice-games.ts`) keeps it in Cyanotype's own D1
-   database, with Hedge School's schema and Blueprints' count of moves (`migrations/`; docs/hosting.md, "Cyanotype's
+   database, with Hedge School's schema and Blueprints' count of moves (`migrations/`, and docs/hosting.md, "Cyanotype's
    practice games"). Without its database, it answers 503, and the game waits in the browser for a later visit.
 3. **The consent:** with the visitor's consent, a random ID in this browser goes with each game, as on Hedge School.
    The consent banner asks once, and the Privacy page has the section on the games and "Your choices", with "Delete my
    practice games" ("Analytics", item 3).
 4. **Shared, not copied** (design 29): the stored game and its check (`@abstractclass/practice/stored.ts`, with each
    game's move form and its count of a record's moves as `StoredRules`), the Function's handlers (`storedFunction.ts`),
-   the sending and its queue (`send.ts`), the stored game's bookkeeping in the game's flow (`noteStored`,
-   `noteTakeback`, `noteTime` in `game.svelte.ts`), the record's tags and turns (`practiceTags`, `practiceTurns`), and
-   the Privacy page's parts (`StoredGamesNotice.svelte`, `GamesChoices.svelte`). Each site gives its game's part: its
-   check of a move (`src/lib/practice/stored.ts`), its keys, and its record. The Function's bundle takes only the shared
-   check and the site's, which import nothing at run time but each other.
+   the sending and its queue (`send.ts`), the stored game's bookkeeping in the game's flow (`game.svelte.ts`: the id,
+   where the bot runs, each move's time and each takeback), the record's tags and turns (`practiceTags`,
+   `practiceTurns`), and the Privacy page's parts (`StoredGamesNotice.svelte`, `GamesChoices.svelte`). Each site gives
+   its game's part: its check of a move (`src/lib/practice/stored.ts`), its keys, and its record. The Function's bundle
+   takes only the shared check and the site's, which import nothing at run time but each other.
 
 ## How a game comes in from strategyjam.org
 
@@ -1045,11 +1045,10 @@ settings of its design 09 and the marks of its design 13), in the code that both
    takes a komi too.
 4. **A game's id** is the id that the review used before the list: FNV-1a of the komi and the moves
    (`src/lib/game/store.ts`, `gameId`), and of the set-up start before them for a practice game from one. So the games
-   that the review kept before the list, each with its record and
-   the time that it came, show in the list, and open with their variations. The review kept them before the engine's
-   rules checked them, so the list can hold one that the review refuses: its review then says why, and its Delete
-   removes it. Hedge School's id is a SHA-256, which also covers a set-up start: Cyanotype's review takes no set-up
-   start.
+   that the review kept before the list, each with its record and the time that it came, show in the list, and open with
+   their variations. The review kept them before the engine's rules checked them, so the list can hold one that the
+   review refuses: its review then says why, and its Delete removes it. Hedge School's id is a SHA-256 of the same
+   parts. Cyanotype keeps its FNV-1a, so that the ids of the games kept before stay as they were.
 5. **A game's Delete** asks first, in Hedge School's dialog: "Delete this game?", with Cancel focused, and a Delete
    that waits for the double-click time. It deletes the game, its variations and the pointer of "Continue your last
    review" to it. The site's engine's results stay: they belong to positions. An earlier engine's results that only
@@ -1384,16 +1383,15 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
    - **No event of a part that Cyanotype lacks:** Support Us (`support_open`, abscls-8tl1.49) and Openings
      (abscls-8tl1.53).
-5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's
-   builds of both sites, each with a made-up PostHog key. Playwright's routes answer PostHog's addresses in its place
-   and keep the events that the pages sent. Cyanotype's case checks its page views, with `internal` after
-   `?internal=on`, that its banner asks only for the practice games' link, and that it keeps nothing of PostHog's in
-   the browser. `tests/cyanotype-events.spec.ts`
-   checks the events of the review files and the review snapshot in the same way. It checks a review file loaded and a
-   file that cannot load. It checks the exports of the review file and of the annotated record, from the review and
-   from the Review tab. It checks the review snapshot's open and Review again. A build without the key holds none of
-   PostHog's code: check:all builds Cyanotype without the key first, and its step `cyanotype-no-posthog` refuses a
-   script of that build that names PostHog's address or its client's extensions.
+5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's builds
+   of both sites, each with a made-up PostHog key. Playwright's routes answer PostHog's addresses in its place and keep
+   the events that the pages sent. Cyanotype's case checks its page views, with `internal` after `?internal=on`, that
+   its banner asks only for the practice games' link, and that it keeps nothing of PostHog's in the browser.
+   `tests/cyanotype-events.spec.ts` checks the events of the review files and the review snapshot in the same way. It
+   checks a review file loaded and a file that cannot load. It checks the exports of the review file and of the
+   annotated record, from the review and from the Review tab. It checks the review snapshot's open and Review again. A
+   build without the key holds none of PostHog's code: check:all builds Cyanotype without the key first, and its step
+   `cyanotype-no-posthog` refuses a script of that build that names PostHog's address or its client's extensions.
 
 ## The logo
 
@@ -1667,7 +1665,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   (Blueprints' check, with `stored.test.ts`, which also runs the Function on the schema in Node's SQLite), `send.ts`,
   `functions/api/practice-games.ts`, `migrations/0001_practice_games.sql` and `static/_routes.json`.
 - `apps/hedgeschool/tests/cyanotype-practice.spec.ts`: whole games against the bot, with each side to start, and a
-  reload in the middle; a game that ends goes into Your games and to the site, and its review opens; a game set aside
+  reload in the middle. A game that ends goes into Your games and to the site, and its review opens. A game set aside
   goes into Your games. `layout.spec.ts`: the layout of `/practice` and of a game in progress. Both run with
   `CYANOTYPE_BASE_URL`, and the games skip when the site has no bot.
 - `.github/workflows/deploy.yml`, the job `cyanotype`: the deploy, with the engine's release files, to the Pages

@@ -10,9 +10,6 @@ import type { PracticeOutcome, Takeback, Variety } from "./practice.ts";
  *  start that the Analysis board's Play brought (the page asks, and the player chooses the new start). */
 export type StoredOutcome = PracticeOutcome | "set_aside";
 
-/** A takeback: the moves played before it, and the moves that it undid, last first as they were undone. */
-export type StoredTakeback = Takeback; // a move, or "pass"
-
 export interface StoredPractice {
   version: 1;
   id: string; // the game's own random id: a game sent twice is kept once
@@ -25,9 +22,10 @@ export interface StoredPractice {
   side: "blue" | "red"; // the player's
   outcome: StoredOutcome; // the player's
   result: string; // the record's result: `b+12.5`, `r+R`, `0` or `*`
-  record: string; // the game's record, with its marks, the start's Position tag, and no name of the player
+  record: string; // the game's record, each move with its game's mark (a cut, a capture), the start's Position tag,
+                  // and no name of the player
   brought: number; // the moves that came with the Analysis board's record: the game's start
-  takebacks: StoredTakeback[];
+  takebacks: Takeback[]; // each one's moves: a move, or "pass"
   ms: (number | null)[]; // by move: the player's thinking time, or the bot's search, in milliseconds; null unknown
 }
 
@@ -44,7 +42,7 @@ export const STORED_MAX_BYTES = 64 * 1024;
 const OUTCOMES: StoredOutcome[] = ["won", "lost", "draw", "resigned", "aborted", "set_aside"];
 const VARIETIES: Variety[] = ["low", "medium", "high"];
 const FORMS: BotMode[] = ["gpu", "cpu", "single"];
-// The card's (practice.ts), which this module cannot import: stored.test.ts checks that they agree
+// The card's (practice.ts), which this module cannot import: each site's stored.test.ts checks that they agree
 export const MAX_KOMI = 3000;
 export const RANDOM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/; // crypto.randomUUID's form
 
@@ -77,8 +75,8 @@ export function storedProblem(x: unknown, rules: StoredRules): string | null {
   return null;
 }
 
-/** The moves of a record's main line that match `move` (a global expression of a move's word, with its marks, or
- *  "pass"): without its tags, comments and variations. */
+/** The moves of a record's main line that match `move` (a global expression of a move's word, with its game's mark
+ *  of a cut or a capture, or "pass"): without its tags, comments and variations. */
 export function recordMoves(record: string, move: RegExp): number {
   let body = record.replace(/\[[^\]]*\]/g, "").replace(/\{[^}]*\}/g, "");
   while (/\([^()]*\)/.test(body)) body = body.replace(/\([^()]*\)/g, ""); // variations, innermost first

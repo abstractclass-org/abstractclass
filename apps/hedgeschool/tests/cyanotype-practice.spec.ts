@@ -30,11 +30,11 @@ import { keepBefore } from "./keep-before.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
+const STATUS = '[data-testid="practice-status"]';
+const at = (path: string) => new URL(path, CYANOTYPE).href;
 
 // The visitor's Decline of the practice games' link: the consent banner would cover the page (cyanotype-consent.ts).
 test.beforeEach(async ({ context }) => { await declineGames(context); });
-const STATUS = '[data-testid="practice-status"]';
-const at = (path: string) => new URL(path, CYANOTYPE).href;
 
 /** The player's move, as a click on a blueprint, then on one of its marked anchor hexes, at random. A blueprint with
  *  no legal placement gives way to the next. With none, an edit: a cell, then one of its marked new places. */
@@ -149,15 +149,15 @@ for (const side of ["Blue", "Red"] as const) {
       moves++;
       status = await turn(page);
     }
-    // The game goes into Your games first, then leaves the game in progress (Hedge School's order)
+    // An ended game is no longer kept: it goes into Your games first, then leaves the game in progress (Hedge School's
+    // order)
     await expect.poll(() => keptMoves(page), { timeout: 30_000 }).toBeNull();
-    const kept = await keptMoves(page), all = await listed(page);
+    const all = await listed(page);
     const points = await page.locator('[aria-label="Players and scores"] > div > div:first-child strong').allTextContents();
     console.log(`${side}: ${all.length} moves, ${moves} of them the player's; ${status} The cards' points: ${points.join(", ")}.`);
     console.log(`${side}'s moves: ${all.join(" ")}`);
     expect(status, `the game's moves: ${all.join(" ")}`).toMatch(/^The game is over/);
     expect(all.length).toBe(120);
-    expect(kept).toBeNull(); // an ended game is no longer kept
     expect(reloaded).toBe(true);
     expect(errors).toEqual([]);
   });
@@ -484,9 +484,8 @@ test("a game that ends goes into Your games and to the site, and its review open
     if (r.request().method() === "POST") sent.push(JSON.parse(r.request().postData()!));
     await r.fulfill({ status: 201, contentType: "application/json", body: '{"added":true}' });
   });
-  // The visitor's Decline of the games' link (the consent banner would cover the side column), and the shortest game
-  // that the bot allows: 1 visit, the player Red, a Resign after the bot's first move.
-  await keepBefore(page, "cyanotype:consent:1", { games: "denied" });
+  // The shortest game that the bot allows: 1 visit, the player Red, a Resign after the bot's first move. The visitor
+  // declined the games' link (beforeEach), so the game goes with no number.
   await page.setViewportSize({ width: 1376, height: 952 });
   await keepBefore(page, "cyanotype:practice-choices:1",
                    { bot: { network: modelOf(manifest), visits: 1, variety: "low" }, side: "random", name: "Ann" });

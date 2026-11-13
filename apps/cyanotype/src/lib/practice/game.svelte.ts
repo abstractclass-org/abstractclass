@@ -5,7 +5,7 @@
 // and each of the bot's moves must be in the rules' legal moves. The game's moves and settings are kept in this
 // browser after each move (stampduty.ts, keptGame), so that a reload, or a new build, continues it from its moves.
 // A game that ends goes into the player's games (game/store.ts), and to the site, as Hedge School's (its design 25):
-// each move's time and each takeback are kept for the stored game (send.ts).
+// the practice's flow keeps each move's time and each takeback for the stored game (send.ts).
 // A game can start from a position (Hedge School's design 24, item 4), as the Analysis board's "Play the bot from
 // here" brings it. A game's position goes to the bot as its moves from the standard start (`blueprints-set-game`), as
 // the search of a position with no history is not its game's (the engine repository's games/blueprints/README.md,
@@ -14,7 +14,7 @@
 // stops at them. The turns, the takeback, Resign and Abort are the practice's (@abstractclass/practice/game.svelte.ts).
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
 import { PracticeGame as BaseGame } from "@abstractclass/practice/game.svelte.ts";
-import { gtpColor, resignResult } from "@abstractclass/practice/practice.ts";
+import { gtpColor, resignResult, type PracticeOutcome } from "@abstractclass/practice/practice.ts";
 import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { withKomi } from "@abstractclass/analysis/game.ts";
 import { boardMove, playerOf, sitePosition, stepOf, type DescribeReply, type GamePosition } from "../board/described.ts";
@@ -29,7 +29,6 @@ import { ENGINE_NAME } from "../site.ts";
 import { botCommands, endResult, keptGame, practiceRecord, type KeptPractice } from "./stampduty.ts";
 import { sendPractice, storedGame, type StoredPractice } from "./send.ts";
 import { browserNumber } from "../analytics.svelte.ts";
-import type { PracticeOutcome } from "@abstractclass/practice/practice.ts";
 
 /** A move played: its player, its text with its capture mark, and what the board draws of it. */
 export interface PlayedMove { player: Player; text: string; move: BoardMove }
@@ -46,11 +45,14 @@ function playedOf(name: string, before: GamePosition, after: GamePosition): Play
  *  moves (`rules`) are on the latest position where the player moved last: they stay through the bot's turn, so that
  *  the board's view, which fits their anchor hexes, does not change at each turn. */
 export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMove, InputRules> {
-  // The game's result once the rules have ended it: `b+N`, `r+N` or `0`, from the scores with the komi by the one rule
-  // for a draw (stampduty.ts, endResult). Not the rules' own result, which leaves the komi out.
-  result = $state<string | null>(null);
   savedId = $state<string | null>(null); // the game's id in the player's games (game/store.ts), once it is there
   private described = $state.raw<GamePosition[]>([]); // the engine's positions, each with what the move to it did
+  // The game's result once the rules have ended it: `b+N`, `r+N` or `0`, from the scores with the komi by the one rule
+  // for a draw (stampduty.ts, endResult). Not the rules' own result, which leaves the komi out.
+  result = $derived.by(() => {
+    const end = this.described.at(-1);
+    return end?.outcome ? endResult(end, this.kept.komi ?? 0) : null;
+  });
   // The set-up start in the engine's one-line form, or null: the standard start. prepare() sets it once the check has
   // read the start, so that a start that the engine cannot read stops the game, not the page.
   private setUp: string | null = null;
@@ -75,7 +77,6 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     const unreached = this.kept.start ? await startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
     if (unreached) throw new Error(unreached);
     this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
-    this.noteStored();
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.setUp, this.kept.moves))).reply.positions;
     if (this.setUp) {
@@ -88,23 +89,21 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     this.played = this.kept.moves.map((m, i) => playedOf(m, described[i], described[i + 1]));
   }
 
-  /** A takeback: the engine's positions, and for the stored game its record and the times of the moves taken back. */
+  /** A takeback: the engine's positions. */
   protected undid(undone: string[]) {
     this.described = this.described.slice(0, -undone.length);
-    this.noteTakeback(undone);
   }
 
   /** The record's result: the bot's win when the player resigned, the scores' once the rules have ended the game,
    *  else `*`. */
   private recordResult(): string {
-    const end = this.described.at(-1);
-    return this.resigned ? resignResult(this.human) : end?.outcome ? endResult(end, this.kept.komi ?? 0) : "*";
+    return this.resigned ? resignResult(this.human) : this.result ?? "*";
   }
 
   /** The game's record, with the result. `kept` gives the settings and the name: the stored game's has no name. */
   record(kept: KeptPractice = this.kept): string {
     return practiceRecord(kept, this.played.map(m => m.text), this.played.map(m => m.player), this.recordResult(),
-                          this.resigned ? "resignation" : this.described.at(-1)?.outcome ? "normal" : undefined);
+                          this.resigned ? "resignation" : this.over ? "normal" : undefined);
   }
 
   /** The game as the site stores it (Hedge School's design 25), with the player's outcome and the browser's number
@@ -119,23 +118,17 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     return (this.savedId = (await saveGame(text, parseRecord(text))).id);
   }
 
-  /** The game is over: by the rules, with its result by the scores, or by Resign, with none. It goes into the
-   *  player's games. */
-  protected async finished() {
-    const end = this.described.at(-1);
-    if (end?.outcome) this.result = endResult(end, this.kept.komi ?? 0);
-    await this.save();
-  }
+  /** The game is over, by the rules or by Resign: it goes into the player's games. */
+  protected async finished() { await this.save(); }
 
   /** An aborted game goes into the player's games as unfinished (`*`) when it has moves, so that it can still be
    *  reviewed. */
   protected async aborted() { return this.played.length ? this.save() : null; }
 
-  /** A move played, by either side, with its time: its position from the rules, kept with the game. */
-  protected async add(name: string, ms: number | null) {
+  /** A move played, by either side: its position from the rules, kept with the game. */
+  protected async add(name: string) {
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
-    this.noteTime(ms);
     keptGame.keep(this.kept);
     const [before, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.setUp, this.kept.moves), from)).reply.positions;
     this.described = [...this.described, after];

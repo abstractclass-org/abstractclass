@@ -11966,7 +11966,7 @@ abscls-fcvt. Design 06 changed.
 
 ### Cyanotype keeps its practice games, as Hedge School's (2026-11-13)
 
-abscls-8tl1.50, from the decision of 2026-11-06 on design 33's gaps (build it), with the Analysis board's komi of
+abscls-8tl1.50, from the decision of 2026-11-06 to build this gap of design 33, with the Analysis board's komi of
 2026-11-07 in the same work. A game against Stamp Duty that ends goes into Your games for its review, and in a build
 that stores games, to Cyanotype's own D1 database through a Pages Function, as Hedge School's games against HedgeFund
 (design 25, design 33, "The stored games").

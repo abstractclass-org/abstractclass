@@ -1,16 +1,17 @@
 <script lang="ts">
   // Practice (docs/design/33-cyanotype.md, "Practice against Stamp Duty"): a game against Stamp Duty's practice bot
-  // in the player's browser, with no server and no clock, as Hedge School's Practice (its design 24). Before the game,
+  // in the player's browser, with no clock, as Hedge School's Practice (its design 24). Before the game,
   // the settings card (@abstractclass/practice): the bot's network, visits and variety, the player's name, then a side,
   // which starts the game. During the game, the practice's frame with a board that fills the room: the players' row
   // with the points' bar above the board, the hands in a panel over the board (under it on a phone), and a side column
   // with the bot's line, the move list, and the step bar with the status line. The player's notes on the board, by
   // position, for the visit, as on Hedge School's Practice (design 33, "The player's notes"). One game in progress,
   // kept in this browser and resumed. A game that ends goes into Your games, and to the site (Hedge School's design
-  // 25), and a game set aside by a start brought goes into Your games, unfinished. The rules run in the engine's worker, and the bot in its own, in the first of its
-  // forms that this browser runs, as on Hedge School's Practice: on the GPU or on the CPU workers through the threaded
-  // bot, else on one thread (@abstractclass/practice/botForms.ts), with the engine settings' GPU and workers. The page
-  // counts a game's start and end, the engine's errors and the features used, as Hedge School's does (its design 17).
+  // 25), and a game set aside by a start brought goes into Your games, unfinished. The rules run in the engine's
+  // worker, and the bot in its own, in the first of its forms that this browser runs, as on Hedge School's Practice: on
+  // the GPU or on the CPU workers through the threaded bot, else on one thread (@abstractclass/practice/botForms.ts),
+  // with the engine settings' GPU and workers. The page counts a game's start and end, the engine's errors and the
+  // features used, as Hedge School's does (its design 17).
   // Its way in from a position, which the Analysis board's "Play the bot from here" gives (Hedge School's design 24,
   // item 4): `#position=`, a set-up start, and `#record=`, the moves from the start. They leave the address at once,
   // then the analytics start. The engine's rules check them as the Analysis board checks a record or a start (recordCheck.ts): a start that no

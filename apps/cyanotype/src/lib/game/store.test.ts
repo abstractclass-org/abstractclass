@@ -1,5 +1,6 @@
 // Checks Cyanotype's part of the player's games (store.ts): a game's id, as the review kept it before the list, covers
-// its komi (Hedge School's design 24) and its set-up start, and a game that the review kept before the list is in the list. Run: npm test.
+// its komi (Hedge School's design 24) and its set-up start, and a game that the review kept before the list is in the
+// list. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";

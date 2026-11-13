@@ -19,7 +19,7 @@ entries before it).
 | Visit counts | PostHog (one project for all the sites, section 4) and Cloudflare Web Analytics, both with no cookies | Counted in the browser (`src/lib/analytics.svelte.ts`). Cyanotype uses the same two (section 9). |
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout test on Windows ("Deploy, check and roll back"). |
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
-| Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews; Cyanotype's `cyanotype-games` and `cyanotype-games-preview` | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). Cyanotype's own Function keeps its games against Stamp Duty (section 9). |
+| Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews. Cyanotype has `cyanotype-games` and `cyanotype-games-preview` | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). Cyanotype's own Function keeps its games against Stamp Duty (section 9). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
 | Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with its own Function for its practice games, and the same analytics as Hedge School's (section 9). |
 
@@ -513,38 +513,47 @@ build without them measures nothing.
 
 ### Cyanotype's practice games
 
-The games against Stamp Duty go to a D1 database when they end, as Hedge School's games against HedgeFund do (section
-7, design 25; [design 33](design/33-cyanotype.md), "Practice against Stamp Duty"). Production and the previews each
+The games against Stamp Duty go to a D1 database when they end, as Hedge School's games against HedgeFund do (section 7
+and design 25, and [design 33](design/33-cyanotype.md), "Practice against Stamp Duty"). Production and the previews each
 have their own, apart from Hedge School's: Blueprints' games never mix with Enclosure's. The schema is the file
-`apps/cyanotype/migrations/0001_practice_games.sql`: Hedge School's two tables, with the column `moves` in the place
-of `edges`. The Function (`apps/cyanotype/functions/api/practice-games.ts`) is Hedge School's
+`apps/cyanotype/migrations/0001_practice_games.sql`: Hedge School's two tables, with the column `moves` in the place of
+`edges`. The Function (`apps/cyanotype/functions/api/practice-games.ts`) is Hedge School's
 (`@abstractclass/practice/storedFunction.ts`), with Blueprints' check. Without its binding, it answers 503, and the
-games wait in the players' browsers. A build sends games only with `CYANOTYPE_STORE_PRACTICE_GAMES` set to `on`.
-Without it, Cyanotype keeps each game in the player's games only, and asks for no consent.
+games wait in the players' browsers. A build sends games only with `CYANOTYPE_STORE_PRACTICE_GAMES` set to `on`. Without
+it, Cyanotype keeps each game in the player's games only, and asks for no consent.
 
 **The owner's steps, once.**
 
 1. **Create the two databases.** Go to **D1 SQL database** ([the page](https://dash.cloudflare.com/?to=/:account/workers/d1)),
    select **Create Database**, and give the name `cyanotype-games`. Leave the location as Cloudflare chooses it. Then
    create a second one, `cyanotype-games-preview`.
-2. **Make the tables in each.** Open `cyanotype-games` and select **Console**. Paste the whole of
-   `apps/cyanotype/migrations/0001_practice_games.sql`, and run it. Do the same in `cyanotype-games-preview`. Each
+2. **Make the tables in each.** On **D1 SQL database** ([the page](https://dash.cloudflare.com/?to=/:account/workers/d1)),
+   open `cyanotype-games` and select **Console**. Paste the whole of the file
+   `apps/cyanotype/migrations/0001_practice_games.sql`
+   ([its text](https://github.com/abstractclass-org/abstractclass/raw/dev/apps/cyanotype/migrations/0001_practice_games.sql)),
+   and run it. Do the same in `cyanotype-games-preview`. Each
    database then lists the tables `practice_games` and `deleted_browsers`.
-3. **Bind them to the project.** Go to **Workers & Pages**, select `cyanotype`, then **Settings → Bindings**. With the
+3. **Bind them to the project.** Go to **Workers & Pages**
+   ([the page](https://dash.cloudflare.com/?to=/:account/workers-and-pages)), select `cyanotype`, then
+   **Settings → Bindings**. With the
    environment selector at the top right on **Production**: **Add → D1 database**, the variable name `GAMES`, the
    database `cyanotype-games`, and **Save**. Then with the selector on **Preview**: **Add → D1 database**, the variable
    name `GAMES`, the database `cyanotype-games-preview`, and **Save**. The name `GAMES` is the one that the Function
    reads, in both environments. Until Cyanotype's launch, only the previews use their binding.
 4. **Turn the sending on:** in GitHub, the repository's **Settings → Secrets and variables → Actions → Variables →
-   New repository variable**, with the name `CYANOTYPE_STORE_PRACTICE_GAMES` and the value `on`. The job `cyanotype`
+   New repository variable**
+   ([the page](https://github.com/abstractclass-org/abstractclass/settings/variables/actions/new)), with the name
+   `CYANOTYPE_STORE_PRACTICE_GAMES` and the value `on`, then **Add variable**. The job `cyanotype`
    gives it to the build as `VITE_STORE_PRACTICE_GAMES`, for production and for the previews. Hedge School's variable
    `VITE_STORE_PRACTICE_GAMES` does not change Cyanotype's build.
-5. **Deploy again:** push to `dev`, or run the workflow **Deploy** on `dev` (**Actions → Deploy → Run workflow**). A
-   binding and a variable take effect from the next deployment.
+5. **Deploy again:** push to `dev`, or run the workflow **Deploy** on `dev`
+   ([the page](https://github.com/abstractclass-org/abstractclass/actions/workflows/deploy.yml): **Run workflow**, the
+   branch `dev`, then **Run workflow**). A binding and a variable take effect from the next deployment.
 6. **Check on the preview:** in `apps/cyanotype`, run `git fetch`, then
    `node scripts/release-check.mjs https://dev.cyanotype-ztp.pages.dev`. Make sure that the line of the Function says
    PASS (`/api/practice-games` answers 400 to a request that is not JSON). Then on
-   `https://dev.cyanotype-ztp.pages.dev/practice`, play a game against Stamp Duty: choose **Play as Red**, wait for
+   `https://dev.cyanotype-ztp.pages.dev/practice`, play a game against Stamp Duty. If the banner "Help Cyanotype get
+   better" shows, select **Accept** or **Decline**. Choose **Play as Red**, wait for
    Stamp Duty's first move, then select **Resign** and confirm with **Resign**. In `cyanotype-games-preview`'s
    **Console**, run `SELECT id, browser, outcome, moves, received FROM practice_games;`. The game is there, with the
    outcome `resigned`.

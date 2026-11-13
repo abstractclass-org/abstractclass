@@ -15,8 +15,9 @@ const answer = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 const NO_DATABASE = { error: "this deployment has no database for practice games" };
 
-/** The Function's two handlers, for a game's check and the column of `practice_games` that counts a record's moves
- *  (`edges` for Enclosure's, `moves` for Blueprints'). */
+/** The Function's two handlers, by the names that Pages calls (`export const { onRequestPost, onRequestDelete } =`),
+ *  for a game's check and the column of `practice_games` that counts a record's moves (`edges` for Enclosure's,
+ *  `moves` for Blueprints'). */
 export function practiceGamesFunction(rules: StoredRules, movesColumn: "edges" | "moves") {
   /** Keeps a game: 201 when kept now. 200 when not: a game with its id is kept already, or the games of its number
    *  were deleted. The check of the deleted numbers is in the same statement as the insert, so that a delete cannot
@@ -53,5 +54,5 @@ export function practiceGamesFunction(rules: StoredRules, movesColumn: "edges" |
     return answer(200, { deleted: meta.changes });
   }
 
-  return { post, remove };
+  return { onRequestPost: post, onRequestDelete: remove };
 }

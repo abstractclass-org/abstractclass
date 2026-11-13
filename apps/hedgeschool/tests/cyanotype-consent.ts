@@ -5,7 +5,7 @@
 import type { BrowserContext } from "./page-log.ts";
 
 /** The key under which Cyanotype keeps the visitor's choice (src/lib/analytics.svelte.ts). */
-export const CONSENT_KEY = "cyanotype:consent:1";
+const CONSENT_KEY = "cyanotype:consent:1";
 
 /** Keeps the Decline in each page of `context` before the page's code runs, unless the page has a choice already. */
 export const declineGames = (context: BrowserContext) => context.addInitScript(key => {

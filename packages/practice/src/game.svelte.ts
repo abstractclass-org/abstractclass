@@ -1,8 +1,10 @@
 // A practice game's flow (Hedge School's design 24): the player against the practice bot, which each site's game
 // extends (Hedge School's src/lib/practice/game.svelte.ts, Cyanotype's). The flow is the same in each game: the bot
 // plays its turn, timed, then the player gets the rules of their move, until the rules end the game. The player can
-// take back their last turn, resign or abort. Each site gives its game's own parts: what the game keeps, its start,
-// the rules of a position, how it reads a move, and what its end does (Hedge School keeps the game in Your games).
+// take back their last turn, resign or abort. The flow keeps the stored game's fields too (Hedge School's design 25):
+// the game's id, where the bot runs, each move's time and each takeback. Each site gives its game's own parts: what the
+// game keeps, its start, the rules of a position, how it reads a move, and what its end does (each site keeps the game
+// in Your games).
 import type { Player } from "@abstractclass/analysis/game.ts";
 import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
@@ -47,11 +49,11 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   /** Gives the bot the game's settings and start (setUpBot), plays the moves kept into it, and sets the positions and
    *  the moves played. */
   protected abstract prepare(): Promise<void>;
-  /** A move played, by either side, with its time in milliseconds (null: not known): its position from the rules, kept
-   *  with the game. Never once the game has ended. */
-  protected abstract add(move: string, ms: number | null): Promise<void>;
+  /** A move played, by either side: its position from the rules, kept with the game (its time is in it already).
+   *  Never once the game has ended. */
+  protected abstract add(move: string): Promise<void>;
   /** The site's part of a takeback: the moves taken back, last first, are already out of the kept game. */
-  protected abstract undid(undone: string[]): void;
+  protected undid(_undone: string[]): void {}
   /** The rules of the player's move on the latest position. */
   protected abstract humanRules(): Promise<R>;
   /** The site's part of the game's end, by the rules or by Resign. */
@@ -69,30 +71,25 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     for (const line of commands) await this.bot.command(line);
   }
 
-  /** For prepare(), on a site that stores its games (Hedge School's design 25): a game kept before the stored game's
-   *  fields, or resumed, gets its own id, where the bot runs now, and a time for each move (unknown for the moves
-   *  before this visit's). */
-  protected noteStored() {
+  /** The stored game's fields (Hedge School's design 25), before prepare(): a game kept before them, or resumed, gets
+   *  its own id, where the bot runs now, and a time for each move (unknown for the moves before this visit's). */
+  private noteStored() {
     const k: KeptPractice = this.kept;
     k.id ??= crypto.randomUUID();
     k.form = this.mode;
     k.ms = Array.from(k.moves, (_, i) => k.ms?.[i] ?? null);
   }
 
-  /** For undid(), on a site that stores its games: the takeback, and the times of the moves that it took out. */
-  protected noteTakeback(undone: string[]) {
+  /** For the stored game, before undid(): the takeback, and the times of the moves that it took out. */
+  private noteTakeback(undone: string[]) {
     this.kept.ms?.splice(-undone.length);
     this.kept.undone = [...(this.kept.undone ?? []), { at: this.kept.moves.length + undone.length, undone }];
-  }
-
-  /** For add(), on a site that stores its games: the move's time. */
-  protected noteTime(ms: number | null) {
-    (this.kept.ms ??= []).push(ms);
   }
 
   /** Starts the game: its start and the moves kept (a game from an earlier visit, or a start brought), then the turn. */
   async start() {
     try {
+      this.noteStored();
       await this.prepare();
       this.keep(this.kept);
       await this.next();
@@ -133,7 +130,9 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     this.status = "playing"; // nothing else moves until the bot has undone the moves
     try {
       for (let k = 0; k < n; k++) await this.bot.command("undo");
-      this.undid(this.kept.moves.splice(-n).reverse());
+      const undone = this.kept.moves.splice(-n).reverse();
+      this.noteTakeback(undone);
+      this.undid(undone);
       this.kept.takebacks = (this.kept.takebacks ?? 0) + 1;
       this.positions = this.positions.slice(0, -n);
       this.played = this.played.slice(0, -n);
@@ -198,10 +197,12 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     this.humanSince = performance.now();
   }
 
-  /** A move played, kept by the site's game (add): never once the game has ended, as the bot's worker has. */
+  /** A move played, with its time for the stored game, kept by the site's game (add): never once the game has ended,
+   *  as the bot's worker has. */
   private async addMove(move: string, ms: number | null) {
     if (this.closed) throw new Error("the game has ended");
-    await this.add(move, ms);
+    (this.kept.ms ??= []).push(ms);
+    await this.add(move);
   }
 
   /** The game stops on an error. Not once it has ended: then the bot's worker ended on purpose, and its search with it. */

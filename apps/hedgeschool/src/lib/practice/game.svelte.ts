@@ -38,7 +38,6 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
   /** Gives the bot the game's settings, its komi and its start (a set-up start, interface 0.1.1), plays the game's
    *  moves into it (a game kept from an earlier visit, or a record brought), and notes a new build. */
   protected async prepare() {
-    this.noteStored();
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);
     const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
@@ -47,9 +46,6 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
     this.positions = positions;
     this.played = this.kept.moves.map((m, i) => moveOf(positions[i], m, described[i + 1]));
   }
-
-  /** A takeback, for the stored game: its record, and the times of the edges taken back out. */
-  protected undid(undone: string[]) { this.noteTakeback(undone); }
 
   /** The game's result: the bot's win when the player resigned, the scores' once the rules have ended it, else `*`. */
   result(): string {
@@ -80,11 +76,10 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
   /** An aborted game goes into Your games as unfinished (`*`) when it has moves, so that it can still be reviewed. */
   protected async aborted() { return this.played.length ? this.save() : null; }
 
-  /** A move played, by either side, with its time: its position from the rules, kept with the game. */
-  protected async add(name: string, ms: number | null) {
+  /** A move played, by either side: its position from the rules, kept with the game. */
+  protected async add(name: string) {
     const from = this.kept.moves.length;
     this.kept.moves.push(name);
-    this.noteTime(ms);
     keptGame.keep(this.kept);
     const [, after] = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves), from)).reply.positions;
     this.played = [...this.played, moveOf(this.positions[from], name, after)];

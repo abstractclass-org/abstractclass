@@ -11,10 +11,12 @@ const N = "-?\\d{1,3}";
 /** A move's name: a placement `K@q,r`, or an edit `I:q,r>J:q,r` (game/notation.ts). */
 const MOVE = `[1-3](?:@${N},${N}|:${N},${N}>[1-3]:${N},${N})`;
 
+/** A move of a record, with its capture mark, or a pass. A turn's number (`2.`) is not a move. */
+const RECORD_MOVE = new RegExp(`(?<![\\w@:>,+-])${MOVE}(?:x(?:\\+\\d+)?)?(?![\\w@:>,])|\\bpass\\b`, "g");
+
 /** The moves of a record's main line, passes included, each with its capture mark: without its tags, comments and
- *  variations. A turn's number (`2.`) is not a move. */
-export const recordBlueprintsMoves = (record: string): number =>
-  recordMoves(record, new RegExp(`(?<![\\w@:>,+-])${MOVE}(?:x(?:\\+\\d+)?)?(?![\\w@:>,])|\\bpass\\b`, "g"));
+ *  variations. */
+export const recordBlueprintsMoves = (record: string): number => recordMoves(record, RECORD_MOVE);
 
 /** Blueprints' part of the check: a move's name, and a record's moves. */
 export const BLUEPRINTS: StoredRules = { move: new RegExp(`^${MOVE}$`), recordMoves: recordBlueprintsMoves };

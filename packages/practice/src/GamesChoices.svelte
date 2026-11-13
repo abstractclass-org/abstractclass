@@ -1,7 +1,8 @@
 <script lang="ts">
   // The privacy page's "Your choices" (Hedge School's design 25), in a build that asks for consent: the switch of the
-  // consent's one purpose, the games' link, and in a build that stores practice games, "Delete my practice games" for
-  // the games sent with this browser's random ID. The delete asks first (ConfirmDialog): the player cannot undo it.
+  // consent's one purpose, the games' link, and while this browser has a random ID, "Delete my practice games" for the
+  // games sent with it. Only a build that stores practice games gives the analytics the games' keys, so only such a
+  // build reads a random ID (analytics.keptNumber). The delete asks first (ConfirmDialog): the player cannot undo it.
   // The switch shows in the browser only: the prerendered page cannot know the choice. `bot` is the practice bot's name,
   // and `ondelete` the site's delete (send.ts, deletePractice), which answers the count of games deleted.
   import { onMount } from "svelte";
@@ -11,8 +12,8 @@
   import { SWITCH, SWITCH_THUMB } from "@abstractclass/site/settings.ts";
   import ConfirmDialog, { type Answer } from "@abstractclass/site/ConfirmDialog.svelte";
 
-  let { analytics, stores, site, bot, ondelete }:
-    { analytics: Analytics; stores: boolean; site: string; bot: string; ondelete: (browser: string) => Promise<number> } = $props();
+  let { analytics, site, bot, ondelete }:
+    { analytics: Analytics; site: string; bot: string; ondelete: (browser: string) => Promise<number> } = $props();
 
   let mounted = $state(false), number = $state<string | null>(null), deleting = $state(false), deleted = $state("");
   onMount(() => { mounted = true; number = analytics.keptNumber(); });
@@ -51,7 +52,7 @@
         </label>
       {/each}
     </div>
-    {#if stores && number}
+    {#if number}
       <p>Your games against {bot} went with this browser's random ID.
         <button type="button" class="ml-1" disabled={deleting}
                 onclick={() => (asking = true)}>Delete my practice games</button></p>
@@ -60,7 +61,7 @@
   {/if}
 {/if}
 
-{#if stores && number}
+{#if number}
   <ConfirmDialog open={asking} title="Delete your practice games?" action="Delete" onanswer={answerDelete}>
     <div class="grid gap-2">
       <p>{site} will delete these items:</p>

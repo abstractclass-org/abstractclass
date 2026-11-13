@@ -4,8 +4,7 @@
 // but types and each other, so that the server's bundle takes them alone.
 import { recordMoves, storedProblem as gameProblem, type StoredRules } from "@abstractclass/practice/stored.ts";
 
-export { MAX_KOMI, RANDOM_ID, STORED_MAX_BYTES, storedDay, type StoredOutcome, type StoredPractice, type StoredTakeback }
-  from "@abstractclass/practice/stored.ts";
+export { MAX_KOMI, type StoredPractice } from "@abstractclass/practice/stored.ts";
 
 /** The edges of a record's main line, passes included: its moves, without its tags, comments and variations. */
 export const recordEdges = (record: string): number =>

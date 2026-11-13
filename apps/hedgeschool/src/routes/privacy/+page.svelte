@@ -72,7 +72,7 @@
     cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Only PostHog's code of
     the day links one count to another.</p>
 
-  <GamesChoices {analytics} stores={STORES_PRACTICE_GAMES} site={SITE_NAME} bot="HedgeFund" ondelete={deletePractice} />
+  <GamesChoices {analytics} site={SITE_NAME} bot="HedgeFund" ondelete={deletePractice} />
 
   <h2>Tips through Ko-fi</h2>
   <p>Nothing goes to Ko-fi until you open Support Us. Its tip panel is Ko-fi's own page, so Ko-fi then receives your

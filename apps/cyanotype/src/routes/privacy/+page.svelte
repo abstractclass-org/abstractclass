@@ -83,7 +83,7 @@
     cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Only PostHog's code of
     the day links one count to another.</p>
 
-  <GamesChoices {analytics} stores={STORES_PRACTICE_GAMES} site={SITE_NAME} bot={ENGINE_NAME} ondelete={deletePractice} />
+  <GamesChoices {analytics} site={SITE_NAME} bot={ENGINE_NAME} ondelete={deletePractice} />
 </main>
 
 <SiteFooter />
