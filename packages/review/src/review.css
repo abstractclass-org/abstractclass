@@ -4,8 +4,9 @@
    tokens, the one-column variant, the gleam of work in progress and the step bar's dock. */
 @source ".";
 
-/* The view's colour tokens, beside the shared ones (@abstractclass/site/site.css). An element with data-theme="light"
-   takes the light theme's tokens in either theme, as site.css's do. */
+/* The view's colour tokens, beside the shared ones (@abstractclass/site/site.css). Only the page's root has a
+   data-theme (theme.svelte.ts). The light block keeps its opening because themeTokens.ts finds each light block
+   by it, as site.css says. */
 :root, [data-theme="light"] {
   --last: #e7b416;
   --score: #2a7d6f; /* the Advantage chart's score line: teal, apart from the lavender accent and the magenta area */

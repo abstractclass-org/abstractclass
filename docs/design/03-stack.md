@@ -20,8 +20,8 @@ new builds arrive often.
   and in the shared packages' `site.css` and `review.css` are Tailwind's only colours (`bg-panel`, `text-muted`,
   `border-line`), and dark mode follows the tokens. The page's `data-theme` (`light` or `dark`) chooses the tokens,
   and Tailwind's `dark:` follows it: the theme menu sets it (`packages/site/src/theme.svelte.ts`), and with no choice
-  it follows the system's theme. An element with `data-theme="light"` takes the light tokens in either theme, and
-  `dark:` stays off inside it: the image of a line draws its board so (design 07, item 17). Each theme has its own
+  it follows the system's theme. Only the page's root has a `data-theme`: the image of a line takes the page's theme
+  too (design 07, item 17). Each theme has its own
   value of a colour, tuned for its backgrounds, as Lichess and chess.com tune theirs: in the light theme a colour on
   a light surface is darker, in the same hue. The accent is the school's lavender (design 12), and text on it takes
   `--on-accent`: white in the light theme, near-black in the dark, where the accent is pale. A move label has two
