@@ -8,9 +8,9 @@
   // a review that it kept (`#from=`, design 33, "Partner sites", item 7): the page waits for the review file, keeps it,
   // and opens its review (PartnerArrival.svelte). A record there, which only the import page takes, gets the Review
   // tab, as on Hedge School: the import page keeps the game, then opens its review. The board works from the engine's
-  // rules at once (describe_game), and the record's capture marks are checked
-  // against what each move did. Then the sweep, the label stage, the Greats' confirmations, and deeper searches where
-  // the player looks (Hedge School's design 05). The engine's settings apply as they change: the workers, the GPU and
+  // rules at once (describe_game), and the record's capture marks are checked against what each move did. Then the
+  // sweep, the label stage, the Greats' confirmations, and deeper searches where the player looks (Hedge School's
+  // design 05). The engine's settings apply as they change: the workers, the GPU and
   // the network. The GPU worker joins the pool once the network is loaded (Hedge School's design 15). A game that keeps
   // its own network and depth (a shared review's, Hedge School's design 09) reviews with them. The engine's results are
   // kept by position (@abstractclass/analysis/cache.ts), so a review opened again shows them at once. Once the review
@@ -208,7 +208,7 @@
       await replaceState("/review", {});
       startAnalytics();
       if (link !== null) packed = link;
-      else fromPartner = { from: from!, save: hash.get("save") };
+      else if (from !== null) fromPartner = { from, save: hash.get("save") };
       return;
     }
     // The game to review: the one named in the address. Without one, the Review tab.
@@ -358,7 +358,7 @@
 {#if packed !== null}
   <SharedArrival {packed} class={MESSAGE} />
 {:else if fromPartner}
-  <main class={MESSAGE}><PartnerArrival from={fromPartner.from} save={fromPartner.save} /></main>
+  <main class="{MESSAGE} grid gap-4"><PartnerArrival {...fromPartner} /></main>
 {:else if elsewhere}
   <!-- Text that a player follows: strict Simplified Technical English. -->
   <div class={MESSAGE}>

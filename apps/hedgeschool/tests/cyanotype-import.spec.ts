@@ -92,9 +92,8 @@ test.describe("with the engine's files", () => {
   test("another site's link: no choice, the game is kept and reviewed, and a save page off a partner's host is not kept", async ({ page }) => {
     // Hedge School's partner is not Cyanotype's: Cyanotype's list is empty
     await page.goto(siteLink({ record: testRecord(), save: "https://www.enclosuregame.com/cyanotype/save" }));
-    // The game leaves the address. The page can open the review (`#game=`) before a poll sees the empty `#`.
-    await expect.poll(() => new URL(page.url()).hash).not.toContain("record=");
-    // No click: the import page keeps the game and opens its review by its id
+    // No click: the import page keeps the game and opens its review by its id, so the record leaves the address. (The
+    // page can open the review before a poll sees its empty `#`.)
     await page.waitForURL(url => url.pathname === "/review" && url.hash.startsWith(`#game=review-${MOVES}-`), { timeout: 120_000 });
     await expect.poll(() => local(page, LAST_REVIEW_KEY).catch(() => null), { timeout: 60_000 })
       .toMatch(new RegExp(`^review-${MOVES}-`));

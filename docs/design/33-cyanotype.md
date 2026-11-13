@@ -1779,8 +1779,10 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   review opens with no choice, and the game keeps the save page. "Save to the local test site" then sends the review
   file, and the save page answers `cyanotype:saved`. In a new browser context with no game, the partner's page then
   opens `/review#from=…` with `window.open` and sends that file back: the review opens with its results, with the
-  engine on and no search. A partner's page that answers `cyanotype:failed`, or that does not answer in a minute, gets
-  its message. Playwright's routes serve the partner's pages on `http://localhost`, so no request leaves the browser.
+  engine on and no search. In another context with no game, a review by an earlier engine, sent to
+  `/import#from=…`, opens as its review snapshot. A partner's page that answers `cyanotype:failed`, or that does not
+  answer in a minute, gets its message. Playwright's routes serve the partner's pages on `http://localhost`, so no
+  request leaves the browser.
   The layout test's build has the switch off, so the check is a script that runs by hand, on the CPU, with the layout
   test's launch options. Run it in `apps/hedgeschool`:
   `CYANOTYPE_BASE_URL=http://127.0.0.1:4174 node scripts/cyanotype-partner-check.mjs`. It took 68 seconds on the

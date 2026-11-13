@@ -6,8 +6,10 @@
 // (tests/cyanotype-review.ts, storeReview), with the engine off. Then the partner sends that file back (item 7), in a
 // new browser context with no game: its page opens /review#from=…&save=… with window.open, waits for cyanotype:ready,
 // and sends the file. The review opens with the file's results, with the engine on at Lite on the CPU, and asks the
-// engine for no search. The game keeps the save page again. A partner's page that answers cyanotype:failed, or that
-// does not answer in a minute, gets its message. Playwright's routes serve the partner's pages on http://localhost:
+// engine for no search. The game keeps the save page again. A review by an earlier engine, sent to the import page
+// (/import#from=…), which takes it too, opens as its review snapshot (tests/review-file.ts, earlierReview), in another
+// context with no game. A partner's page that answers cyanotype:failed, or that does not answer in a minute, gets its
+// message. Playwright's routes serve the partner's pages on http://localhost:
 // nothing listens there, and no request goes to an outside site. Run it in apps/hedgeschool, on a build of Cyanotype
 // made with VITE_PARTNER_TEST=1:
 //
@@ -17,17 +19,19 @@
 import { chromium } from "@playwright/test";
 import { checkLaunch } from "./edge.mjs";
 import config from "../playwright.config.ts";
-import { ENGINE_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, LITE, MOVES, countEngineWork, keptGame, storeReview,
+import { LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
+import { CYANOTYPE, LITE, MOVES, STORED, engineWork, keepSettings, keptGame, storeReview,
          testRecord } from "../tests/cyanotype-review.ts";
+import { EARLIER_REVIEWED, earlierReview } from "../tests/review-file.ts";
 
 if (!CYANOTYPE) throw new Error("CYANOTYPE_BASE_URL gives no Cyanotype preview");
 const SITE = new URL(CYANOTYPE).origin;
 const PARTNER = "http://localhost"; // the local test site: Playwright's routes answer it
 const SAVE = `${PARTNER}/partner/save?game=1`;
 const LINK = new URL(`/import#${new URLSearchParams({ record: testRecord(), save: SAVE })}`, SITE).href;
-/** The review's address that a partner's page opens to send back a review that it kept. */
-const OPEN = new URL(`/review#${new URLSearchParams({ from: PARTNER, save: SAVE })}`, SITE).href;
+/** The address that a partner's page opens to send back a review that it kept: the review's (`path` /review), or the
+ *  import page's, which takes it too. */
+const keptLink = path => new URL(`${path}#${new URLSearchParams({ from: PARTNER, save: SAVE })}`, SITE).href;
 
 /** The partner's game page: its button opens the game's review on Cyanotype. */
 const gamePage = `<!doctype html><title>A partner's game</title><a href="${LINK.replaceAll("&", "&amp;")}">Review on Cyanotype</a>`;
@@ -42,13 +46,13 @@ const savePage = `<!doctype html><title>Save the review</title><script>
   });
   window.opener.postMessage({ type: "cyanotype:ready", protocol: 1 }, ${JSON.stringify(SITE)});
 </script>`;
-/** The partner's page of a kept review (window.kept, the file that the save page got): its button opens the review on
- *  Cyanotype with window.open. When the review posts cyanotype:ready, the page answers as its address says
+/** The partner's page of a kept review (window.kept, a review file and its name): its button opens Cyanotype's address
+ *  `open` (keptLink) with window.open. When Cyanotype posts cyanotype:ready, the page answers as its address says
  *  (`answer`): the file in cyanotype:review, cyanotype:failed, or nothing. */
 const openPage = `<!doctype html><title>A partner's kept review</title><button>Open in Cyanotype</button><script>
-  const answer = new URLSearchParams(location.search).get("answer");
+  const params = new URLSearchParams(location.search), answer = params.get("answer");
   document.querySelector("button").onclick = () => {
-    const win = window.open(${JSON.stringify(OPEN)}, "_blank");
+    const win = window.open(params.get("open"), "_blank");
     window.addEventListener("message", event => {
       if (event.source !== win || event.origin !== ${JSON.stringify(SITE)}) return;
       if (event.data?.type !== "cyanotype:ready") return;
@@ -113,27 +117,30 @@ try {
   check(review?.review?.format === "cyanotype-review" && /\.json$/.test(review?.name ?? ""),
         `the message holds a cyanotype-review file (${review?.review?.format}, ${review?.name})`);
 
-  // The kept review sent back (item 7), in a new browser context with no game: the engine on, at Lite on the CPU
-  const fresh = await newContext();
-  await fresh.addInitScript(countEngineWork);
-  const partnerPage = await fresh.newPage();
-  await partnerPage.goto(new URL("/about", SITE).href);
-  await partnerPage.evaluate(([key, settings]) => localStorage.setItem(key, JSON.stringify(settings)),
-                             [ENGINE_KEY, { on: true, ...LITE }]);
-  /** Opens the partner's page of a kept review, which answers as `answer` says, clicks its button, and answers the
-   *  review's tab. */
-  const openKept = async answer => {
-    await partnerPage.goto(`${PARTNER}/partner/open?answer=${answer}`);
-    await partnerPage.evaluate(kept => { window.kept = kept; }, { name: review?.name, review: review?.review });
-    const [tab] = await Promise.all([fresh.waitForEvent("page"),
-                                     partnerPage.getByRole("button", { name: "Open in Cyanotype" }).click()]);
+  // The kept review sent back (item 7)
+  /** A new browser context with no game, and its partner's page. The engine is on, at Lite on the CPU, and each tab of
+   *  the context counts the engine's work (the review opens in a new tab). */
+  const partnerContext = async () => {
+    const context = await newContext(), page = await context.newPage();
+    await keepSettings(page, { on: true, ...LITE }, {}, context);
+    return { context, page };
+  };
+  const sent = { name: review?.name, review: review?.review }; // the file that the save page got
+  /** Opens the partner's page of a kept review in `where`, which opens Cyanotype's `path` and answers as `answer` says,
+   *  with `kept`. Clicks its button, and returns Cyanotype's tab. */
+  const openKept = async (where, answer, { kept = sent, path = "/review" } = {}) => {
+    await where.page.goto(`${PARTNER}/partner/open?${new URLSearchParams({ answer, open: keptLink(path) })}`);
+    await where.page.evaluate(k => { window.kept = k; }, kept);
+    const [tab] = await Promise.all([where.context.waitForEvent("page"),
+                                     where.page.getByRole("button", { name: "Open in Cyanotype" }).click()]);
     return tab;
   };
-  const tab = await openKept("review");
+  const fresh = await partnerContext();
+  const tab = await openKept(fresh, "review");
   await tab.waitForURL(url => url.pathname === "/review" && url.hash.startsWith("#game="), { timeout: 120_000 });
   check(true, "the partner's page opens the kept review");
   await tab.getByText(/^Review done/).waitFor({ timeout: 120_000 });
-  const work = await tab.evaluate(() => window.engineWork);
+  const work = await engineWork(tab);
   check(work?.messages > 0 && work?.searches === 0,
         `the review takes the file's results, and asks the engine for no search (${JSON.stringify(work)})`);
   const back = (await keptGame(tab, new URLSearchParams(new URL(tab.url()).hash.slice(1)).get("game"))).partner;
@@ -141,20 +148,33 @@ try {
         `the game keeps the partner's save page again (${JSON.stringify(back)})`);
   await tab.close();
 
+  // A review by an earlier engine, sent to the import page, in another context with no game: it opens as its review
+  // snapshot, from the file's results (abscls-8tl1.35)
+  const earlier = earlierReview(STORED), kept = { name: earlier.name, review: JSON.parse(earlier.buffer.toString()) };
+  const old = await openKept(await partnerContext(), "review", { kept, path: "/import" });
+  await old.waitForURL(url => url.pathname === "/review" && url.hash.startsWith("#game="), { timeout: 120_000 });
+  const snapshot = await old.getByText(EARLIER_REVIEWED).waitFor({ timeout: 60_000 }).then(() => true, () => false);
+  const again = await old.getByRole("button", { name: "Review again" }).isVisible();
+  const oldWork = await engineWork(old);
+  check(snapshot && again && oldWork?.messages > 0 && oldWork?.searches === 0,
+        `the import page opens a review by an earlier engine as its snapshot, with Review again and no search (${
+          JSON.stringify({ snapshot, again, work: oldWork })})`);
+  await old.close();
+
   // A partner's page that answers cyanotype:failed, then one that does not answer: each gets its message
   for (const [answer, message, timeout] of [["failed", "the local test site: the review is gone.", 30_000],
                                             ["none", "the local test site did not send the review.", 90_000]]) {
-    const failed = await openKept(answer);
+    const opened = await openKept(fresh, answer);
     if (answer === "none") {
-      const waiting = await failed.getByText("Waiting for the local test site to send the review…")
+      const waiting = await opened.getByText("Waiting for the local test site to send the review…")
         .waitFor({ timeout: 30_000 }).then(() => true, () => false);
       check(waiting, "while the review waits, it says \"Waiting for the local test site to send the review…\"");
     }
-    const alert = failed.getByRole("alert");
+    const alert = opened.getByRole("alert");
     const said = await alert.waitFor({ timeout }).then(() => alert.textContent(), () => null);
     check(said === `Cyanotype could not load the review: ${message}`,
           `a partner's page that answers ${answer} gets its message ("${said}")`);
-    await failed.close();
+    await opened.close();
   }
   check(outside.length === 0, `no request went to another site (${outside.join(", ") || "none"})`);
 } finally {

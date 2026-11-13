@@ -11831,8 +11831,9 @@ site is not a partner.
   `apps/hedgeschool/scripts/cyanotype-partner-check.mjs` adds item 7 on the partners' test build: in a new browser
   context with no game, the partner's page opens `/review#from=…&save=…` with `window.open`, and sends the file that
   the save page got. The review opens with the engine on at Lite on the CPU, and asks the engine for no search. A
-  `cyanotype:failed` answer and a page that does not answer get their messages. `countEngineWork` in
-  `tests/cyanotype-review.ts` is exported for the script.
+  `cyanotype:failed` answer and a page that does not answer get their messages. The script uses `keepSettings` of
+  `tests/cyanotype-review.ts`, which can add the engine's count to a whole browser context: the review opens in a
+  new tab.
 - **Measured:** the check script, on a Cyanotype build with `VITE_PARTNER_TEST=1`, passed each of its 13 checks in
   68 seconds. The kept review opened with the file's results: the page sent 19 messages to the engine's workers and
   no search. The game kept the test site's save page again. A `cyanotype:failed` answer gave "Cyanotype could not
@@ -11841,5 +11842,18 @@ site is not a partner.
   the review." No request went to another site. The suite (`scripts/site-suite`: `npm ci`, `npm run check:all` and
   the layout test in Chromium, CPU only) passed `check:all` and 280 of 281 cases, with none skipped. The new case
   passed. The case that failed is the link's case of abscls-8tl1.75: the import page opened the review
-  (`#game=…`) before the test's poll saw the empty `#`. Its own commit fixes the test: it waits until the address no
-  longer holds the record. Then `tests/cyanotype-import.spec.ts` passed 39 of 39 runs (each case three times).
+  (`#game=…`) before the test's poll saw the empty `#`. Its own commit fixed the test: it waited until the address no
+  longer held the record. Then `tests/cyanotype-import.spec.ts` passed 39 of 39 runs (each case three times). The
+  code review removed that wait: the case's next step waits for the review's address (`#game=…`), which shows that the
+  record left the address.
+- **The code review:** the check script also sends a review by an earlier engine to `/import#from=…`, in another
+  context with no game. It opens as its review snapshot, with Review again, and the page asks the engine for no
+  search. The comment in `static/_headers` names both ties: the save page answers the review that opened it, and the
+  review asks the partner's page that opened it. A policy of same-origin cuts both, and same-origin-allow-popups on
+  the review cuts the second. Measured on the code review's tree: the check script passed each of its 14 checks in 68
+  seconds, on a build with `VITE_PARTNER_TEST=1`, on the CPU. On the same build, `/review#tool=…` showed the Review
+  tab, with the record still in the address and no arrival step, as on dev. The suite passed `npm ci` and
+  `check:all`, and 280 of 281 cases of the layout test, with none skipped. All 13 cases of
+  `tests/cyanotype-import.spec.ts` passed. The one failure was Hedge School's `book-review.spec.ts:901` (by edge,
+  variations as text): its page could not load a script, with `net::ERR_ADDRESS_IN_USE` from the browser, so the
+  page never started. Its six cases then passed twice each (12 of 12) on a new preview.

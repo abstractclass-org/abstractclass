@@ -8,7 +8,7 @@
 // workflow builds Cyanotype with the engine's files (design 33, "The engine's files"). A test skips, with a message,
 // when the preview has none, and fails in CI.
 import { readFileSync } from "node:fs";
-import { expect, type Page } from "@playwright/test";
+import { expect, type BrowserContext, type Page } from "@playwright/test";
 import { BOOKMARK_VERSION } from "../../../packages/import/src/bookmarklet.ts";
 import { modelOf, moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
 import { analysisKey, readAnalysisKey, readable } from "../../../packages/analysis/src/cache.ts";
@@ -68,9 +68,11 @@ export async function noReview(page: Page): Promise<string> {
 }
 
 /** Keeps the engine's settings `engine` and the display settings `display` in the page's local storage, on /about.
- *  Each page that opens next in `page` counts what it asks of the engine's workers (engineWork). */
-async function keepSettings(page: Page, engine: object, display: object) {
-  await page.addInitScript(countEngineWork);
+ *  Each page that opens next in `counted` counts what it asks of the engine's workers (engineWork): `page`, or its
+ *  browser context, for a page that opens in a new tab. */
+export async function keepSettings(page: Page, engine: object, display: object,
+                                   counted: Page | BrowserContext = page) {
+  await counted.addInitScript(countEngineWork);
   await page.goto(new URL("/about", CYANOTYPE).href);
   await page.evaluate(([e, d, settings, shown]) => {
     localStorage.setItem(e, JSON.stringify(settings));
@@ -241,10 +243,9 @@ type EngineWork = { messages: number; searches: number };
 /** What the page asked of the engine's workers since it opened, when its settings came from keepSettings. */
 export const engineWork = (page: Page) =>
   page.evaluate(() => (window as unknown as { engineWork?: EngineWork }).engineWork);
-/** Counts what the page asks of the engine's workers (keepSettings adds it, and a script can add it to a context's
- *  pages). A search is a message `search`, or a `call` whose request is an analysis (packages/engine/src/client.ts,
- *  analyse). */
-export function countEngineWork() {
+/** Counts what the page asks of the engine's workers (keepSettings adds it). A search is a message `search`, or a
+ *  `call` whose request is an analysis (packages/engine/src/client.ts, analyse). */
+function countEngineWork() {
   const work: EngineWork = { messages: 0, searches: 0 };
   (window as unknown as { engineWork: EngineWork }).engineWork = work;
   const post = Worker.prototype.postMessage as (this: Worker, ...args: unknown[]) => void;

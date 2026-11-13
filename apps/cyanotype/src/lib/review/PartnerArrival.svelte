@@ -39,14 +39,13 @@
   });
 </script>
 
-<div class="grid gap-4">
-  {#if phase.at === "reading"}
-    <p class="text-muted">Reading the link…</p>
-  {:else if phase.at === "receiving"}
-    <p class="text-muted">Waiting for {phase.sender} to send the review…</p>
-  {:else}
-    <p class="text-blunder" role="alert">{phase.message}</p>
-    <p>You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>, or bring games from
-      strategyjam.org with the <a href="/tools">tools</a>.</p>
-  {/if}
-</div>
+<!-- The lines go in the page's message box (the review's or the import page's), which is a grid. -->
+{#if phase.at === "reading"}
+  <p class="text-muted">Reading the link…</p>
+{:else if phase.at === "receiving"}
+  <p class="text-muted">Waiting for {phase.sender} to send the review…</p>
+{:else}
+  <p class="text-blunder" role="alert">{phase.message}</p>
+  <p>You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>, or bring games from
+    strategyjam.org with the <a href="/tools">tools</a>.</p>
+{/if}

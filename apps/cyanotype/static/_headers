@@ -1,8 +1,10 @@
 # Cloudflare Pages' response headers, as Hedge School's (its static/_headers). Pages reads this file and does not serve
 # it.
-# No page sends a Cross-Origin-Opener-Policy (design 33, "Partner sites", item 7, as Hedge School's design 18). A
-# partner's page opens /review#from=… with window.open, and sends the review that it kept by a window message, when
-# the review asks for it. A policy of same-origin cuts the tie between the two pages: the review then cannot ask.
+# No page sends a Cross-Origin-Opener-Policy (design 33, "Partner sites", items 6 and 7, as Hedge School's design
+# 18). Each exchange with a partner goes by window messages between two pages that window.open ties. "Save to …"
+# opens the partner's save page, which answers its opener. A partner's page opens /review#from=…, and the review asks
+# its opener for the review that the partner kept. A policy of same-origin cuts both ties: the messages then reach no
+# one. On a page that a partner's page opens, same-origin-allow-popups cuts the tie too.
 
 # Search engines index the live address only (docs/design/23-search.md). Cloudflare's own addresses for the project
 # (cyanotype-ztp.pages.dev) and for each preview (dev.cyanotype-ztp.pages.dev, a commit's hash) answer with noindex, so
