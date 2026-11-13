@@ -9,7 +9,7 @@ import type { Tool } from "@abstractclass/import/importHash.ts";
 import type { Found } from "@abstractclass/import/pageCode.ts";
 import { userscriptHeader as header, userscriptSource as source, type ButtonPlace,
          type UserscriptSite } from "@abstractclass/import/userscript.ts";
-import { center, hexPath, TOUCHING, type Hex } from "#lib/board/hex.ts";
+import { LOGO_SMALL, svgElement } from "#lib/brand/logo.ts";
 import { SITE_NAME } from "#lib/site.ts";
 import { jamRecord } from "./strategyjam.ts";
 import { explain, findJamGame, jamShownMove } from "./strategyjamPage.ts";
@@ -46,20 +46,9 @@ const BUTTON_PLACES: Record<string, ButtonPlace> = {
   },
 };
 
-/** A five-pointed star's outline, its points `r` from its middle. */
-const star = (r: number) => "M" + Array.from({ length: 10 }, (_, k) => {
-  const a = (Math.PI / 5) * k - Math.PI / 2, d = k % 2 ? r * 0.42 : r;
-  return `${+(d * Math.cos(a)).toFixed(2)},${+(d * Math.sin(a)).toFixed(2)}`;
-}).join("L") + "Z";
-
-/** The button's picture until the site has a logo (design 33, "Consequences"): a blueprint as the game starts it, a
- *  star with a ring of six cells, in white with the star marked, for the button and for Tampermonkey's lists. Each
- *  cell has the shape and place of a hex of the board (hex.ts), ten times as large. */
-const svg = (size: number) => {
-  const cells = [[0, 0] as Hex, ...TOUCHING].map(center).map(([x, y]) => hexPath(10 * x, 10 * y, 9.2));
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-27 -27 54 54" width="${size}" height="${size}" aria-hidden="true">`
-    + `<path fill="#fff" d="${cells.join("")}"/><path fill="#0b0c0e" d="${star(5.6)}"/></svg>`;
-};
+/** The button's picture, also in Tampermonkey's lists: the logo's simple drawing (design 33, "The logo"), as Hedge
+ *  School's button shows its collie's head. */
+const svg = (size: number) => svgElement(LOGO_SMALL, size);
 
 /** Cyanotype's parts of both tools (@abstractclass/import's UserscriptSite). */
 const SITE: UserscriptSite<typeof PAGE_CODE> = {

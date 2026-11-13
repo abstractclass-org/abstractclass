@@ -659,8 +659,8 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    School's button on Enclosure's page ends the move list's legend, which Blueprints' page does not have. In a wide
    window the column at the window's right holds the player's own hand, which a button fixed in the corner would
    cover. Before the game comes, the button is fixed in the window's lower right corner, as Hedge School's is.
-4. **The button's picture:** a blueprint as the game starts it, a star with a ring of six cells, white on the button's
-   dark ground, with the star marked. The logo shows the same blueprint in a drawing of its own ("The logo").
+4. **The button's picture:** the logo's simple drawing, its blue tile on the button's dark ground ("The logo",
+   item 3), as Hedge School's button shows its collie's head.
 5. **The import page** (`/import`) offers the game that a tool sent in the review or on the Analysis board, as
    Hedge School's does (its designs 21 and 22), in the choice's frame that both sites share
    (`@abstractclass/import/ToolChoice.svelte`). It shows the players, the number of moves and the position that the
@@ -1318,8 +1318,8 @@ corner (`hex.ts`). A cell's body has the radius 0.93, so that a gap shows betwee
      not match the hex.
    - **Stripes against a star: lines against a shape.** The two marks differ in their kind, not in a detail, so they
      stay apart in grey and for a reader who does not see the colours.
-6. **The logo, the link preview picture and the strategyjam.org button keep their own drawings** ("The logo", and
-   "How a game comes in from strategyjam.org"): their five-point star, and the bricks of the picture's walls.
+6. **The logo (also on the strategyjam.org button) and the link preview picture keep their own drawings** ("The
+   logo"): their five-point star, and the bricks of the picture's walls.
 
 `apps/cyanotype/src/lib/board/Cell.svelte` draws a cell, and `cellMarks.ts` gives the two marks' shapes.
 
@@ -1415,7 +1415,11 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
    clear edge on a light page and on a dark one. Its blue sits beside the site's accent, Hedge School's lavender, in
    both themes: both are cool colours. The accent stays the lavender.
 3. **The header** shows the simple drawing at 28 pixels before the site's name, on every page, at a phone's width as at
-   full width.
+   full width. The other places of Hedge School's collie take the logo too:
+   - **The About page** shows the full print at 96 pixels, with a line on the name: a cyanotype is the print that
+     made the first blueprints, and the logo is one of the start's blueprint.
+   - **The strategyjam.org tools' button** shows the simple drawing, and Tampermonkey's lists show it as the
+     userscript's icon (`src/lib/game/tools.ts`, through `svgElement` of `logo.ts`).
 4. **The favicon** is the simple drawing, the same on light and dark tabs, with the files of Hedge School's (design 12,
    item 5):
    - `src/lib/assets/favicon.svg`, which the page names.
@@ -1567,7 +1571,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   score's scale is the engine's (`SCORE_SCALE` 12 in the port).
 - **The site's look:** the logo is the cyanotype ("The logo"). A colour of its own and the board's style are still
   to decide. The accent is Hedge School's lavender in both themes, and the logo's blue sits beside it. The userscript's
-  button shows the start's blueprint, as the logo does ("How a game comes in from strategyjam.org", item 4).
+  button shows the logo's simple drawing ("How a game comes in from strategyjam.org", item 4).
 
 ## Where it is
 
@@ -1603,7 +1607,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   against itself): the 9 turns before the game's latest move with a bad label, and that move. That review gives one
   scene. More scenes need more reviewed games, and the script takes one stored review. The board is a picture there
   (`Board.svelte`, its prop `still`): no pan, no zoom and no zoom buttons, and the page scrolls over it.
-- `apps/cyanotype/src/routes/`: the pages. The About page has the section on the early access (`#early-access`,
+- `apps/cyanotype/src/routes/`: the pages. The About page has the logo's full print ("The logo", item 3), the
+  section on the early access (`#early-access`,
   "Decision", item 11), and the section "How a review works", with the link to its page. `how-reviews-work/`: How a
   review works ("The review and the Analysis board", item 13). The Notation page describes the moves, the marks and
   the record of items 5 to 7, 9 and 10, with one game made by hand as its examples. Item 8 is the move list's

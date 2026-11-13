@@ -1,10 +1,11 @@
 // Cyanotype's logo (design 33, "The logo"): the start's blueprint, a star in its ring of six cells, printed as a
 // cyanotype: white on Prussian blue. Two drawings by size, as Hedge School's collie has (design 12). From 48 pixels up,
-// the full print: the cells in white lines and the print's border. Below that, the cells filled white with the star
-// cut out, which reads at 16 pixels (the header's 28 pixels, the favicon). The same in both themes: the tile carries
-// its own colour. Logo.svelte draws the logo in the page, and scripts/brand.mjs draws the site's files from
-// these drawings (src/lib/assets/favicon.svg, static/favicon.ico, static/apple-touch-icon.png, static/brand/card.png).
-// logo.test.ts keeps the favicon's file equal to its drawing.
+// the full print: the cells in white lines and the print's border (the About page's 96 pixels). Below that, the cells
+// filled white with the star cut out, which reads at 16 pixels (the header's 28 pixels, the favicon, the
+// strategyjam.org tools' button). The same in both themes: the tile carries its own colour. Logo.svelte draws the logo
+// in the page, svgElement on the tools' button, and scripts/brand.mjs draws the site's files from these drawings
+// (src/lib/assets/favicon.svg, static/favicon.ico, static/apple-touch-icon.png, static/brand/card.png). logo.test.ts
+// keeps the favicon's file equal to its drawing.
 import { center, hexPath, TOUCHING, type Hex } from "#lib/board/hex.ts";
 
 /** The print's Prussian blue, and the white of its lines. */
@@ -72,6 +73,13 @@ export const shapeMarkup = (shapes: readonly Shape[], indent = "") =>
 export const svgDocument = (shapes: readonly Shape[], size = 100, comment = "") =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">`
   + (comment && `\n  <!-- ${comment} -->`) + shapeMarkup(shapes, "\n  ") + "\n</svg>\n";
+
+/** A drawing as one SVG element of `size` pixels, on one line and hidden from screen readers, for a page that is not
+ *  the site's own: the strategyjam.org tools' button and Tampermonkey's lists show the simple drawing
+ *  (src/lib/game/tools.ts). */
+export const svgElement = (shapes: readonly Shape[], size: number) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">`
+  + shapeMarkup(shapes) + "</svg>";
 
 /** The favicon's file (src/lib/assets/favicon.svg): the simple drawing, the same on light and dark tabs. The page
  *  never uses it or the iOS icon, and the marks of pure calls keep both out of the page's code. */

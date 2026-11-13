@@ -1,7 +1,8 @@
 <script lang="ts">
-  // About Cyanotype (design 33): what the site does, the early access (the header's "Early Access" link leads to its
-  // section, as Hedge School's), the game, how a review works (with the link to its page, as Hedge School's) and the
-  // engine.
+  // About Cyanotype (design 33): what the site does, the logo's full print at 96 pixels with a line on it (as Hedge
+  // School's About page shows its collie), the early access (the header's "Early Access" link leads to its section, as
+  // Hedge School's), the game, how a review works (with the link to its page, as Hedge School's) and the engine.
+  import Logo from "#lib/brand/Logo.svelte";
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
@@ -23,6 +24,13 @@
     <li><strong><a href="/analysis">The Analysis board</a>:</strong> play any line, and the engine searches the position
       on the screen.</li>
   </ul>
+
+  <h2>The cyanotype</h2>
+  <div class="flex items-center gap-4">
+    <Logo size={96} label="A cyanotype of a blueprint" />
+    <p class="my-0">A cyanotype is a print in white on blue, the print that made the first blueprints. The logo is a
+      cyanotype of the blueprint that each player holds at the start: a star in its ring of six cells.</p>
+  </div>
 
   <h2 id="early-access">Early access</h2>
   <p><strong>Everything here can change:</strong> the pages and their addresses, the notation, the quality labels and how

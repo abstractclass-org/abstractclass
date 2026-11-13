@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import data from "../board/fixtures.json" with { type: "json" };
 import { holdsGame, readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
+import { LOGO_SMALL, shapeMarkup } from "#lib/brand/logo.ts";
 import { parseRecord } from "./record.ts";
 import { TOOL_NAME, bookmarkletHref, bookmarkletScript, userscriptHeader, userscriptSource } from "./tools.ts";
 
@@ -24,6 +25,16 @@ test("the userscript's header names the script, its pages, its rights and its fi
   assert.deepEqual(meta("downloadURL"), [`${ORIGIN}/cyanotype.user.js`]);
   assert.match(meta("icon")[0], /^data:image\/svg\+xml;base64,/);
   assert.ok(text.startsWith(userscriptHeader(ORIGIN, "2026.10.27.1200")));
+});
+
+test("the button and Tampermonkey's lists show the logo's simple drawing (design 33, \"The logo\")", () => {
+  const text = userscriptSource(ORIGIN, "1", "abc");
+  const icon = atob(text.match(/^\/\/ @icon +data:image\/svg\+xml;base64,(.*)$/m)![1]);
+  const drawing = shapeMarkup(LOGO_SMALL);
+  assert.match(icon, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 100 100" width="64" height="64"/);
+  assert.ok(icon.includes(drawing));
+  const button = text.slice(text.indexOf("==/UserScript=="));
+  assert.ok(button.includes(JSON.stringify(drawing).slice(1, -1)), "the button's picture is the simple drawing");
 });
 
 test("the code that the userscript and the bookmarklet carry parses, with the site's address and name in it", () => {
