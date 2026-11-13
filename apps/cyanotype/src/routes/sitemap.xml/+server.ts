@@ -1,12 +1,14 @@
-// The site's pages for search engines (design 23), at the live address. Prerendered, as every page is.
+// The site's pages for search engines (design 23), at the live address: the pages that Hedge School's sitemap lists,
+// all of which this site has, without /import, which only takes a game that a link carries, and the lab pages.
+// Prerendered, as every page is.
+import { sitemapResponse } from "@abstractclass/site/sitemap.ts";
 import { SITE_ORIGIN } from "#lib/site.ts";
 
 export const prerender = true;
 
-const PAGES = ["/", "/how-reviews-work", "/tools", "/notation", "/about", "/developers", "/privacy", "/notices"];
+const PAGES = ["/", "/review", "/analysis", "/practice", "/editor", "/how-reviews-work", "/tools", "/notation", "/about", "/developers", "/privacy",
+               "/notices"];
 
 export function GET() {
-  const urls = PAGES.map(p => `  <url><loc>${SITE_ORIGIN}${p}</loc></url>`).join("\n");
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
-                      { headers: { "Content-Type": "application/xml" } });
+  return sitemapResponse(SITE_ORIGIN, PAGES);
 }

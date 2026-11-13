@@ -1,3 +1,4 @@
-/* The import page's choice (ToolChoice.svelte) uses Tailwind's classes: a site that shows it imports this file after
-   Tailwind (`@import "@abstractclass/import/import.css"`), so that Tailwind finds them. */
+/* The import page's choice (ToolChoice.svelte) and the developers' page's buttons (developers/Buttons.svelte) use
+   Tailwind's classes: a site that shows them imports this file after Tailwind
+   (`@import "@abstractclass/import/import.css"`), so that Tailwind finds them. */
 @source ".";
