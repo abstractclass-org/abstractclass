@@ -18,10 +18,11 @@ and Practice from a set-up start are built (abscls-8tl1.40, "Practice against St
 early access is built, as Hedge School's ("Decision", item 11). The player's games, kept in this browser, are built as
 Hedge School's (abscls-8tl1.38, "The player's games"), with their review files (abscls-8tl1.34, "The review files"), the
 review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are built, with no partner
-yet: their buttons and their sections of /developers come next ("Partner sites"). The analytics are built as Hedge
-School's (abscls-8tl1.48), with PostHog in place of Google Analytics (abscls-xb0k, "Analytics"). Practice's games are
-kept as Hedge School's: in the player's games, and on the site's own server in a build that stores them, with the
-consent banner for their link (abscls-8tl1.50). The Analysis board takes a komi (abscls-8tl1.50, "The komi").
+yet, and the page for developers describes them: their buttons come next ("Partner sites"). The analytics are built
+as Hedge School's (abscls-8tl1.48), with PostHog in place of Google Analytics (abscls-xb0k, "Analytics"). Practice's
+games are kept as Hedge School's: in the player's games, and on the site's own server in a build that stores them,
+with the consent banner for their link (abscls-8tl1.50). The Analysis board takes a komi (abscls-8tl1.50, "The
+komi").
 **Hedge School's features:** Cyanotype has every feature that Hedge School has, the GPU path too. Each gap has an
 issue that holds the decision about it: to build the feature, or to leave it out. The work on the site never leaves
 out a feature without that decision. "The gaps from Hedge School" lists each gap with its issue, and a gap with no
@@ -1160,8 +1161,8 @@ partners' test runs the whole way. A new partner is then one line in a list and 
 The shared parts are in the packages (abscls-8tl1.74): Hedge School's partner code moved there, with each site's
 parts as parameters (`partnerSite`). Cyanotype takes a partner's link and saves the review back (items 1 to 6, and
 the partners' test: abscls-8tl1.75), and opens a review that a partner kept (item 7, abscls-8tl1.76). Its parts are
-in `src/lib/game/partners.ts`, with an empty list. The buttons and the partner sections of /developers are
-abscls-8tl1.77 (the order is below).
+in `src/lib/game/partners.ts`, with an empty list. The page for developers describes them (item 9,
+abscls-8tl1.51). The buttons, with their section of that page, are abscls-8tl1.77 (the order is below).
 
 ### Each part of Hedge School's design
 
@@ -1215,9 +1216,15 @@ Enclosure's alone.
    A comment in its `static/_headers` says why.
 8. **One save, which updates.** **Shared as it is:** the review file holds the whole review so far, and an opened
    file's variations merge with the browser's (`packages/analysis/src/kept.ts`).
-9. **One public description,** the /developers page. abscls-8tl1.51 builds Cyanotype's page, on a frame shared with
-   Hedge School's page, and leaves out the sections on the review saved back, a saved review opened again, the
-   buttons and the partners' test. abscls-8tl1.77 adds them on Cyanotype. Its list of changes starts on Cyanotype's
+9. **One public description,** the /developers page, linked from the footer, the site map and the notation page.
+   **Shared, and built:** its sections are in `packages/import/src/developers/`, and each site's page puts them in
+   order: the link to a review, the link to the Analysis board, the review saved back, a saved review opened again
+   with the tie between the pages, the buttons, the partners' test, and what can change. Each section takes the
+   site's name, its live address (the examples name it), its messages' name and its word for a game's moves.
+   **Blueprints' own part, and built:** the item on the games that the review refuses (a set-up start), the
+   Analysis board's refusal of a komi, and what its reader takes beyond the notation page (unknown tags, a placement
+   without its marks, the moves without turn numbers). Its partner list is empty, so the page says that it has none
+   yet. **abscls-8tl1.77 adds** the buttons, the partners' test and the list of changes, which starts on Cyanotype's
    own first day. Its promises are Hedge School's: lenient reading, additions only, a versioned handshake, the review
    file as the site's own.
 10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
@@ -1255,7 +1262,8 @@ same texts, the same events and the same tests. abscls-8tl1.74 moves the code, b
   `saveToPartner`.
 - `apps/hedgeschool/src/lib/review/Arrival.svelte`: the steps of `receiveReview` become the shared receiving
   function. The page's phases and texts stay.
-- Hedge School's `/developers` page: abscls-8tl1.51 moves its frame into a package.
+- Hedge School's `/developers` page: its sections moved to `packages/import/src/developers/` (abscls-8tl1.51). Its
+  text is the same, word for word.
 - `static/brand/hedge-school.svg` and its test stay Hedge School's.
 
 ### The order of the work
@@ -1269,12 +1277,11 @@ same texts, the same events and the same tests. abscls-8tl1.74 moves the code, b
    test). After 8tl1.71, 8tl1.74 and 8tl1.34.
 5. **abscls-8tl1.76:** Cyanotype opens a review that a partner kept (item 7). After 8tl1.75, and after
    abscls-8tl1.35 for an earlier engine's review.
-6. **abscls-8tl1.77:** the buttons' head and the partner sections of Cyanotype's /developers (items 9 and 11).
-   After 8tl1.76 and abscls-8tl1.51.
+6. **abscls-8tl1.77:** the buttons' head, and the sections of Cyanotype's /developers on the buttons and the
+   partners' test, with its list of changes (items 9 and 11). After 8tl1.76 and abscls-8tl1.51.
 
-abscls-8tl1.51 does not wait for the partner parts: the page is useful without them, since a site can send a game by
-its link alone. It builds the shared frame with all of Hedge School's sections, so that abscls-8tl1.77 only adds the
-partner sections on Cyanotype.
+abscls-8tl1.51 built the shared sections with all of Hedge School's, so that abscls-8tl1.77 only puts the buttons'
+section and the test's section on Cyanotype's page.
 
 ### The three choices
 
@@ -1467,12 +1474,9 @@ the module, the GPU module and its library, the practice bot in its three forms 
 ### By page
 
 Both sites have the home page, About, How reviews work, Notation, Notices, Privacy, Tools, Practice, the review, the
-Analysis board, the board editor, the import page, the site map, the bookmarklet, the userscript and the engine
-measure (`/lab/measure`, `packages/measure`). Cyanotype lacks these pages of Hedge School:
+Analysis board, the board editor, the import page, the page for developers, the site map, the bookmarklet, the
+userscript and the engine measure (`/lab/measure`, `packages/measure`). Cyanotype lacks these pages of Hedge School:
 
-- **The page for other sites** (`/developers`): how a partner site sends a game and takes its review back (design
-  18). abscls-8tl1.51. The page describes what Cyanotype takes today. Its sections on partner sites come with them
-  ("Partner sites", item 9, abscls-8tl1.77).
 - **Openings** (`/openings`) and the book's table lab (`/lab/book-table`): the opening book's own page (design 32), in
   the builds that serve the test book. Put off until Blueprints has an opening book: abscls-8tl1.53 (deferred).
 - **Puzzles, Learn and the engine lab** (`/puzzles`, `/learn`, `/lab/engine`): prototypes, only in the full edition
@@ -1585,9 +1589,10 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   pixels in Segoe UI and 731 in DejaVu Sans. So from 740 to 779 pixels the gaps between the links are 10 pixels in
   place of 18: the row then needs 699 pixels in DejaVu Sans, in a box of 708 at 740. From 780 the box is 748. Below
   400 pixels the header's sides and gaps narrow, as on Hedge School (`SiteFrame.svelte` of `packages/site`).
-  `src/lib/SiteFooter.svelte`: the footer, with How reviews work, Privacy and Notices. `src/app.css`: the accent
-  (Hedge School's lavender) and the board's colour tokens, after the shared style and the view's
-  (`@abstractclass/review/review.css`).
+  `src/lib/SiteFooter.svelte`: the footer, with How reviews work, For developers, Privacy and Notices.
+  `src/routes/developers/+page.svelte`: the page for developers, on the shared sections ("Partner sites", item 9).
+  `src/app.css`: the accent (Hedge School's lavender) and the board's colour tokens, after the shared style and the
+  view's (`@abstractclass/review/review.css`).
 - `apps/cyanotype/src/lib/analytics.svelte.ts`: Cyanotype's analytics ("Analytics"), on
   `packages/site/src/analytics.svelte.ts`, with the flag of internal traffic (`src/lib/internalTraffic.ts`, read as the
   site starts in `src/hooks.client.ts`), the sources and the imports' and exports' events (`src/lib/game/sources.ts`),

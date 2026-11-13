@@ -182,7 +182,8 @@ async function reviewedGame(page: Page, file: ReviewFileInput = FIXTURE) {
   await page.waitForURL(/#game=/);
 }
 
-for (const path of ["/", "/about", "/privacy", "/notices", "/notation", "/tools", "/editor", "/analysis", "/practice"]) {
+for (const path of ["/", "/about", "/privacy", "/notices", "/notation", "/developers", "/tools", "/editor", "/analysis",
+                    "/practice"]) {
   test(`layout of ${path}`, async ({ page }) => {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
@@ -233,13 +234,13 @@ for (const [site, urls] of Object.entries({
   });
 }
 
-// Cyanotype's home page, Notices page and How a review works (its design 33), when CYANOTYPE_BASE_URL gives its
-// preview. The home page: the invitation, the board's scene from a reviewed game, and the ways in. The Notices page: the
-// engine's terms and the licences, with their texts in code blocks, which scroll sideways on purpose. How a review
-// works: its table of bands and its formulas in code blocks. Each sweep checks the header's row, with the site's menu
-// closed below 740 pixels.
+// Cyanotype's home page, Notices page, How a review works and page for developers (its design 33), when
+// CYANOTYPE_BASE_URL gives its preview. The home page: the invitation, the board's scene from a reviewed game, and the
+// ways in. The Notices page: the engine's terms and the licences, with their texts in code blocks, which scroll
+// sideways on purpose. How a review works: its table of bands and its formulas in code blocks. For developers: its
+// code blocks too. Each sweep checks the header's row, with the site's menu closed below 740 pixels.
 for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
-                            ["How a review works", "/how-reviews-work"]]) {
+                            ["How a review works", "/how-reviews-work"], ["page for developers", "/developers"]]) {
   test(`layout of Cyanotype's ${name}`, async ({ page }) => {
     test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     await page.goto(new URL(path, CYANOTYPE).href);

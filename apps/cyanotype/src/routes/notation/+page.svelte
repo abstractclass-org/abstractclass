@@ -275,6 +275,8 @@
   <pre>{FROM_START}</pre>
   <p>A start at a turn's second move opens with <code>N...</code>: from the position after six moves, the record opens
     with <code>4... 3@0,6</code>. A reader refuses any other first number.</p>
+
+  <p>Another site can send a game to {SITE_NAME} with a link: see <a href="/developers">For developers</a>.</p>
 </main>
 
 <SiteFooter />

@@ -517,6 +517,9 @@ edit in the same commit), so their changes still apply.
   (design 18), with each site's messages' name, name, list and test switch as parameters (`partnerSite`). It holds
   the checks of a save page (`partnerOf`, `gamePartner`) and the window messages (`saveToPartner`,
   `receiveFromPartner`). It also receives a kept review with the site's loader (`receiveKeptReview`).
+  `developers/`: the sections of the sites' pages for developers (design 18), each with the site's name, live
+  address, messages' name and word for a game's moves as parameters, and the site's own items as snippets. Each
+  site's `src/routes/developers/+page.svelte` puts them in order.
   `apps/hedgeschool/src/lib/game/tools.ts`, `sources.ts` and `partners.ts`: Hedge School's parts.
 - `packages/engine/src/node-engine.mjs` and `fetch-engine.mjs`: the engine in Node, and the fetch of a site's engine
   files (`fetchEngine`). Each site runs it in its own folder (`npm run engine`) by its `scripts/engine.mjs`, which

@@ -4,7 +4,8 @@
   // game's.
   import { SITE_COPYRIGHT, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
   const LINKS: [string, string, boolean?][] = [["/how-reviews-work", "How reviews work"], ["/tools", "Tools", true],
-                                               ["/privacy", "Privacy"], ["/notices", "Notices"]]; // true: on a phone only
+                                               ["/developers", "For developers"], ["/privacy", "Privacy"],
+                                               ["/notices", "Notices"]]; // true: on a phone only
 </script>
 
 <footer class="box-content max-w-[1000px] mx-auto mt-8 mb-6 px-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">

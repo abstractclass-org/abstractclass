@@ -11996,3 +11996,31 @@ that stores games, to Cyanotype's own D1 database through a Pages Function, as H
   binding 503. The kept row had the outcome, the bot's form and the move count. The unit tests run the Function on the
   schema in Node's SQLite, as Hedge School's do. The browser test plays the shortest game that the bot allows (1 visit,
   the player Red, a Resign after the bot's first move) and opens its review.
+
+### Cyanotype's page for developers, on sections shared with Hedge School's (2026-11-13)
+
+abscls-8tl1.51. Cyanotype has the page `/developers`, as Hedge School has (design 33, "Partner sites", item 9).
+
+- **The shared sections:** `packages/import/src/developers/` holds each section of Hedge School's page as a
+  component: the title and the first paragraph, the link to a review, the link to the Analysis board, the review
+  saved back, a saved review opened again (with the tie between the pages), the buttons, the partners' test, and
+  what can change. Each takes the site's name, its live address, its messages' name (`hedge-school`, `cyanotype`)
+  and its word for a game's moves (edges, moves). A site's own items are snippets: the games that the review refuses,
+  how to join the partner list, the head of the buttons, where to ask for a test address, and the list of changes.
+  The sections follow the shared sections of How a review works (`packages/review/src/howReviews/`). Each site's
+  page keeps its own `<main>`, so `@abstractclass/import` takes no new dependency.
+- **Hedge School's page reads as before.** Measured on the prerendered `build/developers.html`, before and after,
+  both built as CI builds them: the text of `<main>` with its tags removed and its white space collapsed is the same,
+  and so are its six code blocks, byte for byte. The title, the description and the buttons' style in the head are
+  the same, in another order.
+- **Cyanotype's page** has the link to a review, the link to the Analysis board, the review saved back, a saved
+  review opened again, and what can change, with `cyanotype:*` messages and the address
+  `https://cyanotype.abstractclass.org`. Its own items: the review refuses a set-up start (a `Position` tag), and
+  the engine's rules check each move and its marks. The Analysis board opens no record with a komi yet. Its reader
+  takes unknown tags, a placement without its marks, and the moves without turn numbers (its notation page). The
+  partner list is empty, so the page says that the site has none yet.
+- **Left out on Cyanotype:** the buttons, the partners' test and the list of changes. They come with the buttons'
+  head (abscls-8tl1.77). Cyanotype has no Discord or other place where a site can ask to be a partner, so the page
+  gives none.
+- **The links to the page:** Cyanotype's footer (as Hedge School's), its site map and the end of its notation page.
+  The layout test sweeps both sites' pages for developers.
