@@ -4,7 +4,7 @@
   // it again from there, the buttons with the logo (its file is static/brand/cyanotype.svg, written by
   // scripts/brand.mjs), the partners' test, and what can change. The sections are shared with Hedge School's page
   // (@abstractclass/import/developers). This page gives Blueprints' parts: its games' refusals, what its reader takes,
-  // its buttons' style and its list of changes. The partner list is empty (game/partners.ts), and the site has no
+  // its buttons' class name and its list of changes. The partner list is empty (game/partners.ts), and the site has no
   // place where a developer asks to join it or asks for a test address, so the page names none. The examples name the
   // live site's address, which a partner's code names. A partner tests against a deployment of the branch
   // partner_test (design 33, "Partner sites"), whose address the page does not give.
@@ -22,16 +22,6 @@
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   const MESSAGES = "cyanotype"; // the messages' names (game/partners.ts)
-  // The partners' buttons: their style, shown on this page as it is given. White on the dark ground of the
-  // strategyjam.org tools' button, with its faint white edge (design 33, "Partner sites", item 11).
-  const BUTTON_CSS = `.cyanotype-button {
-  display: inline-flex; align-items: center; gap: 0.45em;
-  padding: 0.3em 0.9em 0.3em 0.4em; border: 2px solid #ffffff33; border-radius: 999px;
-  background: #0b0c0e; color: #ffffff; font: 600 15px/1.4 system-ui, sans-serif;
-  text-decoration: none; cursor: pointer;
-}
-.cyanotype-button:hover { border-color: #ffffff; }
-.cyanotype-button img { width: 1.5em; height: 1.5em; margin: 0; flex: none; }`;
 </script>
 
 <PageMeta title="For developers · {SITE_NAME}"
@@ -57,7 +47,7 @@
 
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
-  <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="cyanotype-button" css={BUTTON_CSS} file="cyanotype.svg"
+  <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="cyanotype-button" file="cyanotype.svg"
            head="the logo" withHead="with {SITE_NAME}'s logo">
     {#snippet headItem()}
       <li><strong>The logo:</strong> <a href="/brand/cyanotype.svg" download>cyanotype.svg</a>. It is

@@ -1,13 +1,16 @@
 <script lang="ts">
   // The section "Buttons" of the sites' pages for developers (Hedge School's design 18, item 11): a kit, not a widget.
-  // The site gives its head (`file`, served at /brand/, and `head`, its name in the text, as "the collie"), the sample
-  // style (`css`, which this page also uses, under the class `className`) and `withHead`, the words that introduce
-  // the head. `headItem` is the item on the head's file and its use. The four labels have the site's name.
+  // The site gives its head (`file`, served at /brand/, and `head`, its name in the text, as "the collie"), the class
+  // name of the sample style (`className`: the style is one for both sites, buttonStyle.ts, and this page also uses
+  // it) and `withHead`, the words that introduce the head. `headItem` is the item on the head's file and its use. The
+  // four labels have the site's name.
   import type { Snippet } from "svelte";
-  let { site, live, className, css, file, head, withHead, headItem }: {
-    site: string; live: string; className: string; css: string; file: string; head: string; withHead: string;
+  import { buttonCss } from "./buttonStyle.ts";
+  let { site, live, className, file, head, withHead, headItem }: {
+    site: string; live: string; className: string; file: string; head: string; withHead: string;
     headItem: Snippet;
   } = $props();
+  const css = $derived(buttonCss(className));
   const shown = $derived<[string, string][]>([[`Review in ${site}`, ""], ["Review", `Review in ${site}`],
                                                [`Open in ${site}`, ""], ["Open", `Open in ${site}`]]);
   const buttons = $derived(`<!-- On a finished game: a link, made as "A link to a review" shows. -->

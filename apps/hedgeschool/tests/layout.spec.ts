@@ -247,14 +247,16 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
 }
 
 // Cyanotype's buttons for partner sites (its design 33, "Partner sites", item 11): the four samples on a light and a
-// dark ground, each with the logo's file, which the site serves for partners to download.
+// dark ground, each with the logo's file, which the site serves for partners to download. Their style is Hedge
+// School's: near-black text on the pale lavender accent, which both sites share.
 test("Cyanotype's page for developers shows the buttons with the logo", async ({ page }) => {
   test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   await page.goto(new URL("/developers#buttons", CYANOTYPE).href);
   await page.waitForLoadState("networkidle");
   const samples = page.locator(".cyanotype-button");
   await expect(samples).toHaveCount(8);
-  await expect(samples.first()).toHaveCSS("background-color", "rgb(11, 12, 14)");
+  await expect(samples.first()).toHaveCSS("background-color", "rgb(184, 166, 232)");
+  await expect(samples.first()).toHaveCSS("color", "rgb(22, 24, 28)");
   const heads = await samples.locator("img").evaluateAll(images =>
     images.map(i => [(i as HTMLImageElement).complete, (i as HTMLImageElement).naturalWidth]));
   expect(heads).toEqual(Array(8).fill([true, 32]));

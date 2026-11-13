@@ -3,7 +3,7 @@
   // messages that save its review back to a partner site and open it again from there, the buttons with the collie
   // (its file is static/brand/hedge-school.svg), and what can change. The sections are shared with Cyanotype's page
   // (@abstractclass/import/developers). This page gives Hedge School's parts: its games' refusals, its Discord, its
-  // buttons' style and its list of changes. The game record's notation has its own page. The examples name the live
+  // buttons' class name and its list of changes. The game record's notation has its own page. The examples name the live
   // site's address, which a partner's code names. A partner tests against a deployment of the branch partner_test
   // (design 18), whose address the page does not give.
   import { PROSE } from "@abstractclass/site/prose.ts";
@@ -20,15 +20,6 @@
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   const MESSAGES = "hedge-school"; // the messages' names (game/partners.ts)
-  // The partners' buttons: their style, shown on this page as it is given.
-  const BUTTON_CSS = `.hedge-school-button {
-  display: inline-flex; align-items: center; gap: 0.45em;
-  padding: 0.35em 0.95em 0.35em 0.45em; border: 0; border-radius: 999px;
-  background: #b8a6e8; color: #16181c; font: 600 15px/1.4 system-ui, sans-serif;
-  text-decoration: none; cursor: pointer;
-}
-.hedge-school-button:hover { background: #c6b8ee; }
-.hedge-school-button img { width: 1.5em; height: 1.5em; margin: 0; flex: none; }`;
 </script>
 
 <PageMeta title="For developers · {SITE_NAME}"
@@ -56,7 +47,7 @@
 
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
-  <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="hedge-school-button" css={BUTTON_CSS} file="hedge-school.svg"
+  <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="hedge-school-button" file="hedge-school.svg"
            head="the collie" withHead="with the school's collie">
     {#snippet headItem()}
       <li><strong>The collie:</strong> <a href="/brand/hedge-school.svg" download>hedge-school.svg</a>. It is

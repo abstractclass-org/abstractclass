@@ -1238,9 +1238,10 @@ Enclosure's alone.
     a partner. Cyanotype's analytics are built ("Analytics and consent"), so the partner parts add these events.
 11. **Buttons as a kit, not a widget:** four labels (choice 3), the site's head as a file, a sample style and the
     markup. **Blueprints' own part, and built:** Cyanotype's head is the logo's simple drawing, at
-    `/brand/cyanotype.svg` ("The logo", item 6), and the sample style is in Cyanotype's colours, white on the dark
-    ground of its tools' button (`#0b0c0e`, with its faint white edge). `logo.test.ts` keeps the file equal to the
-    drawing, as Hedge School's `collie.test.ts` does for its collie.
+    `/brand/cyanotype.svg` ("The logo", item 6). The sample style is Hedge School's: near-black text on the pale
+    lavender accent (`#b8a6e8`), which is Cyanotype's accent too ("Consequences"). The style has one source,
+    `packages/import/src/developers/buttonStyle.ts`, and each site gives only its class name. `logo.test.ts` keeps
+    the file equal to the drawing, as Hedge School's `collie.test.ts` does for its collie.
 
 **The partners' test** (Hedge School's design 18, "Consequences") is shared too. The build of the branch
 `partner_test`, and a local build with `VITE_PARTNER_TEST=1`, count `127.0.0.1` and `localhost` as "the local test
