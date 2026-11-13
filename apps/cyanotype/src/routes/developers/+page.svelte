@@ -17,7 +17,7 @@
   import { SITE_NAME, SITE_ORIGIN } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
-  const LIVE = SITE_ORIGIN, MESSAGES = "cyanotype"; // the messages' names (game/partners.ts)
+  const MESSAGES = "cyanotype"; // the messages' names (game/partners.ts)
 </script>
 
 <PageMeta title="For developers · {SITE_NAME}"
@@ -26,7 +26,7 @@
 <main class={PROSE}>
   <Intro site={SITE_NAME} game="Blueprints" />
 
-  <ReviewLink site={SITE_NAME} live={LIVE} messages={MESSAGES} moves="moves">
+  <ReviewLink site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} moves="moves">
     {#snippet start()}
       <li><strong>The standard start only.</strong> {SITE_NAME} refuses a record whose <code>Position</code> tag gives
         a start other than the standard start. A message says why. {SITE_NAME} reads <code>?</code> or <code>-</code>
@@ -35,18 +35,18 @@
     {/snippet}
   </ReviewLink>
 
-  <AnalysisLink live={LIVE} moves="moves">
+  <AnalysisLink live={SITE_ORIGIN} moves="moves">
     {#snippet more()}
       <li><strong>A record with a komi</strong> (a <code>Komi</code> tag other than 0) opens in the review only, for
         now: the board's engine searches without a komi.</li>
     {/snippet}
   </AnalysisLink>
 
-  <SaveBack site={SITE_NAME} live={LIVE} messages={MESSAGES}>
+  <SaveBack site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES}>
     {#snippet list()}{SITE_NAME} lists its partner sites, and has none yet.{/snippet}
   </SaveBack>
 
-  <OpenAgain site={SITE_NAME} live={LIVE} messages={MESSAGES} />
+  <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
   <WhatCanChange site={SITE_NAME} lenient="unknown tags, a placement without its marks, the moves without turn numbers" />
 </main>

@@ -3,6 +3,7 @@
   // items 4 to 6, 8): the window messages of saveToPartner (partners.ts). `messages` is the start of the site's
   // messages' names, and `list` the sentences on the site's partner list and how a site joins it.
   import type { Snippet } from "svelte";
+  import { PROTOCOL } from "../partners.ts";
   import { messageConstant } from "./names.ts";
   let { site, live, messages, list }: { site: string; live: string; messages: string; list: Snippet } = $props();
   const NAME = $derived(messageConstant(messages));
@@ -25,7 +26,7 @@ window.opener?.postMessage({ type: "${messages}:ready" }, ${NAME});`);
 <ol>
   <li>The save page posts <code>{`{ type: "${messages}:ready" }`}</code> to <code>window.opener</code>, to the
     origin <code>{live}</code>.</li>
-  <li>{site} answers <code>{`{ type: "${messages}:review", protocol: 1, name, review }`}</code>.
+  <li>{site} answers <code>{`{ type: "${messages}:review", protocol: ${PROTOCOL}, name, review }`}</code>.
     <code>protocol</code> is the version of these messages. <code>review</code> is the review file (the Export menu's
     "Review file"), and <code>name</code> is a file name for it.</li>
   <li>The save page checks that the message comes from <code>window.opener</code>, and that its origin is

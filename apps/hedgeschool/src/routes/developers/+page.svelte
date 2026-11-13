@@ -19,7 +19,7 @@
   import { DISCORD, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
-  const LIVE = SITE_ORIGIN, MESSAGES = "hedge-school"; // the messages' names (game/partners.ts)
+  const MESSAGES = "hedge-school"; // the messages' names (game/partners.ts)
   // The partners' buttons: their style, shown on this page as it is given.
   const BUTTON_CSS = `.hedge-school-button {
   display: inline-flex; align-items: center; gap: 0.45em;
@@ -39,7 +39,7 @@
 <main class={PROSE}>
   <Intro site={SITE_NAME} game="Enclosure" />
 
-  <ReviewLink site={SITE_NAME} live={LIVE} messages={MESSAGES} moves="edges">
+  <ReviewLink site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} moves="edges">
     {#snippet start()}
       <li><strong>The online rules from the standard start only.</strong> {SITE_NAME} refuses a record whose
         <code>Rules</code> tag has a value, or whose <code>Position</code> tag gives a start other than the standard
@@ -48,15 +48,15 @@
     {/snippet}
   </ReviewLink>
 
-  <AnalysisLink live={LIVE} moves="edges" />
+  <AnalysisLink live={SITE_ORIGIN} moves="edges" />
 
-  <SaveBack site={SITE_NAME} live={LIVE} messages={MESSAGES}>
+  <SaveBack site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES}>
     {#snippet list()}{SITE_NAME} lists its partner sites: {@render discord()} to join the list.{/snippet}
   </SaveBack>
 
-  <OpenAgain site={SITE_NAME} live={LIVE} messages={MESSAGES} />
+  <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
-  <Buttons site={SITE_NAME} live={LIVE} className="hedge-school-button" css={BUTTON_CSS} file="hedge-school.svg"
+  <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="hedge-school-button" css={BUTTON_CSS} file="hedge-school.svg"
            head="the collie" withHead="with the school's collie">
     {#snippet headItem()}
       <li><strong>The collie:</strong> <a href="/brand/hedge-school.svg" download>hedge-school.svg</a>. It is
@@ -65,7 +65,7 @@
     {/snippet}
   </Buttons>
 
-  <Testing site={SITE_NAME} live={LIVE} ask={discord} />
+  <Testing site={SITE_NAME} live={SITE_ORIGIN} ask={discord} />
 
   <WhatCanChange site={SITE_NAME} lenient="unknown tags, an edge's points in either order, lower case">
     {#snippet changes()}
