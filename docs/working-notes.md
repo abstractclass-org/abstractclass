@@ -97,9 +97,19 @@ learn one, and remove a note when it stops being true. The work itself is in bea
      `apps/hedgeschool/playwright.config.ts`, as `apps/hedgeschool/scripts/gpu-check.mjs` takes them. Before the
      page's first load, give it two `@font-face` rules through `page.addInitScript`: the family `DejaVu Sans`, each
      font as a data URI (`data:font/ttf;base64,…`), at weight 400 and at weight 700. Add the rule
-     `html, body { font-family: "DejaVu Sans" !important; }`. The init script appends a `<style>` element with the
-     three rules to `document.documentElement`: the page has no `<head>` yet when the script runs. The script runs
-     again at each load, so the style also reaches the pages that a navigation opens.
+     `html, body { font-family: "DejaVu Sans" !important; }`. When the init script runs, the page has no element
+     yet: `document.documentElement` is null, and an append then fails inside the page with no error in the script.
+     So the init script waits for `DOMContentLoaded`, then appends a `<style>` element with the three rules (`css`):
+
+     ```js
+     await page.addInitScript(css => document.addEventListener("DOMContentLoaded", () => {
+       const style = document.createElement("style");
+       style.textContent = css;
+       document.documentElement.appendChild(style);
+     }), css);
+     ```
+
+     The script runs again at each load, so the style also reaches the pages that a navigation opens.
   3. Before each measurement, wait for `document.fonts.ready`: until the fonts load, the page draws in Segoe UI. The
      layout test's `settle()` does not wait for the fonts: to measure through the test's `sweep()`, add that wait to
      `settle()` for that run.
