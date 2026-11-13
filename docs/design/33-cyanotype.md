@@ -1416,8 +1416,8 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
    both themes: both are cool colours. The accent stays the lavender.
 3. **The header** shows the simple drawing at 28 pixels before the site's name, on every page, at a phone's width as at
    full width. The other places of Hedge School's collie take the logo too:
-   - **The About page** shows the full print at 96 pixels, with a line on the name: a cyanotype is the print that
-     made the first blueprints, and the logo is one of the start's blueprint.
+   - **The About page** shows the full print at 96 pixels, with a sentence on the name: a cyanotype is the print that
+     made the first blueprints, and the logo is a cyanotype of the start's blueprint.
    - **The strategyjam.org tools' button** shows the simple drawing, and Tampermonkey's lists show it as the
      userscript's icon (`src/lib/game/tools.ts`, through `svgElement` of `logo.ts`).
 4. **The favicon** is the simple drawing, the same on light and dark tabs, with the files of Hedge School's (design 12,

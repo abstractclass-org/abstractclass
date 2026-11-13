@@ -57,7 +57,7 @@ function click(game: WordGame | null, opens = true) {
 
 /** Runs the userscript's code on a page of play.example with no game, and gives the names of the elements that took a
  *  shadow root. As in a browser, `attachShadow` refuses an element whose name is not a custom element's name. */
-function install(site: UserscriptSite<typeof CODE>) {
+function shadowHosts(site: UserscriptSite<typeof CODE>) {
   const hosts: string[] = [], node = () => ({ style: {}, addEventListener() {}, append() {} });
   const document = {
     createElement(tag: string) {
@@ -122,8 +122,8 @@ test("the userscript's header and file: the site's names, pages and files, and c
 });
 
 test("the button and its notes take a shadow root: elements named by the id, with \"-tool\" if it has no hyphen", () => {
-  assert.deepEqual(install(SITE), ["words-site", "words-site"]);
-  assert.deepEqual(install({ ...SITE, id: "words" }), ["words-tool", "words-tool"]);
+  assert.deepEqual(shadowHosts(SITE), ["words-site", "words-site"]);
+  assert.deepEqual(shadowHosts({ ...SITE, id: "words" }), ["words-tool", "words-tool"]);
   // Hedge School's element keeps its name, and Cyanotype's id takes the "-tool".
   assert.deepEqual(["hedge-school", "cyanotype"].map(hostTag), ["hedge-school", "cyanotype-tool"]);
 });

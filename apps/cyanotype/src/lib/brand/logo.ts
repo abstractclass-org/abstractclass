@@ -69,9 +69,9 @@ export const logoAt = (size: number): readonly Shape[] => (size < LARGE_FROM ? L
 export const shapeMarkup = (shapes: readonly Shape[], indent = "") =>
   shapes.map(([tag, a]) => `${indent}<${tag}${Object.entries(a).map(([k, v]) => ` ${k}="${v}"`).join("")}/>`).join("");
 
-/** A drawing's opening tag, `size` pixels for the drawings' view of 100 × 100, with the attributes `more`. */
-const svgTag = (size: number, more = "") =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}"${more}>`;
+/** A drawing's opening tag: `size` pixels for the view of 100 × 100, then `attributes`, each after a space. */
+const svgTag = (size: number, attributes = "") =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}"${attributes}>`;
 
 /** A drawing as an SVG document of `size` pixels, which a browser draws as a file and an `<img>` shows. */
 export const svgDocument = (shapes: readonly Shape[], size = 100, comment = "") =>
