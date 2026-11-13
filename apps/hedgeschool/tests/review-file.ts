@@ -17,30 +17,24 @@ export async function loadReviewFile(page: Page, file: ReviewFileInput) {
   await fileInput(page).and(page.locator("[data-ready]")).setInputFiles(file);
 }
 
-/** Hedge School's settings in the browser's storage, by their keys: the engine's (src/lib/analysis/engineSettings.ts),
- *  the review's display settings (src/lib/review/display.ts) and the consent's answer (src/lib/analytics.svelte.ts). */
-const SETTINGS = {
-  engine: "learn-enclosure:engine:2", display: "learn-enclosure:review-display:1", consent: "hedge-school:consent:2",
-} as const;
-
-/** What openReviewFile does before and after the file's load. Each setting that it gives (`engine`, `display`,
- *  `consent`) is kept before each load of the page (keepBefore), and a setting that it leaves out stays as it is.
- *  `ready`: the longest wait, in ms, for the review to be ready (main.review with no aria-busy), or false for no wait.
- *  Its default is 120 s. */
+/** What openReviewFile does before and after the file's load. Each setting that it gives is kept before each load of
+ *  the page (keepBefore), and a setting that it leaves out stays as it is: `engine`, the engine's settings
+ *  (src/lib/analysis/engineSettings.ts), `display`, the review's display settings (src/lib/review/display.ts), and
+ *  `consent`, the consent's answer (src/lib/analytics.svelte.ts). `ready`: the longest wait, in ms, for the review to
+ *  be ready (main.review with no aria-busy), or false for no wait. Its default is 120 s. */
 type OpenReview = { engine?: object; display?: object; consent?: object; ready?: number | false };
 
-/** Opens the review file `file` on Hedge School: keeps the settings that `open` gives, opens the Review tab, chooses
- *  the file (loadReviewFile) and waits until the page names its game in the address. The tab then loads again to
- *  review the game, and the call waits until the review is ready, as `ready` says. */
-export async function openReviewFile(page: Page, file: ReviewFileInput, open: OpenReview = {}) {
-  const { ready = 120_000 } = open;
-  for (const name of ["engine", "display", "consent"] as const) {
-    const value = open[name];
-    if (value) await keepBefore(page, SETTINGS[name], value);
-  }
+/** Opens the review file `file` on Hedge School: keeps the settings that it is given, opens the Review tab, chooses
+ *  the file (loadReviewFile) and waits up to 60 s until the page names its game in the address. The tab then loads
+ *  again to review the game, and the call waits until the review is ready, as `ready` says. */
+export async function openReviewFile(page: Page, file: ReviewFileInput,
+                                     { engine, display, consent, ready = 120_000 }: OpenReview = {}) {
+  if (engine) await keepBefore(page, "learn-enclosure:engine:2", engine);
+  if (display) await keepBefore(page, "learn-enclosure:review-display:1", display);
+  if (consent) await keepBefore(page, "hedge-school:consent:2", consent);
   await page.goto("/review");
   await loadReviewFile(page, file);
-  await page.waitForURL(/#game=/);
+  await page.waitForURL(/#game=/, { timeout: 60_000 });
   if (ready !== false) await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: ready });
 }
 

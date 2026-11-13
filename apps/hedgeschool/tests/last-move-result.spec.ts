@@ -73,9 +73,8 @@ async function checkTips(page: Page, end: "Result:" | "Lead:") {
 
 /** The review file at `path`, of a record that ends before the rules end the game, with the sweep's result at the
  *  record's end: the end's result at the review's depth becomes one at the sweep's visits (SWEEP_VISITS). So the end
- *  is as it is before the label stage searches it. The file holds results at the review's depth only, so the end
- *  needs a result at the sweep's visits in its place. Cyanotype's stored results hold both depths: there
- *  sweptEndResults drops the deep result. */
+ *  is as it is before the label stage searches it. The file holds results at the review's depth only. Cyanotype's
+ *  stored results hold the sweep's too: there sweptEndResults drops the end's result at the review's depth instead. */
 function sweptEnd(path: string): ReviewFileInput {
   const file = JSON.parse(readFileSync(path, "utf8"));
   const record = parseRecord(file.record), moves = keyMoves(null, record.moves, record.komi);

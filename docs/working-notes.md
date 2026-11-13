@@ -86,22 +86,28 @@ learn one, and remove a note when it stops being true. The work itself is in bea
 - **A layout in Linux's font (DejaVu Sans):** the Tests workflow runs on Linux, where `system-ui` is DejaVu Sans. It is
   much wider than Windows' Segoe UI: a row that fits here can wrap in CI (abscls-s36t, "The header keeps its height,
   in Linux's font too" in `docs/decisions/product.md`). To measure a page in DejaVu Sans on this machine:
-  1. Copy WSL's Ubuntu fonts `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf` and `DejaVuSans-Bold.ttf` into the
-     session's scratchpad: `wsl -e sh -c 'cp /usr/share/fonts/truetype/dejavu/DejaVuSans*.ttf /mnt/c/…/scratchpad/'`.
-  2. In a Playwright script with the `chromium` project's `launchOptions` from `apps/hedgeschool/playwright.config.ts`
-     (as `apps/hedgeschool/scripts/gpu-check.mjs` takes them), give the page two `@font-face` rules through
-     `page.addInitScript` before its first load: the family `DejaVu Sans`, each font as a data URI
-     (`data:font/ttf;base64,…`), at weight 400 and at weight 700. Add the rule
+  1. Copy WSL's Ubuntu fonts `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf` and `DejaVuSans-Bold.ttf` into a
+     temporary folder outside the repository:
+
+     ```sh
+     wsl -e sh -c 'cd /usr/share/fonts/truetype/dejavu && cp DejaVuSans.ttf DejaVuSans-Bold.ttf /mnt/c/…/'
+     ```
+
+  2. Launch Chromium in a Playwright script with the `chromium` project's `launchOptions` from
+     `apps/hedgeschool/playwright.config.ts`, as `apps/hedgeschool/scripts/gpu-check.mjs` takes them. Before the
+     page's first load, give it two `@font-face` rules through `page.addInitScript`: the family `DejaVu Sans`, each
+     font as a data URI (`data:font/ttf;base64,…`), at weight 400 and at weight 700. Add the rule
      `html, body { font-family: "DejaVu Sans" !important; }`. The init script appends a `<style>` element with the
      three rules to `document.documentElement`: the page has no `<head>` yet when the script runs. The script runs
      again at each load, so the style also reaches the pages that a navigation opens.
   3. Before each measurement, wait for `document.fonts.ready`: until the fonts load, the page draws in Segoe UI. The
-     layout test's `settle()` does not wait for the fonts: a measurement through its sweep adds that wait there.
-  4. Check that the fonts took effect: the header's site name (`header a[href='/']`) is drawn in DejaVu Sans. Chrome's
-     DevTools protocol names the font that draws an element: in a CDP session of the page, after `DOM.enable` and
-     `CSS.enable`, `CSS.getPlatformFontsForNode` gives the family `DejaVu Sans` for the name's node. A data URI that
-     the browser refuses leaves Segoe UI with no error, and the measurement is then Windows' again. On Hedge School's
-     About page, the name is 166.2 pixels wide in Segoe UI and 190.3 pixels in DejaVu Sans.
+     layout test's `settle()` does not wait for the fonts: to measure through the test's `sweep()`, add that wait to
+     `settle()` for that run.
+  4. Check that the fonts took effect: Chrome draws the header's site name (`header a[href='/']`) in DejaVu Sans.
+     Chrome's DevTools protocol names the font that draws an element: in a CDP session of the page, after
+     `DOM.enable` and `CSS.enable`, `CSS.getPlatformFontsForNode` gives the family `DejaVu Sans` for the name's node.
+     A data URI that the browser refuses leaves Segoe UI with no error, and the measurement is then Windows' again. On
+     Hedge School's About page, the name is 166.2 pixels wide in Segoe UI and 190.3 pixels in DejaVu Sans.
 
   This changes only the measurement. Nothing of it is in the layout test, so `npm run test:layout` and
   `scripts/site-suite` still use this machine's fonts.
