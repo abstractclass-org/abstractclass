@@ -268,7 +268,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     - **The drawing** (`boardImage.ts`): the site draws the board's component (`Board.svelte`) apart from the page,
       writes each element's computed colours and fonts into a copy of its SVG, and removes the board. A canvas draws
       the copy at twice the board's size on screen, at least 1,200 pixels wide, with the caption under it.
-    - **The look:** the light theme's, in either theme.
+    - **The look:** the theme that the page shows when the player chooses the item: the light look in the light
+      theme, the dark look in the dark theme. With the theme "System", the image takes the theme that the page shows
+      (`data-theme` on the page, `theme.svelte.ts`). The board's colours and the caption's background and text are the
+      theme's. Each image reads its boards' styles in one task, which a change of theme cannot break into, so no frame
+      of an animated image has the other theme.
     - **The clipboard:** `navigator.clipboard.write` with a `ClipboardItem` (Chrome, Edge, Safari, Firefox 127 and
       later). The write starts within the player's click, while the canvas still draws the image, as Safari and
       Firefox ask. Where the browser refuses an image, a note says "This browser cannot copy an image. Save the image
@@ -290,7 +294,7 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       short, and its palette needs a rule of its own (below), so no library does it. After the first frame, a frame
       holds only the box of the pixels that changed, at its offset, drawn over the frame before it.
     - **The colours:** a GIF holds 256 colours, and the image holds more: its anti-aliased pixels blend the flat
-      colours. The flat colours stay exact. The palette holds first the light theme's colours of the board, its dots,
+      colours. The flat colours stay exact. The palette holds first the theme's colours of the board, its dots,
       the players, the numbers on the badges and the caption, then each colour that fills a 2 × 2 block of pixels
       somewhere (the regions, for example, blend a player's colour over the board), the colour of the most blocks
       first, to 192 colours. A median cut of the other colours gives the places that are left. Each pixel keeps its
@@ -328,9 +332,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   of the one the player picks.
 - **Circles, not notation:** an edge's name is two points to find on a 19 × 19 board. Go tools leave notation out of
   their variations for a board of that size. Numbers that match the board's line badges are read on the board itself.
-- **An image of a line has the light look in either theme.** An image leaves the site, for chats and forums of either
-  background and for print. The light board keeps the edges' and regions' contrast on paper and on a dark chat. One
-  look also makes the images of a line alike, whoever made them.
+- **An image of a line has the look that the player sees.** The image matches the board on the player's screen. A
+  player who uses the dark theme shares the board that they study, and a player who wants the light image for paper
+  or for a light forum chooses the light theme first. This replaces one light look in either theme. That look kept
+  the contrast on paper and on chats of either background, and made the images of a line alike whoever made them. The
+  dark board keeps the edges' and the regions' contrast as the screen shows it, so its image reads as the board does.
 - **An image made in the browser** keeps the site static: Lichess renders its board images on its server from the
   FEN, and this site has no server.
 

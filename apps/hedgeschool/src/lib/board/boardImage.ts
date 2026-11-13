@@ -1,9 +1,10 @@
 // The board as a PNG (design 07, item 17), in the player's browser, with no server: the board's SVG (Board.svelte),
-// drawn apart from the page in the light theme, with its computed colours and fonts written into each element, then
+// drawn apart from the page in the page's theme, with its computed colours and fonts written into each element, then
 // drawn on a canvas with a caption under it. The animated image of a line is a GIF of such canvases (gif.ts). Lichess
-// renders its board images on its server, from the position's FEN. Images always have the light look: an image leaves
-// the site, for chats and forums of either background and for print, and one look makes the images of a line alike
-// whoever made them (decisions/product.md, "An image of a line").
+// renders its board images on its server, from the position's FEN. An image has the look of the theme that the page
+// shows when the player asks for it, light or dark, so that it matches the board on the player's screen
+// (decisions/product.md, "An image of a line in the player's theme"). Each export reads its boards' styles in one
+// task, which a change of theme cannot break into, so no image mixes the two themes.
 import { flushSync, mount, unmount, type ComponentProps } from "svelte";
 import { SITE_NAME } from "#lib/edition.ts";
 import { animatedGif, changedBox, type GifFrame } from "./gif.ts";
@@ -34,7 +35,7 @@ function standalone(svg: SVGSVGElement, size: number): string {
 /** The PNG of a board drawn with `props`, `width` pixels wide, and under it the caption's lines (the first in bold)
  *  and the site's name, small. */
 export async function boardImage(props: BoardProps, caption: string[], width: number): Promise<Blob> {
-  return pngOf((await boardCanvas(props, caption, width)).canvas);
+  return pngOf(await boardCanvas(styledBoard(props, width), caption, width));
 }
 
 /** An animated GIF (gif.ts) of boards, each drawn as boardImage draws it, with the same caption, and shown for its
@@ -43,13 +44,15 @@ export async function boardImage(props: BoardProps, caption: string[], width: nu
  *  stay exact in the GIF's 256 colours. */
 export async function animatedBoardImage(frames: { props: BoardProps; ms: number }[], caption: string[], width: number):
   Promise<Blob> {
+  // Every frame's board in one task, before the first await: all in one theme
+  const boards = frames.map(({ props }) => styledBoard(props, width));
   const out: GifFrame[] = [];
   let before: Uint8ClampedArray | null = null, fixed: number[] = [];
-  for (const { props, ms } of frames) {
-    const { canvas, colour } = await boardCanvas(props, caption, width), { width: w, height: h } = canvas;
+  for (const [i, { ms }] of frames.entries()) {
+    const canvas = await boardCanvas(boards[i], caption, width), { width: w, height: h } = canvas;
     const ctx = canvas.getContext("2d")!, now = ctx.getImageData(0, 0, w, h).data;
     if (!before) {
-      fixed = Object.values(colour).map(rgbOf);
+      fixed = Object.values(boards[i].colour).map(rgbOf);
       out.push({ rgba: now, x: 0, y: 0, w, h, ms });
     } else {
       const box = changedBox(before, now, w, h);
@@ -61,33 +64,41 @@ export async function animatedBoardImage(frames: { props: BoardProps; ms: number
   return new Blob([animatedGif(out, fixed)], { type: "image/gif" });
 }
 
-/** The tokens of the light theme whose colours the image fills flat areas with: the board, its dots, the players'
+/** The tokens whose colours the image fills flat areas with: the board, its dots, the players'
  *  colours, the numbers on the line's badges, and the caption's background and text. */
 const FLAT = ["board-bg", "board-dot", "blue", "red", "on-badge", "panel", "text", "muted"] as const;
 
 const pngOf = (canvas: HTMLCanvasElement) => new Promise<Blob>((done, fail) =>
   canvas.toBlob(b => (b ? done(b) : fail(new Error("the browser made no image"))), "image/png"));
 
-/** The canvas of boardImage, and the light theme's colours of FLAT, as CSS gives them. */
-async function boardCanvas(props: BoardProps, caption: string[], width: number):
-  Promise<{ canvas: HTMLCanvasElement; colour: Record<(typeof FLAT)[number], string> }> {
+type Colours = Record<(typeof FLAT)[number], string>;
+
+/** A board drawn with `props` apart from the page: its SVG `width` pixels square with its styles written in
+ *  (standalone), and the colours of FLAT, as CSS gives them in the page's theme now. It runs in one task. The host
+ *  sets no theme of its own: it takes the page's tokens (data-theme on the root, theme.svelte.ts), and Tailwind's dark:
+ *  variant reads the root's data-theme too. */
+function styledBoard(props: BoardProps, width: number): { markup: string; colour: Colours } {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
-  host.dataset.theme = "light"; // the light theme's colours (app.css and the shared style sheets that it imports)
   host.className = "fixed top-0 -left-[100000px] w-[600px] pointer-events-none";
   document.body.append(host);
-  let markup: string, colour: Record<(typeof FLAT)[number], string>;
   const board = mount(Board, { target: host, props });
   try {
     flushSync();
-    markup = standalone(host.querySelector("svg")!, width);
+    const markup = standalone(host.querySelector("svg")!, width);
     // Read now: a computed style is live, and empty once the host leaves the page.
     const css = getComputedStyle(host);
-    colour = Object.fromEntries(FLAT.map(name => [name, css.getPropertyValue(`--${name}`).trim()])) as typeof colour;
+    const colour = Object.fromEntries(FLAT.map(name => [name, css.getPropertyValue(`--${name}`).trim()])) as Colours;
+    return { markup, colour };
   } finally {
     void unmount(board);
     host.remove();
   }
+}
+
+/** The canvas of boardImage: the board `styledBoard` gave, with the caption under it in the board's colours. */
+async function boardCanvas({ markup, colour }: { markup: string; colour: Colours }, caption: string[], width: number):
+  Promise<HTMLCanvasElement> {
   const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
   const img = new Image();
   img.src = url;
@@ -116,7 +127,7 @@ async function boardCanvas(props: BoardProps, caption: string[], width: number):
   ctx.font = `400 ${small}px ${fonts}`;
   ctx.fillStyle = colour.muted;
   ctx.fillText(SITE_NAME, pad, y + 0.3 * small);
-  return { canvas, colour };
+  return canvas;
 }
 
 /** A CSS colour as 0xRRGGBB, as a canvas draws it. */

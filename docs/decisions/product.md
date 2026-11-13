@@ -12025,3 +12025,35 @@ abscls-8tl1.51. Cyanotype has the page `/developers`, as Hedge School has (desig
   gives none.
 - **The links to the page:** Cyanotype's footer (as Hedge School's), its site map and the end of its notation page.
   The layout test sweeps both sites' pages for developers.
+
+### An image of a line in the player's theme (2026-11-13)
+
+abscls-xud1. Design 07 (item 17) and design 21 changed.
+
+- **Asked for:** "Copy static", "Save static" and "Save animated" in the move menu, in a review and on the Analysis
+  board, drew the light look in the dark theme too. The image of a line should follow the theme that the player sees.
+- **Decided:** the image takes the theme that the page shows when the player chooses the item: the light look in the
+  light theme, the dark look in the dark theme. With the theme "System", the theme that the page shows (`data-theme`
+  on the page, `theme.svelte.ts`). The image then matches the board on the player's screen.
+- **What this replaces:** "The look: light, in either theme" ("An image of a line", above). That entry kept one look
+  for the contrast on paper and in chats of either background, and so that the images of one line look alike whoever
+  made them. A player who uses the dark theme studies the dark board, and shares what they see. The dark board keeps
+  the contrast of its edges, regions and numbers, as on the screen. A player who wants the light image for paper or for
+  a light forum chooses the light theme first. Images of one line now differ by the theme of whoever made them.
+- **How** (`apps/hedgeschool/src/lib/board/boardImage.ts`): the board that the image draws apart from the page sets no
+  theme of its own, so it takes the page's tokens, and Tailwind's `dark:` variant reads the page's `data-theme`. The
+  caption's background and text take the same theme's `--panel`, `--text` and `--muted`. An image reads all its boards'
+  styles in one task, before its first wait: a change of theme cannot come between two frames of an animated image, so
+  no image mixes the two themes. A change of theme while the page is open reaches the next image. The note's "Save
+  image", after a refused copy, saves the same file that the copy made.
+- **The selector `[data-theme="light"]`** stays in `site.css`, `review.css` and Hedge School's `app.css`. No element
+  sets it now, but `themeTokens.ts` finds each site's light block by its opening, and Cyanotype's `app.css` opens its
+  blocks the same way. The comments that named the image of a line changed.
+- **Cyanotype** makes no image of a line (its view has no `image`), so nothing changed there.
+- **The test:** `apps/hedgeschool/tests/line-image-theme.spec.ts`, in headless Chromium, with the engine off. In a
+  review of `tests/fixtures/hedgefund-review.json` (the line of the game's first 10 edges) and on the Analysis board (a
+  record of 3 edges), in the light theme and then the dark theme on the same page, it decodes the copied PNG, the saved
+  PNG and the animated GIF's first frame. In each, the caption's background is the theme's `--panel` and the board's
+  is the theme's `--board-bg`, and the copied and the saved image have the same pixels. Both cases failed on a build
+  of dev's code: in the dark theme the image had the light colours. Both pass after the change. The light images of
+  both places are the same files, byte for byte, before and after the change.
