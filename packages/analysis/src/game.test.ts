@@ -41,11 +41,11 @@ test("the end is the result where the rules ended the game, and a search where t
     positions: [0, 1, 2].map(k => words.position(wordFields(k, k === 2 && over))),
     analysis: [analysis(0.5, "a"), analysis(0.5, "b"), analysis(0.4, "c", SWEEP_VISITS)],
   });
-  const ended = review(words, data(true), "lead", 256), cut = review(words, data(false), "lead", 256);
+  const ended = review(words, data(true), "lead", 256), early = review(words, data(false), "lead", 256);
   assert.equal(ended.endedByRules, true);
   assert.equal(ended.blueScore[2], 2); // the result, Blue less Red
-  assert.equal(cut.endedByRules, false);
-  assert.equal(cut.blueWin[2], 0.4); // the end's search
+  assert.equal(early.endedByRules, false);
+  assert.equal(early.blueWin[2], 0.4); // the end's search
 });
 
 test("a move's loss labels it, from the mover's side", () => {

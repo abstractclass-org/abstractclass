@@ -11932,23 +11932,27 @@ layout test saw it: the children stayed in one row and inside the header's conte
 abscls-fcvt. Design 06 changed.
 
 - **Why:** the advantage chart counted the last position as settled for every record. A record that ends before the
-  rules end the game has a search at its end, as any position: the review searches it in both passes
-  (`analysis.svelte.ts`, `passCount`). So while the end had only the first pass's result (the sweep's 32 visits), the
-  chart drew it full, and its note at the end had no " · first estimate". The review's model already had the right
-  rule: its end is the result only when the rules ended the game.
+  rules end the game has a search at its end, as any position: the sweep and the label stage search it
+  (`analysis.svelte.ts`, `passCount`). So while the end had only the sweep's result (32 visits), the chart drew the
+  end as settled. Its note at the end had no " · first estimate". The review's model already had the right rule: its
+  end is the result only when the rules ended the game.
 - **One rule:** the review's model (`packages/analysis/src/model.ts`, `review`) gives `endedByRules` on the review,
-  from its own rule for the end. The view (`chartSettled` and `leadOrResult` in
-  `packages/review/src/ReviewView.svelte`) and the annotated record (`packages/analysis/src/annotate.ts`) read it, and
-  no longer work it out again from the last position. The two rules differed only for a record with no last position,
-  which the model counts as ended: no page makes one.
-- **What players see,** on both sites (the review is shared), by move and by turn: at the end of a record that ends
-  early, while the second pass has not reached the end, the chart's line is faint there, the legend shows "Win chance,
-  first estimate", and the note says "Lead: Red +21.9 · first estimate" in place of "Lead: Red +21.9" (Hedge School's
-  test record; Cyanotype's: "Lead: Red +106.7 · first estimate"). Once the end's search has the review's depth,
+  from its own rule for the end. The view reads it in `chartSettled`, `leadOrResult`, the status line and the summary
+  (`packages/review/src/ReviewView.svelte`). The annotated record reads it too (`packages/analysis/src/annotate.ts`).
+  Neither works the rule out again from the last position. The two rules differed only for a record with no last
+  position, which the model counts as ended. No page makes one: the review's data (`analysis.svelte.ts`, `data`) has
+  one position more than its moves. Each game's `ending` still reads the last position for the outcome's words
+  (`apps/hedgeschool/src/lib/review/enclosure.ts`, `apps/cyanotype/src/lib/review/blueprints.ts`). Cyanotype's counts
+  a record with no last position as not ended.
+- **What players see,** on both sites (the review is shared), by move and by turn. At the end of a record that ends
+  early, until the label stage has searched the end, the chart draws the end faint. The legend shows "Win chance,
+  first estimate". The note says "Lead: Red +21.9 · first estimate" in place of "Lead: Red +21.9" on Hedge School's
+  test record, and "Lead: Red +106.7 · first estimate" on Cyanotype's. Once the end's search has the review's depth,
   nothing changes. A game that the rules ended keeps "Result:" with no " · first estimate" ("Result: Red +377.7",
   "Result: Red +730.0"), before and after.
 - **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by move and by turn, with the engine off. On Hedge
   School it opens `tests/fixtures/twin-turn-review.json` with its end's result at the sweep's visits. On Cyanotype it
-  opens the test game up to turn 20 with the stored results without the end's result at the review's depth. Each of
-  the 4 cases failed on builds of both sites from dev's code: the note had no " · first estimate". Each passes after
-  the change, with the spec's other 8 cases.
+  opens the test game up to turn 20 with the stored results, less the end's result at the review's depth. Each of the
+  4 cases checks the note and the legend. Each failed on builds of both sites from dev's code: the note had no
+  " · first estimate". Each passes after the change, with the spec's other 8 cases. In those 8 cases every result has
+  the review's depth, and they check that the legend shows no first estimate.

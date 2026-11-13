@@ -9,13 +9,13 @@
 // tests/fixtures/cyanotype-whole-review.json, which the rules end at r+730) and up to turn 20 (STORED). The engine is
 // off: the tooltips take the stored results. Without Cyanotype's preview or its engine's files, its tests skip, with a
 // message.
-// The chart's note at the end of a record that ends before the rules end the game: the review searches that end in
-// both passes (analysis.svelte.ts, passCount), so while the end has only the first pass's result, the note says
-// " · first estimate" and the legend shows the first estimate's line (ReviewView.svelte, chartSettled and chartRough;
-// design 06, item 3). The same games that end early, with the first pass's result at the end in place of the
-// review's: Hedge School's review file with its end's result at the sweep's visits, and Cyanotype's stored results
-// without the end's result at the review's depth. With the end searched deep (every result of both at the review's
-// 512 visits), the legend has no first estimate.
+// The chart at the end of a record that ends before the rules end the game (ReviewView.svelte, chartSettled and
+// chartRough; design 06, item 3). The sweep and the label stage search that end, as any position
+// (analysis.svelte.ts, passCount). While the end has only the sweep's result, the note there says " · first
+// estimate", and the legend shows "Win chance, first estimate". These cases take the same games that end early, with
+// the sweep's result at the end: Hedge School's review file with its end's result at the sweep's visits, and
+// Cyanotype's stored results without the end's result at the review's depth. Every result of the other cases' games
+// has the review's depth (512 visits), so there the legend has no first estimate.
 // Run: npx playwright test tests/last-move-result.spec.ts, with BASE_URL and CYANOTYPE_BASE_URL.
 import { readFileSync } from "node:fs";
 import { SWEEP_VISITS, analysisKey, keyMoves, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
@@ -30,7 +30,7 @@ const ENDED = "tests/fixtures/hedgefund-review.json";
 const CUT = "tests/fixtures/twin-turn-review.json";
 /** Cyanotype's stored review of its whole test game. */
 const WHOLE = OTHER_STORED.find(s => s.turns === Infinity)!.file;
-/** The tooltip of the legend's first estimate, which shows while a position has only its first search (chartRough). */
+/** The tooltip of the legend's first estimate, shown while a position has only the sweep's result (chartRough). */
 const ROUGH = "Refined as the review runs";
 
 /** The tooltips (the titles) of the move list's moves, in the game's order: the list draws the moves in their order,
@@ -60,7 +60,8 @@ async function waitForLeads(page: Page) {
 }
 
 /** Checks the moves' tooltips once the review has given each a lead: the last move's holds the chart's words at the
- *  game's end, which start with `end`, and no other move's says "Result:". */
+ *  game's end, which start with `end`, and no other move's says "Result:". Every result of these games has the
+ *  review's depth, so the legend has no first estimate. */
 async function checkTips(page: Page, end: "Result:" | "Lead:") {
   await waitForLeads(page);
   const tips = await moveTips(page);
@@ -70,28 +71,29 @@ async function checkTips(page: Page, end: "Result:" | "Lead:") {
   expect(words, "the chart's note at the end")
     .toMatch(end === "Result:" ? /^Result: ((Blue|Red) \+[\d.]+|even)$/ : /^Lead: /);
   expect(tips.at(-1)!.split(" · "), "the last move's tooltip, with the chart's words").toContain(words);
+  await expect(page.getByTitle(ROUGH), "the legend's first estimate").toHaveCount(0);
 }
 
-/** The review file at `path`, of a record that ends before the rules end the game, with the first pass's result at the
- *  record's end: the end's result at the review's depth becomes one at the sweep's visits (SWEEP_VISITS), as while
- *  the second pass has not searched the end yet. */
-function firstPassEnd(path: string): ReviewFileInput {
+/** The review file at `path`, of a record that ends before the rules end the game, with the sweep's result at the
+ *  record's end: the end's result at the review's depth becomes one at the sweep's visits (SWEEP_VISITS). So the end
+ *  is as it is before the label stage searches it. */
+function sweptEnd(path: string): ReviewFileInput {
   const file = JSON.parse(readFileSync(path, "utf8"));
-  const record = parseRecord(file.record), moves = keyMoves(null, record.moves, record.komi).join(" ");
+  const record = parseRecord(file.record), moves = keyMoves(null, record.moves, record.komi);
   let ends = 0;
   file.analyses = file.analyses.map(([key, value]: [string, Record<string, unknown>]) => {
     const k = readAnalysisKey(key);
-    if (k.map || k.moves !== moves) return [key, value];
+    if (k.map || k.moves !== moves.join(" ")) return [key, value];
     ends++;
-    return [analysisKey(k.search, k.model, moves.split(" "), SWEEP_VISITS, k.shape), { ...value, visits: SWEEP_VISITS }];
+    return [analysisKey(k.search, k.model, moves, SWEEP_VISITS, k.shape), { ...value, visits: SWEEP_VISITS }];
   });
   if (ends !== 1) throw new Error(`${path} has ${ends} results of its record's end, not 1`);
-  return { name: "first-pass-end.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
+  return { name: "swept-end.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
 }
 
 /** Cyanotype's stored results (STORED) without the result of the end of the test game's first TURNS turns at the
- *  review's depth: the end keeps the first pass's result only. */
-function firstPassEndResults(): [string, unknown][] {
+ *  review's depth: the end keeps the sweep's result only. */
+function sweptEndResults(): [string, unknown][] {
   const deep = storedResults(TURNS).filter(([key]) => {
     const k = readAnalysisKey(key);
     return k.moves.split(" ").length === MOVES && k.visits > SWEEP_VISITS;
@@ -100,9 +102,9 @@ function firstPassEndResults(): [string, unknown][] {
   return readStored().analyses.filter(([key]) => key !== deep[0]);
 }
 
-/** Checks the chart at the end of a record that ends early, while the end has the first pass's result only: the note
- *  there says " · first estimate", and the legend shows the first estimate's line. */
-async function checkShallowEnd(page: Page) {
+/** Checks the chart at the end of a record that ends early, while the end has the sweep's result only: the note there
+ *  says " · first estimate", and the legend shows "Win chance, first estimate". */
+async function checkFirstEstimateAtEnd(page: Page) {
   await waitForLeads(page);
   expect(await chartEnd(page), "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
   await expect(page.getByTitle(ROUGH), "the legend's first estimate").toBeVisible();
@@ -131,7 +133,6 @@ for (const judge of ["edge", "turn"] as const) {
     test("says Lead: when the record ends before the rules end the game", async ({ page }) => {
       await reviewOnHedgeSchool(page, CUT, judge);
       await checkTips(page, "Lead:");
-      await expect(page.getByTitle(ROUGH), "the legend's first estimate, with the end searched deep").toHaveCount(0);
     });
   });
 
@@ -152,22 +153,21 @@ for (const judge of ["edge", "turn"] as const) {
     test("says Lead: when the record ends before the rules end the game", async ({ page }) => {
       await reviewTestGame(page, { judge });
       await checkTips(page, "Lead:");
-      await expect(page.getByTitle(ROUGH), "the legend's first estimate, with the end searched deep").toHaveCount(0);
     });
   });
 
   test.describe(`the chart's note at the end of a record that ends early, by ${judge}`, () => {
-    test("says first estimate on Hedge School while the end has the first pass's result only", async ({ page }) => {
-      await reviewOnHedgeSchool(page, firstPassEnd(CUT), judge);
-      await checkShallowEnd(page);
+    test("says first estimate on Hedge School while the end has the sweep's result only", async ({ page }) => {
+      await reviewOnHedgeSchool(page, sweptEnd(CUT), judge);
+      await checkFirstEstimateAtEnd(page);
     });
 
-    test("says first estimate on Cyanotype while the end has the first pass's result only", async ({ page }) => {
+    test("says first estimate on Cyanotype while the end has the sweep's result only", async ({ page }) => {
       const why = await noReview(page);
       test.skip(why !== "", why);
-      await storeReview(page, { judge }, { results: firstPassEndResults() });
+      await storeReview(page, { judge }, { results: sweptEndResults() });
       await pasteRecord(page, testRecord(TURNS));
-      await checkShallowEnd(page);
+      await checkFirstEstimateAtEnd(page);
     });
   });
 }

@@ -1662,7 +1662,7 @@
   }
   // The positions whose search has the review's depth (or the book's values), and the end when the rules ended the
   // game, whose value is the result: the chart draws the rest as a first estimate. The end of a record that ends before
-  // has a search, which the review's passes deepen (analysis.svelte.ts, passCount), as any position's.
+  // has a search, as any position: the sweep's, then the label stage's (analysis.svelte.ts, passCount).
   const chartSettled = $derived(R.data.positions.map((_, i) =>
     (i === last && R.endedByRules) || deepEnough(R.data.analysis[i], reviewVisits)));
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));

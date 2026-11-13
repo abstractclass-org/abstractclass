@@ -74,15 +74,15 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      as the summary's, a circle in it is a thin ellipse. The chart's note takes at most the room beside the point, and
      wraps there. **While the review runs,** the line is faint where a position has only its first search (the sweep's
      32 visits), and full where its search has the review's depth. The legend then says "Win chance, first estimate",
-     with "Refined as the review runs" as its tooltip, and a faint position's note says "first estimate". The game's
-     end, when the rules ended the game, is never faint: its value is the result. The end of a record that ends before
-     the rules end the game has a search, as any position: the review searches it in both passes, so the end is faint,
-     and its note says "Lead: … · first estimate", until its search has the review's depth. The review's model gives
-     the view the one rule for the end (`endedByRules`, `packages/analysis/src/model.ts`). This marking
+     with "Refined as the review runs" as its tooltip, and a faint position's note says "first estimate". This marking
      is the site's own, not taken from a published tool. It was dashed at first, and read as the chart's dashed 50%
-     line. **By turn** (design 10, "Review by"), the chart draws and snaps to the turns' ends only: a turn is one step,
-     and its note names the whole turn. A note gives the label in brackets, as Lichess's chart does: "2. Q10-R8 O11-Q10
-     [Blunder]".
+     line. The end of a game that the rules ended is never faint: its value is the result. The end of a record that
+     ends before has a search, as any position: the sweep and the label stage search it. Until its search has the
+     review's depth, the end is faint, the legend says "Win chance, first estimate", and the end's note says
+     "Lead: … · first estimate". The chart and the move's tooltip take the rule for the end from the review's model
+     (`endedByRules`, `packages/analysis/src/model.ts`). **By turn** (design 10, "Review by"), the chart draws and
+     snaps to the turns' ends only: a turn is one step, and its note names the whole turn. A note gives the label in
+     brackets, as Lichess's chart does: "2. Q10-R8 O11-Q10 [Blunder]".
 4. **The step controls** (first, back, forward, last), the status line and the display settings' button are a bar at
    the bottom of the analysis column, as on Lichess, next to the move list that they step through. The steps are on
    the left, and the tools on the right (the Analysis board's Play, New and Export, the review's Export, and ☰). When
