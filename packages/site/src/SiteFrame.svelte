@@ -43,9 +43,10 @@
 <svelte:window onpagehide={() => keepPlace(location)} />
 
 <div class="desktop:flex desktop:flex-col desktop:h-full print:block print:h-auto">
-<!-- The header: one row, at least --site-header high (site.css), from which pages size their boards. Its gaps narrow
-     on a phone, so that what it holds fits in 360 pixels. -->
-<header class="flex-none flex items-center gap-3 sm:gap-6 px-4 py-2 min-h-(--site-header) bg-panel border-b border-line">
+<!-- The header: one row, --site-header high (site.css), from which pages size their boards. Its gaps narrow on a
+     phone, and its gaps and sides again below 400 pixels, so that what it holds fits in 360 pixels in Linux's font
+     too (DejaVu Sans), which is wider than Windows'. -->
+<header class="flex-none flex items-center gap-3 max-[400px]:gap-2 sm:gap-6 px-4 max-[400px]:px-3 py-2 min-h-(--site-header) bg-panel border-b border-line">
 	{@render header()}
 </header>
 <!-- The area is not in the Tab order and shows no outline (tabindex -1). It takes the focus after each navigation, so

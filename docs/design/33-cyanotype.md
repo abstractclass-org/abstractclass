@@ -1548,7 +1548,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   game's pages, the pages about the site and the theme menu, and below 740 pixels the site's menu (`SiteMenu.svelte`
   of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels. With the header's
   gaps of 24 pixels from 640, the links' row stays inside the header from 660 pixels in Segoe UI and from 730 in
-  DejaVu Sans. In DejaVu Sans it keeps "Early Access" on one line only from 770.
+  DejaVu Sans. "Early Access" stays on one line, so from 740 to 779 pixels the gaps between the links are 10 pixels
+  in place of 18: the row then needs 699 pixels in DejaVu Sans, in a box of 708 at 740.
   `src/lib/SiteFooter.svelte`: the footer, with How reviews work, Privacy and Notices. `src/app.css`: the accent
   (Hedge School's lavender) and the board's colour tokens, after the shared style and the view's
   (`@abstractclass/review/review.css`).
