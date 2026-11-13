@@ -1,12 +1,13 @@
 <script lang="ts">
   // The section "The review saved back to a partner site" of the sites' pages for developers (Hedge School's design 18,
   // items 4 to 6, 8): the window messages of saveToPartner (partners.ts). `messages` is the start of the site's
-  // messages' names, and `list` the sentences on the site's partner list and how a site joins it.
+  // messages' names, and `partnerList` the sentences on the site's partner list and how a site joins it.
   import type { Snippet } from "svelte";
   import { PROTOCOL } from "../partners.ts";
-  import { messageConstant } from "./names.ts";
-  let { site, live, messages, list }: { site: string; live: string; messages: string; list: Snippet } = $props();
-  const NAME = $derived(messageConstant(messages));
+  import { addressConstant } from "./names.ts";
+  let { site, live, messages, partnerList }:
+    { site: string; live: string; messages: string; partnerList: Snippet } = $props();
+  const NAME = $derived(addressConstant(messages));
   const save = $derived(`// On the partner's save page, which ${site} opened:
 const ${NAME} = "${live}";
 window.addEventListener("message", async event => {
@@ -20,7 +21,7 @@ window.opener?.postMessage({ type: "${messages}:ready" }, ${NAME});`);
 
 <h2 id="save">The review saved back to a partner site</h2>
 <p>A partner site can keep its players' reviews. Its link then names a save page, <code>save</code>, on its own site
-  and over https. {@render list()} Once the review is done, the player can choose "Save to" the site in the review's
+  and over https. {@render partnerList()} Once the review is done, the player can choose "Save to" the site in the review's
   Export menu. {site} opens the save page in a new tab, and the two pages exchange window messages
   (<code>postMessage</code>), in the player's browser:</p>
 <ol>

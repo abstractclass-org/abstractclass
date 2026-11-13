@@ -3,13 +3,14 @@
   // link that sends a finished game to the import page (importHash.ts), with a partner's save page. `live` is the live
   // site's address, which a partner's code names, and `messages` the start of the site's messages' names
   // (partners.ts), which the save page's example address also takes. `moves` is the site's word for a game's moves
-  // ("edges" on Hedge School). `start` is the item on the games that the site refuses: a start or rules of their own.
+  // ("edges" on Hedge School). `refusals` is the item on the games that the site refuses: a start or rules of their own.
   import type { Snippet } from "svelte";
-  let { site, live, messages, moves, start }:
-    { site: string; live: string; messages: string; moves: string; start: Snippet } = $props();
+  import { exampleSave } from "./names.ts";
+  let { site, live, messages, moves, refusals }:
+    { site: string; live: string; messages: string; moves: string; refusals: Snippet } = $props();
   const link = $derived(`const link = "${live}/import#" + new URLSearchParams({ record });
 // with a save page, for a partner site:
-const link = "${live}/import#" + new URLSearchParams({ record, save: "https://example.com/${messages}/save?game=123" });`);
+const link = "${live}/import#" + new URLSearchParams({ record, save: "${exampleSave(messages)}" });`);
 </script>
 
 <h2 id="link">A link to a review</h2>
@@ -21,7 +22,7 @@ const link = "${live}/import#" + new URLSearchParams({ record, save: "https://ex
   <li><strong>Tags are welcome,</strong> but the link needs none: <code>Blue</code> and <code>Red</code> name the
     players, and <code>Date</code>, <code>Result</code> and <code>TimeControl</code> describe the game. Put the
     game's own page in <code>Site</code> (as Lichess does), and the review links back to it.</li>
-  {@render start()}
+  {@render refusals()}
   <li><strong>A finished game only.</strong> A link to a game in play would give a player the engine's help.</li>
   <li>The record goes after the <code>#</code>, which a browser never sends to a server, and the page removes it
     from the address at once.</li>

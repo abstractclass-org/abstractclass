@@ -12016,9 +12016,10 @@ abscls-8tl1.51. Cyanotype has the page `/developers`, as Hedge School has (desig
 - **Cyanotype's page** has the link to a review, the link to the Analysis board, the review saved back, a saved
   review opened again, and what can change, with `cyanotype:*` messages and the address
   `https://cyanotype.abstractclass.org`. Its own items: the review refuses a set-up start (a `Position` tag), and
-  the engine's rules check each move and its marks. The Analysis board opens no record with a komi yet. Its reader
-  takes unknown tags, a placement without its marks, and the moves without turn numbers (its notation page). The
-  partner list is empty, so the page says that the site has none yet.
+  the engine's rules check each move and its capture marks. Its reader takes unknown tags, a placement without its
+  capture marks, and the moves without turn numbers (its notation page). The page names no komi: the Analysis board
+  takes one, as Hedge School's does (abscls-8tl1.50). The partner list is empty, so the page says that the site has
+  none yet.
 - **Left out on Cyanotype:** the buttons, the partners' test and the list of changes. They come with the buttons'
   head (abscls-8tl1.77). Cyanotype has no Discord or other place where a site can ask to be a partner, so the page
   gives none.

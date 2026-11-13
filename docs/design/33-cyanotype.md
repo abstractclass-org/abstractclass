@@ -1221,12 +1221,11 @@ Enclosure's alone.
    order: the link to a review, the link to the Analysis board, the review saved back, a saved review opened again
    with the tie between the pages, the buttons, the partners' test, and what can change. Each section takes the
    site's name, its live address (the examples name it), its messages' name and its word for a game's moves.
-   **Blueprints' own part, and built:** the item on the games that the review refuses (a set-up start), the
-   Analysis board's refusal of a komi, and what its reader takes beyond the notation page (unknown tags, a placement
-   without its marks, the moves without turn numbers). Its partner list is empty, so the page says that it has none
-   yet. **abscls-8tl1.77 adds** the buttons, the partners' test and the list of changes, which starts on Cyanotype's
-   own first day. Its promises are Hedge School's: lenient reading, additions only, a versioned handshake, the review
-   file as the site's own.
+   **Blueprints' own part, and built:** the item on the games that the review refuses (a set-up start), and what
+   its reader takes beyond what a writer writes (unknown tags, a placement without its capture marks, the moves
+   without turn numbers). Its partner list is empty, so the page says that it has none yet. **abscls-8tl1.77 adds**
+   the buttons, the partners' test and the list of changes, which starts on Cyanotype's own first day. Its promises
+   are Hedge School's: lenient reading, additions only, a versioned handshake, the review file as the site's own.
 10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
     a partner. Cyanotype's analytics are built ("Analytics and consent"), so the partner parts add these events.
 11. **Buttons as a kit, not a widget:** four labels (choice 3), the site's head as a file, a sample style and the

@@ -1,9 +1,8 @@
 <script lang="ts">
   // The section "A link to the Analysis board" of the sites' pages for developers (Hedge School's design 21): a game or
   // a line on the free board, from a set-up start too, at a position. `moves` is the site's word for a game's moves
-  // ("edges" on Hedge School). `more` holds the items of the site's own, after the shared ones.
-  import type { Snippet } from "svelte";
-  let { live, moves, more }: { live: string; moves: string; more?: Snippet } = $props();
+  // ("edges" on Hedge School).
+  let { live, moves }: { live: string; moves: string } = $props();
   const link = $derived(`const link = "${live}/analysis#" + new URLSearchParams({ record });
 // opened at the position after the first 12 ${moves}:
 const link = "${live}/analysis#" + new URLSearchParams({ record, at: "12" });`);
@@ -23,5 +22,4 @@ const link = "${live}/analysis#" + new URLSearchParams({ record, at: "12" });`);
     <code>Position</code> tag). The engine checks that a game can reach it.</li>
   <li><strong><code>at</code>:</strong> the position that the board opens at, as a number of {moves} from the start.
     Without it, the board opens at the start.</li>
-  {@render more?.()}
 </ul>

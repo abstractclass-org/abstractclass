@@ -3,6 +3,7 @@
   // that both sites make. `lenient` lists what the site's reader takes beyond its notation page, and `changes` holds the
   // dated items of the site's list of changes, when it has one.
   import type { Snippet } from "svelte";
+  import { PROTOCOL } from "../partners.ts";
   let { site, lenient, changes }: { site: string; lenient: string; changes?: Snippet } = $props();
 </script>
 
@@ -15,7 +16,7 @@
     form.</li>
   <li><strong>During the early access, an address can move.</strong> The old address then forwards to the new one for
     a while, and this page says, a month before, when it stops.</li>
-  <li><strong>The messages have a version,</strong> <code>protocol: 1</code>. A later version would be one that the
+  <li><strong>The messages have a version,</strong> <code>protocol: {PROTOCOL}</code>. A later version would be one that the
     save page asks for in its <code>ready</code> message. A page that asks for none keeps getting version 1.
     {site}'s own <code>ready</code> names the version that it asks for.</li>
   <li><strong>The review file is {site}'s:</strong> store it as it is. Its contents can change, and it carries

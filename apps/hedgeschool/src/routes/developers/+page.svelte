@@ -40,7 +40,7 @@
   <Intro site={SITE_NAME} game="Enclosure" />
 
   <ReviewLink site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} moves="edges">
-    {#snippet start()}
+    {#snippet refusals()}
       <li><strong>The online rules from the standard start only.</strong> {SITE_NAME} refuses a record whose
         <code>Rules</code> tag has a value, or whose <code>Position</code> tag gives a start other than the standard
         start. A message says why. In either tag, {SITE_NAME} reads <code>?</code> or <code>-</code> as no value. Show
@@ -51,7 +51,7 @@
   <AnalysisLink live={SITE_ORIGIN} moves="edges" />
 
   <SaveBack site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES}>
-    {#snippet list()}{SITE_NAME} lists its partner sites: {@render discord()} to join the list.{/snippet}
+    {#snippet partnerList()}{SITE_NAME} lists its partner sites: {@render discord()} to join the list.{/snippet}
   </SaveBack>
 
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />

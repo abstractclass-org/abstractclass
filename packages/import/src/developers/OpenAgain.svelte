@@ -2,13 +2,13 @@
   // The section "A saved review opened again" of the sites' pages for developers (Hedge School's design 18, item 7): the
   // messages of receiveKeptReview (partners.ts), and the tie between the pages that both exchanges need.
   import { PROTOCOL } from "../partners.ts";
-  import { messageConstant } from "./names.ts";
+  import { addressConstant, exampleSave } from "./names.ts";
   let { site, live, messages }: { site: string; live: string; messages: string } = $props();
-  const NAME = $derived(messageConstant(messages));
+  const NAME = $derived(addressConstant(messages));
   const open = $derived(`// On the partner's page that shows a kept review, at the player's click:
 const ${NAME} = "${live}";
 const tab = window.open(${NAME} + "/review#" + new URLSearchParams({
-  from: location.origin, save: "https://example.com/${messages}/save?game=123" }));
+  from: location.origin, save: "${exampleSave(messages)}" }));
 window.addEventListener("message", event => {
   if (event.origin !== ${NAME} || event.source !== tab) return;
   if (event.data?.type !== "${messages}:ready") return;
