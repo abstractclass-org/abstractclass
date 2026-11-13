@@ -1580,7 +1580,6 @@
   let chart = $state<"advantage" | "difficulty">("advantage");
   let showArea = $derived(display.areaLine);
   const ending = $derived(view.ending(R.data)); // the game's outcome, by the rules or by the record (the game's)
-  const endedByRules = $derived(R.endedByRules); // the model's rule for the end (model.ts, review)
   const status = $derived.by(() => {
     // The position's own turn, in a variation and on the board: the turn as in the game.
     const turnHere = () => {
@@ -1592,7 +1591,7 @@
       if (over) return `Game over · ${resultText(resultOfScores(position.scores), view.fmtMargin)}`;
       return `${view.words.Move} ${(position.count ?? path.length) + 1} · ${turnHere()}`;
     }
-    if (pos === last) return endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
+    if (pos === last) return R.endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
     const t = R.turnOf[pos];
     const k = t.edges.findIndex(e => e.index === pos) + 1;
     return `${view.words.Move} ${pos + 1} of ${last} · Turn ${t.number} · ${PLAYER_NAME[mover]} to play, ${view.words.move} ${k} of ${t.edges.length}`;
@@ -1637,7 +1636,7 @@
   // for a draw (resultSide), so that a win by 0.03 never reads "even": "Result: Red +0.03". A record that ends before
   // the rules end the game keeps the engine's lead there.
   const leadOrResult = (i: number) => {
-    if (i === last && endedByRules) return `Result: ${resultSide([R.data.result.blue, R.data.result.red])}`;
+    if (i === last && R.endedByRules) return `Result: ${resultSide([R.data.result.blue, R.data.result.red])}`;
     const s = R.blueScore[i];
     return s === undefined ? undefined : `Lead: ${sideText(s, 1)}`;
   };
@@ -1665,7 +1664,7 @@
   // game, whose value is the result: the chart draws the rest as a first estimate. The end of a record that ends before
   // has a search, which the review's passes deepen (analysis.svelte.ts, passCount), as any position's.
   const chartSettled = $derived(R.data.positions.map((_, i) =>
-    (i === last && endedByRules) || deepEnough(R.data.analysis[i], reviewVisits)));
+    (i === last && R.endedByRules) || deepEnough(R.data.analysis[i], reviewVisits)));
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends
   // (searchLine.ts, searchFill). With the threat on, the header shows the threat's search, as Lichess's engine box shows
@@ -1844,7 +1843,7 @@
     hard position. <a href="/how-reviews-work" target="_blank" rel="noopener noreferrer">How it works</a></p>
   <p class="mb-3.75">
     <strong>{ending}</strong>
-    ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{endedByRules ? "" : " on the board"}).
+    ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{R.endedByRules ? "" : " on the board"}).
     {#if reviewRuns}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->

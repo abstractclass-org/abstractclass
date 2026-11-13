@@ -11,12 +11,15 @@
 // message.
 // The chart's note at the end of a record that ends before the rules end the game: the review searches that end in
 // both passes (analysis.svelte.ts, passCount), so while the end has only the first pass's result, the note says
-// " · first estimate" (ReviewView.svelte, chartSettled; design 06, item 8). The same games that end early, with the
-// first pass's result at the end in place of the review's: Hedge School's review file with its end's result at the
-// sweep's visits, and Cyanotype's stored results without the end's result at the review's depth.
+// " · first estimate" and the legend shows the first estimate's line (ReviewView.svelte, chartSettled and chartRough;
+// design 06, item 3). The same games that end early, with the first pass's result at the end in place of the
+// review's: Hedge School's review file with its end's result at the sweep's visits, and Cyanotype's stored results
+// without the end's result at the review's depth. With the end searched deep (every result of both at the review's
+// 512 visits), the legend has no first estimate.
 // Run: npx playwright test tests/last-move-result.spec.ts, with BASE_URL and CYANOTYPE_BASE_URL.
 import { readFileSync } from "node:fs";
-import { SWEEP_VISITS, analysisKey, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
+import { SWEEP_VISITS, analysisKey, keyMoves, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
+import { parseRecord } from "../src/lib/game/record.ts";
 import { expect, type Page, test } from "./page-log.ts";
 import { keepBefore } from "./keep-before.ts";
 import { type ReviewFileInput, loadReviewFile } from "./review-file.ts";
@@ -27,6 +30,8 @@ const ENDED = "tests/fixtures/hedgefund-review.json";
 const CUT = "tests/fixtures/twin-turn-review.json";
 /** Cyanotype's stored review of its whole test game. */
 const WHOLE = OTHER_STORED.find(s => s.turns === Infinity)!.file;
+/** The tooltip of the legend's first estimate, which shows while a position has only its first search (chartRough). */
+const ROUGH = "Refined as the review runs";
 
 /** The tooltips (the titles) of the move list's moves, in the game's order: the list draws the moves in their order,
  *  and these games have no variation. */
@@ -43,14 +48,21 @@ async function chartEnd(page: Page): Promise<string> {
   return (await chart.locator("span", { hasText: /^(Result|Lead): / }).innerText()).trim();
 }
 
+/** Waits until every move's tooltip has its lead (or the game's result): the review has read the results. The last
+ *  move and one more at least: an empty list, before the list draws its rows, has no move to check. Cyanotype's paste
+ *  goes on to the review's page: a read that the navigation stops counts as not yet, since expect.poll does not retry
+ *  an error. */
+async function waitForLeads(page: Page) {
+  await expect.poll(async () => {
+    const tips = await moveTips(page).catch(() => []);
+    return tips.length > 1 && tips.every(tip => /(^| · )(Lead|Result): /.test(tip));
+  }, { message: "every move's tooltip has its lead", timeout: 120_000 }).toBe(true);
+}
+
 /** Checks the moves' tooltips once the review has given each a lead: the last move's holds the chart's words at the
  *  game's end, which start with `end`, and no other move's says "Result:". */
 async function checkTips(page: Page, end: "Result:" | "Lead:") {
-  // The last move and one more at least: an empty list, before the list draws its rows, has no move to check.
-  await expect.poll(async () => {
-    const tips = await moveTips(page);
-    return tips.length > 1 && tips.every(tip => /(^| · )(Lead|Result): /.test(tip));
-  }, { message: "every move's tooltip has its lead", timeout: 120_000 }).toBe(true);
+  await waitForLeads(page);
   const tips = await moveTips(page);
   expect(tips.slice(0, -1).flatMap((tip, i) => tip.includes("Result:") ? [`move ${i + 1}: ${tip}`] : []),
          "the other moves' tooltips that say Result:").toEqual([]);
@@ -65,9 +77,7 @@ async function checkTips(page: Page, end: "Result:" | "Lead:") {
  *  the second pass has not searched the end yet. */
 function firstPassEnd(path: string): ReviewFileInput {
   const file = JSON.parse(readFileSync(path, "utf8"));
-  // The record's moves, in the results' keys' form: its edges without the moves' numbers and the result
-  const moves = (file.record as string).split("\n\n").at(-1)!.split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t))
-    .join(" ");
+  const record = parseRecord(file.record), moves = keyMoves(null, record.moves, record.komi).join(" ");
   let ends = 0;
   file.analyses = file.analyses.map(([key, value]: [string, Record<string, unknown>]) => {
     const k = readAnalysisKey(key);
@@ -90,15 +100,12 @@ function firstPassEndResults(): [string, unknown][] {
   return readStored().analyses.filter(([key]) => key !== deep[0]);
 }
 
-/** The chart's note at the end, with the pointer over the chart's last position, once every move's tooltip has its
- *  lead: the review has read the stored results. Cyanotype's paste goes on to the review's page: a read that the
- *  navigation stops counts as not yet, since expect.poll does not retry an error. */
-async function chartEndOnceRead(page: Page): Promise<string> {
-  await expect.poll(async () => {
-    const tips = await moveTips(page).catch(() => []);
-    return tips.length > 1 && tips.every(tip => /(^| · )Lead: /.test(tip));
-  }, { message: "every move's tooltip has its lead", timeout: 120_000 }).toBe(true);
-  return chartEnd(page);
+/** Checks the chart at the end of a record that ends early, while the end has the first pass's result only: the note
+ *  there says " · first estimate", and the legend shows the first estimate's line. */
+async function checkShallowEnd(page: Page) {
+  await waitForLeads(page);
+  expect(await chartEnd(page), "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
+  await expect(page.getByTitle(ROUGH), "the legend's first estimate").toBeVisible();
 }
 
 /** Opens the review file `file` on Hedge School, with the engine off and the labels judging `judge`, and waits for the
@@ -124,6 +131,7 @@ for (const judge of ["edge", "turn"] as const) {
     test("says Lead: when the record ends before the rules end the game", async ({ page }) => {
       await reviewOnHedgeSchool(page, CUT, judge);
       await checkTips(page, "Lead:");
+      await expect(page.getByTitle(ROUGH), "the legend's first estimate, with the end searched deep").toHaveCount(0);
     });
   });
 
@@ -144,13 +152,14 @@ for (const judge of ["edge", "turn"] as const) {
     test("says Lead: when the record ends before the rules end the game", async ({ page }) => {
       await reviewTestGame(page, { judge });
       await checkTips(page, "Lead:");
+      await expect(page.getByTitle(ROUGH), "the legend's first estimate, with the end searched deep").toHaveCount(0);
     });
   });
 
   test.describe(`the chart's note at the end of a record that ends early, by ${judge}`, () => {
     test("says first estimate on Hedge School while the end has the first pass's result only", async ({ page }) => {
       await reviewOnHedgeSchool(page, firstPassEnd(CUT), judge);
-      expect(await chartEndOnceRead(page), "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
+      await checkShallowEnd(page);
     });
 
     test("says first estimate on Cyanotype while the end has the first pass's result only", async ({ page }) => {
@@ -158,7 +167,7 @@ for (const judge of ["edge", "turn"] as const) {
       test.skip(why !== "", why);
       await storeReview(page, { judge }, { results: firstPassEndResults() });
       await pasteRecord(page, testRecord(TURNS));
-      expect(await chartEndOnceRead(page), "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
+      await checkShallowEnd(page);
     });
   });
 }
