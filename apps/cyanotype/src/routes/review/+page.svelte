@@ -171,7 +171,7 @@
       body: `This game's last review used an earlier version of ${what}, so the engine reviews the game again.` };
   }
 
-  // The game shown, or none (null) for the Review tab. Undefined until the page has read its address.
+  // The game shown, or none (null or "") for the Review tab. Undefined until the page has read its address.
   let shown = $state<string | null | undefined>(undefined);
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
   // paste, an address typed, back and forward): the page reviews that one from the start. So does a shared review or a
@@ -373,7 +373,7 @@
     <p class="text-blunder" role="alert">{failure}</p>
     {#if !kept}<p class="mt-2">You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>.</p>{/if}
   </div>
-{:else if shown === null}
+{:else if !shown}
   <ReviewHome />
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder" role="alert">The engine could not read this game: {game.error}</p>
