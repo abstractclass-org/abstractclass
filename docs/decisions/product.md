@@ -12106,3 +12106,26 @@ sounds on the review, the Analysis board and Practice, with their settings (desi
   1,280 and 390 pixels: Cyanotype's Analysis board shows the Sound group before the Keyboard group, and its Practice
   shows the ☰ button and the Sound group. Hedge School's panels show as before. The sounds themselves were not heard
   in a test.
+
+### Cyanotype's buttons for partner sites, and the test on its page for developers (2026-11-13)
+
+abscls-8tl1.77. Cyanotype's `/developers` has the sections that abscls-8tl1.51 left out: the buttons, the partners'
+test and the list of changes (design 33, "Partner sites", items 9 and 11).
+
+- **The head:** `static/brand/cyanotype.svg` is the logo's simple drawing at 32 pixels, the drawing of the favicon,
+  with a comment that says where a partner may use it, as Hedge School's `hedge-school.svg` has. `BUTTON_HEAD_SVG` in
+  `src/lib/brand/logo.ts` makes it, `scripts/brand.mjs` writes it, and `logo.test.ts` keeps the file equal to it.
+- **The sample style:** white text on `#0b0c0e`, the ground of the strategyjam.org tools' button, with its faint white
+  edge (`#ffffff33`), which turns white on hover. The pill and the font are Hedge School's. The edge's 2 pixels come
+  out of the padding, so the button has Hedge School's height. The logo's blue tile shows on both grounds.
+- **The labels:** Hedge School's four, with Cyanotype's name (design 33, the third of "The three choices").
+- **The partners' test:** the shared section's `ask` is optional. Cyanotype has no place where a developer asks for a
+  test address, so its text says what the test address does and names no place, as its partner list names none.
+  Hedge School's text keeps its Discord.
+- **The list of changes** starts with the first release, which it names without a date: the link to a review, the
+  link to the Analysis board, and the messages to save a review and open it again, protocol 1.
+- **Hedge School's page reads as before.** Measured on the prerendered `build/developers.html`, before and after,
+  both built as CI builds them: the text of `<main>` with its tags removed and its white space collapsed is the
+  same, and so are its six code blocks and the buttons' style.
+- **The layout test** checks that the page shows the eight samples in their dark style, each with the logo's file
+  loaded, and that the site serves the file as SVG.

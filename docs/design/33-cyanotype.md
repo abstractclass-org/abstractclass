@@ -18,7 +18,7 @@ and Practice from a set-up start are built (abscls-8tl1.40, "Practice against St
 early access is built, as Hedge School's ("Decision", item 11). The player's games, kept in this browser, are built as
 Hedge School's (abscls-8tl1.38, "The player's games"), with their review files (abscls-8tl1.34, "The review files"), the
 review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are built, with no partner
-yet, and the page for developers describes them: their buttons come next ("Partner sites"). The analytics are built
+yet, and the page for developers describes them, with their buttons ("Partner sites"). The analytics are built
 as Hedge School's (abscls-8tl1.48), with PostHog in place of Google Analytics (abscls-xb0k, "Analytics"). Practice's
 games are kept as Hedge School's: in the player's games, and on the site's own server in a build that stores them,
 with the consent banner for their link (abscls-8tl1.50). The Analysis board takes a komi (abscls-8tl1.50, "The
@@ -1168,7 +1168,7 @@ The shared parts are in the packages (abscls-8tl1.74): Hedge School's partner co
 parts as parameters (`partnerSite`). Cyanotype takes a partner's link and saves the review back (items 1 to 6, and
 the partners' test: abscls-8tl1.75), and opens a review that a partner kept (item 7, abscls-8tl1.76). Its parts are
 in `src/lib/game/partners.ts`, with an empty list. The page for developers describes them (item 9,
-abscls-8tl1.51). The buttons, with their section of that page, are abscls-8tl1.77 (the order is below).
+abscls-8tl1.51), with the buttons and the partners' test (items 9 and 11, abscls-8tl1.77).
 
 ### Each part of Hedge School's design
 
@@ -1229,15 +1229,18 @@ Enclosure's alone.
    site's name, its live address (the examples name it), its messages' name and its word for a game's moves.
    **Blueprints' own part, and built:** the item on the games that the review refuses (a set-up start), and what
    its reader takes beyond what a writer writes (unknown tags, a placement without its capture marks, the moves
-   without turn numbers). Its partner list is empty, so the page says that it has none yet. **abscls-8tl1.77 adds**
-   the buttons, the partners' test and the list of changes, which starts on Cyanotype's own first day. Its promises
-   are Hedge School's: lenient reading, additions only, a versioned handshake, the review file as the site's own.
+   without turn numbers). Its partner list is empty, so the page says that it has none yet. The partners' test
+   section says what the test address does and names no place to ask for it, because Cyanotype has none: the
+   section's `ask` is optional, and Hedge School's gives its Discord. The list of changes starts with the first
+   release, which it names without a date. Its promises are Hedge School's: lenient reading, additions only, a
+   versioned handshake, the review file as the site's own.
 10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
     a partner. Cyanotype's analytics are built ("Analytics and consent"), so the partner parts add these events.
 11. **Buttons as a kit, not a widget:** four labels (choice 3), the site's head as a file, a sample style and the
-    markup. **Blueprints' own part:** Cyanotype's head is the logo's simple drawing, at `/brand/cyanotype.svg`
-    ("The logo", item 6), and the sample style is in Cyanotype's colours, white on the dark ground of its tools'
-    button. A test keeps the file equal to the drawing, as Hedge School's `collie.test.ts` does for its collie.
+    markup. **Blueprints' own part, and built:** Cyanotype's head is the logo's simple drawing, at
+    `/brand/cyanotype.svg` ("The logo", item 6), and the sample style is in Cyanotype's colours, white on the dark
+    ground of its tools' button (`#0b0c0e`, with its faint white edge). `logo.test.ts` keeps the file equal to the
+    drawing, as Hedge School's `collie.test.ts` does for its collie.
 
 **The partners' test** (Hedge School's design 18, "Consequences") is shared too. The build of the branch
 `partner_test`, and a local build with `VITE_PARTNER_TEST=1`, count `127.0.0.1` and `localhost` as "the local test
@@ -1487,8 +1490,8 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
    the site does, and its address. The root layout gives it to every page (`og:image`, with its size and alt text, and
    `twitter:card` `summary_large_image`).
 6. **The head for partner sites' buttons.** Hedge School gives its head to partner sites at
-   `/brand/hedge-school.svg` (design 18). Cyanotype's comes with its partner sites ("Partner sites", item 11): the
-   simple drawing at `/brand/cyanotype.svg`, abscls-8tl1.77. Until then Cyanotype has no such file.
+   `/brand/hedge-school.svg` (design 18). Cyanotype's is the simple drawing at `/brand/cyanotype.svg` ("Partner
+   sites", item 11). A comment in the file says where a partner may use it.
 7. **How each file is made.** The drawings are SVG in code (`src/lib/brand/logo.ts`, and the card in `card.ts`). The
    card takes its colours from the site's tokens in the dark theme (`@abstractclass/site/themeTokens.ts`), and its
    cells' size from the board's (`CELL_SIZE`, `src/lib/board/cellMarks.ts`). `scripts/brand.mjs` writes the
@@ -1647,7 +1650,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   `.github/workflows/deploy.yml`.
 - `apps/cyanotype/src/lib/brand/`: the logo ("The logo"). `logo.ts` (the drawings), `Logo.svelte` (the logo at a size),
   `card.ts` (the link preview picture) and `logo.test.ts`. `scripts/brand.mjs` draws the files from them:
-  `src/lib/assets/favicon.svg`, `static/favicon.ico`, `static/apple-touch-icon.png` and `static/brand/card.png`.
+  `src/lib/assets/favicon.svg`, `static/favicon.ico`, `static/apple-touch-icon.png`, `static/brand/card.png` and
+  the head for partner sites' buttons, `static/brand/cyanotype.svg`.
 - `apps/cyanotype/src/routes/+page.svelte`: the home page, as Hedge School's (design 22): what the site is, the calls to
   Practice and the review, the ways in for a game of one's own (the Review tab for a record, a game from strategyjam.org
   through the tools, the Analysis board and its board editor), and a board that plays a scene from a reviewed game
@@ -1914,6 +1918,7 @@ School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach t
 "Cyanotype's import page keeps the game, as Hedge School's" (2026-11-09), "Cyanotype's Play the bot from here, and
 Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), "Cyanotype removes
 earlier engine results, as Hedge School" (2026-11-11), "Cyanotype's header links show from 740 pixels"
-(2026-11-12), "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13), and "Cyanotype's move sounds"
-(2026-11-13). The earlier entries name the site by its first name, Drawing Board.
+(2026-11-12), "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13), "Cyanotype's move sounds"
+(2026-11-13), and "Cyanotype's buttons for partner sites, and the test on its page for developers" (2026-11-13). The
+earlier entries name the site by its first name, Drawing Board.
 [decisions/architecture.md](../decisions/architecture.md), "The repository's variables name their site" (2026-11-13).

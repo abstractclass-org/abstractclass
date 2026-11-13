@@ -4,8 +4,9 @@
 // filled white with the star cut out, which reads at 16 pixels (the header's 28 pixels, the favicon, the
 // strategyjam.org tools' button). The same in both themes: the tile carries its own colour. Logo.svelte draws the logo
 // in the page, svgElement on the tools' button, and scripts/brand.mjs draws the site's files from these drawings
-// (src/lib/assets/favicon.svg, static/favicon.ico, static/apple-touch-icon.png, static/brand/card.png). logo.test.ts
-// keeps the favicon's file equal to its drawing.
+// (src/lib/assets/favicon.svg, static/favicon.ico, static/apple-touch-icon.png, static/brand/card.png, and the head for
+// partner sites' buttons, static/brand/cyanotype.svg). logo.test.ts keeps the favicon's file and the buttons' head
+// equal to their drawing.
 import { center, hexPath, TOUCHING, type Hex } from "#lib/board/hex.ts";
 
 /** The print's Prussian blue, and the white of its lines. */
@@ -87,3 +88,10 @@ export const svgElement = (shapes: readonly Shape[], size: number) =>
  *  never uses it or the iOS icon, and the marks of pure calls keep both out of the page's code. */
 export const FAVICON_SVG = /* @__PURE__ */ svgDocument(LOGO_SMALL, 32,
   "Cyanotype's logo, the simple drawing (design 33, src/lib/brand/logo.ts): the same on light and dark tabs.");
+
+/** The head for partner sites' buttons (static/brand/cyanotype.svg, design 33, "Partner sites", item 11): the simple
+ *  drawing, which the /developers page offers, as Hedge School offers its collie's head. Its comment says where it may
+ *  go. */
+export const BUTTON_HEAD_SVG = /* @__PURE__ */ svgDocument(LOGO_SMALL, 32,
+  "Cyanotype's logo (cyanotype.abstractclass.org). Use it, unchanged but for its size, only in a button or a\n"
+  + "       link that leads to Cyanotype: cyanotype.abstractclass.org/developers#buttons.");

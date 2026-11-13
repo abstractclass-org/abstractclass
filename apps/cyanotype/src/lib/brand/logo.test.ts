@@ -1,15 +1,23 @@
-// Checks Cyanotype's logo (design 33, "The logo"): its drawings, the favicon's file, which must stay the simple drawing
-// (scripts/brand.mjs writes it), and the link preview picture's drawing. Run: npm test.
+// Checks Cyanotype's logo (design 33, "The logo"): its drawings, the favicon's file and the partners' copy for their
+// buttons, which must stay the simple drawing (scripts/brand.mjs writes both), and the link preview picture's drawing.
+// Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { TOUCHING } from "#lib/board/hex.ts";
 import { card, CELLS } from "./card.ts";
-import { FAVICON_SVG, LARGE_FROM, LOGO_LARGE, LOGO_SMALL, logoAt, svgDocument, TOUCH_ICON } from "./logo.ts";
+import { BUTTON_HEAD_SVG, FAVICON_SVG, LARGE_FROM, LOGO_LARGE, LOGO_SMALL, logoAt, shapeMarkup, svgDocument,
+         TOUCH_ICON } from "./logo.ts";
 
 test("the favicon's file draws the logo's simple drawing", () => {
   assert.equal(readFileSync("src/lib/assets/favicon.svg", "utf8"), FAVICON_SVG);
   assert.match(FAVICON_SVG, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 100 100"/);
+});
+
+test("the partners' copy for their buttons draws the logo's simple drawing", () => {
+  assert.equal(readFileSync("static/brand/cyanotype.svg", "utf8"), BUTTON_HEAD_SVG);
+  assert.ok(BUTTON_HEAD_SVG.includes(shapeMarkup(LOGO_SMALL, "\n  ")));
+  assert.match(BUTTON_HEAD_SVG, /cyanotype\.abstractclass\.org\/developers#buttons/);
 });
 
 test("the simple drawing serves below 48 pixels, the full one from there", () => {

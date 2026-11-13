@@ -1,11 +1,13 @@
 <script lang="ts">
   // The page for other sites (design 33, "Partner sites", item 9), on Hedge School's (its design 18): the link that
   // sends a game here, the link to the Analysis board, the messages that save a review back to a partner site and open
-  // it again from there, and what can change. The sections are shared with Hedge School's page
-  // (@abstractclass/import/developers). This page gives Blueprints' parts: its games' refusals and what its reader
-  // takes. The buttons, the partners' test and the list of changes come with Cyanotype's head for the buttons
-  // (abscls-8tl1.77). The partner list is empty (game/partners.ts). The examples name the live site's address, which a
-  // partner's code names.
+  // it again from there, the buttons with the logo (its file is static/brand/cyanotype.svg, written by
+  // scripts/brand.mjs), the partners' test, and what can change. The sections are shared with Hedge School's page
+  // (@abstractclass/import/developers). This page gives Blueprints' parts: its games' refusals, what its reader takes,
+  // its buttons' style and its list of changes. The partner list is empty (game/partners.ts), and the site has no
+  // place where a developer asks to join it or asks for a test address, so the page names none. The examples name the
+  // live site's address, which a partner's code names. A partner tests against a deployment of the branch
+  // partner_test (design 33, "Partner sites"), whose address the page does not give.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import Intro from "@abstractclass/import/developers/Intro.svelte";
@@ -13,15 +15,27 @@
   import AnalysisLink from "@abstractclass/import/developers/AnalysisLink.svelte";
   import SaveBack from "@abstractclass/import/developers/SaveBack.svelte";
   import OpenAgain from "@abstractclass/import/developers/OpenAgain.svelte";
+  import Buttons from "@abstractclass/import/developers/Buttons.svelte";
+  import Testing from "@abstractclass/import/developers/Testing.svelte";
   import WhatCanChange from "@abstractclass/import/developers/WhatCanChange.svelte";
   import { SITE_NAME, SITE_ORIGIN } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   const MESSAGES = "cyanotype"; // the messages' names (game/partners.ts)
+  // The partners' buttons: their style, shown on this page as it is given. White on the dark ground of the
+  // strategyjam.org tools' button, with its faint white edge (design 33, "Partner sites", item 11).
+  const BUTTON_CSS = `.cyanotype-button {
+  display: inline-flex; align-items: center; gap: 0.45em;
+  padding: 0.3em 0.9em 0.3em 0.4em; border: 2px solid #ffffff33; border-radius: 999px;
+  background: #0b0c0e; color: #ffffff; font: 600 15px/1.4 system-ui, sans-serif;
+  text-decoration: none; cursor: pointer;
+}
+.cyanotype-button:hover { border-color: #ffffff; }
+.cyanotype-button img { width: 1.5em; height: 1.5em; margin: 0; flex: none; }`;
 </script>
 
 <PageMeta title="For developers · {SITE_NAME}"
-          description="Link Blueprints games to Cyanotype from your site: review and analysis links, and reviews saved back to your site." />
+          description="Link Blueprints games to Cyanotype from your site: review and analysis links, buttons, and reviews saved back to your site." />
 
 <main class={PROSE}>
   <Intro site={SITE_NAME} game="Blueprints" />
@@ -43,7 +57,23 @@
 
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
-  <WhatCanChange site={SITE_NAME} lenient="unknown tags, a placement without its capture marks, the moves without turn numbers" />
+  <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="cyanotype-button" css={BUTTON_CSS} file="cyanotype.svg"
+           head="the logo" withHead="with {SITE_NAME}'s logo">
+    {#snippet headItem()}
+      <li><strong>The logo:</strong> <a href="/brand/cyanotype.svg" download>cyanotype.svg</a>. It is
+        {SITE_NAME}'s. Use it, unchanged but for its size, only in a button or a link that leads to {SITE_NAME}. Serve
+        it from your own site. Its blue tile keeps it clear on light and dark pages alike.</li>
+    {/snippet}
+  </Buttons>
+
+  <Testing site={SITE_NAME} live={SITE_ORIGIN} />
+
+  <WhatCanChange site={SITE_NAME} lenient="unknown tags, a placement without its capture marks, the moves without turn numbers">
+    {#snippet changes()}
+      <li>The first release: the link to a review, the link to the Analysis board, and the messages to save a review
+        and open it again, protocol 1.</li>
+    {/snippet}
+  </WhatCanChange>
 </main>
 
 <SiteFooter />

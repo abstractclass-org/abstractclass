@@ -246,6 +246,22 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
   });
 }
 
+// Cyanotype's buttons for partner sites (its design 33, "Partner sites", item 11): the four samples on a light and a
+// dark ground, each with the logo's file, which the site serves for partners to download.
+test("Cyanotype's page for developers shows the buttons with the logo", async ({ page }) => {
+  test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+  await page.goto(new URL("/developers#buttons", CYANOTYPE).href);
+  await page.waitForLoadState("networkidle");
+  const samples = page.locator(".cyanotype-button");
+  await expect(samples).toHaveCount(8);
+  await expect(samples.first()).toHaveCSS("background-color", "rgb(11, 12, 14)");
+  const heads = await samples.locator("img").evaluateAll(images =>
+    images.map(i => [(i as HTMLImageElement).complete, (i as HTMLImageElement).naturalWidth]));
+  expect(heads).toEqual(Array(8).fill([true, 32]));
+  const file = await page.request.get(new URL("/brand/cyanotype.svg", CYANOTYPE).href);
+  expect(file.headers()["content-type"]).toMatch(/^image\/svg\+xml/);
+});
+
 // Cyanotype's board editor (its design 33, as Hedge School's design 21), when CYANOTYPE_BASE_URL gives its preview: the
 // board with both hands in its box, beside the panel on a computer and above it on a phone, with the engine's answer
 // in the panel's status when the preview has the engine's files.
