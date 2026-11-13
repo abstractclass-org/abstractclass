@@ -59,13 +59,15 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      score line is teal (`--score`) and the area line magenta (`--area`), apart from the accent's lavender. **The
      chart's note** gives the move and its label, the engine's lead, then a line each for the score and the area of the
      lines shown, with the side ahead named ("Score: Blue +88.9"): the lines have no axis, so their numbers are only
-     there. At the game's last position the note has no score. When the rules ended the game,
-     the game's result takes the lead's place there, as in the move's tooltip ("Result: Red +0.03",
-     item 8). **The score and area lines show or hide** in two ways: the
-     display settings ("Score line", "Area line") say whether each shows when a review opens, and a box beside its name
-     in the legend shows or hides it for the moment, without changing the setting. A line that is off by setting keeps
-     its place in the legend, with its box clear. A click on a box does not focus it, so that the arrow keys still step
-     through the moves. **The labels that the move list shows** (Great, Inaccuracy, Mistake and Blunder) are dots in
+     there. When the rules ended the game, the game's result takes the lead's place at its last position, as in the
+     move's tooltip ("Result: Red +0.03", item 8), and the note there has no score: the result repeats it. At the end
+     of a record that ends before the rules end the game, the note gives the engine's lead and the score so far, as at
+     every other position: the score is in no other line of the note. **The score and area lines show or hide** in
+     two ways: the display settings ("Score line", "Area line") say whether each shows when a review opens, and a box
+     beside its name in the legend shows or hides it for the moment, without changing the setting. A line that is off
+     by setting keeps its place in the legend, with its box clear. A click on a box does not focus it, so that the
+     arrow keys still step through the moves. **The labels that the move list shows** (Great, Inaccuracy, Mistake
+     and Blunder) are dots in
      their label's colour, 7 pixels wide: one for each such turn or edge, in the unit of "Judge by" and for the side
      shown, as many as the game has. A click on a dot goes to its move. By edge, in the narrowest chart (313 pixels at a
      window of 360), two labelled edges next to each other are 2.6 pixels apart, and the second dot covers most of the

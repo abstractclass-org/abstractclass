@@ -1630,13 +1630,16 @@
     const { winner, margin } = resultOfScores(scores);
     return winner === null ? even : `${PLAYER_NAME[winner]} +${smallMargin(margin) ?? ONE_DIGIT.format(margin)}`;
   };
+  // The position whose number is the game's result: the end of a game that the rules ended (the model's rule,
+  // R.endedByRules). The end of a record that ends before is not: its number is the engine's lead.
+  const isResult = (i: number) => i === last && R.endedByRules;
   // The number after a move with its name, in the move's tooltip in the move list and in the chart's tip, or undefined
   // before its analysis: the lead, "Lead: Red +27.5", the engine's estimate (GLOSSARY.md, "Lead"). After a game's last
   // move, when the rules ended it, the number is the game's result, so its name is "Result:", and it takes the rule
   // for a draw (resultSide), so that a win by 0.03 never reads "even": "Result: Red +0.03". A record that ends before
   // the rules end the game keeps the engine's lead there.
   const leadOrResult = (i: number) => {
-    if (i === last && R.endedByRules) return `Result: ${resultSide([R.data.result.blue, R.data.result.red])}`;
+    if (isResult(i)) return `Result: ${resultSide([R.data.result.blue, R.data.result.red])}`;
     const s = R.blueScore[i];
     return s === undefined ? undefined : `Lead: ${sideText(s, 1)}`;
   };
@@ -1645,7 +1648,9 @@
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
   // the engine's lead, which KaTrain's graph plots (B+n) and from which the loss in the lead comes, or the game's
   // result after its last move when the rules ended it (leadOrResult). Under it, the score and the area of the lines
-  // shown: the lines are scaled and have no axis, so their numbers are only here. Made for the position pointed at
+  // shown: the lines are scaled and have no axis, so their numbers are only here. The result repeats the score, so the
+  // end of a game that the rules ended has no score. The end of a record that ends before has one, as any position: its
+  // number is the engine's lead, and the score so far is nowhere else in the note. Made for the position pointed at
   // only: the chart asks for one note at a time.
   function chartTip(i: number) {
     const e = i > 0 ? R.edges[i - 1] : null, t = e ? R.turnOf[e.index] : null;
@@ -1656,7 +1661,7 @@
     // The end of a game that the rules ended is settled (chartSettled): its result never reads as a first estimate.
     const words = leadOrResult(i);
     const value = words === undefined ? "Not analyzed yet" : `${words}${chartSettled[i] ? "" : " · first estimate"}`;
-    const details = [showScore && i !== last && `Score: ${sideText(scoreDiff[i], 1)}`,
+    const details = [showScore && !isResult(i) && `Score: ${sideText(scoreDiff[i], 1)}`,
                      showArea && !!view.second && `${view.second.name}: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
     return { title, value, details };
   }
@@ -1664,7 +1669,7 @@
   // game, whose value is the result: the chart draws the rest as a first estimate. The end of a record that ends before
   // has a search, as any position: the sweep's, then the label stage's (analysis.svelte.ts, passCount).
   const chartSettled = $derived(R.data.positions.map((_, i) =>
-    (i === last && R.endedByRules) || deepEnough(R.data.analysis[i], reviewVisits)));
+    isResult(i) || deepEnough(R.data.analysis[i], reviewVisits)));
   const chartRough = $derived(R.blueWin.some((v, i) => !Number.isNaN(v) && !chartSettled[i]));
   // The position's search, as Lichess shows its depth: the bar fills to the budget and stays full when the search ends
   // (searchLine.ts, searchFill). With the threat on, the header shows the threat's search, as Lichess's engine box shows

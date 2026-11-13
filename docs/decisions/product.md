@@ -12210,3 +12210,27 @@ code ran. Hedge School's review page marks the page before the first paint (desi
   page's scripts. A fourth case lets the code run on `#game=`. On a build of dev without the change, all four failed.
   With it, they passed, and so did Hedge School's `review-file.spec.ts` and Cyanotype's specs of the Review tab's
   games and events.
+
+### The chart's note gives the score at the end of a record that ends early (2026-11-14)
+
+abscls-nwmd, from the decision of 2026-11-13 on a question of abscls-fcvt's review. Design 06 changed.
+
+- **Why:** the advantage chart's note (`chartTip`, `packages/review/src/ReviewView.svelte`) left out "Score:" at the
+  last position of every record. Its reason, that the result repeats the score, holds only when the rules ended the
+  game: there the note says "Result: …". At the end of a record that ends before the rules end the game, the note
+  says "Lead: …", the engine's estimate, and the score so far was in no other line of the note.
+- **The rule:** the note leaves out the score at the end of a game that the rules ended only. The view takes the
+  model's rule for the end (`R.endedByRules`, from abscls-fcvt) in one place, `isResult`, which `leadOrResult`,
+  `chartSettled` and `chartTip` read. Nothing works the rule out again.
+- **The other places agree, unchanged:** the move's tooltip (`leadOrResult`) says "Result:" only where the rules
+  ended the game. The status line says "Game over" there and "The record ends here" at an early end. The summary
+  under the chart adds "on the board" to the score of a record that ends early. Each reads `R.endedByRules`.
+- **What players see,** on both sites (the review is shared), by move and by turn, with the score line on: the note
+  at the end of a record that ends early has a line "Score: …" between the lead and the area (Hedge School) or the
+  stars (Cyanotype). A game that the rules ended keeps "Result:" with no score. With the score line off, no note has
+  a score, as before.
+- **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by move and by turn, with the engine off and the
+  score line on. Its cases of the last move's tooltip now also read the chart's note at the end: one "Score:" line
+  at the end of a record that ends early, none where the rules ended the game. On builds of both sites from dev's
+  code (c3f841d6), the 4 early-end cases failed (no "Score:" in the note). After the change, the spec's 12 cases
+  pass.
