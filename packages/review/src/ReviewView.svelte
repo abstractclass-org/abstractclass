@@ -1203,10 +1203,10 @@
     return out;
   }
 
-  // A move's sound (design 08), a button or a pencil stroke, and another for a move that removes the opponent's pieces
-  // (the game's `sounds.play` tells which): a step one move on plays it, from any key or button, and so does a move
-  // played or clicked in the move list. Other jumps (back, the start and the end, the chart, the fork keys) are silent,
-  // and so is a click on the place already on screen: the board does not change.
+  // A move's sound (design 08), a button or a pencil stroke, and another for a move that removes the other player's
+  // edges or cells (the game's `sounds.play` tells which): a step one move on plays it, from any key or button, and so
+  // does a move played or clicked in the move list. Other jumps (back, the start and the end, the chart, the fork keys)
+  // are silent, and so is a click on the place already on screen: the board does not change.
   function setPath(p: string[], sound = false) {
     const step = p.length === path.length + 1 && sharedLength(p, path) === path.length;
     if (pathKey(p) === here) sound = false;

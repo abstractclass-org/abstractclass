@@ -25,7 +25,7 @@ import { alignMap, boardState, mapIndex } from "./blueprintsMap.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
 import { playMove, preload } from "@abstractclass/site/sound.ts";
 import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
-import { removes } from "../sound.ts";
+import { captures } from "../sound.ts";
 import ReviewBoard from "./ReviewBoard.svelte";
 import EmptyBoard from "./EmptyBoard.svelte";
 import MoveLabel from "./MoveLabel.svelte";
@@ -113,7 +113,7 @@ export const blueprintsView: ViewGame<Blueprints> = {
   display: { load: loadDisplay, save: saveDisplay },
   sounds: {
     Settings: SoundSettings,
-    play: (volume, set, played) => void playMove(volume, set, removes(played?.drawn)),
+    play: (volume, set, played) => void playMove(volume, set, captures(played?.drawn)),
     preload,
   },
 

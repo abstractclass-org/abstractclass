@@ -1,7 +1,7 @@
 # Move sounds
 
 **Status:** in force, built in the review and on Practice, on Hedge School and on Cyanotype. **Decided:** 2026-10-11,
-from Lichess's move sounds, the browsers' rules for sound, and the owner's choice by ear among recorded strokes.
+from Lichess's move sounds, the browsers' rules for sound, and a choice by ear among recorded strokes.
 **Changed:** 2026-10-12, the crayon replaced by a button (the default) and a pencil, chosen in the display settings,
 each with one sound for an edge and another for an edge that cuts. 2026-11-13, the code shared in `packages/site`, and
 Cyanotype's sounds: a placement that captures has the cut's sound (design 33, "The move sounds").
@@ -123,7 +123,8 @@ How the sound was chosen (decisions/product.md, "Move sounds, and progress bars 
   silent. Cyanotype ships the same files at the same paths (design 33, "The move sounds").
 - A set adds its two files to each site and a line in `MOVE_SOUNDS`, with each sound's speed.
 - Another game's site takes the sounds from `packages/site`, and its view says which of its moves have the cut's
-  sound: the shared code calls it the removal's sound, a move that removes the opponent's pieces.
+  sound. The shared code calls it the removal's sound: the sound of a move that removes the other player's edges or
+  cells.
 - A browser that kept "Pencil" from the trial keeps it: the default changes only where nothing was chosen.
 - The puzzles and the lessons can use the same sound later (decisions/open-items.md).
 

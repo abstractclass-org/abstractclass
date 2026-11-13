@@ -1,7 +1,7 @@
-// Move sounds (Hedge School's design 08), on every site: a move has one sound, and a move that removes the
-// opponent's pieces has another (Enclosure's edge that cuts, Blueprints' placement that captures), from a set that the
-// display settings choose. Each site serves the clips from its own static folder, at the paths below: Cyanotype's
-// are Hedge School's, byte for byte (its sound.test.ts).
+// Move sounds (Hedge School's design 08), on every site: a move has one sound, and a move that removes the other
+// player's edges or cells has another, the removal's (Enclosure's edge that cuts, Blueprints' placement that captures),
+// from a set that the display settings choose. Each site serves the clips from its own static folder, at the paths
+// below: Cyanotype's are Hedge School's, byte for byte (its sound.test.ts).
 // - Button (the default), from Pixabay under the Pixabay Content License: "Button Press" by DRAGON-STUDIO (382713) for
 //   a move, "Select Button UI" by Emilianodleon (395763) for a removal.
 // - Pencil: two strokes from "Pencil_lines" by tmkappelt (freesound.org/s/85702, CC0), each without its first 60 ms
@@ -47,8 +47,8 @@ export function preload(set: MoveSound) {
   files[set] ??= KINDS.map(kind => fetch(MOVE_SOUNDS[set][kind].url).then(r => r.arrayBuffer()));
 }
 
-/** A move's sound at a volume from 0 to 1: the set's sound for a move, or for a move that removes the opponent's
- *  pieces. */
+/** A move's sound at a volume from 0 to 1: the set's sound for a move, or for a move that removes the other player's
+ *  edges or cells (`removal`). */
 export async function playMove(volume: number, set: MoveSound, removal = false) {
   const a = audio();
   if (!a || volume <= 0) return;

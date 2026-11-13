@@ -3,5 +3,5 @@
 // A placement that captures nothing, an edit and a pass have the move's sound.
 import type { BoardMove } from "./board/position.ts";
 
-/** Whether the move removes the opponent's cells: a placement that captures, with points or none. */
-export const removes = (move: BoardMove | null | undefined): boolean => move?.type === "place" && move.captured.length > 0;
+/** Whether the move is a placement that captures, with points or none. */
+export const captures = (move: BoardMove | undefined): boolean => move?.type === "place" && move.captured.length > 0;

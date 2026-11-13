@@ -12087,8 +12087,8 @@ sounds on the review, the Analysis board and Practice, with their settings (desi
 - **Moved, not copied** (design 29): `sound.ts` and `SoundSettings.svelte` went from Hedge School's `src/lib` into
   `packages/site`, with the notices page's items of the sounds' sources (`SoundNotices.svelte`). Hedge School's sets,
   clips, defaults, words and times of play are as before. The shared code names its two sounds a move's and a
-  removal's, a move that removes the opponent's pieces, and the settings take the game's word for a move ("edge" on
-  Hedge School, so its text stays "A sound for each edge played or stepped through.").
+  removal's. A removal is a move that removes the other player's edges or cells. The settings take the game's word for
+  a move. It is "edge" on Hedge School, so its text stays "A sound for each edge played or stepped through."
 - **Blueprints' moves:** a placement that captures has the removal's sound (Hedge School's cut's), with points or
   none. A placement that captures nothing, an edit and a pass have the move's sound. The game's end has none. A
   capture removes the opponent's cells as a cut removes an edge, and a set keeps two fixed sounds, each with one

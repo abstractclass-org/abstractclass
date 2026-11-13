@@ -61,7 +61,7 @@
   import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
   import { playMove, preload } from "@abstractclass/site/sound.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
-  import { removes } from "#lib/sound.ts";
+  import { captures } from "#lib/sound.ts";
 
   const MISSING = "The engine is not on this site. You cannot play a practice game.";
 
@@ -78,7 +78,7 @@
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
     settings: () => { settingsOpen = false; notice = ""; },
-    forward: into => { if (display.sound) void playMove(display.volume, display.moveSound, removes(into.move)); },
+    forward: into => { if (display.sound) void playMove(display.volume, display.moveSound, captures(into.move)); },
   });
   const game = $derived(page.game);
   const shown = $derived(page.shown);
@@ -153,7 +153,7 @@
   $effect(() => {
     const played = game?.played ?? [];
     if (played.length > heard && game?.status !== "starting" && page.viewAt === null && display.sound)
-      void playMove(display.volume, display.moveSound, removes(played.at(-1)?.move));
+      void playMove(display.volume, display.moveSound, captures(played.at(-1)?.move));
     heard = played.length;
   });
 
@@ -318,7 +318,6 @@
             title={`Points: Blue ${scores[0]}, Red ${scores[1]}`} />
 {/snippet}
 
-<!-- The display settings, in the side column's place, as on Hedge School's Practice: the move sounds. -->
 {#snippet displaySettings()}
   <div role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0" {@attach intoView}>
     <div class="flex items-center justify-between mb-1">

@@ -1305,10 +1305,10 @@ section and the test's section on Cyanotype's page.
 
 ## The move sounds
 
-Cyanotype has Hedge School's move sounds (design 08), with their settings, on the review and on Practice. The code is
-one in `packages/site`, and the clips are Hedge School's files: a set's sound for a move, and another for a move that
-removes the opponent's pieces (the removal's sound). Enclosure's removal is an edge that cuts. Blueprints' is a
-placement that captures.
+Cyanotype has Hedge School's move sounds (design 08), with their settings, on the review and on Practice. The two
+sites use the same code, in `packages/site`, and the same clips. Each set has a sound for a move, and another for a
+move that removes the other player's edges or cells: the removal's sound. On Hedge School, that move is an edge that
+cuts. On Cyanotype, it is a placement that captures.
 
 1. **Which move plays which sound:**
 
@@ -1326,8 +1326,8 @@ placement that captures.
 3. **The settings,** as on Hedge School: "Move sounds" (on by default), "Sound" (Button, the default, or Pencil) and
    "Volume" (0.4), in the Sound group of the review's display settings. Practice's display settings open from the
    step bar's ☰ button, in the side column's place, as on Hedge School's Practice, and hold only the Sound group. The
-   two pages keep one set of settings, the review's. A browser that kept the review's settings before the sounds had
-   them off, with no switch to turn them on: the sounds then take the default, and every other setting stays.
+   two pages keep one set of settings, the review's. Before the sounds, Cyanotype kept them off in these settings and
+   offered no switch. A browser that kept such settings gets the sounds' defaults, and keeps every other setting.
 4. **The files:** `static/sounds/` holds Hedge School's four clips at its paths, so that one list of sets
    (`MOVE_SOUNDS`) serves both sites. A test keeps them equal to Hedge School's, byte for byte. The notices page names
    their sources, in Hedge School's words (`SoundNotices.svelte` of `packages/site`).
@@ -1438,7 +1438,8 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
      from here", `set_up_start` for a set-up start, and `resumed` (`practiceFrom` in
      `@abstractclass/practice/practice.ts`).
    - **Practice's features** (`feature_name`): `practice komi`, `practice takeback`, `practice look back` and `note
-     drawn`. Cyanotype's Practice has no display settings of Hedge School's, so it sends none of their features.
+     drawn`, and from its display settings `display sound`, `display moveSound` and `display volume`, as on Hedge
+     School. Its display settings hold only the sounds, so it sends none of Hedge School's other display features.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
    - **No event of a part that Cyanotype lacks:** Support Us (`support_open`, abscls-8tl1.49) and Openings
      (abscls-8tl1.53).
@@ -1548,11 +1549,10 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 
 ### By setting
 
-A setting of a feature above comes with that feature: the sounds (on or off, the sound, the volume) with the move
-sounds, the area map's settings (where it shows, its style, its thresholds, the chart's area line) with the area map
-(abscls-8tl1.17), and the mark of a book move with the opening book. The review's settings (what the labels judge, for
-whom, the win chance's form) are Hedge School's, and Cyanotype adds "Move notation" ("The review and the Analysis
-board", item 4). These settings are gaps of their own:
+A setting of a feature above comes with that feature: the area map's settings (where it shows, its style, its
+thresholds, the chart's area line) with the area map (abscls-8tl1.17), and the mark of a book move with the opening
+book. The review's settings (what the labels judge, for whom, the win chance's form) are Hedge School's, and Cyanotype
+adds "Move notation" ("The review and the Analysis board", item 4). These settings are gaps of their own:
 
 - **The networks** (design 09): Hedge School's settings and Practice offer two networks, HedgeFund 0.2 Lite and
   HedgeFund 0.2, and its lock keeps the earlier ones for the games that name them. Cyanotype offers the one network
