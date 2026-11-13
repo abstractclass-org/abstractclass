@@ -554,6 +554,12 @@ engine takes it, and no tag at komi 0.
    Hedge School").
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
+5. **The stored games have their own switch:** the deploy gives Cyanotype's build the repository variable
+   `CYANOTYPE_STORE_PRACTICE_GAMES`, not Hedge School's `VITE_STORE_PRACTICE_GAMES`. So Cyanotype's consent banner and
+   its sending start only after its databases are bound (docs/hosting.md, "Cyanotype's practice games").
+6. **A game set aside whose start the engine cannot read is dropped:** a start brought replaces it, and the game goes
+   neither into Your games nor to the site (`saveUnfinished`). Hedge School's lets the engine's error through. The
+   game could not go on anyway: the page refuses such a start when it prepares the game.
 
 **The layout** (chosen 2026-10-30, after screenshots of three layouts at design 06's sizes):
 
