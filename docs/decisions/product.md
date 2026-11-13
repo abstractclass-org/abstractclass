@@ -12136,3 +12136,35 @@ test and the list of changes (design 33, "Partner sites", items 9 and 11).
   same, and so are its six code blocks and the buttons' style.
 - **The layout test** checks, on both sites' pages, the eight samples in the lavender style, each with the site's head
   loaded, and that the site serves the head's file as SVG.
+
+### The book's time-limit case runs on its own clock (2026-11-14)
+
+Beads abscls-heum, after abscls-wtdm ("A book part of another form fails as a part that fails, and the book's
+time-limit test by file").
+
+- **The failure:** "a part that does not answer in the time limit counts as not loaded"
+  (`apps/hedgeschool/src/lib/book/book.test.ts`) failed at "no headers: one request, then one more" (1 !== 2) in two
+  site suites, in check:all's site-test, with every thread of the machine held. Alone it passed.
+- **The cause:** the test server and the loader share one Node process and one event loop. The start part's read
+  started a real timer of 150 ms. When the process did not run for 150 ms after the read started, the event loop then
+  ran its timers before its input: the timer aborted the fetch before the server read the request. The server counted
+  only the later request. The case also took the abort as proof that the loader stopped its request, because the server
+  had no request open. A copy of the old case that blocks the event loop for 200 ms after `openBook` fails at the same
+  assertion in each run.
+- **How it differs from abscls-wtdm:** there, the index and two other reads took the short limit, so the server's hold
+  of 300 ms made them fail. The limit by file fixed that. Here, the short limit of the start part itself raced the
+  request, in real time.
+- **Not in the loader:** a read that does not reach the server within its limit counts as not loaded, as design 32
+  says ("A file that does not answer"). A player sees no change.
+- **The change, in the case only:** the case mocks `setTimeout` (`t.mock.timers`). A limit and the server's hold end
+  only when the case moves the clock. The case moves it only after the event that it waits for: the server has the
+  request (`next` of the test server). For half a body, the loader also has the headers (the diagnostics channel
+  `undici:request:headers` of Node's fetch). The check "not before the time limit" moves the clock to 1 ms before the
+  limit and requires the lookup to be still pending. The server holds its answers with the global `setTimeout`,
+  because an import of `node:timers/promises` keeps the real timer under the mock. The case takes about 80 ms, not
+  2.5 s.
+- **Checked:** each of three faults in `book.ts` fails the new case: one short limit for every file (the index fails),
+  a loader that does not abort its read (the test's timeout), and a timer at half the limit ("not before the time
+  limit"). Under load, in a job of `scripts/machine run` with 2 threads that 30 busy Node processes held, beside the
+  machine's other jobs: the old case passed 19 of 20 runs, and its one failure was the same assertion. The new case
+  passed 20 of 20. With 6 busy processes, the old case passed 20 of 20, so that load did not show the failure.
