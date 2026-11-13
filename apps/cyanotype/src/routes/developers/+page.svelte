@@ -4,10 +4,10 @@
   // it again from there, the buttons with the logo (its file is static/brand/cyanotype.svg, written by
   // scripts/brand.mjs), the partners' test, and what can change. The sections are shared with Hedge School's page
   // (@abstractclass/import/developers). This page gives Blueprints' parts: its games' refusals, what its reader takes,
-  // its buttons' class name and its list of changes. The partner list is empty (game/partners.ts), and the site has no
-  // place where a developer asks to join it or asks for a test address, so the page names none. The examples name the
-  // live site's address, which a partner's code names. A partner tests against a deployment of the branch
-  // partner_test (design 33, "Partner sites"), whose address the page does not give.
+  // its buttons' class name and head, and its list of changes. The partner list is empty (game/partners.ts), and the
+  // site has no place where a developer asks to join it or asks for a test address, so the page names none. The
+  // examples name the live site's address, which a partner's code names. A partner tests against a deployment of the
+  // branch partner_test (design 33, "Partner sites"), whose address the page does not give.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import Intro from "@abstractclass/import/developers/Intro.svelte";
@@ -48,13 +48,7 @@
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
   <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="cyanotype-button" file="cyanotype.svg"
-           head="the logo" withHead="with {SITE_NAME}'s logo">
-    {#snippet headItem()}
-      <li><strong>The logo:</strong> <a href="/brand/cyanotype.svg" download>cyanotype.svg</a>. It is
-        {SITE_NAME}'s. Use it, unchanged but for its size, only in a button or a link that leads to {SITE_NAME}. Serve
-        it from your own site. Its blue tile keeps it clear on light and dark pages alike.</li>
-    {/snippet}
-  </Buttons>
+           head="the logo" withHead="with {SITE_NAME}'s logo" contrast="blue tile" />
 
   <Testing site={SITE_NAME} live={SITE_ORIGIN} />
 

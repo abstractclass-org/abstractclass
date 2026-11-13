@@ -3,9 +3,9 @@
   // messages that save its review back to a partner site and open it again from there, the buttons with the collie
   // (its file is static/brand/hedge-school.svg), and what can change. The sections are shared with Cyanotype's page
   // (@abstractclass/import/developers). This page gives Hedge School's parts: its games' refusals, its Discord, its
-  // buttons' class name and its list of changes. The game record's notation has its own page. The examples name the live
-  // site's address, which a partner's code names. A partner tests against a deployment of the branch partner_test
-  // (design 18), whose address the page does not give.
+  // buttons' class name and head, and its list of changes. The game record's notation has its own page. The examples
+  // name the live site's address, which a partner's code names. A partner tests against a deployment of the branch
+  // partner_test (design 18), whose address the page does not give.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import Intro from "@abstractclass/import/developers/Intro.svelte";
@@ -48,13 +48,7 @@
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
   <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="hedge-school-button" file="hedge-school.svg"
-           head="the collie" withHead="with the school's collie">
-    {#snippet headItem()}
-      <li><strong>The collie:</strong> <a href="/brand/hedge-school.svg" download>hedge-school.svg</a>. It is
-        {SITE_NAME}'s. Use it, unchanged but for its size, only in a button or a link that leads to {SITE_NAME}. Serve
-        it from your own site. Its white outline keeps it clear on light and dark pages alike.</li>
-    {/snippet}
-  </Buttons>
+           head="the collie" withHead="with the school's collie" contrast="white outline" />
 
   <Testing site={SITE_NAME} live={SITE_ORIGIN} ask={discord} />
 

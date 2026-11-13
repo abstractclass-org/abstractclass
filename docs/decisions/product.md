@@ -12115,6 +12115,8 @@ test and the list of changes (design 33, "Partner sites", items 9 and 11).
 - **The head:** `static/brand/cyanotype.svg` is the logo's simple drawing at 32 pixels, the drawing of the favicon,
   with a comment that says where a partner may use it, as Hedge School's `hedge-school.svg` has. `BUTTON_HEAD_SVG` in
   `src/lib/brand/logo.ts` makes it, `scripts/brand.mjs` writes it, and `logo.test.ts` keeps the file equal to it.
+  The page's item on the file gives the same terms of use as Hedge School's, from one text in the shared section:
+  each site gives the head's name, its file and the part that keeps it clear ("white outline", "blue tile").
 - **The sample style:** Hedge School's, near-black text on the pale lavender accent (`#b8a6e8`, `#c6b8ee` on
   hover), because Cyanotype's accent is Hedge School's lavender. A first build gave white text on `#0b0c0e`, the
   ground of the strategyjam.org tools' button, with a faint white edge. On a look at it, the buttons took the accent
@@ -12130,5 +12132,5 @@ test and the list of changes (design 33, "Partner sites", items 9 and 11).
 - **Hedge School's page reads as before.** Measured on the prerendered `build/developers.html`, before and after,
   both built as CI builds them: the text of `<main>` with its tags removed and its white space collapsed is the
   same, and so are its six code blocks and the buttons' style.
-- **The layout test** checks that the page shows the eight samples in the lavender style, each with the logo's file
-  loaded, and that the site serves the file as SVG.
+- **The layout test** checks, on both sites' pages, the eight samples in the lavender style, each with the site's head
+  loaded, and that the site serves the head's file as SVG.

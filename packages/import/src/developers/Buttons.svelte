@@ -2,15 +2,15 @@
   // The section "Buttons" of the sites' pages for developers (Hedge School's design 18, item 11): a kit, not a widget.
   // The site gives its head (`file`, served at /brand/, and `head`, its name in the text, as "the collie"), the class
   // name of the sample style (`className`: the style is one for both sites, buttonStyle.ts, and this page also uses
-  // it) and `withHead`, the words that introduce the head. `headItem` is the item on the head's file and its use. The
-  // four labels have the site's name.
-  import type { Snippet } from "svelte";
+  // it), `withHead`, the words that introduce the head, and `contrast`, the part of the head that keeps it clear on
+  // light and dark pages (as "white outline"). The item on the head's file gives the same terms of use on both sites.
+  // The four labels have the site's name.
   import { buttonCss } from "./buttonStyle.ts";
-  let { site, live, className, file, head, withHead, headItem }: {
-    site: string; live: string; className: string; file: string; head: string; withHead: string;
-    headItem: Snippet;
+  let { site, live, className, file, head, withHead, contrast }: {
+    site: string; live: string; className: string; file: string; head: string; withHead: string; contrast: string;
   } = $props();
   const css = $derived(buttonCss(className));
+  const headTitle = $derived(head[0].toUpperCase() + head.slice(1));
   const shown = $derived<[string, string][]>([[`Review in ${site}`, ""], ["Review", `Review in ${site}`],
                                                [`Open in ${site}`, ""], ["Open", `Open in ${site}`]]);
   const buttons = $derived(`<!-- On a finished game: a link, made as "A link to a review" shows. -->
@@ -45,7 +45,9 @@
   </div>
 {/each}
 <ul>
-  {@render headItem()}
+  <li><strong>{headTitle}:</strong> <a href="/brand/{file}" download>{file}</a>. It is {site}'s. Use it, unchanged
+    but for its size, only in a button or a link that leads to {site}. Serve it from your own site. Its {contrast}
+    keeps it clear on light and dark pages alike.</li>
   <li><strong>The style is yours to change:</strong> the colours and the font can follow your site. Keep the labels'
     words, so that players know where a button leads.</li>
   <li><strong>A short label</strong> leaves the name to {head}. Give its button the full label as its

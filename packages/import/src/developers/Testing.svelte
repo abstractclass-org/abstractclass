@@ -7,14 +7,7 @@
 </script>
 
 <h2 id="test">Testing</h2>
-{#if ask}
-  <p>To test before your own site is live, {@render ask()} for a test address. It runs the
-    next release of {site}, and it also takes a save page and a <code>from</code> on your own computer:
-    <code>http://localhost</code> or <code>http://127.0.0.1</code>, on any port. In your test code, use its address in
-    place of <code>{live}</code>. A test address shows one build: ask again for a later one.</p>
-{:else}
-  <p>To test before your own site is live, use a test address of {site}. It runs the next release of {site}, and it
-    also takes a save page and a <code>from</code> on your own computer: <code>http://localhost</code> or
-    <code>http://127.0.0.1</code>, on any port. In your test code, use its address in place of
-    <code>{live}</code>. A test address shows one build.</p>
-{/if}
+<p>To test before your own site is live, {#if ask}{@render ask()} for a test address{:else}use a test address of
+  {site}{/if}. It runs the next release of {site}, and it also takes a save page and a <code>from</code> on your own
+  computer: <code>http://localhost</code> or <code>http://127.0.0.1</code>, on any port. In your test code, use its
+  address in place of <code>{live}</code>. A test address shows one build{#if ask}: ask again for a later one{/if}.</p>
