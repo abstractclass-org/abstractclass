@@ -12179,3 +12179,31 @@ time-limit test by file").
   - Node 24.22 and Node 26.13 behave the same. `book.test.ts` passes 16 of 16. A named import of
     `node:timers/promises` keeps the real timer, and its default import gets the mock. After a case that fails, the
     next case has the real `setTimeout` again.
+
+### Cyanotype's review page before its code runs, as Hedge School's (2026-11-14)
+
+abscls-8tl1.45, a gap of design 33 ("The gaps from Hedge School"). Until the page's code ran, Cyanotype's `/review`
+showed the line "Reading the game with the engine's rules…" at every address, and its Review tab came only after the
+code ran. Hedge School's review page marks the page before the first paint (design 22, "Its first paint").
+
+- **Moved, not copied** (design 29): the script in the review page's head goes into
+  `packages/review/src/pageMarks.ts`, and the variants `review-game` and `review-last` that read its marks into
+  `packages/review/src/review.css`. Each site gives its key of the last review, and whether it takes Hedge School's
+  older addresses (an older query's `?game=` and a tool's game from before the import page, `#tool=`), in its own
+  `src/lib/review/pageMarks.ts`. Hedge School's script is the same text with its own key, and its `pageMarks.test.ts`
+  passes as before.
+- **Cyanotype's page** holds the Review tab and the line, as Hedge School's does, and the marks show one of them. An
+  address with `#game=`, `#packed=` or `#from=` shows the line. A last review kept in this browser keeps the room of
+  "Continue your last review", and the footer shows with no script. The Review tab's input takes a file chosen before
+  the page's code ran, and carries `data-ready` once the tab opens. The browser tests' helper `chooseReviewFile`
+  waits for it, as Hedge School's `loadReviewFile` does.
+- **An empty game id** (`#game=`): Cyanotype's page showed the line "Reading the game with the engine's rules…" and
+  never the Review tab, also on main. The page now gives it the Review tab, as Hedge School's does.
+- **No difference that a player sees** from Hedge School's behaviour, other than the older addresses, which Cyanotype
+  never had.
+- **Checked:** Cyanotype's `pageMarks.test.ts` runs the head's script at each way in, and checks that it agrees with
+  the page's own reading of the address. The browser cases in `cyanotype-review-early.spec.ts` hold every script of
+  the page: the line or the Review tab at each address, the room of the last review's link, and a file chosen before
+  the code ran. A fourth case lets the code run on `#game=`. On a build of dev without the change, all four failed.
+  With it, they passed, and so did Hedge School's `review-file.spec.ts` and Cyanotype's specs of the Review tab's
+  games and events.

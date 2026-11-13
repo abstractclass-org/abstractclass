@@ -198,11 +198,13 @@ ask where it goes (design 21): with that choice, "import" again names what the p
 ## Where it is
 
 - `src/routes/review/+page.svelte` and `src/lib/review/Arrival.svelte` (the review's ways in),
-  `src/lib/review/ReviewHome.svelte` (the Review tab), `src/lib/review/pageMarks.ts` (the script in the review page's
-  head, and the variants `review-game` and `review-last` in `src/app.css`), `src/routes/analysis/+page.svelte` (the
-  board's), `src/routes/import/+page.svelte` (the games from outside), `src/routes/tools/+page.svelte`,
-  `src/routes/+layout.svelte` (the header, the analytics' start), `packages/import/src/importHash.ts` (the parameters,
-  `holdsGame`, `reviewArrives`), `src/lib/game/board.ts` and `src/lib/game/share.ts` (`packed`),
+  `src/lib/review/ReviewHome.svelte` (the Review tab), `packages/review/src/pageMarks.ts` (the script in the review
+  page's head, which Cyanotype shares, with Hedge School's key and older addresses in `src/lib/review/pageMarks.ts`,
+  and the variants `review-game` and `review-last` in `packages/review/src/review.css`),
+  `src/routes/analysis/+page.svelte` (the board's), `src/routes/import/+page.svelte` (the games from outside),
+  `src/routes/tools/+page.svelte`, `src/routes/+layout.svelte` (the header, the analytics' start),
+  `packages/import/src/importHash.ts` (the parameters, `holdsGame`, `reviewArrives`), `src/lib/game/board.ts` and
+  `src/lib/game/share.ts` (`packed`),
   `src/routes/developers/+page.svelte`.
 
 ## Log entries

@@ -6,7 +6,7 @@
   // to the Analysis board, as on Hedge School. The tab counts its events as Hedge School's does (its design 17): the
   // games kept, a delete and a delete stopped, an import and its failure, a review file loaded, a file that cannot load,
   // and the exports.
-  import { onMount } from "svelte";
+  import { untrack } from "svelte";
   import { goto } from "$app/navigation";
   import GameList, { type GameRow } from "@abstractclass/review/GameList.svelte";
   import type { ExportKind } from "@abstractclass/review/exports.ts";
@@ -31,6 +31,10 @@
   import { GAME_RANGES, range } from "@abstractclass/site/measure.ts";
   import ChooseNetwork, { NetworkChoice } from "@abstractclass/review/ChooseNetwork.svelte";
 
+  // The page has chosen the Review tab (src/routes/review/+page.svelte), as on Hedge School. Before, its address may
+  // name a game, and the tab only shows, as prerendered, where the address names none.
+  let { chosen }: { chosen: boolean } = $props();
+
   let text = $state("");
   let problem = $state("");
   let checking = $state(false);
@@ -48,13 +52,18 @@
   };
   // Whether the browser keeps the games for good (@abstractclass/storage/persist.ts): it asked when a game was kept.
   let kept = $state(false);
-  // "Continue your last review", the list and the storage line come together once the browser's games are read
-  // (`read`), and the footer under the list waits for them, so that it does not move when they come. The request for
-  // persistent storage comes after: Firefox asks the visitor, and the tab does not wait for the answer.
+  // The tab's fixed parts are in the prerendered page: the heading, the text, the import and the footer, as on Hedge
+  // School. "Continue your last review", the list and the storage line come together once the browser's games are read
+  // (`read`). Until then the link's room is kept where the head's script found a last review (pageMarks.ts,
+  // `review-last`), and the footer under the list waits, so that nothing moves when they come (a layout shift). The
+  // reads start once the page has chosen the tab, and take a few milliseconds. The request for persistent storage comes
+  // after: Firefox asks the visitor, and the tab does not wait for the answer.
   let read = $state(false);
-  onMount(() => void open());
+  $effect(() => { if (chosen) untrack(() => void open()); });
   async function open() {
     manifestLoad = loadManifest();
+    // A file chosen before the page's code ran: the prerendered page shows the input before Svelte attaches a handler.
+    if (fileInput) loadInputFile(fileInput);
     [games, kept] = await Promise.all([listGames(), storageKept().then(Boolean)]); // the list with its line on storage
     lastId = lastReview();
     read = true;
@@ -105,6 +114,7 @@
   let fileProblem = $state("");
   let loadingFile = $state(false);
   let dragging = $state(false);
+  let fileInput = $state<HTMLInputElement>();
   // An analysis file of several networks, or of a network that the site no longer ships: the player chooses one first.
   const networkChoice = new NetworkChoice();
 
@@ -159,7 +169,8 @@
 
   const title = (r: GameRecord) => { const p = playerNames(r.tags); return `${p.blue} against ${p.red}`; };
   const movesText = (n: number) => `${n} ${n === 1 ? "move" : "moves"}`;
-  // "Continue your last review": two lines on a phone and one from 640 pixels, and the link cuts its game to fit.
+  // "Continue your last review" and its room: two lines on a phone and one from 640 pixels, and the link cuts its game
+  // to fit. So the page knows the link's height before it reads the games.
   const CONTINUE = "flex-col sm:flex-row sm:items-baseline gap-x-3 gap-y-1 px-5 py-3.5 bg-panel border border-line rounded-lg";
   // The list's rows (GameList). A game from a set-up start (a practice game from the Analysis board's Play) opens on the
   // Analysis board, as on Hedge School, since the Review tab reviews games from the standard start. The Export's text
@@ -192,6 +203,8 @@
       <strong class="shrink-0">Continue your last review</strong>
       <span class="truncate text-muted">{title(last.record)}, {movesText(last.record.moves.length)}</span>
     </a>
+  {:else if !read}
+    <div class="{CONTINUE} hidden review-last:flex invisible"><strong>Continue your last review</strong><span>&nbsp;</span></div>
   {/if}
 
   <section class="bg-panel border border-line rounded-lg px-5 py-5">
@@ -217,7 +230,10 @@
     <div class="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-line">
       <label class={["px-3 py-1 text-sm rounded border border-line bg-panel-2", loadingFile ? "opacity-50" : "hover:border-accent"]}>
         {loadingFile ? "Loading…" : "Load a review file"}
-        <input type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
+        <!-- data-ready: the page has chosen the tab. By then Svelte has attached the handler, and open() reads a file
+             chosen earlier in the same step. So a file chosen from now on loads. The browser tests wait for it. -->
+        <input bind:this={fileInput} type="file" accept=".json,application/json" class="sr-only" disabled={loadingFile}
+               data-ready={chosen || undefined}
                onchange={e => loadInputFile(e.currentTarget)} />
       </label>
       <span class="flex-1 min-w-56 text-xs text-muted">A review file that {SITE_NAME} exported, from this browser or another. You can
@@ -232,5 +248,5 @@
 
 <ChooseNetwork choice={networkChoice} />
 
-<!-- The footer waits for the list of games, which comes above it. -->
-<div class={[!read && "invisible"]}><SiteFooter /></div>
+<!-- With a script, the footer waits for the list of games, which comes above it. With no script, it shows. -->
+<div class={[!read && "invisible noscript:visible"]}><SiteFooter /></div>

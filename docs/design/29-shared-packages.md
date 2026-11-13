@@ -472,7 +472,10 @@ edit in the same commit), so their changes still apply.
   analysis kept in the browser. `src/GameList.svelte`:
   the Review tab's list of the player's games, with each game's Export and Delete and the line on what the browser
   keeps, with each site's rows (Hedge School's and Cyanotype's `src/lib/review/ReviewHome.svelte`), and the
-  question before a Delete (`@abstractclass/site`'s `ConfirmDialog.svelte`). `src/ImportDialog.svelte`: the Analysis
+  question before a Delete (`@abstractclass/site`'s `ConfirmDialog.svelte`). `src/pageMarks.ts`: the script in the
+  review page's head that marks the page before the first paint (design 22, "Its first paint"), with each site's key of
+  the last review and Hedge School's older addresses (each site's `src/lib/review/pageMarks.ts`), and the variants
+  `review-game` and `review-last` that read its marks (`src/review.css`). `src/ImportDialog.svelte`: the Analysis
   board's Import (design 21), a position, moves or both pasted, with each site's examples, board editor address and
   check (`onimport`). `src/ExportMenu.svelte`
   and `src/exports.ts`: the Export menu, with each page's entries (design 13), and the entries that both sites' pages

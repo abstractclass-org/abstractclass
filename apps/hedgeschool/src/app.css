@@ -73,11 +73,6 @@
   --color-red-winning: var(--red-winning);
 }
 
-/* The review page before its code runs (src/lib/review/pageMarks.ts): a script in its head marks an address that names
-   a game, and a last review kept in this browser. */
-@custom-variant review-game (&:where([data-review-game] *));
-@custom-variant review-last (&:where([data-review-last] *));
-
 /* An empty board's points, in a skeleton (the review's, the Analysis board's, Practice's), as the board draws them: 19 by
    19, one unit apart, 1.3 units in from the edges of a board 20.6 units wide (Board.svelte), each 0.07 units in radius.
    Inside a box of the board's size, positioned. */

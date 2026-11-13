@@ -16,7 +16,7 @@ import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { parseRecord } from "../../cyanotype/src/lib/game/record.ts";
 import { DISPLAY_KEY, ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { OTHER_STORED, STORED, TEST_GAME, TURNS, WHOLE_STORED, readStored, testRecord } from "./cyanotype-fixture.ts";
-import { fileInput, type ReviewFileInput } from "./review-file.ts";
+import { loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 
 // The stored reviews and the games' records: in a module with no Playwright import, for Cyanotype's label snapshot.
 export { OTHER_STORED, STORED, TEST_GAME, TURNS, WHOLE_STORED, readStored, testRecord };
@@ -108,11 +108,11 @@ export async function loadStoredFile(page: Page, file: ReviewFileInput = STORED,
   await chooseReviewFile(page, file);
 }
 
-/** Chooses the review file `file` in the Review tab of `page`, with the settings that the page keeps already, and waits
- *  until the page names its game in the address. */
+/** Chooses the review file `file` in the Review tab of `page`, with the settings that the page keeps already, once the
+ *  tab has opened (loadReviewFile), and waits until the page names its game in the address. */
 export async function chooseReviewFile(page: Page, file: ReviewFileInput) {
   await page.goto(new URL("/review", CYANOTYPE).href);
-  await fileInput(page).setInputFiles(file);
+  await loadReviewFile(page, file);
   await page.waitForURL(/#game=/, { timeout: 60_000 });
 }
 

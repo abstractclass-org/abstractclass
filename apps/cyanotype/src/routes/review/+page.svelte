@@ -58,6 +58,7 @@
   import SharedArrival from "#lib/review/SharedArrival.svelte";
   import PartnerArrival from "#lib/review/PartnerArrival.svelte";
   import ReviewHome from "#lib/review/ReviewHome.svelte";
+  import { REVIEW_PAGE_SCRIPT, markReviewPage } from "#lib/review/pageMarks.ts";
   import { PRACTICE_EVENT } from "#lib/practice/stampduty.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
@@ -171,8 +172,12 @@
       body: `This game's last review used an earlier version of ${what}, so the engine reviews the game again.` };
   }
 
-  // The game shown, or none (null or "") for the Review tab. Undefined until the page has read its address.
+  // The game shown, or none (null or "") for the Review tab. Undefined until the page has read its address, as in the
+  // prerendered page: the page then holds both the Review tab and the line of text, and the marks of the script in its
+  // head show one of them (pageMarks.ts), as on Hedge School. The script runs again here, for an address that a
+  // navigation in the page opened.
   let shown = $state<string | null | undefined>(undefined);
+  if (typeof document !== "undefined") markReviewPage();
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
   // paste, an address typed, back and forward): the page reviews that one from the start. So does a shared review or a
   // partner's kept review after the `#`, as a link pasted in the address bar over the Review tab brings it. A change of
@@ -353,6 +358,7 @@
   }
 </script>
 
+<svelte:head>{@html `<script>${REVIEW_PAGE_SCRIPT}</script>`}</svelte:head>
 <PageMeta title="{kept ? 'Game review' : 'Review a game'} · {SITE_NAME}" noindex={!!kept}
           description="Review your Blueprints game: Stamp Duty, the engine in your browser, judges each move, and shows where the game turned and what was better." />
 
@@ -374,7 +380,8 @@
     {#if !kept}<p class="mt-2">You can paste a game record in the <a href="/review" data-sveltekit-reload>Review tab</a>.</p>{/if}
   </div>
 {:else if !shown}
-  <ReviewHome />
+  {#if shown === undefined}<p class="{MESSAGE} text-muted hidden review-game:block">Reading the game with the engine's rules…</p>{/if}
+  <div class={["contents", shown === undefined && "review-game:hidden"]}><ReviewHome chosen={shown !== undefined} /></div>
 {:else if game?.error && !game.rulesReady}
   <p class="{MESSAGE} text-blunder" role="alert">The engine could not read this game: {game.error}</p>
 {:else if R}

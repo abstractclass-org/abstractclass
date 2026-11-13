@@ -1098,11 +1098,13 @@ settings of its design 09 and the marks of its design 13), in the code that both
     the page is idle. Then it removes the results of another search, and of a network file that the lock no longer
     ships, that no stored game's review snapshot reads. A start removes the results of an older shape too, as Hedge
     School's does.
-
-**Where it departs from Hedge School's:**
-
-- **No marks before the first paint:** until the page's code runs, `/review` shows the line "Reading the game with the
-  engine's rules…", not the Review tab. abscls-8tl1.45.
+13. **The first paint,** as Hedge School's (its design 22, "Its first paint"), in the code that both sites share
+    (`packages/review/src/pageMarks.ts`): `/review` prerenders as the Review tab, and a script in its head marks the
+    page before the first paint. An address that names a game (`#game=`), a shared review (`#packed=`) or a partner's
+    kept review (`#from=`) shows the line "Reading the game with the engine's rules…" in place of the tab. A last
+    review kept in this browser keeps the room of "Continue your last review" until the tab reads the games. A review
+    file chosen before the page's code runs loads once the tab opens. Cyanotype has no older addresses, so Hedge
+    School's `?game=` and a tool's game after the `#` get the Review tab.
 
 ### The review files
 
@@ -1547,7 +1549,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
 - **The opening book** in the review and on the Analysis board (`book/`, design 32). Put off with the Openings page:
   abscls-8tl1.53 (deferred).
 - **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
-- **The review's marks before the first paint** (`review/pageMarks.ts`, design 23). abscls-8tl1.45.
 - **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
   tools. Both play Enclosure only ("Decision", item 3), so they are left out.
 
