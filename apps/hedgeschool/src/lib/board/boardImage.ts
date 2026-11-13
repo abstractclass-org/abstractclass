@@ -3,8 +3,9 @@
 // drawn on a canvas with a caption under it. The animated image of a line is a GIF of such canvases (gif.ts). Lichess
 // renders its board images on its server, from the position's FEN. An image has the look of the theme that the page
 // shows when the player asks for it, light or dark, so that it matches the board on the player's screen
-// (decisions/product.md, "An image of a line in the player's theme"). Each export reads its boards' styles in one
-// task, which a change of theme cannot break into, so no image mixes the two themes.
+// (decisions/product.md, "An image of a line in the player's theme"). A board's styles are read in one task, and a
+// change of theme between two frames of an animated image starts that image again in the new theme: no image mixes
+// the two themes.
 import { flushSync, mount, unmount, type ComponentProps } from "svelte";
 import { SITE_NAME } from "#lib/edition.ts";
 import { animatedGif, changedBox, type GifFrame } from "./gif.ts";
@@ -41,18 +42,32 @@ export async function boardImage(props: BoardProps, caption: string[], width: nu
 /** An animated GIF (gif.ts) of boards, each drawn as boardImage draws it, with the same caption, and shown for its
  *  `ms`. It plays again with no end. After the first frame, a frame holds only the part of the image that changed, and
  *  a frame that changes nothing adds its time to the frame before it. The board's and the caption's colours (FLAT)
- *  stay exact in the GIF's 256 colours. */
+ *  stay exact in the GIF's 256 colours. A change of theme between two frames starts the image again, in the new
+ *  theme. */
 export async function animatedBoardImage(frames: { props: BoardProps; ms: number }[], caption: string[], width: number):
   Promise<Blob> {
-  // Every frame's board in one task, before the first await: all in one theme
-  const boards = frames.map(({ props }) => styledBoard(props, width));
-  const out: GifFrame[] = [];
+  let gif: Uint8Array<ArrayBuffer> | null;
+  do gif = await gifInOneTheme(frames, caption, width); while (!gif);
+  return new Blob([gif], { type: "image/gif" });
+}
+
+/** The theme that the page shows now: the root's data-theme, "light" or "dark" (theme.svelte.ts). */
+const pageTheme = () => document.documentElement.dataset.theme;
+
+/** The GIF of animatedBoardImage, or null where the page's theme changed between two of its frames. Each frame's board
+ *  is styled just before it is drawn, in the same task as the check of the theme. So one board's SVG waits at a time,
+ *  and the page can answer the player between two frames. */
+async function gifInOneTheme(frames: { props: BoardProps; ms: number }[], caption: string[], width: number):
+  Promise<Uint8Array<ArrayBuffer> | null> {
+  const theme = pageTheme(), out: GifFrame[] = [];
   let before: Uint8ClampedArray | null = null, fixed: number[] = [];
-  for (const [i, { ms }] of frames.entries()) {
-    const canvas = await boardCanvas(boards[i], caption, width), { width: w, height: h } = canvas;
+  for (const { props, ms } of frames) {
+    if (pageTheme() !== theme) return null;
+    const board = styledBoard(props, width);
+    const canvas = await boardCanvas(board, caption, width), { width: w, height: h } = canvas;
     const ctx = canvas.getContext("2d")!, now = ctx.getImageData(0, 0, w, h).data;
     if (!before) {
-      fixed = Object.values(boards[i].colour).map(rgbOf);
+      fixed = Object.values(board.colour).map(rgbOf);
       out.push({ rgba: now, x: 0, y: 0, w, h, ms });
     } else {
       const box = changedBox(before, now, w, h);
@@ -61,7 +76,7 @@ export async function animatedBoardImage(frames: { props: BoardProps; ms: number
     }
     before = now;
   }
-  return new Blob([animatedGif(out, fixed)], { type: "image/gif" });
+  return animatedGif(out, fixed);
 }
 
 /** The tokens whose colours the image fills flat areas with: the board, its dots, the players'
@@ -71,13 +86,14 @@ const FLAT = ["board-bg", "board-dot", "blue", "red", "on-badge", "panel", "text
 const pngOf = (canvas: HTMLCanvasElement) => new Promise<Blob>((done, fail) =>
   canvas.toBlob(b => (b ? done(b) : fail(new Error("the browser made no image"))), "image/png"));
 
-type Colours = Record<(typeof FLAT)[number], string>;
+/** A board's SVG with its styles written in, and the colours of FLAT, read in one theme. */
+type StyledBoard = { markup: string; colour: Record<(typeof FLAT)[number], string> };
 
 /** A board drawn with `props` apart from the page: its SVG `width` pixels square with its styles written in
  *  (standalone), and the colours of FLAT, as CSS gives them in the page's theme now. It runs in one task. The host
  *  sets no theme of its own: it takes the page's tokens (data-theme on the root, theme.svelte.ts), and Tailwind's dark:
  *  variant reads the root's data-theme too. */
-function styledBoard(props: BoardProps, width: number): { markup: string; colour: Colours } {
+function styledBoard(props: BoardProps, width: number): StyledBoard {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
   host.className = "fixed top-0 -left-[100000px] w-[600px] pointer-events-none";
@@ -88,7 +104,8 @@ function styledBoard(props: BoardProps, width: number): { markup: string; colour
     const markup = standalone(host.querySelector("svg")!, width);
     // Read now: a computed style is live, and empty once the host leaves the page.
     const css = getComputedStyle(host);
-    const colour = Object.fromEntries(FLAT.map(name => [name, css.getPropertyValue(`--${name}`).trim()])) as Colours;
+    const colour = Object.fromEntries(FLAT.map(name => [name, css.getPropertyValue(`--${name}`).trim()])) as
+      StyledBoard["colour"];
     return { markup, colour };
   } finally {
     void unmount(board);
@@ -97,7 +114,7 @@ function styledBoard(props: BoardProps, width: number): { markup: string; colour
 }
 
 /** The canvas of boardImage: the board `styledBoard` gave, with the caption under it in the board's colours. */
-async function boardCanvas({ markup, colour }: { markup: string; colour: Colours }, caption: string[], width: number):
+async function boardCanvas({ markup, colour }: StyledBoard, caption: string[], width: number):
   Promise<HTMLCanvasElement> {
   const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
   const img = new Image();

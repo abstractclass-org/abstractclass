@@ -271,8 +271,9 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     - **The look:** the theme that the page shows when the player chooses the item: the light look in the light
       theme, the dark look in the dark theme. With the theme "System", the image takes the theme that the page shows
       (`data-theme` on the page, `theme.svelte.ts`). The board's colours and the caption's background and text are the
-      theme's. Each image reads its boards' styles in one task, which a change of theme cannot break into, so no frame
-      of an animated image has the other theme.
+      theme's. The site reads a board's styles in one task, which a change of theme cannot break into. The animated
+      image styles each frame's board just before it draws it. A change of theme between two of its frames starts the
+      image again, in the new theme. So no image mixes the two themes, and the page answers the player between frames.
     - **The clipboard:** `navigator.clipboard.write` with a `ClipboardItem` (Chrome, Edge, Safari, Firefox 127 and
       later). The write starts within the player's click, while the canvas still draws the image, as Safari and
       Firefox ask. Where the browser refuses an image, a note says "This browser cannot copy an image. Save the image
@@ -334,9 +335,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   their variations for a board of that size. Numbers that match the board's line badges are read on the board itself.
 - **An image of a line has the look that the player sees.** The image matches the board on the player's screen. A
   player who uses the dark theme shares the board that they study, and a player who wants the light image for paper
-  or for a light forum chooses the light theme first. This replaces one light look in either theme. That look kept
-  the contrast on paper and on chats of either background, and made the images of a line alike whoever made them. The
-  dark board keeps the edges' and the regions' contrast as the screen shows it, so its image reads as the board does.
+  or for a light forum chooses the light theme first. The dark board keeps the edges' and the regions' contrast as the
+  screen shows it, so its image reads as the board does.
 - **An image made in the browser** keeps the site static: Lichess renders its board images on its server from the
   FEN, and this site has no server.
 
@@ -383,8 +383,13 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   show it as a candidate): the start's table then spent two rows on each move, with the same numbers, and the ranks
   counted each move twice. One row for the pair keeps the table's rows for distinct moves, and the board still shows
   both edges, since either can be played.
-- **An image in the page's theme:** it matches what the player sees, but a dark image loses its contrast on a light
-  forum and on paper, and two players' images of one line differ.
+- **The light look in either theme:** the light board keeps its contrast on paper and on chats of either background,
+  and the images of one line look alike whoever made them. But the image of a player who uses the dark theme then
+  differs from the board that they study and share.
+- **All of an animated image's boards styled in the player's click:** a change of theme cannot come between two
+  frames. But the click's task then holds every frame. For a line of the whole game of
+  `tests/fixtures/hedgefund-review.json` (122 frames), in headless Chromium, that task took 1.5 seconds, and the page
+  kept every frame's SVG until the end.
 - **A board image rendered on a server** (Lichess's Share & export): the same image for every browser, but the site
   then needs a server.
 - **Screenshots only:** no work, but the player crops by hand, holds the pointer on a move for its preview, and has no
@@ -431,9 +436,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   `src/lib/board/boardImage.ts` (the PNG, `copyPng`, and the animated image, `animatedBoardImage`),
   `src/lib/board/gif.ts` (the GIF, tests in `gif.test.ts`), and in `ReviewView.svelte`, `imageTreeLine` (the line's
   edges, as a variation's preview draws them, by `treeLine`), `imageOf`, `copyImage` and `saveImage`. The note is
-  `packages/site/src/Toast.svelte` (the Export menu's too). `[data-theme="light"]` in `src/app.css`,
-  `packages/site/src/site.css` and `packages/review/src/review.css` gives the light tokens to the board that the image
-  draws, and keeps Tailwind's `dark:` off inside it.
+  `packages/site/src/Toast.svelte` (the Export menu's too). The board that the image draws takes the tokens of the
+  theme that the page shows (`src/app.css`, `packages/site/src/site.css` and `packages/review/src/review.css`).
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in
   `src/lib/review/enclosure.test.ts`). `src/lib/review/enclosure.ts`: `lineMovers`, `LineStep`.
 - `src/lib/review/display.ts`: the "one edge at a time" setting, and `branchText` (circles or notation).
@@ -443,4 +447,4 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 
 - [decisions/product.md](../decisions/product.md), "The engine's line on the board", "The engine's line: where it
   stops", "The engine's line listed, and variations", its two rounds of feedback, and "The player's own moves, keys and
-  the move menu", and "An image of a line".
+  the move menu", "An image of a line", and "An image of a line in the player's theme".

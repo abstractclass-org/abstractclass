@@ -12033,8 +12033,8 @@ abscls-xud1. Design 07 (item 17) and design 21 changed.
 - **Asked for:** "Copy static", "Save static" and "Save animated" in the move menu, in a review and on the Analysis
   board, drew the light look in the dark theme too. The image of a line should follow the theme that the player sees.
 - **Decided:** the image takes the theme that the page shows when the player chooses the item: the light look in the
-  light theme, the dark look in the dark theme. With the theme "System", the theme that the page shows (`data-theme`
-  on the page, `theme.svelte.ts`). The image then matches the board on the player's screen.
+  light theme, the dark look in the dark theme. With the theme "System", the image takes the theme that the page
+  shows (`data-theme` on the page, `theme.svelte.ts`). The image then matches the board on the player's screen.
 - **What this replaces:** "The look: light, in either theme" ("An image of a line", above). That entry kept one look
   for the contrast on paper and in chats of either background, and so that the images of one line look alike whoever
   made them. A player who uses the dark theme studies the dark board, and shares what they see. The dark board keeps
@@ -12042,18 +12042,39 @@ abscls-xud1. Design 07 (item 17) and design 21 changed.
   a light forum chooses the light theme first. Images of one line now differ by the theme of whoever made them.
 - **How** (`apps/hedgeschool/src/lib/board/boardImage.ts`): the board that the image draws apart from the page sets no
   theme of its own, so it takes the page's tokens, and Tailwind's `dark:` variant reads the page's `data-theme`. The
-  caption's background and text take the same theme's `--panel`, `--text` and `--muted`. An image reads all its boards'
-  styles in one task, before its first wait: a change of theme cannot come between two frames of an animated image, so
-  no image mixes the two themes. A change of theme while the page is open reaches the next image. The note's "Save
-  image", after a refused copy, saves the same file that the copy made.
-- **The selector `[data-theme="light"]`** stays in `site.css`, `review.css` and Hedge School's `app.css`. No element
-  sets it now, but `themeTokens.ts` finds each site's light block by its opening, and Cyanotype's `app.css` opens its
-  blocks the same way. The comments that named the image of a line changed.
-- **Cyanotype** makes no image of a line (its view has no `image`), so nothing changed there.
-- **The test:** `apps/hedgeschool/tests/line-image-theme.spec.ts`, in headless Chromium, with the engine off. In a
-  review of `tests/fixtures/hedgefund-review.json` (the line of the game's first 10 edges) and on the Analysis board (a
-  record of 3 edges), in the light theme and then the dark theme on the same page, it decodes the copied PNG, the saved
-  PNG and the animated GIF's first frame. In each, the caption's background is the theme's `--panel` and the board's
-  is the theme's `--board-bg`, and the copied and the saved image have the same pixels. Both cases failed on a build
-  of dev's code: in the dark theme the image had the light colours. Both pass after the change. The light images of
-  both places are the same files, byte for byte, before and after the change.
+  caption's background and text take the same theme's `--panel`, `--text` and `--muted`. The site reads a board's
+  styles and those colours in one task, which a change of theme cannot break into. A change of theme while the page
+  is open reaches the next image. The note's "Save image", after a refused copy, saves the same file that the copy
+  made, so its image keeps the copy's theme.
+- **The animated image** styles each frame's board just before it draws it, and checks the page's theme in the same
+  task. A change of theme between two frames starts the image again, in the new theme. So no image mixes the two
+  themes. The first build styled all the frames in the player's click instead. For the line of the whole game of
+  `tests/fixtures/hedgefund-review.json` (120 edges, 122 frames), in headless Chromium on the CPU, the click's task
+  then took 1.5 seconds (1,509 ms in the light theme, 1,443 ms in the dark theme), against 448 to 561 ms for the GIF's
+  encoding. The page also kept every frame's SVG until the end: the heap grew by 207 to 228 MB. With one frame at a
+  time, on the same line, in two runs, the longest task is the GIF's encoding (442 to 740 ms). A frame's task takes 50
+  to 105 ms, and the heap grows by 74 to 115 MB. The whole image takes 4.8 to 8.2 seconds, by the machine's load.
+- **The selector `[data-theme="light"]`:** only the page's root has a `data-theme` now (`theme.svelte.ts`). The light
+  blocks of `site.css`, `review.css` and each site's `app.css` keep the opening `:root, [data-theme="light"]`, because
+  `themeTokens.ts` finds each light block by it. There the selector adds nothing to `:root`. The `dark:` variant in
+  `site.css` lost its `:not()` clause, which kept `dark:` off inside a light element. The comments that named the image
+  of a line changed.
+- **Cyanotype** makes no image of a line yet (its view has no `image`, abscls-8tl1.43), so nothing changed there.
+- **The test:** `apps/hedgeschool/tests/line-image-theme.spec.ts`, in headless Chromium, with the engine off. It has
+  two cases: a review of `tests/fixtures/hedgefund-review.json` (the line of the game's first 10 edges) and the
+  Analysis board (a record of 3 edges). Each case runs in the light theme and then in the dark theme, on the same
+  page. It decodes each image as a viewer shows it:
+  - The PNG that "Copy static" copies, the PNG that "Save static" saves, and the PNG that the note's "Save image" saves
+    after a refused copy. The page changes to the other theme before the player chooses "Save image".
+  - Each frame of the GIF that "Save animated" saves. The page changes to the other theme when the site draws the
+    first frame's board.
+- **What the test checks:** in each image, the caption's background is the theme's `--panel`, and the board's is the
+  theme's `--board-bg`. The three PNGs have the same pixels. All the GIF's frames have one theme, the new one. Both
+  cases pass. The light images of both places are the same files, byte for byte, before and after the change.
+- **Each check fails for its own fault** (soft checks, so that a run names every check that fails). The review built
+  the site with one fault at a time, and both cases failed each time:
+  - The light theme forced on the board: the caption and the board of each dark image.
+  - The caption's colours read from the light theme only: the caption of each dark image, and no board.
+  - Each frame styled with no check of the theme: only the animated image (one theme in all frames, and the new
+    theme).
+  - The note's "Save image" that draws a new image: only the image after a refused copy, its colours and its pixels.
