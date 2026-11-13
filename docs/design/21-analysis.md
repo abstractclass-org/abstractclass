@@ -66,7 +66,7 @@ engine does by itself.
    - **Analysis** in the header: the board as the player left it.
    - **A link** that carries a line: `/analysis#record=…` (a record), or `/analysis#packed=…` (a shared analysis),
      with `&at=` for the position (design 22). Without `at`, the board opens at the start (`linkAt` in
-     `packages/analysis/src/boardLink.ts`, which Cyanotype's board uses too).
+     `packages/analysis/src/boardLink.ts`).
    - **A game from the bookmarklet or the userscript** (design 11): the import page (`/import`, design 22) asks first,
      "Review the game" or "Analyze on the board" (`src/lib/review/Arrival.svelte`, in the choice's frame that
      Cyanotype shares, `packages/import/src/ToolChoice.svelte`). A player who watches a game on
@@ -82,7 +82,7 @@ engine does by itself.
      - **The choice is the site's,** not the tools': the bookmark's loader stays as it is (`BOOKMARK_VERSION`), and the
        userscript updates itself, so no player installs a tool again. An older bookmark, or a userscript that
        Tampermonkey has not yet updated, gets the choice too, on the review if it opens the review. Its game carries no
-       `at`, so the board opens at the game's end.
+       `at`, so the page gives the board the game's end as its `at`, and the board opens there.
      - **The page asks before it keeps anything.** It reads the record first, so a record that it cannot read fails at
        once. The engine's rules check the record on the page chosen. A player who closes the page imports nothing.
      - **A way that the site refuses for the game is off before the click** (`wayRefusals` in

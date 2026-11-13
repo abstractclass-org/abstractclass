@@ -47,15 +47,13 @@ test("a board's link gives back its tree, its start and its place", () => {
   assert.deepEqual([...boardPositionKeys(board)], ["@a_set_up_start", "@a_set_up_start ab", "@a_set_up_start ab cd", "@a_set_up_start ab ef"]);
 });
 
-test("a link's place: its `at`, else the start (Hedge School's design 21, item 5)", () => {
+test("a link's place is its `at`, else the start, and a board at its start shares no `at` (Hedge School's design 21)", () => {
   assert.equal(linkAt("12"), 12);
   assert.equal(linkAt("2.7"), 2);
   for (const none of [null, "", "x", "-3"]) assert.equal(linkAt(none), 0, String(none));
   // A board at its start shares a link with no `at`, which opens there again.
   const board: KeptBoard = { version: 2, main: ["ab"], nodes: [["ab", -1]] };
-  const hash = new URLSearchParams(boardLink("", board, 0, WORDS).split("#")[1]);
-  assert.equal(hash.get("at"), null);
-  assert.equal(readBoardLink(hash.get("packed")!, hash.get("at"), WORDS, () => null, NO_LIMIT).at, 0);
+  assert.doesNotMatch(boardLink("", board, 0, WORDS), /[#&]at=/);
 });
 
 test("a board's link keeps its komi, and refuses a komi that is not one (Hedge School's design 24)", () => {

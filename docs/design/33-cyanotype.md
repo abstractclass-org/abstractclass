@@ -789,10 +789,9 @@ build). The decision log gives the measurements that led to each choice.
     "Keep mine" keeps it. The question is Hedge School's (its design 21, item 6), in `packages/review`
     (`ReplaceAnalysis.svelte`), which both boards use. The board opens a record or a shared board at the place on the
     main line that the link's `at` gives. Without `at`, it opens at the start, as Hedge School's does (its design 21,
-    item 5, `linkAt` in `packages/analysis/src/boardLink.ts`). The tools' games always send `at` (item 5 of "How a
-    game comes in from strategyjam.org"), and so does a shared board that is not at the start. Practice's "Analyze the
-    game", a game from a set-up start in the player's games and the board's Import send no `at`: they open at the
-    start.
+    item 5: `linkAt` in `packages/analysis/src/boardLink.ts`). The import page sends `at` with a tool's game ("How a
+    game comes in from strategyjam.org", item 5). Practice's "Analyze the game", a game from a set-up start in the
+    player's games and the board's Import send no `at`, as Hedge School's do.
 12. **The Export menus and the links,** as Hedge School's (its designs 13 and 21), in the shared menu
     (`packages/review/src/ExportMenu.svelte`):
     - **The Analysis board's Export:** a link that shares the board (`/analysis#packed=…`, `src/lib/game/board.ts`),

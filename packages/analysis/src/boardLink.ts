@@ -24,8 +24,8 @@ export function boardLink(origin: string, board: KeptBoard, at: number, code: Mo
 }
 
 /** The place on the main line that a link's `at` gives (a link's record or a shared board's): after that many moves.
- *  A link with no `at`, or one that is not a number, opens at the start (Hedge School's design 21, item 5). The board
- *  opens a place past the main line's end at its end. */
+ *  A link with no `at`, or with one below 1 or not a number, opens at the start (Hedge School's design 21, item 5).
+ *  The board opens a place past the main line's end at its end. */
 export const linkAt = (at: string | null): number => Math.max(0, Math.floor(Number(at)) || 0);
 
 /** A board from a link's `packed` and `at`. `start` reads the link's `Position` tag as the board's set-up start: none

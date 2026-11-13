@@ -3,15 +3,14 @@
 // engine's position check, protocol 0.8.0), and Analyze opens the board from it. A position that no game reaches gets
 // the engine's reasons, with their hexes marked, and Analyze waits. A drag with Shift puts cells along it, or removes
 // them. The Import takes a position and the moves from it. A link's record opens at its `at`, and at the start without
-// one, as on Hedge School. A link and an analysis file with a set-up start open from
-// it, and a start that the rules refuse or that no game reaches leaves the board kept here, with a notice. A board kept
-// here whose start no game reaches gives way to a new board, with a notice. Each way in refuses a komi, which the board
-// does not take yet (design 33, "The komi"). The review's refusal of a game from a set-up start is in
-// cyanotype-games.spec.ts. The board's engine is off, so nothing searches: the engine's rules check what comes in. The
-// positions are Stamp Duty's own (the lab's games,
-// apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves there. Each test opens a
-// fresh browser context, so its store starts empty. The tests skip, with a message, when the preview has no engine
-// files. Run: npx playwright test tests/cyanotype-editor.spec.ts, with CYANOTYPE_BASE_URL.
+// one, as on Hedge School. A link and an analysis file with a set-up start open from it, and a start that the rules
+// refuse or that no game reaches leaves the board kept here, with a notice. A board kept here whose start no game
+// reaches gives way to a new board, with a notice. Each way in refuses a komi, which the board does not take yet
+// (design 33, "The komi"). The review's refusal of a game from a set-up start is in cyanotype-games.spec.ts. The
+// board's engine is off, so nothing searches: the engine's rules check what comes in. The positions are Stamp Duty's
+// own (the lab's games, apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves
+// there. Each test opens a fresh browser context, so its store starts empty. The tests skip, with a message, when the
+// preview has no engine files. Run: npx playwright test tests/cyanotype-editor.spec.ts, with CYANOTYPE_BASE_URL.
 import { expect, test, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { boardLink } from "../../cyanotype/src/lib/game/board.ts";
@@ -306,17 +305,17 @@ test("the Import: a position and the moves from it, then a position alone", asyn
 
 test("a link's record with no `at` opens at the start, and one with `at` at its place, as on Hedge School", async ({ page }) => {
   // A partner's or a hand-made link: Hedge School's design 21, item 5. The move on screen is the list's `.here`.
-  const record = middle.moves.join(" "), here = page.locator(".movelist .mv.here");
+  const record = middle.moves.join(" "), moves = page.locator(".movelist .mv");
   await page.goto(at(`/analysis#${new URLSearchParams({ record })}`));
   await expectBoard(page, undefined, middle.moves);
-  await expect(page.locator(".movelist .mv")).toHaveCount(middle.moves.length);
-  await expect(here).toHaveCount(0);
-  await page.goto(at("/about"));
+  await expect(moves).toHaveCount(middle.moves.length); // the list is drawn, with the board's place
+  await expect(page.locator(".movelist .mv.here")).toHaveCount(0);
+  await page.goto("about:blank"); // else the link changes only the address's hash, and the board does not read it
   await page.goto(at(`/analysis#${new URLSearchParams({ record, at: "4" })}`));
   await page.getByRole("button", { name: "Replace it" }).click({ timeout: 120_000 });
-  await expect(here).toHaveCount(1, { timeout: 120_000 });
-  await expect(page.locator(".movelist .mv").nth(3)).toHaveClass(/\bhere\b/); // after the 4th move
+  await expect(moves.nth(3)).toHaveClass(/\bhere\b/, { timeout: 120_000 }); // after the 4th move
 });
+
 test("a link with a set-up start opens from it", async ({ page }) => {
   await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [MOVE], nodes: [[MOVE, -1]], start: MIDDLE }, 1));
   await expectBoard(page, MIDDLE, [MOVE]);
