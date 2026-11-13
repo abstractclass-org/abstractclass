@@ -8,6 +8,6 @@
   "Button Press" by DRAGON-STUDIO
   (<a href="https://pixabay.com/sound-effects/film-special-effects-button-press-382713/">Pixabay 382713</a>), under
   the <a href="https://pixabay.com/service/terms/">Pixabay Content License</a>.</li>
-<li>The pencil sound of a move: four strokes from "Pencil_lines" by tmkappelt
+<li>The pencil sound of a move: two strokes from "Pencil_lines" by tmkappelt
   (<a href="https://freesound.org/people/tmkappelt/sounds/85702/">Freesound 85702</a>), dedicated to the public
   domain (CC0).</li>
