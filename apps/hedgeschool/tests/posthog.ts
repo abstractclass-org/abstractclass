@@ -12,7 +12,7 @@ import { test, type BrowserContext, type Page } from "@playwright/test";
 const POSTHOG = /(^|\.)posthog\.com$/;
 
 /** An event that a page sent to PostHog, with its request's path. */
-export interface Sent { path: string; uuid: string; event: string; properties: Record<string, unknown>; time: number }
+export interface Sent { path: string; uuid: string; event: string; properties: Record<string, unknown> }
 
 /** A desktop Chrome's name, as a visitor's browser gives it. */
 const VISITOR = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
@@ -42,18 +42,13 @@ function decode(body: Buffer): unknown[] {
   return Array.isArray(json) ? json : json.batch ?? [json];
 }
 
-/** The events of a body that posthog-js sent to `path`. Each has its id, which withBeacons merges by, and its time,
- *  which withBeacons orders by. One without either is refused, so that no two events merge, and none sorts, for lack
- *  of it. The time is the client's own, `properties.$time` (seconds, from `Date.now()` when the page captured the
- *  event). The event's top-level `timestamp` is no use: posthog-js sets it only for an event captured with a given
- *  date. */
-export function events(path: string, body: Buffer): Sent[] {
+/** The events of a body that posthog-js sent to `path`. Each has its id, which withBeacons merges by: one without it
+ *  is refused, so that no two events merge for lack of one. */
+function events(path: string, body: Buffer): Sent[] {
   return decode(body).map(e => {
     const { uuid, event, properties } = e as { uuid: string; event: string; properties: Record<string, unknown> };
     if (typeof uuid !== "string" || !uuid) throw new Error(`an event to PostHog without its uuid: ${event}`);
-    const time = properties?.$time;
-    if (typeof time !== "number" || !Number.isFinite(time)) throw new Error(`an event to PostHog without its time: ${event}`);
-    return { path, uuid, event, properties, time };
+    return { path, uuid, event, properties };
   });
 }
 
@@ -117,21 +112,29 @@ export async function keepBeacons(context: BrowserContext) {
   }, [BEACONS, POSTHOG.source] as const);
 }
 
-/** `sent` and the events of the kept beacon bodies, each event once, by its id, as PostHog keeps it (a beacon that the
- *  browser refuses goes again by fetch, which the route sees), in the order in which the pages captured them: by their
- *  times. The transport does not keep that order: a page's last events leave in its page-leave beacon, which the
- *  route does not see, and a slow machine puts more events there. Events of one time keep the order in which they
- *  came (a sort is stable). */
-export function inSendingOrder(sent: Sent[], beacons: { path: string; body: Buffer }[]): Sent[] {
+/** An event's id as posthog-js makes it, a UUIDv7: the time of the capture in milliseconds, then a count that rises
+ *  within the millisecond. One generator makes all the ids of a page (@posthog/browser-common's uuidv7), so their
+ *  order is the order in which the page captured its events, and between pages the order of their milliseconds. */
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/** `sent` and the events of the kept beacon bodies, in the order in which the pages captured them: the order of their
+ *  ids (UUID_V7). The transport does not keep that order. A page's last events leave in its page-leave beacon, which
+ *  the route does not see, and a slow machine puts more events there. Each event comes once, by its id, as PostHog
+ *  keeps it: a beacon that the browser refuses goes again by fetch, which the route sees. An event whose id is not a
+ *  UUIDv7 is refused, so that none takes its place by chance. */
+export function inCaptureOrder(sent: Sent[], beacons: { path: string; body: Buffer }[]): Sent[] {
   const all = [...sent, ...beacons.flatMap(b => events(b.path, b.body))];
+  const notV7 = all.find(e => !UUID_V7.test(e.uuid));
+  if (notV7) throw new Error(`an event to PostHog whose id is not a UUIDv7: ${notV7.event}, ${notV7.uuid}`);
   const seen = new Set<string>();
-  return all.filter(e => !seen.has(e.uuid) && !!seen.add(e.uuid)).sort((a, b) => a.time - b.time);
+  return all.filter(e => !seen.has(e.uuid) && !!seen.add(e.uuid))
+    .sort((a, b) => a.uuid < b.uuid ? -1 : a.uuid > b.uuid ? 1 : 0);
 }
 
 /** The events that the pages sent: `sent`, which the route kept, with the beacons that keepBeacons kept in the tab of
- *  `page`, which must show a page of the site. Each event once, in the order of its sending (inSendingOrder). */
+ *  `page`, which must show a page of the site. Each event once, in the order of its capture (inCaptureOrder). */
 export async function withBeacons(page: Page, sent: Sent[]): Promise<Sent[]> {
   const kept = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) ?? "[]"), BEACONS) as
     { path: string; body: string }[];
-  return inSendingOrder(sent, kept.map(b => ({ path: b.path, body: Buffer.from(b.body, "base64") })));
+  return inCaptureOrder(sent, kept.map(b => ({ path: b.path, body: Buffer.from(b.body, "base64") })));
 }
