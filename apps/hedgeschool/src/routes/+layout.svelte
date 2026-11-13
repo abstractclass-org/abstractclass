@@ -74,9 +74,10 @@
 	     links and "Support Us" no longer fit in one row, the links go into the site's menu at the left (SiteMenu), as on
 	     Lichess's phone pages. "Support Us" stays in the header down to 640 pixels, then goes into the menu too. The
 	     row's widths are Linux's font's (DejaVu Sans, the Tests workflow's), which is wider than Windows' Segoe UI
-	     (design 22): from 1,024 pixels the row needs 1,014 pixels with the gaps of 1,080, and 976 with the narrower
-	     gaps below 1,080. Below 400 pixels the name is smaller, and its gap to "Early Access" narrower: the row needs
-	     361 pixels in DejaVu Sans without them. -->
+	     (design 22): from 1,024 pixels the row needs 1,014 pixels with the gaps that it has from 1,080 pixels, and 976
+	     with the narrower gaps below 1,080. Below 400 pixels the name is smaller, and its gap to "Early Access"
+	     narrower, as the header's sides and gaps (SiteFrame): without these changes the row needs 361 pixels in DejaVu
+	     Sans, and the header's box at 360 pixels holds 328. -->
 	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
 	<!-- The name, and the early access in the accent colour beside it: what it means is on the About page (SiteName). -->
 	<SiteName class="max-[400px]:gap-1"><Collie size={28} /><span class="max-[400px]:text-lg">{SITE_NAME}</span></SiteName>

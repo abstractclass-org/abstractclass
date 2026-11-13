@@ -29,19 +29,21 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      "Support Us" (Ko-fi's tip panel, design 22) and the theme
      menu: System (the default: the computer's light or dark), Light or Dark. Its button shows the choice: a half-filled
      circle, a sun or a moon. The choice is kept in this browser, and a script in the page's head applies it before the
-     page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow, so that it fits
-     in 360 pixels. Below 400 pixels the name is smaller (18 pixels in place of 20) and its gap to "Early Access"
-     narrower, so that it fits in Linux's font too (DejaVu Sans, as in the Tests workflow's runs), which is wider than
-     Windows'. The name and "Early Access" never go onto a second line: the header keeps its height (`--site-header`),
-     and its row makes the room for them (design 22). Review opens the Review tab, where the last game reviewed in this
-     browser is a click away. A review's address names its game, so a reload keeps it. **The footer,** on the pages that
-     scroll (the home page and the pages about the site): the pages that the header lacks (How reviews work, For
-     developers, Privacy, Notices, and Tools on a phone), the site's version (its commit), the site's copyright line,
-     and "Enclosure by webgoatguy", so that the copyright does not read as the game's. The review has no footer: it
-     fills the window. The About page credits webgoatguy as the game's designer, and says that the site is not an
-     official site of the game: it is made independently of webgoatguy, strategyjam.org, meaf.us and Constellation.
-     Cyanotype's header has the same "Early Access" link, and its About page the same section (design 33, "Decision",
-     item 11).
+     page draws, so that a page never shows the other theme first. On a phone the header's gaps narrow, so that its row
+     fits in 360 pixels. Below 400 pixels the header's sides and gaps narrow again, on both sites (12 and 8 pixels in
+     place of 16 and 12). The name is smaller there (18 pixels in place of 20), and its gap to "Early Access" is 4
+     pixels in place of 8. Then the row fits in 360 pixels in Linux's font too (DejaVu Sans, as in the Tests workflow's
+     runs), which is wider than Windows'. From 1,024 to 1,079 pixels the gaps between the links are 12 pixels in place
+     of 18, so that the links fit in one row in DejaVu Sans (design 22). The name and "Early Access" never go onto a
+     second line: the header keeps its height (`--site-header`), and its row makes the room for them. Review opens the
+     Review tab, where the last game reviewed in this browser is a click away. A review's address names its game, so a
+     reload keeps it. **The footer,** on the pages that scroll (the home page and the pages about the site): the pages
+     that the header lacks (How reviews work, For developers, Privacy, Notices, and Tools on a phone), the site's
+     version (its commit), the site's copyright line, and "Enclosure by webgoatguy", so that the copyright does not read
+     as the game's. The review has no footer: it fills the window. The About page credits webgoatguy as the game's
+     designer, and says that the site is not an official site of the game: it is made independently of webgoatguy,
+     strategyjam.org, meaf.us and Constellation. Cyanotype's header has the same "Early Access" link, and its About
+     page the same section (design 33, "Decision", item 11).
    - **Not in the early access:** puzzles, lessons, free analysis and the engine lab. Their addresses lead home. Their
      code stays, for the full site.
 3. **One build switch:** `VITE_EDITION=early` builds the early access, of Hedge School and of Cyanotype (design 33).

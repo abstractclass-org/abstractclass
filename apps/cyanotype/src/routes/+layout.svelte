@@ -49,9 +49,9 @@
     <!-- The logo before the name, at 28 pixels, as Hedge School's collie, and in the early access "Early Access" beside
          the name, in the accent colour, which leads to the About page's section on it (SiteName). The links fit in one
          row from 740 pixels, in Linux's font too, which is wider than Windows' (design 33): the row needs 731 pixels in
-         DejaVu Sans with the links' gaps of 780 pixels, and 699 with the narrower gaps below 780. Below 740, they go
-         into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels, and the header keeps the
-         logo, the name, "Early Access" and the theme menu. -->
+         DejaVu Sans with the gaps that the links have from 780 pixels, and 699 with the narrower gaps below 780. Below
+         740, they go into the site's menu at the left (SiteMenu), as Hedge School's below 1,024 pixels, and the header
+         keeps the logo, the name, "Early Access" and the theme menu. -->
     <span class="min-[740px]:hidden"><SiteMenu tabs={NAV} about={ABOUT} /></span>
     <SiteName class="max-[740px]:mr-auto"><Logo size={28} />{SITE_NAME}</SiteName>
     <nav class="flex gap-2.5 min-[780px]:gap-4.5 max-[740px]:hidden">

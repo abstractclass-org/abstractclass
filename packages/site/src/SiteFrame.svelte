@@ -43,9 +43,10 @@
 <svelte:window onpagehide={() => keepPlace(location)} />
 
 <div class="desktop:flex desktop:flex-col desktop:h-full print:block print:h-auto">
-<!-- The header: one row, --site-header high (site.css), from which pages size their boards. Its gaps narrow on a
-     phone, and its gaps and sides again below 400 pixels, so that what it holds fits in 360 pixels in Linux's font
-     too (DejaVu Sans), which is wider than Windows'. -->
+<!-- The header: one row, --site-header high (site.css), from which pages size their boards. The height is a minimum,
+     so a row that does not fit makes the header taller, and the layout test sees it. Its gaps narrow on a phone, and
+     its gaps and sides again below 400 pixels, so that what it holds fits in 360 pixels in Linux's font too (DejaVu
+     Sans), which is wider than Windows'. -->
 <header class="flex-none flex items-center gap-3 max-[400px]:gap-2 sm:gap-6 px-4 max-[400px]:px-3 py-2 min-h-(--site-header) bg-panel border-b border-line">
 	{@render header()}
 </header>

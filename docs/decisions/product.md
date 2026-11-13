@@ -11886,10 +11886,11 @@ layout test saw it: the children stayed in one row and inside the header's conte
 - **The sweep's widths:** every 10 pixels, and 1,024. Each of the header's rows is tightest at its first width, since
   the row's width stays and the room grows with the window. The rows start at 400, 640, 740, 780, 1,024 and 1,080
   pixels, and 1,024 alone is not on a step of 10.
-- **On dev's build, the rule failed** in DejaVu Sans (the same fonts, added in the sweep), on Hedge School's `/` and
-  `/about`: "the header is 78.5 pixels high, not --site-header's 48.0 (its tallest child: nav…, 61.5)" from 1,024
-  to 1,040 pixels, and 73.0 pixels high (the name, 56.0) from 360 to 390, at each of the three heights. On
-  Cyanotype's `/`: 49.0 pixels high (the name, 32.0) from 740 to 760, at each height.
+- **On dev's build, the rule failed** in DejaVu Sans (the same fonts, which a change to the sweep loaded for the
+  measurement alone: it is not committed), on Hedge School's `/` and `/about`: "the header is 78.5 pixels high, not
+  --site-header's 48.0 (its tallest child: nav…, 61.5)" from 1,024 to 1,040 pixels, and 73.0 pixels high (the name,
+  56.0) from 360 to 390, at each of the three heights. On Cyanotype's `/`: 49.0 pixels high (the name, 32.0) from
+  740 to 760, at each height.
 - **"Early Access" and the name stay on one line** (`whitespace-nowrap` in `packages/site/src/SiteName.svelte`, both
   sites). The header's row makes the room for them.
 - **Hedge School from 1,024 to 1,079 pixels:** the gaps between the links are 12 pixels in place of 18, and the gap
