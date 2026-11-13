@@ -235,7 +235,7 @@ for (const [site, urls] of Object.entries({
 // CYANOTYPE_BASE_URL gives its preview. The home page: the invitation, the board's scene from a reviewed game, and the
 // ways in. The Notices page: the engine's terms and the licences, with their texts in code blocks, which scroll
 // sideways on purpose. How a review works: its table of bands and its formulas in code blocks. For developers: its
-// code blocks too. Each sweep checks the header's row, with the site's menu closed below 740 pixels.
+// code blocks too. Each sweep checks the header's row, with the site's menu closed below 900 pixels.
 for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
                             ["How a review works", "/how-reviews-work"], ["page for developers", "/developers"]]) {
   test(`layout of Cyanotype's ${name}`, async ({ page }) => {
@@ -287,10 +287,10 @@ const answerConsent = () => {
 
 // The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header
 // shows it, by steps of 10, at the lowest of the sweep's heights: Hedge School's below 1,024 pixels, Cyanotype's below
-// 740. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
+// 900. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
 // pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. The visitor has
 // answered the consent notice, which would cover the menu until they choose.
-for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 740]] as const) {
+for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 900]] as const) {
   test(`layout of the site's menu on ${site}`, async ({ page }) => {
     test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     await page.addInitScript(answerConsent);

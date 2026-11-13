@@ -701,7 +701,7 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    sites", item 7).
 8. **The tools page** (`/tools`) gives the steps to install the bookmarklet and the userscript, in strict Simplified
    Technical English with the glossary's words. Its link is in the footer below 640 pixels, in the site's menu from
-   640 pixels, and in the header from 740 pixels. Hedge School's is in the same places, with its header from 1,024
+   640 pixels, and in the header from 900 pixels. Hedge School's is in the same places, with its header from 1,024
    pixels (design 22).
 
 The tools have not run on strategyjam.org itself: they run in the player's own logged-in page, and that test waits for
@@ -1458,6 +1458,7 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
    - the board editor: `editor_open`, `editor_analyze`.
    - Practice: `practice_start`, `practice_end`, `engine_error`, `feature`.
    - the engine's session, on the review and the Analysis board: `gpu_test`, and `engine_error` for the GPU.
+   - Support Us, on every page: `support_open` ("Support Us").
 
    **Where Cyanotype's events differ from Hedge School's:**
    - **Its ways in** (`import_source`): `pasted_record`, `pasted_position`, `site_link`, `strategyjam_bookmarklet`
@@ -1478,8 +1479,7 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
      drawn`, and from its display settings `display sound`, `display moveSound` and `display volume`, as on Hedge
      School. Its display settings hold only the sounds, so it sends none of Hedge School's other display features.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
-   - **No event of a part that Cyanotype lacks:** Support Us (`support_open`, abscls-8tl1.49) and Openings
-     (abscls-8tl1.53).
+   - **No event of a part that Cyanotype lacks:** Openings (abscls-8tl1.53).
 5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's builds
    of both sites, each with a made-up PostHog key. Playwright's routes answer PostHog's addresses in its place and keep
    the events that the pages sent. Cyanotype's case checks its page views, with `internal` after `?internal=on`, that
@@ -1489,6 +1489,28 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
    annotated record, from the review and from the Review tab. It checks the review snapshot's open and Review again. A
    build without the key holds none of PostHog's code: check:all builds Cyanotype without the key first, and its step
    `cyanotype-no-posthog` refuses a script of that build that names PostHog's address or its client's extensions.
+
+## Support Us
+
+Cyanotype takes tips as Hedge School does (Hedge School's design 22), on Hedge School's Ko-fi page.
+
+1. **The same parts, in the site's package** (design 29, item 1): the header's "Support Us" button
+   (`SupportButton.svelte`), the dialog with Ko-fi's tip panel (`SupportDialog.svelte`), the privacy page's part on
+   Ko-fi (`KofiPrivacy.svelte`) and the Ko-fi page's address (`kofi.ts`), moved from Hedge School. Hedge School's
+   pages read as before: the text of each prerendered page's `<main>` and `<body>` is the same in its build before and
+   after the move.
+2. **One Ko-fi page for both sites:** Hedge School's. Its address is one constant (`KOFI` in `kofi.ts`).
+3. **The dialog** shows the logo's full print at 56 pixels ("The logo"), where Hedge School's shows its collie. Its
+   words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi pay for training
+   Stamp Duty and for work on the site. Hedge School, our site for Enclosure, uses the same Ko-fi page." The last
+   sentence says why the panel is Hedge School's page.
+4. **Where it is:** in the header from 640 pixels, and in the site's menu below 640, as on Hedge School. The button
+   made the header's row 159 pixels wider in DejaVu Sans, so the links stay in the header from 900 pixels, in place of
+   740 ([decisions/product.md](../decisions/product.md), "Cyanotype's Support Us, and its header links from 900
+   pixels"). The footer has no Support Us, as on Hedge School.
+5. **What it measures and says:** `support_open` when the dialog opens ("Analytics"). The privacy page lists it with
+   the counts, and has Hedge School's part on Ko-fi. The Notices page has no part for it: Ko-fi's panel is Ko-fi's
+   page, which the site does not ship.
 
 ## The logo
 
@@ -1577,7 +1599,6 @@ The parts of Hedge School's `src/lib` that Cyanotype has no counterpart for, as 
   with the area map what Blueprints shows in their place. Cyanotype's display settings keep them off.
 - **The opening book** in the review and on the Analysis board (`book/`, design 32). Put off with the Openings page:
   abscls-8tl1.53 (deferred).
-- **Support Us** (`SupportDialog.svelte`, Ko-fi's panel, design 22). abscls-8tl1.49.
 - **meaf.us and Constellation** (`game/meaf.ts`, `game/meafPage.ts`, `game/constellation.ts`): their records and
   tools. Both play Enclosure only ("Decision", item 3), so they are left out.
 
@@ -1662,12 +1683,13 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   (`https://cyanotype.abstractclass.org`, the canonical address of each page) and the storage keys
   (`cyanotype:…`). `src/routes/+layout.svelte`: the icons, the link previews' tags, and the header, with the logo, the
   name and its "Early Access" link (`SiteName.svelte` and `edition.ts` of `packages/site`, "Decision", item 11), the
-  game's pages, the pages about the site and the theme menu, and below 740 pixels the site's menu (`SiteMenu.svelte`
-  of `packages/site`), which holds the links in their place, as Hedge School's below 1,024 pixels. "Early Access"
-  stays on one line. With the header's gaps of 24 pixels from 640 and the links' gaps of 18 pixels, the row needs 657
-  pixels in Segoe UI and 731 in DejaVu Sans. So from 740 to 779 pixels the gaps between the links are 10 pixels in
-  place of 18: the row then needs 699 pixels in DejaVu Sans, in a box of 708 at 740. From 780 the box is 748. Below
-  400 pixels the header's sides and gaps narrow, as on Hedge School (`SiteFrame.svelte` of `packages/site`).
+  game's pages, the pages about the site, "Support Us" ("Support Us") and the theme menu, and below 900 pixels the
+  site's menu (`SiteMenu.svelte` of `packages/site`), which holds the links in their place, as Hedge School's below
+  1,024 pixels. "Early Access" stays on one line. With the header's gaps of 24 pixels from 640 and the links' gaps of
+  18 pixels, the row needs 800 pixels in Segoe UI and 890 in DejaVu Sans. So from 900 to 939 pixels the gaps between
+  the links are 10 pixels in place of 18: the row then needs 858 pixels in DejaVu Sans, in a box of 868 at 900. From
+  940 the box is 908. Below 640 pixels "Support Us" goes into the site's menu too. Below 400 pixels the header's sides
+  and gaps narrow, as on Hedge School (`SiteFrame.svelte` of `packages/site`).
   `src/lib/SiteFooter.svelte`: the footer, with How reviews work, For developers, Privacy and Notices.
   `src/routes/developers/+page.svelte`: the page for developers, on the shared sections ("Partner sites", item 9).
   `src/app.css`: the accent (Hedge School's lavender) and the board's colour tokens, after the shared style and the
@@ -1735,8 +1757,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   in Node by Hedge School's `symbolShades.test.ts` and the hub's
   `scripts/enclosure-board.mjs`, for the checks that compare colours). Each site's root layout gives `SiteFrame`
   what its header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge
-  School's Support Us dialog stays in Hedge School. `SiteMenu.svelte`: the site's menu on a narrow screen (design 22),
-  with each site's links, and Hedge School's "Support Us" on a phone. `Replay.svelte`: the home page's board as a
+  `SupportDialog.svelte`, `SupportButton.svelte`, `KofiPrivacy.svelte` and `kofi.ts`: Support Us ("Support Us").
+  `SiteMenu.svelte`: the site's menu on a narrow screen (design 22), with each site's links, and "Support Us" on a
+  phone. `Replay.svelte`: the home page's board as a
   replay of scenes (design 22), with each site's frames and board. `edition.ts` and `SiteName.svelte`: the early
   access's build switch, and the site's name in the header with its "Early Access" link ("Decision", item 11), with
   each site's logo and name. The two footers (`src/lib/SiteFooter.svelte`)
@@ -1958,7 +1981,7 @@ School's" (2026-11-08), "Cyanotype's board editor checks that a game can reach t
 Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytics" (2026-11-09), "Cyanotype removes
 earlier engine results, as Hedge School" (2026-11-11), "Cyanotype's header links show from 740 pixels"
 (2026-11-12), "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13), "Cyanotype's move sounds"
-(2026-11-13), "Cyanotype's buttons for partner sites, and the test on its page for developers" (2026-11-13), and
-"Cyanotype's image of a line, from one shared frame" (2026-11-14). The
-earlier entries name the site by its first name, Drawing Board.
+(2026-11-13), "Cyanotype's buttons for partner sites, and the test on its page for developers" (2026-11-13),
+"Cyanotype's Support Us, and its header links from 900 pixels" (2026-11-13), and "Cyanotype's image of a line, from one
+shared frame" (2026-11-14). The earlier entries name the site by its first name, Drawing Board.
 [decisions/architecture.md](../decisions/architecture.md), "The repository's variables name their site" (2026-11-13).

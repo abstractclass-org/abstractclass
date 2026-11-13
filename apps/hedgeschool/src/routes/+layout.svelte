@@ -11,8 +11,8 @@
 	import ConsentBanner from '@abstractclass/site/ConsentBanner.svelte';
 	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
 	import SiteMenu from '@abstractclass/site/SiteMenu.svelte';
-	import SupportDialog from '#lib/SupportDialog.svelte';
-	import Icon from '@abstractclass/site/Icon.svelte';
+	import SupportButton from '@abstractclass/site/SupportButton.svelte';
+	import SupportDialog from '@abstractclass/site/SupportDialog.svelte';
 	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';
 	import SiteName from '@abstractclass/site/SiteName.svelte';
 	import SiteHead from '@abstractclass/site/SiteHead.svelte';
@@ -87,16 +87,17 @@
 	<nav class="flex flex-wrap gap-3 min-[1080px]:gap-4.5 ml-auto text-sm max-lg:hidden">
 		{#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
 	</nav>
-	<!-- The accent's colour in each theme, as the site's other main buttons. -->
 	<span class="flex items-center gap-3 sm:gap-6 lg:max-[1080px]:gap-4 ml-auto lg:ml-0">
-		<button type="button" class="btn-primary max-sm:hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-semibold
-		                             hover:brightness-110" onclick={support}><Icon name="heart" />Support Us</button>
+		<SupportButton class="max-sm:hidden" onclick={support} />
 		<ThemeMenu />
 	</span>
 {/snippet}
 	{@render children()}
 </SiteFrame>
-<SupportDialog bind:open={supporting} />
+<!-- The schoolmaster asks for tips (design 12's collie, its full drawing from 48 pixels). -->
+{#snippet supportMark()}<Collie size={56} />{/snippet}
+<SupportDialog bind:open={supporting} site={SITE_NAME} mark={supportMark}
+               description="{SITE_NAME} is free. If it helps you, a tip through Ko-fi helps it grow." />
 
 <!-- The card's collie, at 48 pixels: its head and chest (design 12). -->
 {#snippet collie()}<Collie size={48} />{/snippet}

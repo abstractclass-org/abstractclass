@@ -3,8 +3,8 @@
   // the header's links, which a narrow header cannot hold in one row. The tabs, then the pages about the site. Each
   // entry is a link, so that the router opens it and a middle click opens a new tab. The page shown is marked, as in
   // the header. A link marked `wide` shows from a tablet's width only (Tools). With `support`, on a phone, "Support Us"
-  // too, which the header has no room for: Hedge School's opens Ko-fi's tip panel (its SupportDialog). Each site gives
-  // its own links, from its own routes.
+  // too, which the header has no room for: it opens Ko-fi's tip panel (SupportDialog.svelte). Each site gives its own
+  // links, from its own routes.
   import { DropdownMenu } from "bits-ui";
   import { page } from "$app/state";
   import Icon from "./Icon.svelte";

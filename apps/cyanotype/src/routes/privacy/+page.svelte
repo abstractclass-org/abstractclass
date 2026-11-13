@@ -3,13 +3,14 @@
   // games that come in an address, the visits and what PostHog receives (design 33, "Analytics"), and in a build that
   // stores practice games, the games against Stamp Duty and the switch of the consent's one purpose, the games' link,
   // with Hedge School's parts (@abstractclass/practice: StoredGamesNotice.svelte, GamesChoices.svelte). Its visit counts
-  // set no cookies. It has no Support Us yet, so the page has no part on Ko-fi. The section on addresses follows
-  // Cyanotype's code: the tools' import address
-  // (@abstractclass/import/bookmarklet.ts and userscript.ts), the import page's version check (routes/import), the
-  // share links (game/share.ts, game/board.ts), and a partner site's link and "Save to" (game/partners.ts, design 33,
-  // "Partner sites").
+  // set no cookies. Its Support Us opens Ko-fi's tip panel, so the page has Hedge School's part on Ko-fi
+  // (@abstractclass/site/KofiPrivacy.svelte). The section on addresses follows Cyanotype's code: the tools' import
+  // address (@abstractclass/import/bookmarklet.ts and userscript.ts), the import page's version check (routes/import),
+  // the share links (game/share.ts, game/board.ts), and a partner site's link and "Save to" (game/partners.ts, design
+  // 33, "Partner sites").
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import KofiPrivacy from "@abstractclass/site/KofiPrivacy.svelte";
   import { STORES_PRACTICE_GAMES } from "@abstractclass/site/edition.ts";
   import StoredGamesNotice from "@abstractclass/practice/StoredGamesNotice.svelte";
   import GamesChoices from "@abstractclass/practice/GamesChoices.svelte";
@@ -76,6 +77,7 @@
     <li>your reviews, and your visits to the Analysis board and the board editor</li>
     <li>your practice games</li>
     <li>the settings you change, the features you use, and your exports</li>
+    <li>that you opened Support Us</li>
     <li>errors, such as an engine that does not start, a game that the site cannot find, or a tool that needs an
       update</li>
   </ul>
@@ -84,6 +86,8 @@
     the day links one count to another.</p>
 
   <GamesChoices {analytics} site={SITE_NAME} bot={ENGINE_NAME} ondelete={deletePractice} />
+
+  <KofiPrivacy />
 </main>
 
 <SiteFooter />

@@ -1,7 +1,8 @@
 <script lang="ts">
   // What the site keeps, and where (design 11), with the practice games that it stores (design 25), and the switch of
   // the consent's one purpose, the games' link. The games' section and the choices are the practice's, which Cyanotype
-  // shows too (@abstractclass/practice: StoredGamesNotice.svelte, GamesChoices.svelte).
+  // shows too (@abstractclass/practice: StoredGamesNotice.svelte, GamesChoices.svelte), and so is the part on Ko-fi
+  // (@abstractclass/site/KofiPrivacy.svelte).
   import { PROSE } from "@abstractclass/site/prose.ts";
   import { DISCORD, SITE_NAME, STORES_PRACTICE_GAMES } from "#lib/edition.ts";
   import { analytics } from "#lib/analytics.svelte.ts";
@@ -10,6 +11,7 @@
   import GamesChoices from "@abstractclass/practice/GamesChoices.svelte";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import KofiPrivacy from "@abstractclass/site/KofiPrivacy.svelte";
 </script>
 
 <PageMeta title="Privacy · {SITE_NAME}" description="What Hedge School keeps, where it keeps it, and what it measures." />
@@ -74,10 +76,7 @@
 
   <GamesChoices {analytics} site={SITE_NAME} bot="HedgeFund" ondelete={deletePractice} />
 
-  <h2>Tips through Ko-fi</h2>
-  <p>Nothing goes to Ko-fi until you open Support Us. Its tip panel is Ko-fi's own page, so Ko-fi then receives your
-    IP address and your browser's name, and can set its own cookies. What you enter in the panel goes to Ko-fi, under
-    <a href="https://more.ko-fi.com/privacy">Ko-fi's privacy policy</a>.</p>
+  <KofiPrivacy />
 
   <h2>Questions</h2>
   <p>Ask in <a href={DISCORD}>the players' Discord</a>.</p>

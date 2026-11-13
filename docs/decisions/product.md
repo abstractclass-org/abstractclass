@@ -12282,3 +12282,25 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
   Both sites' specs pass. Unit tests: `gif.test.ts` (with `addFrame`) and `boardImage.test.ts` (the caption's rule
   and place, the file's name, the copy) in `packages/review`, and each site's words in `enclosureImage.test.ts` and
   `blueprintsImage.test.ts`.
+
+### Cyanotype's Support Us, and its header links from 900 pixels (2026-11-13)
+
+abscls-8tl1.49. Cyanotype has Hedge School's Support Us: the header's button, the site's menu's entry below 640
+pixels, the dialog with Ko-fi's tip panel, the event `support_open` and the privacy page's part on Ko-fi (Cyanotype's
+design 33, "Support Us"). Both sites use Hedge School's Ko-fi page.
+
+- **The shared parts:** the dialog, the button, the privacy part and the Ko-fi page's address moved from Hedge School
+  into `packages/site` (design 29, item 1). Each site gives its name, its mark at 56 pixels and its words.
+- **Hedge School unchanged:** the text of the `<main>` and of the `<body>` of each of its 20 prerendered pages is the
+  same in the early build (`VITE_EDITION=early`, `VITE_STORE_PRACTICE_GAMES=on`) before and after the move.
+- **The header's row:** "Support Us" and its gap made Cyanotype's row 159.3 pixels wider in DejaVu Sans and 142.7 in
+  Segoe UI, measured in headless Chromium at a height of 700, every 10 pixels, as the content box less the children
+  and the gaps. With the links in the header, the row first fits at 891 pixels with the links' narrow gaps (10
+  pixels) and at 923 with their wide ones (18 pixels), in DejaVu Sans. Before the change it fitted from 740 with 9
+  pixels to spare, and from 780 with the wide gaps and 17 to spare.
+- **The change:** the links show from 900 pixels, with their wide gaps from 940. The room there in DejaVu Sans is 9.7
+  and 17.7 pixels, as before at 740 and 780. Below 900, the site's menu holds the links, and the header keeps the
+  logo, the name, "Early Access", "Support Us" and the theme menu, with 98 pixels to spare at 640 in DejaVu Sans.
+  Below 640, "Support Us" goes into the menu, as on Hedge School.
+- **The test:** the layout test's case of the site's menu opens Cyanotype's menu below 900 pixels, in place of 740.
+  Every sweep checks the header's row, on both sites.

@@ -90,7 +90,8 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      header.
    - **"Support Us," for tips through Ko-fi,** in the accent's colour of each theme, as the site's other main buttons,
      with a heart. It opens Ko-fi's tip panel (Ko-fi's donation panel widget, a frame of its page) in the site's own
-     dialog, so that a tip needs no other tab (`src/lib/SupportDialog.svelte`). The frame is made only when the dialog
+     dialog, so that a tip needs no other tab (`SupportDialog.svelte` of `packages/site`, which Cyanotype shares:
+     its design 33, "Support Us"). The frame is made only when the dialog
      opens: until then, nothing goes to Ko-fi, and no script of Ko-fi's runs in the site's pages. The privacy page says
      what goes to Ko-fi, and when. Ko-fi's floating widget was the other way: a script on every page, which draws its
      own button at a fixed place, with its text and its two colours to set, and Ko-fi's colours inside. The frame's
