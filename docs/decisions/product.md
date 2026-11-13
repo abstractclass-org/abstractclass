@@ -11911,3 +11911,18 @@ layout test saw it: the children stayed in one row and inside the header's conte
 - **Measured after the change,** in the same way: the header is 48 pixels high at every width measured, in both fonts,
   on both sites. Room in DejaVu Sans: Hedge School 2.4 pixels at 360, 6.9 at 400, 16 at 1,024 and 34 at 1,080.
   Cyanotype 17.6 at 360, 9 at 740 and 17 at 780. In Segoe UI the least room is Hedge School's 42.8 at 360.
+- **The review's checks,** on the committed tree, built as the Tests workflow builds it (the early edition, with
+  Openings), in the same way:
+  - Nine cases of the layout test passed in DejaVu Sans and in Windows' fonts: the layout of `/` and `/about`,
+    Cyanotype's home page, the site's menu on both sites, and the four cases of the "Early Access" link. With dev's
+    four files of the header under the same test, four of them failed in DejaVu Sans, with the failures given above.
+    The case of Hedge School's menu failed too, from 360 to 390 pixels.
+  - The header was 48 pixels high at every width measured, from 360 to 1,100 pixels, in both fonts, on both sites.
+    The name and "Early Access" stayed on one line and inside their box. Cyanotype's links showed at 740, 750, 760,
+    770 and 780 pixels. At 780 pixels, with the links' gaps of 18 pixels, Cyanotype's row needs 657 pixels in Segoe
+    UI and 731 in DejaVu Sans.
+  - The added width costs little. A sweep takes about 31 seconds for its 477 sizes, so 1,024 adds about 0.2 seconds
+    to each sweep, and about 7 seconds to the 36 minutes of the whole layout test.
+  - Hedge School's full edition, which the workflows do not build, has nine links. In DejaVu Sans they do not fit
+    from 1,024 to about 1,045 pixels (the header is 72.5 pixels high), and from 1,080 to about 1,095 (78.5). In Segoe
+    UI they fit, with 78 pixels to spare at 1,024.
