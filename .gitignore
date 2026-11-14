@@ -25,7 +25,8 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Measurement outputs (apps/hedgeschool/scripts/measure/), summarised in docs/decisions/, and the workers' screenshots.
+# Each site's runs/: measurement outputs (apps/hedgeschool/scripts/measure/), summarised in docs/decisions/, and the
+# workers' screenshots of a change (runs/<issue>-look/).
 /apps/hedgeschool/runs/
 /apps/cyanotype/runs/
 

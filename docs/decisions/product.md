@@ -12303,4 +12303,6 @@ design 33, "Support Us"). Both sites use Hedge School's Ko-fi page.
   logo, the name, "Early Access", "Support Us" and the theme menu, with 98 pixels to spare at 640 in DejaVu Sans.
   Below 640, "Support Us" goes into the menu, as on Hedge School.
 - **The test:** the layout test's case of the site's menu opens Cyanotype's menu below 900 pixels, in place of 740.
-  Every sweep checks the header's row, on both sites.
+  Every sweep checks the header's row, on both sites. A new case opens Support Us on both sites: in a window of 1,280
+  × 900 the dialog has no scroll bar of its own and Ko-fi's note is in view, and on a phone of 390 × 844 the dialog
+  stays inside the window's width.

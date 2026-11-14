@@ -1534,6 +1534,7 @@ The decision log has the four options and the reasons for this one ("Cyanotype's
      made the first blueprints, and the logo is a cyanotype of the start's blueprint.
    - **The strategyjam.org tools' button** shows the simple drawing, and Tampermonkey's lists show it as the
      userscript's icon (`src/lib/game/tools.ts`, through `svgElement` of `logo.ts`).
+   - **The Support Us dialog** shows the full print at 56 pixels, where Hedge School's shows its collie ("Support Us").
 4. **The favicon** is the simple drawing, the same on light and dark tabs, with the files of Hedge School's (design 12,
    item 5):
    - `src/lib/assets/favicon.svg`, which the page names.

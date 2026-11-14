@@ -33,6 +33,7 @@ import { EARLIER_REVIEWED, earlierReview, openReviewFile, type ReviewFileInput }
 import { REFUSED, SPREAD_BOARD, expectNoSearch, noReview, reviewStoredFile, storeReview, toolLink }
   from "./cyanotype-review.ts";
 import { analysisAt, drawEach } from "./cyanotype-notes.ts";
+import { declineGames } from "./cyanotype-consent.ts";
 import { toMove } from "./move-header.ts";
 import { NETWORK_WORDS, headerLine, holdNetworks } from "./network-hold.ts";
 
@@ -341,7 +342,7 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as c
   test(`layout of the Support Us dialog on ${site}`, async ({ page }) => {
     test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     await page.addInitScript(answerConsent);
-    await page.addInitScript(() => localStorage.setItem("cyanotype:consent:1", JSON.stringify({ games: "denied" })));
+    await declineGames(page.context());
     await page.route(/ko-fi\.com/, route => route.abort());
     const found: ProblemAt[] = [];
     for (const [width, height] of [[1280, 900], [390, 844]]) {
