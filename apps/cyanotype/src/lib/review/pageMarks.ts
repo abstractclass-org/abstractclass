@@ -3,4 +3,4 @@
 import { reviewPageMarks } from "@abstractclass/review/pageMarks.ts";
 import { LAST_REVIEW_KEY } from "#lib/site.ts";
 
-export const { script: REVIEW_PAGE_SCRIPT, mark: markReviewPage } = reviewPageMarks(LAST_REVIEW_KEY, false);
+export const { script: REVIEW_PAGE_SCRIPT, mark: markReviewPage } = reviewPageMarks(LAST_REVIEW_KEY);

@@ -131,10 +131,10 @@ ask where it goes (design 21): with that choice, "import" again names what the p
        script at all. With a script, the footer waits for the games (below). The prerendered page cannot know whether
        the address names a game, since the game stays after the `#`. So a script in the page's head marks the address
        before the first paint, on the model of the theme's script (`src/app.html`). It marks an address that names a
-       game (`holdsGame`, or a kept game's id), and a last review that this browser keeps. CSS then hides the Review
-       tab for an address that names a game, and shows the line "Reading the game with the engine's rules…" in its
-       place (design 06, item 10). Where the browser keeps a last review, CSS keeps the room of "Continue your last
-       review".
+       game (a way in that the review takes, `reviewArrives`, or a kept game's id), and a last review that this browser
+       keeps. CSS then hides the Review tab for an address that names a game, and shows the line "Reading the game
+       with the engine's rules…" in its place (design 06, item 10). Where the browser keeps a last review, CSS keeps
+       the room of "Continue your last review".
      - **Its games come together** once the page's code has read them: "Continue your last review", the list and the
        line on storage. The link takes two lines on a phone and one from 640 pixels, and an ellipsis cuts its game to
        fit. So the page knows the link's height before the read. With a script, the footer under the list stays

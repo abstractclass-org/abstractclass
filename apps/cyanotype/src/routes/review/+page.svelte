@@ -172,7 +172,7 @@
       body: `This game's last review used an earlier version of ${what}, so the engine reviews the game again.` };
   }
 
-  // The game shown, or none (null or "") for the Review tab. Undefined until the page has read its address, as in the
+  // The game shown, or none (null) for the Review tab. Undefined until the page has read its address, as in the
   // prerendered page: the page then holds both the Review tab and the line of text, and the marks of the script in its
   // head show one of them (pageMarks.ts), as on Hedge School. The script runs again here, for an address that a
   // navigation in the page opened.
@@ -184,10 +184,12 @@
   // the `#` alone is the browser's own navigation, with no router's: it fires `hashchange`. Only once the page has
   // chosen what it shows (`shown`): before, the address's game is the one it loads.
   const addressHash = () => new URLSearchParams(location.hash.slice(1));
+  // The kept game that the address names, or none: an empty id (`#game=`) names none, as on Hedge School.
+  const gameIn = (hash: URLSearchParams) => hash.get("game") || null;
   const otherGame = () => {
     if (shown === undefined) return;
     const hash = addressHash();
-    if (hash.get("game") !== shown || hash.has("packed") || hash.has("from")) location.reload();
+    if (gameIn(hash) !== shown || hash.has("packed") || hash.has("from")) location.reload();
   };
   afterNavigate(otherGame);
   onMount(() => {
@@ -218,7 +220,7 @@
       return;
     }
     // The game to review: the one named in the address. Without one, the Review tab.
-    const id = hash.get("game");
+    const id = gameIn(hash);
     shown = id;
     if (!id) return;
     // The game, its lock and the engine's manifest are read at the same time. The rules worker needs only the

@@ -12187,23 +12187,26 @@ showed the line "Reading the game with the engine's rules…" at every address, 
 code ran. Hedge School's review page marks the page before the first paint (design 22, "Its first paint").
 
 - **Moved, not copied** (design 29): the script in the review page's head goes into
-  `packages/review/src/pageMarks.ts`, and the variants `review-game` and `review-last` that read its marks into
-  `packages/review/src/review.css`. Each site gives its key of the last review, and whether it takes Hedge School's
-  older addresses (an older query's `?game=` and a tool's game from before the import page, `#tool=`), in its own
-  `src/lib/review/pageMarks.ts`. Hedge School's script is the same text with its own key, and its `pageMarks.test.ts`
-  passes as before.
+  `packages/review/src/pageMarks.ts`. The variants `review-game` and `review-last`, which read its marks, go into
+  `packages/review/src/review.css`. Each site's `src/lib/review/pageMarks.ts` gives the site's key of the last review.
+  Hedge School's also turns on its older addresses: an older query's `?game=`, and a tool's game from before the
+  import page (`#tool=`). Hedge School's script now has a second argument for them, so its text changed. It marks the
+  same addresses as before, and Hedge School's `pageMarks.test.ts` passes with no change.
 - **Cyanotype's page** holds the Review tab and the line, as Hedge School's does, and the marks show one of them. An
   address with `#game=`, `#packed=` or `#from=` shows the line. A last review kept in this browser keeps the room of
   "Continue your last review", and the footer shows with no script. The Review tab's input takes a file chosen before
   the page's code ran, and carries `data-ready` once the tab opens. The browser tests' helper `chooseReviewFile`
   waits for it, as Hedge School's `loadReviewFile` does.
 - **An empty game id** (`#game=`): Cyanotype's page showed the line "Reading the game with the engine's rules…" and
-  never the Review tab, also on main. The page now gives it the Review tab, as Hedge School's does.
+  never the Review tab, also on main. The page now reads an empty id as no game, and gives it the Review tab, as Hedge
+  School's does. A later change of the `#` to an address with no game then does not load the page again.
 - **No difference that a player sees** from Hedge School's behaviour, other than the older addresses, which Cyanotype
   never had.
-- **Checked:** Cyanotype's `pageMarks.test.ts` runs the head's script at each way in, and checks its marks against
-  the ways in that the page reads. The browser cases in `cyanotype-review-early.spec.ts` hold every script of
-  the page: the line or the Review tab at each address, the room of the last review's link, and a file chosen before
-  the code ran. A fourth case lets the code run on `#game=`. On a build of dev without the change, all four failed.
+- **Checked:** Cyanotype's `pageMarks.test.ts` runs the head's script at each way in that the page reads, and at
+  addresses that name no game, and checks the marks against a list. Unlike Hedge School's test, it calls none of the
+  page's code, since Cyanotype's page reads the address in its own lines. Three browser cases in
+  `cyanotype-review-early.spec.ts` hold every script of the page: the line or the Review tab at each address, the
+  room of the last review's link, and a file chosen before the code ran. Each one checks that the hold stopped the
+  page's scripts. A fourth case lets the code run on `#game=`. On a build of dev without the change, all four failed.
   With it, they passed, and so did Hedge School's `review-file.spec.ts` and Cyanotype's specs of the Review tab's
   games and events.

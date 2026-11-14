@@ -1822,6 +1822,9 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   (`removeUnreadResults`), and `vite.config.ts` (`__ENGINE_FILES__`). `earlierResults.test.ts` checks it on
   Cyanotype's lock and the keys of the stored review, and `apps/hedgeschool/tests/cyanotype-earlier-results.spec.ts`
   in a browser, with its time.
+  The first paint (item 13): `src/lib/review/pageMarks.ts` (Cyanotype's key, on `packages/review/src/pageMarks.ts`
+  and the variants in `packages/review/src/review.css`), with its test (`pageMarks.test.ts`), and
+  `apps/hedgeschool/tests/cyanotype-review-early.spec.ts` in a browser, with the page's scripts held.
   `src/lib/analysis/engineSettings.ts`: a game's own settings for Cyanotype's networks. The shared parts:
   `packages/analysis/src/games.ts` (the store and the marks), `reviewLock.ts` (the lock) and `settings.ts`
   (`ownSettingsOf`), `packages/review/src/GameList.svelte` (the list, its Export and its Delete),

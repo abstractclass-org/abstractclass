@@ -4,4 +4,4 @@
 import { reviewPageMarks } from "@abstractclass/review/pageMarks.ts";
 import { LAST_REVIEW } from "#lib/game/store.ts";
 
-export const { script: REVIEW_PAGE_SCRIPT, mark: markReviewPage } = reviewPageMarks(LAST_REVIEW, true);
+export const { script: REVIEW_PAGE_SCRIPT, mark: markReviewPage } = reviewPageMarks(LAST_REVIEW, { olderAddresses: true });
