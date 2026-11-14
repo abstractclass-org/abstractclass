@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { engineFiles } from '@abstractclass/analysis/cache.ts';
-import { analyticsIdCheck } from '@abstractclass/site/analyticsIds.ts';
+import { analyticsTokenCheck } from '@abstractclass/site/analyticsTokens.ts';
 
 // The site's version: the commit it is built from (Cloudflare's build names it, else Git), for the footer.
 const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA
@@ -77,8 +77,8 @@ export default defineConfig({
 	// The workers as modules: the GPU worker imports the engine's GPU library by URL.
 	worker: { format: 'es' },
 	plugins: [
-		// A malformed analytics ID stops the build (packages/site/src/analyticsIds.ts).
-		analyticsIdCheck(),
+		// A malformed analytics token stops the build.
+		analyticsTokenCheck(),
 		testBook(),
 		tailwindcss(),
 		sveltekit({

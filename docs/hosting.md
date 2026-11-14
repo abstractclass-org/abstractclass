@@ -206,9 +206,9 @@ for the previews:
 | `VITE_CF_ANALYTICS_TOKEN` | `CF_ANALYTICS_TOKEN` | none |
 | `VITE_STORE_PRACTICE_GAMES` | `HEDGESCHOOL_STORE_PRACTICE_GAMES` | the same, so that the previews store games too, in their own database (section 7) |
 
-**The build checks the analytics' IDs** (`packages/site/src/analyticsIds.ts`), in both sites: a `VITE_POSTHOG_KEY`
-that is not `phc_` and letters and digits, or a `VITE_CF_ANALYTICS_TOKEN` that is not 32 hexadecimal digits, stops the
-build with a message that names the variable. An empty value passes.
+**The build checks the analytics' tokens** (`packages/site/src/analyticsTokens.ts`), in both sites: a `VITE_POSTHOG_KEY`
+that is not `phc_` and then letters and digits only, or a `VITE_CF_ANALYTICS_TOKEN` that is not 32 hexadecimal digits,
+stops the build with a message that names the variable. An empty value passes.
 
 **Why adapter-static, not Cloudflare's SvelteKit adapter:** Cloudflare's adapter renders pages on a server in a Worker.
 This site uses adapter-static, which writes plain files to `build/`, because the site is static by design
@@ -528,7 +528,7 @@ PostHog and Cloudflare Web Analytics, both without cookies, so it asks for no co
 asks only about the random number that links the practice games ("Cyanotype's practice games", below). The job
 `cyanotype` gives the build two repository variables under the names that the code reads. Only a push to `main` gives
 them, so previews are not counted. Until Cyanotype's launch, the job deploys previews only, so no build has them. A
-build without them measures nothing.
+build without them measures nothing. A malformed one stops the build, as in Hedge School's (section 3).
 
 | Name in the build | Repository variable | Value |
 |---|---|---|
