@@ -4,12 +4,14 @@
   // it again from there, the buttons with the logo (its file is static/brand/cyanotype.svg, written by
   // scripts/brand.mjs), the partners' test, and what can change. The sections are shared with Hedge School's page
   // (@abstractclass/import/developers). This page gives Blueprints' parts: its games' refusals, what its reader takes,
-  // its buttons' class name and head, and its list of changes. The partner list is empty (game/partners.ts), and the
-  // site has no place where a developer asks to join it or asks for a test address, so the page names none. The
+  // its Discord, its buttons' class name and head, and its list of changes. The Discord is Hedge School's: both games
+  // have the same designer and the same community, and its address is shared (@abstractclass/site/community.ts). A
+  // developer asks there for a test address and to join the partner list, which is empty (game/partners.ts). The
   // examples name the live site's address, which a partner's code names. A partner tests against a deployment of the
   // branch partner_test (design 33, "Partner sites"), whose address the page does not give.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import { DISCORD } from "@abstractclass/site/community.ts";
   import Intro from "@abstractclass/import/developers/Intro.svelte";
   import ReviewLink from "@abstractclass/import/developers/ReviewLink.svelte";
   import AnalysisLink from "@abstractclass/import/developers/AnalysisLink.svelte";
@@ -27,6 +29,8 @@
 <PageMeta title="For developers · {SITE_NAME}"
           description="Link Blueprints games to Cyanotype from your site: review and analysis links, buttons, and reviews saved back to your site." />
 
+{#snippet discord()}<a href={DISCORD}>ask in the Discord</a>{/snippet}
+
 <main class={PROSE}>
   <Intro site={SITE_NAME} game="Blueprints" />
 
@@ -42,7 +46,7 @@
   <AnalysisLink live={SITE_ORIGIN} moves="moves" />
 
   <SaveBack site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES}>
-    {#snippet partnerList()}{SITE_NAME} lists its partner sites, and has none yet.{/snippet}
+    {#snippet partnerList()}{SITE_NAME} lists its partner sites: {@render discord()} to join the list.{/snippet}
   </SaveBack>
 
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
@@ -50,7 +54,7 @@
   <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="cyanotype-button" file="cyanotype.svg"
            head="the logo" withHead="with {SITE_NAME}'s logo" contrast="blue tile" />
 
-  <Testing site={SITE_NAME} live={SITE_ORIGIN} />
+  <Testing site={SITE_NAME} live={SITE_ORIGIN} ask={discord} />
 
   <WhatCanChange site={SITE_NAME} lenient="unknown tags, a placement without its capture marks, the moves without turn numbers">
     {#snippet changes()}

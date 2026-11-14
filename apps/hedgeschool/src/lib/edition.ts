@@ -12,8 +12,9 @@ export const SITE_NAME = "Hedge School";
 export const SITE_ORIGIN = "https://hedgeschool.abstractclass.org";
 /** The site's own copyright: its code, text and design. The works of others that it ships are on the notices page. */
 export const SITE_COPYRIGHT = "© 2026 Yshan";
-/** The players' Discord: webgoatguy's, the game's designer. */
-export const DISCORD = "https://discord.gg/DxfvEgmQD";
+/** The players' Discord: webgoatguy's, the game's designer. Cyanotype's page for developers names it too, so its
+ *  address is in @abstractclass/site/community.ts. */
+export { DISCORD } from "@abstractclass/site/community.ts";
 export const SITE_VERSION: string = __SITE_VERSION__;
 /** The engine files that the build ships (vite.config.ts): its CPU module and networks, by SHA-256. */
 export const ENGINE_FILES: string = __ENGINE_FILES__;

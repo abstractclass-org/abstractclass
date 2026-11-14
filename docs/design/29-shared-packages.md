@@ -320,7 +320,8 @@ edit in the same commit), so their changes still apply.
     into a package too: abscls-8tl1.58 (the logo's files and the Export menu) and abscls-8tl1.15 (Practice's page
     parts). The site's package holds the favicon's ICO file (`ico.ts`) and the head's icons and link preview tags
     (`SiteHead.svelte`). It also holds Chromium's switches off the GPU for the browser tests and scripts
-    (`chromium.ts`), and the theme tokens (`themeTokens.ts`, which Cyanotype's link preview picture reads). The
+    (`chromium.ts`), the theme tokens (`themeTokens.ts`, which Cyanotype's link preview picture reads) and the address
+    of the Discord that both sites name (`community.ts`, which Hedge School's `edition.ts` exports as it did). The
     engine's package holds the error text as a sentence's end (`errorSentence`). The review's Export menu
     (`exports.ts`) holds the review link's note and copy (`shareNote`, `copyReviewLink`) and the Analysis board's
     exports (`deliverBoardExport`, `boardRecordNote`). The analysis package holds the board's file load

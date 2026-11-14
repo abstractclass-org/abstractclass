@@ -12381,3 +12381,20 @@ with Hedge School's words.
   settings. Each Cyanotype case fails on the page before this change. Screenshots in headless Chromium at 1,280 and
   390 pixels show Cyanotype's bar horizontal, upright and off, its settings open, the upright bar in the dark theme,
   and Hedge School's upright bar as before.
+
+### Cyanotype's partners ask in Hedge School's Discord (2026-11-14)
+
+abscls-8tl1.99. Both games have the same designer and the same community Discord. Cyanotype's `/developers` now gives
+Hedge School's two places: the partners' test says to ask in the Discord for the test address, and the partner list
+says to ask there to join it (design 33, "Partner sites", item 9). The list stays empty until a partner joins.
+
+- **One address:** `packages/site/src/community.ts` holds `DISCORD`. Cyanotype's page imports it from there. Hedge
+  School's `src/lib/edition.ts` exports it from there, so the pages that import it from `edition.ts` (About, Privacy
+  and For developers) did not change.
+- **Cyanotype's words are Hedge School's:** the same link text ("ask in the Discord") in the same two places, with the
+  shared sections as they were. The partner list's sentence was "Cyanotype lists its partner sites, and has none
+  yet." and is now "Cyanotype lists its partner sites: ask in the Discord to join the list." No other word differs
+  from Hedge School's page, except the site's name, the game and the parts that design 33 lists as Blueprints' own.
+- **The tests:** `tests/developers-discord.spec.ts` checks, on both sites' pages, that the Testing paragraph and the
+  partner list each link the shared address, and that the page has no other link to a Discord.
+- **Still open:** the list of changes has no date. The date comes with the release (abscls-8tl1.20).
