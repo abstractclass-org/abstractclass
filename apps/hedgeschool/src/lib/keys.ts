@@ -8,7 +8,8 @@
 export const ENGINE_KEY = "learn-enclosure:engine:2";
 /** The review's display settings (review/display.ts). */
 export const DISPLAY_KEY = "learn-enclosure:review-display:1";
-/** The consent's answer, and the random number that links the practice games (analytics.svelte.ts). :1
- *  (analytics-consent:1) held Google Analytics' alone. :2 held it and the games' link. */
+/** The consent's answer (analytics.svelte.ts). :1 (analytics-consent:1) held Google Analytics' alone. :2 held it and
+ *  the games' link. */
 export const CONSENT_KEY = "hedge-school:consent:2";
+/** The random number that links the practice games (analytics.svelte.ts). */
 export const BROWSER_NUMBER_KEY = "hedge-school:browser-number:1";
