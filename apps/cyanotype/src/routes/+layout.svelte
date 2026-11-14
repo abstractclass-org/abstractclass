@@ -34,9 +34,10 @@
   // Ko-fi's tip panel, in the site's own dialog (SupportDialog), as Hedge School's (design 33, "Support Us"). Opening
   // it counts: the tips are Ko-fi's.
   let supporting = $state(false);
-  // What the tips pay for: the engine's training and the site's work. The Ko-fi page is Hedge School's too.
-  const SUPPORT_WORDS = `${SITE_NAME} is free. Tips through Ko-fi pay for training ${ENGINE_NAME} and for work on the ` +
-    "site. Hedge School, our site for Enclosure, uses the same Ko-fi page.";
+  // What the tips pay for: the engine's training and the site. The Ko-fi page is Hedge School's too. The words are short,
+  // so that the dialog fits a window of 1,280 × 900 with no scroll bar of its own, as Hedge School's (design 33).
+  const SUPPORT_WORDS = `${SITE_NAME} is free. Tips through Ko-fi pay for ${ENGINE_NAME}'s training and the site, and ` +
+    "go to the same page as Hedge School's.";
   function support() {
     supporting = true;
     track("support_open");

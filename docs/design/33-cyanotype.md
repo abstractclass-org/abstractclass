@@ -1501,9 +1501,10 @@ Cyanotype takes tips as Hedge School does (Hedge School's design 22), on Hedge S
    after the move.
 2. **One Ko-fi page for both sites:** Hedge School's. Its address is one constant (`KOFI` in `kofi.ts`).
 3. **The dialog** shows the logo's full print at 56 pixels ("The logo"), where Hedge School's shows its collie. Its
-   words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi pay for training
-   Stamp Duty and for work on the site. Hedge School, our site for Enclosure, uses the same Ko-fi page." The last
-   sentence says why the panel is Hedge School's page.
+   words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi pay for Stamp Duty's
+   training and the site, and go to the same page as Hedge School's." The last clause says why the panel is Hedge
+   School's page. The words are short, so that the dialog fits a window of 1,280 × 900 with no scroll bar of its own,
+   as Hedge School's: longer words cut off Ko-fi's note at the dialog's foot.
 4. **Where it is:** in the header from 640 pixels, and in the site's menu below 640, as on Hedge School. The button
    made the header's row 159 pixels wider in DejaVu Sans, so the links stay in the header from 900 pixels, in place of
    740 ([decisions/product.md](../decisions/product.md), "Cyanotype's Support Us, and its header links from 900
