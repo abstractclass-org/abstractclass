@@ -14,9 +14,9 @@ const rgbAt = (p: ArrayLike<number>, i: number) => (p[i] << 16) | (p[i + 1] << 8
 
 /** The 256 colours or fewer of the frames. GIF holds 256 colours, and a board image holds more: its anti-aliased
  *  pixels blend the flat colours. The flat colours stay exact: first the `fixed` colours (the board's and the
- *  caption's), then each colour that fills a 2 × 2 block of pixels somewhere, the colour of the most blocks first (the
- *  regions, which blend a player's colour over the board). The places that are left go to the other colours, by
- *  median cut, weighted by their count. Where the frames hold 256 colours or fewer, each one is exact. */
+ *  caption's), then each colour that fills a 2 × 2 block of pixels somewhere, the colour of the most blocks first
+ *  (such as the areas that blend a player's colour over the board). The places that are left go to the other colours,
+ *  by median cut, weighted by their count. Where the frames hold 256 colours or fewer, each one is exact. */
 export function gifPalette(frames: GifFrame[], fixed: number[] = []): number[] {
   const count = new Map<number, number>(), blocks = new Map<number, number>();
   for (const { rgba: p, w, h } of frames)

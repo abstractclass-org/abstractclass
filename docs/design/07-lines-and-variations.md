@@ -269,7 +269,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       writes each element's computed colours and fonts into a copy of its SVG, and removes the board. A canvas draws
       the copy at twice the board's size on screen, at least 1,200 pixels wide, with the caption under it. The drawing
       is the review package's (`packages/review/src/boardImage.ts`), and Cyanotype's image of a line uses it too (its
-      design 33, "The image of a line"): each site gives its board's component and its caption.
+      design 33, "The image of a line"): each site gives its board's component, its drawing of the board, and its
+      words in the caption and the file's name.
     - **The look:** the theme that the page shows when the player chooses the item: the light look in the light
       theme, the dark look in the dark theme. With the theme "System", the image takes the theme that the page shows
       (`data-theme` on the page, `theme.svelte.ts`). The board's colours and the caption's background and text are the
@@ -434,9 +435,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
   The browser test of the notes on Practice's board: `tests/notes.spec.ts`.
 - The image of a line: `packages/review/src/lineImage.ts` (`imageLine`, the animation's frames `lineFrames`, tests in
   `lineImage.test.ts`), `src/lib/review/enclosureImage.ts` (`imageCaption`, `imageName`, tests in
-  `enclosureImage.test.ts`), Enclosure's part of the view (`src/lib/review/enclosureView.ts`, `image` and
-  `imageBoard`), `packages/review/src/boardImage.ts` (`lineImage`: the board drawn apart from the page, the PNG,
-  `copyPng`, the caption's place `captionLayout`, and the animated image; tests in `boardImage.test.ts`),
+  `enclosureImage.test.ts`: Enclosure's words), Enclosure's part of the view (`src/lib/review/enclosureView.ts`,
+  `image` and `imageBoard`), `packages/review/src/boardImage.ts` (`lineImage`: the board drawn apart from the page,
+  `squareSvg`, the PNG, `copyPng`, the caption's place `captionLayout`, the caption's and the file name's rule
+  `lineCaption` and `lineImageName`, and the animated image; tests in `boardImage.test.ts`),
   `packages/review/src/gif.ts` (the GIF and its frames, `addFrame`, tests in `gif.test.ts`), and in
   `ReviewView.svelte`, `imageTreeLine` (the line's
   edges, as a variation's preview draws them, by `treeLine`), `imageOf`, `copyImage` and `saveImage`. The note is

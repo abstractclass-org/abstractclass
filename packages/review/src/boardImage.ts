@@ -5,26 +5,29 @@
 // the position's FEN. An image has the look of the theme that the page shows when the player asks for it, light or
 // dark, so that it matches the board on the player's screen (decisions/product.md, "An image of a line in the player's
 // theme"). A board's styles are read in one task, and a change of theme between two frames of an animated image starts
-// that image again in the new theme: no image mixes the two themes. Each site gives its board's component and, where
-// the board is more than one SVG, its own drawing of it (`BoardSvg`); the view's `image` comes from lineImage below.
+// that image again in the new theme: no image mixes the two themes. Each site gives its board's component, its drawing
+// of the board (one SVG, `squareSvg`, or several, `joinedSvg`), and its words in the caption and the file's name
+// (`CaptionWords`, for `lineCaption` and `lineImageName`). The view's `image` comes from lineImage below.
 import { flushSync, mount, unmount, type Component } from "svelte";
+import type { Player } from "@abstractclass/analysis/game.ts";
 import { download } from "@abstractclass/site/download.ts";
-import type { ImageBoard, ImageParts, ViewTypes } from "./game.ts";
+import { fmtScore, PLAYER_NAME, type ImageBoard, type ImageParts, type ViewTypes } from "./game.ts";
 import { addFrame, animatedGif, type GifFrame } from "./gif.ts";
 
-/** The properties that a board's style sets on its elements, written into the copy: the image has no stylesheet. The
- *  copy keeps the elements' own attributes (fill-rule, stroke-linejoin). Hedge School's board needs these. */
-export const STYLED = ["visibility", "opacity", "fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray",
-                       "stroke-linecap", "stroke-opacity", "font-family", "font-size", "font-weight", "text-anchor"];
+/** The properties that a board's style may set on its elements, written into the copy: the image has no stylesheet. The
+ *  copy keeps the elements' other attributes (fill-rule). */
+const STYLED = ["visibility", "opacity", "fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray",
+                "stroke-linecap", "stroke-linejoin", "stroke-opacity", "paint-order", "font-family", "font-size",
+                "font-weight", "text-anchor"];
 
-/** A copy of `svg` with each element's computed style (the properties `styled`) in its own style attribute, and no
+/** A copy of `svg` with each element's computed style (the properties STYLED) in its own style attribute, and no
  *  class. */
-export function styledCopy(svg: SVGSVGElement, styled: readonly string[] = STYLED): SVGSVGElement {
+function styledCopy(svg: SVGSVGElement): SVGSVGElement {
   const copy = svg.cloneNode(true) as SVGSVGElement;
   const from = [svg, ...svg.querySelectorAll("*")], to = [copy, ...copy.querySelectorAll("*")];
   from.forEach((el, i) => {
     const css = getComputedStyle(el);
-    to[i].setAttribute("style", styled.map(p => `${p}:${css.getPropertyValue(p)}`).join(";"));
+    to[i].setAttribute("style", STYLED.map(p => `${p}:${css.getPropertyValue(p)}`).join(";"));
     to[i].removeAttribute("class");
   });
   return copy;
@@ -34,36 +37,61 @@ export function styledCopy(svg: SVGSVGElement, styled: readonly string[] = STYLE
  *  pixels wide, and its height in pixels. */
 export type BoardSvg = (host: HTMLElement, width: number) => { markup: string; height: number };
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** The markup of `svg` as an SVG that stands alone, `width` × `height` pixels. */
+function standalone(svg: SVGSVGElement, width: number, height: number): { markup: string; height: number } {
+  svg.setAttribute("xmlns", SVG_NS);
+  svg.setAttribute("width", `${width}`);
+  svg.setAttribute("height", `${height}`);
+  return { markup: new XMLSerializer().serializeToString(svg), height };
+}
+
 /** The drawing of a board that is one SVG, square (Hedge School's): the host's SVG, `width` pixels square. */
-export const squareSvg: BoardSvg = (host, width) => {
-  const copy = styledCopy(host.querySelector("svg")!);
-  copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  copy.setAttribute("width", `${width}`);
-  copy.setAttribute("height", `${width}`);
-  return { markup: new XMLSerializer().serializeToString(copy), height: width };
+export const squareSvg: BoardSvg = (host, width) => standalone(styledCopy(host.querySelector("svg")!), width, width);
+
+/** The drawing of a board that is several SVGs in one element, such as a field and each player's hand (Cyanotype's):
+ *  one SVG `width` pixels wide, in the proportions of the element that `board` selects in the host, with a styled copy
+ *  of each SVG that `parts` selects in it, at its place. The gaps between them show the caption's background. */
+export const joinedSvg = (board: string, parts: string): BoardSvg => (host, width) => {
+  const el = host.querySelector<HTMLElement>(board)!, at = el.getBoundingClientRect();
+  const out = document.createElementNS(SVG_NS, "svg");
+  out.setAttribute("viewBox", `0 0 ${at.width} ${at.height}`);
+  for (const svg of el.querySelectorAll<SVGSVGElement>(parts)) {
+    const { left, top, width: w, height: h } = svg.getBoundingClientRect(), copy = styledCopy(svg);
+    copy.setAttribute("x", `${left - at.left}`);
+    copy.setAttribute("y", `${top - at.top}`);
+    copy.setAttribute("width", `${w}`);
+    copy.setAttribute("height", `${h}`);
+    out.append(copy);
+  }
+  return standalone(out, width, Math.round((width * at.height) / at.width));
 };
 
 /** What a site gives for its image of a line: its board's component, the component's properties for a board of the
- *  image, its drawing of the board (squareSvg when not given), the caption, the saved file's name, and the site's
- *  name, small, under the caption. */
+ *  image, its drawing of the board, the caption, the saved file's name, and the site's name, small, under the
+ *  caption. */
 export interface LineImageSite<G extends ViewTypes, P extends Record<string, any>> {
   Board: Component<P>;
   props(board: ImageBoard<G>): P;
-  svg?: BoardSvg;
+  svg: BoardSvg;
   caption: ImageParts<G>["caption"];
   name: ImageParts<G>["name"];
   site: string;
 }
 
+/** The parts of a site's image (LineImageSite) that draw its board. */
+type Drawing = { Board: Component<any>; svg: BoardSvg; site: string };
+type BoardProps = Record<string, any>;
+
 /** The view's image of a line (@abstractclass/review/game.ts, ImageParts) for a site: the PNG, the animated GIF, the
  *  copy to the clipboard, and the saved file (@abstractclass/site/download.ts). */
 export function lineImage<G extends ViewTypes, P extends Record<string, any>>(site: LineImageSite<G, P>):
   ImageParts<G> {
-  const drawing: Drawing<P> = { Board: site.Board, svg: site.svg ?? squareSvg, site: site.site };
   return {
-    draw: (board, caption, width) => boardImage(drawing, site.props(board), caption, width),
+    draw: (board, caption, width) => boardImage(site, site.props(board), caption, width),
     animate: (frames, caption, width) =>
-      animatedBoardImage(drawing, frames.map(f => ({ props: site.props(f.board), ms: f.ms })), caption, width),
+      animatedBoardImage(site, frames.map(f => ({ props: site.props(f.board), ms: f.ms })), caption, width),
     caption: site.caption,
     name: site.name,
     copy: copyPng,
@@ -71,12 +99,48 @@ export function lineImage<G extends ViewTypes, P extends Record<string, any>>(si
   };
 }
 
-type Drawing<P extends Record<string, any>> = { Board: Component<P>; svg: BoardSvg; site: string };
+/** A site's words in its image's caption and file name: the game's word for a move ("edge", "edges"), the file name's
+ *  first word ("hedge-school"), and the words after a player's score in the caption, with their space first (" and
+ *  an area of 12"), or none (""). `N` holds the site's numbers of a position. */
+export interface CaptionWords<N> {
+  move: string;
+  moves: string;
+  file: string;
+  more(numbers: N, player: Player): string;
+}
+
+/** The numbers of a position that each site's caption gives: each player's score. */
+type Scores = { scores: readonly number[] };
+
+/** The place where the line starts, as the caption needs it: the turn of its next move and whether that move opens the
+ *  turn, and the position's mover, moves left, end and numbers (`N`). */
+export type CaptionStart<N extends Scores> =
+  N & { player: Player; movesLeft: number; over: boolean; turn: number; first: boolean };
+
+/** The caption's lines (text that explains): the turn and who plays where the line starts, then each player's score
+ *  and the site's numbers there and after the line's last move (`end`, after `moves` moves). With no line, the
+ *  position's numbers. */
+export function lineCaption<N extends Scores>(words: CaptionWords<N>, start: CaptionStart<N>, end: N | null,
+                                              moves: number): string[] {
+  const numbers = (at: N) => ([0, 1] as const)
+    .map(p => `${PLAYER_NAME[p]} has a score of ${fmtScore(at.scores[p])}${words.more(at, p)}.`).join(" ");
+  const plays = !start.first ? `the second ${words.move} of the turn`
+    : start.movesLeft > 1 ? `two ${words.moves}` : `one ${words.move}`;
+  const turn = start.over ? "The game is over." : `Turn ${start.turn}. ${PLAYER_NAME[start.player]} plays ${plays}.`;
+  if (!end || !moves) return [turn, numbers(start)];
+  return [turn, `Before ${words.move} 1: ${numbers(start)}`, `After ${words.move} ${moves}: ${numbers(end)}`];
+}
+
+/** The saved file's name: the site's, where the line starts, how many moves the image numbers, and whether it plays
+ *  the line (a GIF): "hedge-school-after-edge-12-line-3.png". */
+export function lineImageName(words: CaptionWords<never>, start: string[], moves: number, animated = false): string {
+  const from = start.length ? `after-${words.move}-${start.length}` : "start";
+  return `${words.file}-${from}${moves ? `-line-${moves}` : ""}${animated ? "-animated.gif" : ".png"}`;
+}
 
 /** The PNG of a board drawn with `props`, `width` pixels wide, and under it the caption's lines (the first in bold)
  *  and the site's name, small. */
-async function boardImage<P extends Record<string, any>>(drawing: Drawing<P>, props: P, caption: string[],
-                                                             width: number): Promise<Blob> {
+async function boardImage(drawing: Drawing, props: BoardProps, caption: string[], width: number): Promise<Blob> {
   return pngOf(await boardCanvas(styledBoard(drawing, props, width), caption, width, drawing.site));
 }
 
@@ -85,8 +149,8 @@ async function boardImage<P extends Record<string, any>>(drawing: Drawing<P>, pr
  *  a frame that changes nothing adds its time to the frame before it. The board's and the caption's colours (FLAT)
  *  stay exact in the GIF's 256 colours. A change of theme between two frames starts the image again, in the new
  *  theme. */
-async function animatedBoardImage<P extends Record<string, any>>(drawing: Drawing<P>,
-  frames: { props: P; ms: number }[], caption: string[], width: number): Promise<Blob> {
+async function animatedBoardImage(drawing: Drawing, frames: { props: BoardProps; ms: number }[], caption: string[],
+                                  width: number): Promise<Blob> {
   let gif: Uint8Array<ArrayBuffer> | null;
   do gif = await gifInOneTheme(drawing, frames, caption, width); while (!gif);
   return new Blob([gif], { type: "image/gif" });
@@ -98,9 +162,8 @@ const pageTheme = () => document.documentElement.dataset.theme;
 /** The GIF of animatedBoardImage, or null where the page's theme changed between two of its frames. Each frame's board
  *  is styled just before it is drawn, in the same task as the check of the theme. So one board's SVG waits at a time,
  *  and the page can answer the player between two frames. */
-async function gifInOneTheme<P extends Record<string, any>>(drawing: Drawing<P>, frames: { props: P; ms: number }[],
-                                                                caption: string[], width: number):
-  Promise<Uint8Array<ArrayBuffer> | null> {
+async function gifInOneTheme(drawing: Drawing, frames: { props: BoardProps; ms: number }[], caption: string[],
+                             width: number): Promise<Uint8Array<ArrayBuffer> | null> {
   const theme = pageTheme(), out: GifFrame[] = [];
   let before: Uint8ClampedArray | null = null, fixed: number[] = [];
   for (const { props, ms } of frames) {
@@ -129,8 +192,7 @@ type StyledBoard = { markup: string; height: number; colour: Record<(typeof FLAT
  *  BoardSvg), and the colours of FLAT, as CSS gives them in the page's theme now. It runs in one task. The host sets
  *  no theme of its own: it takes the page's tokens (data-theme on the root, theme.svelte.ts), and Tailwind's dark:
  *  variant reads the root's data-theme too. */
-function styledBoard<P extends Record<string, any>>({ Board, svg }: Drawing<P>, props: P, width: number):
-  StyledBoard {
+function styledBoard({ Board, svg }: Drawing, props: BoardProps, width: number): StyledBoard {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
   host.className = "fixed top-0 -left-[100000px] w-[600px] pointer-events-none";

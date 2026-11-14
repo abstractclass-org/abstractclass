@@ -183,8 +183,10 @@
   let manual = $state.raw<View | null>(null);
   let held = $state.raw<View | null>(null);
   let placedByPlayer = $state(false); // the player dragged or resized the panel
+  // A board for an image fits the line's placements too, so that the image shows each move that it numbers.
+  const lineHexes = $derived(image ? drawn.flatMap(l => (l.move.type === "place" ? l.move.footprint.map(c => c.hex) : [])) : []);
   const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? []),
-                             ...(image ? drawn.flatMap(l => (l.move.type === "place" ? l.move.footprint.map(c => c.hex) : [])) : [])]);
+                             ...lineHexes]);
   const fitBox = $derived(boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
   const hasPanel = $derived(handsForm === "panel" && field.width > 0 && field.height > 0);
   // When the cells, the legal moves or the area change, the fit may move the panel to a corner, before the board

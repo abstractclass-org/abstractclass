@@ -926,7 +926,8 @@ The move menu's "Generate image" is Hedge School's (its design 07, item 17): "Co
 line of one move or more, "Save animated", in the review and on the Analysis board. The two sites share the image's
 frame (`packages/review/src/boardImage.ts`, design 29, item 11): the board drawn apart from the page in the theme that
 the page shows, the caption under it with the site's name, the PNG, the animated GIF and its colours, the copy, the
-note where the browser refuses the copy, and the saved file. Cyanotype gives its own parts:
+note where the browser refuses the copy, the saved file, and the rule of the caption and of the file's name. Cyanotype
+gives its own parts:
 
 1. **The board** (`src/lib/board/image.ts`): Cyanotype's board with the position where the line starts, the line's
    moves numbered as the board draws a line, the captures, the hands after the line's last move drawn, and the
@@ -935,16 +936,19 @@ note where the browser refuses the copy, and the saved file. Cyanotype gives its
 2. **The fit holds the line.** The board's fit holds the position's cells and also each placement of the line, so the
    image shows each move that it numbers. The board on screen does not fit the line: it would move under the pointer
    each time that a line shows.
-3. **One SVG of three.** The board is three SVGs: the field and each hand. The drawing copies each one with its
-   computed styles, at its place on the board, into one SVG. The gaps between them show the caption's background.
-   Cyanotype's style also sets the notes' joins and paint order, so the copy writes these in too.
+3. **One SVG of three.** The board is three SVGs: the field and each hand. The review package's drawing of a board of
+   several SVGs (`joinedSvg`) copies each one with its computed styles, at its place on the board, into one SVG. The
+   gaps between them show the caption's background. The copy writes in the notes' joins and paint order too, which
+   Cyanotype's style sets.
 4. **A board in a fixed area** (the property `image` of `Board.svelte`): the board takes its size from the image, and
    not from a measure of the page, so it draws in the task that mounts it. The site reads its styles in that task, as
    Hedge School does, so a change of theme cannot break into it.
-5. **The caption** (`src/lib/review/blueprintsImage.ts`): Hedge School's, with "move" in the place of "edge" and each
-   player's stars on the board in the place of the area: "Turn 12. Blue plays two moves." and "Before move 1: Blue
-   has a score of 34 and 3 stars on the board. Red has …". The file's name is `cyanotype-after-move-N-line-M.png`: the
-   line starts after move N and has M moves. The animated image's name ends with `-animated.gif`.
+5. **The caption's words** (`src/lib/review/blueprintsImage.ts`): the caption and the file's name are Hedge School's
+   (the review package's `lineCaption` and `lineImageName`), in Cyanotype's words: "move" in the place of "edge", and
+   each player's stars on the board in the place of the area. "Turn 12. Blue plays two moves." and "Before move 1:
+   Blue has a score of 34 and 3 stars on the board. Red has …". The file's name is
+   `cyanotype-after-move-N-line-M.png`: the line starts after move N and has M moves. The animated image's name ends
+   with `-animated.gif`.
 
 ### No area map yet
 
@@ -1807,10 +1811,11 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   (`blueprintsView.ts`), its game for the analysis (`blueprints.ts`, with the glyphs' parts and the notes), the board
   (`ReviewBoard.svelte`), the glyphs (`MoveLabel.svelte`), the small hexes (`MoveShape.svelte`), the table's least
   size (`table.ts`), the display settings (`display.ts`), and the area map kept for later (`blueprintsMap.ts`).
-  The image of a line ("The image of a line"): its caption and file name (`blueprintsImage.ts`, tests in
-  `blueprintsImage.test.ts`), and the board's drawing (`src/lib/board/image.ts`), with the frame, the PNG and the GIF
-  in `packages/review/src/boardImage.ts` and `gif.ts`. The browser test is Hedge School's
-  `tests/cyanotype-line-image.spec.ts`, with the checks of its image (`tests/line-image.ts`).
+  The image of a line ("The image of a line"): its caption's words (`blueprintsImage.ts`, tests in
+  `blueprintsImage.test.ts`), and the board's properties and drawing (`src/lib/board/image.ts`), with the frame, the
+  caption's rule, the drawing of several SVGs, the PNG and the GIF in `packages/review/src/boardImage.ts` and `gif.ts`.
+  The browser test is Hedge School's `tests/cyanotype-line-image.spec.ts`, with the checks of its image
+  (`tests/line-image.ts`).
   `src/lib/board/chips.ts`: the hands' rank chips. The player's notes ("The player's notes"): `notes.ts` and the
   notes' colours (`review.css`) in `packages/review`, which both sites use, and their keys (`NOTE_KEYS`) and drawing
   in `src/lib/board/Board.svelte`, with the arrow's shape and a drag's hexes in `hex.ts` (`arrowPoints`,

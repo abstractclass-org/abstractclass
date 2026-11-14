@@ -12251,11 +12251,15 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
   each feature of Hedge School's, built from the shared packages, with Hedge School unchanged.
 - **Decided:** Cyanotype's move menu has Hedge School's "Generate image": "Copy static", "Save static" and "Save
   animated", in the review and on the Analysis board, with the same theme rule ("An image of a line in the player's
-  theme", above). The parts that are not one game's moved to `packages/review/src/`: `boardImage.ts` (the board drawn
-  apart from the page, the theme's check, the caption's place, the PNG, the animated GIF, the copy and the saved file,
-  as `lineImage`) and `gif.ts`. Each site gives its board's component, the component's properties, its caption and
-  file name. Hedge School's board is one square SVG. Cyanotype's board is three SVGs (the field and each hand), and
-  its own drawing (`apps/cyanotype/src/lib/board/image.ts`) joins them into one.
+  theme", above). The parts that are not one game's moved to `packages/review/src/`: `boardImage.ts` and `gif.ts`.
+  `boardImage.ts` holds the board drawn apart from the page, the theme's check, the caption's place, the PNG, the
+  animated GIF, the copy and the saved file (`lineImage`), the drawing of a board of one SVG (`squareSvg`) or of
+  several (`joinedSvg`), and the rule of the caption and of the file's name (`lineCaption`, `lineImageName`). Each
+  site gives its board's component, the component's properties, its drawing of the board, and its words in the
+  caption and the file's name (`CaptionWords`): "edge" or "move", the area or the stars on the board, and the file's
+  first word. Hedge School's board is one square SVG. Cyanotype's board is three SVGs (the field and each hand),
+  joined into one. The copy of a board's SVG writes in each property that a board's style may set, with the lines'
+  joins and the paint order that Cyanotype's notes use.
 - **Cyanotype's board in the image:** square, as Hedge School's, with a hand in a row above the field and one below
   it. The board takes a fixed size from the image (the property `image` of its `Board.svelte`), and not a measure of
   the page, so it draws in the task that mounts it and the theme's check stays in one task. Its fit holds the line's
@@ -12269,5 +12273,6 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
   `gif.ts`), and not read again from the canvas: the same pixels, as the GIFs' digests show.
 - **The checks:** the browser checks of Hedge School's image moved to `tests/line-image.ts`, and
   `tests/cyanotype-line-image.spec.ts` runs them on Cyanotype's review of the test game and on its Analysis board.
-  Both sites' specs pass. Unit tests: `gif.test.ts` (with `addFrame`) and `boardImage.test.ts` (the caption's place,
-  the copy) in `packages/review`, and `blueprintsImage.test.ts` in Cyanotype.
+  Both sites' specs pass. Unit tests: `gif.test.ts` (with `addFrame`) and `boardImage.test.ts` (the caption's rule
+  and place, the file's name, the copy) in `packages/review`, and each site's words in `enclosureImage.test.ts` and
+  `blueprintsImage.test.ts`.

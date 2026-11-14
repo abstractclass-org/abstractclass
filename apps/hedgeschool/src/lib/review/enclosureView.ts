@@ -6,7 +6,7 @@
 import type { ImageBoard, ViewGame } from "@abstractclass/review/game.ts";
 import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
 import { BRUSH_KEYS } from "@abstractclass/review/notes.ts";
-import { lineImage } from "@abstractclass/review/boardImage.ts";
+import { lineImage, squareSvg } from "@abstractclass/review/boardImage.ts";
 import Board from "#lib/board/Board.svelte";
 import { pointName } from "#lib/engine/notation.ts";
 import { playMove, preload } from "@abstractclass/site/sound.ts";
@@ -130,6 +130,7 @@ export const enclosureView: ViewGame<Enclosure> = {
   image: lineImage({
     Board,
     props: imageBoard,
+    svg: squareSvg,
     caption: ({ position, turn, first }, end, moves) => imageCaption({ ...position, turn, first }, end, moves),
     name: imageName,
     site: SITE_NAME,
