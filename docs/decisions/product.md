@@ -12347,7 +12347,10 @@ it is"). Each scene is the 9 turns before its game's latest move with a bad labe
   Hedge School's"). Commit `77959b97` wrote them again from the stored review. The scene stayed the same.
 - **The check:** `apps/hedgeschool/tests/cyanotype-home.spec.ts`. The home page plays its scenes with no worker, no
   message to a worker and no request for the engine's files. For each scene, the Review tab loads the same game with
-  the same stored review, and each label of the scene's frames is the Review tab's label of that move.
+  the same stored review, and each label of the scene's frames is the Review tab's label of that move. Cyanotype's
+  `src/lib/review/labels.snapshot.engine.test.ts` needs no engine and runs in CI. It checks that each scene's stored
+  review has the search and the network of `replay.json` (`made`), and that each scene shows a bad move's label and a
+  good move's. The `replay.json` of dev before this change fails it.
 - **Seen:** screenshots of each scene's labelled move at 1,280 and 390 pixels, light, and the first at 1,280, dark.
   The labels draw on their moves. On the fuller boards of seeds 12 and 13, the board shows the whole field, so the
   labels' badges are small.
