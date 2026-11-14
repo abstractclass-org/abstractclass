@@ -8,7 +8,7 @@
   import { page } from "$app/state";
   import { holdsGame } from "@abstractclass/import/importHash.ts";
   import { removeUnreadResults } from "@abstractclass/analysis/cache.ts";
-  import { ASKS_CONSENT, analytics, consentChosen, startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { ASKS_CONSENT, analytics, consentChosen, startAnalytics } from "#lib/analytics.svelte.ts";
   import { flushPractice } from "#lib/practice/send.ts";
   import ConsentBanner from "@abstractclass/site/ConsentBanner.svelte";
   import favicon from "#lib/assets/favicon.svg";
@@ -20,6 +20,7 @@
   import SiteName from "@abstractclass/site/SiteName.svelte";
   import SupportButton from "@abstractclass/site/SupportButton.svelte";
   import SupportDialog from "@abstractclass/site/SupportDialog.svelte";
+  import { Support } from "@abstractclass/site/support.svelte.ts";
   import ThemeMenu from "@abstractclass/site/ThemeMenu.svelte";
 
   let { children } = $props();
@@ -33,15 +34,11 @@
   const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
   // Ko-fi's tip panel, in the site's own dialog (SupportDialog), as Hedge School's (design 33, "Support Us"). Opening
   // it counts: the tips are Ko-fi's.
-  let supporting = $state(false);
+  const support = new Support(analytics);
   // What the tips pay for: the engine's training and the site. The Ko-fi page is Hedge School's too. The words are short,
   // so that the dialog fits a window of 1,280 × 900 with no scroll bar of its own, as Hedge School's (design 33).
   const SUPPORT_WORDS = `${SITE_NAME} is free. Tips through Ko-fi pay for ${ENGINE_NAME}'s training and the site, and ` +
     "go to the same page as Hedge School's.";
-  function support() {
-    supporting = true;
-    track("support_open");
-  }
 
   // The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
   // of the address starts them then (Hedge School's design 22). The import page always takes its game out first, and
@@ -72,7 +69,7 @@
          narrower gaps below 940. Below 900, the links go into the site's menu at the left (SiteMenu), as Hedge School's
          below 1,024 pixels, and the header keeps the logo, the name, "Early Access", "Support Us" and the theme menu.
          Below 640 pixels, "Support Us" goes into the menu too, as on Hedge School. -->
-    <span class="min-[900px]:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
+    <span class="min-[900px]:hidden"><SiteMenu tabs={NAV} about={ABOUT} support={support.show} /></span>
     <SiteName class="max-[900px]:mr-auto"><Logo size={28} />{SITE_NAME}</SiteName>
     <nav class="flex gap-2.5 min-[940px]:gap-4.5 max-[900px]:hidden">
       {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
@@ -80,7 +77,7 @@
     <nav class="flex gap-2.5 min-[940px]:gap-4.5 ml-auto text-sm max-[900px]:hidden">
       {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>
-    <SupportButton class="max-sm:hidden" onclick={support} />
+    <SupportButton onclick={support.show} />
     <ThemeMenu />
   {/snippet}
   {@render children()}
@@ -88,7 +85,7 @@
 
 <!-- The logo at 56 pixels, its full print, where Hedge School's dialog has its collie. -->
 {#snippet supportMark()}<Logo size={56} />{/snippet}
-<SupportDialog bind:open={supporting} site={SITE_NAME} mark={supportMark}
+<SupportDialog bind:open={support.open} site={SITE_NAME} mark={supportMark}
                description={SUPPORT_WORDS} />
 
 <!-- The card's logo, at 48 pixels, as Hedge School's card has its collie. -->

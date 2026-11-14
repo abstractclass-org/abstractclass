@@ -2,15 +2,15 @@
   // The site's menu on a narrow screen (Hedge School's design 22), at the left of the header, as Lichess's on a phone:
   // the header's links, which a narrow header cannot hold in one row. The tabs, then the pages about the site. Each
   // entry is a link, so that the router opens it and a middle click opens a new tab. The page shown is marked, as in
-  // the header. A link marked `wide` shows from a tablet's width only (Tools). With `support`, on a phone, "Support Us"
-  // too, which the header has no room for: it opens Ko-fi's tip panel (SupportDialog.svelte). Each site gives its own
-  // links, from its own routes.
+  // the header. A link marked `wide` shows from a tablet's width only (Tools). On a phone, "Support Us" too, which the
+  // header has no room for below 640 pixels (SupportButton.svelte): `support` opens Ko-fi's tip panel
+  // (SupportDialog.svelte). Each site gives its own links, from its own routes.
   import { DropdownMenu } from "bits-ui";
   import { page } from "$app/state";
   import Icon from "./Icon.svelte";
 
   type Link = { href: string; label: string; wide?: boolean };
-  let { tabs, about, support }: { tabs: Link[]; about: Link[]; support?: () => void } = $props();
+  let { tabs, about, support }: { tabs: Link[]; about: Link[]; support: () => void } = $props();
   const here = (href: string) => page.url.pathname.startsWith(href);
 </script>
 
@@ -32,10 +32,8 @@
       {#each tabs as link (link.href)}{@render entry(link)}{/each}
       <DropdownMenu.Separator class="my-1 h-px bg-line" />
       {#each about as link (link.href)}{@render entry(link)}{/each}
-      {#if support}
-        <DropdownMenu.Separator class="my-1 h-px bg-line sm:hidden" />
-        <DropdownMenu.Item class="menu-item sm:hidden flex items-center gap-1.5 text-accent" onSelect={support}><Icon name="heart" />Support Us</DropdownMenu.Item>
-      {/if}
+      <DropdownMenu.Separator class="my-1 h-px bg-line sm:hidden" />
+      <DropdownMenu.Item class="menu-item sm:hidden flex items-center gap-1.5 text-accent" onSelect={support}><Icon name="heart" />Support Us</DropdownMenu.Item>
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>

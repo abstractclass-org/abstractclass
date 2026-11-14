@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { EARLY_ACCESS, ENGINE_FILES, OPENINGS, SITE_NAME, SITE_ORIGIN } from '#lib/edition.ts';
-	import { ASKS_CONSENT, analytics, consentChosen, startAnalytics, track } from '#lib/analytics.svelte.ts';
+	import { ASKS_CONSENT, analytics, consentChosen, startAnalytics } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
 	import { removeUnreadResults } from '@abstractclass/analysis/cache.ts';
 	import { holdsGame } from '@abstractclass/import/importHash.ts';
@@ -13,6 +13,7 @@
 	import SiteMenu from '@abstractclass/site/SiteMenu.svelte';
 	import SupportButton from '@abstractclass/site/SupportButton.svelte';
 	import SupportDialog from '@abstractclass/site/SupportDialog.svelte';
+	import { Support } from '@abstractclass/site/support.svelte.ts';
 	import SiteFrame from '@abstractclass/site/SiteFrame.svelte';
 	import SiteName from '@abstractclass/site/SiteName.svelte';
 	import SiteHead from '@abstractclass/site/SiteHead.svelte';
@@ -39,11 +40,7 @@
 	const ABOUT = [{ href: '/tools', label: 'Tools', wide: true }, { href: '/notation', label: 'Notation' }, { href: '/about', label: 'About' }];
 	const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
 	// Ko-fi's tip panel, in the site's own dialog (SupportDialog). Opening it counts (design 17): the tips are Ko-fi's.
-	let supporting = $state(false);
-	function support() {
-		supporting = true;
-		track('support_open');
-	}
+	const support = new Support(analytics);
 
 	// The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
 	// of the address starts them then (design 22). The import page alone goes to the tools, and counts nothing: with a
@@ -78,7 +75,7 @@
 	     with the narrower gaps below 1,080. Below 400 pixels the name is smaller, and its gap to "Early Access"
 	     narrower, as the header's sides and gaps (SiteFrame): without these changes the row needs 361 pixels in DejaVu
 	     Sans, and the header's box at 360 pixels holds 328. -->
-	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} {support} /></span>
+	<span class="lg:hidden"><SiteMenu tabs={NAV} about={ABOUT} support={support.show} /></span>
 	<!-- The name, and the early access in the accent colour beside it: what it means is on the About page (SiteName). -->
 	<SiteName class="max-[400px]:gap-1"><Collie size={28} /><span class="max-[400px]:text-lg">{SITE_NAME}</span></SiteName>
 	<nav class="flex flex-wrap gap-3 min-[1080px]:gap-4.5 max-lg:hidden">
@@ -88,7 +85,7 @@
 		{#each ABOUT as item (item.href)}<a href={item.href} class={[linkClass(item.href), item.wide && "max-sm:hidden"]}>{item.label}</a>{/each}
 	</nav>
 	<span class="flex items-center gap-3 sm:gap-6 lg:max-[1080px]:gap-4 ml-auto lg:ml-0">
-		<SupportButton class="max-sm:hidden" onclick={support} />
+		<SupportButton onclick={support.show} />
 		<ThemeMenu />
 	</span>
 {/snippet}
@@ -96,7 +93,7 @@
 </SiteFrame>
 <!-- The schoolmaster asks for tips (design 12's collie, its full drawing from 48 pixels). -->
 {#snippet supportMark()}<Collie size={56} />{/snippet}
-<SupportDialog bind:open={supporting} site={SITE_NAME} mark={supportMark}
+<SupportDialog bind:open={support.open} site={SITE_NAME} mark={supportMark}
                description="{SITE_NAME} is free. If it helps you, a tip through Ko-fi helps it grow." />
 
 <!-- The card's collie, at 48 pixels: its head and chest (design 12). -->

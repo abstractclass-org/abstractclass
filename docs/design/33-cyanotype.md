@@ -1495,10 +1495,10 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
 Cyanotype takes tips as Hedge School does (Hedge School's design 22), on Hedge School's Ko-fi page.
 
 1. **The same parts, in the site's package** (design 29, item 1): the header's "Support Us" button
-   (`SupportButton.svelte`), the dialog with Ko-fi's tip panel (`SupportDialog.svelte`), the privacy page's part on
-   Ko-fi (`KofiPrivacy.svelte`) and the Ko-fi page's address (`kofi.ts`), moved from Hedge School. Hedge School's
-   pages read as before: the text of each prerendered page's `<main>` and `<body>` is the same in its build before and
-   after the move.
+   (`SupportButton.svelte`), the dialog with Ko-fi's tip panel (`SupportDialog.svelte`), its state and its event
+   (`support.svelte.ts`), the privacy page's part on Ko-fi (`KofiPrivacy.svelte`) and the Ko-fi page's address
+   (`kofi.ts`), moved from Hedge School. Hedge School's pages read as before: the text of each prerendered page's
+   `<main>` and `<body>` is the same in its build before and after the move.
 2. **One Ko-fi page for both sites:** Hedge School's. Its address is one constant (`KOFI` in `kofi.ts`).
 3. **The dialog** shows the logo's full print at 56 pixels ("The logo"), where Hedge School's shows its collie. Its
    words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi pay for Stamp Duty's
@@ -1758,7 +1758,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   in Node by Hedge School's `symbolShades.test.ts` and the hub's
   `scripts/enclosure-board.mjs`, for the checks that compare colours). Each site's root layout gives `SiteFrame`
   what its header holds, its live address and its keys. Each site keeps its own logo, accent and header links. Hedge
-  `SupportDialog.svelte`, `SupportButton.svelte`, `KofiPrivacy.svelte` and `kofi.ts`: Support Us ("Support Us").
+  `SupportDialog.svelte`, `SupportButton.svelte`, `support.svelte.ts`, `KofiPrivacy.svelte` and `kofi.ts`: Support Us
+  ("Support Us").
   `SiteMenu.svelte`: the site's menu on a narrow screen (design 22), with each site's links, and "Support Us" on a
   phone. `Replay.svelte`: the home page's board as a
   replay of scenes (design 22), with each site's frames and board. `edition.ts` and `SiteName.svelte`: the early

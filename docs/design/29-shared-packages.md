@@ -96,8 +96,9 @@ edit in the same commit), so their changes still apply.
    whose change makes it due. Each site gives its engine (its `engine.lock.json`) and its reader of stored games.
    Support Us (Hedge School's design 22) moved out of Hedge School with Cyanotype's (design 33, "Support Us"), into the
    site's package: the dialog with Ko-fi's tip panel (`SupportDialog.svelte`), the header's button
-   (`SupportButton.svelte`), the privacy page's part on Ko-fi (`KofiPrivacy.svelte`) and the address of the one Ko-fi
-   page (`kofi.ts`). Each site gives its name, its mark and the words that say what the tips pay for.
+   (`SupportButton.svelte`), the dialog's state and its event `support_open` (`support.svelte.ts`), the privacy page's
+   part on Ko-fi (`KofiPrivacy.svelte`) and the address of the one Ko-fi page (`kofi.ts`). Each site gives its name,
+   its mark and the words that say what the tips pay for.
    A ninth, `@abstractclass/measure` (`packages/measure`), holds the engine measure on a visitor's device: the run,
    its time estimate, its stop when the tab is hidden, the device's facts and the results block with Copy results
    (decisions/engine.md, "The engine measure on a visitor's device"). It started in the package (item 11). Each site
