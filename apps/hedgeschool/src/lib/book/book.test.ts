@@ -212,7 +212,7 @@ const START_PART = "/test-book/cases/0.json";
 
 /** A server of the test books' files over HTTP, which the loader's own reader fetches. The cases' start's part answers
  *  as `start` says: in full, never (no headers), with half of its body, or with a server error. Each answer that the
- *  server gives, in full or as an error, comes `hold` milliseconds late on setTimeout's clock, as on a busy machine.
+ *  server gives, in full or as an error, comes `hold` milliseconds late on setTimeout's clock, as from a slow server.
  *  `next(path)` settles when the server has the next request of `path`, with its hold started. `requests` counts the
  *  start part's requests, and `open` the ones that the server still holds. `closed` settles when the last one closes: a
  *  request that the client aborts closes. */
@@ -235,24 +235,17 @@ async function bookServer(hold: number) {
       res.on("close", () => server.open--);
       server.closed = once(res, "close");
     }
-    // The global setTimeout, which the case's mock replaces (an import of node:timers/promises keeps the real one)
-    const answer = start === "no headers" || start === "half a body" ? undefined
-                                                                     : new Promise(resolve => setTimeout(resolve, hold));
-    waiting.get(path)?.();
+    waiting.get(path)?.(); // the case goes on only after this handler's first await: the hold has started then
     waiting.delete(path);
-    if (!answer) {
-      if (start === "no headers") return;
-      const body = readFileSync(file);
-      res.writeHead(200, { "Content-Type": "application/json", "Content-Length": body.length });
-      res.write(body.subarray(0, body.length >> 1)); // and never the rest
-      return;
-    }
-    await answer;
+    if (start === "no headers") return;
+    // The global setTimeout, which the case's mock replaces (a named import of node:timers/promises keeps the real one)
+    if (start !== "half a body") await new Promise(resolve => setTimeout(resolve, hold));
     if (start === "error") { res.writeHead(500).end(); return; }
     if (!existsSync(file)) { res.writeHead(404).end(); return; }
     const body = readFileSync(file);
     res.writeHead(200, { "Content-Type": "application/json", "Content-Length": body.length });
-    res.end(body);
+    if (start === "half a body") res.write(body.subarray(0, body.length >> 1)); // and never the rest
+    else res.end(body);
   });
   await new Promise<void>(resolve => http.listen(0, "127.0.0.1", resolve));
   server.url = `http://127.0.0.1:${(http.address() as AddressInfo).port}${CASES}`;
@@ -277,7 +270,9 @@ function headersOf(path: string): Promise<void> {
 // moves the clock, after the server has the request. Real time, which a busy machine stretches, moves neither. Only
 // the start part's requests that must not answer have the short limit. The server holds each other answer (the index,
 // the error and the part's later request) for twice the short limit, so a short limit on them fails the case. The
-// test's own timeout fails a loader that does not stop a request, and `t.after` then closes the server.
+// test's own timeout fails a loader that does not stop a request, and `t.after` then closes the server. Node's fetch
+// (undici) also starts its own timers with setTimeout. The case moves the clock 2.4 s in all, so none of fetch's own
+// time limits ends: the shortest, a connection's keep-alive, is 3 s.
 test("a part that does not answer in the time limit counts as not loaded: its headers, its body, or an error",
      { timeout: 20_000 }, async t => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
@@ -289,21 +284,20 @@ test("a part that does not answer in the time limit counts as not loaded: its he
   for (const start of ["no headers", "half a body", "error"] as const) {
     server.start = start;
     server.requests = 0;
-    const index = server.next(CASES), part = server.next(START_PART);
+    const indexAsked = server.next(CASES), partAsked = server.next(START_PART);
     const headers = start === "half a body" ? headersOf(START_PART) : undefined;
     const opening = openBook(server.url, undefined, limit);
-    await index;
+    await indexAsked;
     t.mock.timers.tick(HOLD);
     const book = await opening; // it starts the start's part
-    await part;
+    await partAsked;
     await headers; // with half a body, the loader then reads the body
     const lookup = book.get(START);
-    let settled = false;
-    lookup.catch(() => {}).finally(() => { settled = true; });
     if (start !== "error") {
       t.mock.timers.tick(LIMIT - 1);
-      await new Promise(setImmediate);
-      assert.equal(settled, false, `${start}: not before the time limit`);
+      const state = await Promise.race([lookup.then(() => "settled", () => "settled"),
+                                        new Promise(resolve => setImmediate(resolve, "pending"))]);
+      assert.equal(state, "pending", `${start}: not before the time limit`);
     }
     t.mock.timers.tick(start === "error" ? HOLD : 1);
     await assert.rejects(lookup, (e: unknown) =>
@@ -313,8 +307,8 @@ test("a part that does not answer in the time limit counts as not loaded: its he
     assert.equal(server.open, 0, `${start}: the loader stopped its request`);
     // A later lookup asks again, and the part loads once the server answers
     server.start = "answer";
-    const again = server.next(START_PART), found = book.get(START);
-    await again;
+    const askedAgain = server.next(START_PART), found = book.get(START);
+    await askedAgain;
     t.mock.timers.tick(HOLD);
     assert.equal((await found)?.position, START, start);
     assert.equal(server.requests, 2, `${start}: one request, then one more`);

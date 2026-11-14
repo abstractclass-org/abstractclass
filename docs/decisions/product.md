@@ -12142,15 +12142,17 @@ test and the list of changes (design 33, "Partner sites", items 9 and 11).
 Beads abscls-heum, after abscls-wtdm ("A book part of another form fails as a part that fails, and the book's
 time-limit test by file").
 
-- **The failure:** "a part that does not answer in the time limit counts as not loaded"
-  (`apps/hedgeschool/src/lib/book/book.test.ts`) failed at "no headers: one request, then one more" (1 !== 2) in two
-  site suites, in check:all's site-test, with every thread of the machine held. Alone it passed.
+- **The failure:** the case "a part that does not answer in the time limit counts as not loaded"
+  (`apps/hedgeschool/src/lib/book/book.test.ts`) failed at "no headers: one request, then one more" (1 !== 2). It
+  failed in two site suites, in check:all's site-test, while other jobs held every thread of the machine. When it ran
+  alone, it passed.
 - **The cause:** the test server and the loader share one Node process and one event loop. The start part's read
-  started a real timer of 150 ms. When the process did not run for 150 ms after the read started, the event loop then
-  ran its timers before its input: the timer aborted the fetch before the server read the request. The server counted
-  only the later request. The case also took the abort as proof that the loader stopped its request, because the server
-  had no request open. A copy of the old case that blocks the event loop for 200 ms after `openBook` fails at the same
-  assertion in each run.
+  started a real timer of 150 ms. Sometimes the process did not run for 150 ms after the read started. The event loop
+  then ran its timers before its input, so the timer aborted the fetch before the server read the request. The server
+  counted only the later request. The case also took the abort as proof that the loader stopped its request, because
+  the server had no request open. A copy of the old case that blocks the event loop for 200 ms after `openBook` fails
+  at the same assertion in each run. No other path gives 1 !== 2: only the two reads with the short limit can end
+  before the server counts them, and a request that the server counted stays counted.
 - **How it differs from abscls-wtdm:** there, the index and two other reads took the short limit, so the server's hold
   of 300 ms made them fail. The limit by file fixed that. Here, the short limit of the start part itself raced the
   request, in real time.
@@ -12161,10 +12163,19 @@ time-limit test by file").
   request (`next` of the test server). For half a body, the loader also has the headers (the diagnostics channel
   `undici:request:headers` of Node's fetch). The check "not before the time limit" moves the clock to 1 ms before the
   limit and requires the lookup to be still pending. The server holds its answers with the global `setTimeout`,
-  because an import of `node:timers/promises` keeps the real timer under the mock. The case takes about 80 ms, not
-  2.5 s.
-- **Checked:** each of three faults in `book.ts` fails the new case: one short limit for every file (the index fails),
-  a loader that does not abort its read (the test's timeout), and a timer at half the limit ("not before the time
-  limit"). Under load, in a job of `scripts/machine run` with 2 threads that 30 busy Node processes held, beside the
-  machine's other jobs: the old case passed 19 of 20 runs, and its one failure was the same assertion. The new case
-  passed 20 of 20. With 6 busy processes, the old case passed 20 of 20, so that load did not show the failure.
+  because a named import of `node:timers/promises` (the old case's `delay`) keeps the real timer under the mock. Node's
+  fetch (undici) also starts its own timers with `setTimeout`, so they run on the case's clock too. The case moves the
+  clock 2.4 s in all, and the shortest of fetch's own limits (a connection's keep-alive) is 3 s. The case takes less
+  than 0.1 s, not 2.5 s.
+- **Checked:**
+  - Each of three faults in `book.ts` fails the new case: one short limit for every file (the index fails), a loader
+    that does not abort its read (the test's timeout), and a timer at half the limit ("not before the time limit").
+  - Under load: a job of `scripts/machine run` had 2 threads, and 30 busy Node processes in the job kept them busy.
+    The job ran beside the machine's other jobs. In a first such job, the old case passed 19 of 20 runs, and its one
+    failure was the same assertion. The new case passed 20 of 20. With 6 busy processes, the old case passed 20 of 20,
+    so that load did not show the failure.
+  - In a second such job, the new case passed 20 of 20 on Node 26.13 and 20 of 20 on Node 24.22, the version of CI.
+    The old case passed 19 of 20.
+  - Node 24.22 and Node 26.13 behave the same. `book.test.ts` passes 16 of 16. A named import of
+    `node:timers/promises` keeps the real timer, and its default import gets the mock. After a case that fails, the
+    next case has the real `setTimeout` again.
