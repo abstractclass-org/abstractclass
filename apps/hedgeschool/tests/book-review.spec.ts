@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { test, expect, type Locator, type Page, type Request } from "./page-log.ts";
 import { loadReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { toMove } from "./move-header.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 test.beforeEach(async ({ page }) => {
   test.setTimeout(120_000);
@@ -15,10 +16,10 @@ test.beforeEach(async ({ page }) => {
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
   // The visitor has answered the consent notice, which covers the page until they choose: a build that stores
   // practice games, as CI's, asks for it. The engine is off.
-  await page.addInitScript(() => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-    localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-  });
+  await page.addInitScript(([consent, engine]) => {
+    localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
+    localStorage.setItem(engine, JSON.stringify({ on: false }));
+  }, [CONSENT_KEY, ENGINE_KEY]);
   await page.goto("/review");
   test.skip(!(await page.getByRole("link", { name: "Early Access" }).count()), "not the early edition");
 });
@@ -45,8 +46,7 @@ function bookLoads(page: Page): () => boolean {
   return () => open === 0 && Date.now() - last >= 500;
 }
 
-/** The review's display settings that the browser keeps (review/display.ts), and `display` sets before the page loads. */
-const DISPLAY_KEY = "learn-enclosure:review-display:1";
+/** Sets the review's display settings that the browser keeps (review/display.ts) to `d` before the page loads. */
 const display = (page: Page, d: Record<string, string>) =>
   page.addInitScript(([k, v]) => localStorage.setItem(k, v), [DISPLAY_KEY, JSON.stringify(d)]);
 /** The move list's book moves' marks (their title and name: "Book move · Best: +0.6% · +2.0 · Lead: Blue +14.9 · Equal
@@ -69,7 +69,7 @@ const table = (page: Page) => page.getByRole("region", { name: "Opening book" })
 /** "Review by" edge, before the page loads: the book's table and the opening row judge each edge. By turn, the
  *  default, they judge whole turns. */
 const byEdge = (page: Page) =>
-  page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: "edge" })));
+  page.addInitScript(k => localStorage.setItem(k, JSON.stringify({ judge: "edge" })), DISPLAY_KEY);
 
 /** The opening row of book-left-review.json, by edge and by turn: O11-Q10 with the book's label. */
 const LEFT_BY_EDGE = "The game left the book at turn 3: Blue, D9-G11, Blunder. Before that, at turn 2, Red played O11-Q10, "

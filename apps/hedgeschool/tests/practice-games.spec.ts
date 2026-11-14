@@ -4,6 +4,7 @@
 // after it is the Function's check, in src/lib/practice/stored.test.ts.
 import { test, expect } from "./page-log.ts";
 import { readFileSync } from "node:fs";
+import { BROWSER_NUMBER_KEY, CONSENT_KEY } from "../src/lib/keys.ts";
 
 const NUMBER = "c9d8e7f6-a5b4-4c3d-8e2f-1a0b9c8d7e6f";
 
@@ -20,13 +21,14 @@ test("a Decline in another tab: the practice tab's game goes with no number, and
   // A game in progress, the player to move (as the layout test's), with the visitor's consent to the link.
   const moves = (JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record as string)
     .replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
-  await practice.evaluate(([number, kept]) => {
+  await practice.evaluate(([number, kept, consent, numberKey]) => {
     localStorage.clear();
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "granted" }));
-    localStorage.setItem("hedge-school:browser-number:1", number as string);
+    localStorage.setItem(consent, JSON.stringify({ games: "granted" }));
+    localStorage.setItem(numberKey, number as string);
     localStorage.setItem("hedge-school:practice-game:1", JSON.stringify(kept));
   }, [NUMBER, { version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0,
-                name: "", seed: 1, moves, builds: [], started: new Date().toISOString() }] as const);
+                name: "", seed: 1, moves, builds: [], started: new Date().toISOString() },
+      CONSENT_KEY, BROWSER_NUMBER_KEY] as const);
   await practice.goto("/practice");
   const abort = practice.getByRole("button", { name: "Abort" });
   await expect(abort).toBeEnabled({ timeout: 120_000 });

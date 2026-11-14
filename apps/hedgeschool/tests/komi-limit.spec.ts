@@ -13,14 +13,15 @@ import { BOARD_ID, boardOfLine, type KeptBoard } from "../../../packages/analysi
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { boardLink } from "../src/lib/game/board.ts";
 import { fileInput } from "./review-file.ts";
+import { CONSENT_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
 /** A context's script before each page: the visitor has answered the consent notice, and the engine is off. */
-test.beforeEach(({ context }) => context.addInitScript(() => {
-  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-  localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
-}));
+test.beforeEach(({ context }) => context.addInitScript(([consent, engine]) => {
+  localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
+  localStorage.setItem(engine, JSON.stringify({ on: false, gpu: "off" }));
+}, [CONSENT_KEY, ENGINE_KEY]));
 
 /** A board of one move at `komi`. */
 const board = (komi: number) => ({ version: 2 as const, main: ["D10-G10"], nodes: [["D10-G10", -1]] as [string, number][], komi });

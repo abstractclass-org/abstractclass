@@ -2,6 +2,7 @@
 // form, the board's layers, the chart's score line, and how the engine's line and the variations show (design 07). Kept
 // in this browser (@abstractclass/review/display.ts): there are no accounts yet.
 import { DEFAULT_LAYERS, type BoardLayers } from "#lib/board/Board.svelte";
+import { DISPLAY_KEY } from "#lib/keys.ts";
 import { isMoveSound, type MoveSound } from "@abstractclass/site/sound.ts";
 import { displayStore } from "@abstractclass/review/display.ts";
 import type { Display as ViewDisplay } from "@abstractclass/review/game.ts";
@@ -13,8 +14,6 @@ export interface Display extends ViewDisplay {
   layers: BoardLayers;
   moveSound: MoveSound;
 }
-
-const KEY = "learn-enclosure:review-display:1";
 
 /** The defaults. The labels judge each turn as a whole, for both players. The area map is off on the review, whose
  *  player reads the labels first, and on on the Analysis board, whose player reads the whole board. Its style is
@@ -47,4 +46,4 @@ export const DEFAULT_DISPLAY: Display = {
 };
 
 export const { load: loadDisplay, save: saveDisplay } =
-  displayStore(KEY, DEFAULT_DISPLAY, isMoveSound);
+  displayStore(DISPLAY_KEY, DEFAULT_DISPLAY, isMoveSound);

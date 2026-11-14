@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { boardLink } from "../src/lib/game/board.ts";
 import { openReviewFile } from "./review-file.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 test.describe.configure({ timeout: 120_000 });
 
@@ -23,11 +24,11 @@ const variation: [string, number, 1][] = [["D10-G12", 0, 1], ["D10-G12 N11-Q10",
 
 /** Sets the consent, the engine off and the display settings before the page loads. */
 function settings(page: Page, display: Record<string, string>) {
-  return page.addInitScript(([d]) => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-    localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-    localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify(d));
-  }, [display]);
+  return page.addInitScript(([d, consent, engine, displayKey]) => {
+    localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
+    localStorage.setItem(engine, JSON.stringify({ on: false }));
+    localStorage.setItem(displayKey, JSON.stringify(d));
+  }, [display, CONSENT_KEY, ENGINE_KEY, DISPLAY_KEY] as const);
 }
 
 async function open(page: Page, unit: "edge" | "turn") {

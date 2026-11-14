@@ -8,7 +8,8 @@
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "./page-log.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
-import { fileInput, loadReviewFile } from "./review-file.ts";
+import { fileInput, loadReviewFile, openReviewFile } from "./review-file.ts";
+import { ENGINE_KEY } from "../src/lib/keys.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 const fixture: { record: string } = JSON.parse(readFileSync(FIXTURE, "utf8"));
@@ -29,7 +30,7 @@ const stored = (page: Page, store: string, key?: string) => page.evaluate(([name
 }), [NAME, store, key] as const);
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
+  await page.addInitScript(k => localStorage.setItem(k, JSON.stringify({ on: false })), ENGINE_KEY);
 });
 
 test("a review file chosen before the page's code runs loads once the tab opens", async ({ page }) => {
@@ -50,11 +51,8 @@ test("a review file chosen before the page's code runs loads once the tab opens"
 });
 
 test("a review file's game gets the cut marks of the moves that cut, as a pasted record does", async ({ page }) => {
-  await page.goto("/review");
-  await loadReviewFile(page, FIXTURE); // its record has no cut mark
-  await page.waitForURL(/#game=/, { timeout: 60_000 });
-  // The tab then loads the page again to review the game: the test reads the store once the review shows
-  await expect(page.locator("main.review")).not.toHaveAttribute("aria-busy", { timeout: 120_000 });
+  // Its record has no cut mark. The test reads the store once the review shows (openReviewFile waits for it)
+  await openReviewFile(page, FIXTURE);
   const id = new URL(page.url()).hash.slice("#game=".length);
   const kept = (await stored(page, STORES.games, id) as { record: string }).record;
   const cutEdge = /[A-T]\d+-[A-T]\d+x/g;

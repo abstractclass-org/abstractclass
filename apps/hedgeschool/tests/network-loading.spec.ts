@@ -5,13 +5,14 @@
 import { test, expect } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
 import { NETWORK_WORDS, headerLine, holdNetworks } from "./network-hold.ts";
+import { ENGINE_KEY } from "../src/lib/keys.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 
 test("the engine header says that the network loads, on the review and on the Analysis board", async ({ page }) => {
   let release = await holdNetworks(page);
   await page.goto("/review");
-  await page.evaluate(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
+  await page.evaluate(k => localStorage.setItem(k, JSON.stringify({ on: false })), ENGINE_KEY);
   // The file's load stores the game with every step's results and names it in the address. The Review tab then reloads
   // to review it (src/routes/review/+page.svelte, otherGame), from the browser's store.
   await loadReviewFile(page, FIXTURE);

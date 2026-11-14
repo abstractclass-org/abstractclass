@@ -6,6 +6,7 @@
 // npm run test:layout -- tests/practice-start.spec.ts --project=chromium, with BASE_URL.
 import { keepBefore } from "./keep-before.ts";
 import { expect, test } from "./page-log.ts";
+import { CONSENT_KEY } from "../src/lib/keys.ts";
 
 const GAME = "hedge-school:practice-game:1";
 /** A kept game (hedgefund.ts, KeptPractice) with no moves, the player Blue, and `more`. */
@@ -17,9 +18,9 @@ const keptPractice = (more: object = {}) => ({
 test("a game kept after the page mounts, while the engine loads, does not open: the settings card stays", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await page.addInitScript(() => {
-    try { localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" })); } catch { /* about:blank */ }
-  });
+  await page.addInitScript(key => {
+    try { localStorage.setItem(key, JSON.stringify({ games: "denied" })); } catch { /* about:blank */ }
+  }, CONSENT_KEY);
   let keptElsewhere = () => {};
   const kept = new Promise<void>(r => (keptElsewhere = r));
   await page.route("**/engine/manifest.json", async route => { await kept; await route.continue(); });
@@ -40,12 +41,12 @@ test("a game kept after the page mounts, while the engine loads, does not open: 
 test("a game that another tab ends while the engine loads gives way to the settings card", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await page.addInitScript(game => {
+  await page.addInitScript(([game, consent]) => {
     try {
-      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
+      localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
       localStorage.setItem("hedge-school:practice-game:1", game);
     } catch { /* about:blank */ }
-  }, JSON.stringify(keptPractice()));
+  }, [JSON.stringify(keptPractice()), CONSENT_KEY] as const);
   let endedElsewhere = () => {};
   const ended = new Promise<void>(r => (endedElsewhere = r));
   await page.route("**/engine/manifest.json", async route => { await ended; await route.continue(); });
@@ -63,7 +64,7 @@ test("a game that another tab ends while the engine loads gives way to the setti
 test("a game that fails before its first position says why it stopped", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await keepBefore(page, "hedge-school:consent:2", { games: "denied" });
+  await keepBefore(page, CONSENT_KEY, { games: "denied" });
   await keepBefore(page, GAME, keptPractice({ start: "no position" }));
   await page.goto("/practice");
   await expect(page.getByRole("status").filter({ hasText: /^The game stopped: \S/ })).toBeVisible({ timeout: 120_000 });

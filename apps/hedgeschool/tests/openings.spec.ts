@@ -7,8 +7,8 @@
 // The test book is served by the dev and preview servers only, and Openings is in the early edition's builds that they
 // serve (edition.ts, OPENINGS): elsewhere the tests are skipped.
 import { test, expect, type Page } from "./page-log.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
-const ENGINE_KEY = "learn-enclosure:engine:2", DISPLAY_KEY = "learn-enclosure:review-display:1";
 const WAITS = "The engine waits at a book position. To search, select Candidates.";
 /** The test book's main line (sentences.ts, mainLine). */
 const MAIN = ["A10-D9", "N11-Q10", "L10-N11", "D10-G12", "G12-J15"];
@@ -16,11 +16,11 @@ const MAIN = ["A10-D9", "N11-Q10", "L10-N11", "D10-G12", "G12-J15"];
 /** The page's settings before it loads: the consent answered, which covers the page until the visitor chooses, the
  *  engine's (off by default) and the display's. */
 async function setUp(page: Page, engine: Record<string, unknown> = { on: false }, display: Record<string, unknown> = {}) {
-  await page.addInitScript(([e, d, ek, dk]) => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
+  await page.addInitScript(([e, d, ek, dk, ck]) => {
+    localStorage.setItem(ck, JSON.stringify({ games: "denied" }));
     localStorage.setItem(ek, e);
     localStorage.setItem(dk, d);
-  }, [JSON.stringify(engine), JSON.stringify(display), ENGINE_KEY, DISPLAY_KEY]);
+  }, [JSON.stringify(engine), JSON.stringify(display), ENGINE_KEY, DISPLAY_KEY, CONSENT_KEY]);
 }
 
 /** Opens Openings, at an address after its `#` when given, and waits for the move list's main line. */

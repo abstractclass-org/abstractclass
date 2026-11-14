@@ -8,6 +8,7 @@
 import { expect, test, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { rightClick, rightDrag } from "./cyanotype-notes.ts";
+import { CONSENT_KEY } from "../src/lib/keys.ts";
 
 const board = (page: Page) => page.locator("svg[aria-label='Enclosure board']");
 /** The point of the window at a point (x, y) of the board (or past its edge), by the board's drawing's own transform:
@@ -31,11 +32,11 @@ test("Practice: a ring, a line, the colours, the same note again, and the notes 
   const moves = (JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record as string)
     .replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
   await page.goto("/practice");
-  await page.evaluate(kept => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
+  await page.evaluate(([kept, consent]) => {
+    localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
     localStorage.setItem("hedge-school:practice-game:1", JSON.stringify(kept));
-  }, { version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "",
-       seed: 1, moves, builds: [], started: new Date().toISOString() });
+  }, [{ version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "",
+        seed: 1, moves, builds: [], started: new Date().toISOString() }, CONSENT_KEY] as const);
   await page.reload();
   await expect(page.locator(".mv").first()).toBeVisible({ timeout: 120_000 });
   await expect(board(page)).toBeVisible();

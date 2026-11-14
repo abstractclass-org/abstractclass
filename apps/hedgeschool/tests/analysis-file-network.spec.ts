@@ -27,10 +27,9 @@ import { parseRecord as parseCyanotypeRecord } from "../../cyanotype/src/lib/gam
 import { ENGINE_KEY as CYANOTYPE_ENGINE } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, LITE, expectNoSearch, keptResults, noReview, putResults, readStored, testRecord } from "./cyanotype-review.ts";
 import { fileInput } from "./review-file.ts";
+// Hedge School's keys in local storage: the engine's settings, the display settings, and the consent notice's answer
+import { CONSENT_KEY as CONSENT, DISPLAY_KEY as DISPLAY, ENGINE_KEY as ENGINE } from "../src/lib/keys.ts";
 
-/** Hedge School's keys in local storage: the engine's settings, the display settings, and the consent notice's
- *  answer. */
-const ENGINE = "learn-enclosure:engine:2", DISPLAY = "learn-enclosure:review-display:1", CONSENT = "hedge-school:consent:2";
 /** The layout test's reviewed game, with its review's network and results (HedgeFund 0.1 Lite's). */
 const FIXTURE = JSON.parse(readFileSync(new URL("fixtures/hedgefund-review.json", import.meta.url), "utf8")) as
   { record: string; review: { network: string; networkName: string; model: string }; analyses: [string, unknown][] };

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
 import { MAP_PREFIX, analysisKey, readAnalysisKey } from "../../../packages/analysis/src/cache.ts";
 import { keepBefore } from "./keep-before.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 /** The Review tab's file input. */
 export const fileInput = (page: Page) => page.locator('input[type="file"][accept*="json"]');
@@ -29,9 +30,9 @@ type OpenReview = { engine?: object; display?: object; consent?: object; ready?:
  *  again to review the game, and the call waits until the review is ready, as `ready` says. */
 export async function openReviewFile(page: Page, file: ReviewFileInput,
                                      { engine, display, consent, ready = 120_000 }: OpenReview = {}) {
-  if (engine) await keepBefore(page, "learn-enclosure:engine:2", engine);
-  if (display) await keepBefore(page, "learn-enclosure:review-display:1", display);
-  if (consent) await keepBefore(page, "hedge-school:consent:2", consent);
+  if (engine) await keepBefore(page, ENGINE_KEY, engine);
+  if (display) await keepBefore(page, DISPLAY_KEY, display);
+  if (consent) await keepBefore(page, CONSENT_KEY, consent);
   await page.goto("/review");
   await loadReviewFile(page, file);
   await page.waitForURL(/#game=/, { timeout: 60_000 });

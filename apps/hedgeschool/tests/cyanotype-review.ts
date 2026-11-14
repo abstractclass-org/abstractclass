@@ -213,9 +213,14 @@ export async function storeReview(page: Page, display: object = {},
   await putResults(page, results);
 }
 
+/** Whether checkStored has passed: the preview and STORED do not change while the tests run, so it fetches the manifest
+ *  and reads the keys once. A check that fails runs again in the next case, as each case fails on its own. */
+let storedChecked = false;
+
 /** Fails when the preview's engine is not the one that made the stored review's results (STORED), or when the site no
  *  longer reads their keys (cache.ts, analysisKey and READ_SHAPES). */
 async function checkStored(page: Page) {
+  if (storedChecked) return;
   const fixture = readStored(), analyses = fixture.analyses;
   const manifest: Manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href)
     .then(r => r.json());
@@ -229,6 +234,7 @@ async function checkStored(page: Page) {
   });
   if (unread.length)
     throw new Error(`${STORED} has ${unread.length} results whose keys the site no longer reads: ${rerun}`);
+  storedChecked = true;
 }
 
 /** Puts the results `entries` (each key with its result) in the browser's store of analyses on the page's site, and

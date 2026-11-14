@@ -6,6 +6,7 @@
 // test:layout (the site running first).
 import { expect, test } from "./page-log.ts";
 import { readFileSync } from "node:fs";
+import { CONSENT_KEY } from "../src/lib/keys.ts";
 
 const record = JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record as string;
 const LINE = "A review in a hidden tab can be slower.";
@@ -22,8 +23,8 @@ for (const [size, cut] of [["16px", false], ["24px", true]] as const) {
     }, size);
     // The visitor has answered the consent notice: on a phone it covers the step bar, which holds the note, until they
     // choose (design 06, item 4). A build that stores practice games, as CI's, asks for it.
-    await page.addInitScript(() =>
-      localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" })));
+    await page.addInitScript(key =>
+      localStorage.setItem(key, JSON.stringify({ games: "denied" })), CONSENT_KEY);
     await page.goto(`/import#record=${encodeURIComponent(record)}`);
     const note = page.getByText(LINE);
     await expect(note).toBeVisible({ timeout: 120_000 }); // once the engine's network has loaded

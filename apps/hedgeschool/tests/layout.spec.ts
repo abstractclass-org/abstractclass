@@ -36,6 +36,7 @@ import { analysisAt, drawEach } from "./cyanotype-notes.ts";
 import { declineGames } from "./cyanotype-consent.ts";
 import { toMove } from "./move-header.ts";
 import { NETWORK_WORDS, headerLine, holdNetworks } from "./network-hold.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 /** Every 10 pixels, and the first width of each of the header's rows that is not on a step: 1,024, where Hedge
  *  School's links show. Each row is tightest at its first width, since the room grows with the window. */
@@ -282,9 +283,9 @@ test("layout of Cyanotype's board editor", async ({ page }) => {
 });
 
 /** The visitor's Decline, as Hedge School's consent banner keeps it (Cyanotype asks for no consent). A page script
- *  (addInitScript): it runs in the page, on either site. */
-const answerConsent = () => {
-  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
+ *  (addInitScript, with the key CONSENT_KEY): it runs in the page, on either site. */
+const answerConsent = (key: string) => {
+  localStorage.setItem(key, JSON.stringify({ games: "denied" }));
 };
 
 // The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header
@@ -295,7 +296,7 @@ const answerConsent = () => {
 for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 900]] as const) {
   test(`layout of the site's menu on ${site}`, async ({ page }) => {
     test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
-    await page.addInitScript(answerConsent);
+    await page.addInitScript(answerConsent, CONSENT_KEY);
     await page.goto(base ? new URL("/about", base).href : "/about");
     await page.waitForLoadState("networkidle");
     const header = await page.locator("header nav a").evaluateAll(as => as.map(a => a.getAttribute("href")!));
@@ -388,7 +389,7 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as c
   for (const colorScheme of ["light", "dark"] as const) {
     test(`the Early Access link on ${site}, ${colorScheme}`, async ({ page }) => {
       test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
-      await page.addInitScript(answerConsent);
+      await page.addInitScript(answerConsent, CONSENT_KEY);
       await page.emulateMedia({ colorScheme });
       const found: string[] = [];
       for (const width of [360, 1280]) {
@@ -593,7 +594,7 @@ test("layout of a review", async ({ page }) => {
   for (const [name, display] of REVIEW_DISPLAYS) {
     // The page settled first: the import opens the review by a navigation of its own.
     await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
-    await page.evaluate(d => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify(d)), display);
+    await page.evaluate(([k, d]) => localStorage.setItem(k, JSON.stringify(d)), [DISPLAY_KEY, display] as const);
     await page.reload();
     // The review done: the move list's labels and numbers are in, which make it widest. A build that does not know
     // the file's engine reviews the game again, from its results.
@@ -613,7 +614,7 @@ test("layout of a review", async ({ page }) => {
 // the fixture's as an earlier engine's review, its results with no maps. The note does not depend on the height, so
 // the sweep takes one.
 test("layout of the area map's note in a review snapshot", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false })));
+  await page.addInitScript(k => localStorage.setItem(k, JSON.stringify({ on: false })), ENGINE_KEY);
   await reviewedGame(page, earlierReview(FIXTURE, { maps: false }));
   await expect(page.getByText(EARLIER_REVIEWED)).toBeVisible({ timeout: 60_000 });
   // The map on, at the position before the game's last move. The game's end has a note of its own. The early
@@ -691,15 +692,14 @@ test("layout of the book's table in a review", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
   // The visitor has answered the consent notice, which would cover the Report's row on a phone
-  await page.addInitScript(() =>
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" })));
+  await page.addInitScript(answerConsent, CONSENT_KEY);
   await page.goto("/review");
   test.skip(!(await page.getByRole("link", { name: "Early Access" }).count()), "not the early edition");
   await reviewedGame(page);
   await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
   for (const [judge, rows] of [["edge", 6], ["turn", 9]] as const) {
     await page.setViewportSize({ width: 360, height: 700 });
-    await page.evaluate(j => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: j })), judge);
+    await page.evaluate(([k, j]) => localStorage.setItem(k, JSON.stringify({ judge: j })), [DISPLAY_KEY, judge] as const);
     await page.reload();
     await page.getByRole("button", { name: /^The game followed the book to its end/ }).click({ timeout: 300_000 });
     await page.keyboard.press("Home");
@@ -778,10 +778,10 @@ function bookTableProblems(page: Page) {
 test("layout of /openings", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
-  await page.addInitScript(() => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-    localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-  });
+  await page.addInitScript(([consent, engine]) => {
+    localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
+    localStorage.setItem(engine, JSON.stringify({ on: false }));
+  }, [CONSENT_KEY, ENGINE_KEY]);
   await page.goto("/about");
   test.skip(!(await page.locator('header a[href="/openings"]').count()), "a build without Openings");
   const release = await holdNetworks(page);
@@ -819,11 +819,11 @@ test("the sentence under the book's table keeps the move list in place", async (
       const page = await context.newPage();
       const served = await page.request.get("/test-book/prototype/index.json");
       if (!served.ok() || !(served.headers()["content-type"] ?? "").includes("json")) { await context.close(); test.skip(true, "the site serves no test book"); }
-      await page.addInitScript(([d]) => {
-        localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-        localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-        localStorage.setItem("learn-enclosure:review-display:1", d);
-      }, [JSON.stringify({ judge })]);
+      await page.addInitScript(([d, consent, engine, display]) => {
+        localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
+        localStorage.setItem(engine, JSON.stringify({ on: false }));
+        localStorage.setItem(display, d);
+      }, [JSON.stringify({ judge }), CONSENT_KEY, ENGINE_KEY, DISPLAY_KEY]);
       await page.goto("/about");
       if (!(await page.locator('header a[href="/openings"]').count())) { await context.close(); test.skip(true, "a build without Openings"); }
       await page.goto("/openings#record=A10-D9");
@@ -1007,8 +1007,7 @@ function stepBarProblems(page: Page) {
 // consent notice, which covers the bar until they choose: a build that stores practice games, as CI's, asks for it.
 test("the step bar on a phone", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
-  await context.addInitScript(() =>
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" })));
+  await context.addInitScript(answerConsent, CONSENT_KEY);
   const page = await context.newPage();
   const record = fixtureRecord();
   const found: string[] = [];

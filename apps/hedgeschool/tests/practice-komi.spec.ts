@@ -8,6 +8,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 const GAME = "hedge-school:practice-game:1";
@@ -32,11 +33,13 @@ async function keepGame(page: Page, komi: number, moves: string[]) {
 
 /** A context's script before each page: the visitor has answered the consent notice, which covers the page's foot until
  *  they choose. The engine's GPU is off, and so is the review's engine. */
-const answeredAndOff = () => {
-  localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-  localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false, gpu: "off" }));
+const answeredAndOff = ([consent, engine]: readonly [string, string]) => {
+  localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
+  localStorage.setItem(engine, JSON.stringify({ on: false, gpu: "off" }));
 };
-test.beforeEach(({ context }) => context.addInitScript(answeredAndOff));
+/** answeredAndOff's keys. */
+const ANSWERED_AND_OFF = [CONSENT_KEY, ENGINE_KEY] as const;
+test.beforeEach(({ context }) => context.addInitScript(answeredAndOff, ANSWERED_AND_OFF));
 
 /** The players' row's text: each card's name and numbers. */
 const row = (page: Page) => page.getByLabel(/^Players(,| and) scores/).first();
@@ -148,7 +151,7 @@ test("the Analysis board at a komi: its annotated record and its analysis file k
   // Back in, in another browser: the record, then the analysis file, each in a new store
   const another = async () => {
     const context = await browser.newContext({ baseURL: test.info().project.use.baseURL });
-    await context.addInitScript(answeredAndOff);
+    await context.addInitScript(answeredAndOff, ANSWERED_AND_OFF);
     return { context, page: await context.newPage() };
   };
   const first = await another();
@@ -275,7 +278,7 @@ test.describe("the opening book at a komi", () => {
       return [`${key.slice(0, at)}komi=-400${moves ? ` ${moves}` : ""}`, value];
     });
     // "Review by" edge: each edge has its label in its own button in the move list
-    await page.addInitScript(() => localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: "edge" })));
+    await page.addInitScript(k => localStorage.setItem(k, JSON.stringify({ judge: "edge" })), DISPLAY_KEY);
     await openWithBook(page, "/review");
     const idle = bookLoads(page);
     await loadReviewFile(page, { name: "komi-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });

@@ -13,6 +13,7 @@
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "./page-log.ts";
 import { EARLIER_REVIEWED, earlierReview, loadReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
 /** The positions of the game that the test book holds, by their number of edges: the label snapshot's record. */
@@ -33,11 +34,11 @@ const earlierFile = (named: boolean, book: boolean): ReviewFileInput =>
 async function openTab(page: Page, judge: string) {
   // The visitor has answered the consent notice, which covers the page until they choose: a build that stores
   // practice games, as CI's, asks for it
-  await page.addInitScript(j => {
-    localStorage.setItem("hedge-school:consent:2", JSON.stringify({ games: "denied" }));
-    localStorage.setItem("learn-enclosure:engine:2", JSON.stringify({ on: false }));
-    localStorage.setItem("learn-enclosure:review-display:1", JSON.stringify({ judge: j }));
-  }, judge);
+  await page.addInitScript(([j, consent, engine, display]) => {
+    localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
+    localStorage.setItem(engine, JSON.stringify({ on: false }));
+    localStorage.setItem(display, JSON.stringify({ judge: j }));
+  }, [judge, CONSENT_KEY, ENGINE_KEY, DISPLAY_KEY] as const);
   const served = await page.request.get("/test-book/prototype/index.json");
   await page.goto("/review");
   return served.ok() && (served.headers()["content-type"] ?? "").includes("json")

@@ -12,10 +12,11 @@ import { keepBefore } from "./keep-before.ts";
 import { expectThemedImages } from "./line-image.ts";
 import { expect, test } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
+import { CONSENT_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 test.beforeEach(async ({ page, context }) => {
-  await keepBefore(page, "hedge-school:consent:2", { games: "denied" });
-  await keepBefore(page, "learn-enclosure:engine:2", { on: false, gpu: "off" });
+  await keepBefore(page, CONSENT_KEY, { games: "denied" });
+  await keepBefore(page, ENGINE_KEY, { on: false, gpu: "off" });
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.setViewportSize({ width: 1376, height: 952 });
 });

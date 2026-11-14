@@ -4,6 +4,7 @@
 // `cyanotype-no-posthog`, on a build of Cyanotype without the key.
 import { test, expect, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor } from "./posthog.ts";
+import { CONSENT_KEY } from "../src/lib/keys.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
@@ -61,7 +62,7 @@ test("Hedge School: the consent banner asks only about the practice games' rando
   await expect(banner).not.toContainText(/cookie|Google|PostHog/i);
   await banner.getByRole("button", { name: "Accept" }).click();
   await expect(banner).toHaveCount(0);
-  expect(await page.evaluate(() => localStorage.getItem("hedge-school:consent:2"))).toBe(JSON.stringify({ games: "granted" }));
+  expect(await page.evaluate(k => localStorage.getItem(k), CONSENT_KEY)).toBe(JSON.stringify({ games: "granted" }));
 });
 
 test("Cyanotype, a build with PostHog's key: its page views carry internal: true after ?internal=on, it asks only for the games' link, and keeps nothing for PostHog", async ({ context }) => {

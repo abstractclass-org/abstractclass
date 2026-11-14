@@ -8,6 +8,7 @@ import { DEEP_VISITS } from "@abstractclass/analysis/cache.ts";
 import { defaultPoolSize } from "@abstractclass/engine/pool.ts";
 import { megabytes } from "@abstractclass/engine/client.ts";
 import { ownSettingsOf, settingsStore, type EngineSettings } from "@abstractclass/analysis/settings.ts";
+import { ENGINE_KEY } from "#lib/keys.ts";
 // The settings' general part (their shape, the steps, the review's depths) is the shared analysis's: this module gives
 // it to the site's code with the site's own part.
 export * from "@abstractclass/analysis/settings.ts";
@@ -42,12 +43,9 @@ export const offersNetwork = (id: string | undefined): boolean => NETWORKS.some(
  *  game reviews with. `withOwn` and `changeOwn` come with the general part. */
 export const { ownSettings, settingsFor } = ownSettingsOf({ offers: offersNetwork, ships: shipsNetwork });
 
-// Version 2: the review's names changed (version 1's "standard" was 256 visits, now Lite's).
-const KEY = "learn-enclosure:engine:2";
-
 export const defaultEngine = (): EngineSettings => ({
   on: true, visits: DEEP_VISITS, seconds: 30, review: "lite", customReview: 512, network: NETWORKS[0].id,
   workers: defaultPoolSize(), gpu: "auto",
 });
 
-export const { load: loadEngine, save: saveEngine } = settingsStore(KEY, defaultEngine, offersNetwork);
+export const { load: loadEngine, save: saveEngine } = settingsStore(ENGINE_KEY, defaultEngine, offersNetwork);
