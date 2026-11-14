@@ -6,9 +6,8 @@
 // npm run test:layout -- tests/practice-start.spec.ts --project=chromium, with BASE_URL.
 import { keepBefore } from "./keep-before.ts";
 import { expect, test } from "./page-log.ts";
-import { CONSENT_KEY } from "../src/lib/keys.ts";
+import { CONSENT_KEY, PRACTICE_GAME_KEY as GAME } from "../src/lib/keys.ts";
 
-const GAME = "hedge-school:practice-game:1";
 /** A kept game (hedgefund.ts, KeptPractice) with no moves, the player Blue, and `more`. */
 const keptPractice = (more: object = {}) => ({
   version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "", seed: 1,

@@ -36,7 +36,7 @@ import { analysisAt, drawEach } from "./cyanotype-notes.ts";
 import { declineGames } from "./cyanotype-consent.ts";
 import { toMove } from "./move-header.ts";
 import { NETWORK_WORDS, headerLine, holdNetworks } from "./network-hold.ts";
-import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY, PRACTICE_GAME_KEY } from "../src/lib/keys.ts";
 
 /** Every 10 pixels, and the first width of each of the header's rows that is not on a step: 1,024, where Hedge
  *  School's links show. Each row is tightest at its first width, since the room grows with the window. */
@@ -840,7 +840,7 @@ test("the sentence under the book's table keeps the move list in place", async (
  *  edges, the player to move next, so that the bot does not search. */
 async function practiceGame(page: Page) {
   const moves = fixtureRecord().replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
-  await keepBefore(page, "hedge-school:practice-game:1", {
+  await keepBefore(page, PRACTICE_GAME_KEY, {
     version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "", seed: 1,
     moves, builds: [], started: new Date().toISOString(),
   });

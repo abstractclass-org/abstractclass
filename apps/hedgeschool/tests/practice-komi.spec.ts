@@ -9,10 +9,9 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
 import { keepBefore } from "./keep-before.ts";
-import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
+import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY, PRACTICE_GAME_KEY as GAME } from "../src/lib/keys.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
-const GAME = "hedge-school:practice-game:1";
 const NETWORK = "b10c128-s89066368-d17827487"; // HedgeFund 0.2 Lite, the card's first network
 
 /** The fixture game's edges: its first `count`, or all 120. */

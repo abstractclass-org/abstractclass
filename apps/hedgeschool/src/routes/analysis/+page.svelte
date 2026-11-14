@@ -49,6 +49,7 @@
            type LoadSource } from "#lib/game/sources.ts";
   import { readPasted } from "#lib/game/paste.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
+  import { BOARD_AT_KEY } from "#lib/keys.ts";
   import { practiceHref as practiceAddress } from "@abstractclass/practice/practice.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
@@ -56,9 +57,6 @@
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
   const PLAYERS: ReviewData["players"] = { blue: "Blue", red: "Red" };
-  // The position on screen, kept in this browser for the next visit (a convenience: the board opens at the start
-  // without it).
-  const AT_KEY = "hedge-school:board-at";
 
   let game = $state<GameAnalysis<Enclosure> | null>(null);
   let error = $state("");
@@ -102,7 +100,7 @@
   // The position on screen, kept for the next visit.
   $effect(() => {
     const key = pathKey(current);
-    untrack(() => { if (game?.rulesReady) writeLocal(AT_KEY, key); }); // storage blocked: the start next time
+    untrack(() => { if (game?.rulesReady) writeLocal(BOARD_AT_KEY, key); }); // storage blocked: the start next time
   });
 
   // A link's board, when the board kept here has moves of its own: the player chooses which to keep.
@@ -137,7 +135,7 @@
    *  the analysis's own state. An analysis file's board comes with its network (`network`, which its address names:
    *  analysisFile.ts), and keeps it as its own. */
   async function chooseBoard(kept: KeptBoard | null, keptProblem: string | null, network: string | null): Promise<Opening> {
-    const at = readLocal(AT_KEY), keptAt = at ? at.split(" ") : [];
+    const at = readLocal(BOARD_AT_KEY), keptAt = at ? at.split(" ") : [];
     const hash = location.hash.slice(1);
     if (!holdsGame(hash)) { startAnalytics(); return { board: kept, at: keptAt }; }
     const p = new URLSearchParams(hash), record = p.get("record"), position = p.get("position"), via = p.get("via");

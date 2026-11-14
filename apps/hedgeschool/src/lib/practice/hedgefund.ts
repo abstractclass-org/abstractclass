@@ -4,6 +4,7 @@
 // bot's half-life, the turns after a set-up start and the game's record.
 import { NETWORKS, networkName, offersNetwork } from "#lib/analysis/engineSettings.ts";
 import { startTags, writeRecord } from "#lib/game/record.ts";
+import { PRACTICE_CHOICES_KEY, PRACTICE_GAME_KEY } from "#lib/keys.ts";
 import { turnFromCount, type Player } from "#lib/review/enclosure.ts";
 import {
   botLabel, choicesStore, keptStore, practiceTags, practiceTurns, settingsCommands, type BotSettings,
@@ -17,8 +18,8 @@ export * from "@abstractclass/practice/practice.ts";
 export type KeptPractice = Kept<BotMode>;
 
 /** The player's choices on the settings card, and the game in progress, in this browser. */
-export const practiceChoices = choicesStore("hedge-school:practice-choices:1", NETWORKS[0].id, offersNetwork);
-export const keptGame = keptStore<BotMode>("hedge-school:practice-game:1");
+export const practiceChoices = choicesStore(PRACTICE_CHOICES_KEY, NETWORKS[0].id, offersNetwork);
+export const keptGame = keptStore<BotMode>(PRACTICE_GAME_KEY);
 
 /** Variety's half-life: KataGo's 19 moves of Go, as Enclosure's edges (design 24). */
 const HALFLIFE = 19;

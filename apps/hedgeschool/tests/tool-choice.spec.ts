@@ -5,6 +5,7 @@
 // goes straight to the review (design 18). On the review, a link's record gets the Review tab. Each test opens a
 // fresh browser context, so its store starts empty.
 import { test, expect, type Page } from "./page-log.ts";
+import { BOARD_AT_KEY } from "../src/lib/keys.ts";
 
 const record = '[Event "meaf.us game"]\n[Site "meaf.us"]\n[Blue "Ann"]\n[Red "Bo"]\n[Result "*"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *\n';
 /** The link that the bookmarklet opens on meaf.us for `game` (by default the record above): `at` is the position that
@@ -25,7 +26,7 @@ const stored = (page: Page, store: string, key?: string) => page.evaluate(([stor
 
 /** The board's position on screen, which it keeps for the next visit, once it has one: its edges from the start. */
 const boardAt = (page: Page) =>
-  expect.poll(() => page.evaluate(() => localStorage.getItem("hedge-school:board-at")), { timeout: 60_000 });
+  expect.poll(() => page.evaluate(k => localStorage.getItem(k), BOARD_AT_KEY), { timeout: 60_000 });
 
 test("Analyze on the board: the game's moves as the main line, at the page's position, and no game kept", async ({ page }) => {
   await page.goto(toolLink(1));
