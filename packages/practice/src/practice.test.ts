@@ -5,8 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   botLabel, broughtLine, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, newPractice,
-  practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, settingsCommands, takebackCount, turnsOf, visitsStop,
-  visitsTaken, type KeptPractice,
+  gaugeWidth, practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, scoreStore, settingsCommands, takebackCount,
+  turnsOf, upright, visitsStop, visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -162,4 +162,25 @@ test("the move list's turns: the moves of one player in a row, each with its pos
     { player: 0, moves: [{ text: "D", at: 4 }] },
   ]);
   assert.deepEqual(turnsOf([], () => ""), []);
+});
+
+test("the points bar's settings: kept under the site's key, the bar on and horizontal at first, an area only where offered", () => {
+  const store = scoreStore("test:score", true);
+  assert.deepEqual(store.load(), { bar: true, area: false, form: "bar" });
+  store.save({ bar: false, area: true, form: "gauge" });
+  assert.equal(stored.get("test:score"), '{"bar":false,"area":true,"form":"gauge"}');
+  assert.deepEqual(store.load(), { bar: false, area: true, form: "gauge" });
+  // A game with no area keeps the same values, with the area off
+  assert.deepEqual(scoreStore("test:score", false).load(), { bar: false, area: false, form: "gauge" });
+  stored.set("test:score", '{"form":"sideways"}');
+  assert.deepEqual(store.load(), { bar: true, area: false, form: "bar" });
+});
+
+test("the upright bar and its room left of the board: the bar, its area's lane and its gap to the board", () => {
+  assert.deepEqual([upright({ bar: true, area: false, form: "gauge" }), upright({ bar: false, area: false, form: "gauge" }),
+                    upright({ bar: true, area: false, form: "bar" })], [true, false, false]);
+  assert.equal(gaugeWidth({ bar: true, area: false, form: "gauge" }), "1.375rem");
+  assert.equal(gaugeWidth({ bar: true, area: true, form: "gauge" }), "1.875rem");
+  assert.equal(gaugeWidth({ bar: true, area: true, form: "bar" }), "0px");
+  assert.equal(gaugeWidth({ bar: false, area: false, form: "gauge" }), "0px");
 });

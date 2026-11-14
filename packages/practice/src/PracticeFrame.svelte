@@ -8,7 +8,9 @@
   //   on Lichess's game page (Hedge School: Enclosure's board). With the gauge, the board's column is the gauge's width
   //   wider, and the row starts at the board's edge.
   // - "fill": the window's height, less the row, and all the width that the side column leaves at its widest
-  //   (Cyanotype: Blueprints' board has no edge). In one column, the height that the site gives (`fillHeight`).
+  //   (Cyanotype: Blueprints' board has no edge). In one column, the height that the site gives (`fillHeight`). With
+  //   the gauge, it is left of the board's box and as high, the box is the gauge's width narrower, and the row starts
+  //   at the box's edge.
   // The site gives the content: the row, the gauge, the board, the side column's content and the bar's tools.
   import type { Snippet } from "svelte";
   import { stripBox } from "@abstractclass/review/PlayerCard.svelte";
@@ -16,7 +18,7 @@
 
   interface Props {
     form?: "square" | "fill";
-    gauge?: boolean; // the score's gauge beside the board (square only), `gaugeWidth` wide with its gap
+    gauge?: boolean; // the score's gauge beside the board, `gaugeWidth` wide with its gap
     gaugeWidth?: string;
     fillHeight?: string; // the box's height in one column ("fill"), as a CSS length
     strip: Snippet; // the row above the board
@@ -56,10 +58,13 @@
 {:else}
   <main class="grid items-start gap-x-5 gap-y-3 my-4 px-4 select-none grid-cols-[minmax(0,1fr)_minmax(250px,350px)]
                [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] one-column-layout:grid-cols-1"
-        style:--strip={stripRoom} style:--fill-h={fillHeight}>
+        style:--strip={stripRoom} style:--fill-h={fillHeight} style:--gauge-w={gaugeWidth}>
     <section class="min-w-0">
-      <div class={["mb-2", stripBox(false)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
-      <div class="relative min-h-0 h-(--tall) one-column-layout:h-(--fill-h)">{@render board()}</div>
+      <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
+      <div class="flex">
+        {@render beside?.()}
+        <div class="relative flex-1 min-w-0 min-h-0 h-(--tall) one-column-layout:h-(--fill-h)">{@render board()}</div>
+      </div>
     </section>
     <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--tall))] one-column-layout:h-auto px-4 py-3 bg-panel border border-line rounded-md">
       {@render sideAndBar()}

@@ -12354,3 +12354,29 @@ it is"). Each scene is the 9 turns before its game's latest move with a bad labe
 - **Seen:** screenshots of each scene's labelled move at 1,280 and 390 pixels, light, and the first at 1,280, dark.
   The labels draw on their moves. On the fuller boards of seeds 12 and 13, the board shows the whole field, so the
   labels' badges are small.
+
+### Cyanotype's Practice points bar: its switch and its direction (2026-11-14)
+
+abscls-8tl1.52, a gap of design 33. Cyanotype's Practice always showed its points bar above the board. It now has
+Hedge School's two settings of the bar (design 24, item 12): the switch "Points bar" and the choice "Direction",
+Horizontal above the board or Vertical beside it. They are in the display settings, in the group Score, before Sound,
+with Hedge School's words.
+
+- **Moved, not copied** (design 29, item 11): the bar, its settings and their store went from Hedge School's Practice
+  page into `packages/practice`. `PointsBar.svelte` draws the bar in either direction, `ScoreSettings.svelte` holds
+  the group Score, `scoreDisplay.svelte.ts` keeps the settings and sends the feature events ("practice bar",
+  "practice area", "practice direction"), and `practice.ts` gives `scoreStore`, `upright` and `gaugeWidth`. Hedge
+  School keeps its key `hedge-school:practice-display:2` and its values.
+- **No area:** Blueprints has no area, so Cyanotype offers no switch "Area" and no area lane. The store takes an
+  `area` flag: without it, a kept `area: true` loads as false.
+- **The key:** `cyanotype:practice-display:1`, with Hedge School's values (`bar`, `area`, `form`). The version counts
+  the key's own history, as Cyanotype's other keys do, so it is 1 where Hedge School's is 2.
+- **The upright bar** is left of the board's box and as high as it. The practice frame's fill form, Cyanotype's, now
+  takes the gauge as the square form does: the players' row then starts at the box's left edge. On a phone the board's
+  box holds the board and the hands, so the bar runs beside both, as on Cyanotype's review.
+- **Checked:** the unit tests of `scoreStore`, `upright` and `gaugeWidth`, and `svelte-check` of both apps and
+  `packages/practice`. A new browser test, `practice-points-bar.spec.ts`, runs the same three cases on both sites:
+  the controls and their first values, Vertical at 1,280 pixels, after a reload and at 390 pixels, and the bar off
+  after a reload. Hedge School had no browser case for these settings. Each Cyanotype case fails on the page before
+  this change. Screenshots in headless Chromium at 1,280 and 390 pixels show Cyanotype's bar horizontal, upright and
+  off, its settings open, the upright bar in the dark theme, and Hedge School's upright bar as before.

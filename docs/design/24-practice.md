@@ -396,14 +396,18 @@ How strong each setting plays against people is not measured yet.
   in `src/lib/practice/hedgefund.ts`: its keys (the kept game `hedge-school:practice-game:1` and the choices
   `hedge-school:practice-choices:1`, in the browser's local storage), its networks, the bot's half-life, the turns after
   a set-up start and the record. Tests: `practice.test.ts` here, and the package's own on a
-  game of words. The score's display settings are kept under `hedge-school:practice-display:2`.
+  game of words. The score's display settings are kept under `hedge-school:practice-display:2`
+  (`scoreStore` in `packages/practice/src/practice.ts`, which Cyanotype's Practice shares).
 - **The card and the frame:** `packages/practice/src/PracticeCard.svelte` (the settings card) and
   `PracticeFrame.svelte` (the game's layout: the row, the square board, the side column and the step bar), which
-  Cyanotype's practice shares (design 33). The page gives their content. `PlayersSkeleton.svelte`: the row above the
-  board while the bot starts. `PracticeMoves.svelte`: the move list's frame, which keeps the position shown in view,
-  and its skeleton while the bot starts. The page gives the list's rows. The frame and the move list go to one column
-  by the review's query (`ONE_COLUMN`, the `one-column-layout` variant in `packages/review/src/review.css`).
-  `ReplaceGame.svelte`: the question when a start comes while a game is in progress, with each site's words.
+  Cyanotype's practice shares (design 33). The points bar and its settings: `PointsBar.svelte` (the bar in the row, or
+  upright beside the board), `ScoreSettings.svelte` (the group Score of the display settings) and
+  `scoreDisplay.svelte.ts` (the settings as the page's state: kept at each change, and each change counted). The page
+  gives their content. `PlayersSkeleton.svelte`: the row above the board while the bot starts. `PracticeMoves.svelte`:
+  the move list's frame, which keeps the position shown in view, and its skeleton while the bot starts. The page gives
+  the list's rows. The frame and the move list go to one column by the review's query (`ONE_COLUMN`, the
+  `one-column-layout` variant in `packages/review/src/review.css`). `ReplaceGame.svelte`: the question when a start
+  comes while a game is in progress, with each site's words.
 - **The files:** the release's practice files in `engine.lock.json`, which `npm run engine` (`scripts/engine.mjs`)
   puts in `static/engine/`: the libraries in the folder that the lock gives them (`dir`), and the bot's two modules
   and its evaluator each in a folder of its own.

@@ -82,6 +82,32 @@ export function choicesStore(key: string, network: string, offers: (id: string |
   return { defaults, load, save };
 }
 
+/** Practice's own display settings (Hedge School's design 24, item 12): the points bar on or off, its direction (`bar`:
+ *  horizontal above the board; `gauge`: upright beside it), and the area's second lane, which only a game with areas
+ *  offers (Enclosure). Both sites keep the same values, each under its own key. */
+export interface ScoreDisplay { bar: boolean; area: boolean; form: "bar" | "gauge" }
+
+/** Each setting's name in the features that the page counts (Hedge School's design 17). */
+export const SCORE_FEATURES = [["bar", "practice bar"], ["area", "practice area"], ["form", "practice direction"]] as const;
+
+/** The points bar's settings, kept under a site's key: at first the bar is on and horizontal, with no area. `area`
+ *  says whether the game offers the area's lane: without it, the area stays off. */
+export function scoreStore(key: string, area: boolean) {
+  function load(): ScoreDisplay {
+    const kept = readLocalJson<Partial<ScoreDisplay>>(key);
+    return { bar: kept?.bar ?? true, area: area && (kept?.area ?? false), form: kept?.form === "gauge" ? "gauge" : "bar" };
+  }
+  const save = (s: ScoreDisplay) => writeLocal(key, JSON.stringify(s));
+  return { load, save };
+}
+
+/** Whether the points bar shows upright beside the board. */
+export const upright = (s: ScoreDisplay) => s.bar && s.form === "gauge";
+
+/** The room left of the board that the upright bar takes: the bar (1rem), the area's lane with its gap (0.5rem), and
+ *  the gap to the board (0.375rem), as `ShareBar` draws them. None for a bar above the board, or none. */
+export const gaugeWidth = (s: ScoreDisplay) => (!upright(s) ? "0px" : s.area ? "1.875rem" : "1.375rem");
+
 /** A takeback: the moves played before it, and the moves that it undid, last first as they were undone. */
 export interface Takeback { at: number; undone: string[] }
 

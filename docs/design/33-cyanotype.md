@@ -524,8 +524,9 @@ legal moves, and stops the game with an error when one is not legal. An error of
 the engine's message ("The game stopped: ..."), as Hedge School shows it. The final score is the rules' score of the
 game's last position (`scores`, and the margin of `outcome`). At a komi, each player's points include their starting
 points, as on Hedge School, and the result is the margin of those points: the rules' `outcome` leaves the komi out.
-This browser keeps the game in progress (`cyanotype:practice-game:1`), the choices (`cyanotype:practice-choices:1`)
-and the panel's place and size (`cyanotype:practice-panel:1`).
+This browser keeps the game in progress (`cyanotype:practice-game:1`), the choices (`cyanotype:practice-choices:1`),
+the panel's place and size (`cyanotype:practice-panel:1`) and the points bar's settings
+(`cyanotype:practice-display:1`, with the values of Hedge School's).
 
 **The komi** (design 24): the card's fourth setting, from the shared card, with Hedge School's range and step. Stamp
 Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the size
@@ -551,9 +552,11 @@ engine takes it, and no tag at komi 0.
 2. **A kept game whose network the site no longer ships cannot go on:** the site ships only its lock's networks, so a
    new build can drop a kept game's network. The page drops the game, and the settings card says so. Hedge School's
    lock keeps its earlier networks (abscls-8tl1.54).
-3. **Fewer display settings:** they hold only the move sounds ("The move sounds"). The points' bar always shows, with
-   no second number (Blueprints has no area). The player's notes are on the board ("The player's notes"). These are
-   gaps too ("The gaps from Hedge School").
+3. **No area in the display settings:** they hold the points bar's settings as Hedge School's (design 24, item 12),
+   with the same words: the switch "Points bar" and, while it is on, "Direction" (Horizontal above the board, or
+   Vertical beside it). Blueprints has no area, so they have no "Area", and the bar has no second lane. They have no
+   board layers either ("The gaps from Hedge School", "By setting"). Then the move sounds ("The move sounds"). The
+   player's notes are on the board ("The player's notes").
 4. **The move list has one move a line,** each turn's number at its first move: Blueprints' moves are up to about 19
    characters long, and two in a row do not fit the side column.
 5. **The stored games have their own switch:** the deploy gives Cyanotype's build the repository variable
@@ -592,6 +595,9 @@ engine takes it, and no tag at komi 0.
 7. **The status line is in the step bar,** as the review's is, not in the side column as Hedge School's Practice has
    it: the board's input text ("How the board takes a move", item 7) needs its two lines in view, also on a
    phone.
+8. **The points bar upright** (its direction Vertical) is left of the board's box and as high, as Hedge School's is
+   left of its square board, also in one column. The box is the bar's width narrower, and the players' row starts at
+   the box's left edge. On a phone the box holds the hands under the board, so the bar runs beside them too.
 
 **Why this layout:** the screenshots measured each layout's board, at 1,376 × 952, 1,920 × 1,080, 2,560 × 1,440 and
 390 × 844, on a position of move 10 and one of move 100. With the hands beside the field in the board's box, the field
@@ -601,15 +607,16 @@ largest, and the move list lost 222 pixels. The panel keeps that board, and the 
 six screenshots on a computer, a corner was always free at the plain fit's scale, so the panel cost the board nothing.
 
 **What it shares with Hedge School** (design 29: move, do not copy): the settings card and the game's frame
-(`@abstractclass/practice`: `PracticeCard.svelte`, and `PracticeFrame.svelte` with its board's box in the form
-"fill"), the practice's part that is not Enclosure's (`practice.ts`: the visits, the variety and its help, the choices
-and the kept game under each site's key, the GTP helpers, the takeback, the results), the game's flow and the page's
-(`game.svelte.ts`, which each site's `src/lib/practice/game.svelte.ts` extends, and `page.svelte.ts`), the game's
-actions and their question (`PracticeActions.svelte`, `ConfirmEnd.svelte`), the players' skeleton row and the move
-list's frame (`PlayersSkeleton.svelte`, `PracticeMoves.svelte`), and the bot's page side, its forms and its
-worker (`bot.ts`, `botForms.ts`, `botWorker.ts`, `botFormsWorker.ts`, `botMessages.ts`). Each site gives the game's
-name in the bot's commands. The forms and their worker moved out of Hedge School when Blueprints' release had the
-threaded bot (abscls-8tl1.29). The stored games' parts are shared too ("The stored games", below).
+(`@abstractclass/practice`: `PracticeCard.svelte`, and `PracticeFrame.svelte` with its board's box in the form "fill"),
+the points bar and its settings (`PointsBar.svelte`, `ScoreSettings.svelte`, and `scoreDisplay.svelte.ts` with
+`scoreStore` in `practice.ts`), the practice's part that is not Enclosure's (`practice.ts`: the visits, the variety and
+its help, the choices and the kept game under each site's key, the GTP helpers, the takeback, the results), the game's
+flow and the page's (`game.svelte.ts`, which each site's `src/lib/practice/game.svelte.ts` extends, and
+`page.svelte.ts`), the game's actions and their question (`PracticeActions.svelte`, `ConfirmEnd.svelte`), the players'
+skeleton row and the move list's frame (`PlayersSkeleton.svelte`, `PracticeMoves.svelte`), and the bot's page side, its
+forms and its worker (`bot.ts`, `botForms.ts`, `botWorker.ts`, `botFormsWorker.ts`, `botMessages.ts`). Each site gives
+the game's name in the bot's commands. The forms and their worker moved out of Hedge School when Blueprints' release had
+the threaded bot (abscls-8tl1.29). The stored games' parts are shared too ("The stored games", below).
 
 **The stored games** (Hedge School's design 25), as Hedge School keeps its games against HedgeFund:
 
@@ -1617,8 +1624,8 @@ adds "Move notation" ("The review and the Analysis board", item 4). These settin
   (deferred).
 - **The board's layers of Enclosure** (its regions, its invincible edges), in the display settings and on Practice:
   Blueprints has neither, so they are left out.
-- **Practice's points' bar** (design 24): its switch and its direction (horizontal or vertical), abscls-8tl1.52. Its
-  area lane is left out: Blueprints has no area.
+- **Practice's area lane** (design 24, item 12): the points bar's second lane, each player's area against their
+  points. Blueprints has no area, so it is left out with its setting "Area".
 
 ### By the site's other files
 
@@ -1990,6 +1997,7 @@ Practice from a set-up start" (2026-11-09), "PostHog in place of Google Analytic
 earlier engine results, as Hedge School" (2026-11-11), "Cyanotype's header links show from 740 pixels"
 (2026-11-12), "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13), "Cyanotype's move sounds"
 (2026-11-13), "Cyanotype's buttons for partner sites, and the test on its page for developers" (2026-11-13),
-"Cyanotype's Support Us, and its header links from 900 pixels" (2026-11-13), and "Cyanotype's image of a line, from one
-shared frame" (2026-11-14). The earlier entries name the site by its first name, Drawing Board.
+"Cyanotype's Support Us, and its header links from 900 pixels" (2026-11-13), "Cyanotype's image of a line, from one
+shared frame" (2026-11-14), and "Cyanotype's Practice points bar: its switch and its direction" (2026-11-14). The
+earlier entries name the site by its first name, Drawing Board.
 [decisions/architecture.md](../decisions/architecture.md), "The repository's variables name their site" (2026-11-13).

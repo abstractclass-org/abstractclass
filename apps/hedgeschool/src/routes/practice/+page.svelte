@@ -11,9 +11,7 @@
   import { onMount } from "svelte";
   import Board from "#lib/board/Board.svelte";
   import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
-  import ShareBar, { ownShare } from "@abstractclass/review/ShareBar.svelte";
   import Icon from "@abstractclass/site/Icon.svelte";
-  import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
   import { SETTINGS_HEAD } from "@abstractclass/site/settings.ts";
@@ -26,9 +24,12 @@
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
   import PracticeMoves from "@abstractclass/practice/PracticeMoves.svelte";
   import PlayersSkeleton from "@abstractclass/practice/PlayersSkeleton.svelte";
+  import PointsBar from "@abstractclass/practice/PointsBar.svelte";
+  import ScoreSettings from "@abstractclass/practice/ScoreSettings.svelte";
+  import { keptScore } from "@abstractclass/practice/scoreDisplay.svelte.ts";
   import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
   import { PracticePage, seconds } from "@abstractclass/practice/page.svelte.ts";
-  import { broughtLine } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, gaugeWidth, upright } from "@abstractclass/practice/practice.ts";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import { MOVE_HERE, TURN_NUMBER, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { loadManifest } from "@abstractclass/engine/client.ts";
@@ -41,7 +42,6 @@
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "@abstractclass/site/sound.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { sendPractice } from "#lib/practice/send.ts";
   import { BOT_WHERE } from "@abstractclass/practice/botForms.ts";
@@ -50,24 +50,10 @@
     from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
-  // Practice's own display settings (design 24): the points' bar between the players or beside the board, with each
-  // player's area against their points in a second lane.
-  interface ScoreDisplay { bar: boolean; area: boolean; form: "bar" | "gauge" }
+  // Practice's own display settings (design 24, @abstractclass/practice): the points' bar between the players or
+  // beside the board, with each player's area against their points in a second lane.
   const SCORE_KEY = "hedge-school:practice-display:2";
-  const keptScore = readLocalJson<Partial<ScoreDisplay>>(SCORE_KEY);
-  const score = $state<ScoreDisplay>({
-    bar: keptScore?.bar ?? true,
-    area: keptScore?.area ?? false,
-    form: keptScore?.form === "gauge" ? "gauge" : "bar",
-  });
-  let shownScore = $state.snapshot(score);
-  $effect(() => {
-    const now = $state.snapshot(score), was = shownScore;
-    writeLocal(SCORE_KEY, JSON.stringify(now));
-    for (const [k, name] of [["bar", "practice bar"], ["area", "practice area"], ["form", "practice direction"]] as const)
-      if (now[k] !== was[k]) page.used(name);
-    shownScore = now;
-  });
+  const score = keptScore(SCORE_KEY, true, name => page.used(name));
 
   let notice = $state(""); // a record brought that cannot be played
   let settingsOpen = $state(false); // the display settings, in the moves' place
@@ -150,7 +136,7 @@
 
   // The move list's turn numbers start at the start's own turn.
   const firstTurn = $derived(practiceTurn(game?.kept ?? {}));
-  const gaugeW = $derived(!score.bar || score.form !== "gauge" ? "0px" : score.area ? "1.875rem" : "1.375rem");
+  const gaugeW = $derived(gaugeWidth(score));
 </script>
 
 <svelte:window onkeydown={ev => page.keydown(ev, settingsOpen || !!input.pending, () => { settingsOpen = false; input.reset(); })} />
@@ -190,14 +176,14 @@
   {@const g = game}
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
-  {@const gauge = score.form === "gauge" && score.bar}
+  {@const gauge = upright(score)}
   <PracticeFrame form="square" {gauge} gaugeWidth={gaugeW} {shown} last={page.last} onstep={to => page.step(to)}>
     {#snippet strip()}
         {#if g && pos}
           <PlayerRow {gauge} label="Players and scores">
             {#snippet blue()}{@render card(g, 0)}{/snippet}
             {#snippet red()}{@render card(g, 1)}{/snippet}
-            {#snippet bar()}{@render pointsBar(pos.scores, pos.areas ?? [0, 0], false)}{/snippet}
+            {#snippet bar()}<PointsBar {score} scores={pos.scores} areas={pos.areas ?? [0, 0]} upright={false} />{/snippet}
           </PlayerRow>
         {:else}
           {@const k = g?.kept ?? page.starting}
@@ -205,8 +191,7 @@
         {/if}
     {/snippet}
     {#snippet beside()}
-        {#if gauge && pos}{@render pointsBar(pos.scores, pos.areas ?? [0, 0], true)}
-        {:else if gauge}<div class="flex-none self-stretch w-[calc(var(--gauge-w)-0.375rem)] mr-1.5 {BONE}"></div>{/if}
+        {#if gauge}<PointsBar {score} scores={pos?.scores ?? null} areas={pos?.areas ?? [0, 0]} upright />{/if}
     {/snippet}
     {#snippet board()}
           {#if !(g && pos)}<div class="board-points"></div>{/if} <!-- the empty board, until the game's position -->
@@ -275,20 +260,6 @@
               second={pos.areas ? { value: pos.areas[p], ...AREA } : null} toMove={!pos.over && g.status !== "over" && pos.player === p} />
 {/snippet}
 
-<!-- The points' bar (the review's win bar and gauge, ShareBar): each player's share of the points so far, from their own
-     side. With the area, a second lane: each player's area against their own points, under their part of the bar. -->
-{#snippet pointsBar(scores: [number, number], areas: [number, number], upright: boolean)}
-  {@const total = scores[0] + scores[1]}
-  {#if score.bar}
-    <ShareBar {upright} share={total > 0 ? scores[0] / total : NaN}
-              sub={score.area ? [ownShare(areas[0], scores[0]), ownShare(areas[1], scores[1])] : null}
-              title={`Points: Blue ${Math.round(scores[0])}, Red ${Math.round(scores[1])}` +
-                     (score.area ? `. Area: Blue ${Math.round(areas[0])}, Red ${Math.round(areas[1])}` : "")} />
-  {:else}
-    <div></div>
-  {/if}
-{/snippet}
-
 {#snippet displaySettings()}
   <div role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0" {@attach intoView}>
     <div class="flex items-center justify-between mb-1">
@@ -296,16 +267,7 @@
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
-      <h3 class={SETTINGS_HEAD}>Score</h3>
-      <SettingToggle label="Points bar" help="Each player's share of the points so far."
-                     get={() => score.bar} set={v => (score.bar = v)} />
-      {#if score.bar}
-        <SettingToggle label="Area" help="A second lane: each player's area against their own points, under their part of the bar."
-                       get={() => score.area} set={v => (score.area = v)} />
-        <SettingChoice label="Direction" help="Above the board, or beside it."
-                       options={[["bar", "Horizontal"], ["gauge", "Vertical"]]} get={() => score.form}
-                       set={v => (score.form = v as ScoreDisplay["form"])} />
-      {/if}
+      <ScoreSettings {score} area set={v => Object.assign(score, v)} />
       <h3 class={SETTINGS_HEAD}>Board</h3>
       {#each LAYERS as l (l.key)}
         <SettingToggle label={l.label} help={l.help} get={() => display.layers[l.key]} set={v => (display.layers[l.key] = v)} />

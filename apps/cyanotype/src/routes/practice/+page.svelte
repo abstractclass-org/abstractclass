@@ -4,7 +4,9 @@
   // the settings card (@abstractclass/practice): the bot's network, visits and variety, the player's name, then a side,
   // which starts the game. During the game, the practice's frame with a board that fills the room: the players' row
   // with the points' bar above the board, the hands in a panel over the board (under it on a phone), and a side column
-  // with the bot's line, the move list, and the step bar with the status line. The player's notes on the board, by
+  // with the bot's line, the move list, and the step bar with the status line. The points bar is Hedge School's, with
+  // its display settings: on or off, above the board or upright beside it (its design 24, item 12). Blueprints has no
+  // area, so the bar has no area's lane. The player's notes on the board, by
   // position, for the visit, as on Hedge School's Practice (design 33, "The player's notes"). One game in progress,
   // kept in this browser and resumed. A game that ends goes into Your games, and to the site (Hedge School's design
   // 25), and a game set aside by a start brought goes into Your games, unfinished. The rules run in the engine's
@@ -24,7 +26,6 @@
   import PlayerCard from "@abstractclass/review/PlayerCard.svelte";
   import PlayerRow from "@abstractclass/review/PlayerRow.svelte";
   import { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
-  import ShareBar from "@abstractclass/review/ShareBar.svelte";
   import { MOVE_HERE, TURN_NUMBER, moveButton } from "@abstractclass/review/moveList.ts";
   import ConfirmEnd from "@abstractclass/practice/ConfirmEnd.svelte";
   import PracticeActions from "@abstractclass/practice/PracticeActions.svelte";
@@ -32,6 +33,9 @@
   import PracticeFrame from "@abstractclass/practice/PracticeFrame.svelte";
   import PracticeMoves from "@abstractclass/practice/PracticeMoves.svelte";
   import PlayersSkeleton from "@abstractclass/practice/PlayersSkeleton.svelte";
+  import PointsBar from "@abstractclass/practice/PointsBar.svelte";
+  import ScoreSettings from "@abstractclass/practice/ScoreSettings.svelte";
+  import { keptScore } from "@abstractclass/practice/scoreDisplay.svelte.ts";
   import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
   import { BOT_WHERE } from "@abstractclass/practice/botForms.ts";
   import { PracticePage, seconds } from "@abstractclass/practice/page.svelte.ts";
@@ -53,9 +57,9 @@
   import { sendPractice } from "#lib/practice/send.ts";
   import { NETWORKS, botName, keptGame, networkName, offersNetwork, practiceChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
-  import { broughtLine, komiLine } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, gaugeWidth, komiLine, upright } from "@abstractclass/practice/practice.ts";
   import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
-  import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
+  import { ENGINE_NAME, PRACTICE_DISPLAY_KEY, SITE_NAME } from "#lib/site.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
@@ -136,6 +140,9 @@
     input.reset();
     input.rules = r;
   });
+
+  // Practice's own display settings (Hedge School's design 24, @abstractclass/practice): the points bar, with no area.
+  const score = keptScore(PRACTICE_DISPLAY_KEY, false, name => page.used(name));
 
   // The display settings that Practice shares with the review (Hedge School's design 08): the move sounds.
   const display = $state(loadDisplay());
@@ -223,18 +230,23 @@
   {@const g = game}
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
-  <PracticeFrame form="fill" fillHeight={ONE_COLUMN_HEIGHT} {shown} last={page.last} onstep={to => page.step(to)}>
+  {@const gauge = upright(score)}
+  <PracticeFrame form="fill" fillHeight={ONE_COLUMN_HEIGHT} {gauge} gaugeWidth={gaugeWidth(score)} {shown} last={page.last}
+                 onstep={to => page.step(to)}>
     {#snippet strip()}
       {#if g && pos}
-        <PlayerRow gauge={false} label="Players and scores">
+        <PlayerRow {gauge} label="Players and scores">
           {#snippet blue()}{@render card(g, 0)}{/snippet}
           {#snippet red()}{@render card(g, 1)}{/snippet}
-          {#snippet bar()}{@render pointsBar(pos.scores)}{/snippet}
+          {#snippet bar()}<PointsBar {score} scores={pos.scores} upright={false} />{/snippet}
         </PlayerRow>
       {:else}
         {@const k = g?.kept ?? page.starting}
-        <PlayersSkeleton gauge={false} names={k ? [nameOf(k, 0), nameOf(k, 1)] : undefined} second={STARS.word} />
+        <PlayersSkeleton {gauge} names={k ? [nameOf(k, 0), nameOf(k, 1)] : undefined} second={STARS.word} bar={score.bar} />
       {/if}
+    {/snippet}
+    {#snippet beside()}
+      {#if gauge}<PointsBar {score} scores={pos?.scores ?? null} upright />{/if}
     {/snippet}
     {#snippet board()}
       {#if g && pos}
@@ -311,13 +323,6 @@
               toMove={g.status !== "over" && shown === g.positions.length - 1 && g.mover === p} />
 {/snippet}
 
-<!-- The points' bar (the review's win bar, ShareBar): each player's share of the points so far, from their own side. -->
-{#snippet pointsBar(scores: readonly [number, number])}
-  {@const total = scores[0] + scores[1]}
-  <ShareBar upright={false} share={total > 0 ? scores[0] / total : NaN} sub={null}
-            title={`Points: Blue ${scores[0]}, Red ${scores[1]}`} />
-{/snippet}
-
 {#snippet displaySettings()}
   <div role="region" aria-label="Display settings" class="flex flex-col flex-1 min-h-0" {@attach intoView}>
     <div class="flex items-center justify-between mb-1">
@@ -325,6 +330,7 @@
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+      <ScoreSettings {score} area={false} set={v => Object.assign(score, v)} />
       <SoundSettings sound={display.sound} moveSound={display.moveSound} volume={display.volume} move="move"
                      set={v => Object.assign(display, v)} />
     </div>
