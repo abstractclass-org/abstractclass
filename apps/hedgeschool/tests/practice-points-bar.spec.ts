@@ -4,6 +4,8 @@
 // Blueprints has no area. The choices stay after a reload, kept under each site's key with the same values. Horizontal
 // puts the bar in the players' row. Vertical puts it left of the board, as high as the board's box, and the row then
 // starts at the box's left edge, with no bar in it, at a computer's width and in one column. Off takes the bar away.
+// A kept area (Hedge School's value) shows the area's lane beside the upright bar on Hedge School. Cyanotype keeps the
+// area off, and its bar's room has no lane.
 // Each case opens a game in progress, the player to move, so that the bot does not search. Run:
 // npm run test:layout -- tests/practice-points-bar.spec.ts, with CYANOTYPE_BASE_URL for Cyanotype's cases.
 import { expect, test, type Page } from "./page-log.ts";
@@ -131,6 +133,23 @@ for (const site of SITES) {
       await site.ready(page);
       await expect(page.locator(ROW)).toBeVisible();
       await expect(page.locator(POINTS)).toHaveCount(0);
+    });
+
+    test("a kept area shows its lane only where the game has one, in the room left of the board", async ({ page }) => {
+      await keepBefore(page, site.key, { bar: true, area: true, form: "gauge" });
+      await site.open(page);
+      await site.ready(page);
+      await expect.poll(() => kept(page, site.key)).toEqual({ bar: true, area: site.area, form: "gauge" });
+      expect(await uprightProblems(page)).toEqual([]);
+      // The room: the bar (1rem) and its gap to the board (0.375rem), and the lane (0.375rem) with its gap (0.125rem)
+      expect(await page.evaluate(() => {
+        const gauge = document.querySelector('[role="img"][aria-label^="Points:"]')!;
+        const box = gauge.parentElement!.nextElementSibling!;
+        return { lane: gauge.parentElement!.children.length > 1,
+                 room: Math.round(box.getBoundingClientRect().left - gauge.getBoundingClientRect().left) };
+      })).toEqual({ lane: site.area, room: site.area ? 30 : 22 });
+      await expect(page.locator('[role="img"][aria-label^="Points:"]'))
+        .toHaveAttribute("aria-label", site.area ? /\. Area: Blue \d+, Red \d+$/ : /^Points: Blue \d+, Red \d+$/);
     });
   });
 }

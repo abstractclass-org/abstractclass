@@ -44,13 +44,7 @@
                [--board:min(var(--tall),var(--broad))] grid-cols-[calc(var(--board)+var(--gauge-w))_minmax(250px,350px)]
                one-column-layout:[--board:calc(100cqw-2rem-var(--gauge-w))] one-column-layout:grid-cols-1"
         style:--strip={stripRoom} style:--gauge-w={gaugeWidth}>
-    <section class="min-w-0">
-      <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
-      <div class="flex">
-        {@render beside?.()}
-        <div class="relative w-(--board) one-column-layout:flex-1 aspect-square rounded overflow-hidden bg-board">{@render board()}</div>
-      </div>
-    </section>
+    {@render boardColumn("relative w-(--board) one-column-layout:flex-1 aspect-square rounded overflow-hidden bg-board")}
     <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--board))] one-column-layout:h-auto px-4 py-3 bg-panel border border-line rounded-md">
       {@render sideAndBar()}
     </section>
@@ -59,18 +53,24 @@
   <main class="grid items-start gap-x-5 gap-y-3 my-4 px-4 select-none grid-cols-[minmax(0,1fr)_minmax(250px,350px)]
                [--tall:calc(100vh-var(--site-header)-var(--strip)-2rem)] one-column-layout:grid-cols-1"
         style:--strip={stripRoom} style:--fill-h={fillHeight} style:--gauge-w={gaugeWidth}>
-    <section class="min-w-0">
-      <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
-      <div class="flex">
-        {@render beside?.()}
-        <div class="relative flex-1 min-w-0 min-h-0 h-(--tall) one-column-layout:h-(--fill-h)">{@render board()}</div>
-      </div>
-    </section>
+    {@render boardColumn("relative flex-1 min-w-0 min-h-0 h-(--tall) one-column-layout:h-(--fill-h)")}
     <section class="flex flex-col min-h-0 h-[calc(var(--strip)+var(--tall))] one-column-layout:h-auto px-4 py-3 bg-panel border border-line rounded-md">
       {@render sideAndBar()}
     </section>
   </main>
 {/if}
+
+<!-- The board's column, in either form: the row above the board, then the gauge (`beside`) left of the board's box, whose
+     classes the form gives. -->
+{#snippet boardColumn(box: string)}
+  <section class="min-w-0">
+    <div class={["mb-2 ml-(--gauge-w)", stripBox(gauge)]} bind:offsetHeight={stripHeight}>{@render strip()}</div>
+    <div class="flex">
+      {@render beside?.()}
+      <div class={box}>{@render board()}</div>
+    </div>
+  </section>
+{/snippet}
 
 <!-- The side column's content, then the step bar (the review's StepBar), whose actions go under the steps when the column
      is too narrow for one row. On a phone it is fixed to the bottom of the window. -->

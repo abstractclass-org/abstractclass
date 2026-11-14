@@ -1483,8 +1483,9 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
      from here", `set_up_start` for a set-up start, and `resumed` (`practiceFrom` in
      `@abstractclass/practice/practice.ts`).
    - **Practice's features** (`feature_name`): `practice komi`, `practice takeback`, `practice look back` and `note
-     drawn`, and from its display settings `display sound`, `display moveSound` and `display volume`, as on Hedge
-     School. Its display settings hold only the sounds, so it sends none of Hedge School's other display features.
+     drawn`, and from its display settings `practice bar`, `practice direction`, `display sound`, `display moveSound`
+     and `display volume`, as on Hedge School. It sends no `practice area` and no `display layers`: Blueprints has no
+     area, and the display settings have no board layers.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
    - **No event of a part that Cyanotype lacks:** Openings (abscls-8tl1.53).
 5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's builds

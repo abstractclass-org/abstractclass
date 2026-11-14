@@ -12375,8 +12375,9 @@ with Hedge School's words.
   takes the gauge as the square form does: the players' row then starts at the box's left edge. On a phone the board's
   box holds the board and the hands, so the bar runs beside both, as on Cyanotype's review.
 - **Checked:** the unit tests of `scoreStore`, `upright` and `gaugeWidth`, and `svelte-check` of both apps and
-  `packages/practice`. A new browser test, `practice-points-bar.spec.ts`, runs the same three cases on both sites:
-  the controls and their first values, Vertical at 1,280 pixels, after a reload and at 390 pixels, and the bar off
-  after a reload. Hedge School had no browser case for these settings. Each Cyanotype case fails on the page before
-  this change. Screenshots in headless Chromium at 1,280 and 390 pixels show Cyanotype's bar horizontal, upright and
-  off, its settings open, the upright bar in the dark theme, and Hedge School's upright bar as before.
+  `packages/practice`. A new browser test, `practice-points-bar.spec.ts`, runs the same four cases on both sites:
+  the controls and their first values, Vertical at 1,280 pixels, after a reload and at 390 pixels, the bar off after
+  a reload, and a kept area, whose lane shows on Hedge School only. Hedge School had no browser case for these
+  settings. Each Cyanotype case fails on the page before this change. Screenshots in headless Chromium at 1,280 and
+  390 pixels show Cyanotype's bar horizontal, upright and off, its settings open, the upright bar in the dark theme,
+  and Hedge School's upright bar as before.

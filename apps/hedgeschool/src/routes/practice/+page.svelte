@@ -136,7 +136,6 @@
 
   // The move list's turn numbers start at the start's own turn.
   const firstTurn = $derived(practiceTurn(game?.kept ?? {}));
-  const gaugeW = $derived(gaugeWidth(score));
 </script>
 
 <svelte:window onkeydown={ev => page.keydown(ev, settingsOpen || !!input.pending, () => { settingsOpen = false; input.reset(); })} />
@@ -177,7 +176,7 @@
   {@const pos = g?.positions[shown]}
   {@const into = g && shown > 0 ? g.played[shown - 1] : null}
   {@const gauge = upright(score)}
-  <PracticeFrame form="square" {gauge} gaugeWidth={gaugeW} {shown} last={page.last} onstep={to => page.step(to)}>
+  <PracticeFrame form="square" {gauge} gaugeWidth={gaugeWidth(score)} {shown} last={page.last} onstep={to => page.step(to)}>
     {#snippet strip()}
         {#if g && pos}
           <PlayerRow {gauge} label="Players and scores">
