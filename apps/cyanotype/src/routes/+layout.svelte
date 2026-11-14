@@ -35,10 +35,9 @@
   // Ko-fi's tip panel, in the site's own dialog (SupportDialog), as Hedge School's (design 33, "Support Us"). Opening
   // it counts: the tips are Ko-fi's.
   const support = new Support(analytics);
-  // What the tips pay for: the engine's training and the site. The Ko-fi page is Hedge School's too. The words are short,
-  // so that the dialog fits a window of 1,280 × 900 with no scroll bar of its own, as Hedge School's (design 33).
-  const SUPPORT_WORDS = `${SITE_NAME} is free. Tips through Ko-fi pay for ${ENGINE_NAME}'s training and the site, and ` +
-    "go to the same page as Hedge School's.";
+  // What the tips pay for: the engine's training and the site. Two lines, in Linux's font too, so that the dialog fits
+  // a window of 1,280 × 900 with no scroll bar of its own, as Hedge School's (design 33, "Support Us").
+  const SUPPORT_WORDS = `${SITE_NAME} is free. Tips through Ko-fi train ${ENGINE_NAME} and run the site.`;
 
   // The visit counts start here, unless the address holds a game after its `#` (holdsGame): the page that takes it out
   // of the address starts them then (Hedge School's design 22). The import page always takes its game out first, and

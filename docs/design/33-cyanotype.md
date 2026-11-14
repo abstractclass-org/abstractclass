@@ -1492,19 +1492,19 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
 
 ## Support Us
 
-Cyanotype takes tips as Hedge School does (Hedge School's design 22), on Hedge School's Ko-fi page.
+Cyanotype takes tips as Hedge School does (Hedge School's design 22), on the Ko-fi page that both sites use.
 
 1. **The same parts, in the site's package** (design 29, item 1): the header's "Support Us" button
    (`SupportButton.svelte`), the dialog with Ko-fi's tip panel (`SupportDialog.svelte`), its state and its event
    (`support.svelte.ts`), the privacy page's part on Ko-fi (`KofiPrivacy.svelte`) and the Ko-fi page's address
    (`kofi.ts`), moved from Hedge School. Hedge School's pages read as before: the text of each prerendered page's
    `<main>` and `<body>` is the same in its build before and after the move.
-2. **One Ko-fi page for both sites:** Hedge School's. Its address is one constant (`KOFI` in `kofi.ts`).
+2. **One Ko-fi page for both sites.** Its address is one constant (`KOFI` in `kofi.ts`).
 3. **The dialog** shows the logo's full print at 56 pixels ("The logo"), where Hedge School's shows its collie. Its
-   words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi pay for Stamp Duty's
-   training and the site, and go to the same page as Hedge School's." The last clause says why the panel is Hedge
-   School's page. The words are short, so that the dialog fits a window of 1,280 × 900 with no scroll bar of its own,
-   as Hedge School's: longer words cut off Ko-fi's note at the dialog's foot.
+   words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi train Stamp Duty and
+   run the site." They take two lines, in Segoe UI and in DejaVu Sans, so that the dialog fits a window of 1,280 × 900
+   with no scroll bar of its own, as Hedge School's. Words of three lines or more cut off Ko-fi's note at the
+   dialog's foot.
 4. **Where it is:** in the header from 640 pixels, and in the site's menu below 640, as on Hedge School. The button
    made the header's row 159 pixels wider in DejaVu Sans, so the links stay in the header from 900 pixels, in place of
    740 ([decisions/product.md](../decisions/product.md), "Cyanotype's Support Us, and its header links from 900

@@ -12287,7 +12287,7 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
 
 abscls-8tl1.49. Cyanotype has Hedge School's Support Us: the header's button, the site's menu's entry below 640
 pixels, the dialog with Ko-fi's tip panel, the event `support_open` and the privacy page's part on Ko-fi (Cyanotype's
-design 33, "Support Us"). Both sites use Hedge School's Ko-fi page.
+design 33, "Support Us"). Both sites use one Ko-fi page.
 
 - **The shared parts:** the dialog, the button, the privacy part and the Ko-fi page's address moved from Hedge School
   into `packages/site` (design 29, item 1). Each site gives its name, its mark at 56 pixels and its words.
@@ -12302,6 +12302,13 @@ design 33, "Support Us"). Both sites use Hedge School's Ko-fi page.
   and 17.7 pixels, as before at 740 and 780. Below 900, the site's menu holds the links, and the header keeps the
   logo, the name, "Early Access", "Support Us" and the theme menu, with 98 pixels to spare at 640 in DejaVu Sans.
   Below 640, "Support Us" goes into the menu, as on Hedge School.
+- **The dialog's words:** "Cyanotype is free. Tips through Ko-fi train Stamp Duty and run the site." In a window of
+  1,280 × 900 the dialog's box can be 874 pixels high (the window less 1.5rem, less its border). With two lines of
+  words in its 268 pixels of text, the content needs 868, on both sites, and each line more adds 20. The first words
+  took four lines and needed 908: the box got its own scroll bar and cut off Ko-fi's note at its foot. Words of three
+  lines need 888, and the scroll bar then narrows the text to 253 pixels and four lines. The new words take two lines
+  in Segoe UI and in DejaVu Sans, measured in headless Chromium with each sentence put in the built dialog. On a phone
+  (390 × 844) every dialog scrolls, Hedge School's by 70 pixels.
 - **The test:** the layout test's case of the site's menu opens Cyanotype's menu below 900 pixels, in place of 740.
   Every sweep checks the header's row, on both sites. A new case opens Support Us on both sites: in a window of 1,280
   × 900 the dialog has no scroll bar of its own and Ko-fi's note is in view, and on a phone of 390 × 844 the dialog
