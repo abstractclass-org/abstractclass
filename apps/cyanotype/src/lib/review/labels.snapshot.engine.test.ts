@@ -41,6 +41,7 @@
 // header says how), then update the snapshots.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { PositionQuery } from "@abstractclass/engine/protocol.ts";
@@ -203,4 +204,21 @@ test("the stored reviews reach each kind of quality label, the turn order and th
   const twinStart = (R: Review<Blueprints>) => R.turns.some(t => t.label !== null && t.edges.length === 2
     && R.data.analysis[t.start]?.candidates.some(c => c.twinOf));
   assert.ok(all.some(twinStart), "no turn of two moves starts at a position with a twin");
+});
+
+// The home page's board plays scenes from stored reviews (scripts/home-replay.mjs writes them, with their engine in
+// `made`). A stored review made again with another engine gives other labels: the scenes must then be made again.
+test("the home board's scenes come from the stored reviews, at their engine and network", () => {
+  const { made } = JSON.parse(readFileSync(join(app, "src", "lib", "home", "replay.json"), "utf8")) as {
+    made: { labelVisits: number; search: string; network: string; games: { review: string; record: string }[] };
+  };
+  assert.equal(made.labelVisits, LABEL_VISITS, "the scenes' label depth");
+  assert.ok(made.games?.length, "replay.json names no stored review for its scenes");
+  for (const g of made.games) {
+    const s = REVIEWS.find(r => basename(r.file) === g.review) ?? assert.fail(`${g.review} is no stored review here`);
+    assert.equal(s.game, g.record, `${g.review}'s game`);
+    const { search, network } = readStored(s.file);
+    assert.deepEqual({ search, network }, { search: made.search, network: made.network },
+                     `the engine of ${g.review}: run scripts/home-replay.mjs again`);
+  }
 });

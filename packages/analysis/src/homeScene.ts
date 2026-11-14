@@ -26,7 +26,7 @@ export function storedResults<A>(analyses: [string, A][], model: string, minVisi
 
 /** A game with its stored results: its moves' names, its positions (one more than its moves), its moves played, the
  *  analysis of each position as the review reads it, and the stored result of a position by its moves. */
-export interface StoredGame<G extends GameTypes> {
+export interface GameWithResults<G extends GameTypes> {
   moves: string[];
   positions: G["position"][];
   played: G["played"][];
@@ -36,7 +36,8 @@ export interface StoredGame<G extends GameTypes> {
 
 /** The game's review by its stored results, as the Review tab reads them (GameAnalysis.data): with the positions after
  *  each move's second choice and after each turn's other candidate, which confirm a Great. Nothing names the players. */
-export function storedGameReview<G extends GameTypes>(game: Game<G>, g: StoredGame<G>, minVisits: number): Review<G> {
+export function storedGameReview<G extends GameTypes>(game: Game<G>, g: GameWithResults<G>,
+                                                      minVisits: number): Review<G> {
   const { moves, positions, played, analysis, resultOf } = g;
   const after = (i: number, c: { edge: G["move"] } | undefined) =>
     (c ? resultOf([...moves.slice(0, i), game.moveName(c.edge)]) : undefined);
@@ -72,7 +73,7 @@ export function sceneOf<G extends GameTypes>(R: Review<G>, moves: number): Scene
 }
 
 /** The moves of the turn so far before position i, the last first: the indices of the last move and of an earlier one
- *  of its turn, as the review marks them on the board. */
+ *  of its turn, as the review marks them on the board. None at the game's start (i = 0). */
 export function turnSoFar<G extends GameTypes>(R: Review<G>, i: number): number[] {
   const out: number[] = [];
   for (let j = i - 1; j >= 0 && j >= R.turnOf[i - 1].start; j--) out.push(j);

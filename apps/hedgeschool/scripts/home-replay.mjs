@@ -59,7 +59,7 @@ for (const file of files) {
       // The engine's candidates for the next edge, as the review shows them (shownCandidates), the first three ranks: a
       // small board with no table beside it.
       c: i < last ? shownCandidates(analysis[i], mover).filter(({ rank }) => rank <= CANDIDATES).map(({ c, rank }) => ({ edge: c.edge, rank, note: "" })) : [],
-      m: i > 0 ? marksAt(i) : [],
+      m: marksAt(i),
       ...(i === key.index ? { hold: "before" } : i === last ? { hold: "moment" } : {}),
     });
   }

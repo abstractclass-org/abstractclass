@@ -11,7 +11,7 @@ import { CYANOTYPE, OTHER_STORED, STORED, TEST_GAME, TURNS, noReview, pasteRecor
          testRecord } from "./cyanotype-review.ts";
 import { turnFromCount } from "../../../packages/analysis/src/turns.ts";
 import { LABEL_TEXT } from "../../../packages/analysis/src/model.ts";
-import type { Label } from "../../../packages/analysis/src/labels.ts";
+import { BAD_LABELS, type Label } from "../../../packages/analysis/src/labels.ts";
 
 /** A scene's frame, with only what the tests read: the labels on the moves of the turn so far, the last move first. */
 type Frame = { m: { label: Label }[] };
@@ -81,7 +81,7 @@ for (const [k, { review, record, from }] of REPLAY.made.games.entries()) {
     const labels = await reviewLabels(page);
 
     const frames = REPLAY.scenes[k].frames;
-    expect(frames.some(f => f.m.some(m => ["inaccuracy", "mistake", "blunder"].includes(m.label))),
+    expect(frames.some(f => f.m.some(m => BAD_LABELS.includes(m.label))),
            "the scene shows a bad move's label").toBe(true);
     frames.forEach((frame, f) => {
       const i = from + f; // the frame's position: the moves of its turn so far are i - 1, and i - 2 when i - 1 is second

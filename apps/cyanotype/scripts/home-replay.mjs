@@ -63,7 +63,7 @@ for (let a = 0; a < args.length; a += 2) {
   const { key, first, last } = scene;
   const frames = [];
   for (let i = first.start; i <= last; i++) {
-    const mover = positions[i].player, so = i > 0 ? turnSoFar(R, i) : [];
+    const mover = positions[i].player, so = turnSoFar(R, i);
     frames.push({
       p: sitePosition(fields[i]), // the position as the board draws it
       // The last move, and an earlier one of its turn, as the review marks them (ReviewBoard)

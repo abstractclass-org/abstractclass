@@ -51,6 +51,7 @@ test("a scene ends on the game's latest bad move, away from its start and its en
   assert.equal(scene.first.start, 20 - SCENE_BEFORE, "the turns before it, one move a turn");
   assert.equal(scene.last, 21, "the position after the key move");
   assert.deepEqual(turnSoFar(R, 21), [20], "one move a turn: the last move alone");
+  assert.deepEqual(turnSoFar(R, 0), [], "no move before the game's start");
 });
 
 test("no scene in a game with no bad move after its first turns", () => {
