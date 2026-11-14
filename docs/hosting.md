@@ -206,6 +206,10 @@ for the previews:
 | `VITE_CF_ANALYTICS_TOKEN` | `CF_ANALYTICS_TOKEN` | none |
 | `VITE_STORE_PRACTICE_GAMES` | `HEDGESCHOOL_STORE_PRACTICE_GAMES` | the same, so that the previews store games too, in their own database (section 7) |
 
+**The build checks the analytics' IDs** (`packages/site/src/analyticsIds.ts`), in both sites: a `VITE_POSTHOG_KEY`
+that is not `phc_` and letters and digits, or a `VITE_CF_ANALYTICS_TOKEN` that is not 32 hexadecimal digits, stops the
+build with a message that names the variable. An empty value passes.
+
 **Why adapter-static, not Cloudflare's SvelteKit adapter:** Cloudflare's adapter renders pages on a server in a Worker.
 This site uses adapter-static, which writes plain files to `build/`, because the site is static by design
 ([design/02-static-site.md](design/02-static-site.md)). The Cloudflare adapter would also put each request through a

@@ -6,6 +6,7 @@ import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { engineFiles } from '@abstractclass/analysis/cache.ts';
+import { analyticsIdCheck } from '@abstractclass/site/analyticsIds.ts';
 
 // Cyanotype, Blueprints' site (docs/design/33-cyanotype.md), on Hedge School's build (apps/hedgeschool).
 
@@ -58,6 +59,8 @@ export default defineConfig({
 	// The workers as modules: the GPU worker imports the engine's GPU library by URL.
 	worker: { format: 'es' },
 	plugins: [
+		// A malformed analytics ID stops the build, as in Hedge School's (packages/site/src/analyticsIds.ts).
+		analyticsIdCheck(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {
