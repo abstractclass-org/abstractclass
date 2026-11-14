@@ -191,3 +191,25 @@ export function changedBox(a: ArrayLike<number>, b: ArrayLike<number>, width: nu
     }
   return x1 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
+
+/** Adds the next image of an animation, its RGBA pixels `now` (`width` × `height`), to the frames of its GIF, to show
+ *  for `ms`: the first image whole, a later one as the box of the pixels that changed since the image `before` it
+ *  (changedBox), and an image that changes nothing as more time for the frame before it. */
+export function addFrame(frames: GifFrame[], before: Uint8ClampedArray | null, now: Uint8ClampedArray, width: number,
+                         height: number, ms: number): void {
+  if (!before) {
+    frames.push({ rgba: now, x: 0, y: 0, w: width, h: height, ms });
+    return;
+  }
+  const box = changedBox(before, now, width, height);
+  if (!box) {
+    frames[frames.length - 1].ms += ms;
+    return;
+  }
+  const rgba = new Uint8ClampedArray(4 * box.w * box.h);
+  for (let y = 0; y < box.h; y++) {
+    const from = 4 * ((box.y + y) * width + box.x);
+    rgba.set(now.subarray(from, from + 4 * box.w), 4 * y * box.w);
+  }
+  frames.push({ rgba, ...box, ms });
+}

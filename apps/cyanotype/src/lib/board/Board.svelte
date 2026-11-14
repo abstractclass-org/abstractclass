@@ -106,12 +106,15 @@
     // Hexes to point at, drawn as a soft glow over the cells: the board editor's hexes that the engine's reasons name
     // when no game reaches the position, as Hedge School's board makes the reasons' edges glow (its design 21, item 10)
     targets?: Hex[];
+    // A board for an image (the image of a line, board/image.ts): this area, given and not measured, so that the board
+    // draws in the task that mounts it. The fit holds the line's placements too, so that the image shows each one.
+    image?: Size | null;
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
-    notes = [], onnotes, still = false, onedit, chosen = null, onpaint, onpaintend, targets = [],
+    notes = [], onnotes, still = false, onedit, chosen = null, onpaint, onpaintend, targets = [], image = null,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -125,7 +128,8 @@
   // page at 360, 800 and 1,400 pixels wide: on a phone, columns would leave the field half its width (design 33). In
   // the panel, each hand is a row that the panel's size sets (panel.ts). Under the field, each hand is a row as wide as
   // the area, and a third of that high at most.
-  let width = $state(0), height = $state(0);
+  let measuredWidth = $state(0), measuredHeight = $state(0);
+  const width = $derived(image?.width ?? measuredWidth), height = $derived(image?.height ?? measuredHeight);
   const sides = $derived(handsForm === "box" && width > 1.25 * height);
   const handSize = $derived(sides ? clamp(width * 0.13, 72, 170)
     : handsForm === "under" ? Math.min(UNDER_HAND.max, width / UNDER_HAND.parts) : clamp(height * 0.17, 52, 120));
@@ -179,7 +183,8 @@
   let manual = $state.raw<View | null>(null);
   let held = $state.raw<View | null>(null);
   let placedByPlayer = $state(false); // the player dragged or resized the panel
-  const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? [])]);
+  const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? []),
+                             ...(image ? drawn.flatMap(l => (l.move.type === "place" ? l.move.footprint.map(c => c.hex) : [])) : [])]);
   const fitBox = $derived(boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
   const hasPanel = $derived(handsForm === "panel" && field.width > 0 && field.height > 0);
   // When the cells, the legal moves or the area change, the fit may move the panel to a corner, before the board
@@ -575,7 +580,8 @@
 
 <svelte:window onpointerdowncapture={() => (menuGuard = false)} oncontextmenu={guardMenu} />
 
-<div class="board {handsForm}" class:sides bind:clientWidth={width} bind:clientHeight={height}
+<div class="board {handsForm}" class:sides bind:clientWidth={measuredWidth} bind:clientHeight={measuredHeight}
+     style:width={image && `${image.width}px`} style:height={image && `${image.height}px`}
      style:--hand="{handSize}px" style:--gap="{FIELD_GAP}px" style:--zoom-size="{ZOOM_BUTTONS.size}px"
      style:--zoom-gap="{ZOOM_BUTTONS.gap}px" style:--zoom-inset="{ZOOM_BUTTONS.inset}px"
      style:--zoom-room="{4 * ZOOM_BUTTONS.inset + ZOOM_WIDTH}px">

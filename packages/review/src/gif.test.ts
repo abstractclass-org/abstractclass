@@ -1,9 +1,9 @@
 // The animated GIF (gif.ts): the frames, their delays and offsets, the loop count, that each frame decodes to its
-// colours, and the palette's rule (the flat colours exact, the others the nearest). The test reads the file by the
-// GIF89a specification, with its own reader and LZW decoder. Run: npm test.
+// colours, the palette's rule (the flat colours exact, the others the nearest), and the frames that addFrame keeps. The
+// test reads the file by the GIF89a specification, with its own reader and LZW decoder. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { animatedGif, changedBox, gifPalette, lzw, paletteIndices, type GifFrame } from "./gif.ts";
+import { addFrame, animatedGif, changedBox, gifPalette, lzw, paletteIndices, type GifFrame } from "./gif.ts";
 
 /** RGBA pixels `w` × `h`, each pixel the colour that `colour(x, y)` gives as 0xRRGGBB. */
 function pixels(w: number, h: number, colour: (x: number, y: number) => number): Uint8ClampedArray {
@@ -167,4 +167,25 @@ test("the changed box holds every pixel that differs, and only those rows and co
   assert.deepEqual(changedBox(a, b, w, h), { x: 1, y: 1, w: 3, h: 2 });
   b[0] = 1; // (0, 0)
   assert.deepEqual(changedBox(a, b, w, h), { x: 0, y: 0, w: 4, h: 3 });
+});
+
+test("addFrame keeps the first image whole, then the box that changed, and adds an unchanged image's time", () => {
+  const w = 5, h = 4, first = pixels(w, h, () => 0x102030);
+  const frames: GifFrame[] = [];
+  addFrame(frames, null, first, w, h, 2000);
+  assert.deepEqual(frames.map(({ x, y, w, h, ms }) => ({ x, y, w, h, ms })), [{ x: 0, y: 0, w: 5, h: 4, ms: 2000 }]);
+  assert.equal(frames[0].rgba, first);
+
+  addFrame(frames, first, pixels(w, h, () => 0x102030), w, h, 1000); // nothing changed
+  assert.equal(frames.length, 1);
+  assert.equal(frames[0].ms, 3000);
+
+  // (1, 1) and (3, 2) change: the box from (1, 1) to (3, 2), with the new image's pixels in it.
+  const colour = (x: number, y: number) => (x === 1 && y === 1 ? 0xff0000 : x === 3 && y === 2 ? 0x00ff00 : 0x102030);
+  const next = pixels(w, h, colour);
+  addFrame(frames, first, next, w, h, 500);
+  const { rgba, ...box } = frames[1];
+  assert.deepEqual(box, { x: 1, y: 1, w: 3, h: 2, ms: 500 });
+  const inBox = pixels(3, 2, (x, y) => colour(x + 1, y + 1));
+  assert.deepEqual(Array.from(rgba), Array.from(inBox));
 });

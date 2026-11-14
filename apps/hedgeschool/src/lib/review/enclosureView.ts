@@ -6,12 +6,12 @@
 import type { ImageBoard, ViewGame } from "@abstractclass/review/game.ts";
 import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
 import { BRUSH_KEYS } from "@abstractclass/review/notes.ts";
-import { animatedBoardImage, boardImage, copyPng } from "#lib/board/boardImage.ts";
+import { lineImage } from "@abstractclass/review/boardImage.ts";
+import Board from "#lib/board/Board.svelte";
 import { pointName } from "#lib/engine/notation.ts";
 import { playMove, preload } from "@abstractclass/site/sound.ts";
 import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
-import { download } from "#lib/game/reviewFile.ts";
-import { EARLY_ACCESS, OPENINGS } from "#lib/edition.ts";
+import { EARLY_ACCESS, OPENINGS, SITE_NAME } from "#lib/edition.ts";
 import { BookPlace, siteBook } from "#lib/book/place.svelte.ts";
 import { openingRow, reviewOpening, trapRows } from "#lib/book/game.ts";
 import ReviewBookTable from "#lib/book/ReviewBookTable.svelte";
@@ -27,8 +27,8 @@ import EmptyBoard from "./EmptyBoard.svelte";
 import { AREA, enclosure, endingText, fmtMargin, LAYERS, lineMovers, MOVE_TEXT, moveNotation, PLAYER_NAME, shortNote,
          turnShortNote, type Enclosure } from "./enclosure.ts";
 
-/** The board of an image of a line, as boardImage.ts draws it: the regions always shown, and the edge cut by the move
- *  that led to the position while no edge of the line is drawn. */
+/** The board of an image of a line (@abstractclass/review/boardImage.ts draws it, one SVG, square): the regions always
+ *  shown, and the edge cut by the move that led to the position while no edge of the line is drawn. */
 const imageBoard = (b: ImageBoard<Enclosure>) =>
   ({ position: b.position, cut: b.last?.cut ?? null, line: boardLine(b.line), notes: b.notes, layers: { ...b.layers, regions: true } });
 
@@ -127,15 +127,13 @@ export const enclosureView: ViewGame<Enclosure> = {
     legend: walls => (wallMarks(walls).length ? "Weak walls: bolder means weaker" : `Weak walls: none at ${WALL_MIN * 100}% or more`),
   },
 
-  image: {
-    draw: (b, caption, width) => boardImage(imageBoard(b), caption, width),
-    animate: (frames, caption, width) =>
-      animatedBoardImage(frames.map(f => ({ props: imageBoard(f.board), ms: f.ms })), caption, width),
+  image: lineImage({
+    Board,
+    props: imageBoard,
     caption: ({ position, turn, first }, end, moves) => imageCaption({ ...position, turn, first }, end, moves),
     name: imageName,
-    copy: copyPng,
-    download: (name, file) => download(name, file, file.type),
-  },
+    site: SITE_NAME,
+  }),
 
   // The opening book (design 32): the test book, in the early edition only (book/place.svelte.ts, siteBook)
   book: EARLY_ACCESS ? {

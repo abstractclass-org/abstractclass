@@ -468,8 +468,11 @@ edit in the same commit), so their changes still apply.
   format, the result by the scores (from `@abstractclass/analysis`'s `result.ts`) and its words, and the class of a
   number in a move's shape (`DIGITS`).
   `src/ownership.ts`: the area map's styles and marks. `src/lineImage.ts`: the line that an image draws, and its
-  animation's frames. `src/ReplaceAnalysis.svelte`: the Analysis board's question before a line brought replaces the
-  analysis kept in the browser. `src/GameList.svelte`:
+  animation's frames. `src/boardImage.ts`: the image of a line for each site (`lineImage`): the board drawn apart from
+  the page in the page's theme, the caption's place, the PNG, the animated GIF, the copy and the saved file. A site
+  gives its board's component, the component's properties, its caption and file name, and its drawing of the board
+  where the board is more than one SVG. `src/gif.ts`: the GIF's encoder. `src/ReplaceAnalysis.svelte`: the Analysis
+  board's question before a line brought replaces the analysis kept in the browser. `src/GameList.svelte`:
   the Review tab's list of the player's games, with each game's Export and Delete and the line on what the browser
   keeps, with each site's rows (Hedge School's and Cyanotype's `src/lib/review/ReviewHome.svelte`), and the
   question before a Delete (`@abstractclass/site`'s `ConfirmDialog.svelte`). `src/pageMarks.ts`: the script in the
@@ -495,7 +498,8 @@ edit in the same commit), so their changes still apply.
   Analysis board's pages give it. Its components: `EnclosureBoard.svelte` (Hedge School's board with the view's
   props, and the area map's margin), `EdgePill.svelte` (an edge's shape in the lists) and `EmptyBoard.svelte`.
   `enclosureMap.ts`: the board's state for the area map, and a point's numbers. `enclosureImage.ts`: an image's
-  caption and file name. `src/lib/book/ReviewBookTable.svelte`: the book's table in the view.
+  caption and file name. The image draws `src/lib/board/Board.svelte` (one SVG) with `enclosureView.ts`'s
+  `imageBoard`. `src/lib/book/ReviewBookTable.svelte`: the book's table in the view.
 - `packages/site/src/`: the site's general controls that the view uses (`Icon.svelte`, `Toast.svelte`,
   `SettingChoice.svelte`, `SettingToggle.svelte`, `settings.ts`, `Swatch.svelte`, `side.ts`) and the page's scroll
   (`pageScroll.ts`). `sound.ts` and `SoundSettings.svelte`: the move sounds and their settings (design 08), which a

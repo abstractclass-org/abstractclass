@@ -8,7 +8,7 @@
 
   /** A line as the board draws it, from the hands `hands` where it starts: each move that the rules have played with
    *  what it did and the hands after it, and the others where they stand. */
-  function boardLine(line: readonly LineMove<Blueprints>[], hands: readonly [Hand, Hand]): BoardLineMove[] {
+  export function boardLine(line: readonly LineMove<Blueprints>[], hands: readonly [Hand, Hand]): BoardLineMove[] {
     let before = hands;
     return line.map(l => {
       if (!l.step) return { move: moveBefore(l.move, l.player, before) };

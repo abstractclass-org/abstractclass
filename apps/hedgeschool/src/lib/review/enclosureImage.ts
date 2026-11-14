@@ -1,6 +1,7 @@
 // The image of a line (design 07, item 17), Enclosure's part: the caption under the board, and the saved file's name.
-// The line that an image draws, and its animation's frames, are the review package's (@abstractclass/review/
-// lineImage.ts). The board's drawing is board/boardImage.ts.
+// The line that an image draws, its animation's frames, the board's drawing apart from the page, the caption's place
+// and the GIF are the review package's (@abstractclass/review/lineImage.ts, boardImage.ts, gif.ts). The board is
+// board/Board.svelte, with the properties of enclosureView.ts's `imageBoard`.
 import { fmtScore, PLAYER_NAME, type Position } from "./enclosure.ts";
 
 type CaptionNumbers = Pick<Position, "scores" | "areas">;

@@ -4,25 +4,30 @@
 // Stamp Duty's networks. The pages give it to the view (@abstractclass/review/ReviewView.svelte) with Blueprints' game
 // (blueprints.ts, `blueprints`), which it extends. The player's notes are Hedge School's, in its colours, at hexes of
 // the board, with the board's own keys (`NOTE_KEYS`, design 33, "The player's notes"). The move sounds are Hedge
-// School's (@abstractclass/site/sound.ts), and a placement that captures has the removal's sound (sound.ts). Cyanotype
-// has no image of a line and no opening book yet (design 33), so the view offers neither, and no area map
-// (`AREA_MAP`).
+// School's (@abstractclass/site/sound.ts), and a placement that captures has the removal's sound (sound.ts). The image
+// of a line is Hedge School's (@abstractclass/review/boardImage.ts), with Blueprints' board (board/image.ts) and
+// caption (blueprintsImage.ts). Cyanotype has no opening book yet (design 33), so the view offers none, and no area
+// map (`AREA_MAP`).
 // The board's box fills the room that the side columns leave, with the hands in a panel over it, and under it in one
 // column, as on Practice.
 import type { ViewGame } from "@abstractclass/review/game.ts";
+import { lineImage } from "@abstractclass/review/boardImage.ts";
 import { DIFFERENCE_HELP, held } from "@abstractclass/review/ownership.ts";
 import { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import { INPUT_CLICKS, inputStatus } from "../board/input.ts";
 import { ONE_COLUMN_HEIGHT } from "../board/keptPanel.svelte.ts";
-import { NOTE_KEYS } from "../board/Board.svelte";
+import Board, { NOTE_KEYS } from "../board/Board.svelte";
+import { boardSvg, imageBoard } from "../board/image.ts";
 import { hexKey } from "../board/hex.ts";
 import { STARS } from "../board/position.ts";
 import { moveName, moveText } from "../game/notation.ts";
+import { SITE_NAME } from "../site.ts";
 import { NETWORKS, networkMB, networkName } from "../analysis/engineSettings.ts";
 import { asPlayed, blueprints, captureOf, endingText, fmtMargin, lineMovers, playedText, shortNote, turnShortNote,
          type Blueprints } from "./blueprints.ts";
 import { alignMap, boardState, mapIndex } from "./blueprintsMap.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
+import { imageCaption, imageName } from "./blueprintsImage.ts";
 import { playMove, preload } from "@abstractclass/site/sound.ts";
 import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
 import { captures } from "../sound.ts";
@@ -123,6 +128,15 @@ export const blueprintsView: ViewGame<Blueprints> = {
     mb: networkMB,
     help: board => `The network that ${board ? "searches the positions" : "reviews the game"}. A change ${board ? "searches the positions again" : "reviews the game again"}. A network downloads once, and the browser keeps it.`,
   },
+
+  image: lineImage({
+    Board,
+    props: imageBoard,
+    svg: boardSvg,
+    caption: ({ position, turn, first }, end, moves) => imageCaption({ ...position, turn, first }, end, moves),
+    name: imageName,
+    site: SITE_NAME,
+  }),
 };
 
 /** The area map of the engine's view (Hedge School's design 30), which the view does not offer: design 33 says why

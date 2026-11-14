@@ -12242,3 +12242,32 @@ abscls-nwmd, from the decision of 2026-11-13 on a question of abscls-fcvt's revi
   lead or the result, one "Score:" line at the end of a record that ends early only, then the area or the stars. On
   builds of both sites from dev's code (c3f841d6), the 4 early-end cases failed (no "Score:" in the note). After the
   change, the spec's 12 cases pass.
+
+### Cyanotype's image of a line, from one shared frame (2026-11-14)
+
+abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a line") changed.
+
+- **Asked for:** Cyanotype had no image of a line (design 33, "The gaps from Hedge School"). A jam game's site has
+  each feature of Hedge School's, built from the shared packages, with Hedge School unchanged.
+- **Decided:** Cyanotype's move menu has Hedge School's "Generate image": "Copy static", "Save static" and "Save
+  animated", in the review and on the Analysis board, with the same theme rule ("An image of a line in the player's
+  theme", above). The parts that are not one game's moved to `packages/review/src/`: `boardImage.ts` (the board drawn
+  apart from the page, the theme's check, the caption's place, the PNG, the animated GIF, the copy and the saved file,
+  as `lineImage`) and `gif.ts`. Each site gives its board's component, the component's properties, its caption and
+  file name. Hedge School's board is one square SVG. Cyanotype's board is three SVGs (the field and each hand), and
+  its own drawing (`apps/cyanotype/src/lib/board/image.ts`) joins them into one.
+- **Cyanotype's board in the image:** square, as Hedge School's, with a hand in a row above the field and one below
+  it. The board takes a fixed size from the image (the property `image` of its `Board.svelte`), and not a measure of
+  the page, so it draws in the task that mounts it and the theme's check stays in one task. Its fit holds the line's
+  placements, so the image shows each move that it numbers. The caption has "move" for "edge" and the stars on the
+  board for the area. The file is `cyanotype-after-move-N-line-M.png`.
+- **Hedge School's images are the same files.** Measured with `tests/line-image-theme.spec.ts` and LINE_IMAGE_DIR, in
+  headless Chromium on the CPU, on a build of dev a0fb17d9 and on a build of this change, both built as CI builds
+  them: in a review and on the Analysis board, in the light theme and the dark theme, the copied PNG, the saved PNG,
+  the PNG after a refused copy, the animated GIF and its first frame. All 20 files have the same SHA-256 before and
+  after. A frame after the first of the animated image is now cut from the canvas's whole pixels (`addFrame` in
+  `gif.ts`), and not read again from the canvas: the same pixels, as the GIFs' digests show.
+- **The checks:** the browser checks of Hedge School's image moved to `tests/line-image.ts`, and
+  `tests/cyanotype-line-image.spec.ts` runs them on Cyanotype's review of the test game and on its Analysis board.
+  Both sites' specs pass. Unit tests: `gif.test.ts` (with `addFrame`) and `boardImage.test.ts` (the caption's place,
+  the copy) in `packages/review`, and `blueprintsImage.test.ts` in Cyanotype.
