@@ -12267,12 +12267,16 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
   that the frames keep one view, as the board on screen does while a line plays: `imageParts` gives the site's
   properties every board of the image. The caption has "move" for "edge" and the stars on the board for the area. The
   file is `cyanotype-after-move-N-line-M.png`.
+- **The frames' one view, measured:** the animated image of the test game's first ten moves on the Analysis board,
+  decoded in headless Chromium. Of the field's pixels, at most 12% change from one frame to the next with the one
+  view, and up to 48% when each frame fitted its own board (the view zoomed and moved).
 - **Hedge School's images are the same files.** Measured with `tests/line-image-theme.spec.ts` and LINE_IMAGE_DIR, in
   headless Chromium on the CPU, on a build of dev a0fb17d9 and on a build of this change, both built as CI builds
   them: in a review and on the Analysis board, in the light theme and the dark theme, the copied PNG, the saved PNG,
   the PNG after a refused copy, the animated GIF and its first frame. All 20 files have the same SHA-256 before and
   after. A frame after the first of the animated image is now cut from the canvas's whole pixels (`addFrame` in
-  `gif.ts`), and not read again from the canvas: the same pixels, as the GIFs' digests show.
+  `gif.ts`), and not read again from the canvas: the same pixels, as the GIFs' digests show. The review measured it
+  again after its changes, on dev ac753cd5 and on the reviewed branch: the 20 files are the same.
 - **The checks:** the browser checks of Hedge School's image moved to `tests/line-image.ts`, and
   `tests/cyanotype-line-image.spec.ts` runs them on Cyanotype's review of the test game and on its Analysis board.
   Both sites' specs pass. Unit tests: `gif.test.ts` (with `addFrame`) and `boardImage.test.ts` (the caption's rule
