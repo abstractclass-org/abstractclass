@@ -614,7 +614,7 @@ test("layout of a review", async ({ page }) => {
 // the fixture's as an earlier engine's review, its results with no maps. The note does not depend on the height, so
 // the sweep takes one.
 test("layout of the area map's note in a review snapshot", async ({ page }) => {
-  await page.addInitScript(k => localStorage.setItem(k, JSON.stringify({ on: false })), ENGINE_KEY);
+  await keepBefore(page, ENGINE_KEY, { on: false });
   await reviewedGame(page, earlierReview(FIXTURE, { maps: false }));
   await expect(page.getByText(EARLIER_REVIEWED)).toBeVisible({ timeout: 60_000 });
   // The map on, at the position before the game's last move. The game's end has a note of its own. The early
@@ -778,10 +778,8 @@ function bookTableProblems(page: Page) {
 test("layout of /openings", async ({ page }) => {
   const served = await page.request.get("/test-book/prototype/index.json");
   test.skip(!served.ok() || !(served.headers()["content-type"] ?? "").includes("json"), "the site serves no test book");
-  await page.addInitScript(([consent, engine]) => {
-    localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
-    localStorage.setItem(engine, JSON.stringify({ on: false }));
-  }, [CONSENT_KEY, ENGINE_KEY]);
+  await keepBefore(page, CONSENT_KEY, { games: "denied" });
+  await keepBefore(page, ENGINE_KEY, { on: false });
   await page.goto("/about");
   test.skip(!(await page.locator('header a[href="/openings"]').count()), "a build without Openings");
   const release = await holdNetworks(page);
@@ -819,11 +817,9 @@ test("the sentence under the book's table keeps the move list in place", async (
       const page = await context.newPage();
       const served = await page.request.get("/test-book/prototype/index.json");
       if (!served.ok() || !(served.headers()["content-type"] ?? "").includes("json")) { await context.close(); test.skip(true, "the site serves no test book"); }
-      await page.addInitScript(([d, consent, engine, display]) => {
-        localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
-        localStorage.setItem(engine, JSON.stringify({ on: false }));
-        localStorage.setItem(display, d);
-      }, [JSON.stringify({ judge }), CONSENT_KEY, ENGINE_KEY, DISPLAY_KEY]);
+      await keepBefore(page, CONSENT_KEY, { games: "denied" });
+      await keepBefore(page, ENGINE_KEY, { on: false });
+      await keepBefore(page, DISPLAY_KEY, { judge });
       await page.goto("/about");
       if (!(await page.locator('header a[href="/openings"]').count())) { await context.close(); test.skip(true, "a build without Openings"); }
       await page.goto("/openings#record=A10-D9");

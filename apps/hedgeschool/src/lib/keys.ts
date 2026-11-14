@@ -1,7 +1,7 @@
 // The keys under which this browser keeps Hedge School's settings and the consent's answer in local storage. The site's
 // modules and the browser tests (tests/) import them from here, so a key's new version reaches the tests too. This
 // module imports nothing: Playwright's loader, which loads the tests' imports in Node, cannot load a .svelte file or
-// read import.meta.env, and the modules that use the keys do both.
+// read import.meta.env. review/display.ts imports a .svelte file, and analytics.svelte.ts reads import.meta.env.
 
 /** The engine's settings (analysis/engineSettings.ts). Version 2: the review's names changed (version 1's "standard"
  *  was 256 visits, now Lite's). */

@@ -11,6 +11,7 @@ import { shareNote } from "../../../packages/review/src/exports.ts";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, LITE, noReview, reviewStoredFile, testRecord } from "./cyanotype-review.ts";
 import { loadReviewFile } from "./review-file.ts";
+import { keepBefore } from "./keep-before.ts";
 import { CONSENT_KEY, ENGINE_KEY as HEDGE_SCHOOL_ENGINE } from "../src/lib/keys.ts";
 
 /** A site as these tests use it: its name, an address on it, its files' formats, a record of three moves for the
@@ -33,10 +34,10 @@ const SITES: Site[] = [
     reviewFormat: "hedge-school-review",
     record: "1. D10-G10 2. N11-Q10 L10-N11 *",
     // The visitor has answered the consent notice, which covers the page's foot until they choose. The engine is off.
-    setUp: page => page.addInitScript(([consent, engine]) => {
-      localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
-      localStorage.setItem(engine, JSON.stringify({ on: false, gpu: "off" }));
-    }, [CONSENT_KEY, HEDGE_SCHOOL_ENGINE]),
+    setUp: async page => {
+      await keepBefore(page, CONSENT_KEY, { games: "denied" });
+      await keepBefore(page, HEDGE_SCHOOL_ENGINE, { on: false, gpu: "off" });
+    },
     review: async page => {
       await page.goto("/review");
       await loadReviewFile(page, "tests/fixtures/hedgefund-review.json");

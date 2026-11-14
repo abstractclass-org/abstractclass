@@ -8,6 +8,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "./page-log.ts";
 import { loadReviewFile } from "./review-file.ts";
+import { keepBefore } from "./keep-before.ts";
 import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
@@ -278,7 +279,7 @@ test.describe("the opening book at a komi", () => {
       return [`${key.slice(0, at)}komi=-400${moves ? ` ${moves}` : ""}`, value];
     });
     // "Review by" edge: each edge has its label in its own button in the move list
-    await page.addInitScript(k => localStorage.setItem(k, JSON.stringify({ judge: "edge" })), DISPLAY_KEY);
+    await keepBefore(page, DISPLAY_KEY, { judge: "edge" });
     await openWithBook(page, "/review");
     const idle = bookLoads(page);
     await loadReviewFile(page, { name: "komi-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });

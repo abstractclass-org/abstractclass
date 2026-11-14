@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "./page-log.ts";
 import { NAME, STORES } from "../../../packages/storage/src/db.ts";
 import { fileInput, loadReviewFile, openReviewFile } from "./review-file.ts";
+import { keepBefore } from "./keep-before.ts";
 import { ENGINE_KEY } from "../src/lib/keys.ts";
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
@@ -30,7 +31,7 @@ const stored = (page: Page, store: string, key?: string) => page.evaluate(([name
 }), [NAME, store, key] as const);
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(k => localStorage.setItem(k, JSON.stringify({ on: false })), ENGINE_KEY);
+  await keepBefore(page, ENGINE_KEY, { on: false });
 });
 
 test("a review file chosen before the page's code runs loads once the tab opens", async ({ page }) => {

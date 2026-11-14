@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { boardLink } from "../src/lib/game/board.ts";
 import { openReviewFile } from "./review-file.ts";
+import { keepBefore } from "./keep-before.ts";
 import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 
 test.describe.configure({ timeout: 120_000 });
@@ -23,12 +24,10 @@ const variation: [string, number, 1][] = [["D10-G12", 0, 1], ["D10-G12 N11-Q10",
                                           ["D10-G12 N11-Q10 K9-N11", 0, 1]];
 
 /** Sets the consent, the engine off and the display settings before the page loads. */
-function settings(page: Page, display: Record<string, string>) {
-  return page.addInitScript(([d, consent, engine, displayKey]) => {
-    localStorage.setItem(consent, JSON.stringify({ games: "denied" }));
-    localStorage.setItem(engine, JSON.stringify({ on: false }));
-    localStorage.setItem(displayKey, JSON.stringify(d));
-  }, [display, CONSENT_KEY, ENGINE_KEY, DISPLAY_KEY] as const);
+async function settings(page: Page, display: Record<string, string>) {
+  await keepBefore(page, CONSENT_KEY, { games: "denied" });
+  await keepBefore(page, ENGINE_KEY, { on: false });
+  await keepBefore(page, DISPLAY_KEY, display);
 }
 
 async function open(page: Page, unit: "edge" | "turn") {
