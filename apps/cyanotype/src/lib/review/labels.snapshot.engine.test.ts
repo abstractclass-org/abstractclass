@@ -49,7 +49,7 @@ import type { EnginePool } from "@abstractclass/engine/pool.ts";
 import { hasEngine, nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { LABEL_VISITS, analysisKey, readAnalysisKey } from "@abstractclass/analysis/cache.ts";
 import { review, type Review, type Unit } from "@abstractclass/analysis/model.ts";
-import { LABELS, type Label } from "@abstractclass/analysis/labels.ts";
+import { BAD_LABELS, LABELS, type Label } from "@abstractclass/analysis/labels.ts";
 import { PLAYER_NAME } from "@abstractclass/review/game.ts";
 import { STORES, dbPutMany } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
@@ -208,17 +208,22 @@ test("the stored reviews reach each kind of quality label, the turn order and th
 
 // The home page's board plays scenes from stored reviews (scripts/home-replay.mjs writes them, with their engine in
 // `made`). A stored review made again with another engine gives other labels: the scenes must then be made again.
-test("the home board's scenes come from the stored reviews, at their engine and network", () => {
-  const { made } = JSON.parse(readFileSync(join(app, "src", "lib", "home", "replay.json"), "utf8")) as {
+// Each scene shows a moment that a label explains: a bad move's label, and a good move's.
+test("the home board's scenes: their stored reviews' engine, and a bad and a good move's label each", () => {
+  const { made, scenes } = JSON.parse(readFileSync(join(app, "src", "lib", "home", "replay.json"), "utf8")) as {
     made: { labelVisits: number; search: string; network: string; games: { review: string; record: string }[] };
+    scenes: { frames: { m: { label: Label }[] }[] }[];
   };
   assert.equal(made.labelVisits, LABEL_VISITS, "the scenes' label depth");
-  assert.ok(made.games?.length, "replay.json names no stored review for its scenes");
-  for (const g of made.games) {
+  assert.equal(made.games?.length, scenes.length, "replay.json names the stored review of each scene");
+  for (const [k, g] of made.games.entries()) {
     const s = REVIEWS.find(r => basename(r.file) === g.review) ?? assert.fail(`${g.review} is no stored review here`);
     assert.equal(s.game, g.record, `${g.review}'s game`);
     const { search, network } = readStored(s.file);
     assert.deepEqual({ search, network }, { search: made.search, network: made.network },
                      `the engine of ${g.review}: run scripts/home-replay.mjs again`);
+    const labels = scenes[k].frames.flatMap(f => f.m.map(m => m.label));
+    assert.ok(labels.some(l => BAD_LABELS.includes(l)), `scene ${k + 1} shows no bad move's label`);
+    assert.ok(labels.some(l => !BAD_LABELS.includes(l)), `scene ${k + 1} shows no good move's label`);
   }
 });

@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { analysisKey, mapKey } from "./cache.ts";
 import { BAD_LABELS } from "./labels.ts";
-import { SCENE_BEFORE, sceneOf, storedGameReview, storedResults, turnSoFar } from "./homeScene.ts";
+import { SCENE_BEFORE, sceneHold, sceneOf, storedGameReview, storedResults, turnSoFar } from "./homeScene.ts";
 import type { Analysis } from "./model.ts";
 import { wordFields, words } from "./testing/game.ts";
 
@@ -50,6 +50,8 @@ test("a scene ends on the game's latest bad move, away from its start and its en
   assert.equal(scene.key.index, 20);
   assert.equal(scene.first.start, 20 - SCENE_BEFORE, "the turns before it, one move a turn");
   assert.equal(scene.last, 21, "the position after the key move");
+  assert.deepEqual([19, 20, 21].map(i => sceneHold(scene, i)), [{}, { hold: "before" }, { hold: "moment" }],
+                   "the holds: before the key move, and on its label");
   assert.deepEqual(turnSoFar(R, 21), [20], "one move a turn: the last move alone");
   assert.deepEqual(turnSoFar(R, 0), [], "no move before the game's start");
 });

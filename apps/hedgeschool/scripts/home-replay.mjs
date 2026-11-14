@@ -15,10 +15,10 @@ import { boardPosition } from "../src/lib/engine/position.ts";
 import { parseEdge } from "../src/lib/engine/notation.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
 import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
-import { sceneOf, storedGameReview, storedResults, turnSoFar } from "@abstractclass/analysis/homeScene.ts";
+import { SCENE_CANDIDATES, sceneHold, sceneOf, storedGameReview, storedResults, turnSoFar }
+  from "@abstractclass/analysis/homeScene.ts";
 import { LABEL_TEXT, enclosure, shownCandidates } from "../src/lib/review/enclosure.ts";
 
-const CANDIDATES = 3; // the candidates' ranks shown
 const files = process.argv.slice(2);
 if (!files.length) throw new Error("usage: node scripts/home-replay.mjs REVIEW.json [REVIEW.json ...]");
 const { call } = await nodeEngine(".");
@@ -56,11 +56,11 @@ for (const file of files) {
     const mover = positions[i].player;
     frames.push({
       p: slim(positions[i]),
-      // The engine's candidates for the next edge, as the review shows them (shownCandidates), the first three ranks: a
-      // small board with no table beside it.
-      c: i < last ? shownCandidates(analysis[i], mover).filter(({ rank }) => rank <= CANDIDATES).map(({ c, rank }) => ({ edge: c.edge, rank, note: "" })) : [],
+      // The engine's candidates for the next edge, as the review shows them (shownCandidates), the first ranks
+      c: i < last ? shownCandidates(analysis[i], mover).filter(({ rank }) => rank <= SCENE_CANDIDATES)
+        .map(({ c, rank }) => ({ edge: c.edge, rank, note: "" })) : [],
       m: marksAt(i),
-      ...(i === key.index ? { hold: "before" } : i === last ? { hold: "moment" } : {}),
+      ...sceneHold(scene, i),
     });
   }
   const missing = analysis.slice(0, moves.length).filter(a => !a).length;

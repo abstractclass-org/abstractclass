@@ -18,14 +18,14 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { nodeEngine } from "@abstractclass/engine/node-engine.mjs";
 import { LABEL_VISITS } from "@abstractclass/analysis/cache.ts";
-import { sceneOf, storedGameReview, storedResults, turnSoFar } from "@abstractclass/analysis/homeScene.ts";
+import { SCENE_CANDIDATES, sceneHold, sceneOf, storedGameReview, storedResults, turnSoFar }
+  from "@abstractclass/analysis/homeScene.ts";
 import { LABEL_TEXT, shownCandidates, withTwins } from "@abstractclass/analysis/model.ts";
 import { sitePosition } from "../src/lib/board/described.ts";
 import { moveName } from "../src/lib/game/notation.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
 import { blueprints, moveBefore } from "../src/lib/review/blueprints.ts";
 
-const CANDIDATES = 3; // the candidates' ranks shown
 const args = process.argv.slice(2);
 if (!args.length || args.length % 2) throw new Error("usage: node scripts/home-replay.mjs STORED.json RECORD.txt [STORED.json RECORD.txt ...]");
 const { call } = await nodeEngine(".");
@@ -69,13 +69,12 @@ for (let a = 0; a < args.length; a += 2) {
       // The last move, and an earlier one of its turn, as the review marks them (ReviewBoard)
       l: so.length ? played[so[0]].drawn : null,
       e: so.slice(1).map(j => played[j].drawn),
-      // The engine's candidates for the next move, as the review shows them (shownCandidates), the first three ranks: a
-      // small board with no table beside it.
-      c: i < last ? shownCandidates(blueprints, analysis[i], mover).filter(({ rank }) => rank <= CANDIDATES)
+      // The engine's candidates for the next move, as the review shows them (shownCandidates), the first ranks
+      c: i < last ? shownCandidates(blueprints, analysis[i], mover).filter(({ rank }) => rank <= SCENE_CANDIDATES)
         .map(({ c, rank }) => ({ name: moveName(c.edge), move: moveBefore(c.edge, mover, positions[i].blueprints), rank, note: "" })) : [],
       // The labels by move of the turn so far, each on its move as it was played (ReviewBoard)
       m: so.filter(j => R.edges[j].label).map(j => ({ move: played[j].drawn, label: R.edges[j].label, note: LABEL_TEXT[R.edges[j].label] })),
-      ...(i === key.index ? { hold: "before" } : i === last ? { hold: "moment" } : {}),
+      ...sceneHold(scene, i),
     });
   }
   console.log(`${game}: scene from turn ${first.number} to move ${key.index + 1}, in turn ${R.turnOf[key.index].number} ` +

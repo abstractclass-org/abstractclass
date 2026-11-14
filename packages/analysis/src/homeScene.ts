@@ -10,6 +10,9 @@ import { otherCandidate, review, secondChoice, type Analysis, type MoveReview, t
 
 /** The turns before a scene's labelled move. */
 export const SCENE_BEFORE = 9;
+/** The ranks of the engine's candidates that a scene shows before each move, the first three: a small board with no
+ *  table beside it. */
+export const SCENE_CANDIDATES = 3;
 
 /** The stored results of the network `model`, each position's at `minVisits` or deeper, by the position's moves: the
  *  deepest of a position's results, as the review takes them (cacheGetAtLeast). An added area map is no result. */
@@ -71,6 +74,11 @@ export function sceneOf<G extends GameTypes>(R: Review<G>, moves: number): Scene
   if (!key) return undefined;
   return { key, first: R.turns[R.turns.indexOf(R.turnOf[key.index]) - SCENE_BEFORE], last: key.index + 1 };
 }
+
+/** The hold of a scene's frame at position i (the shared Replay.svelte's ReplayFrame): before the labelled move, and
+ *  on the position after it, where its label shows. None elsewhere. */
+export const sceneHold = <G extends GameTypes>(s: Scene<G>, i: number): { hold?: "before" | "moment" } =>
+  (i === s.key.index ? { hold: "before" } : i === s.last ? { hold: "moment" } : {});
 
 /** The moves of the turn so far before position i, the last first: the indices of the last move and of an earlier one
  *  of its turn, as the review marks them on the board. None at the game's start (i = 0). */
