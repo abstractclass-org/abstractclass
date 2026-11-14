@@ -12,8 +12,9 @@
 // scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's
-// home page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Four check the
-// header's "Early Access" link, on each site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its
+// home page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Two check the
+// Support Us dialog, on each site, in a wide window and on a phone. Four check the header's "Early Access" link, on
+// each site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its
 // page, and a game in progress when the site has its practice bot. Four check that a practice game's and a review's one
 // column agree with themselves between 799 and 800 pixels wide, on each site. Two check Cyanotype's import page: the
 // choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's board with the player's notes,
@@ -328,6 +329,50 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
       await expect(menu).toBeHidden();
     }
     expect(report(`${site}'s menu`, found)).toBe("");
+  });
+}
+
+// The Support Us dialog (packages/site/src/SupportDialog.svelte, design 22), on both sites: from the header's button
+// in a window of 1,280 × 900, and from the site's menu on a phone of 390 × 844. In the wide window the dialog has no
+// scroll bar of its own, and the note under Ko-fi's panel is in view (Cyanotype's design 33, "Support Us": its first,
+// longer words cut the note off). On the phone the dialog stays inside the window's width, and it can scroll. At both
+// sizes the page keeps the sweep's rules. No request goes to Ko-fi: its frame keeps its height.
+for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as const) {
+  test(`layout of the Support Us dialog on ${site}`, async ({ page }) => {
+    test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    await page.addInitScript(answerConsent);
+    await page.addInitScript(() => localStorage.setItem("cyanotype:consent:1", JSON.stringify({ games: "denied" })));
+    await page.route(/ko-fi\.com/, route => route.abort());
+    const found: ProblemAt[] = [];
+    for (const [width, height] of [[1280, 900], [390, 844]]) {
+      await page.setViewportSize({ width, height });
+      await page.goto(base ? new URL("/about", base).href : "/about");
+      await page.waitForLoadState("networkidle");
+      if (width >= 640) await page.locator("header").getByRole("button", { name: "Support Us" }).click();
+      else {
+        await page.getByRole("button", { name: "Menu" }).click();
+        await page.getByRole("menuitem", { name: "Support Us" }).click();
+      }
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole("link", { name: "open the page on Ko-fi" })).toBeAttached();
+      await settle(page);
+      const own: OwnRules = () => dialog.evaluate((box, wide) => {
+        const out: string[] = [], r = box.getBoundingClientRect();
+        if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight)
+          out.push(`the dialog leaves the window (${Math.round(r.left)}, ${Math.round(r.top)}, ${Math.round(r.right)}, ${Math.round(r.bottom)})`);
+        if (box.scrollWidth > box.clientWidth + 1) out.push("the dialog scrolls sideways");
+        if (wide && box.scrollHeight > box.clientHeight + 1)
+          out.push(`the dialog scrolls: ${box.scrollHeight} pixels in ${box.clientHeight}`);
+        const note = box.querySelector("a[target=_blank]")!.closest("p")!.getBoundingClientRect();
+        if (wide && note.bottom > r.bottom + 1) out.push("the note under Ko-fi's panel is cut off");
+        return out;
+      }, width >= 640);
+      for (const p of await allProblems(page, own)) found.push({ width, height, ...p });
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeHidden();
+    }
+    expect(report(`${site}'s Support Us dialog`, found)).toBe("");
   });
 }
 
