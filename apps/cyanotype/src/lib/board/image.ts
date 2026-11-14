@@ -35,14 +35,16 @@ function fitOf(all: readonly ImageBoard<Blueprints>[]): Hex[] {
   return hexes;
 }
 
-/** The board's properties for an image: the position, the move that led to it while no move of the line is drawn,
- *  the line, and the notes. The hands are in rows above and below the field (the board's "box" in a square). A still
- *  board in a fixed area (`image`): no zoom's buttons, and a fit that holds the line's placements in each board of the
- *  image. With no candidates given, the board draws none. */
+/** The board's properties for an image: the position, the move that led to it while no move of the line is drawn and
+ *  the earlier move of its turn (marked with it, as the page's board marks the turn's moves), the line, and the notes.
+ *  The hands are in rows above and below the field (the board's "box" in a square). A still board in a fixed area
+ *  (`image`): no zoom's buttons, and a fit that holds the line's placements in each board of the image. With no
+ *  candidates given, the board draws none. */
 export const imageBoard = (b: ImageBoard<Blueprints>, all: readonly ImageBoard<Blueprints>[] = [b]):
   ComponentProps<typeof Board> => ({
   position: b.position,
   last: b.last?.drawn ?? null,
+  earlier: (b.earlier ?? []).map(m => m.drawn),
   line: lineOf(b),
   notes: b.notes,
   still: true,

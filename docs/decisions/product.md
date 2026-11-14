@@ -12283,6 +12283,31 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
   and place, the file's name, the copy) in `packages/review`, and each site's words in `enclosureImage.test.ts` and
   `blueprintsImage.test.ts`.
 
+### Cyanotype's image of a line marks the turn's earlier move (2026-11-14)
+
+abscls-8tl1.104. Design 33 ("The image of a line", item 1) changed.
+
+- **Asked for:** Cyanotype's page marks the turn's earlier move with its last move (Blueprints' glossary, "Turn's
+  marks"). Its image of a line did not: the shared board of an image (`ImageBoard` in
+  `packages/review/src/game.ts`) had no field for it. So the image of the position after a turn's second move marked
+  that move only, and the page marked both moves of the turn.
+- **Decided:** the image shows the board as the page shows it. `ImageBoard` has an optional field `earlier`, the
+  moves of the turn before `last`, as the board's own `earlier`. The review's view gives it with `last`: while no move
+  of the line is drawn (an image with no line, and the start's frame of the animated image). The other frames draw
+  the line's moves numbered on the position where the line starts, and mark no move that led there, as before.
+  Cyanotype's image draws the field `earlier` as its board does: the outline of each placement, and in the hands the
+  edits. Hedge School's image does not read the field: its page and its image mark the last edge alone.
+- **Hedge School's images are the same files.** Measured with `tests/line-image-theme.spec.ts` and LINE_IMAGE_DIR, in
+  headless Chromium on the CPU, on a build of dev da93c21d and on a build of this change, both built as CI builds
+  them: 20 the same, 0 different (the copied PNG, the saved PNG, the PNG after a refused copy, the animated GIF and
+  its first frame, in a review and on the Analysis board, in each theme). Cyanotype's 20 images of the lines from the
+  game's start are the same files too: the start has no earlier move.
+- **The test:** a case in `tests/cyanotype-line-image.spec.ts` counts the turn's outlines in each board that the site
+  draws for an image, in a review of the test game. Turn 4 places two cards. After its second move the page marks 2,
+  the static image 2, and the animated image of the line of two moves from there 0, 2, 0 and 0 (the whole line, the
+  start, then each move). After its first move: 1, 1, and 0, 1, 0, 0. On a build of dev the case fails: the static
+  image and the start's frame mark 1 after the second move.
+
 ### Cyanotype's Support Us, and its header links from 900 pixels (2026-11-13)
 
 abscls-8tl1.49. Cyanotype has Hedge School's Support Us: the header's button, the site's menu's entry below 640

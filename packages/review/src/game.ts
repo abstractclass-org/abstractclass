@@ -243,6 +243,10 @@ export interface WallParts<G extends ViewTypes> {
 export interface ImageBoard<G extends ViewTypes> {
   position: G["position"];
   last: G["played"] | null;
+  // The moves of the same turn before `last`, as BoardProps' `earlier`: given with `last`, and empty while it is null. A
+  // site whose board marks them with the last move draws them (Cyanotype's). Hedge School's image draws the last edge
+  // alone, as its board does.
+  earlier?: G["played"][];
   line: LineMove<G>[];
   notes: G["note"][];
   layers: G["display"]["layers"];

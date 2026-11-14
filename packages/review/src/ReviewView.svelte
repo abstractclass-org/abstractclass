@@ -1268,9 +1268,11 @@
     // Twice the board's size on screen, and at least 1,200 pixels wide.
     const width = Math.max(1200, Math.round(2 * (boardWrap?.getBoundingClientRect().width ?? 0)));
     const notes = $state.snapshot(notesAt[pathKey(start)] ?? []) as G["note"][], last = moveInto(start) ?? null;
+    const earlier = earlierOf(start); // the moves of last's turn before it, which the page's board marks with it
     const layers = { ...$state.snapshot(display.layers), candidates: false, marks: false } as G["display"]["layers"];
-    // The board with the line's first `k` moves.
-    const board = (k: number) => ({ position: from, last: k ? null : last, line: edges.slice(0, k), notes, layers });
+    // The board with the line's first `k` moves. The turn's moves before the line are marked while none of its moves is.
+    const board = (k: number) => ({ position: from, last: k ? null : last, earlier: k ? [] : earlier, line: edges.slice(0, k),
+                                    notes, layers });
     const file = animated ? image.animate(lineFrames(edges.length).map(f => ({ board: board(f.edges), ms: f.ms })), caption, width)
       : image.draw(board(edges.length), caption, width);
     return { file, name: image.name(start, edges.length, animated), animated };
