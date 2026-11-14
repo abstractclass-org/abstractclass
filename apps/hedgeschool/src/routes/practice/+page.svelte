@@ -49,11 +49,11 @@
   import { BOT_NAME, botName, keptGame, komiLine, practiceChoices, practiceTurn, type KeptPractice }
     from "#lib/practice/hedgefund.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
+  import { PRACTICE_DISPLAY_KEY } from "#lib/keys.ts";
 
   // Practice's own display settings (design 24, @abstractclass/practice): the points' bar between the players or
   // beside the board, with each player's area against their points in a second lane.
-  const SCORE_KEY = "hedge-school:practice-display:2";
-  const score = keptScore(SCORE_KEY, true, name => page.used(name));
+  const score = keptScore(PRACTICE_DISPLAY_KEY, true, name => page.used(name));
 
   let notice = $state(""); // a record brought that cannot be played
   let settingsOpen = $state(false); // the display settings, in the moves' place

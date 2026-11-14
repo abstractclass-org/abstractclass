@@ -12,6 +12,7 @@ import { expect, test, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
 import { declineGames } from "./cyanotype-consent.ts";
 import { keepBefore } from "./keep-before.ts";
+import { CONSENT_KEY, PRACTICE_DISPLAY_KEY, PRACTICE_GAME_KEY } from "../src/lib/keys.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
@@ -25,13 +26,13 @@ interface Site {
 
 const SITES: Site[] = [
   {
-    name: "Hedge School", key: "hedge-school:practice-display:2", area: true,
+    name: "Hedge School", key: PRACTICE_DISPLAY_KEY, area: true,
     // The review's test game's first 20 edges (tests/fixtures/hedgefund-review.json), as the layout test's
     open: async page => {
       const record = JSON.parse(readFileSync("tests/fixtures/hedgefund-review.json", "utf8")).record as string;
       const moves = record.replace(/\[[^\]]*\]/g, "").split(/\s+/).filter(t => /^[A-T]\d+-[A-T]\d+$/.test(t)).slice(0, 20);
-      await keepBefore(page, "hedge-school:consent:2", { games: "denied" });
-      await keepBefore(page, "hedge-school:practice-game:1", {
+      await keepBefore(page, CONSENT_KEY, { games: "denied" });
+      await keepBefore(page, PRACTICE_GAME_KEY, {
         version: 1, bot: { network: "b10c128-s66625408-d13350730", visits: 64, variety: "low" }, human: 0, name: "",
         seed: 1, moves, builds: [], started: new Date().toISOString(),
       });
