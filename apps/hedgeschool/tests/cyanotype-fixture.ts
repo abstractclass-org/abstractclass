@@ -27,6 +27,8 @@ export const WHOLE_STORED = "tests/fixtures/cyanotype-whole-review.json";
 export const OTHER_STORED = [
   { file: WHOLE_STORED, game: TEST_GAME, turns: Infinity },
   { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
+  { file: "tests/fixtures/cyanotype-seed12-whole-review.json", game: "stamp-duty-seed12.txt", turns: Infinity },
+  { file: "tests/fixtures/cyanotype-seed13-review.json", game: "stamp-duty-seed13.txt", turns: Infinity },
 ] as const;
 
 type Stored = { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] };

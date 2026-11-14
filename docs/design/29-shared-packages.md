@@ -463,6 +463,10 @@ edit in the same commit), so their changes still apply.
   reader of games as parameters. `cache.ts`: the engine files that start it (`engineFiles`), and its start, with the
   removal of older shapes (`removeUnreadResults`). Hedge School's and Cyanotype's `src/lib/game/earlierResults.ts`
   give their parts, and each site's `vite.config.ts` its engine files.
+- `packages/analysis/src/homeScene.ts`: the home board's scenes (Hedge School's design 22, Cyanotype's design 33):
+  the stored results that a review reads (`storedResults`), the review of a game from them as the Review tab makes it
+  (`storedGameReview`), the scene's labelled move and its turns (`sceneOf`) and the moves of the turn so far
+  (`turnSoFar`). Each site's `scripts/home-replay.mjs` gives its game's positions and moves, and draws the frames.
 - `packages/analysis/src/game.ts`: the game interface. `result.ts`: the result by the scores, with its one rule for a
   draw (item 9). `packages/analysis/src/testing/game.ts`: the test game, with the rules and a search's reply for a
   test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the engine session's tests.

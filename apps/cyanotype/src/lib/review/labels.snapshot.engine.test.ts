@@ -18,6 +18,9 @@
 //   one position, design 33, item 9) at the positions after 85 and 93 moves (before turns 44 and 48).
 // - cyanotype-seed12-review.json: the game of seed 12 (fixtures/stamp-duty-seed12.txt) to the end of turn 23. It
 //   reaches a Great by move (move 39, turn 20, Red's capture 2@-27,-17).
+// - cyanotype-seed12-whole-review.json and cyanotype-seed13-review.json: the whole games of seeds 12 and 13
+//   (fixtures/stamp-duty-seed12.txt and stamp-duty-seed13.txt). The home page's board takes a scene from each
+//   (scripts/home-replay.mjs).
 // The last test fails when the stored reviews stop reaching one of these. The snapshot's header counts the labels by
 // kind, the turns in the other order and the twins (reaches), so a change shows in its diff. No stored review reaches
 // a Great by turn. Cyanotype's page takes it from the shared review's code (@abstractclass/analysis), and Hedge
@@ -75,6 +78,14 @@ const TITLES: Record<string, string[]> = {
   "tests/fixtures/cyanotype-seed12-review.json": [
     "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed12-review.json, the game",
     "# apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed12.txt to the end of turn 23",
+    "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
+  "tests/fixtures/cyanotype-seed12-whole-review.json": [
+    "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed12-whole-review.json, the whole",
+    "# game apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed12.txt",
+    "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
+  "tests/fixtures/cyanotype-seed13-review.json": [
+    "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed13-review.json, the whole",
+    "# game apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed13.txt",
     "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
 };
 /** A stored review's title (TITLES): a stored review of OTHER_STORED with none fails its test, so that each one has

@@ -1709,12 +1709,17 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   the head for partner sites' buttons, `static/brand/cyanotype.svg`.
 - `apps/cyanotype/src/routes/+page.svelte`: the home page, as Hedge School's (design 22): what the site is, the calls to
   Practice and the review, the ways in for a game of one's own (the Review tab for a record, a game from strategyjam.org
-  through the tools, the Analysis board and its board editor), and a board that plays a scene from a reviewed game
-  (`src/lib/home/HomeReplay.svelte`, on the shared replay `Replay.svelte` of `packages/site`). The scene is in
-  `src/lib/home/replay.json`, and its first frame in `still.json`, which `scripts/home-replay.mjs` writes from the
-  stored review of the review's test game (Hedge School's `tests/fixtures/cyanotype-review.json`, a game of Stamp Duty
-  against itself): the 9 turns before the game's latest move with a bad label, and that move. That review gives one
-  scene. More scenes need more reviewed games, and the script takes one stored review. The board is a picture there
+  through the tools, the Analysis board and its board editor), and a board that plays three scenes from reviewed games,
+  as Hedge School's (`src/lib/home/HomeReplay.svelte`, on the shared replay `Replay.svelte` of `packages/site`). The
+  scenes are in `src/lib/home/replay.json`, and the first frame in `still.json`, which `scripts/home-replay.mjs` writes
+  from three games of Stamp Duty against itself (`src/lib/review/fixtures`, from `scripts/selfplay.mjs`) and a stored
+  review of each: Hedge School's `tests/fixtures/cyanotype-review.json` (the review's test game to turn 20) and two
+  others of its OTHER_STORED (`tests/cyanotype-fixture.ts`), all from one engine, one network and 512 visits a
+  position. Each scene is the 9 turns before its game's latest move with a bad label, and that move. The script shares
+  the review and the scene's choice with Hedge School's (`packages/analysis/src/homeScene.ts`). It also writes where
+  each scene comes from (`made.games`), and Hedge School's `tests/cyanotype-home.spec.ts` checks each scene's labels
+  against the Review tab's for the same game and stored review, and that the home page asks the engine for nothing.
+  The games are the site's own, as the review's test games are: no other player's game. The board is a picture there
   (`Board.svelte`, its prop `still`): no pan, no zoom and no zoom buttons, and the page scrolls over it.
 - `apps/cyanotype/src/routes/`: the pages. The About page has the logo's full print ("The logo", item 3), the
   section on the early access (`#early-access`,

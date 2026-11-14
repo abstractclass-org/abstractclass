@@ -1,10 +1,10 @@
 <script lang="ts">
-  // The home page's board (design 33, as Hedge School's design 22): a scene from a reviewed game
+  // The home page's board (design 33, as Hedge School's design 22): scenes from reviewed games
   // (scripts/home-replay.mjs), played on Blueprints' board as the review shows a game judged by move: the engine's
   // first three candidates before each move, the moves of the turn so far, and each move's label on it. The board
   // alone, as a picture (Board's `still`): no row of players above it, no zoom, and the page scrolls over it. The
   // replay's timing, its pauses and its reduced motion are the sites' shared replay's (@abstractclass/site/Replay.svelte).
-  // The first frame is in the page, and the scene loads after it shows.
+  // The first frame is in the page, and the scenes load after it shows.
   import Board, { type BoardCandidate, type BoardLabel } from "#lib/board/Board.svelte";
   import type { BoardMove, SitePosition } from "#lib/board/position.ts";
   import Replay, { type ReplayFrame, type ReplayScenes } from "@abstractclass/site/Replay.svelte";

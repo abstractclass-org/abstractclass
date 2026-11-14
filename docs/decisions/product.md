@@ -12313,3 +12313,41 @@ design 33, "Support Us"). Both sites use one Ko-fi page.
   Every sweep checks the header's row, on both sites. A new case opens Support Us on both sites: in a window of 1,280
   × 900 the dialog has no scroll bar of its own and Ko-fi's note is in view, and on a phone of 390 × 844 the dialog
   stays inside the window's width.
+
+### Cyanotype's home board plays three scenes (2026-11-14)
+
+abscls-8tl1.55. Cyanotype's home board played one scene. It plays three now, as Hedge School's does (design 33, "Where
+it is"). Each scene is the 9 turns before its game's latest move with a bad label, and that move.
+
+- **The games:** three games of Stamp Duty against itself (`scripts/selfplay.mjs`, Blue at 4 visits a move and Red at
+  64), in `apps/cyanotype/src/lib/review/fixtures`. No other player's game. The first scene's game is the review's
+  test game (`stamp-duty.txt`). Seed 12's game (`stamp-duty-seed12.txt`) was there already. Seed 13's
+  (`stamp-duty-seed13.txt`, 120 moves, Red wins by 491) is new: 211 seconds of play, on the CPU.
+- **The stored reviews:** the first scene keeps `tests/fixtures/cyanotype-review.json` (the test game to turn 20).
+  The stored review of seed 12's game to turn 23 has no scene: its only bad move is its last, and a scene needs the
+  move after it. So both new games have a stored review of the whole game, `cyanotype-seed12-whole-review.json` and
+  `cyanotype-seed13-review.json`, in OTHER_STORED (`apps/hedgeschool/tests/cyanotype-fixture.ts`).
+  `scripts/cyanotype-review-fixture.mjs` made them as it made the first: the Review tab of Cyanotype's preview in
+  Playwright's headless Chromium, Lite (512 visits a position), on the CPU (`machine run`, 2 threads). The engine is
+  the first scene's: search `91ab0b7d`, network `b6c96-s47076224-d3087660`. Seed 12's review took 3,273 seconds and
+  seed 13's 2,998 seconds, 245 results each. The label snapshot has a file for each.
+- **The scenes:** the test game from turn 10 to move 36 (a Mistake, a loss of 15%), seed 12's from turn 16 to move 49
+  (an Inaccuracy, 6%), seed 13's from turn 38 to move 92 (a Mistake, 13%). 61 frames. `replay.json` grew from 122 KB
+  to 640 KB (20 KB compressed with gzip): the later boards hold more cells. It loads after the page shows. `still.json`
+  did not change.
+- **One review for both sites:** the stored results that a review reads, the review of the game from them, the
+  scene's labelled move and the moves of the turn so far are in `packages/analysis/src/homeScene.ts` now. Both sites'
+  `scripts/home-replay.mjs` use it. Hedge School's script writes the same files as before, byte for byte: the review
+  files of its scenes are not on this machine, so the check ran it before and after on another review file of
+  Enclosure (`apps/hedgeschool/tests/fixtures/hedgefund-review.json`). `replay.json` and `still.json` had the same
+  SHA-256 before and after.
+- **The first scene was stale:** the committed scene came from an earlier engine (search `3ac5c2fc`, network
+  `b6c96-s40806528-d2304635`), and the stored review holds the results of the current one. The labels of 16 of its 20
+  frames differed from the stored review's (commit `88211cc` had left them, the entry "Cyanotype's review files, as
+  Hedge School's"). Commit `77959b97` wrote them again from the stored review. The scene stayed the same.
+- **The check:** `apps/hedgeschool/tests/cyanotype-home.spec.ts`. The home page plays its scenes with no worker, no
+  message to a worker and no request for the engine's files. For each scene, the Review tab loads the same game with
+  the same stored review, and each label of the scene's frames is the Review tab's label of that move.
+- **Seen:** screenshots of each scene's labelled move at 1,280 and 390 pixels, light, and the first at 1,280, dark.
+  The labels draw on their moves. On the fuller boards of seeds 12 and 13, the board shows the whole field, so the
+  labels' badges are small.
