@@ -23,7 +23,7 @@ for (const site of ["Hedge School", "Cyanotype"]) {
       const list = main.locator("p", { hasText: `${site} lists its partner sites:` });
       await expect(list).toContainText(/ask in the Discord to join the list/);
       await expect(list.getByRole("link", { name: "ask in the Discord" })).toHaveAttribute("href", DISCORD);
-      // Nowhere on the page does a link to a Discord name another address.
+      // The page's only links to a Discord are these two, and neither names another address.
       const discords = await main.locator("a[href*='discord']")
         .evaluateAll(links => links.map(a => a.getAttribute("href")));
       expect(discords).toEqual([DISCORD, DISCORD]);
