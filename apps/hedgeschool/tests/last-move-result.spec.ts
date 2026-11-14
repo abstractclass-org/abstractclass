@@ -50,10 +50,6 @@ async function chartEndLines(page: Page): Promise<string[]> {
   return (await value.locator("xpath=..").locator("span").allInnerTexts()).map(line => line.trim());
 }
 
-/** The line with the lead or the result in the advantage chart's note, with the pointer over the chart's last
- *  position. */
-const chartEnd = async (page: Page) => (await chartEndLines(page))[0];
-
 /** Waits until every move's tooltip has its lead (or the game's result): the review has read the results. The last
  *  move and one more at least: an empty list, before the list draws its rows, has no move to check. Cyanotype's paste
  *  goes on to the review's page: a read that the navigation stops counts as not yet, since expect.poll does not retry
@@ -66,10 +62,9 @@ async function waitForLeads(page: Page) {
 }
 
 /** Checks the moves' tooltips once the review has given each a lead: the last move's holds the chart's words at the
- *  game's end, which start with `end`, and no other move's says "Result:". The chart's note at the end gives the
- *  score (the score line is on: SCORE_LINE) only when the record ends early: where the rules ended the game, the
- *  result repeats the score. At the end of a record that ends early, the score so far is in the note only. Every
- *  result of these games has the review's depth, so the legend has no first estimate. */
+ *  game's end, which start with `end`, and no other move's says "Result:". The chart's note at the end has a line
+ *  "Score: …" (the score line is on) only when the record ends early, as the file's head says. Every result of these
+ *  games has the review's depth, so the legend has no first estimate. */
 async function checkTips(page: Page, end: "Result:" | "Lead:") {
   await waitForLeads(page);
   const tips = await moveTips(page);
@@ -117,18 +112,16 @@ function sweptEndResults(): [string, unknown][] {
  *  says " · first estimate", and the legend shows "Win chance, first estimate". */
 async function checkFirstEstimateAtEnd(page: Page) {
   await waitForLeads(page);
-  expect(await chartEnd(page), "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
+  const [words] = await chartEndLines(page);
+  expect(words, "the chart's note at the end").toMatch(/^Lead: .+ · first estimate$/);
   await expect(page.getByTitle(ROUGH), "the legend's first estimate").toBeVisible();
 }
-
-/** The display setting that shows the advantage chart's score line (on by default on both sites). */
-const SCORE_LINE = { scoreLine: true };
 
 /** Opens the review file `file` on Hedge School, with the engine off, the labels judging `judge` and the chart's score
  *  line on, and waits for the review. */
 const reviewOnHedgeSchool = (page: Page, file: ReviewFileInput, judge: "edge" | "turn") =>
   openReviewFile(page, file,
-                 { engine: { on: false }, display: { judge, ...SCORE_LINE }, consent: { games: "denied" } });
+                 { engine: { on: false }, display: { judge, scoreLine: true }, consent: { games: "denied" } });
 
 // The setting "Review by", by its stored value: "edge" is "Edge" on Hedge School and "Move" on Cyanotype.
 for (const judge of ["edge", "turn"] as const) {
@@ -152,14 +145,14 @@ for (const judge of ["edge", "turn"] as const) {
     });
 
     test("says Result:, and the chart's note no score, when the rules ended the game", async ({ page }) => {
-      await reviewTestGame(page, { judge, ...SCORE_LINE },
+      await reviewTestGame(page, { judge, scoreLine: true },
                            { turns: Infinity, results: readStored(WHOLE_STORED).analyses });
       await checkTips(page, "Result:");
     });
 
     test("says Lead:, and the chart's note the score, when the record ends before the rules end the game",
          async ({ page }) => {
-      await reviewTestGame(page, { judge, ...SCORE_LINE });
+      await reviewTestGame(page, { judge, scoreLine: true });
       await checkTips(page, "Lead:");
     });
   });

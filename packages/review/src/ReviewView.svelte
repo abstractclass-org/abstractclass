@@ -1631,7 +1631,8 @@
     return winner === null ? even : `${PLAYER_NAME[winner]} +${smallMargin(margin) ?? ONE_DIGIT.format(margin)}`;
   };
   // The position whose number is the game's result: the end of a game that the rules ended (the model's rule,
-  // R.endedByRules). The end of a record that ends before is not: its number is the engine's lead.
+  // R.endedByRules). The end of a record that ends before is not: its number is the engine's lead, and the score so
+  // far is in no other line of the chart's note.
   const isResult = (i: number) => i === last && R.endedByRules;
   // The number after a move with its name, in the move's tooltip in the move list and in the chart's tip, or undefined
   // before its analysis: the lead, "Lead: Red +27.5", the engine's estimate (GLOSSARY.md, "Lead"). After a game's last
@@ -1648,10 +1649,9 @@
   // The chart's hover, as Lichess's: the move that led to the position and its label, then one number. The number is
   // the engine's lead, which KaTrain's graph plots (B+n) and from which the loss in the lead comes, or the game's
   // result after its last move when the rules ended it (leadOrResult). Under it, the score and the area of the lines
-  // shown: the lines are scaled and have no axis, so their numbers are only here. The result repeats the score, so the
-  // end of a game that the rules ended has no score. The end of a record that ends before has one, as any position: its
-  // number is the engine's lead, and the score so far is nowhere else in the note. Made for the position pointed at
-  // only: the chart asks for one note at a time.
+  // shown: the lines are scaled and have no axis, so their numbers are only here. The result repeats the score, so a
+  // position with the result (isResult) has no score. Made for the position pointed at only: the chart asks for one
+  // note at a time.
   function chartTip(i: number) {
     const e = i > 0 ? R.edges[i - 1] : null, t = e ? R.turnOf[e.index] : null;
     // By turn, the chart shows the turns' ends only: the turn whole, with its label.

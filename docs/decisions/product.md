@@ -12221,14 +12221,18 @@ abscls-nwmd, from the decision of 2026-11-13 on a question of abscls-fcvt's revi
   says "Lead: …", the engine's estimate, and the score so far was in no other line of the note.
 - **The rule:** the note leaves out the score at the end of a game that the rules ended only. The view takes the
   model's rule for the end (`R.endedByRules`, from abscls-fcvt) in one place, `isResult`, which `leadOrResult`,
-  `chartSettled` and `chartTip` read. Nothing works the rule out again.
+  `chartSettled` and `chartTip` read. No other part of the view works the rule out again.
 - **The other places agree, unchanged:** the move's tooltip (`leadOrResult`) says "Result:" only where the rules
   ended the game. The status line says "Game over" there and "The record ends here" at an early end. The summary
-  under the chart adds "on the board" to the score of a record that ends early. Each reads `R.endedByRules`.
+  under the chart adds "on the board" to the score of a record that ends early. These read `R.endedByRules`. The
+  words of the game's outcome in the status line and the summary come from each game's `endingText`
+  (`apps/hedgeschool/src/lib/review/enclosure.ts`, `apps/cyanotype/src/lib/review/blueprints.ts`). It reads the last
+  position's `over` itself, as the model does. The two agree: the rules describe a position after each move.
 - **What players see,** on both sites (the review is shared), by move and by turn, with the score line on: the note
   at the end of a record that ends early has a line "Score: …" between the lead and the area (Hedge School) or the
   stars (Cyanotype). A game that the rules ended keeps "Result:" with no score. With the score line off, no note has
-  a score, as before.
+  a score, as before. This look was approved before the merge on images of the note at the end, before and after the
+  change, on both sites, by move and by turn, for a record that ends early and for a game that the rules ended.
 - **The test:** `apps/hedgeschool/tests/last-move-result.spec.ts`, by move and by turn, with the engine off and the
   score line on. Its cases of the last move's tooltip now also read the chart's note at the end: one "Score:" line
   at the end of a record that ends early, none where the rules ended the game. On builds of both sites from dev's
