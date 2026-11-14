@@ -12253,7 +12253,7 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
   animated", in the review and on the Analysis board, with the same theme rule ("An image of a line in the player's
   theme", above). The parts that are not one game's moved to `packages/review/src/`: `boardImage.ts` and `gif.ts`.
   `boardImage.ts` holds the board drawn apart from the page, the theme's check, the caption's place, the PNG, the
-  animated GIF, the copy and the saved file (`lineImage`), the drawing of a board of one SVG (`squareSvg`) or of
+  animated GIF, the copy and the saved file (`imageParts`), the drawing of a board of one SVG (`squareSvg`) or of
   several (`joinedSvg`), and the rule of the caption and of the file's name (`lineCaption`, `lineImageName`). Each
   site gives its board's component, the component's properties, its drawing of the board, and its words in the
   caption and the file's name (`CaptionWords`): "edge" or "move", the area or the stars on the board, and the file's
@@ -12263,8 +12263,10 @@ abscls-8tl1.43. Design 07 (item 17), design 29 and design 33 ("The image of a li
 - **Cyanotype's board in the image:** square, as Hedge School's, with a hand in a row above the field and one below
   it. The board takes a fixed size from the image (the property `image` of its `Board.svelte`), and not a measure of
   the page, so it draws in the task that mounts it and the theme's check stays in one task. Its fit holds the line's
-  placements, so the image shows each move that it numbers. The caption has "move" for "edge" and the stars on the
-  board for the area. The file is `cyanotype-after-move-N-line-M.png`.
+  placements, so the image shows each move that it numbers. Each frame of the animated image fits the whole line, so
+  that the frames keep one view, as the board on screen does while a line plays: `imageParts` gives the site's
+  properties every board of the image. The caption has "move" for "edge" and the stars on the board for the area. The
+  file is `cyanotype-after-move-N-line-M.png`.
 - **Hedge School's images are the same files.** Measured with `tests/line-image-theme.spec.ts` and LINE_IMAGE_DIR, in
   headless Chromium on the CPU, on a build of dev a0fb17d9 and on a build of this change, both built as CI builds
   them: in a review and on the Analysis board, in the light theme and the dark theme, the copied PNG, the saved PNG,

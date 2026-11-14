@@ -11,7 +11,7 @@
 // The board's box fills the room that the side columns leave, with the hands in a panel over it, and under it in one
 // column, as on Practice.
 import type { ViewGame } from "@abstractclass/review/game.ts";
-import { lineImage } from "@abstractclass/review/boardImage.ts";
+import { imageParts } from "@abstractclass/review/boardImage.ts";
 import { DIFFERENCE_HELP, held } from "@abstractclass/review/ownership.ts";
 import { BlueprintInput } from "../board/blueprintInput.svelte.ts";
 import { INPUT_CLICKS, inputStatus } from "../board/input.ts";
@@ -129,7 +129,7 @@ export const blueprintsView: ViewGame<Blueprints> = {
     help: board => `The network that ${board ? "searches the positions" : "reviews the game"}. A change ${board ? "searches the positions again" : "reviews the game again"}. A network downloads once, and the browser keeps it.`,
   },
 
-  image: lineImage({
+  image: imageParts({
     Board,
     props: imageBoard,
     svg: boardSvg,

@@ -6,7 +6,7 @@
 import type { ImageBoard, ViewGame } from "@abstractclass/review/game.ts";
 import { EdgeInput } from "#lib/board/edgeInput.svelte.ts";
 import { BRUSH_KEYS } from "@abstractclass/review/notes.ts";
-import { lineImage, squareSvg } from "@abstractclass/review/boardImage.ts";
+import { imageParts, squareSvg } from "@abstractclass/review/boardImage.ts";
 import Board from "#lib/board/Board.svelte";
 import { pointName } from "#lib/engine/notation.ts";
 import { playMove, preload } from "@abstractclass/site/sound.ts";
@@ -127,7 +127,7 @@ export const enclosureView: ViewGame<Enclosure> = {
     legend: walls => (wallMarks(walls).length ? "Weak walls: bolder means weaker" : `Weak walls: none at ${WALL_MIN * 100}% or more`),
   },
 
-  image: lineImage({
+  image: imageParts({
     Board,
     props: imageBoard,
     svg: squareSvg,

@@ -7,7 +7,7 @@
 // theme"). A board's styles are read in one task, and a change of theme between two frames of an animated image starts
 // that image again in the new theme: no image mixes the two themes. Each site gives its board's component, its drawing
 // of the board (one SVG, `squareSvg`, or several, `joinedSvg`), and its words in the caption and the file's name
-// (`CaptionWords`, for `lineCaption` and `lineImageName`). The view's `image` comes from lineImage below.
+// (`CaptionWords`, for `lineCaption` and `lineImageName`). The view's `image` comes from imageParts below.
 import { flushSync, mount, unmount, type Component } from "svelte";
 import type { Player } from "@abstractclass/analysis/game.ts";
 import { download } from "@abstractclass/site/download.ts";
@@ -70,10 +70,11 @@ export const joinedSvg = (board: string, parts: string): BoardSvg => (host, widt
 
 /** What a site gives for its image of a line: its board's component, the component's properties for a board of the
  *  image, its drawing of the board, the caption, the saved file's name, and the site's name, small, under the
- *  caption. */
+ *  caption. `props` also gets every board of the image (`all`: the one board of a still image, or each frame's of an
+ *  animated one), so that a board whose view fits what it draws can keep one view in all the frames. */
 export interface LineImageSite<G extends ViewTypes, P extends Record<string, any>> {
   Board: Component<P>;
-  props(board: ImageBoard<G>): P;
+  props(board: ImageBoard<G>, all: ImageBoard<G>[]): P;
   svg: BoardSvg;
   caption: ImageParts<G>["caption"];
   name: ImageParts<G>["name"];
@@ -86,12 +87,14 @@ type BoardProps = Record<string, any>;
 
 /** The view's image of a line (@abstractclass/review/game.ts, ImageParts) for a site: the PNG, the animated GIF, the
  *  copy to the clipboard, and the saved file (@abstractclass/site/download.ts). */
-export function lineImage<G extends ViewTypes, P extends Record<string, any>>(site: LineImageSite<G, P>):
+export function imageParts<G extends ViewTypes, P extends Record<string, any>>(site: LineImageSite<G, P>):
   ImageParts<G> {
   return {
-    draw: (board, caption, width) => boardImage(site, site.props(board), caption, width),
-    animate: (frames, caption, width) =>
-      animatedBoardImage(site, frames.map(f => ({ props: site.props(f.board), ms: f.ms })), caption, width),
+    draw: (board, caption, width) => boardImage(site, site.props(board, [board]), caption, width),
+    animate: (frames, caption, width) => {
+      const all = frames.map(f => f.board);
+      return animatedBoardImage(site, frames.map(f => ({ props: site.props(f.board, all), ms: f.ms })), caption, width);
+    },
     caption: site.caption,
     name: site.name,
     copy: copyPng,

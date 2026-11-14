@@ -468,7 +468,7 @@ edit in the same commit), so their changes still apply.
   format, the result by the scores (from `@abstractclass/analysis`'s `result.ts`) and its words, and the class of a
   number in a move's shape (`DIGITS`).
   `src/ownership.ts`: the area map's styles and marks. `src/lineImage.ts`: the line that an image draws, and its
-  animation's frames. `src/boardImage.ts`: the image of a line for each site (`lineImage`): the board drawn apart from
+  animation's frames. `src/boardImage.ts`: the image of a line for each site (`imageParts`): the board drawn apart from
   the page in the page's theme, the caption's place, the PNG, the animated GIF, the copy and the saved file, and the
   rule of the caption and of the file's name (`lineCaption`, `lineImageName`). A site gives its board's component, the
   component's properties, its drawing of the board (one SVG, `squareSvg`, or several, `joinedSvg`), and its words in

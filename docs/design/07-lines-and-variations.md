@@ -436,12 +436,12 @@ cut edges that are on the board, so a line drawn over the board can show edges t
 - The image of a line: `packages/review/src/lineImage.ts` (`imageLine`, the animation's frames `lineFrames`, tests in
   `lineImage.test.ts`), `src/lib/review/enclosureImage.ts` (`imageCaption`, `imageName`, tests in
   `enclosureImage.test.ts`: Enclosure's words), Enclosure's part of the view (`src/lib/review/enclosureView.ts`,
-  `image` and `imageBoard`), `packages/review/src/boardImage.ts` (`lineImage`: the board drawn apart from the page,
+  `image` and `imageBoard`), `packages/review/src/boardImage.ts` (`imageParts`: the board drawn apart from the page,
   `squareSvg`, the PNG, `copyPng`, the caption's place `captionLayout`, the caption's and the file name's rule
-  `lineCaption` and `lineImageName`, and the animated image; tests in `boardImage.test.ts`),
+  `lineCaption` and `lineImageName`, and the animated image, with their tests in `boardImage.test.ts`),
   `packages/review/src/gif.ts` (the GIF and its frames, `addFrame`, tests in `gif.test.ts`), and in
-  `ReviewView.svelte`, `imageTreeLine` (the line's
-  edges, as a variation's preview draws them, by `treeLine`), `imageOf`, `copyImage` and `saveImage`. The note is
+  `ReviewView.svelte`, `imageTreeLine` (the line's edges, as a variation's preview draws them, by `treeLine`),
+  `imageOf`, `copyImage` and `saveImage`. The note is
   `packages/site/src/Toast.svelte` (the Export menu's too). The board that the image draws takes the tokens of the
   theme that the page shows (`src/app.css`, `packages/site/src/site.css` and `packages/review/src/review.css`).
 - `packages/analysis/src/model.ts`: `enoughVisits`, `trustedLine` (the 25-visit cut, with its tests in

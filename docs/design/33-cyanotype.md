@@ -934,15 +934,16 @@ gives its own parts:
    player's notes. No candidates and no labels. The board is square, as Hedge School's is: 600 pixels on a side as it
    is drawn, with one hand in a row above the field and one below it, as on a phone.
 2. **The fit holds the line.** The board's fit holds the position's cells and also each placement of the line, so the
-   image shows each move that it numbers. The board on screen does not fit the line: it would move under the pointer
-   each time that a line shows.
+   image shows each move that it numbers. Each frame of the animated image has the same view: its fit holds the whole
+   line's placements, and the captures of the move before the line, as the board on screen keeps its view while a line
+   plays. The board on screen does not fit the line: it would move under the pointer each time that a line shows.
 3. **One SVG of three.** The board is three SVGs: the field and each hand. The review package's drawing of a board of
    several SVGs (`joinedSvg`) copies each one with its computed styles, at its place on the board, into one SVG. The
    gaps between them show the caption's background. The copy writes in the notes' joins and paint order too, which
    Cyanotype's style sets.
-4. **A board in a fixed area** (the property `image` of `Board.svelte`): the board takes its size from the image, and
-   not from a measure of the page, so it draws in the task that mounts it. The site reads its styles in that task, as
-   Hedge School does, so a change of theme cannot break into it.
+4. **A board in a fixed area** (the property `image` of `Board.svelte`, with the hexes that the fit holds): the board
+   takes its size from the image, and not from a measure of the page, so it draws in the task that mounts it. The site
+   reads its styles in that task, as Hedge School does, so a change of theme cannot break into it.
 5. **The caption's words** (`src/lib/review/blueprintsImage.ts`): the caption and the file's name are Hedge School's
    (the review package's `lineCaption` and `lineImageName`), in Cyanotype's words: "move" in the place of "edge", and
    each player's stars on the board in the place of the area. "Turn 12. Blue plays two moves." and "Before move 1:

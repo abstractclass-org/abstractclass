@@ -107,8 +107,9 @@
     // when no game reaches the position, as Hedge School's board makes the reasons' edges glow (its design 21, item 10)
     targets?: Hex[];
     // A board for an image (the image of a line, board/image.ts): this area, given and not measured, so that the board
-    // draws in the task that mounts it. The fit holds the line's placements too, so that the image shows each one.
-    image?: Size | null;
+    // draws in the task that mounts it, and the hexes that its fit holds besides the cells (`fit`): the line's
+    // placements, the same in each frame of an animated image, so that the image shows each one in one view.
+    image?: (Size & { fit: Hex[] }) | null;
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
@@ -183,10 +184,8 @@
   let manual = $state.raw<View | null>(null);
   let held = $state.raw<View | null>(null);
   let placedByPlayer = $state(false); // the player dragged or resized the panel
-  // A board for an image fits the line's placements too, so that the image shows each move that it numbers.
-  const lineHexes = $derived(image ? drawn.flatMap(l => (l.move.type === "place" ? l.move.footprint.map(c => c.hex) : [])) : []);
   const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? []),
-                             ...lineHexes]);
+                             ...(image?.fit ?? [])]);
   const fitBox = $derived(boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
   const hasPanel = $derived(handsForm === "panel" && field.width > 0 && field.height > 0);
   // When the cells, the legal moves or the area change, the fit may move the panel to a corner, before the board

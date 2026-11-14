@@ -118,7 +118,7 @@ function saveForLook(name: string, data: Buffer | number[]) {
  *  (`name`: the static image's; the animated image's has -animated.gif in place of .png). */
 export interface ImageChecks { boardAt?: [number, number]; name?: string }
 
-/** In each theme in turn, on the open page: the images of the move `move` (a line of one edge or more). */
+/** In each theme in turn, on the open page: the images of the move `move` (a line of one move or more). */
 export async function expectThemedImages(page: Page, place: string, move: number, { boardAt, name }: ImageChecks = {}) {
   for (const [theme, other] of [["light", "dark"], ["dark", "light"]] as const) {
     await page.emulateMedia({ colorScheme: theme });
