@@ -12,8 +12,8 @@ import { expect, test, type Page } from "./page-log.ts";
 import { declineGames } from "./cyanotype-consent.ts";
 import { keepBefore } from "./keep-before.ts";
 import { fileInput } from "./review-file.ts";
-import { LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
-import { CYANOTYPE, LITE, STORED, keepSettings, noReview } from "./cyanotype-review.ts";
+import { ENGINE_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
+import { CYANOTYPE, LITE, STORED, noReview } from "./cyanotype-review.ts";
 
 /** Holds every script that `page` asks for from now on, until the call that it answers. On the preview, the held
  *  scripts stop DOMContentLoaded (the page's code is in module scripts), so the tests wait only for the response. */
@@ -87,7 +87,7 @@ test("an address with an empty game id gets the Review tab once the page's code 
 test("a review file chosen before the page's code runs loads once the tab opens", async ({ page }) => {
   const skip = await noReview(page);
   test.skip(!!skip, skip);
-  await keepSettings(page, { on: false, ...LITE }, {}); // the engine off: nothing searches
+  await keepBefore(page, ENGINE_KEY, { on: false, ...LITE }); // the engine off: nothing searches
   const release = await holdScripts(page);
   await page.goto(new URL("/review", CYANOTYPE).href, { waitUntil: "commit" });
   const input = fileInput(page);

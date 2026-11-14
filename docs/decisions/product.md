@@ -12201,8 +12201,8 @@ code ran. Hedge School's review page marks the page before the first paint (desi
   never the Review tab, also on main. The page now gives it the Review tab, as Hedge School's does.
 - **No difference that a player sees** from Hedge School's behaviour, other than the older addresses, which Cyanotype
   never had.
-- **Checked:** Cyanotype's `pageMarks.test.ts` runs the head's script at each way in, and checks that it agrees with
-  the page's own reading of the address. The browser cases in `cyanotype-review-early.spec.ts` hold every script of
+- **Checked:** Cyanotype's `pageMarks.test.ts` runs the head's script at each way in, and checks its marks against
+  the ways in that the page reads. The browser cases in `cyanotype-review-early.spec.ts` hold every script of
   the page: the line or the Review tab at each address, the room of the last review's link, and a file chosen before
   the code ran. A fourth case lets the code run on `#game=`. On a build of dev without the change, all four failed.
   With it, they passed, and so did Hedge School's `review-file.spec.ts` and Cyanotype's specs of the Review tab's

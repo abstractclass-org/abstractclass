@@ -19,19 +19,13 @@ function marks(address: string, storage: Record<string, string> | null = {}, roo
   return root.dataset;
 }
 
-/** Whether the page's code finds a game in the address (src/routes/review/+page.svelte): a shared review or a
- *  partner's kept review, else a kept game's id, after the `#`. The script must agree with it. */
-function namesGame(address: string) {
-  const hash = new URLSearchParams(at(address).hash.slice(1));
-  return hash.has("packed") || hash.has("from") || !!hash.get("game");
-}
-
+// The page's code (src/routes/review/+page.svelte) reads after the `#` a shared review (`packed`) or a partner's kept
+// review (`from`), else a kept game's id (the first `game`, when it is not empty).
 test("an address that names a game marks the page, in each of its forms", () => {
   for (const address of [
     "/review#game=g1", "/review#game=g1&at=3", "/review#game=g1&game=",
     "/review#packed=AbC", `/review#${new URLSearchParams({ from: "https://www.example.org", save: "https://www.example.org/s" })}`,
   ]) {
-    assert.ok(namesGame(address), address);
     assert.deepEqual(marks(address), { reviewGame: "" }, address);
   }
 });
@@ -43,7 +37,6 @@ test("an address that names no game leaves the page unmarked: the Review tab sho
   for (const address of ["/review", "/review#", "/review#at=3", "/review#game=", "/review#game=&game=g1",
                          "/review?game=g1", `/review#${new URLSearchParams({ tool: "userscript", v: "old", record })}`,
                          `/review#${new URLSearchParams({ record })}`, `/review#${encodeURIComponent(record)}`]) {
-    assert.ok(!namesGame(address), address);
     assert.deepEqual(marks(address), {}, address);
   }
 });
