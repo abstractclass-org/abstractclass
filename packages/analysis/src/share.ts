@@ -11,6 +11,10 @@
 //   game's positions that have variations (their number, then each as the gap from the one before), and from each,
 //   the variation nodes in order, each with its move, 1 bit for "evaluated", and its number of children (1 bit for
 //   one, 2 bits for none, more bits for more).
+//
+// The link's tags are a record's tags that come in with no record's text, so the reader notes their values for the
+// error reports, as the record's reader does (@abstractclass/record's texts.ts).
+import { noteText } from "@abstractclass/record/texts.ts";
 import { keptNode, type KeptNode } from "./kept.ts";
 import { lastMove } from "./tree.ts";
 
@@ -146,6 +150,7 @@ export function decodeShare(text: string, code: MoveCode): SharedReview {
     const tab = line.indexOf("\t");
     return [line.slice(0, tab), line.slice(tab + 1)];
   }));
+  for (const value of Object.values(tags)) noteText(value);
   const moves = Array.from({ length: r.gamma() - 1 }, () => code.get(r));
   const branches: KeptNode[] = [];
   const node = (parent: string[]) => {

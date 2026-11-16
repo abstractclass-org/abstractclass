@@ -143,8 +143,9 @@ function tokenize(text: string): Token[] {
     } else if (c === "{") {
       const end = text.indexOf("}", i);
       if (end < 0) throw new RecordError("a { has no closing }", i);
-      tokens.push({ kind: "comment", text: text.slice(i + 1, end), at: i });
-      noteText(text.slice(i + 1, end));
+      const comment = text.slice(i + 1, end);
+      tokens.push({ kind: "comment", text: comment, at: i });
+      noteText(comment);
       i = end + 1;
     } else if (c === "(" || c === ")") {
       tokens.push(c === "(" ? { kind: "open", at: i } : { kind: "close", at: i });

@@ -29,20 +29,20 @@ const MARKS = /…(?:\s+…)+/g;
 
 /** The texts of the page's records as whole words, each as it is and as an address spells it, the longest first, and
  *  how many texts it holds. It matches nothing while the page has read no record. */
-let named = { count: 0, pattern: /(?!)/g };
+let textCache = { count: 0, pattern: /(?!)/g };
 
 /** The pattern of the page's texts (readTexts), made again only when a record gave a new text. */
 function textPattern(): RegExp {
   const texts = readTexts();
-  if (texts.size === named.count) return named.pattern;
+  if (texts.size === textCache.count) return textCache.pattern;
   const forms = new Set([...texts].flatMap(t => {
     const coded = encodeURIComponent(t);
     return [t, coded, coded.replaceAll("%20", "+")];
   }));
   const words = [...forms].sort((a, b) => b.length - a.length).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.join("|")})(?![\\p{L}\\p{N}])`, "gu");
-  named = { count: texts.size, pattern };
-  return named.pattern;
+  textCache = { count: texts.size, pattern };
+  return textCache.pattern;
 }
 
 /** `text` without a game, a record or a name in it (the rules above). */

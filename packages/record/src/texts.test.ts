@@ -62,16 +62,21 @@ function regexes(file: string): RegExp[] {
 
 /** A tag's value, which only code that reads a tag's value captures alone. */
 const VALUE = "Wren's club night";
-/** A record's tags, each with that value. */
-const TAGS = ["Event", "Site", "Date", "Round", "Blue", "Red", "White", "Black", "Result", "Termination", "Position", "Komi"]
-  .map(name => `[${name} "${VALUE}"]`).join("\n");
+/** The tags that the sites read and write. A regex's own words that could name a tag are tried too. */
+const TAG_NAMES = ["Event", "Site", "Date", "Round", "Blue", "Red", "White", "Black", "Result", "Termination", "Position",
+                   "Komi"];
 
+/** Whether `re` captures a tag's value alone, with or without its quotes, from a record's tags. A group of a whole
+ *  bracket (Constellation's start, `[B:… R:…]`) is not a tag's value. */
+function readsTag(re: RegExp): boolean {
+  const names = new Set([...TAG_NAMES, ...(re.source.match(/[A-Za-z][A-Za-z0-9_]*/g) ?? [])]);
+  const m = re.exec([...names].map(name => `[${name} "${VALUE}"]`).join("\n"));
+  return m !== null && m.slice(1).some(group => group?.replace(/^"|"$/g, "").trim() === VALUE);
+}
+
+// It finds a reader that works by a regex. A reader of another form, such as the packed link's tags
+// (@abstractclass/analysis's share.ts), notes them itself, and its own test checks that.
 test("the reader is the one code that reads a tag's value from a record's text, so each record's texts are noted", () => {
-  const readers = sources().filter(file => regexes(file).some(re => {
-    // A group of the value alone, with or without its quotes. A group of a whole bracket (Constellation's start) is
-    // not a tag's value.
-    const m = re.exec(TAGS);
-    return m !== null && m.slice(1).some(group => group?.replace(/^"|"$/g, "").trim() === VALUE);
-  }));
+  const readers = sources().filter(file => regexes(file).some(readsTag));
   assert.deepEqual(readers.map(file => relative(ROOT, file).replaceAll("\\", "/")), ["packages/record/src/record.ts"]);
 });

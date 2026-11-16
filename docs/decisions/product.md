@@ -12513,17 +12513,21 @@ file's content and a typed name before it goes (design 17, "Error reports"). The
   text as a whole word, also as an address spells it. A value of one character (PGN's "?" and "-" too) and a plain
   number stay: they would remove letters and digits from every report.
 - **The place of the note** is the record's one reader: `readRecord` notes each text as it reads it
-  (`packages/record/src/texts.ts`), and `packages/site` reads the notes. Every page reads a record through it (both
-  sites' `parseRecord`, and through it `readPasted`, the arrivals, the stored games and the files), so no page
-  makes a call of its own, and a page that a later branch adds notes its records too. The other place was the
-  import package, which `packages/site` already depends on: a reader there would wrap `readRecord`, and each site's
-  `parseRecord` would call it. Code could then still call `readRecord` and skip the note. The record package does
-  not depend on `packages/site`: `packages/site` depends on it.
+  (`packages/record/src/texts.ts`), and `packages/site` reads the notes. Every page reads a record's text through it
+  (both sites' `parseRecord`, and through it `readPasted`, the arrivals, the stored games and the files). So no page
+  makes a call of its own, and a page that reads a record with the reader notes its texts. The packed link of a
+  shared review or board carries tags with no record's text: its reader (`decodeShare`) notes them too. The other
+  place was the import package, which `packages/site` already depends on. A reader there would wrap `readRecord`,
+  and each site's `parseRecord` would call it, but code could still call `readRecord` and skip the note. The record
+  package does not depend on `packages/site`: `packages/site` depends on it. The cost is a side effect in the
+  reader: it keeps each text in the page's memory for the page's life.
 - **The check:** `packages/record/src/texts.test.ts` finds each regex in the sources of both sites and of the
-  packages, and fails when one other than the reader's captures a tag's value: such code would read a record and
-  skip the note. A first version, which flagged a group that held the value, also flagged Constellation's start
-  (`[B:… R:…]`); the check now flags a group of the value alone. The first version of this rule had each page note
-  its record's `Blue` and `Red` (`hidePlayers`): it missed the Import page, the arrivals and the review's home.
+  packages. It fails when a regex other than the reader's captures a tag's value alone: such code would read a
+  record and skip the note. It tries the tags that the sites use and each word of the regex as a tag's name. A
+  group of a whole bracket, such as Constellation's start (`[B:… R:…]`), is not a tag's value. The check does not
+  find a reader that works without a regex. The packed link's reader is one, and its own test checks its note.
+  Each page's own call (`hidePlayers`) was the other way: it missed the Import page, the arrivals and the review's
+  home, and a later page could forget it.
 - **Before the analytics start,** no error goes: the address can still hold a record then (design 22).
 - **The tests:** `packages/site/src/scrub.test.ts` (the rules), and `tests/error-reports.spec.ts` on both sites'
   check:all builds with a made-up key: an uncaught error and a rejection with a record in the address, an engine

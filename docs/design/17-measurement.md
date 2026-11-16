@@ -143,9 +143,9 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
    - the text of each record that the page read, with no quotes too, and as an address spells it: each tag's value
      (the players' names, the event's name) and each comment's text. The record's one reader notes them as it reads
      (`readRecord`, `packages/record/src/texts.ts`), so each page that reads a record notes its texts with no call of
-     its own. A text goes as a whole word. A value of one character (PGN's "?" and "-" for none too) and a plain
-     number stay: they would remove letters and digits from every report. This rule goes first, so that a tag's
-     address goes whole.
+     its own. The packed link of a shared review or board (`decodeShare`) notes its tags too. A text goes as a whole
+     word. A value of one character (PGN's "?" and "-" for none too) and a plain number stay: they would remove
+     letters and digits from every report. This rule goes first, so that a tag's address goes whole.
    - the part of an address after its `#`, unless it names only a kept game's id and a place (`#game=`, `at`): a
      record, a packed review or analysis, or a tool's game is there (design 22). A stack's line and column stay.
    - quoted text, in each kind of quotes: a record's tags hold the players' names in quotes, and a browser quotes the
@@ -158,7 +158,8 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
    did not read, in an error's message with no quotes. The sites' own messages put no such text there, but a
    library's message or a partner site's message can hold any text.
 5. **The check:** `packages/record/src/texts.test.ts` fails when other code in the sites or the packages reads a
-   tag's value from a record's text, with a regex that captures it. Such code would skip the reader's note.
+   tag's value from a record's text, with a regex that captures it. Such code would skip the reader's note. A reader
+   that works without a regex, such as the packed link's, notes its tags itself, and its own test checks that.
 6. **The privacy pages** of both sites say what a report holds and what the site removes from it.
 
 ## Using it

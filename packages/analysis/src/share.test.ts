@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { BitReader, BitWriter, decodeShare, encodeShare, type MoveCode } from "./share.ts";
 import { boardLink, boardPositionKeys, linkAt, readBoardLink } from "./boardLink.ts";
 import type { KeptBoard, KeptNode } from "./kept.ts";
+import { readTexts } from "@abstractclass/record/texts.ts";
 
 /** A game whose moves are words of lowercase letters: each as its length, then 5 bits a letter. */
 const WORDS: MoveCode = {
@@ -34,6 +35,8 @@ test("a shared review comes back as it was, its variations in the player's order
   assert.deepEqual({ ...back, branches: [] }, { ...s, branches: [] });
   assert.deepEqual(back.branches.map(b => b[0]), ["ab x", "ab x y", "ab z", "ab cd pass q"]);
   assert.equal(back.branches[1][2], 1);
+  // The link's tags are noted for the error reports, as a record's are (@abstractclass/record's texts.ts)
+  assert.ok(readTexts().has("Ann") && readTexts().has("Ben\tO'Hara"));
 });
 
 test("a board's link gives back its tree, its start and its place", () => {
