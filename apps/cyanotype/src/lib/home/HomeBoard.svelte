@@ -9,8 +9,6 @@
   export interface Frame extends ReplayFrame {
     p: SitePosition; l: BoardMove | null; e: BoardMove[]; c: BoardCandidate[]; m: BoardLabel[]; z?: Box;
   }
-  /** The zoom onto the labelled move: short, and slower at its end (cubicOut). */
-  export const ZOOM_MS = 400;
 </script>
 
 <script lang="ts">
@@ -23,6 +21,8 @@
   import Board from "#lib/board/Board.svelte";
 
   let { frame }: { frame: Frame } = $props();
+  /** The zoom onto the labelled move: short, and slower at its end (cubicOut). */
+  const ZOOM_MS = 400;
 
   const view = new Tween<Box | undefined>(untrack(() => frame.z), { easing: cubicOut });
   $effect.pre(() => {

@@ -111,7 +111,8 @@
     // placements, the same in each frame of an animated image, so that the image shows each one in one view.
     image?: (Size & { fit: Hex[] }) | null;
     // The part of the plane that the fit holds in place of the cells (the home page's scene, home/sceneView.ts), so
-    // that the board zooms in on it. The rest of the field draws round it, as far as the area reaches.
+    // that the board zooms in on it. The rest of the field draws round it, as far as the area reaches. Only with the
+    // hands in boxes: the hands' panel fits round the cells (`fitted`).
     zoom?: Box | null;
   }
   let {
