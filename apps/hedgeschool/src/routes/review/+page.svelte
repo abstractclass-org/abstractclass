@@ -45,9 +45,10 @@
   import { siteBook } from "#lib/book/place.svelte.ts";
   import { bookStep } from "#lib/review/storedReview.ts";
   import { afterNavigate, replaceState } from "$app/navigation";
-  import { reportError, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { engineError, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { trackExport } from "#lib/game/sources.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "@abstractclass/site/measure.ts";
+  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import { deliverExport, reviewExports, type ExportKind, type ExportResult } from "#lib/game/reviewFile.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
   import type { Unit } from "#lib/review/enclosure.ts";
@@ -94,7 +95,7 @@
   const settings = $derived(own ? withOwn(engine, own) : engine);
   // The engine and the GPU worker (session.svelte.ts). A review snapshot searches nothing: the settings wait for Review again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
-                                      tracker: { track, reportError, networkName },
+                                      tracker: { track, engineError, networkName },
                                       dropped: () => bar.reset() });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
@@ -214,6 +215,7 @@
     }
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
+    hidePlayers(stored.record.tags); // an error report loses the players' names (scrub.ts)
     markBefore = stored.game.reviewed;
     own = ownSettings(stored.game); // a network the site no longer ships: the browser's
     return stored.record.moves;
@@ -261,10 +263,7 @@
       await startReview(moves, false);
     } catch (e) {
       // A review stopped for another tab, or by the page's close, fails its searches: no error to show.
-      if (!session.ended) {
-        error = errorText(e);
-        if (kept) { track("engine_error", { error_kind: "load" }); reportError(e, { error_kind: "load" }); }
-      }
+      if (!session.ended) { error = errorText(e); if (kept) engineError(e, "load"); }
       if (!kept) stop(); // a game this browser lacks: its lock free for the tab that imports it
     }
   });
@@ -349,11 +348,7 @@
     try {
       await startReview(kept.record.moves, true);
     } catch (e) {
-      if (!session.ended) {
-        error = errorText(e);
-        track("engine_error", { error_kind: "load" });
-        reportError(e, { error_kind: "load" });
-      }
+      if (!session.ended) { error = errorText(e); engineError(e, "load"); }
     }
   }
   /** Ends the engine and frees the game's lock, now or once it is held: the page closed, or this browser lacks the

@@ -12495,27 +12495,33 @@ file's content and a typed name before it goes (design 17, "Error reports"). The
   so the reports need no setting in PostHog. The slim bundle with no external loading needs the import
   `posthog-js/dist/exception-autocapture` and the `ErrorTrackingExtensions` (posthog.com/docs/libraries/js.md), so the
   client still loads no script from PostHog.
-- **The caught failures:** `reportError` (`captureException`) with the `error_kind` of `engine_error`: `load` (the
-  review, the Analysis board, Openings, another network), `gpu` and `practice`. `engine_error` stays: design 17's
-  reliability report counts it, and PostHog limits the reports (10 exceptions of one kind in 10 seconds, then one
-  each 10 seconds, capture.md) and can suppress them. `rules` sends no report: the rules refuse the game, and the
-  site has no fault to repair. A practice game that fails sends its error once, from `PracticeGame.failure`.
+- **The caught failures:** `engineError` in the shared analytics sends the event `engine_error` and the report
+  (`captureException`) with one `error_kind`: `load` (the review, the Analysis board, Openings, another network),
+  `gpu` and `practice`. One call keeps the two together at each place. `engine_error` stays: design 17's reliability
+  report counts it, and PostHog limits the reports (10 exceptions of one kind in 10 seconds, then one each 10
+  seconds, capture.md) and can suppress them. `rules` sends only the event: the rules refuse the game, and the site
+  has no fault to repair. A practice game reports its first error from the game itself (`PracticeGame.onFail`).
 - **The scrubbing:** `before_send` runs `scrubEvent` (`packages/site/src/scrub.ts`) on every event. It works on each
   string at any depth, because PostHog's client fills `$exception_list`, `$current_url` and the stack frames' file
   names with text that the site does not write. The address's part after `#` goes unless `holdsGame` (the import's
   rule of design 22) says that it names only a kept game's id and a place. Quoted text goes, in each kind of quotes:
   a record's tags hold the players' names in quotes, and JSON.parse's message quotes a file's content. A record's
   turns go (a number and a dot, then words with digits). Each becomes "…".
-- **A registry of the page's private texts** was the other way: the page would note each name and record that it
-  holds, and the scrubber would remove each one. The rules above cover the fields that PostHog fills too, with no
-  list to keep. Their gap is a name with no quotes in an error's message. None of the sites' own messages puts one
-  there (a search of the `throw new Error` texts), but a library's or a partner's message can.
+- **The players' names of each record that the page reads** go too, with no quotes (`hidePlayers`: the review, the
+  Analysis board, Practice and Openings). The rules alone missed a name with no quotes in a library's message, and
+  the privacy pages promise that each player's name goes. The page notes the tags `Blue` and `Red`, and the scrubber
+  removes each name as a whole word, also as an address spells it. A name of one character stays: it would remove
+  letters. A full registry of the page's private texts (each record and each tag) was the other way. The rules
+  above cover the records and the fields that PostHog fills, with no list to keep. The gap that stays is a tag's
+  other text with no quotes, such as the event's name, and the names of a record that the Import page reads.
 - **Before the analytics start,** no error goes: the address can still hold a record then (design 22).
 - **The tests:** `packages/site/src/scrub.test.ts` (the rules), and `tests/error-reports.spec.ts` on both sites'
   check:all builds with a made-up key: an uncaught error and a rejection with a record in the address, an engine
-  whose network does not load (`load`, with `engine_error` beside it), and an error whose message holds a record
-  with a typed name and a file's name. Playwright's route answers PostHog, so no report reaches its servers. Each
-  report reaches the route, and no event holds a move of the record or the name.
+  whose network does not load (`load`, with `engine_error` beside it) followed by an error with the record's typed
+  name and no quotes, and an error whose message holds a record with a typed name and a file's name. Playwright's
+  route answers PostHog, so no report reaches its servers. Each report reaches the route, and no event holds a move
+  of the record or the name.
 - **The privacy pages** of both sites say what a report holds (the error's name, message and places in the code,
   the address without its `#` part, the browser's data of a visit) and that the site removes each game, move, file
-  content and player's name from it.
+  content and player's name from it. Their list of what PostHog receives with a page now says "how long you stayed
+  on the previous page", in place of "how long the page before it stayed open".

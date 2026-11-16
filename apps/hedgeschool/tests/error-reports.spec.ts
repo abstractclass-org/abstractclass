@@ -73,7 +73,7 @@ for (const { site, base, record: text } of SITES) {
       expect(JSON.stringify(sent)).not.toContain("record=");
     });
 
-    test("an engine that fails to load, on the Analysis board opened with a record, is reported without the record", async ({ context }) => {
+    test("an engine that fails to load, on the Analysis board opened with a record, and an error with a player's name are reported without them", async ({ context }) => {
       const sent = await answerPostHog(context);
       const page = await context.newPage();
       // The engine's network cannot load (packages/engine/src/artifacts.ts: its HTTP status)
@@ -83,6 +83,9 @@ for (const { site, base, record: text } of SITES) {
       await expect.poll(() => sent.filter(e => e.event === "engine_error").map(e => e.properties.error_kind)).toContain("load");
       const report = reports(sent).find(e => e.properties.error_kind === "load")!;
       expect(exceptions([report])[0].value).toMatch(/HTTP 404/);
+      // A library's message can hold a player's name with no quotes: the page read the record, so its names go too.
+      await uncaught(page, `throw new Error(${JSON.stringify(`no rating for ${TYPED} here`)})`);
+      await expect.poll(() => exceptions(sent).map(x => x.value)).toContain("no rating for … here");
       expect(leaked(sent, text)).toEqual([]);
     });
 

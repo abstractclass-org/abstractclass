@@ -41,8 +41,9 @@
   import { resultOfScores, resultText } from "@abstractclass/review/game.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "@abstractclass/site/sound.ts";
+  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { browserNumber, reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { browserNumber, engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { sendPractice } from "#lib/practice/send.ts";
   import { BOT_WHERE } from "@abstractclass/practice/botForms.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
@@ -63,7 +64,7 @@
   const page = new PracticePage<KeptPractice, PracticeGame>({
     game: "enclosure", choices: practiceChoices, kept: keptGame, networkName, engine: loadEngine,
     create: (kept, rules, bot) => new PracticeGame(kept, rules, bot),
-    track, trackOnce, reportError,
+    track, trackOnce, engineError,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
     settings: () => { settingsOpen = false; notice = ""; },
@@ -80,6 +81,7 @@
       try {
         // A record's own Position tag, or the start given beside it (withStart), with its turns numbered from there.
         const r = record ? parseRecord(withStart(record, position)) : null, problem = r && variantProblem(r, "practice");
+        if (r) hidePlayers(r.tags); // an error report loses the players' names (scrub.ts)
         if (problem) throw new Error(problem);
         page.brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
       } catch (e) {

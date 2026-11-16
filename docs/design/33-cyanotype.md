@@ -1496,9 +1496,10 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
    - **No event of a part that Cyanotype lacks:** Openings (abscls-8tl1.53).
 
    The error reports (Hedge School's design 17, "Error reports") are the same: the page's uncaught errors, and a
-   report beside each `engine_error` but `rules`, with every event scrubbed of a game before it goes. Cyanotype's
-   records have the same form as Hedge School's, its tags in quotes and its turns numbered, so the same rules remove
-   them.
+   report beside each `engine_error` but `rules` (`engineError`). Every event loses a game before it goes, and the
+   players' names of each record that the page read (`hidePlayers` on the review, the Analysis board and Practice).
+   Cyanotype's records have the same form as Hedge School's, its tags in quotes and its turns numbered, so the same
+   rules remove them.
 5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's builds
    of both sites, each with a made-up PostHog key. Playwright's routes answer PostHog's addresses in its place and keep
    the events that the pages sent. Cyanotype's case checks its page views, with `internal` after `?internal=on`, that

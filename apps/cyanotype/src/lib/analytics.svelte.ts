@@ -17,5 +17,5 @@ export const analytics = new Analytics({
 
 export const ASKS_CONSENT = analytics.asksConsent;
 // The banner and the Privacy page's choices take `analytics` itself.
-export const { consentChosen, linksGames, startAnalytics, track, trackOnce, reportError, setVisitor, browserNumber,
+export const { consentChosen, linksGames, startAnalytics, track, trackOnce, engineError, setVisitor, browserNumber,
                keptNumber, forgetNumber } = analytics;

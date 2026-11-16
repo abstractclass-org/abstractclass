@@ -132,24 +132,28 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
    (`capture_exceptions` in `packages/site/src/posthog.ts`). The console's errors do not go. The init option wins over
    the project's setting, so the reports need no setting in PostHog. An error before the analytics start does not go:
    until then, the page's address can hold a game (design 22).
-2. **The engine's caught failures** go by `reportError` (PostHog's `captureException`), where the page sends
-   `engine_error`, with the same `error_kind`: `load`, `gpu` and `practice`. `engine_error` stays beside it. The
-   reliability report counts it, and PostHog limits the reports (10 of one kind in 10 seconds, then one each 10
-   seconds) and can suppress them. A game that the rules refuse (`rules`) sends no report: the fault is in the game,
-   not in the site.
+2. **The engine's caught failures** go by `engineError`, which sends the event `engine_error` and the error report
+   (PostHog's `captureException`) with the same `error_kind`: `load`, `gpu` and `practice`. The event stays beside the
+   report. The reliability report counts it, and PostHog limits the reports (10 of one kind in 10 seconds, then one
+   each 10 seconds) and can suppress them. A game that the rules refuse (`rules`) sends only the event: the fault is
+   in the game, not in the site. A practice game reports its first error, from the game itself.
 3. **Every event loses a game before it goes** (`packages/site/src/scrub.ts`, PostHog's `before_send`). A report
    holds text that the site does not write: the error's message, the stack's addresses and the page's address. So the
    rules apply to each string of each event, the properties that PostHog's client adds too:
    - the part of an address after its `#`, unless it names only a kept game's id and a place (`#game=`, `at`): a
      record, a packed review or analysis, or a tool's game is there (design 22). A stack's line and column stay.
+   - the players' names of each record that the page read (`hidePlayers`: the review, the Analysis board, Practice
+     and Openings), with no quotes too, and as an address spells them. A name goes as a whole word. A name of one
+     character stays: it would remove letters.
    - quoted text, in each kind of quotes: a record's tags hold the players' names in quotes, and a browser quotes the
      text that it cannot read (JSON.parse's message holds a file's content).
    - a record's moves: a turn's number and a dot, then the moves, each a word with a digit in it.
 
    Each goes as "…", so that a report shows where text was. The message's other words stay, so the report still says
    what failed.
-4. **What the rules miss:** a name with no quotes in an error's message. The sites' own messages put no name there,
-   but a library's message or a partner site's message can hold any text.
+4. **What the rules miss:** a tag's other text with no quotes in an error's message, such as the event's name, and
+   a name of a record that the page did not read with `hidePlayers` (the Import page reads records too). The sites'
+   own messages put no such text there, but a library's message or a partner site's message can hold any text.
 5. **The privacy pages** of both sites say what a report holds and what the site removes from it.
 
 ## Using it
@@ -337,7 +341,7 @@ Cyanotype's.
   (Practice's events and features), with their parameters in `packages/practice/src/practiceEvents.ts`
   (`practiceParams`, `practiceEndParams`, with the networks' names that each site gives, tested with Hedge School's
   in `src/lib/practice/practice.test.ts`).
-- The error reports: `reportError` in `packages/site/src/analytics.svelte.ts`, the scrubbing in
+- The error reports: `engineError` in `packages/site/src/analytics.svelte.ts`, the scrubbing in
   `packages/site/src/scrub.ts`, tested in `scrub.test.ts` beside it. The check in a browser, on both sites:
   `tests/error-reports.spec.ts`.
 - The privacy page: `src/routes/privacy/+page.svelte`.

@@ -51,7 +51,7 @@ export class EngineSession<G extends GameTypes> {
 
   constructor(options: SessionOptions<G>) {
     this.#o = { frozen: () => false, dropped: () => {},
-                tracker: { track: () => {}, reportError: () => {}, networkName: id => id },
+                tracker: { track: () => {}, engineError: () => {}, networkName: id => id },
                 pool: (size, rules) => new EnginePool(size, rules), ...options };
     const { game, settings, position, frozen } = this.#o;
     // The engine's settings, given to the analysis as they change. The analysis ignores a value it already has.
@@ -181,11 +181,7 @@ export class EngineSession<G extends GameTypes> {
       await next.start(this.manifest, id);
     } catch (e) {
       next.terminate();
-      if (this.network === id) {
-        this.error = errorText(e);
-        this.#o.tracker.track("engine_error", { error_kind: "load" });
-        this.#o.tracker.reportError(e, { error_kind: "load" });
-      }
+      if (this.network === id) { this.error = errorText(e); this.#o.tracker.engineError(e, "load"); }
       return;
     }
     if (this.#ended || this.network !== id) { next.terminate(); return; } // ended, or another network was chosen

@@ -61,7 +61,8 @@ function setup() {
   const internals = pool as unknown as { speed: SpeedMeter; free: unknown[] };
   internals.free.push(engine("cpu"), engine("cpu"));
   const tracked: string[] = [];
-  const control = new GpuControl(pool, MANIFEST, "net", { track: name => tracked.push(name), reportError: () => {},
+  const control = new GpuControl(pool, MANIFEST, "net", { track: name => tracked.push(name),
+                                                                   engineError: () => tracked.push("engine_error"),
                                                                    networkName: id => id });
   const clock = performance.now;
   let now = 0, evaluations = 0;

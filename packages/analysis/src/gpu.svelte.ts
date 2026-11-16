@@ -18,11 +18,11 @@ export const GPU_SEARCHES = 16;
 /** How long each kind searches before the test compares them. */
 export const TEST_SECONDS = 20;
 
-/** How the analysis reports to the site's analytics (design 17): an event with its parameters, a failure that it
- *  caught for the error reports (beside its event engine_error), and a network's name for an event that names it. */
+/** How the analysis reports to the site's analytics (design 17): an event with its parameters, an engine's failure
+ *  that it caught (the event engine_error and the error report), and a network's name for an event that names it. */
 export interface Tracker {
   track(name: string, params?: Record<string, string | number | boolean>): void;
-  reportError(error: unknown, params?: Record<string, string | number | boolean>): void;
+  engineError(error: unknown, kind: "load" | "gpu"): void;
   networkName(id: string): string;
 }
 
@@ -153,11 +153,7 @@ export class GpuControl {
       await gpu.start(this.manifest, testFor.network, GPU_SEARCHES);
     } catch (e) {
       gpu.terminate();
-      if (!this.ended) {
-        this.status = { state: "failed", message: errorText(e) };
-        this.tracker.track("engine_error", { error_kind: "gpu" });
-        this.tracker.reportError(e, { error_kind: "gpu" });
-      }
+      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; this.tracker.engineError(e, "gpu"); }
       return;
     } finally {
       this.starting = false;

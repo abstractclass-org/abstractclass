@@ -44,7 +44,7 @@
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { keptBoardNotice, keptShipped } from "@abstractclass/analysis/kept.ts";
-  import { reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -53,6 +53,7 @@
   import { practiceHref as practiceAddress } from "@abstractclass/practice/practice.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
+  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
@@ -73,7 +74,7 @@
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
   // The engine, with the review's settings, and the GPU worker as the review has it (session.svelte.ts).
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
-                                      tracker: { track, reportError, networkName } });
+                                      tracker: { track, engineError, networkName } });
   /** A change in the engine settings: a network chosen is the board's own, kept with its tree, when the board has
    *  one (withBoardNetwork). The rest is the browser's. */
   function changeEngine(change: Partial<EngineSettings>) {
@@ -182,6 +183,7 @@
   async function recordBoard(text: string, at: string | null, position: string | null = null): Promise<{ board: KeptBoard; at: number }> {
     let record: ReturnType<typeof parseRecord>;
     try { record = parseRecord(withStart(text, position)); } catch (e) { throw new RecordProblem(errorText(e), "record"); }
+    hidePlayers(record.tags); // an error report loses the players' names (scrub.ts)
     const mismatch = givenStartProblem(record.tags, position, setUpStart);
     if (mismatch) throw new RecordProblem(mismatch, "rejected");
     if (position) record = { ...record, tags: { ...record.tags, Position: position } };
@@ -242,8 +244,7 @@
       await g.sweep(); // the board's sweep makes the engine ready, unless another network loads (GameAnalysis.sweep)
     } catch (e) {
       error = errorText(e);
-      track("engine_error", { error_kind: "load" });
-      reportError(e, { error_kind: "load" });
+      engineError(e, "load");
     }
   });
   onDestroy(() => session.end());

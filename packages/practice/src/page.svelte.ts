@@ -31,7 +31,7 @@ export interface PracticeSite<K extends KeptPractice, G extends Game<K>> {
   create(kept: K, rules: EngineWorker, bot: PracticeBot): G;
   track(name: string, params?: EventParams): void;
   trackOnce(key: string, name: string, params?: EventParams): void;
-  reportError(error: unknown, params?: EventParams): void; // a failure caught, beside engine_error: the error reports
+  engineError(error: unknown, kind: "practice"): void; // the event engine_error and the error report
   ended?(game: G, outcome: PracticeOutcome): void; // the site's part of a game's end, after its event
   setAside?(kept: K, rules: EngineWorker): Promise<unknown>; // the game in progress, when a start brought replaces it
   settings?(): void; // the site's part as the page goes back to the settings card
@@ -87,7 +87,6 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   private manifest: Manifest | null = null;
   private rules: EngineWorker | null = null;
   private endSent: G | null = null;
-  private failureSent: G | null = null; // the game whose failure went to the error reports
   private site: PracticeSite<K, G>;
   private events: ReturnType<typeof practiceEvents>;
 
@@ -101,18 +100,11 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       const tick = setInterval(() => (this.now = performance.now()), 250);
       return () => clearInterval(tick);
     });
-    // A game's end, once, by the rules, Resign or Abort, and the engine's error.
+    // A game's end, once, by the rules, Resign or Abort. The engine's error goes from the game (play: onFail).
     $effect(() => {
-      const g = this.game, status = g?.status;
-      if (!g || (status !== "over" && status !== "failed")) return;
-      untrack(() => {
-        if (status === "failed") {
-          site.trackOnce(`${g.kept.started} failed`, "engine_error", { error_kind: "practice" });
-          if (this.failureSent !== g) { this.failureSent = g; site.reportError(g.failure, { error_kind: "practice" }); }
-          return;
-        }
-        this.trackEnd(g, practiceOutcome(g.position!.scores as [number, number], g.human, g.resigned));
-      });
+      const g = this.game;
+      if (g?.status !== "over") return;
+      untrack(() => this.trackEnd(g, practiceOutcome(g.position!.scores as [number, number], g.human, g.resigned)));
     });
     onDestroy(() => { this.game?.end(); this.rules?.terminate(); });
   }
@@ -159,14 +151,14 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     try {
       bot = await startBot(this.site.game, this.manifest, kept.bot.network, this.site.engine(), kept.seed);
       const g = (this.game = this.site.create(kept, this.rules, bot));
+      g.onFail = e => this.site.engineError(e, "practice");
       await g.start();
       if (g.status !== "failed") this.site.track("practice_start", { ...this.params(g), practice_from: from });
       if (g.status !== "failed" && kept.komi) this.used("practice komi"); // design 17's feature: a game with a komi
     } catch (e) {
       bot?.terminate();
       this.failed = errorText(e);
-      this.site.track("engine_error", { error_kind: "practice" });
-      this.site.reportError(e, { error_kind: "practice" });
+      this.site.engineError(e, "practice");
     }
   }
 

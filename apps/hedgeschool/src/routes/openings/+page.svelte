@@ -35,9 +35,10 @@
   import { readPasted } from "#lib/game/paste.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey, sharedLength } from "@abstractclass/analysis/tree.ts";
-  import { reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { POSITION_RANGES, range } from "@abstractclass/site/measure.ts";
+  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { siteBook } from "#lib/book/place.svelte.ts";
   import { OpeningsPlace } from "#lib/book/openings.svelte.ts";
@@ -93,7 +94,7 @@
   // position's part of the book did not load: the boards work while the book fails (item 11).
   const waits = $derived(!!place?.showsBook && place.at.state !== "failed");
   const session = new EngineSession({ settings: () => (waits ? { ...engine, on: false } : engine), game: () => game,
-                                      position: () => current, tracker: { track, reportError, networkName } });
+                                      position: () => current, tracker: { track, engineError, networkName } });
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);
@@ -263,7 +264,9 @@
     const from: From = via === "review" || via === "analysis" ? via : "link";
     if (!record) return { at: [], from };
     try {
-      const { main: line, start, komi } = boardOfRecord(readPasted(record).record);
+      const read = readPasted(record).record;
+      hidePlayers(read.tags); // an error report loses the players' names (scrub.ts)
+      const { main: line, start, komi } = boardOfRecord(read);
       if (start) throw new Error("the book starts at the standard start, and this record does not");
       broughtKomi = !!komi;
       const n = Math.floor(Number(p.get("at") ?? line.length));
@@ -306,8 +309,7 @@
       await g.sweep();
     } catch (e) {
       error = errorText(e);
-      track("engine_error", { error_kind: "load" });
-      reportError(e, { error_kind: "load" });
+      engineError(e, "load");
     }
   });
   onDestroy(() => session.end());

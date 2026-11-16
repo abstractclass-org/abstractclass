@@ -21,5 +21,5 @@ export const PURPOSES = analytics.purposes;
 export const ASKS_CONSENT = analytics.asksConsent;
 export const consent = analytics.consent;
 // The banner takes `analytics` itself, for its choices.
-export const { consentChosen, linksGames, startAnalytics, track, trackOnce, reportError, setVisitor, chooseShown,
+export const { consentChosen, linksGames, startAnalytics, track, trackOnce, engineError, setVisitor, chooseShown,
                browserNumber, keptNumber, forgetNumber } = analytics;

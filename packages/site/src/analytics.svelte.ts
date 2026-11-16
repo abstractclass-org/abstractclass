@@ -10,7 +10,7 @@
 //
 // PostHog also takes events (Hedge School's design 17): what a visitor did, in counts and ranges (measure.ts), for the
 // decisions in that design. A browser with the flag of internal traffic (internalTraffic.ts) marks its events, so that
-// the owner's visits stay out. It takes the error reports too (reportError, and the page's uncaught errors in
+// the owner's visits stay out. It takes the error reports too (engineError, and the page's uncaught errors in
 // posthog.ts), with no game, record or name in them (scrub.ts).
 //
 // The consent has one purpose (Hedge School's design 25), in a build that stores practice games: the random number
@@ -110,10 +110,15 @@ export class Analytics {
    *  game, a player's name or a game's id. */
   track = (name: string, params: EventParams = {}) => this.#withClient(c => c.capture(name, params));
 
-  /** Sends a failure that the site caught to PostHog's error tracking (Hedge School's design 17, "Error reports"): the
-   *  error, its stack, and `params` beside them, as an event's (counts and ranges). PostHog's client takes the page's
-   *  uncaught errors by itself (posthog.ts), and both lose a game, a record and a name before they go (scrub.ts). */
-  reportError = (error: unknown, params: EventParams = {}) => this.#withClient(c => c.captureException(error, params));
+  /** An engine's failure that the site caught (Hedge School's design 17): the event `engine_error`, which the
+   *  reliability report counts, and the error itself to PostHog's error tracking ("Error reports"), each with its
+   *  `error_kind`. PostHog's client takes the page's uncaught errors by itself (posthog.ts), and both lose a game, a
+   *  record and a name before they go (scrub.ts). A game that the rules refuse is not the site's fault: its page sends
+   *  only the event, with `error_kind` "rules". */
+  engineError = (error: unknown, kind: "load" | "gpu" | "practice") => {
+    this.track("engine_error", { error_kind: kind });
+    this.#withClient(c => c.captureException(error, { error_kind: kind }));
+  };
 
   /** Sends an event once for each `key` in this page's life: a feature's first use in a review, not each use. The key
    *  stays in the page: it may name the game. */

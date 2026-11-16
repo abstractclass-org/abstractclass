@@ -58,12 +58,13 @@
   import { NETWORKS, botName, keptGame, networkName, offersNetwork, practiceChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
   import { broughtLine, gaugeWidth, komiLine, upright } from "@abstractclass/practice/practice.ts";
-  import { browserNumber, reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { browserNumber, engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, PRACTICE_DISPLAY_KEY, SITE_NAME } from "#lib/site.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
   import { playMove, preload } from "@abstractclass/site/sound.ts";
+  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { captures } from "#lib/sound.ts";
 
@@ -78,7 +79,7 @@
   const page = new PracticePage<KeptPractice, PracticeGame>({
     game: "blueprints", choices: practiceChoices, kept: keptGame, networkName, engine: loadEngine,
     create: (kept, rules, bot) => new PracticeGame(kept, rules, bot),
-    track, trackOnce, reportError,
+    track, trackOnce, engineError,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
     settings: () => { settingsOpen = false; notice = ""; },
@@ -98,6 +99,7 @@
     if (text === null && !setUpStart(position)) return null;
     try {
       const record = text === null ? null : readPasted(text, position).record;
+      if (record) hidePlayers(record.tags); // an error report loses the players' names (scrub.ts)
       return { record, start: setUpStart(record ? record.tags.Position : position) ?? null };
     } catch (e) {
       notice = `Practice cannot start from this record: ${errorSentence(e)}`;

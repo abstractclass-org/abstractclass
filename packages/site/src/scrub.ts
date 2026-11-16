@@ -5,6 +5,8 @@
 // - The part of an address after its `#`, unless it names only a kept game's id and a place (holdsGame): a record, a
 //   packed review or analysis, or a tool's game is there (Hedge School's design 22). A stack's line and column after
 //   the address stay.
+// - The players' names of each game that the page read (hidePlayers), with no quotes too: a library's message or a
+//   partner site's message can hold one.
 // - Quoted text, in any kind of quotes: a record's tags give their values in quotes (the players' names), and a
 //   browser quotes the text that it could not read (JSON.parse's message quotes a file's content).
 // - A record's moves: a turn's number and a dot ("1."), then the moves of the turn, each with a digit in it.
@@ -15,12 +17,33 @@ import { holdsGame } from "@abstractclass/import/importHash.ts";
 const FRAGMENT = /#[^\s"'`<>()[\]{}]*/g;
 /** A stack frame's line and column at the end of an address. */
 const LINE_COLUMN = /(?::\d+){1,2}$/;
-/** Quoted text. A single quote opens and closes only beside no letter or digit, so that a word's apostrophe stays. */
-const QUOTED = [/"[^"]*"/g, /“[^”]*”/g, /‘[^’]*’/g, /`[^`]*`/g, /(?<![\p{L}\p{N}])'[^']*'(?![\p{L}\p{N}])/gu];
+/** Quoted text, in each kind of quotes. A single quote opens and closes only beside no letter or digit, so that a
+ *  word's apostrophe stays. */
+const QUOTED = /"[^"]*"|“[^”]*”|‘[^’]*’|`[^`]*`|(?<![\p{L}\p{N}])'[^']*'(?![\p{L}\p{N}])/gu;
 /** A record's turns: the turn's number and a dot, then its moves, each a word with a digit in it. */
 const TURN = /\b\d+\.(?:\s+(?=\S*\d)\S+)+/g;
 /** The marks of a run of turns, one after another. */
 const MARKS = /…(?:\s+…)+/g;
+
+/** The players' names that the page read (hidePlayers), each as it is and as an address spells it. */
+const names = new Set<string>();
+/** The names as whole words, the longest first. It matches nothing while the page has read none. */
+let NAMES = /(?!)/g;
+
+/** Adds the players' names of a game that the page read (its record's tags `Blue` and `Red`) to what scrubText
+ *  removes, for the page's life. A name of one character, and the "?" of a record with no name, stay: they would
+ *  remove letters, not names. */
+export function hidePlayers(tags: Record<string, string>) {
+  for (const name of [tags.Blue, tags.Red]) {
+    const plain = name?.trim() ?? "";
+    if (plain.length < 2) continue;
+    const coded = encodeURIComponent(plain);
+    for (const form of [plain, coded, coded.replaceAll("%20", "+")]) names.add(form);
+  }
+  if (!names.size) return;
+  const words = [...names].sort((a, b) => b.length - a.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  NAMES = new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.join("|")})(?![\\p{L}\\p{N}])`, "gu");
+}
 
 /** `text` without a game, a record or a name in it (the rules above). */
 export function scrubText(text: string): string {
@@ -29,8 +52,8 @@ export function scrubText(text: string): string {
       const place = f.match(LINE_COLUMN)?.[0] ?? "";
       return holdsGame(f.slice(0, f.length - place.length)) ? `#…${place}` : f;
     })
-    .replace(QUOTED[0], '"…"').replace(QUOTED[1], "“…”").replace(QUOTED[2], "‘…’").replace(QUOTED[3], "`…`")
-    .replace(QUOTED[4], "'…'")
+    .replace(NAMES, "…")
+    .replace(QUOTED, q => `${q[0]}…${q.at(-1)}`)
     .replace(TURN, "…")
     .replace(MARKS, "…");
 }

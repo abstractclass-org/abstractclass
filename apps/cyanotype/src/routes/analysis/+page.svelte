@@ -62,10 +62,11 @@
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
   import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
+  import { hidePlayers } from "@abstractclass/site/scrub.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
   const PLAYERS: ReviewData["players"] = { blue: "Blue", red: "Red" };
@@ -84,7 +85,7 @@
   const settings = $derived(withBoardNetwork(engine, own));
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
-                                      tracker: { track, reportError, networkName } });
+                                      tracker: { track, engineError, networkName } });
   /** A change in the engine settings: a network chosen is the board's own, kept with its tree, when the board has
    *  one (withBoardNetwork). The rest is the browser's. */
   function changeEngine(change: Partial<EngineSettings>) {
@@ -166,6 +167,7 @@
     if (text === null) return { kept, at: keptAt, brought: { board: boardOfLine([], setUpStart(position)), at: 0, kind: "position" } };
     try {
       const record = readPasted(text, position).record;
+      hidePlayers(record.tags); // an error report loses the players' names (scrub.ts)
       return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: linkAt(p.get("at")), kind: "record", record } };
     } catch (e) {
       refuse(errorText(e), "record");
@@ -244,8 +246,7 @@
       await g.sweep(); // the board's sweep makes the engine ready
     } catch (e) {
       error = errorText(e);
-      track("engine_error", { error_kind: "load" });
-      reportError(e, { error_kind: "load" });
+      engineError(e, "load");
     }
   });
   onDestroy(() => session.end());
