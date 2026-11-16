@@ -1,6 +1,7 @@
 // Checks the page's side of a worker (WorkerChannel): a request that the page sends after the worker ended rejects with
-// Stopped, as a request still waiting does. A network load sends its request only once the page has checked the
-// network (client.ts, checked), and the pool can end meanwhile. And the worker's side of a search in slices
+// Stopped, as a request still waiting does, and one sent after the worker failed rejects with its failure. A network
+// load sends its request only once the page has checked the network (client.ts, checked), and the pool can end
+// meanwhile. And the worker's side of a search in slices
 // (searchInSlices): it yields between slices without a timer, a stop ends it at the next slice, and its time limit at
 // the end of the slice in which the limit passes. Run: npm test.
 import { test, type TestContext } from "node:test";
@@ -21,6 +22,14 @@ test("a request sent after the worker ended rejects with Stopped", async () => {
   const channel = new WorkerChannel<{ id: number; type: "call" }>(silent());
   channel.terminate();
   await assert.rejects(channel.send({ type: "call" }).done, Stopped);
+});
+
+test("a request sent after the worker failed rejects with its failure, and does not wait", async () => {
+  // A worker whose script did not load fails before the page sends its first request (the bot's start, bot.ts).
+  const worker = silent();
+  const channel = new WorkerChannel<{ id: number; type: "call" }>(worker);
+  worker.onerror!({ message: "", preventDefault() {} } as ErrorEvent);
+  await assert.rejects(channel.send({ type: "call" }).done, { message: "the engine worker failed: no message" });
 });
 
 /** An engine's search of three slices: its replies, and the requests that it got. It answers a terminate at once. With

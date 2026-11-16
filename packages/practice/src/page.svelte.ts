@@ -11,7 +11,7 @@ import { EngineWorker, type Manifest } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import type { EventParams } from "@abstractclass/site/analytics.svelte.ts";
-import type { PracticeBot } from "./bot.ts";
+import { PracticeBot } from "./bot.ts";
 import { startBot } from "./botForms.ts";
 import type { PracticeGame, PracticeStatus } from "./game.svelte.ts";
 import { newPractice, practiceFrom, practiceOutcome, type Brought, type KeptPractice, type PracticeChoices,
@@ -54,7 +54,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   choices = $state<PracticeChoices>() as PracticeChoices;
   game = $state<G | null>(null);
   starting = $state.raw<K | null>(null); // the game whose bot starts: its players' names, for the skeleton
-  failed = $state(""); // the engine could not start
+  failed = $state(""); // the engine's rules could not load: the page shows only this error
   ready = $state(false); // the rules are loaded: a game can start
   confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
   abortedId = $state<string | null>(null); // the last game was aborted, and the site keeps it under this id
@@ -147,19 +147,15 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     this.abortedId = null;
     this.viewAt = null;
     this.notesAt = {};
-    let bot: PracticeBot | null = null;
-    try {
-      bot = await startBot(this.site.game, this.manifest, kept.bot.network, this.site.engine(), kept.seed);
-      const g = (this.game = this.site.create(kept, this.rules, bot));
-      g.onFail = e => this.site.engineError(e, "practice");
-      await g.start();
-      if (g.status !== "failed") this.site.track("practice_start", { ...this.params(g), practice_from: from });
-      if (g.status !== "failed" && kept.komi) this.used("practice komi"); // design 17's feature: a game with a komi
-    } catch (e) {
-      bot?.terminate();
-      this.failed = errorText(e);
-      this.site.engineError(e, "practice");
-    }
+    // A bot that starts in no form fails the game's start with its error: the game stops as on a later failure, with
+    // the status line, the error report and Abort.
+    const bot = await startBot(this.site.game, this.manifest, kept.bot.network, this.site.engine(), kept.seed)
+      .catch((e: unknown) => PracticeBot.failed(this.site.game, e));
+    const g = (this.game = this.site.create(kept, this.rules, bot));
+    g.onFail = e => this.site.engineError(e, "practice");
+    await g.start();
+    if (g.status !== "failed") this.site.track("practice_start", { ...this.params(g), practice_from: from });
+    if (g.status !== "failed" && kept.komi) this.used("practice komi"); // design 17's feature: a game with a komi
   }
 
   /** A new game with the settings chosen and the side picked, from the standard start or the start brought. */

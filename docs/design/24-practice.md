@@ -174,6 +174,10 @@ How strong each setting plays against people is not measured yet.
     GPU when the GPU setting allows it, else on the CPU workers, both through the threaded bot. A browser without JSPI
     plays the one-thread bot. The board's rules (the legal edges, the positions) come from the analysis module's
     rules worker, as on the Analysis board.
+    - **A form that does not start** gives way to the next. When no form starts, the game stops before its first
+      position, as on a later failure: the status line says why, the error goes in one report, and Abort ends the
+      game. A bot's worker whose script does not load fails each request that the page sends to it, so the start
+      does not wait for good.
     - **The threads:** 16 search threads on the GPU, and two for each CPU worker. They are the most that a move
       uses. KataGo's play settings give each thread at least 8 of a move's new playouts (`minPlayoutsPerThread`,
       KataGo's default for GTP). So a move with N new playouts searches with T threads: N / 8, rounded down, at least

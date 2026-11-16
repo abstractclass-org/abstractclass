@@ -42,6 +42,7 @@ export class WorkerChannel<Request extends { id: number }> {
   private nextId = 0;
   private worker: Worker;
   private ended = false;
+  private failure: Error | null = null; // the worker failed: each request fails with this error
 
   constructor(worker: Worker) {
     this.worker = worker;
@@ -55,19 +56,23 @@ export class WorkerChannel<Request extends { id: number }> {
       else if (isError(m.reply)) p.reject(new EngineError(m.reply));
       else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory, late: m.late });
     };
-    // The worker failed outside a request (its script did not load, or it ran out of memory): every request fails.
+    // The worker failed outside a request (its script did not load, or it ran out of memory): every request fails,
+    // the requests sent after it too. A script that did not load fails before the page sends its first request.
     worker.onerror = (event: ErrorEvent) => {
       event.preventDefault();
-      this.rejectAll(new Error(`the engine worker failed: ${event.message || "no message"}`));
+      this.failure = new Error(`the engine worker failed: ${event.message || "no message"}`);
+      this.rejectAll(this.failure);
     };
   }
 
   /** Sends a request. `partial` gets a search's results after each slice. After terminate, the request rejects with
-   *  Stopped: a network load sends only once the page has checked the network (client.ts, checked). */
+   *  Stopped: a network load sends only once the page has checked the network (client.ts, checked). After the worker
+   *  failed, it rejects with the worker's failure. */
   send<T>(m: DistributiveOmit<Request, "id">, partial?: (r: unknown, ms: number) => void): { id: number; done: Promise<Timed<T>> } {
     const id = this.nextId++;
     const done = new Promise<Timed<T>>((resolve, reject) => {
       if (this.ended) { reject(new Stopped()); return; }
+      if (this.failure) { reject(this.failure); return; }
       this.pending.set(id, { resolve: resolve as (t: Timed<unknown>) => void, reject, partial });
       this.worker.postMessage({ ...m, id });
     });

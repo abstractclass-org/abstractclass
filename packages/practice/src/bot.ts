@@ -10,9 +10,22 @@ import type { BotMode, BotRequest, ThreadedFiles } from "./botMessages.ts";
 /** The practice bot in its own worker, in one form. `game` is the game's name in the bot's own commands
  *  (`enclosure`, `blueprints`), and `worker` the bot's worker module (botForms.ts). */
 export class PracticeBot {
-  private channel: WorkerChannel<BotRequest>;
-  constructor(readonly game: string, readonly mode: BotMode, worker: Worker) {
-    this.channel = new WorkerChannel<BotRequest>(worker);
+  readonly game: string;
+  readonly mode: BotMode;
+  private channel: WorkerChannel<BotRequest> | null;
+  private failure: unknown = null; // the error of a start in no form (failed)
+  constructor(game: string, mode: BotMode, worker: Worker | null) {
+    this.game = game;
+    this.mode = mode;
+    this.channel = worker && new WorkerChannel<BotRequest>(worker);
+  }
+
+  /** A bot that started in no form, with the error of its start: each command fails with it, so that the game stops
+   *  as on a later failure (game.svelte.ts, fail). Its form is the last that startBot tries. */
+  static failed(game: string, failure: unknown): PracticeBot {
+    const bot = new PracticeBot(game, "single", null);
+    bot.failure = failure;
+    return bot;
   }
 
   /** Starts the bot with the network `network` and the seed `seed`. A threaded form takes its files (`threaded`). */
@@ -23,16 +36,22 @@ export class PracticeBot {
     if (!library || !model || !module) throw new Error("the manifest lacks the practice bot's files");
     if (this.mode !== "single" && !threaded) throw new Error(`the bot's ${this.mode} form lacks its files`);
     const [compiled, checkedModel] = await Promise.all([compile(module.url), checked(model)]);
-    gtpAnswer((await this.channel.send<string>({ type: "init", game: this.game, mode: this.mode, seed, threads: 1, ...threaded,
+    gtpAnswer((await this.started().send<string>({ type: "init", game: this.game, mode: this.mode, seed, threads: 1, ...threaded,
                                                  library: library.url, module: compiled, model: checkedModel,
                                                  ...sizesOption(manifest) }).done).reply);
   }
 
   /** A GTP command's answer. Throws with the bot's message when it refuses the command. */
   async command(line: string): Promise<string> {
-    return gtpAnswer((await this.channel.send<string>({ type: "command", line }).done).reply);
+    return gtpAnswer((await this.started().send<string>({ type: "command", line }).done).reply);
   }
 
   /** Ends the worker, and its CPU evaluators with it. */
-  terminate() { this.channel.terminate(); }
+  terminate() { this.channel?.terminate(); }
+
+  /** The worker's channel. A bot that started in no form has none: it throws the error of its start. */
+  private started(): WorkerChannel<BotRequest> {
+    if (!this.channel) throw this.failure;
+    return this.channel;
+  }
 }

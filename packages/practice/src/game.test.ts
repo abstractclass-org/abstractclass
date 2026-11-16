@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { Player } from "@abstractclass/analysis/game.ts";
-import type { PracticeBot } from "./bot.ts";
+import { PracticeBot } from "./bot.ts";
 import type { KeptPractice } from "./practice.ts";
 
 const { PracticeGame } = await import("./game.svelte.ts");
@@ -164,4 +164,15 @@ test("a bot that refuses stops the game with its message", async () => {
   assert.equal(game.thinkingSince, null);
   await game.play("r1"); // nothing moves after it
   assert.deepEqual(game.played, []);
+});
+
+test("a bot that started in no form stops the game's start with its error, reported once, and Abort ends the game", async () => {
+  const game = new WordGame(kept(1), null!, PracticeBot.failed("words", new Error("the engine worker failed: no message")));
+  const reported: unknown[] = [];
+  game.onFail = e => reported.push(e);
+  await game.start();
+  assert.equal(game.status, "failed");
+  assert.equal(game.error, "the engine worker failed: no message");
+  assert.equal(reported.length, 1);
+  assert.equal(await game.abort(), "set-aside-id"); // the way out, as after a later failure
 });
