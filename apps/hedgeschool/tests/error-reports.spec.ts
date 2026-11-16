@@ -6,27 +6,36 @@ import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor, type Sent } from "./posthog.ts";
 import { firstTurns } from "./records.ts";
+import { toolLink } from "./cyanotype-review.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
 /** A name that a player typed, in the record's tag of Blue. */
 const TYPED = "Wren Typedname";
+/** An event's name that a player typed, in the record's tag of Event. */
+const EVENT = "Wren's club night";
 
-/** A test game's record, its first turns, with the typed name for Blue. */
+/** A test game's record, its first turns, with the typed names for Blue and the event. */
 const record = (fixture: string) => {
   const { record } = JSON.parse(readFileSync(new URL(`fixtures/${fixture}`, import.meta.url), "utf8")) as { record: string };
-  return firstTurns(record, 4).replace(/^\[Blue "[^"]*"\]$/m, `[Blue "${TYPED}"]`);
+  return `[Event "${EVENT}"]\n` +
+    firstTurns(record, 4).replace(/^\[Event "[^"]*"\]\r?\n/m, "").replace(/^\[Blue "[^"]*"\]$/m, `[Blue "${TYPED}"]`);
 };
 
 const SITES = [
-  { site: "Hedge School", base: () => test.info().project.use.baseURL!, record: record("hedgefund-review.json") },
-  { site: "Cyanotype", base: () => CYANOTYPE!, record: record("cyanotype-review.json") },
+  { site: "Hedge School", base: () => test.info().project.use.baseURL!, record: record("hedgefund-review.json"),
+    // The bookmarklet's link on meaf.us (tests/tool-choice.spec.ts)
+    importLink: (base: string, game: string) =>
+      new URL("/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", record: game }), base).href },
+  { site: "Cyanotype", base: () => CYANOTYPE!, record: record("cyanotype-review.json"),
+    importLink: (_base: string, game: string) => toolLink({ record: game }) },
 ];
 
-/** The words that no event may hold: the typed name, and each move of the record, as text and as an address holds it. */
+/** The words that no event may hold: the typed names, and each move of the record, as text and as an address holds
+ *  it. */
 function secrets(text: string) {
   const moves = text.split(/\r?\n\r?\n/)[1].trim().split(/\s+/).filter(w => !/^\d+\.$/.test(w));
-  return [TYPED, "Typedname", ...moves.flatMap(m => [m, encodeURIComponent(m)])];
+  return [TYPED, "Typedname", EVENT, "club night", ...moves.flatMap(m => [m, encodeURIComponent(m)])];
 }
 
 /** The secrets that the events hold, which must be none. */
@@ -46,7 +55,7 @@ const uncaught = (page: Page, code: string) => page.addScriptTag({ content: code
 
 lookLikeAVisitor();
 
-for (const { site, base, record: text } of SITES) {
+for (const { site, base, record: text, importLink } of SITES) {
   test.describe(site, () => {
     test.skip(site === "Cyanotype" && CYANOTYPE === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
     const at = (path: string) => new URL(path, base()).href;
@@ -86,6 +95,18 @@ for (const { site, base, record: text } of SITES) {
       // A library's message can hold a player's name with no quotes: the page read the record, so its names go too.
       await uncaught(page, `throw new Error(${JSON.stringify(`no rating for ${TYPED} here`)})`);
       await expect.poll(() => exceptions(sent).map(x => x.value)).toContain("no rating for … here");
+      expect(leaked(sent, text)).toEqual([]);
+    });
+
+    test("a tool's game on the Import page, and an error with its event's and its player's names, reach PostHog without them", async ({ context }) => {
+      const sent = await answerPostHog(context);
+      const page = await context.newPage();
+      await page.goto(importLink(base(), text));
+      // The page has read the record: it asks where the game goes.
+      await expect(page.getByRole("heading", { name: /^A game from / })).toBeVisible({ timeout: 60_000 });
+      await expect.poll(() => sent.some(e => e.event === "$pageview"), { timeout: 15_000 }).toBe(true);
+      await uncaught(page, `throw new Error(${JSON.stringify(`no rating for ${TYPED} at ${EVENT}`)})`);
+      await expect.poll(() => exceptions(sent).map(x => x.value), { timeout: 15_000 }).toContain("no rating for … at …");
       expect(leaked(sent, text)).toEqual([]);
     });
 

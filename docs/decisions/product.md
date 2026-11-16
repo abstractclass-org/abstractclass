@@ -12507,21 +12507,31 @@ file's content and a typed name before it goes (design 17, "Error reports"). The
   rule of design 22) says that it names only a kept game's id and a place. Quoted text goes, in each kind of quotes:
   a record's tags hold the players' names in quotes, and JSON.parse's message quotes a file's content. A record's
   turns go (a number and a dot, then words with digits). Each becomes "…".
-- **The players' names of each record that the page reads** go too, with no quotes (`hidePlayers`: the review, the
-  Analysis board, Practice and Openings). The rules alone missed a name with no quotes in a library's message, and
-  the privacy pages promise that each player's name goes. The page notes the tags `Blue` and `Red`, and the scrubber
-  removes each name as a whole word, also as an address spells it. A name of one character stays: it would remove
-  letters. The other way was a full registry of the page's private texts (each record and each tag). The rules
-  above cover the records and the fields that PostHog fills, with no list to keep. The rules still miss a tag's
-  other text with no quotes, such as the event's name. They also miss the names of a record that the Import page,
-  a game's arrival on the review page or the review's home reads: those files call no `hidePlayers` yet.
+- **The text of each record that the page reads** goes too, with no quotes: each tag's value (the players' names,
+  the event's name) and each comment's text. The rules alone missed a name with no quotes in a library's message,
+  and the privacy pages promise that each player's name and each file's content goes. The scrubber removes each
+  text as a whole word, also as an address spells it. A value of one character (PGN's "?" and "-" too) and a plain
+  number stay: they would remove letters and digits from every report.
+- **The place of the note** is the record's one reader: `readRecord` notes each text as it reads it
+  (`packages/record/src/texts.ts`), and `packages/site` reads the notes. Every page reads a record through it (both
+  sites' `parseRecord`, and through it `readPasted`, the arrivals, the stored games and the files), so no page
+  makes a call of its own, and a page that a later branch adds notes its records too. The other place was the
+  import package, which `packages/site` already depends on: a reader there would wrap `readRecord`, and each site's
+  `parseRecord` would call it. Code could then still call `readRecord` and skip the note. The record package does
+  not depend on `packages/site`: `packages/site` depends on it.
+- **The check:** `packages/record/src/texts.test.ts` finds each regex in the sources of both sites and of the
+  packages, and fails when one other than the reader's captures a tag's value: such code would read a record and
+  skip the note. A first version, which flagged a group that held the value, also flagged Constellation's start
+  (`[B:… R:…]`); the check now flags a group of the value alone. The first version of this rule had each page note
+  its record's `Blue` and `Red` (`hidePlayers`): it missed the Import page, the arrivals and the review's home.
 - **Before the analytics start,** no error goes: the address can still hold a record then (design 22).
 - **The tests:** `packages/site/src/scrub.test.ts` (the rules), and `tests/error-reports.spec.ts` on both sites'
   check:all builds with a made-up key: an uncaught error and a rejection with a record in the address, an engine
   whose network does not load (`load`, with `engine_error` beside it) followed by an error with the record's typed
-  name and no quotes, and an error whose message holds a record with a typed name and a file's name. Playwright's
-  route answers PostHog, so no report reaches its servers. Each report reaches the route, and no event holds a move
-  of the record or the name.
+  name and no quotes, an error whose message holds a record with a typed name and a file's name, and a tool's game
+  on the Import page followed by an error with its event's name and its player's name, with no quotes. Each record
+  has a typed name for Blue and the event. Playwright's route answers PostHog, so no report reaches its servers.
+  Each report reaches the route, and no event holds a move of the record or a typed name.
 - **The privacy pages** of both sites say what a report holds (the error's name, message and places in the code,
   the address without its `#` part, the browser's data of a visit) and that the site removes each game, move, file
   content and player's name from it. Their list of what PostHog receives with a page now says "how long you stayed

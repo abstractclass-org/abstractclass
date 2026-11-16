@@ -13,6 +13,11 @@
 // that every move is legal. It also accepts a bare list of moves, without turn labels. It checks one tag's value, the
 // `Komi` tag's: the game's starting score (GameRecord `komi`), which the review searches at, within the game's limit
 // (Notation `maxKomi`).
+//
+// The reader notes each tag's value and each comment's text for the error reports (texts.ts). It is the one code that
+// reads a record's text, so every page that reads a record notes them (texts.test.ts checks that no other code reads a
+// tag's value).
+import { noteText } from "./texts.ts";
 
 /** A move as the game reads it from a record's word: its one spelling, its mark, and where in the word its mark
  *  starts (the word's length when it has none), so that a mark can be written there (markMoves). */
@@ -131,12 +136,15 @@ function tokenize(text: string): Token[] {
     if (c === "[") {
       const m = /^\[\s*([A-Za-z][A-Za-z0-9_]*)\s+"((?:[^"\\]|\\.)*)"\s*\]/.exec(text.slice(i));
       if (!m) throw new RecordError("a tag must look like [Name \"value\"]", i);
-      tokens.push({ kind: "tag", name: m[1], value: m[2].replace(/\\(.)/g, "$1"), at: i });
+      const value = m[2].replace(/\\(.)/g, "$1");
+      tokens.push({ kind: "tag", name: m[1], value, at: i });
+      noteText(value); // for the error reports (texts.ts), as is each comment's text
       i += m[0].length;
     } else if (c === "{") {
       const end = text.indexOf("}", i);
       if (end < 0) throw new RecordError("a { has no closing }", i);
       tokens.push({ kind: "comment", text: text.slice(i + 1, end), at: i });
+      noteText(text.slice(i + 1, end));
       i = end + 1;
     } else if (c === "(" || c === ")") {
       tokens.push(c === "(" ? { kind: "open", at: i } : { kind: "close", at: i });

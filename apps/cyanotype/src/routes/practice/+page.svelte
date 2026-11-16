@@ -64,7 +64,6 @@
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import SoundSettings from "@abstractclass/site/SoundSettings.svelte";
   import { playMove, preload } from "@abstractclass/site/sound.ts";
-  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { captures } from "#lib/sound.ts";
 
@@ -99,7 +98,6 @@
     if (text === null && !setUpStart(position)) return null;
     try {
       const record = text === null ? null : readPasted(text, position).record;
-      if (record) hidePlayers(record.tags); // an error report loses the players' names (scrub.ts)
       return { record, start: setUpStart(record ? record.tags.Position : position) ?? null };
     } catch (e) {
       notice = `Practice cannot start from this record: ${errorSentence(e)}`;

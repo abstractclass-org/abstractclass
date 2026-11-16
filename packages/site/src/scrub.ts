@@ -1,17 +1,19 @@
 // What every event to PostHog loses before it goes (posthog.ts, `before_send`): a game, a record, a file's content and a
 // typed name (Hedge School's design 17, "Error reports"). An error report carries text that the site does not write:
 // the error's message, the stack's addresses, and the page's address as PostHog's client reads it. So the rules work on
-// every string of the event, the client's own properties too, and match what a game looks like in text:
+// every string of the event, the client's own properties too:
+// - The text of each tag of each record that the page read (the players' names, the event's name), with no quotes
+//   too, and as an address spells it: a library's message or a partner site's message can hold one. The record's
+//   reader notes the texts (@abstractclass/record's texts.ts). This rule goes first, so that a tag's address goes whole.
 // - The part of an address after its `#` when it holds a game (holdsGame: a record, a packed review or analysis, or a
 //   tool's game, Hedge School's design 22). A kept game's id and a place stay, and so does a stack's line and column
 //   after the address.
-// - The players' names of each game that the page read (hidePlayers), with no quotes too: a library's message or a
-//   partner site's message can hold one.
 // - Quoted text, in any kind of quotes: a record's tags give their values in quotes (the players' names), and a
 //   browser quotes the text that it could not read (JSON.parse's message quotes a file's content).
 // - A record's moves: a turn's number and a dot ("1."), then the moves of the turn, each with a digit in it.
 // Each goes as "…", so that a report shows where text was.
 import { holdsGame } from "@abstractclass/import/importHash.ts";
+import { readTexts } from "@abstractclass/record/texts.ts";
 
 /** The part of an address after its `#`, to the first space, quote or bracket: an address's own characters. */
 const FRAGMENT = /#[^\s"'`<>()[\]{}]*/g;
@@ -25,34 +27,32 @@ const TURN = /\b\d+\.(?:\s+(?=\S*\d)\S+)+/g;
 /** The marks of a run of turns, one after another. */
 const MARKS = /…(?:\s+…)+/g;
 
-/** The players' names that the page read (hidePlayers), each as it is and as an address spells it. */
-const names = new Set<string>();
-/** The names as whole words, the longest first. It matches nothing while the page has read none. */
-let namePattern = /(?!)/g;
+/** The texts of the page's records as whole words, each as it is and as an address spells it, the longest first, and
+ *  how many texts it holds. It matches nothing while the page has read no record. */
+let named = { count: 0, pattern: /(?!)/g };
 
-/** Adds the players' names of a game that the page read (its record's tags `Blue` and `Red`) to what scrubText
- *  removes, for the page's life. A name of one character, and the "?" of a record with no name, stay: they would
- *  remove letters, not names. */
-export function hidePlayers(tags: Record<string, string>) {
-  for (const name of [tags.Blue, tags.Red]) {
-    const plain = name?.trim() ?? "";
-    if (plain.length < 2) continue;
-    const coded = encodeURIComponent(plain);
-    for (const form of [plain, coded, coded.replaceAll("%20", "+")]) names.add(form);
-  }
-  if (!names.size) return;
-  const words = [...names].sort((a, b) => b.length - a.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  namePattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.join("|")})(?![\\p{L}\\p{N}])`, "gu");
+/** The pattern of the page's texts (readTexts), made again only when a record gave a new text. */
+function textPattern(): RegExp {
+  const texts = readTexts();
+  if (texts.size === named.count) return named.pattern;
+  const forms = new Set([...texts].flatMap(t => {
+    const coded = encodeURIComponent(t);
+    return [t, coded, coded.replaceAll("%20", "+")];
+  }));
+  const words = [...forms].sort((a, b) => b.length - a.length).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.join("|")})(?![\\p{L}\\p{N}])`, "gu");
+  named = { count: texts.size, pattern };
+  return named.pattern;
 }
 
 /** `text` without a game, a record or a name in it (the rules above). */
 export function scrubText(text: string): string {
   return text
+    .replace(textPattern(), "…")
     .replace(FRAGMENT, f => {
       const place = f.match(LINE_COLUMN)?.[0] ?? "";
       return holdsGame(f.slice(0, f.length - place.length)) ? `#…${place}` : f;
     })
-    .replace(namePattern, "…")
     .replace(QUOTED, q => `${q[0]}…${q.at(-1)}`)
     .replace(TURN, "…")
     .replace(MARKS, "…");

@@ -47,7 +47,6 @@
   import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { trackExport } from "#lib/game/sources.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "@abstractclass/site/measure.ts";
-  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import { captureMarksStep, startChecked } from "#lib/review/storedReview.ts";
   import { gamePage, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
@@ -262,7 +261,6 @@
     }
     rememberReview(id);
     kept = { id, text: stored.game.record, record: stored.record, partner: stored.game.partner };
-    hidePlayers(stored.record.tags); // an error report loses the players' names (scrub.ts)
     markBefore = stored.game.reviewed;
     own = ownSettings(stored.game); // a network that the site no longer ships: the browser's
     return stored.record;

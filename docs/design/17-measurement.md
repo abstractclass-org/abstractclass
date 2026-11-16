@@ -140,23 +140,26 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
 3. **Every event loses a game before it goes** (`packages/site/src/scrub.ts`, PostHog's `before_send`). A report
    holds text that the site does not write: the error's message, the stack's addresses and the page's address. So the
    rules apply to each string of each event, the properties that PostHog's client adds too:
+   - the text of each record that the page read, with no quotes too, and as an address spells it: each tag's value
+     (the players' names, the event's name) and each comment's text. The record's one reader notes them as it reads
+     (`readRecord`, `packages/record/src/texts.ts`), so each page that reads a record notes its texts with no call of
+     its own. A text goes as a whole word. A value of one character (PGN's "?" and "-" for none too) and a plain
+     number stay: they would remove letters and digits from every report. This rule goes first, so that a tag's
+     address goes whole.
    - the part of an address after its `#`, unless it names only a kept game's id and a place (`#game=`, `at`): a
      record, a packed review or analysis, or a tool's game is there (design 22). A stack's line and column stay.
-   - the players' names of each record that the page read (`hidePlayers`: the review, the Analysis board, Practice
-     and Openings), with no quotes too, and as an address spells them. A name goes as a whole word. A name of one
-     character stays: it would remove letters.
    - quoted text, in each kind of quotes: a record's tags hold the players' names in quotes, and a browser quotes the
      text that it cannot read (JSON.parse's message holds a file's content).
    - a record's moves: a turn's number and a dot, then the moves, each a word with a digit in it.
 
    Each goes as "…", so that a report shows where text was. The message's other words stay, so the report still says
    what failed.
-4. **What the rules miss:** a tag's other text with no quotes in an error's message, such as the event's name. They
-   also miss the names of a record that a page reads without `hidePlayers`: the Import page, a game's arrival on the
-   review page (`Arrival.svelte`, Cyanotype's `PartnerArrival.svelte`) and a record pasted on the review's home
-   (`ReviewHome.svelte`). The sites' own messages put no such text there, but a library's message or a partner
-   site's message can hold any text.
-5. **The privacy pages** of both sites say what a report holds and what the site removes from it.
+4. **What the rules miss:** a value of one character or a plain number, and a typed text of a record that the page
+   did not read, in an error's message with no quotes. The sites' own messages put no such text there, but a
+   library's message or a partner site's message can hold any text.
+5. **The check:** `packages/record/src/texts.test.ts` fails when other code in the sites or the packages reads a
+   tag's value from a record's text, with a regex that captures it. Such code would skip the reader's note.
+6. **The privacy pages** of both sites say what a report holds and what the site removes from it.
 
 ## Using it
 
@@ -344,8 +347,9 @@ Cyanotype's.
   (`practiceParams`, `practiceEndParams`, with the networks' names that each site gives, tested with Hedge School's
   in `src/lib/practice/practice.test.ts`).
 - The error reports: `engineError` in `packages/site/src/analytics.svelte.ts`, the scrubbing in
-  `packages/site/src/scrub.ts`, tested in `scrub.test.ts` beside it. The check in a browser, on both sites:
-  `tests/error-reports.spec.ts`.
+  `packages/site/src/scrub.ts`, tested in `scrub.test.ts` beside it. The texts of the records that the page read:
+  `packages/record/src/texts.ts`, with the check that the reader is the one code that reads a tag's value in
+  `texts.test.ts`. The check in a browser, on both sites: `tests/error-reports.spec.ts`.
 - The privacy page: `src/routes/privacy/+page.svelte`.
 
 ## Log entries

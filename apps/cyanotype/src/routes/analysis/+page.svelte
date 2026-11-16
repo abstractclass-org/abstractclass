@@ -66,7 +66,6 @@
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
   import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
-  import { hidePlayers } from "@abstractclass/site/scrub.ts";
 
   const MESSAGE = "box-content max-w-184 mx-auto my-8 px-4";
   const PLAYERS: ReviewData["players"] = { blue: "Blue", red: "Red" };
@@ -167,7 +166,6 @@
     if (text === null) return { kept, at: keptAt, brought: { board: boardOfLine([], setUpStart(position)), at: 0, kind: "position" } };
     try {
       const record = readPasted(text, position).record;
-      hidePlayers(record.tags); // an error report loses the players' names (scrub.ts)
       return { kept, at: keptAt, brought: { board: boardOfRecord(record), at: linkAt(p.get("at")), kind: "record", record } };
     } catch (e) {
       refuse(errorText(e), "record");
@@ -282,7 +280,6 @@
       return;
     }
     const read = readPasted(pasted, position || null);
-    hidePlayers(read.record.tags); // an error report loses the players' names (scrub.ts)
     const problem = await checkRecord(read.record, "their start");
     if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${errorSentence(problem)}`);
     importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}),

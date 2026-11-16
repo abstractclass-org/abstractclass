@@ -53,7 +53,6 @@
   import { practiceHref as practiceAddress } from "@abstractclass/practice/practice.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
-  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
   const MESSAGE = "box-content max-w-[1100px] mx-auto my-8 px-4";
@@ -183,7 +182,6 @@
   async function recordBoard(text: string, at: string | null, position: string | null = null): Promise<{ board: KeptBoard; at: number }> {
     let record: ReturnType<typeof parseRecord>;
     try { record = parseRecord(withStart(text, position)); } catch (e) { throw new RecordProblem(errorText(e), "record"); }
-    hidePlayers(record.tags); // an error report loses the players' names (scrub.ts)
     const mismatch = givenStartProblem(record.tags, position, setUpStart);
     if (mismatch) throw new RecordProblem(mismatch, "rejected");
     if (position) record = { ...record, tags: { ...record.tags, Position: position } };

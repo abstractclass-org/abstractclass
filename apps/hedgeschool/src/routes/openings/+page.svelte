@@ -38,7 +38,6 @@
   import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { POSITION_RANGES, range } from "@abstractclass/site/measure.ts";
-  import { hidePlayers } from "@abstractclass/site/scrub.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { siteBook } from "#lib/book/place.svelte.ts";
   import { OpeningsPlace } from "#lib/book/openings.svelte.ts";
@@ -264,9 +263,7 @@
     const from: From = via === "review" || via === "analysis" ? via : "link";
     if (!record) return { at: [], from };
     try {
-      const read = readPasted(record).record;
-      hidePlayers(read.tags); // an error report loses the players' names (scrub.ts)
-      const { main: line, start, komi } = boardOfRecord(read);
+      const { main: line, start, komi } = boardOfRecord(readPasted(record).record);
       if (start) throw new Error("the book starts at the standard start, and this record does not");
       broughtKomi = !!komi;
       const n = Math.floor(Number(p.get("at") ?? line.length));

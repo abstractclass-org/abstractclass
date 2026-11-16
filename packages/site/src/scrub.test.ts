@@ -1,7 +1,8 @@
 // Checks the scrubbing of what goes to PostHog (scrub.ts): no game, no record and no name in a report. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hidePlayers, scrubEvent, scrubText } from "./scrub.ts";
+import { readRecord, type Notation } from "@abstractclass/record/record.ts";
+import { scrubEvent, scrubText } from "./scrub.ts";
 
 /** A record as the sites write it: its tags, with a typed name, then its moves. */
 const RECORD = '[Event "Hedge School test game"]\n[Blue "Ann Example"]\n[Red "HedgeFund, 128 visits"]\n\n' +
@@ -73,15 +74,20 @@ test("an event's every string is scrubbed, at any depth, and its other values st
                    { ...event.properties, $current_url: 0, $exception_list: 0 });
 });
 
-// Last: the names that the page read stay hidden for the page's life, so for each test after this one too.
-test("the players' names of a game that the page read go, with no quotes too, and as an address spells them", () => {
-  const message = "cannot keep Ann Example's game against Bo Smith";
+// Last: the texts of the records that the page read stay noted for the page's life, so for each test after this one
+// too.
+test("each tag's text of a record that the page read goes, with no quotes too, and as an address spells it", () => {
+  const message = "cannot keep Ann Example's game against Bo Smith at Wren's club night";
   assert.equal(scrubText(message), message);
-  hidePlayers({ Blue: "Ann Example", Red: "?" });
-  hidePlayers({ Blue: " B ", Red: "Bo Smith" });
-  assert.equal(scrubText(message), "cannot keep …'s game against …");
+  // The record's reader notes the texts (@abstractclass/record's texts.ts): a game whose moves are any words.
+  const words: Notation<null> = { read: word => ({ name: word, mark: null, markAt: word.length }), mark: () => "", none: null };
+  readRecord('[Event "Wren\'s club night"]\n[Blue "Ann Example"]\n[Red "?"]\n[Round "3"]\n[Komi "7.5"]\n\n1. apple *', words);
+  readRecord('[Blue "B"]\n[Red " Bo Smith "]\n\n1. pear *', words);
+  assert.equal(scrubText(message), "cannot keep …'s game against … at …");
   assert.equal(scrubText("GET https://partner.example/u/Ann%20Example?p=Bo+Smith: HTTP 500"),
                "GET https://partner.example/u/…?p=…: HTTP 500");
-  // A name goes as a whole word only, and a name of one letter or the "?" of no name stays: they would remove letters.
-  assert.equal(scrubText("Bo Smithers, B and ?"), "Bo Smithers, B and ?");
+  // A text goes as a whole word only. A value of one character, the "?" of no name and a plain number stay: hiding them
+  // would remove letters and digits from every report.
+  const kept = "Bo Smithers, B, ?, round 3 and a komi of 7.5";
+  assert.equal(scrubText(kept), kept);
 });
