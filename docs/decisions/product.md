@@ -12511,9 +12511,10 @@ file's content and a typed name before it goes (design 17, "Error reports"). The
   Analysis board, Practice and Openings). The rules alone missed a name with no quotes in a library's message, and
   the privacy pages promise that each player's name goes. The page notes the tags `Blue` and `Red`, and the scrubber
   removes each name as a whole word, also as an address spells it. A name of one character stays: it would remove
-  letters. A full registry of the page's private texts (each record and each tag) was the other way. The rules
-  above cover the records and the fields that PostHog fills, with no list to keep. The gap that stays is a tag's
-  other text with no quotes, such as the event's name, and the names of a record that the Import page reads.
+  letters. The other way was a full registry of the page's private texts (each record and each tag). The rules
+  above cover the records and the fields that PostHog fills, with no list to keep. The rules still miss a tag's
+  other text with no quotes, such as the event's name. They also miss the names of a record that the Import page,
+  a game's arrival on the review page or the review's home reads: those files call no `hidePlayers` yet.
 - **Before the analytics start,** no error goes: the address can still hold a record then (design 22).
 - **The tests:** `packages/site/src/scrub.test.ts` (the rules), and `tests/error-reports.spec.ts` on both sites'
   check:all builds with a made-up key: an uncaught error and a rejection with a record in the address, an engine

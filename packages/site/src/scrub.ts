@@ -2,9 +2,9 @@
 // typed name (Hedge School's design 17, "Error reports"). An error report carries text that the site does not write:
 // the error's message, the stack's addresses, and the page's address as PostHog's client reads it. So the rules work on
 // every string of the event, the client's own properties too, and match what a game looks like in text:
-// - The part of an address after its `#`, unless it names only a kept game's id and a place (holdsGame): a record, a
-//   packed review or analysis, or a tool's game is there (Hedge School's design 22). A stack's line and column after
-//   the address stay.
+// - The part of an address after its `#` when it holds a game (holdsGame: a record, a packed review or analysis, or a
+//   tool's game, Hedge School's design 22). A kept game's id and a place stay, and so does a stack's line and column
+//   after the address.
 // - The players' names of each game that the page read (hidePlayers), with no quotes too: a library's message or a
 //   partner site's message can hold one.
 // - Quoted text, in any kind of quotes: a record's tags give their values in quotes (the players' names), and a
@@ -28,7 +28,7 @@ const MARKS = /…(?:\s+…)+/g;
 /** The players' names that the page read (hidePlayers), each as it is and as an address spells it. */
 const names = new Set<string>();
 /** The names as whole words, the longest first. It matches nothing while the page has read none. */
-let NAMES = /(?!)/g;
+let namePattern = /(?!)/g;
 
 /** Adds the players' names of a game that the page read (its record's tags `Blue` and `Red`) to what scrubText
  *  removes, for the page's life. A name of one character, and the "?" of a record with no name, stay: they would
@@ -42,7 +42,7 @@ export function hidePlayers(tags: Record<string, string>) {
   }
   if (!names.size) return;
   const words = [...names].sort((a, b) => b.length - a.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  NAMES = new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.join("|")})(?![\\p{L}\\p{N}])`, "gu");
+  namePattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.join("|")})(?![\\p{L}\\p{N}])`, "gu");
 }
 
 /** `text` without a game, a record or a name in it (the rules above). */
@@ -52,7 +52,7 @@ export function scrubText(text: string): string {
       const place = f.match(LINE_COLUMN)?.[0] ?? "";
       return holdsGame(f.slice(0, f.length - place.length)) ? `#…${place}` : f;
     })
-    .replace(NAMES, "…")
+    .replace(namePattern, "…")
     .replace(QUOTED, q => `${q[0]}…${q.at(-1)}`)
     .replace(TURN, "…")
     .replace(MARKS, "…");

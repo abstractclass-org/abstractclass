@@ -282,6 +282,7 @@
       return;
     }
     const read = readPasted(pasted, position || null);
+    hidePlayers(read.record.tags); // an error report loses the players' names (scrub.ts)
     const problem = await checkRecord(read.record, "their start");
     if (problem) throw new Error(`${SITE_NAME} cannot open these moves: ${errorSentence(problem)}`);
     importAddress(new URLSearchParams({ record: read.recordText, ...(position ? { position } : {}),

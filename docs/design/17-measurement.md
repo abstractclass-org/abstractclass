@@ -151,9 +151,11 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
 
    Each goes as "…", so that a report shows where text was. The message's other words stay, so the report still says
    what failed.
-4. **What the rules miss:** a tag's other text with no quotes in an error's message, such as the event's name, and
-   a name of a record that the page did not read with `hidePlayers` (the Import page reads records too). The sites'
-   own messages put no such text there, but a library's message or a partner site's message can hold any text.
+4. **What the rules miss:** a tag's other text with no quotes in an error's message, such as the event's name. They
+   also miss the names of a record that a page reads without `hidePlayers`: the Import page, a game's arrival on the
+   review page (`Arrival.svelte`, Cyanotype's `PartnerArrival.svelte`) and a record pasted on the review's home
+   (`ReviewHome.svelte`). The sites' own messages put no such text there, but a library's message or a partner
+   site's message can hold any text.
 5. **The privacy pages** of both sites say what a report holds and what the site removes from it.
 
 ## Using it
