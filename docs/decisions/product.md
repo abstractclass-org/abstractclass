@@ -12548,9 +12548,9 @@ file's content and a typed name before it goes (design 17, "Error reports"). The
 abscls-8tl1.108. Both games have the same designer and the same community Discord, so Cyanotype's About and Privacy
 name it as Hedge School's do, with the address from `packages/site/src/community.ts`.
 
-- **About:** the section on the game ends with "Blueprints' designer is webgoatguy. Its players meet in webgoatguy's
-  Discord." Hedge School's page says "Enclosure's designer is webgoatguy, who introduces it in a video." Cyanotype's
-  drops the video, as Blueprints has no such video on the page. Early access ends with Hedge School's sentence: "Tell
+- **About:** the section on the game ends with Hedge School's sentences, with the game's name: "Blueprints' designer
+  is webgoatguy, who introduces it in a video. Its players meet in webgoatguy's Discord." The video is webgoatguy's
+  introduction of Blueprints (`https://youtu.be/6x-SPLCS3nQ`). Early access ends with Hedge School's sentence: "Tell
   us what works and what does not in the Discord."
 - **Privacy:** the page ends with Hedge School's section "Questions": "Ask in the players' Discord."
 - **One place for the sentences on /developers:** the shared sections write the Discord's two sentences

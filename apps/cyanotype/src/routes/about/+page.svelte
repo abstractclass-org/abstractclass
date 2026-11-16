@@ -54,7 +54,8 @@
     <li><strong>An edit</strong> moves one cell of a blueprint, inside the blueprint or to another one.</li>
   </ul>
   <p>Blue makes one move, then each player makes two moves a turn. The game ends after 120 moves.</p>
-  <p>Blueprints' designer is webgoatguy. Its players meet in <a href={DISCORD}>webgoatguy's Discord</a>.</p>
+  <p>Blueprints' designer is webgoatguy, who <a href="https://youtu.be/6x-SPLCS3nQ">introduces it in a video</a>. Its
+    players meet in <a href={DISCORD}>webgoatguy's Discord</a>.</p>
 
   <h2>How a review works</h2>
   <ul>

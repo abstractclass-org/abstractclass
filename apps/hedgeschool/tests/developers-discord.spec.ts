@@ -7,6 +7,9 @@ import { expect, test, type Locator } from "./page-log.ts";
 import { DISCORD } from "../../../packages/site/src/community.ts";
 import { CYANOTYPE } from "./cyanotype-review.ts";
 
+// webgoatguy's video that introduces Blueprints, which Cyanotype's About links as Hedge School's links Enclosure's
+const BLUEPRINTS_VIDEO = "https://youtu.be/6x-SPLCS3nQ";
+
 /** The addresses of the links to a Discord in `main`, in the page's order. */
 const discordLinks = (main: Locator) =>
   main.locator("a[href*='discord']").evaluateAll(links => links.map(a => a.getAttribute("href")));
@@ -39,8 +42,9 @@ test("Cyanotype's About names the players' Discord, and asks there what works", 
   await page.goto(new URL("/about", CYANOTYPE).href);
   await expect(page).toHaveTitle(/About/);
   const main = page.locator("main");
-  const designer = main.locator("p", { hasText: "Blueprints' designer is webgoatguy." });
+  const designer = main.locator("p", { hasText: "Blueprints' designer is webgoatguy, who introduces it in a video." });
   await expect(designer).toContainText("Its players meet in webgoatguy's Discord.");
+  await expect(designer.getByRole("link", { name: "introduces it in a video" })).toHaveAttribute("href", BLUEPRINTS_VIDEO);
   await expect(designer.getByRole("link", { name: "webgoatguy's Discord" })).toHaveAttribute("href", DISCORD);
   const early = main.locator("h2#early-access ~ p", { hasText: "Tell us what works" });
   await expect(early).toContainText("Tell us what works and what does not in the Discord.");
