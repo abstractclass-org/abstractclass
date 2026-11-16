@@ -12,15 +12,16 @@ export interface SearchState {
   /** The analysis is paused (`GameAnalysis.paused`): the session pauses it while the engine's switch is off, and
    *  then no search starts. */
   paused: boolean;
-  /** The engine's error (`GameAnalysis.error`), or empty. */
-  error: string;
+  /** A search that the move waits for failed (`GameAnalysis.judgeFailed`): of its own positions, until a new search
+   *  of them runs. Another move's failed search does not count. */
+  failed: boolean;
 }
 
 /** Why no search for a move can run now, or null when one can run or runs. The states where one can: the engine on,
  *  with its network loaded or still loading (a search then starts when it is loaded), and a search under way. */
-export function noSearchReason({ snapshot, paused, error }: SearchState): string | null {
+export function noSearchReason({ snapshot, paused, failed }: SearchState): string | null {
   if (snapshot) return "A review snapshot does no searches.";
-  if (error) return "The engine has an error.";
+  if (failed) return "The engine has an error.";
   if (paused) return "The engine is off. To evaluate this move, set the engine switch to on.";
   return null;
 }

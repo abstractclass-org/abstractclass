@@ -125,6 +125,9 @@ export class GameAnalysis<G extends GameTypes> {
   // not searched again for the same settings.
   timed = $state.raw<Record<string, string>>({});
   error = $state("");
+  // The positions whose last search failed (an engine error), by path key, until a new search of the position runs or
+  // takes its result from the store: only the moves that wait for them say so (judgeFailed). Another network clears them.
+  private failed = $state.raw(new Set<string>());
   focusing = $state<string | null>(null); // the path key of the position searched for the player, while it runs
   // For each position, by path key, the visits of the deepest result that the store has: a result read from it, or a
   // search's final result, whose write comes before its batch. Only such a result meets a search's budget, and the
@@ -462,6 +465,23 @@ export class GameAnalysis<G extends GameTypes> {
     return this.engineReady && !this.paused && this.greatNeeds.awaiting.has(key);
   }
 
+  /** Whether the move into the position with path key `key` waits for a search that failed (failed): of a position
+   *  that judges it (before it and after it), or of a search that its Great waits for (awaitsGreat). A failed search
+   *  of another position does not count: its moves say so alone. */
+  judgeFailed(key: string): boolean {
+    if (!this.failed.size) return false;
+    const waits = this.awaitsGreat(key) ? this.greatNeeds.awaiting.get(key)! : [];
+    return [parentKey(key), key, ...waits].some(k => this.failed.has(k));
+  }
+
+  /** Notes that the search of the position with path key `key` failed, or (`failed` false) that a new one runs. */
+  private markFailed(key: string, failed: boolean) {
+    if (this.failed.has(key) === failed) return;
+    const next = new Set(this.failed);
+    if (failed) next.add(key); else next.delete(key);
+    this.failed = next;
+  }
+
   /** The searches that the Greats ask for (confirmGreats), derived once for each change of the analysis: the page reads
    *  it twice at each result. A game position's path is built only where its first choice is the only good one.
    *  - `targets`: at each place, the position whose search confirms or refutes the gap: after the engine's second
@@ -472,13 +492,18 @@ export class GameAnalysis<G extends GameTypes> {
    *    review's game moves ask for none: its stages search that position.
    *  - `awaiting`: the path keys of the moves that the player asked for and that wait for such a search, for the
    *    confirmation after it, or for the search before them to reach the label budget (awaitsGreat). The labels show
-   *    from LABEL_VISITS on, so a move that looks like an only move in that shallower result waits: it is not Best yet. */
+   *    from LABEL_VISITS on, so a move that looks like an only move in that shallower result waits: it is not Best yet.
+   *    Each with the path keys of the positions whose searches it waits for (judgeFailed). */
   // Each target has its depth: as deep as the position after the played move or turn, which the confirmation's
   // position is compared with (equalDepth: the player may have searched that position deeper). A move that does not
   // keep what the other player's last turn gave (keepsGain) cannot be Great, so it asks for none.
   private greatNeeds = $derived.by(() => {
     const targets: { path: string[]; depth: number; judged: boolean }[] = [];
-    const earlier: string[][] = [], awaiting = new Set<string>();
+    const earlier: string[][] = [], awaiting = new Map<string, string[]>();
+    const wait = (after: string[], on: string[]) => {
+      const key = pathKey(after);
+      awaiting.set(key, [...(awaiting.get(key) ?? []), pathKey(on)]);
+    };
     const name = (e: G["move"] | null) => this.game.moveName(e);
     const shownFrom = Math.min(LABEL_VISITS, this.labelVisits); // the least visits that show a label
     // The search that a Great asks for from `path`, for the move or turn into `after`, whose first choice is the only
@@ -488,19 +513,19 @@ export class GameAnalysis<G extends GameTypes> {
                  candidate: Candidate<G["move"]>, after: string[]) => {
       if (this.bookAt(path) || this.bookAt(after)) return false; // no Great from or into the book's values (model.ts)
       if (a.visits < this.labelVisits) {
-        if (judged) awaiting.add(pathKey(after)); // the label budget's search still runs
+        if (judged) wait(after, path); // the label budget's search still runs
         return false;
       }
       const at = this.earlierPath(path, mover), before = this.earlierAt(path, mover);
       if (keepsGain(gain, before, mover, this.labelVisits)) {
         const confirm = [...path, name(candidate.edge)], depth = equalDepth(this.labelVisits, this.analysisOf(after)?.visits);
         targets.push({ path: confirm, depth, judged });
-        if (judged && (this.analysisOf(confirm)?.visits ?? 0) < depth) awaiting.add(pathKey(after));
+        if (judged && (this.analysisOf(confirm)?.visits ?? 0) < depth) wait(after, confirm);
         return true;
       }
       if (judged && at && !deepEnough(before, this.labelVisits) && this.searchable(at)) {
         earlier.push(at);
-        awaiting.add(pathKey(after));
+        wait(after, at);
       }
       return false;
     };
@@ -1011,6 +1036,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.dropThreat();
     this.pool.halt();
     this.engineReady = false;
+    this.failed = new Set(); // the old network's failures
     // The batch ends with the era: its results are dropped, and what waits for them runs now, before the reset below.
     this.batch.clear();
     this.applyBatch();
@@ -1563,12 +1589,13 @@ export class GameAnalysis<G extends GameTypes> {
     if (met()) return;
     const cached = await cacheGetAtLeast<Analysis<G["move"]>>(pool.search!, pool.model!.sha256, keyed, visits);
     if (era !== this.era) return;
-    if (cached) { this.keepStored(path, cached); this.mapAfterSearch(path); return; }
+    if (cached) { this.markFailed(at, false); this.keepStored(path, cached); this.mapAfterSearch(path); return; }
     if (met() || this.paused || !wanted()) return;
     // The engine takes its next search when this one ends: the result's write and its batch (shown) follow without it.
     // So the task gives `shown` back in an object: a task that gave the promise itself would wait for it.
     const ended = await pool.run(priority, tag, async (engine, onStop) => {
       if (met() || this.paused || !wanted() || era !== this.era) return;
+      this.markFailed(at, false); // a new search runs: an earlier one's failure no longer holds its moves
       // The time limit counts from the search's start in the worker, not from its wait in the queue. The worker keeps
       // it, and ends the search at the end of the slice in which it passes (channel.ts, searchInSlices): a timer of the
       // page would run late in a hidden tab (decisions/product.md, "A review in a hidden tab").
@@ -1606,6 +1633,11 @@ export class GameAnalysis<G extends GameTypes> {
       this.markRunning(at, visits, shown);
       await run.done;
       return { shown };
+    }).catch(e => {
+      // The engine's error, for the moves that wait for the position (judgeFailed). A search dropped before it ran, or
+      // stopped with its worker, did not fail. Nor did a search of an earlier network.
+      if (!(e instanceof Cancelled) && !(e instanceof Stopped) && era === this.era) this.markFailed(at, true);
+      throw e;
     });
     // The batch of the last run (pool.run). A run that the pool stopped to give way shows its own result alone.
     await ended?.shown;

@@ -7826,13 +7826,42 @@ abscls-8981, left by the review of abscls-tpaj.21 ("A book move takes the book's
   "Not analyzed yet".
 - **An engine error** (`GameAnalysis.error`) stays with the analysis, and the other searches go on. The analysis does
   not keep the search that failed. So after an error, a move says "The engine has an error." also while its own
-  search runs. Its label then comes as usual.
+  search runs. Its label then comes as usual. The entry "A move says that the engine has an error only for its own
+  failed search" (2026-11-17) replaces this.
 - **Not changed:** a game move in a review, which has no label yet because the review is under way, keeps its text.
   abscls-8981 covers a position that the book holds.
 - **Tests:** `searchWait.test.ts` tests the rule in each state, "Evaluating…" included. `tests/search-wait.spec.ts`
   opens the Analysis board with the engine off, by edge and by turn. On a variation and on the main line, it checks
   the text and that nothing pulses. It also opens a review with "Review for" Blue, by edge and by turn: Red's
   evaluated moves say nothing. The browser tests keep the engine off, so "Evaluating…" has the unit test alone.
+
+### A move says that the engine has an error only for its own failed search (2026-11-17)
+
+abscls-8gup, from the review of abscls-oytq.
+
+- **The fault:** a failed search set `GameAnalysis.error`, which nothing cleared, and the other searches went on.
+  The wait's text read that one error. So after one failed search, every evaluated move with no label said "Not
+  analyzed yet. The engine has an error.", also while its own search ran.
+- **The rule** (design 07, item 11): the analysis keeps the positions whose last search failed (`failed`, by path
+  key), as it keeps each map's state for the area map (`mapState`). `judgeFailed(key)` says whether the move into
+  that path key waits for such a position: the position before the move, the position after it, or a search that
+  its Great waits for (`awaitsGreat`, which now keeps the positions that each move waits for). `ReviewView.svelte`
+  asks it for the move's own edges (by turn, the turn's), and `searchWait.ts` takes the answer in the place of the
+  analysis's error. The words do not change.
+- **When it clears:** a new search of the position clears its failure when an engine starts it, or when the store
+  gives the position's result. A search dropped before it ran, or stopped with its worker, did not fail. Another
+  network (`dropAnalysis`) clears every failure.
+- **`GameAnalysis.error` stays:** the panel's "Engine error" line reads it, and the pages read it when the rules
+  refuse the game (`start`), as `exportText.ts` and `storedReview.ts` do. A failed search still sets it, so the
+  panel still says that the engine had an error. A failed search sends no error report, and the change adds none:
+  the pages report a network that does not load and a GPU that does not start (`engineError`, "load" and "gpu").
+- **Tests:** `analysis.test.ts` fails one move's search while another move's searches run: only the first move says
+  the error, and a new search of its position clears it. A failure of the position before a move marks the move, a
+  Great's failed search marks the move that waits for it, and another network clears every failure.
+  `tests/search-wait.spec.ts` opens the Analysis board with the engine on, on the CPU, and two evaluated moves from
+  the start. The page's `Worker` answers the first search of one move's position with the engine's error reply, and
+  that search never reaches the engine: no position of the game makes the engine fail by itself. Only that move
+  says the error, and after a click on it, the search of the position on screen clears it.
 
 ### A variation's label and ◆ act as its move, and its book move shows the book mark (2026-11-03)
 

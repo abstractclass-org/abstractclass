@@ -1,9 +1,12 @@
 // A move that the player asked to evaluate, with no label yet (design 07, item 11), with the engine off: no search can
 // run, so the move says "Not analyzed yet" and why, and shows no pulsing "…". The unit test of the rule is
-// packages/review/src/searchWait.test.ts, which also holds the states where a search can run ("Evaluating…"): the
-// browser tests keep the engine off. On the Analysis board, a link with the main line's first move and a variation of
-// three moves (the first turn's other move, then a turn of two), each evaluated. In a review, the same variation, with
-// "Review for" set to Blue: Red's moves show no wait, by edge and by turn.
+// packages/review/src/searchWait.test.ts, which also holds the states where a search can run ("Evaluating…"). On the
+// Analysis board, a link with the main line's first move and a variation of three moves (the first turn's other move,
+// then a turn of two), each evaluated. In a review, the same variation, with "Review for" set to Blue: Red's moves show
+// no wait, by edge and by turn. And with the engine on, on the CPU: one move's failed search. Only that move says that
+// the engine has an error, and a new search of its position clears it (GameAnalysis.judgeFailed). The page's Worker
+// gives the engine's error reply to the first search of that position, which never reaches the engine
+// (failFirstSearch): no position of the game makes the engine fail by itself.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { boardLink } from "../src/lib/game/board.ts";
@@ -83,3 +86,44 @@ for (const unit of ["edge", "turn"] as const) {
     await noWait(page);
   });
 }
+
+const ERROR = "Not analyzed yet. The engine has an error.";
+
+/** Makes the page's first search of the position after `moves` fail with the engine's error reply: the request never
+ *  reaches the engine worker. Every later search of the position runs. */
+const failFirstSearch = (page: Page, moves: string[]) => page.addInitScript(target => {
+  let failed = false;
+  const Real = window.Worker;
+  window.Worker = class extends Real {
+    postMessage(message: unknown, options?: Transferable[] | StructuredSerializeOptions) {
+      const m = message as { id: number; request?: { maxVisits?: number; moves?: string[] } };
+      if (!failed && m.request?.maxVisits && m.request.moves?.join(" ") === target) {
+        failed = true;
+        // The engine's error reply, as the worker sends it (packages/engine/src/channel.ts, client.ts): the reply keeps
+        // the request's own id ("a"), and the channel's message keeps the call's id.
+        const reply = { id: "a", error: "the test failed this search" };
+        const data = { type: "reply", id: m.id, reply, ms: 0, memory: 0 };
+        setTimeout(() => this.dispatchEvent(new MessageEvent("message", { data })));
+        return;
+      }
+      // Both of Worker's forms, as in cyanotype-home.spec.ts: the if only picks super's overload for each form.
+      if (Array.isArray(options)) super.postMessage(message, options); else super.postMessage(message, options);
+    }
+  };
+}, moves.join(" "));
+
+test("with the engine on, a failed search marks only its own move, until a new search of its position", async ({ page }) => {
+  await keepBefore(page, CONSENT_KEY, { games: "denied" });
+  await keepBefore(page, ENGINE_KEY, { on: true, review: "lite", gpu: "off" });
+  await keepBefore(page, DISPLAY_KEY, { judge: "edge", branchForm: "text", areaMap: { review: false, board: false } });
+  await failFirstSearch(page, ["D10-G12"]);
+  // The main line's A10-D9 and the variation D10-G12, both evaluated, from the start on screen
+  await page.goto(boardLink("", { version: 2, main: [], nodes: [["A10-D9", 0, 1], ["D10-G12", 1, 1]] }, 0));
+  await expect(page.locator('button.mv[data-path="D10-G12"]')).toHaveAttribute("title", new RegExp(`^${ERROR}`), { timeout: 180_000 });
+  await expect(page.getByRole("alert").filter({ hasText: "Engine error: the test failed this search" })).toBeVisible();
+  // The other move's searches run on: it says no error
+  expect(await title(page, "A10-D9")).not.toContain(ERROR);
+  // The position on screen gets a new search: the move says the error no more
+  await page.locator('button.mv[data-path="D10-G12"]').click();
+  await expect.poll(() => title(page, "D10-G12"), { timeout: 60_000 }).not.toContain(ERROR);
+});

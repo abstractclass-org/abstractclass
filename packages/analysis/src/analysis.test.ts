@@ -645,6 +645,46 @@ test("a search that fails ends its marks in the next batch, and the page gets th
   assert.match(game.error, /the engine failed/);
 });
 
+test("a failed search marks only the moves that its position judges, until a new search of the position runs", async () => {
+  const { game, searches } = await greatBranch();
+  await game.addLine(["a", "x"], false);
+  await game.addLine(["a", "b", "y"], false);
+  await game.judge(["a", "x"]);
+  await game.judge(["a", "b", "y"]);
+  await turns();
+  const search = (moves: string) => searches.findLast(s => s.moves.join(" ") === moves)!;
+  const failed = () => [game.judgeFailed("a x"), game.judgeFailed("a b y")];
+  assert.deepEqual(failed(), [false, false]);
+  search("a x").fail(new Error("the engine failed"));
+  await turns();
+  // The move into the failed position says so. The other move's searches run on: it does not.
+  assert.deepEqual(failed(), [true, false]);
+  assert.match(game.error, /the engine failed/); // the page's engine error, as before
+  // A new search of the failed position clears it while it runs: here the position on screen's.
+  game.focus(["a", "x"]);
+  await turns();
+  assert.deepEqual(failed(), [false, false]);
+  // A failure of the position before a move marks the move too, and another network clears every mark.
+  search("a b").fail(new Error("the engine failed"));
+  await turns();
+  assert.deepEqual(failed(), [false, true]);
+  game.dropAnalysis();
+  assert.deepEqual(failed(), [false, false]);
+});
+
+test("a move that waits for its Great's search says the error of that search", async () => {
+  const { game, at, asked, searches, branchX } = await greatBranch();
+  await branchX(at(0.6), true);
+  // x is the only good move after a b, and the position before the other player's last turn ("a") has no result: the
+  // move waits for its search.
+  game.analysis = [at(0.5), undefined, at(0.6, [["x", 0.6], ["z", 0.45]]), at(0.6), at(0.6)];
+  assert.ok((await asked()).includes("a"));
+  assert.equal(game.awaitsGreat("a b x"), true);
+  searches.findLast(s => s.moves.join(" ") === "a")!.fail(new Error("the engine failed"));
+  await turns();
+  assert.equal(game.judgeFailed("a b x"), true);
+});
+
 /** Ends the searches `from` to `to` (not included) one at a time, at `visits`, each once the engine has it. */
 async function endEach(searches: { end(visits: number): void }[], from: number, to: number, visits: number) {
   for (let k = from; k < to; k++) {

@@ -60,6 +60,7 @@
     analysisOf(path: string[]): Analysis<G["move"]> | undefined; // a position's analysis, with the moves that give one position as twins
     nodesOf(path: string[]): string[]; // the path along the tree's nodes, where its moves give their positions
     awaitsGreat(key: string): boolean; // the move into this path key waits for the searches of its Great
+    judgeFailed(key: string): boolean; // a search that the move into this path key waits for failed, and none runs since
     turnKeys(path: string[]): string[]; // the variation moves that evaluating this move's quality judges
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
     stoppedByTime(path: string[]): boolean; // the position's search stopped at its time limit
@@ -1715,13 +1716,15 @@
   // Why no search for a move can run now (searchWait.ts), or null when one can run or runs: a move that the player
   // asked to evaluate says "Evaluating…" and pulses only then (design 07, item 11). The engine's switch is its pause
   // (the session gives the analysis the switch), and a network that loads still counts: its search starts when it is
-  // loaded. A page that holds the engine with its switch on says why (`engineNote`): its switch is not off.
-  const whyNoSearch = $derived(noSearchReason({ snapshot: !!snapshot, paused: !!game?.paused && !engineNote, error: game?.error ?? "" })
-                               ?? (game?.paused ? engineNote : null));
+  // loaded. A page that holds the engine with its switch on says why (`engineNote`): its switch is not off. `keys`: the
+  // path keys of the move's edges (a turn's, by turn). The move says that the engine has an error only where a search
+  // that it waits for failed (judgeFailed): another move's failed search does not stop its own.
+  const whyNoSearch = (keys: string[]) =>
+    noSearchReason({ snapshot: !!snapshot, paused: !!game?.paused && !engineNote, failed: keys.some(k => !!game?.judgeFailed(k)) })
+    ?? (game?.paused ? engineNote : null);
   // The text of an asked-for move with no label yet. A review's game moves keep "Not analyzed yet": the review is
   // under way, and they are not asked for.
-  const unlabeled = $derived(unlabeledText(whyNoSearch));
-  const mainUnlabeled = $derived(board ? unlabeled : NOT_ANALYZED);
+  const mainUnlabeled = (keys: string[]) => (board ? unlabeledText(whyNoSearch(keys)) : NOT_ANALYZED);
   // A slider's place while it moves, by its id: the setting changes when it is let go, so that a drag does not restart
   // the workers or the search at each step.
   let drafts = $state<Record<string, number>>({});
@@ -2033,7 +2036,7 @@
           {@const end = t.edges.at(-1)!.index}
           <!-- A turn of book moves only: the mark, with the position symbol after the turn. -->
           {@const bookAfter = t.edges.every(e => bookMoves.has(e.index)) ? bookMoves.get(end) : undefined}
-          {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : !board || t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? mainUnlabeled : "",
+          {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : !board || t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? mainUnlabeled(t.edges.map(e => mainKeys[e.index + 1])) : "",
                                 board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}
           {@const loss = lossShort(t)}
           {@const slotted = !!t.label && (bookAfter !== undefined || listed(t.label))}
@@ -2172,7 +2175,7 @@
   {#each t.edges as e (e.index)}
     {@const words = leadOrResult(e.index + 1)}
     {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
-    {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : mainUnlabeled) : ""}
+    {@const judged = unit === "edge" && forSide(e.player) && asked ? (e.label ? `${LABEL_TEXT[e.label]}: ${costText(e.rawLoss, e.rawPoints)}` : mainUnlabeled([mainKeys[e.index + 1]])) : ""}
     {@const shown = forSide(e.player) ? e.label : null}
     {@const bookAfter = bookMoves.get(e.index)}
     <!-- On the board too, where the position has a result: from the complexity, as the board's `hard` is the record's,
@@ -2239,7 +2242,9 @@
         {@const sideShown = !node || forSide(node.move.player)}
         {@const label = !sideShown ? null : unit === "edge" ? branchLabel(p) : bt?.judgment?.label ?? null}
         {@const waiting = sideShown && (unit === "edge" ? !!node?.judged && !label : !!bt && !bt.judgment)}
-        {@const status = label ? LABEL_TEXT[label] : waiting ? unlabeled : ""}
+        <!-- Why no search for the waiting move can run (whyNoSearch), from its own edges' searches: by turn, the turn's -->
+        {@const why = waiting ? whyNoSearch(bt?.paths.map(pathKey) ?? [pathKey(p)]) : undefined}
+        {@const status = label ? LABEL_TEXT[label] : why !== undefined ? unlabeledText(why) : ""}
         {@const hardness = branchHardness(p)}
         {#if node}
           {@const key = pathKey(p)}
@@ -2255,10 +2260,10 @@
                glyph (`fit`), not as its line: a label then keeps the row's height. A variation's parts have no fixed
                slots: its rows do not line up in columns. -->
           {@const slotted = bookAfter !== undefined || listed(label)}
-          {@const pulse = !slotted && waiting && whyNoSearch === null}
+          {@const pulse = !slotted && why === null}
           {#snippet judgement(tip: string | undefined)}
             {#if slotted}{@render labelSlot(label, tip, bookAfter, `text-[0.9em] ${fit}`)}
-            {:else if pulse}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={unlabeled}>…</span>{/if}
+            {:else if pulse}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={status}>…</span>{/if}
             {#if hardness?.hard}<span class={["text-[0.8em] text-muted", fit]} title={HARD_NOTE}>◆</span>{/if}
           {/snippet}
           {@const box = ["flex items-center bg-transparent border-0", SIDE_TEXT[node.move.player],
