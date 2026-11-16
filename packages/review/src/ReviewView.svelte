@@ -2036,7 +2036,8 @@
           {@const end = t.edges.at(-1)!.index}
           <!-- A turn of book moves only: the mark, with the position symbol after the turn. -->
           {@const bookAfter = t.edges.every(e => bookMoves.has(e.index)) ? bookMoves.get(end) : undefined}
-          {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : !board || t.edges.every(e => board.judged[mainKeys[e.index + 1]]) ? mainUnlabeled(t.edges.map(e => mainKeys[e.index + 1])) : "",
+          {@const keys = t.edges.map(e => mainKeys[e.index + 1])}
+          {@const tip = tooltip(t.label ? `${LABEL_TEXT[t.label]}: ${turnCost(t)}` : !board || keys.every(k => board.judged[k]) ? mainUnlabeled(keys) : "",
                                 board ? searchNote(hard, t.edges.map(e => R.data.analysis[e.index])) : "")}
           {@const loss = lossShort(t)}
           {@const slotted = !!t.label && (bookAfter !== undefined || listed(t.label))}
@@ -2243,8 +2244,8 @@
         {@const label = !sideShown ? null : unit === "edge" ? branchLabel(p) : bt?.judgment?.label ?? null}
         {@const waiting = sideShown && (unit === "edge" ? !!node?.judged && !label : !!bt && !bt.judgment)}
         <!-- Why no search for the waiting move can run (whyNoSearch), from its own edges' searches: by turn, the turn's -->
-        {@const why = waiting ? whyNoSearch(bt?.paths.map(pathKey) ?? [pathKey(p)]) : undefined}
-        {@const status = label ? LABEL_TEXT[label] : why !== undefined ? unlabeledText(why) : ""}
+        {@const why = waiting ? whyNoSearch(bt?.paths.map(pathKey) ?? [pathKey(p)]) : null}
+        {@const status = label ? LABEL_TEXT[label] : waiting ? unlabeledText(why) : ""}
         {@const hardness = branchHardness(p)}
         {#if node}
           {@const key = pathKey(p)}
@@ -2260,7 +2261,7 @@
                glyph (`fit`), not as its line: a label then keeps the row's height. A variation's parts have no fixed
                slots: its rows do not line up in columns. -->
           {@const slotted = bookAfter !== undefined || listed(label)}
-          {@const pulse = !slotted && why === null}
+          {@const pulse = !slotted && waiting && why === null}
           {#snippet judgement(tip: string | undefined)}
             {#if slotted}{@render labelSlot(label, tip, bookAfter, `text-[0.9em] ${fit}`)}
             {:else if pulse}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={status}>…</span>{/if}

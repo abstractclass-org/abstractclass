@@ -159,7 +159,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     (the engine's switch is its pause), "The engine has an error." and "A review snapshot does no searches."
     (`searchWait.ts`). A move says that the engine has an error only when a search that the move waits for failed: the
     search of the position before it or after it, or a search that its Great waits for (`GameAnalysis.judgeFailed`).
-    The failure stays until a new search of that position runs, or until the store gives the position's result.
+    The failure stays until a new search of that position runs, until a search of it gives a result (also one that
+    ran when the other failed), or until the store gives the position's result.
     Another move's failed search does not change the move's text, and another network clears every failure. The
     panel's "Engine error" line shows the last error of the analysis. The rule is the same by edge and by turn
     (design 06, item 8), in the review and on the Analysis board. The board's main-line moves that the player

@@ -51,6 +51,9 @@ const SLICE_VISITS = 32;
  *  take it as done and do not search it again. Enclosure's searches always reach their budget. */
 const endedAt = <M>(a: Analysis<M>, reply: { terminated?: boolean }, visits: number): Analysis<M> =>
   !reply.terminated && a.visits < visits ? { ...a, visits } : a;
+/** Whether a task's error is no engine error: the pool dropped the task before it ran (Cancelled), or ended its worker
+ *  for another pool (Stopped). */
+const notRun = (e: unknown) => e instanceof Cancelled || e instanceof Stopped;
 // The searches' results are applied together, at most this often: their results so far and their final results, with
 // what a search's end changes (the stages' progress, its mark). With every worker and the GPU's 16 searches posting a
 // slice, results come tens of times a second, the sweep's searches end one after another, and each change of the
@@ -125,8 +128,9 @@ export class GameAnalysis<G extends GameTypes> {
   // not searched again for the same settings.
   timed = $state.raw<Record<string, string>>({});
   error = $state("");
-  // The positions whose last search failed (an engine error), by path key, until a new search of the position runs or
-  // takes its result from the store: only the moves that wait for them say so (judgeFailed). Another network clears them.
+  // The positions whose last search failed (an engine error), by path key, until a new search of the position runs, a
+  // search of it gives a result (one that ran when the other failed too), or the store gives its result: only the
+  // moves that wait for them say so (judgeFailed). Another network clears them.
   private failed = $state.raw(new Set<string>());
   focusing = $state<string | null>(null); // the path key of the position searched for the player, while it runs
   // For each position, by path key, the visits of the deepest result that the store has: a result read from it, or a
@@ -470,8 +474,9 @@ export class GameAnalysis<G extends GameTypes> {
    *  of another position does not count: its moves say so alone. */
   judgeFailed(key: string): boolean {
     if (!this.failed.size) return false;
-    const waits = this.awaitsGreat(key) ? this.greatNeeds.awaiting.get(key)! : [];
-    return [parentKey(key), key, ...waits].some(k => this.failed.has(k));
+    const failed = (k: string) => this.failed.has(k);
+    return failed(parentKey(key)) || failed(key)
+      || (this.awaitsGreat(key) && this.greatNeeds.awaiting.get(key)!.some(failed));
   }
 
   /** Notes that the search of the position with path key `key` failed, or (`failed` false) that a new one runs. */
@@ -1036,7 +1041,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.dropThreat();
     this.pool.halt();
     this.engineReady = false;
-    this.failed = new Set(); // the old network's failures
+    if (this.failed.size) this.failed = new Set(); // the old network's failures
     // The batch ends with the era: its results are dropped, and what waits for them runs now, before the reset below.
     this.batch.clear();
     this.applyBatch();
@@ -1223,7 +1228,7 @@ export class GameAnalysis<G extends GameTypes> {
       else this.walls = { ...this.walls, [key]: reply.weakWalls as G["walls"] };
     }, { cpu: true })
       .catch(e => {
-        if (e instanceof Cancelled || e instanceof Stopped || era !== this.era) { tried = false; return; }
+        if (notRun(e) || era !== this.era) { tried = false; return; }
         // The engine refuses the field by its name where its backend does not give the walls (the GPU module's)
         if (e instanceof EngineError && e.field === "includeWeakWalls") this.wallsUnsupported = true;
         else if (this.known(path)) this.fail(e); // an engine error, as a map's (addMap): the page shows it
@@ -1338,7 +1343,7 @@ export class GameAnalysis<G extends GameTypes> {
     })()
       // A position after a candidate can end the game, and the engine searches no ended position: it has no map
       .catch(e => {
-        if (e instanceof Cancelled || e instanceof Stopped) return;
+        if (notRun(e)) return;
         tried = true;
         if (inTree) this.fail(e);
         else this.mapless = new Set(this.mapless).add(key);
@@ -1562,9 +1567,9 @@ export class GameAnalysis<G extends GameTypes> {
     return positions.slice(1).map(p => this.game.step(p));
   }
 
-  /** Keeps an engine error for the page. A task cancelled before it ran, or a worker ended for another pool, is not one. */
+  /** Keeps an engine error for the page. A task that did not run (notRun) has none. */
   private fail = (e: unknown) => {
-    if (!(e instanceof Cancelled) && !(e instanceof Stopped)) this.error = errorText(e);
+    if (!notRun(e)) this.error = errorText(e);
   };
 
   /** Searches the position at `path` to `visits`, or takes the result from the cache. The budget is met only by a
@@ -1602,6 +1607,7 @@ export class GameAnalysis<G extends GameTypes> {
       const run = engine.analyse(this.searchQuery(path, visits, slice),
                                  r => {
                                    if (era !== this.era) return;
+                                   this.markFailed(at, false); // a result: another search's failure holds no more
                                    this.toBatch(at, r.rootInfo.visits, () => {
                                      const a = toAnalysis(this.game, r);
                                      this.keep(path, a);
@@ -1614,6 +1620,7 @@ export class GameAnalysis<G extends GameTypes> {
       const shown = run.done.then(async t => {
         const a = endedAt(toAnalysis(this.game, t.reply), t.reply, visits), final = !t.reply.terminated && a.visits >= visits;
         if (era !== this.era) return;
+        this.markFailed(at, false); // as for its results so far
         // The write first: the result and the stages' progress show only once it is stored, so that the game's mark
         // (markReviewed) comes after every result it covers. The end of the search's marks (markRunning, focus) then
         // follows in microtasks, before the batch.
@@ -1635,8 +1642,8 @@ export class GameAnalysis<G extends GameTypes> {
       return { shown };
     }).catch(e => {
       // The engine's error, for the moves that wait for the position (judgeFailed). A search dropped before it ran, or
-      // stopped with its worker, did not fail. Nor did a search of an earlier network.
-      if (!(e instanceof Cancelled) && !(e instanceof Stopped) && era === this.era) this.markFailed(at, true);
+      // stopped with its worker, did not fail (notRun). Nor did a search of an earlier network.
+      if (!notRun(e) && era === this.era) this.markFailed(at, true);
       throw e;
     });
     // The batch of the last run (pool.run). A run that the pool stopped to give way shows its own result alone.

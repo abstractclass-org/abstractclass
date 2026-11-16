@@ -99,9 +99,9 @@ const failFirstSearch = (page: Page, moves: string[]) => page.addInitScript(targ
       const m = message as { id: number; request?: { maxVisits?: number; moves?: string[] } };
       if (!failed && m.request?.maxVisits && m.request.moves?.join(" ") === target) {
         failed = true;
-        // The engine's error reply, as the worker sends it (packages/engine/src/channel.ts, client.ts): the reply keeps
-        // the request's own id ("a"), and the channel's message keeps the call's id.
-        const reply = { id: "a", error: "the test failed this search" };
+        // The engine's error reply, as the worker sends it (packages/engine/src/worker.ts, and channel.ts's
+        // searchInSlices, which sends the search as `q` and the message's id): the channel's message keeps that id too.
+        const reply = { id: `q${m.id}`, error: "the test failed this search" };
         const data = { type: "reply", id: m.id, reply, ms: 0, memory: 0 };
         setTimeout(() => this.dispatchEvent(new MessageEvent("message", { data })));
         return;

@@ -7848,16 +7848,18 @@ abscls-8gup, from the review of abscls-oytq.
   its Great waits for (`awaitsGreat`, which now keeps the positions that each move waits for). `ReviewView.svelte`
   asks it for the move's own edges (by turn, the turn's), and `searchWait.ts` takes the answer in the place of the
   analysis's error. The words do not change.
-- **When it clears:** a new search of the position clears its failure when an engine starts it, or when the store
-  gives the position's result. A search dropped before it ran, or stopped with its worker, did not fail. Another
-  network (`dropAnalysis`) clears every failure.
+- **When it clears:** a new search of the position clears its failure when an engine starts it. A result of any
+  search of the position clears it too, also of a search that ran when the other one failed: the engine searches the
+  position, and that search's label is to come. The store's result of the position clears it. A search dropped
+  before it ran, or stopped with its worker, did not fail. Another network (`dropAnalysis`) clears every failure.
 - **`GameAnalysis.error` stays:** the panel's "Engine error" line reads it, and the pages read it when the rules
   refuse the game (`start`), as `exportText.ts` and `storedReview.ts` do. A failed search still sets it, so the
   panel still says that the engine had an error. A failed search sends no error report, and the change adds none:
   the pages report a network that does not load and a GPU that does not start (`engineError`, "load" and "gpu").
 - **Tests:** `analysis.test.ts` fails one move's search while another move's searches run: only the first move says
   the error, and a new search of its position clears it. A failure of the position before a move marks the move, a
-  Great's failed search marks the move that waits for it, and another network clears every failure.
+  Great's failed search marks the move that waits for it, and another network clears every failure. A result of the
+  position's other search, which ran before the failure, clears it too.
   `tests/search-wait.spec.ts` opens the Analysis board with the engine on, on the CPU, and two evaluated moves from
   the start. The page's `Worker` answers the first search of one move's position with the engine's error reply, and
   that search never reaches the engine: no position of the game makes the engine fail by itself. Only that move

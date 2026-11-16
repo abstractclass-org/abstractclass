@@ -672,6 +672,26 @@ test("a failed search marks only the moves that its position judges, until a new
   assert.deepEqual(failed(), [false, false]);
 });
 
+test("a result of another search of the failed position clears its failure, also from a search that ran before", async () => {
+  const { game, searches } = await greatBranch();
+  await game.addLine(["a", "x"], false);
+  await game.judge(["a", "x"]);
+  await turns();
+  const of = () => searches.filter(s => s.moves.join(" ") === "a x");
+  const judged = of().at(-1)!;
+  // The position on screen's search of the same position, which runs on while the move's own search fails
+  game.focus(["a", "x"]);
+  await turns();
+  const focus = of().at(-1)!;
+  assert.notEqual(focus, judged);
+  judged.fail(new Error("the engine failed"));
+  await turns();
+  assert.equal(game.judgeFailed("a x"), true);
+  focus.partial(32);
+  await turns();
+  assert.equal(game.judgeFailed("a x"), false);
+});
+
 test("a move that waits for its Great's search says the error of that search", async () => {
   const { game, at, asked, searches, branchX } = await greatBranch();
   await branchX(at(0.6), true);
