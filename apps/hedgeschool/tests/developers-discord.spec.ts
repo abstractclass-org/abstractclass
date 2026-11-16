@@ -1,11 +1,15 @@
 // The Discord on both sites' pages for developers (Hedge School's design 18, and Cyanotype's design 33, "Partner
 // sites", item 9): the partners' test asks there for the test address, and the partner list says to ask there to join
 // it. Both games have the same designer and the same community, so both pages link the one address that
-// @abstractclass/site/community.ts holds. Run: npx playwright test tests/developers-discord.spec.ts, with
-// CYANOTYPE_BASE_URL for Cyanotype's cases.
-import { expect, test } from "./page-log.ts";
+// @abstractclass/site/community.ts holds. Cyanotype's About and Privacy link it too, as Hedge School's do. Run:
+// npx playwright test tests/developers-discord.spec.ts, with CYANOTYPE_BASE_URL for Cyanotype's cases.
+import { expect, test, type Locator } from "./page-log.ts";
 import { DISCORD } from "../../../packages/site/src/community.ts";
 import { CYANOTYPE } from "./cyanotype-review.ts";
+
+/** The addresses of the links to a Discord in `main`, in the page's order. */
+const discordLinks = (main: Locator) =>
+  main.locator("a[href*='discord']").evaluateAll(links => links.map(a => a.getAttribute("href")));
 
 for (const site of ["Hedge School", "Cyanotype"]) {
   test(`${site}'s page for developers asks in the Discord for the test address and to join the partner list`,
@@ -24,9 +28,7 @@ for (const site of ["Hedge School", "Cyanotype"]) {
       await expect(list).toContainText(/ask in the Discord to join the list/);
       await expect(list.getByRole("link", { name: "ask in the Discord" })).toHaveAttribute("href", DISCORD);
       // The page's only links to a Discord are these two, and neither names another address.
-      const discords = await main.locator("a[href*='discord']")
-        .evaluateAll(links => links.map(a => a.getAttribute("href")));
-      expect(discords).toEqual([DISCORD, DISCORD]);
+      expect(await discordLinks(main)).toEqual([DISCORD, DISCORD]);
     });
 }
 
@@ -44,9 +46,7 @@ test("Cyanotype's About names the players' Discord, and asks there what works", 
   await expect(early).toContainText("Tell us what works and what does not in the Discord.");
   await expect(early.getByRole("link", { name: "the Discord" })).toHaveAttribute("href", DISCORD);
   // The page's only links to a Discord are these two.
-  const discords = await main.locator("a[href*='discord']")
-    .evaluateAll(links => links.map(a => a.getAttribute("href")));
-  expect(discords).toEqual([DISCORD, DISCORD]);
+  expect(await discordLinks(main)).toEqual([DISCORD, DISCORD]);
 });
 
 test("Cyanotype's Privacy sends questions to the players' Discord", async ({ page }) => {

@@ -2,8 +2,8 @@
   // About Cyanotype (design 33): what the site does, the logo's full print at 96 pixels with a sentence on its name
   // (as Hedge School's About page shows its collie), the early access (the header's "Early Access" link leads to its
   // section, as Hedge School's), the game, how a review works (with the link to its page, as Hedge School's) and the
-  // engine. The players' Discord is Hedge School's: both games have the same designer and the same community
-  // (@abstractclass/site/community.ts). The page names it in Hedge School's words.
+  // engine. It names the players' Discord, which both sites share (@abstractclass/site/community.ts), in Hedge
+  // School's words.
   import Logo from "#lib/brand/Logo.svelte";
   import { PROSE } from "@abstractclass/site/prose.ts";
   import { DISCORD } from "@abstractclass/site/community.ts";

@@ -1279,9 +1279,9 @@ Enclosure's alone.
    to ask there to join it, in Hedge School's words. The shared sections (`Testing.svelte`, `SaveBack.svelte`) write
    both sentences. The list stays empty until a partner joins. The address is one constant in
    `packages/site/src/community.ts`, which both sites import (design 29, item 11). The About and Privacy pages name
-   the Discord as Hedge School's do. **Open, one gap from
-   Hedge School's page:** the list of changes has one item, the first release, with no date (Hedge School dates each
-   item, design 18, item 9). The date comes with the release (abscls-8tl1.20).
+   the Discord as Hedge School's do. **Open, one gap from Hedge School's page:** the list of changes has one item, the
+   first release, with no date (Hedge School dates each item, design 18, item 9). The date comes with the release
+   (abscls-8tl1.20).
 10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
     a partner. Cyanotype's analytics are built ("Analytics and consent"), so the partner parts add these events.
 11. **Buttons as a kit, not a widget:** four labels (choice 3), the site's head as a file, a sample style and the

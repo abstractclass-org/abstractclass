@@ -7,8 +7,8 @@
   // (@abstractclass/site/KofiPrivacy.svelte). The section on addresses follows Cyanotype's code: the tools' import
   // address (@abstractclass/import/bookmarklet.ts and userscript.ts), the import page's version check (routes/import),
   // the share links (game/share.ts, game/board.ts), and a partner site's link and "Save to" (game/partners.ts, design
-  // 33, "Partner sites"). Questions go to the players' Discord, Hedge School's, as both games have the same
-  // designer and the same community (@abstractclass/site/community.ts).
+  // 33, "Partner sites"). Questions go to the players' Discord, which both sites share
+  // (@abstractclass/site/community.ts).
   import { PROSE } from "@abstractclass/site/prose.ts";
   import { DISCORD } from "@abstractclass/site/community.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";

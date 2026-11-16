@@ -3,9 +3,9 @@
   // sends a game here, the link to the Analysis board, the messages that save a review back to a partner site and open
   // it again from there, the buttons with the logo (its file is static/brand/cyanotype.svg, written by
   // scripts/brand.mjs), the partners' test, and what can change. The sections are shared with Hedge School's page
-  // (@abstractclass/import/developers), with the players' Discord: Hedge School's, as both games have the same designer
-  // and the same community (@abstractclass/site/community.ts). A developer asks there for a test address and to join
-  // the partner list, which is empty (game/partners.ts). This page gives Blueprints' parts: its games' refusals, what
+  // (@abstractclass/import/developers), with the players' Discord, which both sites share
+  // (@abstractclass/site/community.ts). A developer asks there for a test address and to join the partner list, which
+  // is empty (game/partners.ts). This page gives Blueprints' parts: its games' refusals, what
   // its reader takes, its buttons' class name and head, and its list of changes. The examples name the live site's
   // address, which a partner's code names. A partner tests against a deployment of the branch partner_test (design 33,
   // "Partner sites"), whose address the page does not give.
