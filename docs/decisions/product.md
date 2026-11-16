@@ -12291,8 +12291,8 @@ abscls-8tl1.104. Design 33 ("The image of a line", item 1) changed.
   marks"). Its image of a line did not: the shared board of an image (`ImageBoard` in
   `packages/review/src/game.ts`) had no field for it. So the image of the position after a turn's second move marked
   that move only, and the page marked both moves of the turn.
-- **Decided:** the image shows the board as the page shows it. `ImageBoard` has an optional field `earlier`, the
-  moves of the turn before `last`, as the board's own `earlier`. The review's view gives it with `last`: while no move
+- **Decided:** the image shows the board as the page shows it. `ImageBoard` has a field `earlier`, the moves of
+  the turn before `last`, as the board's own `earlier`. The review's view gives it with `last`: while no move
   of the line is drawn (an image with no line, and the start's frame of the animated image). The other frames draw
   the line's moves numbered on the position where the line starts, and mark no move that led there, as before.
   Cyanotype's image draws the field `earlier` as its board does: the outline of each placement, and in the hands the

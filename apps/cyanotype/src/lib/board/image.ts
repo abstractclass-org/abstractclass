@@ -44,7 +44,7 @@ export const imageBoard = (b: ImageBoard<Blueprints>, all: readonly ImageBoard<B
   ComponentProps<typeof Board> => ({
   position: b.position,
   last: b.last?.drawn ?? null,
-  earlier: (b.earlier ?? []).map(m => m.drawn),
+  earlier: b.earlier.map(m => m.drawn),
   line: lineOf(b),
   notes: b.notes,
   still: true,

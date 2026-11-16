@@ -238,15 +238,16 @@ export interface WallParts<G extends ViewTypes> {
   legend(walls: G["walls"]): string; // the legend's words while the weak walls show: what the marks mean, or that none shows
 }
 
-/** A board drawn for an image of a line: the position where the line starts, the move that led there (drawn while
- *  no move of the line is), the line's moves drawn, the player's notes, and the board's layers. */
+/** A board drawn for an image of a line: the position where the line starts, the move that led there and the earlier
+ *  moves of its turn (drawn while no move of the line is), the line's moves drawn, the player's notes, and the board's
+ *  layers. */
 export interface ImageBoard<G extends ViewTypes> {
   position: G["position"];
   last: G["played"] | null;
-  // The moves of the same turn before `last`, as BoardProps' `earlier`: given with `last`, and empty while it is null. A
-  // site whose board marks them with the last move draws them (Cyanotype's). Hedge School's image draws the last edge
-  // alone, as its board does.
-  earlier?: G["played"][];
+  // The moves of the same turn before `last`, as BoardProps' `earlier`: given with `last`, and empty while it is
+  // null. A site whose board marks them with the last move draws them (Cyanotype's). Hedge School's image draws the
+  // last edge alone, as its board does.
+  earlier: G["played"][];
   line: LineMove<G>[];
   notes: G["note"][];
   layers: G["display"]["layers"];

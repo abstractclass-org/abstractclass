@@ -941,10 +941,9 @@ gives its own parts:
    player's notes. No candidates and no labels. While no move of the line is drawn (an image with no line, and the
    start's frame of the animated image), the board marks the move that led to the position and the earlier move of
    its turn, as the board on the page marks the turn's moves ("Turn's marks" in Blueprints' glossary). The shared
-   board of an image (`ImageBoard` in `packages/review/src/game.ts`) gives the earlier move in its optional field
-   `earlier`. Hedge School's image does not read it: its board marks the last edge alone. The board is square, as
-   Hedge School's is: 600 pixels on a side as it is drawn, with one hand in a row above the field and one below it,
-   as on a phone.
+   board of an image (`ImageBoard` in `packages/review/src/game.ts`) gives the earlier move in its field `earlier`.
+   Hedge School's image does not read it: its board marks the last edge alone. The board is square, as Hedge School's
+   is: 600 pixels on a side as it is drawn, with one hand in a row above the field and one below it, as on a phone.
 2. **The fit holds the line.** The board's fit holds the position's cells and also each placement of the line, so the
    image shows each move that it numbers. Each frame of the animated image has the same view: its fit holds the whole
    line's placements, and the captures of the move before the line, as the board on screen keeps its view while a line
