@@ -128,9 +128,9 @@ export class GameAnalysis<G extends GameTypes> {
   // not searched again for the same settings.
   timed = $state.raw<Record<string, string>>({});
   error = $state("");
-  // The positions whose last search failed (an engine error), by path key, until a new search of the position runs, a
-  // search of it gives a result (one that ran when the other failed too), or the store gives its result: only the
-  // moves that wait for them say so (judgeFailed). Another network clears them.
+  // The positions whose last search failed (an engine error), by path key. Only the moves that wait for them say so
+  // (judgeFailed). A position's mark clears when a new search of it runs. A result of the position clears it too:
+  // from any search of it (also one that ran when the other failed), or from the store. Another network clears all.
   private failed = $state.raw(new Set<string>());
   focusing = $state<string | null>(null); // the path key of the position searched for the player, while it runs
   // For each position, by path key, the visits of the deepest result that the store has: a result read from it, or a
@@ -474,12 +474,13 @@ export class GameAnalysis<G extends GameTypes> {
    *  of another position does not count: its moves say so alone. */
   judgeFailed(key: string): boolean {
     if (!this.failed.size) return false;
-    const failed = (k: string) => this.failed.has(k);
-    return failed(parentKey(key)) || failed(key)
-      || (this.awaitsGreat(key) && this.greatNeeds.awaiting.get(key)!.some(failed));
+    const hasFailed = (k: string) => this.failed.has(k);
+    return hasFailed(parentKey(key)) || hasFailed(key)
+      || (this.awaitsGreat(key) && this.greatNeeds.awaiting.get(key)!.some(hasFailed));
   }
 
-  /** Notes that the search of the position with path key `key` failed, or (`failed` false) that a new one runs. */
+  /** Notes that the search of the position with path key `key` failed, or (`failed` false) that the failure no longer
+   *  holds: a new search runs, or a result came. */
   private markFailed(key: string, failed: boolean) {
     if (this.failed.has(key) === failed) return;
     const next = new Set(this.failed);
@@ -498,7 +499,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  - `awaiting`: the path keys of the moves that the player asked for and that wait for such a search, for the
    *    confirmation after it, or for the search before them to reach the label budget (awaitsGreat). The labels show
    *    from LABEL_VISITS on, so a move that looks like an only move in that shallower result waits: it is not Best yet.
-   *    Each with the path keys of the positions whose searches it waits for (judgeFailed). */
+   *    Each move keeps the path keys of the positions whose searches it waits for (judgeFailed). */
   // Each target has its depth: as deep as the position after the played move or turn, which the confirmation's
   // position is compared with (equalDepth: the player may have searched that position deeper). A move that does not
   // keep what the other player's last turn gave (keepsGain) cannot be Great, so it asks for none.
@@ -621,8 +622,9 @@ export class GameAnalysis<G extends GameTypes> {
     await Promise.all(this.greatNeeds.targets.map(t => take(t.path)));
   }
 
-  /** Keeps a result that the store has (stored). */
+  /** Keeps a result that the store has (stored): a failed search of the position no longer holds its moves (failed). */
   private keepStored(path: string[], a: Analysis<G["move"]>) {
+    this.markFailed(pathKey(path), false);
     this.keep(path, a);
     this.noteStored(pathKey(path), a.visits);
   }
@@ -1594,7 +1596,7 @@ export class GameAnalysis<G extends GameTypes> {
     if (met()) return;
     const cached = await cacheGetAtLeast<Analysis<G["move"]>>(pool.search!, pool.model!.sha256, keyed, visits);
     if (era !== this.era) return;
-    if (cached) { this.markFailed(at, false); this.keepStored(path, cached); this.mapAfterSearch(path); return; }
+    if (cached) { this.keepStored(path, cached); this.mapAfterSearch(path); return; }
     if (met() || this.paused || !wanted()) return;
     // The engine takes its next search when this one ends: the result's write and its batch (shown) follow without it.
     // So the task gives `shown` back in an object: a task that gave the promise itself would wait for it.
