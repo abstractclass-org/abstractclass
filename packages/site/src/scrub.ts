@@ -13,7 +13,7 @@
 //   browser quotes the text that it could not read (JSON.parse's message quotes a file's content).
 // - A record's moves: a turn's number and a dot ("1."), then the moves of the turn, each with a digit in it.
 // Each goes as "…", so that a report shows where text was.
-import { holdsGame } from "@abstractclass/import/importHash.ts";
+import { holdsGame } from "./addressHash.ts";
 import { readTexts } from "@abstractclass/record/texts.ts";
 
 /** The part of an address after its `#`, to the first space or a character that a browser encodes there (the URL

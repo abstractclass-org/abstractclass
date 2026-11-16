@@ -25,6 +25,9 @@ const steps = [
   { name: "engine-kinds", cwd: root, command: "node scripts/engine-kinds.mjs" },
   // No package imports a site (design 29, item 1).
   { name: "package-imports", cwd: root, command: "node scripts/package-imports.mjs" },
+  // No cycle among the @abstractclass dependencies of packages/ and apps/, and no import of an @abstractclass package
+  // that the importer's package.json does not list (design 29, "The packages' order").
+  { name: "package-deps", cwd: root, command: "node scripts/package-deps.mjs" },
   // Each spec file takes its test from tests/page-log.ts, which keeps the page log of a failing case.
   { name: "spec-page-log", cwd: root, command: "node scripts/spec-page-log.mjs" },
   // Each block of the owner's steps in the documents names its own URL, clicks and values, and sends the reader to no

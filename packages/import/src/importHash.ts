@@ -22,9 +22,11 @@ export interface ImportHash {
   from: string | null;
 }
 
-/** The parameters after the `#`, or null for a bare record (an older tool's): a record's text starts with a tag, a turn
- *  or a move, never with a name and "=". */
-export const hashParams = (hash: string) => (/^[A-Za-z_]+=/.test(hash) ? new URLSearchParams(hash) : null);
+// The parameters after the `#` (hashParams), and whether that part holds a game (holdsGame), are the site's package's:
+// its error reports' scrubber needs holdsGame, and the site's package is below the import's (design 29, "The
+// packages' order"). This file gives both to its callers too.
+import { hashParams } from "@abstractclass/site/addressHash.ts";
+export { hashParams, holdsGame } from "@abstractclass/site/addressHash.ts";
 
 /** What sent a record, for a way in that does not say. */
 const NO_SENDER = { tool: null, version: "", site: null, at: null, link: false, save: null, from: null } as const;
@@ -59,16 +61,6 @@ export function analysisAddress(sent: Pick<ImportHash, "record" | "at">, moves: 
 export function staleTool(sent: Pick<ImportHash, "tool" | "version">, current: Record<Tool, string>): Tool | "older" | null {
   if (!sent.tool) return "older";
   return sent.version === current[sent.tool] ? null : sent.tool;
-}
-
-/** Whether the part after `#` holds a game: a record, a packed review or analysis, a tool's record, or a partner's
- *  page that sends one. The analytics start only once a page has taken it out of the address (design 22). A kept
- *  game's id and a place on the board name no game's moves. */
-export function holdsGame(hash: string): boolean {
-  const h = hash.replace(/^#/, "");
-  if (!h) return false;
-  const p = hashParams(h);
-  return !p || [...p.keys()].some(k => k !== "game" && k !== "at"); // none: an older tool's bare record
 }
 
 /** Whether the review's arrival step takes the part after its `#` (design 22): a shared review, a partner's page that

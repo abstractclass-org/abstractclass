@@ -110,6 +110,19 @@ edit in the same commit), so their changes still apply.
    refuses an import in `packages/` of a site's file or package. It also refuses SvelteKit's `$lib`: a site's build
    reads that alias as the site's own `src/lib`. A dynamic import of a computed path is refused too, but in the files
    that the check names with what they load.
+
+   **The packages' order.** Each package depends only on packages below it. At the bottom are the engine, the
+   storage and the record, which depend on no package. The analysis is on them. The site's frame is on them too, and
+   its tests load the analysis package's loader of runes. The review and the import's frame are on the site's frame.
+   The practice is on the review, and the measure on the analysis and the site's frame. So each package can be
+   type-checked and tested with the packages below it alone, and a change in a package cannot break the tests of a
+   package below it. When a lower package needs a part of a higher one, that part moves down. For example, the site's
+   error reports hide the part of an address after its `#` when it holds a game. So `holdsGame` and `hashParams` are
+   in the site's `addressHash.ts`, and the import's `importHash.ts` gives them on to its callers. A check of
+   `npm run check:all` (`scripts/package-deps.mjs`) refuses a cycle among the `@abstractclass` dependencies of the
+   package.json files in `packages/` and `apps/`, in any of their fields. It also refuses an import of an
+   `@abstractclass` package that the importer's package.json does not list, because the first check sees only the
+   listed dependencies.
 2. **The game interface** (`packages/analysis/src/game.ts`): what a site gives the analysis about its game.
 
    ```ts
@@ -518,7 +531,9 @@ edit in the same commit), so their changes still apply.
   game's view gives the view (`sounds`). `ConfirmDialog.svelte`: the question before an action that the player cannot
   undo (design 11), for a game's Delete in the Review tab's list and for the privacy page's delete. Its action takes
   `btn-danger` from `@abstractclass/practice`'s style, which both sites import. `download.ts`: a file that a page gives
-  the player to save. `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge
+  the player to save. `addressHash.ts`: whether the part of an address after its `#` holds a game (`holdsGame`), for
+  the analytics' start and the error reports' scrubber (`scrub.ts`), with the parameters after the `#` (`hashParams`).
+  `release-check.mjs`: the checks of a deployed site that both sites share, moved from Hedge
   School's `scripts/release-check.mjs`. Each site's `scripts/release-check.mjs` runs them with its addresses and header,
   and adds its own checks ([hosting.md](../hosting.md), "Deploy, check and roll back"). It runs in Node. It reads the
   engine's files with the engine package's `artifacts.ts`. It takes a failed request's reason from that package's
@@ -529,7 +544,8 @@ edit in the same commit), so their changes still apply.
   tells whether the check's code (the site's script and `release-check.mjs`) differs between that commit and the
   checkout (`checkoutDiffers`). When it differs, the lines that come from the checkout say `(from this checkout)`.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
-  tools' frame), `importHash.ts` (the hash after the `#`) and `importEvents.ts` (the import's events), with tests on a
+  tools' frame), `importHash.ts` (the hash after the `#`, with the site package's `hashParams` and `holdsGame`) and
+  `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review
   and the Analysis board, with each site's words (design 33, "How a game comes in from strategyjam.org"), and
   `import.css`, which lets Tailwind find its classes. `openReview.ts`: the review's opening of a game that a way in has

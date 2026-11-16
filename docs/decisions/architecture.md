@@ -362,3 +362,20 @@ public repository and the history rewrites.
 - **Checked:** by reading `deploy.yml` against dev, each job's `env` block gives the same build's variables as before,
   and only the repository variables' names changed. `tests.yml` sets its build's variables itself, with no repository
   variable, so it does not change. `gh variable list` shows the new variables with the old ones' values.
+
+### The packages depend on each other in one order (2026-11-17)
+
+- **What:** no two packages depend on each other (abscls-wc2y). The site's package depended on the import's for
+  `holdsGame` (its error reports' scrubber, abscls-3c8h), and the import's on the site's for `DISCORD` (the sections
+  for developers, abscls-8tl1.108). `holdsGame` and `hashParams` moved down into the site's `addressHash.ts`. The
+  import's `importHash.ts` gives them on, so no caller changed. A step of `npm run check:all`
+  (`scripts/package-deps.mjs`) refuses a cycle among the `@abstractclass` dependencies of `packages/` and `apps/`,
+  and an import of an `@abstractclass` package that the importer's package.json does not list (design 29, item 1,
+  "The packages' order").
+- **Why this way:** the site's package is the frame that the review, the practice, the measure and the import build
+  on, and the analytics that need `holdsGame` are in it. The other way, `DISCORD` in the import's package or a
+  parameter of each section for developers, puts the tools' frame below the site's frame. Then the import's pages
+  could not use the site's controls without a cycle again, and both sites' pages for developers would change.
+- **Checked:** the check fails on dev before the move (`import -> site -> import`) and on a cycle made on purpose
+  (`@abstractclass/site` in the storage's dependencies: `analysis -> storage -> site -> analysis`). It passes after
+  the move. No package or site imports an `@abstractclass` package that its package.json does not list.

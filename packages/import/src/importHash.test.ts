@@ -32,10 +32,9 @@ test("another site's link, a partner's page that sends a kept review, and an old
   assert.deepEqual(readImportHash(encodeURIComponent(bare)), { ...NONE, record: bare });
 });
 
-test("which part after the `#` holds a game, and which the review's arrival step takes", () => {
-  for (const hash of ["#record=1.%20ab", "#packed=AQx", "#from=https%3A%2F%2Fpartner.example", "#tool=bookmarklet&v=1&record=x", "#1.%20ab"])
-    assert.equal(holdsGame(hash), true, hash);
-  for (const hash of ["", "#", "#game=abc", "#at=4", "#game=abc&at=2"]) assert.equal(holdsGame(hash), false, hash);
+// Which part holds a game (holdsGame): @abstractclass/site's addressHash.test.ts. This file gives it on.
+test("which part after the `#` the review's arrival step takes, and the site's holdsGame given on", () => {
+  assert.equal(holdsGame("#record=x"), true);
   for (const hash of ["#packed=AQx", "#from=https%3A%2F%2Fpartner.example", "#tool=userscript&v=old&record=x"])
     assert.equal(reviewArrives(hash), true, hash);
   for (const hash of ["#record=x", "#1.%20ab", "#record=x&tool=bookmarklet", "#game=abc", ""]) assert.equal(reviewArrives(hash), false, hash);

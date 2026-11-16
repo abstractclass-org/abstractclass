@@ -48,7 +48,7 @@ ask where it goes (design 21): with that choice, "import" again names what the p
    - `packed`: Hedge School's compact form of a record and its lines (share.ts), which only Hedge School writes.
 3. **The payload stays after the `#`:** a browser never sends that part of an address to a server, and Google Analytics
    does not record it. The analytics start only once a page has taken a game out of its address (`holdsGame` in
-   `packages/import/src/importHash.ts`): a kept game's id and a place on the board name no moves, and may stay. This
+   `packages/site/src/addressHash.ts`): a kept game's id and a place on the board name no moves, and may stay. This
    departs from Lichess, whose paths carry the game: Hedge School keeps players' games out of its host and its analytics
    (designs 11 and 17).
 4. **`/import` takes every game that comes in from outside for the review,** in the review's arrival step
@@ -204,7 +204,8 @@ ask where it goes (design 21): with that choice, "import" again names what the p
   and the variants `review-game` and `review-last` in `packages/review/src/review.css`),
   `src/routes/analysis/+page.svelte` (the board's), `src/routes/import/+page.svelte` (the games from outside),
   `src/routes/tools/+page.svelte`, `src/routes/+layout.svelte` (the header, the analytics' start),
-  `packages/import/src/importHash.ts` (the parameters, `holdsGame`, `reviewArrives`), `src/lib/game/board.ts` and
+  `packages/import/src/importHash.ts` (the parameters, `reviewArrives`), `packages/site/src/addressHash.ts`
+  (`holdsGame`), `src/lib/game/board.ts` and
   `src/lib/game/share.ts` (`packed`),
   `src/routes/developers/+page.svelte`.
 
