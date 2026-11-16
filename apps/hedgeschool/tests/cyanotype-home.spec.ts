@@ -51,7 +51,8 @@ test("the home board asks the engine for nothing", async ({ page }) => {
     const Base = window.Worker;
     window.Worker = class extends Base {
       constructor(...args: ConstructorParameters<typeof Worker>) { super(...args); work.workers++; }
-      // Both of Worker's forms: a list of transfers, or the options
+      // Both of Worker's forms: a list of transfers, or the options. The if only picks super's overload for each form:
+      // the two calls are the same.
       postMessage(message: unknown, transfer?: Transferable[] | StructuredSerializeOptions) {
         work.messages++;
         if (Array.isArray(transfer)) super.postMessage(message, transfer); else super.postMessage(message, transfer);
