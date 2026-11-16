@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { BoardMove } from "../board/position.ts";
-import { momentBox, sceneBox, type SceneFrame } from "./sceneView.ts";
+import { momentBox, sceneBox, sceneViews, type SceneFrame } from "./sceneView.ts";
 
 const place = (at: [number, number], captured: [number, number][] = []): BoardMove => ({
   type: "place", player: 0, blueprint: 1, at, footprint: [{ hex: at, kind: "plain" }],
@@ -35,6 +35,17 @@ test("the labelled move's view holds the turn's moves and labels, 2.5 hexes roun
   const box = momentBox(frame({ l: place([0, 0], [[-5, 0]]), e: [place([2, 0])], m: [{ move: place([0, 0]) }],
                                 c: [{ move: place([20, 0]) }] }));
   assert.deepEqual(box, { x0: -w / 2 - 2.5 * w, y0: -1 - 2.5 * w, x1: 2 * w + w / 2 + 2.5 * w, y1: 1 + 2.5 * w });
+});
+
+test("each frame keeps the scene's view, and the labelled move's moment takes its own when it draws on a hex", () => {
+  const frames = [frame({ l: place([0, 0]), c: [{ move: place([20, 0]) }] }),
+                  frame({ hold: "before", l: place([1, 0]), c: [{ move: place([2, 0]) }] }),
+                  frame({ hold: "moment", l: place([2, 0]), m: [{ move: place([2, 0]) }] })];
+  const wide = sceneBox(frames);
+  assert.deepEqual(sceneViews(frames), [wide, wide, momentBox(frames[2])]);
+  const edits = [frame({ l: place([0, 0]) }), frame({ hold: "moment", l: edit, m: [{ move: edit }] })];
+  assert.deepEqual(sceneViews(edits), [sceneBox(edits), sceneBox(edits)]);
+  assert.deepEqual(sceneViews([frame({ hold: "moment", l: edit, m: [{ move: edit }] })]), [null]);
 });
 
 test("a labelled edit, alone in its turn, has no closer view: its label is in its hand", () => {

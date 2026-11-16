@@ -12430,10 +12430,13 @@ abscls-8tl1.103. The labels on Cyanotype's home board were too small to read. Th
 Blueprints' scenes play over most of the field. The badges of the labels were 2.5 to 5.9 pixels wide, and the badge on
 Hedge School's home board is 13.3 pixels wide at 1,280 pixels and 11.0 at 390. Now each scene has its own view, and
 the view zooms in on the labelled move (design 33, "Where it is"). Also, the scenes now end on one bad label of each
-kind.
+kind. In this entry, a path to Cyanotype's files starts at `apps/cyanotype`, and `scripts/cyanotype-review-fixture.mjs`
+is Hedge School's.
 
-- **The views:** `Board.svelte` has a prop `zoom`: a box that the board's own fit holds in place of the cells. Each
-  frame of `replay.json` carries its box (`z`). `scripts/home-replay.mjs` writes it from `src/lib/home/sceneView.ts`.
+- **The views:** `src/lib/board/Board.svelte` has a prop `zoom`: a box that the board's own fit holds in place of the
+  cells. Each frame of `src/lib/home/replay.json` carries its box (`z`). `scripts/home-replay.mjs` writes it from
+  `src/lib/home/sceneView.ts` (`sceneViews`). The boxes stay in Cyanotype's app: they measure Blueprints' hexes, and
+  Hedge School's home board does not zoom (design 29, item 11).
   Through the frames of a scene, the box holds the hexes that the frames draw on: the moves played, the candidates,
   the labelled moves and the captured cells. So the view stays still while the moves play. That view alone shows each
   scene only 1.0 to 1.1 times larger than the whole field. On the frame of the labelled move (its hold of 4 seconds)

@@ -25,7 +25,7 @@ import { LABEL_TEXT, shownCandidates, withTwins } from "@abstractclass/analysis/
 import { sitePosition } from "../src/lib/board/described.ts";
 import { moveName } from "../src/lib/game/notation.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
-import { momentBox, sceneBox } from "../src/lib/home/sceneView.ts";
+import { sceneViews } from "../src/lib/home/sceneView.ts";
 import { blueprints, moveBefore } from "../src/lib/review/blueprints.ts";
 
 const args = process.argv.slice(2);
@@ -84,11 +84,7 @@ for (let a = 0; a < args.length; a += 2) {
   // hundredth of a unit.
   const rounded = box => box && { x0: Math.floor(box.x0 * 100) / 100, y0: Math.floor(box.y0 * 100) / 100,
                                   x1: Math.ceil(box.x1 * 100) / 100, y1: Math.ceil(box.y1 * 100) / 100 };
-  const wide = rounded(sceneBox(frames));
-  for (const f of frames) {
-    const z = f.hold === "moment" ? rounded(momentBox(f)) ?? wide : wide;
-    if (z) f.z = z;
-  }
+  sceneViews(frames).forEach((box, i) => { if (box) frames[i].z = rounded(box); });
   console.log(`${game}: scene from turn ${first.number} to move ${key.index + 1}, in turn ${R.turnOf[key.index].number} ` +
               `(${key.label}, a loss of ${Math.round(key.loss * 100)}%), ${frames.length} frames`);
   scenes.push({ frames });

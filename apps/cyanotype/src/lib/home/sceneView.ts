@@ -1,13 +1,16 @@
-// The views of a scene of the home page's board (design 33, "Where it is"; HomeBoard.svelte): the box that the board's
-// fit holds through the scene's frames, so that the board shows the scene's moves and stays still while they play,
-// and on the frame that holds the labelled move's moment, a closer box round that move, so that its label reads.
-// scripts/home-replay.mjs writes the box into each frame of the scene.
+// The views of a scene of the home page's board (design 33, "Where it is", and HomeBoard.svelte): the box that the
+// board's fit holds through the scene's frames, so that the board shows the scene's moves and stays still while they
+// play, and on the frame that holds the labelled move's moment, a closer box round that move, so that its label reads.
+// scripts/home-replay.mjs writes the box into each frame of the scene (sceneViews).
+import type { ReplayFrame } from "@abstractclass/site/Replay.svelte";
 import { boxOf, type Box, type Hex } from "../board/hex.ts";
 import type { BoardMove } from "../board/position.ts";
 
 /** What a frame of a scene draws on the board, as far as its view goes: the last move and the earlier ones of its
- *  turn, the engine's candidates and the labelled moves. */
-export interface SceneFrame { l: BoardMove | null; e: BoardMove[]; c: { move: BoardMove }[]; m: { move: BoardMove }[] }
+ *  turn, the engine's candidates and the labelled moves, and its hold (the labelled move's moment). */
+export interface SceneFrame extends ReplayFrame {
+  l: BoardMove | null; e: BoardMove[]; c: { move: BoardMove }[]; m: { move: BoardMove }[];
+}
 
 /** The hexes of the board that a move draws on: a placement's footprint, and with `captured`, the cells that it
  *  captured. An edit draws in a hand and a pass draws nothing. */
@@ -30,4 +33,11 @@ const MOMENT_MARGIN = 2.5 * Math.sqrt(3);
 export function momentBox(f: SceneFrame): Box | null {
   const box = boxOf([f.l, ...f.e, ...f.m.map(x => x.move)].flatMap(m => hexesOf(m, false)));
   return box && { x0: box.x0 - MOMENT_MARGIN, y0: box.y0 - MOMENT_MARGIN, x1: box.x1 + MOMENT_MARGIN, y1: box.y1 + MOMENT_MARGIN };
+}
+
+/** Each frame's view: the scene's box (sceneBox), and on the frame that holds the labelled move's moment, the box
+ *  round that move (momentBox) when it has one. Null for each frame of a scene that draws on no hex. */
+export function sceneViews(frames: readonly SceneFrame[]): (Box | null)[] {
+  const wide = sceneBox(frames);
+  return frames.map(f => (f.hold === "moment" ? momentBox(f) : null) ?? wide);
 }
