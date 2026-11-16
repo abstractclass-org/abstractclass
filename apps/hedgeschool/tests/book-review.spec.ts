@@ -189,7 +189,8 @@ test.describe("desktop", () => {
 
   test("the book not loaded: no opening row, no mark and no setting Book moves, and the rest of the review works", async ({ page }) => {
     await page.route("**/test-book/**", route => route.abort());
-    const failed = page.waitForEvent("requestfailed", r => r.url().includes("/test-book/"), { timeout: 60_000 });
+    const failed = page.waitForEvent("requestfailed",
+      { predicate: r => r.url().includes("/test-book/"), timeout: 60_000 });
     await open(page, "book-left-review.json");
     await failed;
     await page.waitForTimeout(500); // the failure reaches the Report
