@@ -12423,3 +12423,57 @@ says to ask there to join it (design 33, "Partner sites", item 9). The list stay
 - **The tests:** `tests/developers-discord.spec.ts` checks, on both sites' pages, that the Testing paragraph and the
   partner list each link the shared address, and that the page has no other link to a Discord.
 - **Still open:** the list of changes has no date. The date comes with the release (abscls-8tl1.20).
+
+### Cyanotype's home board zooms in on each scene's labelled move (2026-11-16)
+
+abscls-8tl1.103. The labels on Cyanotype's home board were too small to read. The board fitted all its cells, and
+Blueprints' scenes play over most of the field. The badges of the labels were 2.5 to 5.9 pixels wide, and the badge on
+Hedge School's home board is 13.3 pixels wide at 1,280 pixels and 11.0 at 390. Now each scene has its own view, and
+the view zooms in on the labelled move (design 33, "Where it is"). Also, the scenes now end on one bad label of each
+kind.
+
+- **The views:** `Board.svelte` has a prop `zoom`: a box that the board's own fit holds in place of the cells. Each
+  frame of `replay.json` carries its box (`z`). `scripts/home-replay.mjs` writes it from `src/lib/home/sceneView.ts`.
+  Through the frames of a scene, the box holds the hexes that the frames draw on: the moves played, the candidates,
+  the labelled moves and the captured cells. So the view stays still while the moves play. That view alone shows each
+  scene only 1.0 to 1.1 times larger than the whole field. On the frame of the labelled move (its hold of 4 seconds)
+  the box holds the footprints of the moves of the turn and of the labelled moves, with 2.5 hexes' widths round them.
+  With 3 hexes, the second scene's badges were 10.5 pixels at 390, smaller than Hedge School's 11.0: its turn has two
+  placements far apart.
+- **The motion:** the zoom takes 400 ms and slows at its end (`src/lib/home/HomeBoard.svelte`: Svelte's `Tween` of
+  the box, with `cubicOut`). With reduced motion (`prefersReducedMotion` of `svelte/motion`), the zoom is a cut. The
+  change to the next scene's view is always a cut. `still.json` is the first frame of the first scene, in that
+  scene's view, so the first paint does not wait for the scenes.
+- **The badges,** in pixels, at the labelled move after the zoom, in Playwright's headless Chromium (the board is 416
+  pixels wide at 1,280 and 343 at 390). Hedge School: 13.3 at 1,280 and 11.0 at 390. Cyanotype before, scenes 1, 2
+  and 3: 5.9, 5.0 and 3.1 at 1,280, and 4.8, 4.1 and 2.5 at 390. Cyanotype after: 17.1, 13.8 and 14.0 at 1,280, and
+  13.9, 11.3 and 14.0 at 390. The two badges of scene 2 have the same size. Scene 1 in the dark theme at 1,280: 5.9
+  before and 17.1 after. The third scene before the change was seed 13's, and the Blunder scene replaced it.
+- **No cost outside the board:** the home page made no request for the engine and started no worker, before or after.
+  The page's heading did not move while the view changed, so the zoom causes no layout shift outside the board.
+  `replay.json` is 618 KB (640 KB before, because the new third scene has a smaller board), and 18 KB with gzip.
+  `still.json` is 5 KB, and only its box changed.
+- **The Blunder scene:** the three scenes ended on a Mistake, an Inaccuracy and a Mistake, and no stored review gave a
+  scene that ends on a Blunder. So two new games of Stamp Duty against itself were played (`scripts/selfplay.mjs`,
+  on the CPU, `machine run`): seed 14 (120 moves, Red wins by 712) in 341 seconds and seed 15 (120 moves, Red wins by
+  1,000) in 245 seconds. `scripts/cyanotype-review-fixture.mjs` reviewed each whole game as it did the other stored
+  reviews: the Review tab of Cyanotype's preview in Playwright's headless Chromium, Lite (512 visits a position), on
+  the CPU (`machine run`, 2 threads each, both reviews at the same time), with search `91ab0b7d` and network
+  `b6c96-s47076224-d3087660`. Seed 14's review took 3,710 seconds (244 results), and seed 15's took 3,405 seconds
+  (241 results). Seed 15's latest bad move is a Mistake (move 72), and the game has no Blunder, so it is not kept.
+  Seed 14's scene goes from turn 34 to move 84, a Blunder (a loss of 20%). It replaces seed 13's scene, the third.
+  The scenes now end on a Mistake (the test game), an Inaccuracy (seed 12) and a Blunder (seed 14). Hedge School's
+  three scenes all end on a Mistake, so its order gives no rule. The first scene did not change, so `still.json` shows
+  the same frame. Seed 13's stored review stays: the label snapshot reads it.
+- **A labelled edit:** seed 14's Blunder is an edit: Blue moves a cell of its blueprint 2. The badge is in Blue's hand,
+  at the hand's own size (`Hand.svelte`: at least 14 pixels wide). The frame draws on no hex of the field, so the view
+  stays the scene's. A Blunder on the field needs another game and another review of about an hour.
+- **The checks:** `sceneView.test.ts` tests the boxes. The label snapshot has a file for seed 14's stored review
+  (`cyanotype-seed14.txt`), and its test of the home board's scenes passes with the new scene. Hedge School's
+  `replay.json` and `still.json` did not change. `apps/hedgeschool/tests/cyanotype-home.spec.ts` checks each label of
+  the scenes against the Review tab's. `scripts/cyanotype-review-fixture.mjs` now also takes a path with backslashes,
+  as cmd.exe gives it.
+- **Seen:** screenshots of each scene's labelled move as its frame starts and after the zoom, at 1,280 and 390 pixels
+  (light), and of the first scene at 1,280 (dark), before and after. Three frames of the first scene's zoom (at 100,
+  200 and 400 ms), and a crop of each label at 4 times the pixels. In `apps/cyanotype/runs/8tl1.103-look/` (not
+  committed). The labels read at both widths.

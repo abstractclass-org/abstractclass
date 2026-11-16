@@ -10,7 +10,8 @@
 // them (GameAnalysis.fromStore, with the twins of withTwins). Each game stops at its last position with a stored
 // result. A scene is the 9 turns before the game's latest move with a bad label, and that move: one scene a game. The
 // review and the scene's choice are Hedge School's too (@abstractclass/analysis/homeScene.ts): this script draws the
-// frames on Blueprints' board. Nothing names the players.
+// frames on Blueprints' board, each scene in the view that holds its moves, and its labelled move closer. Nothing
+// names the players.
 //
 //   node scripts/home-replay.mjs STORED.json RECORD.txt [STORED.json RECORD.txt ...]
 // writes src/lib/home/replay.json (the scenes, loaded after the page shows) and src/lib/home/still.json (the first
@@ -24,6 +25,7 @@ import { LABEL_TEXT, shownCandidates, withTwins } from "@abstractclass/analysis/
 import { sitePosition } from "../src/lib/board/described.ts";
 import { moveName } from "../src/lib/game/notation.ts";
 import { parseRecord } from "../src/lib/game/record.ts";
+import { momentBox, sceneBox } from "../src/lib/home/sceneView.ts";
 import { blueprints, moveBefore } from "../src/lib/review/blueprints.ts";
 
 const args = process.argv.slice(2);
@@ -76,6 +78,16 @@ for (let a = 0; a < args.length; a += 2) {
       m: so.filter(j => R.edges[j].label).map(j => ({ move: played[j].drawn, label: R.edges[j].label, note: LABEL_TEXT[R.edges[j].label] })),
       ...sceneHold(scene, i),
     });
+  }
+  // The scene's view, in each frame, which the board's fit holds (src/lib/home/sceneView.ts): the box of the hexes
+  // that its frames draw on, and on the labelled move's moment, the box round that move. Rounded outwards to a
+  // hundredth of a unit.
+  const rounded = box => box && { x0: Math.floor(box.x0 * 100) / 100, y0: Math.floor(box.y0 * 100) / 100,
+                                  x1: Math.ceil(box.x1 * 100) / 100, y1: Math.ceil(box.y1 * 100) / 100 };
+  const wide = rounded(sceneBox(frames));
+  for (const f of frames) {
+    const z = f.hold === "moment" ? rounded(momentBox(f)) ?? wide : wide;
+    if (z) f.z = z;
   }
   console.log(`${game}: scene from turn ${first.number} to move ${key.index + 1}, in turn ${R.turnOf[key.index].number} ` +
               `(${key.label}, a loss of ${Math.round(key.loss * 100)}%), ${frames.length} frames`);

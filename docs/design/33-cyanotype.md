@@ -1729,12 +1729,24 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   from three games of Stamp Duty against itself (`src/lib/review/fixtures`, from `scripts/selfplay.mjs`) and a stored
   review of each: Hedge School's `tests/fixtures/cyanotype-review.json` (the review's test game to turn 20) and two
   others of its OTHER_STORED (`tests/cyanotype-fixture.ts`), all from one engine, one network and 512 visits a
-  position. Each scene is the 9 turns before its game's latest move with a bad label, and that move. The script shares
+  position. Each scene is the 9 turns before its game's latest move with a bad label, and that move. The three scenes
+  end on a Mistake, an Inaccuracy and a Blunder: one of each bad label. The script shares
   the review and the scene's choice with Hedge School's (`packages/analysis/src/homeScene.ts`). It also writes where
   each scene comes from (`made.games`), and Hedge School's `tests/cyanotype-home.spec.ts` checks each scene's labels
   against the Review tab's for the same game and stored review, and that the home page asks the engine for nothing.
   The games are the site's own, as the review's test games are: no other player's game. The board is a picture there
-  (`Board.svelte`, its prop `still`): no pan, no zoom and no zoom buttons, and the page scrolls over it.
+  (`Board.svelte`, its prop `still`): no pan, no zoom buttons, and the page scrolls over it. The board's own fit
+  chooses each view (its prop `zoom`, the box that the fit holds in place of the cells), and each frame of
+  `replay.json` carries its box (`z`, from `src/lib/home/sceneView.ts`). Through a scene's frames the view holds the
+  hexes that the frames draw on: the moves played, the candidates and the labelled moves, with the captured cells.
+  It stays still while they play. On the labelled move's frame (its 4-second hold) the view zooms in on that move: the
+  footprints of the turn's moves and of the labelled moves, with 2.5 hexes' widths round them. The zoom takes 400 ms,
+  slower at its end (`src/lib/home/HomeBoard.svelte`, a tween of the box). With reduced motion it is a cut, and the
+  next scene's view is a cut too. The badge of a label is then at least as large as Hedge School's home board's, at
+  1,280 and 390 pixels. A view that holds a whole scene cannot do that: Blueprints' scenes play over most of the
+  field. A labelled edit has its badge in its hand, at the hand's own size (at least 14 pixels wide). When the
+  labelled turn draws on no hex of the field, the view stays the scene's. `still.json`, the first paint, is the first
+  scene's first frame, in its scene's view.
 - `apps/cyanotype/src/routes/`: the pages. The About page has the logo's full print ("The logo", item 3), the
   section on the early access (`#early-access`,
   "Decision", item 11), and the section "How a review works", with the link to its page. `how-reviews-work/`: How a
@@ -2005,6 +2017,7 @@ earlier engine results, as Hedge School" (2026-11-11), "Cyanotype's header links
 (2026-11-12), "Cyanotype keeps its practice games, as Hedge School's" (2026-11-13), "Cyanotype's move sounds"
 (2026-11-13), "Cyanotype's buttons for partner sites, and the test on its page for developers" (2026-11-13),
 "Cyanotype's Support Us, and its header links from 900 pixels" (2026-11-13), "Cyanotype's image of a line, from one
-shared frame" (2026-11-14), and "Cyanotype's Practice points bar: its switch and its direction" (2026-11-14). The
-earlier entries name the site by its first name, Drawing Board.
+shared frame" (2026-11-14), "Cyanotype's home board plays three scenes" (2026-11-14), "Cyanotype's Practice points
+bar: its switch and its direction" (2026-11-14), and "Cyanotype's home board zooms in on each scene's labelled move"
+(2026-11-16). The earlier entries name the site by its first name, Drawing Board.
 [decisions/architecture.md](../decisions/architecture.md), "The repository's variables name their site" (2026-11-13).

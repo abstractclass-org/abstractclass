@@ -3,7 +3,7 @@
   import type { AreaMark } from "@abstractclass/review/ownership.ts";
   import type { BrushKeys } from "@abstractclass/review/notes.ts";
   import type { BlueprintInput } from "./blueprintInput.svelte.ts";
-  import type { Hex } from "./hex.ts";
+  import type { Box, Hex } from "./hex.ts";
   import type { BoardMove, Hand as HandOf, HandHex, Player, SitePosition } from "./position.ts";
 
   /** An engine candidate: its name (the move's string, its one spelling), its rank (1 is the engine's first choice),
@@ -110,12 +110,15 @@
     // draws in the task that mounts it, and the hexes that its fit holds besides the cells (`fit`): the line's
     // placements, the same in each frame of an animated image, so that the image shows each one in one view.
     image?: (Size & { fit: Hex[] }) | null;
+    // The part of the plane that the fit holds in place of the cells (the home page's scene, home/sceneView.ts), so
+    // that the board zooms in on it. The rest of the field draws round it, as far as the area reaches.
+    zoom?: Box | null;
   }
   let {
     position, last = null, earlier = [], candidates = [], pointed = null, line = null, layers: layersSet = {},
     oncandidate, oncandidateclick, onhexat, input = null, inputOn = true, hands: handsForm = "box",
     place = $bindable(FIRST_PLACE), size = $bindable(FIRST_SIZE), labels = [], areaMap = null, areaOf = null, controls,
-    notes = [], onnotes, still = false, onedit, chosen = null, onpaint, onpaintend, targets = [], image = null,
+    notes = [], onnotes, still = false, onedit, chosen = null, onpaint, onpaintend, targets = [], image = null, zoom = null,
   }: Props = $props();
   const layers = $derived({ ...DEFAULT_LAYERS, ...layersSet });
 
@@ -186,7 +189,7 @@
   let placedByPlayer = $state(false); // the player dragged or resized the panel
   const fitHexes = $derived([...allCells.map(c => c.hex), ...(lastPlace?.captured ?? []).map(c => c.hex), ...(input?.allAnchors ?? []),
                              ...(image?.fit ?? [])]);
-  const fitBox = $derived(boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
+  const fitBox = $derived(zoom ?? boxOf(fitHexes) ?? boxOf([[-2, -2], [2, 2]])!);
   const hasPanel = $derived(handsForm === "panel" && field.width > 0 && field.height > 0);
   // When the cells, the legal moves or the area change, the fit may move the panel to a corner, before the board
   // draws. Not after the player's choice, not in a view that the player panned or zoomed, and not under a press: after

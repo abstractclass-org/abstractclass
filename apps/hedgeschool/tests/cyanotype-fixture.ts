@@ -29,6 +29,7 @@ export const OTHER_STORED = [
   { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
   { file: "tests/fixtures/cyanotype-seed12-whole-review.json", game: "stamp-duty-seed12.txt", turns: Infinity },
   { file: "tests/fixtures/cyanotype-seed13-review.json", game: "stamp-duty-seed13.txt", turns: Infinity },
+  { file: "tests/fixtures/cyanotype-seed14-review.json", game: "stamp-duty-seed14.txt", turns: Infinity },
 ] as const;
 
 type Stored = { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] };

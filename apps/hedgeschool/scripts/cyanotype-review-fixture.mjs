@@ -43,7 +43,7 @@ import { CYANOTYPE, LITE, OTHER_STORED, SPREAD_BOARD, STORED, TEST_GAME, TURNS, 
          readStored, testRecord } from "../tests/cyanotype-review.ts";
 
 if (!CYANOTYPE) throw new Error("CYANOTYPE_BASE_URL gives no Cyanotype preview");
-const named = process.argv.slice(2);
+const named = process.argv.slice(2).map(f => f.replaceAll("\\", "/")); // a path of cmd.exe's too
 const unknown = named.filter(f => !OTHER_STORED.some(s => s.file === f));
 if (unknown.length) throw new Error(`not the file of another stored review (OTHER_STORED): ${unknown.join(", ")}`);
 const others = named.length ? OTHER_STORED.filter(s => named.includes(s.file)) : OTHER_STORED;
