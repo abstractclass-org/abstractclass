@@ -1,7 +1,8 @@
 <script lang="ts">
   // About Hedge School (design 11).
   import { PROSE } from "@abstractclass/site/prose.ts";
-  import { DISCORD, SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
+  import { DISCORD } from "@abstractclass/site/community.ts";
+  import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import Collie from "#lib/Collie.svelte";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";

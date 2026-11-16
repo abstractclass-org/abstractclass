@@ -2,10 +2,11 @@
   // The page for other sites (design 18), as Lichess's page for developers: the link that sends a game here, the
   // messages that save its review back to a partner site and open it again from there, the buttons with the collie
   // (its file is static/brand/hedge-school.svg), and what can change. The sections are shared with Cyanotype's page
-  // (@abstractclass/import/developers). This page gives Hedge School's parts: its games' refusals, its Discord, its
-  // buttons' class name and head, and its list of changes. The game record's notation has its own page. The examples
-  // name the live site's address, which a partner's code names. A partner tests against a deployment of the branch
-  // partner_test (design 18), whose address the page does not give.
+  // (@abstractclass/import/developers), with the players' Discord, where a developer asks for a test address and to
+  // join the partner list. This page gives Hedge School's parts: its games' refusals, its buttons' class name and head,
+  // and its list of changes. The game record's notation has its own page. The examples name the live site's address,
+  // which a partner's code names. A partner tests against a deployment of the branch partner_test (design 18), whose
+  // address the page does not give.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import Intro from "@abstractclass/import/developers/Intro.svelte";
@@ -16,7 +17,7 @@
   import Buttons from "@abstractclass/import/developers/Buttons.svelte";
   import Testing from "@abstractclass/import/developers/Testing.svelte";
   import WhatCanChange from "@abstractclass/import/developers/WhatCanChange.svelte";
-  import { DISCORD, SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
+  import { SITE_NAME, SITE_ORIGIN } from "#lib/edition.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
 
   const MESSAGES = "hedge-school"; // the messages' names (game/partners.ts)
@@ -24,8 +25,6 @@
 
 <PageMeta title="For developers · {SITE_NAME}"
           description="Link Enclosure games to Hedge School from your site: review and analysis links, buttons, and reviews saved back to your site." />
-
-{#snippet discord()}<a href={DISCORD}>ask in the Discord</a>{/snippet}
 
 <main class={PROSE}>
   <Intro site={SITE_NAME} game="Enclosure" />
@@ -41,16 +40,14 @@
 
   <AnalysisLink live={SITE_ORIGIN} moves="edges" />
 
-  <SaveBack site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES}>
-    {#snippet partnerList()}{SITE_NAME} lists its partner sites: {@render discord()} to join the list.{/snippet}
-  </SaveBack>
+  <SaveBack site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
   <OpenAgain site={SITE_NAME} live={SITE_ORIGIN} messages={MESSAGES} />
 
   <Buttons site={SITE_NAME} live={SITE_ORIGIN} className="hedge-school-button" file="hedge-school.svg"
            head="the collie" withHead="with the school's collie" contrast="white outline" />
 
-  <Testing site={SITE_NAME} live={SITE_ORIGIN} ask={discord} />
+  <Testing site={SITE_NAME} live={SITE_ORIGIN} />
 
   <WhatCanChange site={SITE_NAME} lenient="unknown tags, an edge's points in either order, lower case">
     {#snippet changes()}

@@ -4,7 +4,8 @@
   // shows too (@abstractclass/practice: StoredGamesNotice.svelte, GamesChoices.svelte), and so is the part on Ko-fi
   // (@abstractclass/site/KofiPrivacy.svelte).
   import { PROSE } from "@abstractclass/site/prose.ts";
-  import { DISCORD, SITE_NAME, STORES_PRACTICE_GAMES } from "#lib/edition.ts";
+  import { DISCORD } from "@abstractclass/site/community.ts";
+  import { SITE_NAME, STORES_PRACTICE_GAMES } from "#lib/edition.ts";
   import { analytics } from "#lib/analytics.svelte.ts";
   import { deletePractice } from "#lib/practice/send.ts";
   import StoredGamesNotice from "@abstractclass/practice/StoredGamesNotice.svelte";

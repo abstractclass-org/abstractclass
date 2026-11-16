@@ -10,6 +10,9 @@
 		"check": "svelte-check --tsconfig ./tsconfig.json",
 		"test": "node --test \"src/**/*.test.ts\""
 	},
+	"dependencies": {
+		"@abstractclass/site": "*"
+	},
 	"peerDependencies": {
 		"svelte": "^5.57.1",
 		"tailwindcss": "^4.3.3"

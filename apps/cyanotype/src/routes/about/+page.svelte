@@ -2,9 +2,11 @@
   // About Cyanotype (design 33): what the site does, the logo's full print at 96 pixels with a sentence on its name
   // (as Hedge School's About page shows its collie), the early access (the header's "Early Access" link leads to its
   // section, as Hedge School's), the game, how a review works (with the link to its page, as Hedge School's) and the
-  // engine.
+  // engine. The players' Discord is Hedge School's: both games have the same designer and the same community
+  // (@abstractclass/site/community.ts). The page names it in Hedge School's words.
   import Logo from "#lib/brand/Logo.svelte";
   import { PROSE } from "@abstractclass/site/prose.ts";
+  import { DISCORD } from "@abstractclass/site/community.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
@@ -38,7 +40,8 @@
     they judge a move, the engine and its network, the files and links that the site makes, and what it keeps in your
     browser. After a change, an old link or file can stop working, and a review can read differently.</p>
   <p>For now the site has Practice against {ENGINE_NAME}, reviews of your games from strategyjam.org, and an Analysis
-    board with a board editor. Lessons and puzzles come later.</p>
+    board with a board editor. Lessons and puzzles come later. Tell us what works and what does not in
+    <a href={DISCORD}>the Discord</a>.</p>
 
   <h2>The game</h2>
   <p>Blueprints uses a grid of hexes with no edge. Each player holds three blueprints: shapes of cells that the
@@ -51,6 +54,7 @@
     <li><strong>An edit</strong> moves one cell of a blueprint, inside the blueprint or to another one.</li>
   </ul>
   <p>Blue makes one move, then each player makes two moves a turn. The game ends after 120 moves.</p>
+  <p>Blueprints' designer is webgoatguy. Its players meet in <a href={DISCORD}>webgoatguy's Discord</a>.</p>
 
   <h2>How a review works</h2>
   <ul>

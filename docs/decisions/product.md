@@ -12542,3 +12542,26 @@ file's content and a typed name before it goes (design 17, "Error reports"). The
   the address without its `#` part, the browser's data of a visit) and that the site removes each game, move, file
   content and player's name from it. Their list of what PostHog receives with a page now says "how long you stayed
   on the previous page", in place of "how long the page before it stayed open".
+
+### Cyanotype's About and Privacy name Hedge School's Discord (2026-11-16)
+
+abscls-8tl1.108. Both games have the same designer and the same community Discord, so Cyanotype's About and Privacy
+name it as Hedge School's do, with the address from `packages/site/src/community.ts`.
+
+- **About:** the section on the game ends with "Blueprints' designer is webgoatguy. Its players meet in webgoatguy's
+  Discord." Hedge School's page says "Enclosure's designer is webgoatguy, who introduces it in a video." Cyanotype's
+  drops the video, as Blueprints has no such video on the page. Early access ends with Hedge School's sentence: "Tell
+  us what works and what does not in the Discord."
+- **Privacy:** the page ends with Hedge School's section "Questions": "Ask in the players' Discord."
+- **One place for the sentences on /developers:** the shared sections write the Discord's two sentences
+  (`packages/import/src/developers/Testing.svelte` and `SaveBack.svelte`), and the pages no longer pass them. Testing
+  has no text for a site with no place to ask, as no site lacks one. The import package now depends on the site
+  package for the address. The two paragraphs keep their source lines' breaks, so their text keeps its whitespace.
+- **Hedge School's pages do not change:** in a build of dev and a build of this branch, the text of `<main>` on About,
+  Privacy and For developers is the same, byte for byte. About's and Privacy's `<main>` HTML is the same too. For
+  developers' HTML differs only in Svelte's hydration comments (`<!---->`, `<!--[0-->`, `<!--]-->`) around the
+  snippets and the conditions that the sections no longer have.
+- **One import of the address:** Hedge School's About, Privacy and For developers import `DISCORD` from
+  `community.ts`, and `src/lib/edition.ts` no longer exports it.
+- **The tests:** `tests/developers-discord.spec.ts` also checks that Cyanotype's About links the shared address in
+  its two sentences, and that its Privacy does under Questions.

@@ -1276,8 +1276,10 @@ Enclosure's alone.
    without turn numbers). Its promises are Hedge School's: lenient reading, additions only, a versioned handshake,
    the review file as the site's own. **The Discord, and built:** both games have the same designer and the same
    community Discord. The partners' test says to ask in the Discord for the test address, and the partner list says
-   to ask there to join it, in Hedge School's words. The list stays empty until a partner joins. The address is one
-   constant in `packages/site/src/community.ts`, which both sites import (design 29, item 11). **Open, one gap from
+   to ask there to join it, in Hedge School's words. The shared sections (`Testing.svelte`, `SaveBack.svelte`) write
+   both sentences. The list stays empty until a partner joins. The address is one constant in
+   `packages/site/src/community.ts`, which both sites import (design 29, item 11). The About and Privacy pages name
+   the Discord as Hedge School's do. **Open, one gap from
    Hedge School's page:** the list of changes has one item, the first release, with no date (Hedge School dates each
    item, design 18, item 9). The date comes with the release (abscls-8tl1.20).
 10. **Measured as a way in:** the import's events count a link's game, a kept review opened again, and the save to
