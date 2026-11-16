@@ -32,6 +32,10 @@ const steps = [
   { name: "owner-steps", cwd: root, command: "node scripts/owner-steps.mjs" },
   { name: "engine", cwd: site, command: "npm run engine -- --deploy", stopsOnFailure: true },
   { name: "site-check", cwd: site, command: "npm run check" },
+  // The browser tests' type check: Hedge School's tests/ (Cyanotype's specs too) and playwright.config.ts, with
+  // apps/hedgeschool/tests/tsconfig.json. svelte-check covers src only. tsc also reads the site and package modules
+  // that the specs import, and checks those few again. The step takes about 3 s.
+  { name: "site-tests-check", cwd: site, command: "npm run check:tests" },
   { name: "site-test", cwd: site, command: "npm test" },
   // The shared packages' type checks and unit tests (design 29): every workspace in packages/.
   { name: "packages-check", cwd: root, command: "npm run check --workspace=packages" },

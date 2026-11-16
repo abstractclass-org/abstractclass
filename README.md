@@ -29,7 +29,8 @@ npm run check:all                     # at the root: the Tests workflow's checks
 cd apps/hedgeschool
 npm run engine                        # get the engine's release that engine.lock.json pins, into static/engine/
 npm run dev                           # the dev server
-npm run check                         # type checks
+npm run check                         # the type check of src
+npm run check:tests                   # the type check of tests/ (tests/tsconfig.json)
 npm test                              # the unit tests
 npm run build                         # the full site, into build/
 VITE_EDITION=early npm run build      # the early access

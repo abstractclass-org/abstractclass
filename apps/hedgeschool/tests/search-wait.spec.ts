@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { boardLink } from "../src/lib/game/board.ts";
+import type { KeptBoard } from "../../../packages/analysis/src/kept.ts";
 import { openReviewFile } from "./review-file.ts";
 import { keepBefore } from "./keep-before.ts";
 import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
@@ -14,10 +15,10 @@ import { CONSENT_KEY, DISPLAY_KEY, ENGINE_KEY } from "../src/lib/keys.ts";
 test.describe.configure({ timeout: 120_000 });
 
 const OFF = "Not analyzed yet. The engine is off. To evaluate this move, set the engine switch to on.";
-const board = {
-  version: 2 as const, main: [],
+const board: KeptBoard = {
+  version: 2, main: [],
   nodes: [["A10-D9", 0, 1], ["A10-D9 N11-Q10", 0], ["A10-D9 N11-Q10 K9-N11", 0],
-          ["D10-G12", 1, 1], ["D10-G12 N11-Q10", 0, 1], ["D10-G12 N11-Q10 K9-N11", 0, 1]] as [string, number, 1?][],
+          ["D10-G12", 1, 1], ["D10-G12 N11-Q10", 0, 1], ["D10-G12 N11-Q10 K9-N11", 0, 1]],
 };
 /** The review's variation: the same moves, the first in the place of the game's A10-D9. */
 const variation: [string, number, 1][] = [["D10-G12", 0, 1], ["D10-G12 N11-Q10", 0, 1],

@@ -51,7 +51,11 @@ test("the home board asks the engine for nothing", async ({ page }) => {
     const Base = window.Worker;
     window.Worker = class extends Base {
       constructor(...args: ConstructorParameters<typeof Worker>) { super(...args); work.workers++; }
-      postMessage(...args: Parameters<Worker["postMessage"]>) { work.messages++; super.postMessage(...(args as [unknown])); }
+      // Both of Worker's forms: a list of transfers, or the options
+      postMessage(message: unknown, transfer?: Transferable[] | StructuredSerializeOptions) {
+        work.messages++;
+        if (Array.isArray(transfer)) super.postMessage(message, transfer); else super.postMessage(message, transfer);
+      }
     };
   });
   const engine: string[] = [];

@@ -1,0 +1,7 @@
+{
+	"extends": "../../../packages/tsconfig.base.json",
+	"compilerOptions": {
+		"allowJs": true
+	},
+	"include": ["**/*.ts", "../playwright.config.ts"]
+}
