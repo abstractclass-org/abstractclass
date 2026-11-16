@@ -147,7 +147,9 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
      word. A value of one character (PGN's "?" and "-" for none too) and a plain number stay: they would remove
      letters and digits from every report. This rule goes first, so that a tag's address goes whole.
    - the part of an address after its `#`, unless it names only a kept game's id and a place (`#game=`, `at`): a
-     record, a packed review or analysis, or a tool's game is there (design 22). A stack's line and column stay.
+     record, a packed review or analysis, or a tool's game is there (design 22). The part goes to the address's end,
+     to the first space or character that a browser encodes there: a record's `'`, `(` and `)` can stand in it as
+     they are. A stack's line and column stay, and so does the bracket or quote that closes the address.
    - quoted text, in each kind of quotes: a record's tags hold the players' names in quotes, and a browser quotes the
      text that it cannot read (JSON.parse's message holds a file's content).
    - a record's moves: a turn's number and a dot, then the moves, each a word with a digit in it.

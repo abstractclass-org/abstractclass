@@ -12504,9 +12504,11 @@ file's content and a typed name before it goes (design 17, "Error reports"). The
 - **The scrubbing:** `before_send` runs `scrubEvent` (`packages/site/src/scrub.ts`) on every event. It works on each
   string at any depth, because PostHog's client fills `$exception_list`, `$current_url` and the stack frames' file
   names with text that the site does not write. The address's part after `#` goes unless `holdsGame` (the import's
-  rule of design 22) says that it names only a kept game's id and a place. Quoted text goes, in each kind of quotes:
-  a record's tags hold the players' names in quotes, and JSON.parse's message quotes a file's content. A record's
-  turns go (a number and a dot, then words with digits). Each becomes "…".
+  rule of design 22) says that it names only a kept game's id and a place. The part goes to the address's end, to
+  the first space or character that a browser encodes there: encodeURIComponent and the browser leave a record's
+  `'`, `(` and `)` as they are, and a part that stopped at them let the rest of the record through. Quoted text
+  goes, in each kind of quotes: a record's tags hold the players' names in quotes, and JSON.parse's message quotes a
+  file's content. A record's turns go (a number and a dot, then words with digits). Each becomes "…".
 - **The text of each record that the page reads** goes too, with no quotes: each tag's value (the players' names,
   the event's name) and each comment's text. The rules alone missed a name with no quotes in a library's message,
   and the privacy pages promise that each player's name and each file's content goes. The scrubber removes each

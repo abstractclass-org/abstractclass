@@ -6,8 +6,9 @@
 //   too, and as an address spells it: a library's message or a partner site's message can hold one. The record's
 //   reader notes the texts (@abstractclass/record's texts.ts). This rule goes first, so that a tag's address goes whole.
 // - The part of an address after its `#` when it holds a game (holdsGame: a record, a packed review or analysis, or a
-//   tool's game, Hedge School's design 22). A kept game's id and a place stay, and so does a stack's line and column
-//   after the address.
+//   tool's game, Hedge School's design 22). It goes to the address's end: a record's quotes and brackets can stand
+//   there as they are. A kept game's id and a place stay, and so do a stack's line and column after the address and
+//   the bracket or quote that closes it.
 // - Quoted text, in any kind of quotes: a record's tags give their values in quotes (the players' names), and a
 //   browser quotes the text that it could not read (JSON.parse's message quotes a file's content).
 // - A record's moves: a turn's number and a dot ("1."), then the moves of the turn, each with a digit in it.
@@ -15,10 +16,13 @@
 import { holdsGame } from "@abstractclass/import/importHash.ts";
 import { readTexts } from "@abstractclass/record/texts.ts";
 
-/** The part of an address after its `#`, to the first space, quote or bracket: an address's own characters. */
-const FRAGMENT = /#[^\s"'`<>()[\]{}]*/g;
-/** A stack frame's line and column at the end of an address. */
-const LINE_COLUMN = /(?::\d+){1,2}$/;
+/** The part of an address after its `#`, to the first space or a character that a browser encodes there (the URL
+ *  standard's fragment percent-encode set). encodeURIComponent and the browser leave `'`, `(`, `)`, `[`, `]`, `{` and
+ *  `}` as they are, so a record's text can hold them. */
+const FRAGMENT = /#[^\s"`<>]*/g;
+/** The end of a fragment that is not the page's: a stack frame's line and column, then the brackets or quotes that
+ *  close the address in its text. */
+const TAIL = /(?::\d+){0,2}[)\]}'’”]*$/;
 /** Quoted text, in each kind of quotes. A single quote opens and closes only beside no letter or digit, so that a
  *  word's apostrophe stays. */
 const QUOTED = /"[^"]*"|“[^”]*”|‘[^’]*’|`[^`]*`|(?<![\p{L}\p{N}])'[^']*'(?![\p{L}\p{N}])/gu;
@@ -50,8 +54,8 @@ export function scrubText(text: string): string {
   return text
     .replace(textPattern(), "…")
     .replace(FRAGMENT, f => {
-      const place = f.match(LINE_COLUMN)?.[0] ?? "";
-      return holdsGame(f.slice(0, f.length - place.length)) ? `#…${place}` : f;
+      const tail = f.match(TAIL)![0];
+      return holdsGame(f.slice(0, f.length - tail.length)) ? `#…${tail}` : f;
     })
     .replace(QUOTED, q => `${q[0]}…${q.at(-1)}`)
     .replace(TURN, "…")

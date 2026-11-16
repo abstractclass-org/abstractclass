@@ -22,6 +22,11 @@ test("an address keeps a kept game's id and a place after its #, and loses every
   // An older tool's bare record, with no parameter's name
   assert.equal(scrubText("https://hedgeschool.org/review#1.%20A10-D9"), "https://hedgeschool.org/review#…");
   assert.equal(scrubText("https://hedgeschool.org/review"), "https://hedgeschool.org/review");
+  // encodeURIComponent and the browser leave a record's ' ( ) as they are: the part goes to the address's end. The
+  // stack's line and column and the closing bracket stay.
+  assert.equal(scrubText("at (https://hedgeschool.org/analysis#record=%5BEvent%20%22Wren's%20(club)%22%5D%0A1.%20A10-D9:3:9)"),
+               "at (https://hedgeschool.org/analysis#…:3:9)");
+  assert.equal(scrubText("open (https://hedgeschool.org/review#game=k2x9) again"), "open (https://hedgeschool.org/review#game=k2x9) again");
 });
 
 test("a record's text loses its tags' values and its moves", () => {
