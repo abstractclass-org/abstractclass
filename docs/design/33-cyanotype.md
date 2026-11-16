@@ -1494,6 +1494,11 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
      area, and the display settings have no board layers.
    - **`error_kind` "rules"** on the review also counts a record whose capture marks the engine's rules refuse.
    - **No event of a part that Cyanotype lacks:** Openings (abscls-8tl1.53).
+
+   The error reports (Hedge School's design 17, "Error reports") are the same: the page's uncaught errors, and a
+   report beside each `engine_error` but `rules`, with every event scrubbed of a game before it goes. Cyanotype's
+   records have the same form as Hedge School's, its tags in quotes and its turns numbered, so the same rules remove
+   them.
 5. **The test:** the layout test's analytics cases (Hedge School's `tests/analytics.spec.ts`) run on check:all's builds
    of both sites, each with a made-up PostHog key. Playwright's routes answer PostHog's addresses in its place and keep
    the events that the pages sent. Cyanotype's case checks its page views, with `internal` after `?internal=on`, that
@@ -1503,6 +1508,8 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
    annotated record, from the review and from the Review tab. It checks the review snapshot's open and Review again. A
    build without the key holds none of PostHog's code: check:all builds Cyanotype without the key first, and its step
    `cyanotype-no-posthog` refuses a script of that build that names PostHog's address or its client's extensions.
+   `tests/error-reports.spec.ts` checks the error reports of both sites: each reaches the route, and none holds the
+   record or the typed name that the case gave the page.
 
 ## Support Us
 

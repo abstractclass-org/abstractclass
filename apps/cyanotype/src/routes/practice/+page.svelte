@@ -58,7 +58,7 @@
   import { NETWORKS, botName, keptGame, networkName, offersNetwork, practiceChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
   import { broughtLine, gaugeWidth, komiLine, upright } from "@abstractclass/practice/practice.ts";
-  import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { browserNumber, reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, PRACTICE_DISPLAY_KEY, SITE_NAME } from "#lib/site.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
@@ -78,7 +78,7 @@
   const page = new PracticePage<KeptPractice, PracticeGame>({
     game: "blueprints", choices: practiceChoices, kept: keptGame, networkName, engine: loadEngine,
     create: (kept, rules, bot) => new PracticeGame(kept, rules, bot),
-    track, trackOnce,
+    track, trackOnce, reportError,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
     settings: () => { settingsOpen = false; notice = ""; },

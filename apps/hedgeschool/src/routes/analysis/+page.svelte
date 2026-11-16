@@ -44,7 +44,7 @@
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { keptBoardNotice, keptShipped } from "@abstractclass/analysis/kept.ts";
-  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -73,7 +73,7 @@
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
   // The engine, with the review's settings, and the GPU worker as the review has it (session.svelte.ts).
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
-                                      tracker: { track, networkName } });
+                                      tracker: { track, reportError, networkName } });
   /** A change in the engine settings: a network chosen is the board's own, kept with its tree, when the board has
    *  one (withBoardNetwork). The rest is the browser's. */
   function changeEngine(change: Partial<EngineSettings>) {
@@ -243,6 +243,7 @@
     } catch (e) {
       error = errorText(e);
       track("engine_error", { error_kind: "load" });
+      reportError(e, { error_kind: "load" });
     }
   });
   onDestroy(() => session.end());

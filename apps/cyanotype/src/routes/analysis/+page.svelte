@@ -62,7 +62,7 @@
   import { annotatedRecord } from "#lib/review/annotate.ts";
   import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
   import { EDGE_RANGES, range } from "@abstractclass/site/measure.ts";
@@ -84,7 +84,7 @@
   const settings = $derived(withBoardNetwork(engine, own));
   const budget = $derived(reviewVisits(engine)); // "Evaluate quality" searches to the review's depth
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
-                                      tracker: { track, networkName } });
+                                      tracker: { track, reportError, networkName } });
   /** A change in the engine settings: a network chosen is the board's own, kept with its tree, when the board has
    *  one (withBoardNetwork). The rest is the browser's. */
   function changeEngine(change: Partial<EngineSettings>) {
@@ -245,6 +245,7 @@
     } catch (e) {
       error = errorText(e);
       track("engine_error", { error_kind: "load" });
+      reportError(e, { error_kind: "load" });
     }
   });
   onDestroy(() => session.end());

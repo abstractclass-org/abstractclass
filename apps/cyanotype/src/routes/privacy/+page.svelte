@@ -84,6 +84,11 @@
   <p>The counts hold ranges, such as a game's length. They also hold how your computer runs the engine: its number of
     cores, its GPU and the engine's speed. They never hold a game, a move or a player's name. Only PostHog's code of
     the day links one count to another.</p>
+  <p>When the site's code fails, PostHog receives an error report, so that we can find the fault and repair it. A
+    report holds the error's name and message and the places in the site's code where the error occurred. It also
+    holds the page's address without the part after the <code>#</code>, and the same data about your browser as a
+    visit. Before a report leaves your browser, the site removes each game, move, file content and player's name from
+    it. The report shows "…" in their place.</p>
 
   <GamesChoices {analytics} site={SITE_NAME} bot={ENGINE_NAME} ondelete={deletePractice} />
 

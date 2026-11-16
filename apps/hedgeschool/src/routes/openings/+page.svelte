@@ -35,7 +35,7 @@
   import { readPasted } from "#lib/game/paste.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey, sharedLength } from "@abstractclass/analysis/tree.ts";
-  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import { POSITION_RANGES, range } from "@abstractclass/site/measure.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -93,7 +93,7 @@
   // position's part of the book did not load: the boards work while the book fails (item 11).
   const waits = $derived(!!place?.showsBook && place.at.state !== "failed");
   const session = new EngineSession({ settings: () => (waits ? { ...engine, on: false } : engine), game: () => game,
-                                      position: () => current, tracker: { track, networkName } });
+                                      position: () => current, tracker: { track, reportError, networkName } });
   const failure = $derived(error || session.error);
 
   const data = $derived(game?.data(PLAYERS) ?? null);
@@ -307,6 +307,7 @@
     } catch (e) {
       error = errorText(e);
       track("engine_error", { error_kind: "load" });
+      reportError(e, { error_kind: "load" });
     }
   });
   onDestroy(() => session.end());

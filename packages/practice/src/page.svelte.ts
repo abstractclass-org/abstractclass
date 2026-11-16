@@ -31,6 +31,7 @@ export interface PracticeSite<K extends KeptPractice, G extends Game<K>> {
   create(kept: K, rules: EngineWorker, bot: PracticeBot): G;
   track(name: string, params?: EventParams): void;
   trackOnce(key: string, name: string, params?: EventParams): void;
+  reportError(error: unknown, params?: EventParams): void; // a failure caught, beside engine_error: the error reports
   ended?(game: G, outcome: PracticeOutcome): void; // the site's part of a game's end, after its event
   setAside?(kept: K, rules: EngineWorker): Promise<unknown>; // the game in progress, when a start brought replaces it
   settings?(): void; // the site's part as the page goes back to the settings card
@@ -86,6 +87,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   private manifest: Manifest | null = null;
   private rules: EngineWorker | null = null;
   private endSent: G | null = null;
+  private failureSent: G | null = null; // the game whose failure went to the error reports
   private site: PracticeSite<K, G>;
   private events: ReturnType<typeof practiceEvents>;
 
@@ -104,7 +106,11 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       const g = this.game, status = g?.status;
       if (!g || (status !== "over" && status !== "failed")) return;
       untrack(() => {
-        if (status === "failed") { site.trackOnce(`${g.kept.started} failed`, "engine_error", { error_kind: "practice" }); return; }
+        if (status === "failed") {
+          site.trackOnce(`${g.kept.started} failed`, "engine_error", { error_kind: "practice" });
+          if (this.failureSent !== g) { this.failureSent = g; site.reportError(g.failure, { error_kind: "practice" }); }
+          return;
+        }
         this.trackEnd(g, practiceOutcome(g.position!.scores as [number, number], g.human, g.resigned));
       });
     });
@@ -160,6 +166,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       bot?.terminate();
       this.failed = errorText(e);
       this.site.track("engine_error", { error_kind: "practice" });
+      this.site.reportError(e, { error_kind: "practice" });
     }
   }
 

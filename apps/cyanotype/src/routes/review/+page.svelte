@@ -44,7 +44,7 @@
   import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
            type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { trackExport } from "#lib/game/sources.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "@abstractclass/site/measure.ts";
   import { captureMarksStep, startChecked } from "#lib/review/storedReview.ts";
@@ -91,7 +91,7 @@
   // The engine and the GPU worker (session.svelte.ts). A review snapshot searches nothing: the settings wait for Review
   // again.
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
-                                      frozen: () => !!snapshot, tracker: { track, networkName },
+                                      frozen: () => !!snapshot, tracker: { track, reportError, networkName },
                                       dropped: () => bar.reset() });
   const failure = $derived(error || session.error);
   function changeEngine(change: Partial<EngineSettings>) {
@@ -245,7 +245,10 @@
       await startReview(record, manifest, false);
     } catch (e) {
       // A review stopped for another tab, or by the page's close, fails its searches: no error to show.
-      if (!session.ended) { error = errorText(e); if (kept) track("engine_error", { error_kind: "load" }); }
+      if (!session.ended) {
+        error = errorText(e);
+        if (kept) { track("engine_error", { error_kind: "load" }); reportError(e, { error_kind: "load" }); }
+      }
       if (!kept) stop(); // a game this browser lacks: its lock free for the tab that imports it
     }
   });
@@ -335,7 +338,11 @@
     try {
       await startReview(kept.record, session.manifest!, true);
     } catch (e) {
-      if (!session.ended) { error = errorText(e); track("engine_error", { error_kind: "load" }); }
+      if (!session.ended) {
+        error = errorText(e);
+        track("engine_error", { error_kind: "load" });
+        reportError(e, { error_kind: "load" });
+      }
     }
   }
 

@@ -42,7 +42,7 @@
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { playMove, preload } from "@abstractclass/site/sound.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { browserNumber, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { browserNumber, reportError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { sendPractice } from "#lib/practice/send.ts";
   import { BOT_WHERE } from "@abstractclass/practice/botForms.ts";
   import { PracticeGame, saveUnfinished } from "#lib/practice/game.svelte.ts";
@@ -63,7 +63,7 @@
   const page = new PracticePage<KeptPractice, PracticeGame>({
     game: "enclosure", choices: practiceChoices, kept: keptGame, networkName, engine: loadEngine,
     create: (kept, rules, bot) => new PracticeGame(kept, rules, bot),
-    track, trackOnce,
+    track, trackOnce, reportError,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
     settings: () => { settingsOpen = false; notice = ""; },

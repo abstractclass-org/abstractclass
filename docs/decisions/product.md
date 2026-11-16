@@ -12480,3 +12480,42 @@ is Hedge School's.
   (light), and of the first scene at 1,280 (dark), before and after. Three frames of the first scene's zoom (at 100,
   200 and 400 ms), and a crop of each label at 4 times the pixels. In `apps/cyanotype/runs/8tl1.103-look/` (not
   committed). The labels read at both widths.
+
+### Error reports to PostHog, without the games (2026-11-16)
+
+abscls-3c8h. Both sites send their errors to PostHog's error tracking: the page's uncaught errors and unhandled
+promise rejections, and the engine's caught failures beside `engine_error`. Every event loses a game, a record, a
+file's content and a typed name before it goes (design 17, "Error reports"). The reports follow the events' rules
+(cookieless, no person profiles), so they need no consent of their own.
+
+- **The options** (`packages/site/src/posthog.ts`, posthog-js 1.447.4): `capture_exceptions` as an object that names
+  each kind, `capture_unhandled_errors: true`, `capture_unhandled_rejections: true` and `capture_console_errors:
+  false` (posthog.com/docs/error-tracking/capture.md, read 2026-11-16). The client takes a kind that the object lacks
+  as off. "The init option wins when you set it" over the project's setting (posthog.com/docs/libraries/js/config.md),
+  so the reports need no setting in PostHog. The slim bundle with no external loading needs the import
+  `posthog-js/dist/exception-autocapture` and the `ErrorTrackingExtensions` (posthog.com/docs/libraries/js.md), so the
+  client still loads no script from PostHog.
+- **The caught failures:** `reportError` (`captureException`) with the `error_kind` of `engine_error`: `load` (the
+  review, the Analysis board, Openings, another network), `gpu` and `practice`. `engine_error` stays: design 17's
+  reliability report counts it, and PostHog limits the reports (10 exceptions of one kind in 10 seconds, then one
+  each 10 seconds, capture.md) and can suppress them. `rules` sends no report: the rules refuse the game, and the
+  site has no fault to repair. A practice game that fails sends its error once, from `PracticeGame.failure`.
+- **The scrubbing:** `before_send` runs `scrubEvent` (`packages/site/src/scrub.ts`) on every event. It works on each
+  string at any depth, because PostHog's client fills `$exception_list`, `$current_url` and the stack frames' file
+  names with text that the site does not write. The address's part after `#` goes unless `holdsGame` (the import's
+  rule of design 22) says that it names only a kept game's id and a place. Quoted text goes, in each kind of quotes:
+  a record's tags hold the players' names in quotes, and JSON.parse's message quotes a file's content. A record's
+  turns go (a number and a dot, then words with digits). Each becomes "…".
+- **A registry of the page's private texts** was the other way: the page would note each name and record that it
+  holds, and the scrubber would remove each one. The rules above cover the fields that PostHog fills too, with no
+  list to keep. Their gap is a name with no quotes in an error's message. None of the sites' own messages puts one
+  there (a search of the `throw new Error` texts), but a library's or a partner's message can.
+- **Before the analytics start,** no error goes: the address can still hold a record then (design 22).
+- **The tests:** `packages/site/src/scrub.test.ts` (the rules), and `tests/error-reports.spec.ts` on both sites'
+  check:all builds with a made-up key: an uncaught error and a rejection with a record in the address, an engine
+  whose network does not load (`load`, with `engine_error` beside it), and an error whose message holds a record
+  with a typed name and a file's name. Playwright's route answers PostHog, so no report reaches its servers. Each
+  report reaches the route, and no event holds a move of the record or the name.
+- **The privacy pages** of both sites say what a report holds (the error's name, message and places in the code,
+  the address without its `#` part, the browser's data of a visit) and that the site removes each game, move, file
+  content and player's name from it.

@@ -23,6 +23,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   played = $state.raw<M[]>([]); // each move
   status = $state<PracticeStatus>("starting");
   error = $state("");
+  failure: unknown = null; // the error that stopped the game, for the error reports (PracticePage)
   rules = $state.raw<R | null>(null); // the rules of the player's move, from the player's turn
   resigned = $state(false); // the player resigned: the bot won
   thinkingSince = $state<number | null>(null); // when the bot's turn began (performance.now), while it searches
@@ -210,6 +211,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     if (this.closed) return;
     this.status = "failed";
     this.thinkingSince = null;
+    this.failure = e;
     this.error = errorText(e);
   }
 }

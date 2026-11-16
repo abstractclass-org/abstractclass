@@ -1,7 +1,7 @@
 # What the site measures, and the decisions it serves
 
 **Status:** in force, and built. **Decided:** 2026-10-13. **Changed:** 2026-11-09 (PostHog in place of Google
-Analytics).
+Analytics), 2026-11-16 (the error reports).
 
 ## Context
 
@@ -37,6 +37,8 @@ numbers: the engine's defaults from the speed of visitors' machines, and the GPU
    keeps a flag in the browser, and `?internal=off` removes it. The page then takes the parameter out of its address.
    While the flag is set, every event of that browser carries the property `internal` = `true`, from the first page
    view on. The project's filter of internal and test users drops these events ("The setup in PostHog", below).
+7. **The site's errors go to PostHog's error tracking** as error reports, without a game, a record, a file's content
+   or a name in them ("Error reports", below).
 
 ### The words
 
@@ -121,6 +123,35 @@ many games the browser keeps, as a range. It is a PostHog super property (`regis
 the page's memory. It is not a person property: the site makes no person profiles (`person_profiles: 'never'`), as
 PostHog advises for cookieless mode.
 
+### Error reports
+
+Both sites send their errors to PostHog's error tracking, as error reports (the event `$exception`). The reports
+follow the events' rules: no cookie, nothing in the browser, and so no consent.
+
+1. **The page's uncaught errors** and its unhandled promise rejections go by PostHog's exception autocapture
+   (`capture_exceptions` in `packages/site/src/posthog.ts`). The console's errors do not go. The init option wins over
+   the project's setting, so the reports need no setting in PostHog. An error before the analytics start does not go:
+   until then, the page's address can hold a game (design 22).
+2. **The engine's caught failures** go by `reportError` (PostHog's `captureException`), where the page sends
+   `engine_error`, with the same `error_kind`: `load`, `gpu` and `practice`. `engine_error` stays beside it. The
+   reliability report counts it, and PostHog limits the reports (10 of one kind in 10 seconds, then one each 10
+   seconds) and can suppress them. A game that the rules refuse (`rules`) sends no report: the fault is in the game,
+   not in the site.
+3. **Every event loses a game before it goes** (`packages/site/src/scrub.ts`, PostHog's `before_send`). A report
+   holds text that the site does not write: the error's message, the stack's addresses and the page's address. So the
+   rules apply to each string of each event, the properties that PostHog's client adds too:
+   - the part of an address after its `#`, unless it names only a kept game's id and a place (`#game=`, `at`): a
+     record, a packed review or analysis, or a tool's game is there (design 22). A stack's line and column stay.
+   - quoted text, in each kind of quotes: a record's tags hold the players' names in quotes, and a browser quotes the
+     text that it cannot read (JSON.parse's message holds a file's content).
+   - a record's moves: a turn's number and a dot, then the moves, each a word with a digit in it.
+
+   Each goes as "…", so that a report shows where text was. The message's other words stay, so the report still says
+   what failed.
+4. **What the rules miss:** a name with no quotes in an error's message. The sites' own messages put no name there,
+   but a library's message or a partner site's message can hold any text.
+5. **The privacy pages** of both sites say what a report holds and what the site removes from it.
+
 ## Using it
 
 ### The setup in PostHog
@@ -136,6 +167,9 @@ to register them. So the site's events need no setup in PostHog. The project's s
   drop out ([posthog.com/docs/data/test-accounts.md](https://posthog.com/docs/data/test-accounts.md)). An insight
   then takes the filter with its switch of the same name, which **Enable this filter on all new insights** turns on.
   [docs/hosting.md](../hosting.md), section 4, gives the steps.
+- **Error tracking:** the reports show in **Error tracking**. The project's setting "Exception autocapture"
+  (Settings → Project → Error tracking) can stay as it is: the sites' init option wins over it. A suppression rule
+  there drops the reports of one error.
 - **The data's time:** PostHog's free plan keeps a year of data (posthog.com/pricing). A year compares a release with
   the months before it.
 
@@ -303,6 +337,9 @@ Cyanotype's.
   (Practice's events and features), with their parameters in `packages/practice/src/practiceEvents.ts`
   (`practiceParams`, `practiceEndParams`, with the networks' names that each site gives, tested with Hedge School's
   in `src/lib/practice/practice.test.ts`).
+- The error reports: `reportError` in `packages/site/src/analytics.svelte.ts`, the scrubbing in
+  `packages/site/src/scrub.ts`, tested in `scrub.test.ts` beside it. The check in a browser, on both sites:
+  `tests/error-reports.spec.ts`.
 - The privacy page: `src/routes/privacy/+page.svelte`.
 
 ## Log entries
@@ -324,3 +361,4 @@ Cyanotype's.
   (2026-10-22): the page names the kinds of events, not each event.
 - [decisions/product.md](../decisions/product.md): "PostHog in place of Google Analytics" (2026-11-09): the events go
   to PostHog, and the explorations become PostHog insights.
+- [decisions/product.md](../decisions/product.md): "Error reports to PostHog, without the games" (2026-11-16).

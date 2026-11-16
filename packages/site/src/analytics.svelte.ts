@@ -10,7 +10,8 @@
 //
 // PostHog also takes events (Hedge School's design 17): what a visitor did, in counts and ranges (measure.ts), for the
 // decisions in that design. A browser with the flag of internal traffic (internalTraffic.ts) marks its events, so that
-// the owner's visits stay out.
+// the owner's visits stay out. It takes the error reports too (reportError, and the page's uncaught errors in
+// posthog.ts), with no game, record or name in them (scrub.ts).
 //
 // The consent has one purpose (Hedge School's design 25), in a build that stores practice games: the random number
 // that links this browser's practice games, where the site stores them. The banner's Accept and Decline set it, and
@@ -108,6 +109,11 @@ export class Analytics {
   /** Sends an event to PostHog (Hedge School's design 17): its name and properties, counts and ranges only, never a
    *  game, a player's name or a game's id. */
   track = (name: string, params: EventParams = {}) => this.#withClient(c => c.capture(name, params));
+
+  /** Sends a failure that the site caught to PostHog's error tracking (Hedge School's design 17, "Error reports"): the
+   *  error, its stack, and `params` beside them, as an event's (counts and ranges). PostHog's client takes the page's
+   *  uncaught errors by itself (posthog.ts), and both lose a game, a record and a name before they go (scrub.ts). */
+  reportError = (error: unknown, params: EventParams = {}) => this.#withClient(c => c.captureException(error, params));
 
   /** Sends an event once for each `key` in this page's life: a feature's first use in a review, not each use. The key
    *  stays in the page: it may name the game. */
