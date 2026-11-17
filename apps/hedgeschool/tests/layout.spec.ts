@@ -10,21 +10,20 @@
 //     height (--site-header).
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), in each display, then while the engine's network loads, the Review tab with that game
-// kept, and Practice a game in progress from it. The import
-// page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
-// monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's
-// home page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Two check the
-// Support Us dialog, on each site, in a wide window and on a phone. Four check the header's "Early Access" link, on
-// each site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its
-// page, and a game in progress when the site has its practice bot. Four check that a practice game's and a review's one
-// column agree with themselves between 799 and 800 pixels wide, on each site. Two check Cyanotype's import page: the
-// choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's board with the player's notes,
-// at design 06's sizes. One checks Openings (design 32) on the test book, with the book's table, where the build has it
-// (edition.ts, OPENINGS), while the engine's network loads and once it has loaded. One checks that the sentence under
-// the book's table keeps the move list in place, on Openings and the Analysis board (the review's book table test
-// checks the review). Every page's sweep checks the header's row, with Openings' fourth tab where the build has
-// it. A last test checks the step bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm
-// run test:layout (the site running first).
+// kept, and Practice a game in progress from it. The import page shows the choice for a userscript's game, with the
+// notice to update the userscript. Two tests check that the monospaced font draws no ligatures, on Hedge School and on
+// Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's home page, and one its Notices page. Two check the site's menu
+// open on a narrow window, on each site. Two check the Support Us dialog, on each site, in a wide window and on a
+// phone. Four check the header's "Early Access" link, on each site in each theme. Two check Cyanotype's Practice
+// (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Four check that a practice
+// game's and a review's one column agree with themselves between 799 and 800 pixels wide, on each site. Two check
+// Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
+// board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
+// book's table, where the build has it (edition.ts, OPENINGS), while the engine's network loads and once it has loaded.
+// One checks that the sentence under the book's table keeps the move list in place, on Openings and the Analysis board
+// (the review's book table test checks the review). Every page's sweep checks the header's row, with Openings' fourth
+// tab where the build has it. A last test checks the step bar on a phone, on the review, the Analysis board, Openings
+// and Practice. Run: npm run test:layout (the site running first).
 import type { Browser, LaunchOptions } from "@playwright/test";
 import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
@@ -599,28 +598,28 @@ const REVIEW_DISPLAYS: [string, Record<string, string>][] = [
   ["labels by edge, as text, the book moves as a book", { judge: "edge", marks: "text", bookMoves: "book" }],
 ];
 
+/** Reloads the review in a display (`display`) and waits for "Review done": the move list's labels and numbers are in,
+ *  which make it widest. A build that does not know the file's engine reviews the game again, from its results. */
+async function reloadReviewIn(page: Page, display: Record<string, string>) {
+  await page.evaluate(([k, d]) => localStorage.setItem(k, JSON.stringify(d)), [DISPLAY_KEY, display] as const);
+  await page.reload();
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
+}
+
 test("layout of a review", async ({ page }) => {
   await reviewedGame(page); // the review opens the game: a second opening would find it open "in another tab"
   const reports: string[] = [];
   for (const [name, display] of REVIEW_DISPLAYS) {
     // The page settled first: the import opens the review by a navigation of its own.
     await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
-    await page.evaluate(([k, d]) => localStorage.setItem(k, JSON.stringify(d)), [DISPLAY_KEY, display] as const);
-    await page.reload();
-    // The review done: the move list's labels and numbers are in, which make it widest. A build that does not know
-    // the file's engine reviews the game again, from its results.
-    await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
+    await reloadReviewIn(page, display);
     reports.push(await sweep(page, `/review, ${name}`));
   }
-  // The review done while the engine's network still loads: the review's results come from its file, and the engine
-  // header says "Loading the engine's network…" in the place of the visits. A sweep saw these words only when its first
-  // size came before the network had loaded, and in DejaVu Sans (Linux's system-ui) they did not fit at 360 pixels
-  // (abscls-zt9j, abscls-wb5y). The test holds the network's files, so that the sweep sees the words at every size, in
-  // the default display.
+  // The review done while the engine's network still loads: its results come from its file, and the engine header
+  // says "Loading the engine's network…". Without the hold, only a sweep's first size could see these words
+  // (abscls-zt9j, docs/decisions/product.md). The held files keep them at every size, in the default display.
   const release = await holdNetworks(page);
-  await page.evaluate(k => localStorage.setItem(k, JSON.stringify({})), DISPLAY_KEY);
-  await page.reload();
-  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
+  await reloadReviewIn(page, {});
   const line = await headerLine(page);
   await expect(line).toContainText(NETWORK_WORDS);
   reports.push(await sweep(page, "/review, while the engine's network loads", headerSays(line, true)));
