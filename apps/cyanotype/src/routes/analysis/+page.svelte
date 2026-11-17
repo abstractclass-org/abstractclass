@@ -10,8 +10,8 @@
   // game can reach it (protocol 0.8.0's check), so it analyzes no position that no game reaches. A record or a start
   // that fails leaves the board kept here, with a notice. One that passes asks first when the board kept here has
   // moves, as Hedge School's board does ("Replace your analysis?"). A board kept here whose start fails the check (one
-  // kept before the check) gives way to a new board, with a notice. A board brought that fails too has its refusal first,
-  // then the kept board's notice.
+  // kept before the check) gives way to a new board, with a notice. A board brought that fails too has its refusal after
+  // the kept board's notice, as on Hedge School.
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and the
@@ -183,14 +183,15 @@
     const verb = kind === "link" || kind === "file" ? "load" : "open";
     refused = boardRefusal(verb, kind, problem);
   }
-  /** The opening's notice, once the board is chosen: the refusal of a board brought (refuse), then the notice of the
-   *  board kept here that cannot open (keptGone), in Hedge School's words. The last sentence names the board on screen:
-   *  the board kept here, or the new board in its place. A board brought (`replaced`: a link, an analysis file, New or
-   *  the Import) takes the place of a kept board that cannot open, and the notice then names no new board. */
+  /** The opening's notice, once the board is chosen, in Hedge School's words and order: the notice of the board kept
+   *  here that cannot open (keptGone), which names the new board in its place, then the refusal of a board brought
+   *  (refuse). A refusal alone says that the board kept here is on screen. A board brought (`replaced`: a link, an
+   *  analysis file, New or the Import) takes the place of a kept board that cannot open, and the notice then names no
+   *  new board. */
   function openingNotice(replaced: boolean): string {
     const gone = keptGone ? keptBoardNotice(keptGone, replaced) : "";
     if (!refused) return gone;
-    return `${refused} ${gone || "Your own analysis is here instead."}`;
+    return gone ? `${gone} ${refused}` : `${refused} Your own analysis is here instead.`;
   }
   // A board brought, when the board kept here has moves of its own: the player chooses which to keep.
   const question = new ReplaceQuestion();

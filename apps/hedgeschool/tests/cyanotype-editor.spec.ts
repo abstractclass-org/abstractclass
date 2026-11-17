@@ -291,11 +291,12 @@ test("the Analysis board does not open a kept board whose start no game reaches:
   await expect(page.locator(".movelist button[data-path]")).toHaveCount(0);
 });
 
-test("a kept board whose start no game reaches, and a link that does not read: the link's refusal, then the kept board's notice", async ({ page }) => {
+test("a kept board whose start no game reaches, and a link that does not read: both notices, the kept board's first", async ({ page }) => {
+  // Hedge School's order (its tests/komi-limit.spec.ts)
   await keepUnreached(page);
   await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [], nodes: [], komi: 90_981 }, 0)); // beyond the cap
-  await expect(page.getByRole("alert")).toHaveText(new RegExp("^The Analysis board cannot load this link: the Komi tag must "
-    + `be from -90,980 to 90,980 points: 90981\\. ${KEPT_REFUSED}$`), { timeout: 120_000 });
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^${KEPT_REFUSED} The Analysis board cannot load this link: `
+    + "the Komi tag must be from -90,980 to 90,980 points: 90981\\.$"), { timeout: 120_000 });
   await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible({ timeout: 120_000 }); // ready
   await expect(page.locator(".movelist button[data-path]")).toHaveCount(0);
 });

@@ -12604,12 +12604,12 @@ new board, with a notice. That notice replaced the refusal of a link, a file or 
 the player did not see why the board brought did not open. New under such a board wrote a new board and showed no
 notice, where Hedge School's New shows the short notice (design 24, item 15).
 
-- **Both sentences show:** the refusal of the board brought comes first, then the kept board's notice, which ends
-  with "A new board is here instead.": the last sentence names the board on screen. The same order holds for a kept
-  board beyond the komi's limit, whose notice came first before. The page writes the notice once, when it has chosen
-  the board (`openingNotice` in `apps/cyanotype/src/routes/analysis/+page.svelte`).
-- **Hedge School has the other order:** its kept board's notice comes first (`tests/komi-limit.spec.ts`, "both
-  notices, the kept board's first"). Its board does not change in this work.
+- **Both sentences show, in Hedge School's order:** the kept board's notice comes first, with "A new board is here
+  instead.", then the refusal of the board brought. Hedge School's board gives this order
+  (`tests/komi-limit.spec.ts`, "both notices, the kept board's first"), and a jam site has what Hedge School has: the
+  same case gives the same text on both sites. A kept board beyond the komi's limit had this order on Cyanotype
+  already, and keeps it. The page writes the notice once, when it has chosen the board (`openingNotice` in
+  `apps/cyanotype/src/routes/analysis/+page.svelte`). Hedge School's board does not change in this work.
 - **New brings a board, as on Hedge School:** the standard start goes to the board's address (`position=` with the
   standard start, `via=new`), and the page loads again. The opening asks before it replaces a board kept here that has
   moves, and a kept board that cannot open gives way to it, with the short notice. `new` is one of the site's own ways

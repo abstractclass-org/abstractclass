@@ -228,8 +228,8 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       record from a set-up start takes it before its moves. A board kept in the browser whose start fails the check
       (one kept before the check) gives way to a new board, with a notice, as a kept board with a komi does. A board
       brought in its place opens at once, and the notice then does not name a new board (design 24, item 15). When the
-      board brought cannot open either, its refusal comes first, then the kept board's notice, which names the new
-      board.
+      board brought cannot open either, the kept board's notice comes first, then the refusal of the board brought, as
+      on Hedge School: the same case gives the same text on both sites.
       describe_game gives no check: the site asks describe for it (`src/lib/review/recordCheck.ts`, `startChecked`).
     - Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
       back from its notation as the same position, with the same legal moves (`position.engine.test.ts`, at
