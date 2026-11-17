@@ -4,7 +4,8 @@
 // Analysis board, a link with the main line's first move and a variation of three moves (the first turn's other move,
 // then a turn of two), each evaluated. In a review, the same variation, with "Review for" set to Blue: Red's moves show
 // no wait, by edge and by turn. The last case turns the engine on, on the CPU, and fails one move's search. Only that
-// move says that the engine has an error. A new search of its position clears it (GameAnalysis.judgeFailed). No
+// move says that the engine has an error, and the panel says the engine's error. A new search of its position clears
+// both (GameAnalysis.judgeFailed and engineError). No
 // position of the game makes the engine fail by itself. So the page's Worker gives the engine's error reply to the
 // first search of that position, and that search never reaches the engine (failFirstSearch).
 import { readFileSync } from "node:fs";
@@ -126,4 +127,6 @@ test("with the engine on, a failed search marks only its own move, until a new s
   // The position on screen gets a new search: the move says the error no more
   await page.locator('button.mv[data-path="D10-G12"]').click();
   await expect.poll(() => title(page, "D10-G12"), { timeout: 60_000 }).not.toContain(ERROR);
+  // No failure holds: the panel's line goes too (GameAnalysis.engineError)
+  await expect(page.getByRole("alert").filter({ hasText: "Engine error:" })).toHaveCount(0);
 });

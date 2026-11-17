@@ -172,7 +172,7 @@ test("results of shape 5 open the review with no search, and the board's ownersh
   of("y").end(MAP_VISITS, false, { ownership: [0, 0] });
   of("z").fail(new Error("the game is over"));
   await turns();
-  assert.equal(game.error, ""); // not the review's error
+  assert.equal(game.engineError, ""); // not the panel's engine error
   assert.deepEqual(game.mapAt(["a", "x", "y"]), [0, 0]);
   assert.deepEqual([game.hasNoMap(["a", "x", "y"]), game.hasNoMap(["a", "x", "z"])], [false, true]);
   // The review opened again reads the maps from the store, with no search
@@ -642,7 +642,7 @@ test("a search that fails ends its marks in the next batch, and the page gets th
   mock.timers.tick(BATCH_MS);
   assert.deepEqual(shown(), [false, null]);
   assert.equal(game.analysis[0], undefined);
-  assert.match(game.error, /the engine failed/);
+  assert.match(game.engineError, /the engine failed/);
 });
 
 test("a failed search marks only the moves that its position judges, until a new search of the position runs", async () => {
@@ -659,7 +659,7 @@ test("a failed search marks only the moves that its position judges, until a new
   await turns();
   // The move into the failed position says so. The other move's searches run on: it does not.
   assert.deepEqual(failed(), [true, false]);
-  assert.match(game.error, /the engine failed/); // the page's engine error, as before
+  assert.equal(game.engineError, "the engine failed"); // the panel's engine error
   // A new search of the failed position clears it while it runs: here the position on screen's.
   game.focus(["a", "x"]);
   await turns();
@@ -690,6 +690,46 @@ test("a result of another search of the failed position clears its failure, also
   focus.partial(32);
   await turns();
   assert.equal(game.judgeFailed("a x"), false);
+});
+
+test("the panel's engine error holds while a search's failure holds: a result of the position clears it", async () => {
+  const { game, searches } = await greatBranch();
+  await game.addLine(["a", "x"], false);
+  await game.judge(["a", "x"]);
+  await turns();
+  const of = () => searches.filter(s => s.moves.join(" ") === "a x");
+  const judged = of().at(-1)!;
+  game.focus(["a", "x"]);
+  await turns();
+  const focus = of().at(-1)!;
+  assert.equal(game.engineError, "");
+  judged.fail(new Error("the engine failed"));
+  await turns();
+  assert.equal(game.engineError, "the engine failed");
+  assert.equal(game.error, ""); // the rules took the game: the pages show the review
+  focus.partial(32);
+  await turns();
+  assert.equal(game.engineError, ""); // no failure holds
+});
+
+test("the panel shows the latest failure that holds, and the rules' refusal of the game when none holds", async () => {
+  const { game, searches } = await greatBranch();
+  await game.addLine(["a", "x"], false);
+  await game.addLine(["a", "b", "y"], false);
+  await game.judge(["a", "x"]);
+  await game.judge(["a", "b", "y"]);
+  await turns();
+  const last = (moves: string) => searches.findLast(s => s.moves.join(" ") === moves)!;
+  last("a x").fail(new Error("the first failure"));
+  last("a b y").fail(new Error("the second failure"));
+  await turns();
+  assert.equal(game.engineError, "the second failure");
+  game.focus(["a", "b", "y"]); // a new search of the second's position
+  await turns();
+  assert.equal(game.engineError, "the first failure");
+  game.error = "the rules refused the game";
+  game.dropAnalysis(); // another network: no failure holds
+  assert.equal(game.engineError, "the rules refused the game");
 });
 
 test("a move that waits for its Great's search says the error of that search", async () => {
@@ -1701,7 +1741,7 @@ test("the weak walls: the engine's refusal of the field gives none at all, and a
   // An error that names another field: the analysis's error, not the end of the game
   searches.find(s => s.query.includeWeakWalls)!.fail(new EngineError({ id: "a", error: "the engine failed", field: "moves" }));
   await turns();
-  assert.match(game.error, /the engine failed/);
+  assert.match(game.engineError, /the engine failed/);
   assert.notEqual(game.wallState(["a"]), "none");
   // The refusal of the field by its name (a backend that does not give them): none at all
   game.askWalls(["a", "b"]);
@@ -1709,4 +1749,24 @@ test("the weak walls: the engine's refusal of the field gives none at all, and a
   searches.filter(s => s.query.includeWeakWalls).at(-1)!.fail(new EngineError({ id: "a", error: "not on this backend", field: "includeWeakWalls" }));
   await turns();
   assert.equal(game.wallState(["a", "b"]), "unsupported");
+});
+
+test("the weak walls: the panel shows their search's failure until the walls come, also while a new search runs", async () => {
+  const { game, searches } = await noMaps(2, "g-walls6");
+  void game.sweep();
+  await turns();
+  game.askWalls(["a"]);
+  await turns();
+  const walls = () => searches.filter(s => s.query.includeWeakWalls);
+  walls()[0].fail(new Error("the engine failed"));
+  await turns();
+  assert.equal(game.engineError, "the engine failed");
+  game.askWalls(null);
+  game.askWalls(["a"]); // asked for again: a new search
+  await turns();
+  assert.equal(walls().length, 2);
+  assert.equal(game.engineError, "the engine failed"); // no result yet
+  walls()[1].end(1, false, { weakWalls: WALLS });
+  await turns();
+  assert.equal(game.engineError, "");
 });

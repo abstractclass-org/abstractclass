@@ -44,7 +44,7 @@
   /** The analysis behind the view (GameAnalysis): its variations, an engine error, the position searched for the player,
    *  the rules and the results the view asks for, and the changes of the tree. */
   export interface ReviewGame<G extends GameTypes> {
-    error: string;
+    readonly engineError: string; // the failure that the panel shows (GameAnalysis.engineError), or ""
     readonly komi: number; // the game's komi, Red's starting score (Hedge School's design 24): 0 for most games
     readonly takesBook: boolean; // the analysis takes the opening book: not on the board, nor at a komi (Hedge School's design 24)
     branches: Record<string, BranchNode<G>>; // the variations' positions, by path key (tree.ts), in the order added
@@ -1761,8 +1761,8 @@
 
 <!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
-  {#if game?.error}
-    <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {game.error}</p>
+  {#if game?.engineError}
+    <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {game.engineError}</p>
   {:else if progress}
     <!-- One height for the review's slot, while it runs and once it is done, each line on one line: the report and the
          moves under it never move as the review goes (Cloudflare measured the page's layout shift). The second line
