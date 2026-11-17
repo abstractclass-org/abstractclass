@@ -2252,7 +2252,9 @@
           {@const text = display.branchForm === "text"}
           {@const fit = text ? "" : "flex leading-none"}
           {@const labelTip = tooltip(status, hardness?.note)}
-          {@const tip = text ? labelTip : tooltip(`${turnText(t)} ${view.notation(node.move)}`, labelTip)}
+          <!-- The move's title: by edge with its judgement, which it holds. By turn the move only, as a game edge's by
+               turn (design 06, item 8): the judgement is the turn's, in its own button's title. -->
+          {@const tip = tooltip(text ? "" : `${turnText(t)} ${view.notation(node.move)}`, unit === "edge" ? labelTip : "")}
           <!-- A book move's mark (design 32, item 4) comes with its quality label: by edge the move's, by turn the turn's,
                when all the turn's edges are book moves (the game's by the game's marks). -->
           {@const bookAfter = label ? bookAfterAll(bt?.paths ?? [p]) : undefined}

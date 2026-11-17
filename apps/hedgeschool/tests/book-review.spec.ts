@@ -710,9 +710,11 @@ test.describe("a book move played from the table", () => {
   for (const judge of ["edge", "turn"]) {
     test(`by ${judge}: Evaluate quality gives the move the table's label, with no search, as the book mark`, async ({ page }) => {
       const move = await evaluated(page, { judge });
-      // The move's tooltip names the label, and the book mark takes the label's place: the label on the book's brown
-      // (the default form), named by the tooltip and the position symbol after the move
-      await expect(move).toHaveAttribute("title", /(^| · )Inaccuracy( · |$)/);
+      // By edge, the move's tooltip names the label. By turn the label is the turn's, and the move's tooltip names the
+      // move only. The book mark takes the label's place: the label on the book's brown (the default form), named by
+      // the tooltip and the position symbol after the move
+      if (judge === "edge") await expect(move).toHaveAttribute("title", /(^| · )Inaccuracy( · |$)/);
+      else await expect(move).not.toHaveAttribute("title", /Inaccuracy/);
       const judgement = judgementOf(page, judge, K12_N11);
       const mark = judgement.getByRole("img", { name: /^Book move · / });
       await expect(mark).toHaveAccessibleName(/^Book move · (.+ · )?Inaccuracy · .+ after it$/);
@@ -935,6 +937,39 @@ test.describe("a variation's label and ◆", () => {
         await expect.poll(async () => (await boxOf(judgement)).top >= (await boxOf(second)).bottom - 1).toBe(true);
         await lightsGroup(page, judgement, [first, second], [], 2);
       }
+    });
+  }
+
+  // A move's title, in each form (design 07, item 11). By edge, the move holds its judgement, and its title names it:
+  // the label, and the ◆'s "Hard position". By turn the judgement is the turn's, so the move's title names the move
+  // only, as a game edge's by turn names no label (design 06, item 8): in text no title, and in pills and dots the
+  // turn's number and the move. The turn's own button holds the judgement's words in its title. D10-G9 opens Blue's
+  // turn 3, and D9-G11 ends it. G12-K10 ends Red's turn 4: not evaluated, it has the ◆ and no label.
+  const JUDGEMENT_WORDS = /\b(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder|Book move)\b|Hard position|Not searched yet|Evaluating|Not analyzed yet/;
+  for (const judge of ["edge", "turn"]) for (const branchForm of ["text", "pills", "dots"]) {
+    test(`by ${judge}, variations as ${branchForm}: a move's title names ${judge === "edge" ? "its judgement" : "the move only"}`, async ({ page }) => {
+      await evaluateD9G11(page, { judge, branchForm });
+      const label = judgementOf(page, judge, D9_G11).getByRole("img", { name: LABEL_WORDS });
+      await expect(label).toBeVisible();
+      const word = (await label.getAttribute("aria-label"))!;
+      const round = branchForm !== "text";
+      if (judge === "edge") {
+        // The turn's number and the move come first in the round forms, which show no name
+        const titled = (named: string, judgement: string) => new RegExp(`^${round ? `${named} · ` : ""}${judgement}$`);
+        await expect(moveAt(page, D9_G11)).toHaveAttribute("title", titled("3\\.\\.\\. D9-G11", `${word}( · .+)?`));
+        await expect(moveAt(page, D10_G9)).toHaveAttribute("title", /(^| · )(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)( · |$)/);
+        await expect(moveAt(page, G12_K10)).toHaveAttribute("title", titled("4\\.\\.\\. G12-K10", "Hard position"));
+        return;
+      }
+      for (const [key, named] of [[D10_G9, "3. D10-G9"], [D9_G11, "3... D9-G11"], [G12_K10, "4... G12-K10"]]) {
+        if (round) await expect(moveAt(page, key)).toHaveAttribute("title", named);
+        else await expect(moveAt(page, key)).not.toHaveAttribute("title");
+      }
+      // No move of the list names a judgement, the game's either (theirs name the lead): the turn's button does
+      for (const move of await page.locator(".movelist button.mv").all())
+        expect((await move.getAttribute("title")) ?? "").not.toMatch(JUDGEMENT_WORDS);
+      await expect(judgementOf(page, judge, D9_G11)).toHaveAttribute("title", new RegExp(`^${word}( · .+)?$`));
+      await expect(judgementOf(page, judge, G12_K10)).toHaveAttribute("title", "Hard position");
     });
   }
 });
