@@ -121,8 +121,8 @@
    *  The address names the source (`via`): a tool's game from the import page, or the Import's paste. A record or a
    *  position with none is a link's. The board editor's position is the site's own: neither. */
   let imported: ImportSource | undefined, loaded: LoadSource | undefined;
-  /** Why the board kept here could not open (a komi beyond the limit, or a start that no game reaches), or null. A
-   *  board brought then replaces it at once, and the notice names no new board. */
+  /** Why the board kept here could not open (a komi beyond the limit, or a start that no game reaches), or null:
+   *  openingNotice gives it. */
   let keptGone: string | null = null;
   /** Why a board brought could not open (refuse), or null: the board kept here opens in its place. */
   let refused: string | null = null;

@@ -278,12 +278,14 @@ async function keepUnreached(page: Page) {
   }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID,
        { version: 2, main: [MOVE], nodes: [[MOVE, 0]], start: UNREACHED }] as const);
 }
-/** The notice of that kept board: alone, a new board is here; under a board brought, the short notice. */
+/** That kept board's notice under a board brought in its place: the short notice, which names no new board. The names
+ *  are komi-limit.spec.ts's. */
 const KEPT_GONE = `The Analysis board cannot open your own analysis: ${WHY.its}`;
+/** That kept board's notice when no board takes its place: a new board is on screen. */
 const KEPT_REFUSED = `${KEPT_GONE} A new board is here instead\\.`;
 
 test("the Analysis board does not open a kept board whose start no game reaches: a new board, with a notice", async ({ page }) => {
-  // A defence, as for a kept board with a komi
+  // A defence, as for a kept board beyond the komi's limit
   await keepUnreached(page);
   await page.goto(at("/analysis"));
   await expect(page.getByRole("alert")).toHaveText(new RegExp(`^${KEPT_REFUSED}$`), { timeout: 120_000 });

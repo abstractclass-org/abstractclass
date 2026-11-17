@@ -12616,8 +12616,10 @@ notice, where Hedge School's New shows the short notice (design 24, item 15).
   in: neither an import nor a load (design 17).
 - **The words are Hedge School's:** the shared `keptBoardNotice` and `boardRefusal`, and "Your own analysis is here
   instead.", the same string as Hedge School's.
-- **The tests:** `tests/cyanotype-editor.spec.ts` has three cases beside the kept-start case: a link that does not
-  read (a komi beyond the cap) under the kept start, where both sentences show; a link's board under it, with the short
-  notice; and New's standard start under it, with the short notice. On a build of dev, the first and the third fail:
-  the link's refusal does not show, and New shows no notice. The second passes there: the short notice under a board
-  brought was already right, and no test checked it.
+- **The tests:** `tests/cyanotype-editor.spec.ts` has three cases beside the kept-start case. Each keeps a board whose
+  start no game reaches, then brings a board:
+  - A link that does not read (a komi beyond the cap): both sentences show. On a build of dev, this case fails: the
+    link's refusal does not show.
+  - A link's board: the short notice. On a build of dev, this case passes: the short notice under a board brought was
+    already right, and no test checked it.
+  - New's standard start: the short notice. On a build of dev, this case fails: New shows no notice.
