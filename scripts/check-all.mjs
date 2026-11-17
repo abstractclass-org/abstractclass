@@ -46,6 +46,9 @@ const steps = [
   // The hub's board is the one that its script writes from Hedge School's home board, and its colours are Hedge
   // School's (apps/hub/scripts/enclosure-board.mjs).
   { name: "hub-board", cwd: root, command: "node apps/hub/scripts/enclosure-board.mjs --check" },
+  // The page of Hedge School's link preview picture is the one that its script writes, in the site's dark theme's
+  // tokens (apps/hedgeschool/scripts/social-card.mjs).
+  { name: "social-card", cwd: site, command: "node scripts/social-card.mjs --check" },
   // Each site's build has a made-up PostHog key, so that the browser tests check the measuring and the events
   // (tests/analytics.spec.ts, tests/cyanotype-events.spec.ts). No test reaches PostHog: the browser tests' Chromium
   // resolves none of its addresses (playwright.config.ts), and the tests answer them in PostHog's place.

@@ -339,7 +339,8 @@ edit in the same commit), so their changes still apply.
     import). The engine's package holds the error text as a sentence's end (`errorSentence`). The review's Export menu
     (`exports.ts`) holds the review link's note and copy (`shareNote`, `copyReviewLink`) and the Analysis board's
     exports (`deliverBoardExport`, `boardRecordNote`). The analysis package holds the board's file load
-    (`loadBoardFile`) and its notice of what it cannot take (`boardRefusal`). The shared review's intro (Hedge
+    (`loadBoardFile`), its notice of what it cannot take (`boardRefusal`), and the Review tab's file load
+    (`loadReviewTabFile`). The shared review's intro (Hedge
     School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site. Its words differ between the two
     copies, and one text for both is a visible change. Hedge School's partner code (design 18) moved into the
     packages before Cyanotype uses it (abscls-8tl1.74, design 33, "Partner sites"). The import package's

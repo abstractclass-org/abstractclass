@@ -31,7 +31,9 @@ The early access stays: the About page says that everything can change (design 1
    Twitter's large card, which Discord reads too.
 5. **The preview image:** 1,200 × 630 pixels, Open Graph's size (`static/brand/card.png`). It shows a corner of a
    board, the collie, "Hedge School", "Learn Enclosure" and the address, in the site's dark theme. Edge draws it from
-   `scripts/social-card.html`, whose comment gives the command.
+   `scripts/social-card.html`, whose comment gives the command. `scripts/social-card.mjs` writes that page with the
+   colours of the site's dark theme tokens. The step `social-card` of `npm run check:all` fails when the page is not
+   what the script writes.
 6. **Pages kept out:** `/import`, which only takes a game that a link carries (design 22), the lab pages (`/lab/…`),
    and the pages of the full site that the early access does not build (`/puzzles`, `/learn`) carry `noindex`.
 7. **The sitemap** (`/sitemap.xml`, prerendered): the pages that a visitor opens. Home, the Review tab, the Analysis
@@ -65,4 +67,4 @@ The early access stays: the About page says that everything can change (design 1
   address for `PageMeta`, as `SiteFrame`'s `origin`), the pages' own `PageMeta`, `src/lib/edition.ts` (`SITE_ORIGIN`).
 - `static/robots.txt`, `static/_headers`, `src/routes/sitemap.xml/+server.ts` (the site's pages),
   `packages/site/src/sitemap.ts` (the response).
-- `static/brand/card.png`, drawn from `scripts/social-card.html`.
+- `static/brand/card.png`, drawn from `scripts/social-card.html`, which `scripts/social-card.mjs` writes.

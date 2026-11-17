@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { analysisKey } from "./cache.ts";
 import { ANALYSIS_FILE_VERSION, addressNetwork, belongs, boardNetwork, boardRefusal, exportAnalysis, fileEngine, fileKind,
-         fileNetwork, loadBoardFile, readAnalysisFile, withNetwork, type AnalysisFile } from "./files.ts";
+         fileNetwork, loadBoardFile, loadReviewTabFile, readAnalysisFile, withNetwork, type AnalysisFile } from "./files.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import type { KeptBoard } from "./kept.ts";
 import { STORES, dbPut } from "@abstractclass/storage/db.ts";
@@ -146,6 +146,39 @@ test("the Analysis board loads an analysis file at its address, and refuses a re
   assert.equal(await load(file({ version: 2, main: [], nodes: [] }), () => { throw new Error("the address is refused"); }),
                "The Analysis board cannot load this file: the address is refused.");
   assert.deepEqual(went, ["/analysis#packed=AAAA"]);
+});
+
+test("the Review tab opens an analysis file on the board and a review file in its review, or says why not", async () => {
+  const kind = (text: string) => fileKind(text, "test-review", "test-analysis");
+  /** What each step did, in its order. */
+  const done: string[] = [];
+  const load = (data: unknown, fail?: "open" | "go" | "review") =>
+    loadReviewTabFile(new Blob([JSON.stringify(data)]), "Test", kind, {
+      open: async text => {
+        if (fail === "open") throw new Error("the file has no board");
+        return text.includes("cancel") ? null : "/analysis#packed=AAAA";
+      },
+      go: async address => {
+        if (fail === "go") throw new Error("the address is refused");
+        done.push(`go ${address}`);
+      },
+      review: async () => {
+        if (fail === "review") throw new Error("This is not a Test review file.");
+        done.push("review");
+      },
+      failed: source => { done.push(`failed ${source}`); },
+    });
+  assert.equal(await load({ format: "test-analysis" }), null);
+  assert.equal(await load({ format: "test-analysis", cancel: true }), null);
+  assert.equal(await load({ format: "test-review" }), null);
+  assert.deepEqual(done, ["go /analysis#packed=AAAA", "review"]);
+  done.length = 0;
+  // The tab's notice keeps the error's own text: it adds no period
+  assert.equal(await load({ format: "test-analysis" }, "open"), "Test could not load this file: the file has no board");
+  assert.equal(await load({ format: "test-analysis" }, "go"), "Test could not load this file: the address is refused");
+  // Any file that is not an analysis file goes to the review's reader, which says what is wrong with it
+  assert.equal(await load({ format: "other" }, "review"), "Test could not load this file: This is not a Test review file.");
+  assert.deepEqual(done, ["failed analysis_file", "failed analysis_file", "failed review_file"]);
 });
 
 test("the Analysis board's notice says what it cannot take, and why, as one sentence", () => {

@@ -45,6 +45,7 @@
 // the messages that every game's engine shares (design 29). Enclosure's are in Hedge School's
 // src/lib/engine/position.ts. Every win chance and score is from the first player's side (KataGo's convention:
 // Enclosure's Blue). Win chance 0-1. Scores in game points.
+import { errorSentence } from "./errors.ts";
 
 /** The protocol that a site's code is written for, unless its manifest names another: 0.6.1 brings describe_game. */
 export const PROTOCOL = "0.6.1";
@@ -73,7 +74,7 @@ export interface PositionCheck<R extends CheckReason = CheckReason> { possible: 
  *  this position". Null when a game can reach the position, or when the engine gave no check. */
 export function checkProblem(check: PositionCheck | null | undefined, lead: string): string | null {
   if (!check || check.possible) return null;
-  return [lead, ...check.reasons.map(r => r.text)].map(s => s.replace(/\.?$/, ".")).join(" ");
+  return [lead, ...check.reasons.map(r => r.text)].map(errorSentence).join(" ");
 }
 
 export interface ErrorReply { id: string; error: string; field?: string; reasons?: CheckReason[] }

@@ -1,8 +1,9 @@
 // The colour tokens of style sheets in each theme, read in Node: for the checks that compare colours (Hedge School's
 // symbolShades.test.ts, the hub's scripts/enclosure-board.mjs) and for the pictures drawn from a site's colours
-// (Cyanotype's link preview picture, src/lib/brand/card.ts). A site's tokens are in the blocks of each theme of its
+// (the link preview pictures: Cyanotype's src/lib/brand/card.ts, Hedge School's scripts/social-card.mjs). A site's tokens are in the blocks of each theme of its
 // style sheets, as in site.css: the light theme's and the dark theme's.
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 
 /** A site's theme blocks' openings: the light theme's and the dark theme's (site.css). */
 const THEME_BLOCKS = { light: ':root, [data-theme="light"] {', dark: ':root[data-theme="dark"] {' };
@@ -28,10 +29,18 @@ export function themes(light: string, dark: string): { light: Record<string, str
   return { light: lit, dark: { ...lit, ...tokens(dark) } };
 }
 
-/** The tokens of each theme in a site's style sheets, in the order that the site imports them: a later sheet's token
- *  takes the place of an earlier one's. */
-export function siteThemes(files: (string | URL)[]) {
-  const sheets = files.map(file => readFileSync(file, "utf8"));
-  const blocks = (open: string) => sheets.map(css => block(css, open)).join("\n");
-  return themes(blocks(THEME_BLOCKS.light), blocks(THEME_BLOCKS.dark));
+/** The style sheets that a style sheet imports, in its order: each `@import` of a .css file at a line's start, as Node
+ *  resolves it from the sheet's place. Tailwind's import ("tailwindcss") names no .css file, and holds no site's tokens. */
+const importsOf = (css: string, from: string | URL): string[] => {
+  const require = createRequire(from);
+  return [...css.matchAll(/^@import\s+["']([^"']+\.css)["']/gm)].map(m => require.resolve(m[1]));
+};
+
+/** The tokens of each theme in a site's style sheets: the sheets that its own sheet `app` (its src/app.css) imports, in
+ *  the order of its @import lines, then the own sheet. A later sheet's token takes the place of an earlier one's, as in
+ *  the browser. A sheet with no theme's block (packages/practice's practice.css) gives no tokens. */
+export function siteThemes(app: string | URL) {
+  const own = readFileSync(app, "utf8");
+  const css = [...importsOf(own, app).map(file => readFileSync(file, "utf8")), own].join("\n");
+  return themes(block(css, THEME_BLOCKS.light), block(css, THEME_BLOCKS.dark));
 }

@@ -29,7 +29,7 @@
   import { modelOf } from "@abstractclass/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { errorText } from "@abstractclass/engine/errors.ts";
+  import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { OPENINGS_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardOfRecord } from "#lib/game/board.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -252,7 +252,7 @@
    *  from. */
   interface Opening { at: string[]; line?: string[]; from: From }
   const cannotOpen = (e: unknown) =>
-    `Openings cannot open this record: ${errorText(e).replace(/\.?$/, ".")} Openings shows your last position instead.`;
+    `Openings cannot open this record: ${errorSentence(e)} Openings shows your last position instead.`;
   async function chooseOpening(): Promise<Opening> {
     const at = readLocal(AT_KEY), keptAt = at ? at.split(" ") : [];
     const hash = location.hash.slice(1);

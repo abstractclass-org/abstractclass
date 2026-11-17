@@ -9,8 +9,7 @@ import { siteThemes } from "@abstractclass/site/themeTokens.ts";
 import * as colour from "./lib/colour.ts";
 
 // The tokens as the site's style imports them: the shared ones, the view's, then Hedge School's
-const THEMES = siteThemes(["@abstractclass/site/site.css", "@abstractclass/review/review.css", "./app.css"]
-  .map(sheet => new URL(import.meta.resolve(sheet))));
+const THEMES = siteThemes(new URL("./app.css", import.meta.url));
 
 /** A token's colour: "#rrggbb". */
 function hexOf(theme: Record<string, string>, name: string): string {

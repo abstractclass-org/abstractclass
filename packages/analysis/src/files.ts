@@ -13,7 +13,7 @@ import { boardPositionKeys } from "./boardLink.ts";
 import { isKomi, komiLimitProblem } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { modelOf, moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
-import { errorSentence } from "@abstractclass/engine/errors.ts";
+import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
 
 /** Reads a file of `site` in `format` (`noun`: "review file", "analysis file"), its fields not yet checked but its
  *  results. Throws an Error that tells the player what is wrong. The version changes only when a field changes its
@@ -70,6 +70,41 @@ export async function loadBoardFile(file: Blob, kind: (text: string) => "review"
     return null;
   } catch (e) {
     return boardRefusal("load", "file", e);
+  }
+}
+
+/** The steps of a file loaded in the Review tab, which each site gives (loadReviewTabFile). */
+export interface ReviewTabSteps {
+  /** Keeps an analysis file's results and answers the board's address (each site's openAnalysisFile), or null after a
+   *  cancel. */
+  open: (text: string) => Promise<string | null>;
+  /** Opens the Analysis board at that address. */
+  go: (address: string) => Promise<unknown>;
+  /** Keeps a review file's game and opens its review. */
+  review: (text: string) => Promise<void>;
+  /** Counts a load that failed, by its source. */
+  failed: (source: "analysis_file" | "review_file") => void;
+}
+
+/** A file loaded in the Review tab, as both sites' Review tabs load one. `kind` tells an analysis file, which opens on
+ *  the Analysis board, and the board counts the load. A file whose network the board cannot take alone asks first: a
+ *  cancel stays in the tab. Every other file goes to the review file's reader, which says what is wrong with it. Answers
+ *  the problem that the tab shows when a step fails, in the error's own words, else null. */
+export async function loadReviewTabFile(file: Blob, site: string, kind: (text: string) => "review" | "analysis" | null,
+                                        steps: ReviewTabSteps): Promise<string | null> {
+  const content = await file.text();
+  const analysis = kind(content) === "analysis";
+  try {
+    if (analysis) {
+      const address = await steps.open(content);
+      if (address) await steps.go(address);
+    } else {
+      await steps.review(content);
+    }
+    return null;
+  } catch (e) {
+    steps.failed(analysis ? "analysis_file" : "review_file");
+    return `${site} could not load this file: ${errorText(e)}`;
   }
 }
 

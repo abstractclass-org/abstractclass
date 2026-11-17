@@ -12,6 +12,7 @@
   import { importRecord } from "#lib/game/import.ts";
   import { pastedSource, readPasted } from "#lib/game/paste.ts";
   import { fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
+  import { loadReviewTabFile } from "@abstractclass/analysis/files.ts";
   import { keepStorage, storageKept } from "@abstractclass/storage/persist.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { SITE_NAME, SITE_VERSION } from "#lib/edition.ts";
@@ -122,30 +123,17 @@
     if (!file) return;
     fileProblem = "";
     loadingFile = true;
-    const content = await file.text();
-    if (fileKind(content) === "analysis") {
-      try {
-        // The board counts the load. A file whose network the board cannot take alone asks first: a cancel stays here.
-        const address = await openAnalysisFile(content, await manifestLoad, networkChoice.ask);
-        if (address) await goto(address);
-      } catch (e) {
-        fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
-        trackLoadFailed("analysis_file", "file");
-      } finally {
-        loadingFile = false;
-      }
-      return;
-    }
-    try {
-      const { id, file } = await loadReviewFile(content, await manifestLoad);
-      trackLoad("review_file", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
-      location.assign(`/review#game=${id}`); // the review loads it (hashchange)
-    } catch (e) {
-      fileProblem = `${SITE_NAME} could not load this file: ${errorText(e)}`;
-      trackLoadFailed("review_file", "file");
-    } finally {
-      loadingFile = false;
-    }
+    fileProblem = (await loadReviewTabFile(file, SITE_NAME, fileKind, {
+      open: async text => openAnalysisFile(text, await manifestLoad, networkChoice.ask),
+      go: goto,
+      review: async text => {
+        const { id, file } = await loadReviewFile(text, await manifestLoad);
+        trackLoad("review_file", parseRecord(file.record).moves.length, { with_results: file.analyses.length > 0 });
+        location.assign(`/review#game=${id}`); // the review loads it (hashchange)
+      },
+      failed: source => trackLoadFailed(source, "file"),
+    })) ?? "";
+    loadingFile = false;
   }
 
   /** Loads the input's file, then empties the input: the same file chosen again then loads again. */

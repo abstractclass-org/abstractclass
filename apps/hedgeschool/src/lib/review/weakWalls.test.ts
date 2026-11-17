@@ -60,8 +60,7 @@ test("a ring's colour: a ramp of three tokens from the smallest value marked to 
 });
 
 // The tokens as the site's style imports them, by board: the shared ones, the view's, then Hedge School's
-const THEMES = siteThemes(["@abstractclass/site/site.css", "@abstractclass/review/review.css", "../../app.css"]
-  .map(sheet => new URL(import.meta.resolve(sheet))));
+const THEMES = siteThemes(new URL("../../app.css", import.meta.url));
 /** A token's colour on a board, through the tokens that it names (`var(--name)`). */
 const colourOf = (theme: Record<string, string>, name: string): string => {
   const named = theme[name]?.match(/^var\((--[\w-]+)\)$/);

@@ -1,6 +1,7 @@
 // The tree of a game's analysis as the browser keeps it (analysis.svelte.ts): a game's variations under the game's id,
 // and the Analysis board's tree under BOARD_ID, both in the `branches` store (@abstractclass/storage/db.ts). A site's
 // store of games re-exports these (Hedge School's src/lib/game/store.ts).
+import { errorSentence } from "@abstractclass/engine/errors.ts";
 import { komiLimitProblem } from "@abstractclass/record/record.ts";
 import { keyMoves } from "./cache.ts";
 import { pathKey, prefixKeys } from "./tree.ts";
@@ -49,7 +50,7 @@ export const keptKomiProblem = (board: KeptBoard | null, maxKomi: number): strin
  *  brought replaces it (`replaced`: a link, an analysis file, New or the Import), that board is on screen, and the
  *  notice does not name a new board. */
 export const keptBoardNotice = (problem: string, replaced: boolean): string =>
-  `The Analysis board cannot open your own analysis: ${problem.replace(/\.?$/, ".")}` +
+  `The Analysis board cannot open your own analysis: ${errorSentence(problem)}` +
   (replaced ? "" : " A new board is here instead.");
 
 /** The kept variations as version 2's nodes: a version 1 line is the node at its end, in the lines' order. */

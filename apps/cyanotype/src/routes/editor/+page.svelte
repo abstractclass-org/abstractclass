@@ -16,7 +16,7 @@
   import { onDestroy, onMount, tick } from "svelte";
   import Board, { type BoardHex } from "#lib/board/Board.svelte";
   import { EngineWorker, loadManifest, moduleOf } from "@abstractclass/engine/client.ts";
-  import { errorText } from "@abstractclass/engine/errors.ts";
+  import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { LAST_COUNT, moverOf } from "@abstractclass/analysis/turns.ts";
   import type { Player } from "@abstractclass/analysis/game.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
@@ -280,7 +280,7 @@
         {#if fieldError}<p class="text-xs text-blunder" role="alert">{fieldError}</p>{/if}
       </div>
 
-      <PositionCheckStatus reading={!read} refused={read?.refused?.replace(/\.?$/, ".") ?? ""} check={read?.check ?? null}
+      <PositionCheckStatus reading={!read} refused={read?.refused == null ? "" : errorSentence(read.refused)} check={read?.check ?? null}
                            places="hexes">
         {#if !mover.left}<p class="text-sm">The game is over at this position: all {LAST_COUNT} moves are played.</p>{/if}
       </PositionCheckStatus>
