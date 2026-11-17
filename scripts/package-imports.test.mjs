@@ -44,7 +44,7 @@ test("the paths of the imports, the exports, the imports of a path alone and the
   ]);
 });
 
-test("the files with code: .ts, .mts, .js, .mjs, .svelte, but in node_modules, build, static, the dot folders", t => {
+test("the files with code: .ts, .mts, .js, .mjs, .svelte, and none in node_modules, build, static, a dot folder", t => {
   const root = repository(t, Object.fromEntries([
     "packages/a/src/a.ts", "packages/a/src/b.mts", "packages/a/src/c.js", "packages/a/src/d.mjs",
     "packages/a/src/E.svelte",

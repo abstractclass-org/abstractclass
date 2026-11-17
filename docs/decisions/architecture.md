@@ -387,12 +387,13 @@ public repository and the history rewrites.
   boards and import pages, Hedge School's `Arrival.svelte` (`hashParams`), and the tests of Hedge School's
   `importHash.test.ts` and Cyanotype's `tools.test.ts`. `packages/import/src/importHash.test.ts` loses its check of
   the pass-on. `packages/site/src/addressHash.test.ts` keeps every case of both functions.
-- **One walker for the checks:** `scripts/package-imports.mjs` exports the list of code files' names (`CODE`) and
-  the walker (`codeFiles`), and `scripts/package-deps.mjs` uses them. Before, package-imports skipped only
-  `node_modules`, and package-deps also skipped `build`, `static` and the dot folders. The walker keeps the longer
-  list. `build` and the dot folders (`.svelte-kit`) hold generated code, which repeats or resolves the source's
-  imports. `static` holds files that a site serves as they are (its engine's libraries), and no build reads their
-  imports. No folder in `packages/` has one of those names, so package-imports reads the same files as before.
+- **One walker for the checks:** `scripts/package-imports.mjs` exports its walker (`codeFiles`), with its one list
+  of code files' names, and `scripts/package-deps.mjs` uses it. The list stays inside the module, because no other
+  code reads it. Before, package-imports skipped only `node_modules`, and package-deps also skipped `build`,
+  `static` and the dot folders. The walker keeps the longer list. `build` and the dot folders (`.svelte-kit`) hold
+  generated code, which repeats or resolves the source's imports. `static` holds files that a site serves as they are
+  (its engine's libraries), and no build reads their imports. No folder in `packages/` has one of those names, so
+  package-imports reads the same files as before.
 - **Checked:** a search of `apps/*/src` and `packages/*/src` finds no import of `holdsGame` or `hashParams` from
   `importHash.ts`. Both checks pass on the repository. A new test gives the walker the files that it reads and the
   folders that it skips. An import of `@abstractclass/review` planted in the site's package still fails package-deps.

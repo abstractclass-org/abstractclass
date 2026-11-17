@@ -15,10 +15,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { gameSites } from "./sites.mjs";
 
-/** The names of the files with code, which both checks read (this one and package-deps.mjs). */
-export const CODE = /\.(?:ts|mts|js|mjs|svelte)$/;
-/** The folders that hold no source: the packages that npm installs, a build's output, the files that a site serves as
- *  they are (its engine's libraries, which no build reads), and the dot folders (SvelteKit's generated code). */
+/** The names of the files with code that the walker (codeFiles) gives both checks: this one and package-deps.mjs. */
+const CODE = /\.(?:ts|mts|js|mjs|svelte)$/;
+/** The folders that hold no source: the packages that npm installs, a build's output, and the files that a site serves
+ *  as they are (its engine's libraries, which no build reads). The walker also skips the dot folders (SvelteKit's
+ *  generated code). */
 const SKIPPED = new Set(["node_modules", "build", "static"]);
 /** An import's or an export's path: `… from "P"`, `import "P"` and `import("P")`. */
 const SPECIFIER = new RegExp([

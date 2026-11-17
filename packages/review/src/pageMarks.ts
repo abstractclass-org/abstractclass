@@ -17,7 +17,7 @@
 function markPage(lastKey: string, olderAddresses: boolean) {
   var root = document.documentElement, hash = location.hash.slice(1), game = false;
   // Parameters, not an older tool's bare record: a record's text starts with a tag, a turn or a move, never with a
-  // name and "=" (importHash.ts, hashParams).
+  // name and "=" (hashParams, in @abstractclass/site's addressHash.ts).
   if (/^[A-Za-z_]+=/.test(hash)) {
     var params = new URLSearchParams(hash);
     game = !!params.get("game") || params.has("packed") || params.has("from");
