@@ -972,6 +972,24 @@ test.describe("a variation's label and ◆", () => {
       await expect(judgementOf(page, judge, G12_K10)).toHaveAttribute("title", "Hard position");
     });
   }
+
+  // The words of a wait where no search can run (the engine is off, design 07, item 11), in text. By edge the move
+  // holds them. By turn they are the turn's: G12-K10 ends Red's turn 4, whose ◆ gives the turn its own button, which
+  // holds them, and the move names the move only. A turn with no button keeps them on its move (search-wait.spec.ts).
+  for (const judge of ["edge", "turn"]) {
+    test(`by ${judge}: with the engine off, an evaluated move's wait is in the title of ${judge === "edge" ? "the move" : "the turn's button"}`, async ({ page }) => {
+      // The file without the result of the position after G12-K10: its label waits for that search
+      const f = withVariations(), file = JSON.parse(f.buffer.toString());
+      file.analyses = (file.analyses as [string, unknown][]).filter(([k]) => !k.endsWith(`|${G12_K10}`));
+      await display(page, { judge, branchForm: "text" });
+      await open(page, { ...f, buffer: Buffer.from(JSON.stringify(file)) });
+      await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
+      await evaluate(page, G12_K10);
+      await expect(judgementOf(page, judge, G12_K10))
+        .toHaveAttribute("title", /^Not analyzed yet\. The engine is off\. .+ · Hard position$/);
+      if (judge === "turn") await expect(moveAt(page, G12_K10)).not.toHaveAttribute("title");
+    });
+  }
 });
 
 // A touch lights no group (design 06, item 8), as a move's pointer outline (`hover:`) does not show on a touch screen:

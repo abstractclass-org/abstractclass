@@ -2252,9 +2252,6 @@
           {@const text = display.branchForm === "text"}
           {@const fit = text ? "" : "flex leading-none"}
           {@const labelTip = tooltip(status, hardness?.note)}
-          <!-- The move's title: by edge with its judgement, which it holds. By turn the move only, as a game edge's by
-               turn (design 06, item 8): the judgement is the turn's, in its own button's title. -->
-          {@const tip = tooltip(text ? "" : `${turnText(t)} ${view.notation(node.move)}`, unit === "edge" ? labelTip : "")}
           <!-- A book move's mark (design 32, item 4) comes with its quality label: by edge the move's, by turn the turn's,
                when all the turn's edges are book moves (the game's by the game's marks). -->
           {@const bookAfter = label ? bookAfterAll(bt?.paths ?? [p]) : undefined}
@@ -2264,6 +2261,14 @@
                slots: its rows do not line up in columns. -->
           {@const slotted = bookAfter !== undefined || listed(label)}
           {@const pulse = !slotted && waiting && why === null}
+          <!-- By turn, the turn's own button: with a label, a "…" or a ◆ only (design 07, item 11) -->
+          {@const turnButton = unit === "turn" && (slotted || pulse || !!hardness?.hard)}
+          <!-- The move's title: by edge with its judgement, which it holds. By turn the move only, as a game edge's by
+               turn (design 06, item 8): the judgement is the turn's, in its own button's title. A turn with no such
+               button keeps on its move why no search gives it a label ("Not analyzed yet" and the reason): it is true
+               of that move's searches (whyNoSearch), and else would show nowhere. -->
+          {@const tip = tooltip(text ? "" : `${turnText(t)} ${view.notation(node.move)}`,
+                                unit === "edge" ? labelTip : waiting && !turnButton ? status : "")}
           {#snippet judgement(tip: string | undefined)}
             {#if slotted}{@render labelSlot(label, tip, bookAfter, `text-[0.9em] ${fit}`)}
             {:else if pulse}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={status}>…</span>{/if}
@@ -2284,7 +2289,7 @@
             {#if text}{@render written(node.move)}{:else}{@render edgeShape(node.move.edge, node.move.player, positionOf(p.slice(0, -1)))}{/if}
             {#if unit === "edge"}{@render judgement(tip)}{/if}
           </button>
-          {#if unit === "turn" && (slotted || pulse || hardness?.hard)}
+          {#if turnButton}
             <button type="button" {...asBranch(p)} {@attach lightsTurn(() => (branchTurnPaths(p) ?? [p]).map(pathKey))} title={labelTip}
                     class={[box, moveState(key, "", hereLook)]}>
               {@render judgement(labelTip)}

@@ -60,15 +60,15 @@ test("by edge: with the engine off, every evaluated move with no label says why,
   await noWait(page);
 });
 
-// By turn the text is the turn's, in the title of its judgement: the game's turn has its cell, and a variation's turn
-// its own button only with a label, a "…" or a ◆ (design 07, item 11). The variation's turns here have none of them, so
-// their moves name the moves only, as the game's edges do by turn.
-test("by turn: the same text, on the cell of the game's turn, and on no move", async ({ page }) => {
+// By turn the text is the turn's. A variation's turn with no button of its own (no label, no "…", no ◆, design 07,
+// item 11) keeps it on the move that ends the turn, as here: no such button holds it. Where the turn has a button, the
+// button holds it, and the move does not (book-review.spec.ts, "a variation's label and ◆").
+test("by turn: the same texts, on the turn that ends in each evaluated move", async ({ page }) => {
   await open(page, "turn");
-  // The game's first turn ends in A10-D9: its cell holds the text. The variation's turns end in D10-G12 and K9-N11.
-  for (const path of ["D10-G12", "D10-G12 N11-Q10", "D10-G12 N11-Q10 K9-N11"]) expect(await title(page, path), path).toBeNull();
-  await expect(page.locator(`.movelist button.mv[title^="Not analyzed yet"]`)).toHaveCount(0);
-  await expect(offTitles(page)).toHaveCount(1);
+  // The variation's turns end in D10-G12 and K9-N11, and the game's first turn in A10-D9: its cell holds the text.
+  for (const path of ["D10-G12", "D10-G12 N11-Q10 K9-N11"]) expect(await title(page, path), path).toContain(OFF);
+  expect(await title(page, "D10-G12 N11-Q10"), "the middle of a turn").toBeNull();
+  await expect(offTitles(page)).toHaveCount(3);
   await noWait(page);
 });
 
@@ -82,12 +82,11 @@ for (const unit of ["edge", "turn"] as const) {
     }, { ready: 60_000 });
     // At Playwright's 1,280 pixels, the Analysis has its own column: the tabs come below 1,260.
     await expect(page.locator('button.mv[data-path="D10-G12"]')).toBeVisible();
-    // Blue's D10-G12 is a turn of one edge. By edge it says why, and Red's turn of two says nothing. By turn the text
-    // is the turn's, and its turn has no button to hold it (no label, no "…", no ◆): no move says it.
-    if (unit === "edge") expect(await title(page, "D10-G12")).toContain(OFF);
-    for (const path of [...unit === "turn" ? ["D10-G12"] : [], "D10-G12 N11-Q10", "D10-G12 N11-Q10 K9-N11"])
+    // Blue's D10-G12 is a turn of one edge: by edge and by turn, it says why. Red's turn of two says nothing.
+    expect(await title(page, "D10-G12")).toContain(OFF);
+    for (const path of ["D10-G12 N11-Q10", "D10-G12 N11-Q10 K9-N11"])
       expect((await title(page, path)) ?? "", path).not.toContain("Not analyzed yet");
-    await expect(offTitles(page)).toHaveCount(unit === "edge" ? 1 : 0);
+    await expect(offTitles(page)).toHaveCount(1);
     await noWait(page);
   });
 }
