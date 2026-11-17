@@ -8,9 +8,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { lockReleases, whyNotTheRelease, type Lock, type LockRelease, type ReleaseManifest } from "./lock-check.ts";
 
-/** Downloads `asset` of release `tag` of the lock's repository, with a few more tries for a transient failure. A
- *  failed download is an error that names `id`, the URL and the HTTP status or the network's error (fetch-engine.mjs,
- *  download, and download.ts). */
+/** Downloads `asset` of release `tag` of the lock's repository. A failed download is an error that names `id`, the
+ *  URL and the HTTP status or the network's error (fetch-engine.mjs, download). */
 export type Download = (id: string, tag: string, asset: string) => Promise<Uint8Array>;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>

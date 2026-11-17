@@ -1504,5 +1504,16 @@ jobs of both sites run the step too, and a failed step deploys nothing.
   `scripts/site-suite`, which runs check:all.
 - **The test** (`packages/engine/src/download.test.ts`): a stub server that writes raw HTTP answers gives a 504, a
   cut body or a reset before the file, and the download gets the file on its second try after one wait of 2 s.
-  Four failures stop it after the waits 2, 5 and 15 s. A 404 and a file with the wrong SHA-256 stop it after one
-  request, with no wait.
+  Four failures stop it after the waits 2, 5 and 15 s. A 404 stops it after one request, with no wait. A whole body
+  comes back after one request: the step checks its SHA-256 after the download, as before, and stops at once on a
+  wrong one.
+- **Node 24, which CI runs** (`.node-version`), behaves as Node 26.13 does. The test passes on Node 24.21.0 too. A
+  chunked body that stops before its last chunk throws too (`Invalid EOF state` after `Connection: close`,
+  `UND_ERR_SOCKET` without it). Only a body with neither a `Content-Length` nor chunks can stop early and look whole,
+  and then the SHA-256 check stops the step. GitHub answers a release file with a 302 to
+  `release-assets.githubusercontent.com`, which gives a `Content-Length`. Each try asks GitHub again, so it follows
+  a new redirect.
+- **No try waits for good:** Node's fetch (undici) stops a try that has no head after 300 s, or no byte of the body
+  for 300 s (`headersTimeout` and `bodyTimeout`, read from the builds of Node 24.21 and 26.13). Both get another
+  try. A server that holds a connection open with no answer stops the step after about 20 minutes: four tries of
+  300 s and 22 s of waits.

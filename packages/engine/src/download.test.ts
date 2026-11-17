@@ -1,15 +1,13 @@
 // Checks the retry rule of the engine step's downloads (download.ts): a transient failure (an HTTP 5xx, a body that
-// stops before its Content-Length, a connection reset) gets another try after a wait, and a 404 or a whole file with
-// the wrong SHA-256 fails at once. A stub server on this machine stands for GitHub. It answers with raw bytes, so that
+// stops before its Content-Length, a connection reset) gets another try after a wait, a 404 fails at once, and a
+// whole body comes back as it is, after one request. A stub server on this machine stands for GitHub. It answers with raw bytes, so that
 // Node's fetch meets a cut body as it meets one from the network. The waits are recorded, not waited. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer, type Socket } from "node:net";
-import { createHash } from "node:crypto";
 import { downloadRetrying, RETRY_WAITS_S } from "./download.ts";
 
 const FILE = Buffer.from("the engine's file");
-const SHA = createHash("sha256").update(FILE).digest("hex");
 
 type Answer = "file" | "wrong" | "504" | "404" | "cut" | "reset";
 
@@ -43,7 +41,7 @@ async function withServer(answers: Answer[], body: (url: string) => Promise<void
 /** downloadRetrying with its waits and its lines recorded. */
 function recorded() {
   const waits: number[] = [], lines: string[] = [];
-  return { waits, lines, options: { sha256: SHA, sleep: async (ms: number) => { waits.push(ms); },
+  return { waits, lines, options: { sleep: async (ms: number) => { waits.push(ms); },
                                     log: (line: string) => lines.push(line) } };
 }
 
@@ -104,19 +102,13 @@ test("a 404 fails at once", async () => {
   assert.deepEqual(r.lines, []);
 });
 
-test("a whole file with the wrong SHA-256 fails at once", async () => {
+// The step checks the SHA-256 of what comes back (fetch-engine.mjs): a whole body that is another file is no failure
+// of the download, and another try would give the same bytes.
+test("a whole body comes back as it is, after one request", async () => {
   const r = recorded();
   const requests = await withServer(["wrong"], async url => {
-    await assert.rejects(downloadRetrying("model", url, r.options),
-                         { message: new RegExp(`^model: SHA-256 [0-9a-f]{64} is not the locked ${SHA}\\.`) });
+    assert.equal((await downloadRetrying("model", url, r.options)).toString(), "wrong");
   });
   assert.equal(requests, 1);
   assert.deepEqual(r.waits, []);
-});
-
-test("a download with no SHA-256 to check gives the bytes as they came", async () => {
-  const r = recorded();
-  await withServer(["wrong"], async url => {
-    assert.equal((await downloadRetrying("manifest", url, { ...r.options, sha256: undefined })).toString(), "wrong");
-  });
 });

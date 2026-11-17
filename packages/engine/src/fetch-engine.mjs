@@ -30,11 +30,12 @@
 // (@abstractclass/engine/artifacts.ts). The downloads are kept in node_modules/.cache/engine/, by SHA-256, and each
 // release's manifest by its tag (`releases/<tag>/manifest.json`). A download that fails for a moment (an HTTP 5xx, a
 // reset, a body cut before its end) gets a few more tries, each printed (download.ts).
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { findPackageJSON } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
-import { checkSha256, downloadRetrying, sha256 } from "./download.ts";
+import { downloadRetrying } from "./download.ts";
 import { PROTOCOL, speaksProtocol } from "./protocol.ts";
 import { enginesCheckout, nodeEngine } from "./node-engine.mjs";
 import { checkPracticeModules, checkThreadedBot } from "./practice-check.ts";
@@ -48,31 +49,27 @@ const outDir = join(root, "static", "engine");
 const cacheDir = join(root, "node_modules", ".cache", "engine");
 const LIMIT = 24 * 1024 * 1024; // under Cloudflare Pages' 25 MiB for one file
 
-/** The artifact's file, with the lock's SHA-256. A file from a release is checked as it is downloaded (download.ts). */
+const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
+
 async function get(artifact) {
-  const { id, source } = artifact;
-  if (source.release) return download(id, source.release.tag, source.release.asset, artifact.sha256);
-  let bytes;
+  const { source } = artifact;
   if (source.local) {
-    bytes = readFileSync(resolve(root, source.local));
-  } else if (source.engines) {
-    const engines = enginesCheckout(root);
-    if (!engines) throw new Error(`${id}: no engine repository's checkout beside this repository's`);
-    bytes = readFileSync(join(engines, source.engines));
-  } else {
-    throw new Error(`${id}: the source must be "local", "engines" or "release"`);
+    return readFileSync(resolve(root, source.local));
   }
-  checkSha256(id, bytes, artifact.sha256);
-  return bytes;
+  if (source.engines) {
+    const engines = enginesCheckout(root);
+    if (!engines) throw new Error(`${artifact.id}: no engine repository's checkout beside this repository's`);
+    return readFileSync(join(engines, source.engines));
+  }
+  if (source.release) return download(artifact.id, source.release.tag, source.release.asset);
+  throw new Error(`${artifact.id}: the source must be "local", "engines" or "release"`);
 }
 
-/** Downloads `asset` of release `tag` of the lock's repository, and checks its SHA-256 when `locked` gives one. A
- *  transient failure gets a few more tries, each printed. A failed download stops the step with an error that names
- *  `id`, the URL and the HTTP status or the network's error: no answer, or a file that stops before its end
- *  (download.ts). */
-function download(id, tag, asset, locked) {
-  const url = `https://github.com/${lock.repository}/releases/download/${tag}/${asset}`;
-  return downloadRetrying(id, url, { sha256: locked });
+/** Downloads `asset` of release `tag` of the lock's repository. A transient failure gets a few more tries, each
+ *  printed. A failed download stops the step with an error that names `id`, the URL and the HTTP status or the
+ *  network's error: no answer, or a file that stops before its end (download.ts). */
+function download(id, tag, asset) {
+  return downloadRetrying(id, `https://github.com/${lock.repository}/releases/download/${tag}/${asset}`);
 }
 
 /** Writes a file under static/engine/<id>/: compressed when asked or when it is too large to serve, and in parts when
@@ -146,6 +143,10 @@ export async function fetchEngine({ maxKomi }) {
     let bytes = existsSync(cached) ? readFileSync(cached) : null;
     if (!bytes || sha256(bytes) !== artifact.sha256) {
       bytes = await get(artifact);
+      const hash = sha256(bytes);
+      if (hash !== artifact.sha256)
+        throw new Error(`${artifact.id}: SHA-256 ${hash} is not the locked ${artifact.sha256}. ` +
+                        `If the build changed on purpose, update engine.lock.json.`);
       mkdirSync(cacheDir, { recursive: true });
       writeFileSync(cached, bytes);
       console.log(`${artifact.id}: ${bytes.length} bytes from ${source(artifact)}`);
