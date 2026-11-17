@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   botLabel, broughtLine, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, newPractice,
-  gaugeWidth, practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, scoreStore, settingsCommands, takebackCount,
+  gaugeWidth, practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, scoreStore, settingsCommands, stoppedLine, takebackCount,
   turnsOf, upright, visitsStop, visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
@@ -79,6 +79,16 @@ test("the results and the player's outcome", () => {
   assert.deepEqual([scoreResult([5, 5.03]), practiceOutcome([5, 5.03], 1, false)], ["r+0.03", "won"]);
   assert.equal(practiceOutcome([5, 5.01], 0, false), "lost");
   assert.equal(practiceOutcome([10, 2], 0, true), "resigned");
+});
+
+test("a game that stopped says why in the site's words, with the site's bot, and what the player can do", () => {
+  assert.equal(stoppedLine("unstarted", "Bot"), "Bot did not start. Load the page again.");
+  assert.equal(stoppedLine("refused", "Bot"), "Bot cannot continue this game. Abort the game. Then start a new game.");
+  assert.equal(stoppedLine("threw", "Bot"), "Bot has an error. Abort the game. Then start a new game.");
+  assert.equal(stoppedLine("crashed", "Bot"), "Bot stopped. Load the page again.");
+  assert.equal(stoppedLine("page", "Bot"), "The page has an error. Abort the game. Then load the page again.");
+  for (const line of ["starting", "human", "bot", "over", "resigned", "failed", "toString"])
+    assert.equal(stoppedLine(line, "Bot"), null, line);
 });
 
 test("the bot's GTP: its answers, its settings with the site's half-life, and its name", () => {

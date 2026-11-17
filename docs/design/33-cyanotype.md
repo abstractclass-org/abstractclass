@@ -492,9 +492,9 @@ analytics, as Hedge School's Practice does: the layout does not start them while
    (`checkProblem`): "Practice cannot start from this position: no game can reach it.", then each of the position
    check's reasons, its first reason first ("this record: no game can reach its start." for a record). Its game starts
    from the standard start. A game kept in this browser does not come through the page's check, so the game checks its
-   own start before the bot gets it, and stops with the same words ("The game stopped: no game can reach its start.
-   ..."). The bot refuses such a start too, with the check's first reason (`blueprints-set-position`), so the site's
-   check is not the only one.
+   own start before the bot gets it, and stops as on a fault of the page (Hedge School's design 24, item 14): Abort,
+   then a new load of the page, gives the settings card. The bot refuses such a start too, with the check's first
+   reason (`blueprints-set-position`), so the site's check is not the only one.
 2. **A game's position goes to the bot as its moves:** a board from the standard start sends its moves with
    `blueprints-set-game`. That is the game's search exactly. A position with no history searches differently from
    its game ("Decision", item 10, request 28's measurement), so the page never sends the position on screen as a
@@ -522,8 +522,10 @@ so Cyanotype has no rule for the visits below 16.
 
 **The game:** the engine's rules worker gives each position, what each move did and the player's legal moves
 (describe, describe_game), as on Hedge School's Practice. The page checks each of the bot's moves against the rules'
-legal moves, and stops the game with an error when one is not legal. An error of the engine stops the game too, with
-the engine's message ("The game stopped: ..."), as Hedge School shows it. The final score is the rules' score of the
+legal moves, and stops the game with an error when one is not legal. An error of the engine stops the game too. The
+status line gives Hedge School's words for why the game stopped, with Stamp Duty's name (Hedge School's design 24,
+item 14), and the error's message goes into the error report only. A bot's move that is not legal is a fault of the
+page there. The final score is the rules' score of the
 game's last position (`scores`, and the margin of `outcome`). At a komi, each player's points include their starting
 points, as on Hedge School, and the result is the margin of those points: the rules' `outcome` leaves the komi out.
 This browser keeps the game in progress (`cyanotype:practice-game:1`), the choices (`cyanotype:practice-choices:1`),

@@ -7,7 +7,7 @@
   import type { Player } from "@abstractclass/analysis/game.ts";
   import { BONE } from "@abstractclass/review/PlayerCardSkeleton.svelte";
   import { MOVE_LIST, keepInView } from "@abstractclass/review/moveList.ts";
-  import type { PracticeStatus } from "./game.svelte.ts";
+  import type { PracticeStatus, PracticeStop } from "./game.svelte.ts";
   import { turnsOf, type Turn } from "./practice.ts";
 
   interface Props {
@@ -16,7 +16,7 @@
     // page.svelte.ts gives svelte-check a second copy of it, by the path in node_modules. The sites' bots then differ.
     page: {
       game: { played: readonly M[] } | null; starting: { moves: readonly string[] } | null; shown: number;
-      line: PracticeStatus | "resigned" | "unstarted";
+      line: Exclude<PracticeStatus, "failed"> | "resigned" | PracticeStop;
     };
     text: (move: M) => string; // a move's text in the list
     row: Snippet<[turn: Turn, k: number]>; // the rows of the turn `k`, from 0 at the game's first turn

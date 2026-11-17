@@ -182,6 +182,22 @@ How strong each setting plays against people is not measured yet.
       message is the code's, such as a module's address, and a player cannot act on it. A script that does not load
       is most often an old page after a new deploy, so a new load of the page is the likely cure. A bot's worker
       whose script does not load fails each request that the page sends to it, so the start does not wait for good.
+    - **A game that stops later** stops for one of four faults, and the status line gives the site's own words for
+      each, with the site's bot: what failed, then what the player can do (`stoppedLine` in the practice package).
+      The error's message goes into the one report only. A new game has a new bot's worker. A page loaded again has
+      new workers, and resumes the game in progress from its moves kept.
+      - The bot refuses a command: "HedgeFund cannot continue this game. Abort the game. Then start a new game."
+      - The bot's worker throws as it runs a command, such as a WebAssembly trap: "HedgeFund has an error. Abort the
+        game. Then start a new game."
+      - The bot's worker fails as a whole (out of memory, or a script that did not load): "HedgeFund stopped. Load
+        the page again."
+      - The page fails: its rules engine, or the site's code. "The page has an error. Abort the game. Then load the
+        page again."
+
+      A fault of the bot at a command can come from the game's position, and a resumed game comes back to that
+      position, so the way out is a new game. A worker that failed as a whole did not keep its move, so the page
+      loaded again resumes the game. Each game of the page shares its rules engine, so a new game on the same page
+      fails too. The move that failed can be in the moves kept, so Abort comes before the new load of the page.
     - **A bot that runs in no form** has no form in the game's data. The line under the heading gives only the bot's
       settings. The game sends no `practice_end`, as it sent no `practice_start` (design 17), and its stored game
       names no form (design 25).

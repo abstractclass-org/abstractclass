@@ -29,7 +29,7 @@
   import { keptScore } from "@abstractclass/practice/scoreDisplay.svelte.ts";
   import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
   import { PracticePage, seconds } from "@abstractclass/practice/page.svelte.ts";
-  import { broughtLine, gaugeWidth, upright } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, gaugeWidth, stoppedLine, upright } from "@abstractclass/practice/practice.ts";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import { MOVE_HERE, TURN_NUMBER, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { loadManifest } from "@abstractclass/engine/client.ts";
@@ -128,8 +128,8 @@
   // The status line, in the order that both sites share (page.line): a game that stopped says why first.
   const statusText = $derived.by(() => {
     const g = game, p = g?.position, line = page.line;
-    if (line === "unstarted") return "HedgeFund did not start. Load the page again."; // the error goes in the report only
-    if (line === "failed") return `The game stopped: ${g!.error}`;
+    const stopped = stoppedLine(line, BOT_NAME); // the site's words: the error goes in the report only
+    if (stopped) return stopped;
     if (line === "starting" || !p) return "Starting HedgeFund…";
     if (line === "resigned") return "You resigned: HedgeFund wins.";
     if (line === "over") return `Game over. ${resultText(resultOfScores(p.scores), fmtMargin)}.`; // the review's words and rule (game.ts)

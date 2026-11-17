@@ -8,13 +8,18 @@
 import type { Player } from "@abstractclass/analysis/game.ts";
 import type { EngineWorker } from "@abstractclass/engine/client.ts";
 import { errorText } from "@abstractclass/engine/errors.ts";
-import type { PracticeBot } from "./bot.ts";
+import { botFault, type BotFault, type PracticeBot } from "./bot.ts";
 import type { BotMode } from "./botMessages.ts";
 import { gtpColor, takebackCount, type KeptPractice } from "./practice.ts";
 
 /** Whose move it is, or the game's state when nobody moves. "playing": the player's move, or a takeback, on its way to
  *  the bot and the rules. */
 export type PracticeStatus = "starting" | "human" | "playing" | "bot" | "over" | "failed";
+
+/** Why a game stopped (status "failed"), for the site's words on the status line: its bot started in no form
+ *  ("unstarted"), a command of the bot failed (BotFault), or the page failed ("page": its rules engine, which the
+ *  page's games share, or the site's own code). The error's message is the code's, for the error report only. */
+export type PracticeStop = "unstarted" | BotFault | "page";
 
 /** A practice game. `K` is the game that the site keeps, `P` a position, `M` a move played and `R` the rules of the
  *  player's move. */
@@ -23,6 +28,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   played = $state.raw<M[]>([]); // each move
   status = $state<PracticeStatus>("starting");
   error = $state("");
+  stop = $state<PracticeStop | null>(null); // why the game stopped, once it has failed
   onFail: (error: unknown) => void = () => {}; // the page's report of the error that stops the game (PracticePage)
   rules = $state.raw<R | null>(null); // the rules of the player's move, from the player's turn
   resigned = $state(false); // the player resigned: the bot won
@@ -220,6 +226,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     this.status = "failed";
     this.thinkingSince = null;
     this.error = errorText(e);
+    this.stop = this.mode === null ? "unstarted" : (botFault(e) ?? "page");
     this.onFail(e);
   }
 }

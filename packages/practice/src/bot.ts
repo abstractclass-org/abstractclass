@@ -1,11 +1,21 @@
 // The page's side of the practice bot (botWorker.ts, Hedge School's design 24): the bot in its own worker, in one form,
 // sent GTP commands one at a time. botForms.ts chooses the form and gives the worker module (botFormsWorker.ts), which
 // calls serveBot.
-import { WorkerChannel } from "@abstractclass/engine/channel.ts";
+import { Stopped, WorkerChannel, WorkerFailed } from "@abstractclass/engine/channel.ts";
 import { checked, compile, modelOf, type ArtifactKind, type Manifest } from "@abstractclass/engine/client.ts";
 import { sizesOption } from "@abstractclass/engine/library.ts";
 import { gtpAnswer } from "./practice.ts";
 import type { BotMode, BotRequest, ThreadedFiles } from "./botMessages.ts";
+
+/** Why a command of the bot failed, for the site's words on a game that stopped (game.svelte.ts, PracticeStop): the bot
+ *  refused it (a GTP `?` answer, or no GTP answer), the bot's worker threw as it ran it (a WebAssembly trap, say), or
+ *  the worker failed as a whole (its onerror: it ran out of memory, or a script did not load). The error itself stays
+ *  as it is, with the code's message, for the error report. */
+export type BotFault = "refused" | "threw" | "crashed";
+const faults = new WeakMap<object, BotFault>();
+
+/** The fault of an error that a command of the bot threw (BotFault). Null for any other error. */
+export const botFault = (e: unknown): BotFault | null => (e instanceof Object && faults.get(e)) || null;
 
 /** The practice bot in its own worker, in one form. `game` is the game's name in the bot's own commands
  *  (`enclosure`, `blueprints`), and `worker` the bot's worker module (botForms.ts). */
@@ -43,9 +53,23 @@ export class PracticeBot {
       model: checkedModel, ...sizesOption(manifest) }).done).reply);
   }
 
-  /** A GTP command's answer. Throws with the bot's message when it refuses the command. */
+  /** A GTP command's answer. Throws with the bot's message when it refuses the command. Each error that it throws has
+   *  its fault (botFault). */
   async command(line: string): Promise<string> {
-    return gtpAnswer((await this.live().channel.send<string>({ type: "command", line }).done).reply);
+    const { channel } = this.live();
+    let reply: string;
+    try {
+      reply = (await channel.send<string>({ type: "command", line }).done).reply;
+    } catch (e) { // a worker ended on purpose (Stopped) has no fault: the game has ended
+      if (e instanceof Object && !(e instanceof Stopped)) faults.set(e, e instanceof WorkerFailed ? "crashed" : "threw");
+      throw e;
+    }
+    try {
+      return gtpAnswer(reply);
+    } catch (e) {
+      faults.set(e as Error, "refused");
+      throw e;
+    }
   }
 
   /** Ends the worker, and its CPU evaluators with it. */

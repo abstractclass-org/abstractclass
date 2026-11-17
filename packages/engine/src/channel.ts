@@ -28,6 +28,12 @@ export class EngineError extends Error {
   }
 }
 
+/** The rejection of each request of a worker that failed as a whole (its onerror): its script did not load, or it ran
+ *  out of memory. */
+export class WorkerFailed extends Error {
+  constructor(message: string) { super(`the engine worker failed: ${message || "no message"}`); }
+}
+
 /** The rejection of a request whose worker ended before it replied (terminate). */
 export class Stopped extends Error {
   constructor() { super("the engine worker ended"); }
@@ -60,7 +66,7 @@ export class WorkerChannel<Request extends { id: number }> {
     // the requests sent after it too. A script that did not load fails before the page sends its first request.
     worker.onerror = (event: ErrorEvent) => {
       event.preventDefault();
-      this.failure = new Error(`the engine worker failed: ${event.message || "no message"}`);
+      this.failure = new WorkerFailed(event.message);
       this.rejectAll(this.failure);
     };
   }

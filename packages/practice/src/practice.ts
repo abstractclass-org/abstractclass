@@ -7,6 +7,7 @@ import type { Player } from "@abstractclass/analysis/game.ts";
 import { inSteps } from "@abstractclass/analysis/settings.ts";
 import { resultOfScores } from "@abstractclass/review/game.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
+import type { PracticeStop } from "./game.svelte.ts";
 
 /** The visits for each bot move: any whole number from 1 to 8,192 (design 24). The slider's stops are the doublings. */
 export const MAX_VISITS = 8192;
@@ -203,6 +204,28 @@ export function settingsCommands(bot: BotSettings, halflife: number, komi = 0): 
   return [`kata-set-param maxVisits ${bot.visits}`, `kata-set-param chosenMoveTemperatureEarly ${v.early}`,
           `kata-set-param chosenMoveTemperature ${v.floor}`, `kata-set-param chosenMoveTemperatureHalflife ${halflife}`,
           ...(komi ? [`komi ${komi}`] : [])];
+}
+
+/** The status line of a game that stopped (PracticeStop, the page's line), in strict Simplified Technical English, with
+ *  the site's name for its bot (`bot`): what failed, then what the player can do. The error's message is the code's: it
+ *  goes into the error report only. A new game has a new bot's worker, and a page loaded again has new workers and
+ *  resumes the game in progress from its moves kept. So:
+ *  - a fault of the bot at a command (refused, threw) can come from the game's position: a new game, as a resumed game
+ *    comes back to that position.
+ *  - a bot that did not start, or whose worker failed as a whole (crashed: out of memory, or a script that did not
+ *    load), needs the page again. Its move was not kept, and the game resumes.
+ *  - a fault of the page (its rules engine, which each game of the page shares, or the site's code) needs the page
+ *    again, after Abort: the move that failed can be in the moves kept, and a resumed game would fail on it again.
+ *  Null for a line that is not a stop. */
+export function stoppedLine(line: string, bot: string): string | null {
+  const words: Record<PracticeStop, string> = {
+    unstarted: `${bot} did not start. Load the page again.`,
+    refused: `${bot} cannot continue this game. Abort the game. Then start a new game.`,
+    threw: `${bot} has an error. Abort the game. Then start a new game.`,
+    crashed: `${bot} stopped. Load the page again.`,
+    page: "The page has an error. Abort the game. Then load the page again.",
+  };
+  return Object.hasOwn(words, line) ? words[line as PracticeStop] : null;
 }
 
 /** A GTP response's text: `= TEXT` gives TEXT. Throws on `? ERROR`, with the bot's message. */

@@ -14,7 +14,7 @@ import type { EventParams } from "@abstractclass/site/analytics.svelte.ts";
 import { PracticeBot } from "./bot.ts";
 import { startBot } from "./botForms.ts";
 import type { BotMode } from "./botMessages.ts";
-import type { PracticeGame, PracticeStatus } from "./game.svelte.ts";
+import type { PracticeGame, PracticeStatus, PracticeStop } from "./game.svelte.ts";
 import { newPractice, practiceFrom, practiceOutcome, type Brought, type KeptPractice, type PracticeChoices,
          type PracticeFrom, type PracticeOutcome } from "./practice.ts";
 import { practiceEvents } from "./practiceEvents.ts";
@@ -44,11 +44,11 @@ export const seconds = (ms: number) => `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 
 
 /** What the status line tells, in one order on both sites: a game that stopped says why first (a game that fails as it
  *  starts has no position yet), then the bot's start, the game's end by Resign or by the rules, and whose move it is.
- *  It is the game's status (PracticeStatus), with "resigned" for a game that the player ended by Resign, and
- *  "unstarted" for a game that stopped because its bot started in no form: the site's own words then, as the error's
- *  message is the code's, for the error report only. "playing" is the player's move on its way to the bot and the
- *  rules. Each site gives the words. */
-export type PracticeLine = PracticeStatus | "resigned" | "unstarted";
+ *  It is the game's status (PracticeStatus), with "resigned" for a game that the player ended by Resign, and for a
+ *  game that stopped, why it stopped (PracticeStop): the site's own words then, as the error's message is the code's,
+ *  for the error report only. "playing" is the player's move on its way to the bot and the rules. Each site gives the
+ *  words, and a stop's from stoppedLine (practice.ts), with its bot's name. */
+export type PracticeLine = Exclude<PracticeStatus, "failed"> | "resigned" | PracticeStop;
 
 export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   // What the page shows: nothing until the script knows whether a game is in progress (the prerendered page cannot
@@ -76,12 +76,12 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   /** What the status line tells (PracticeLine). */
   line = $derived.by((): PracticeLine => {
     const g = this.game;
-    if (g?.status === "failed") return g.mode === null ? "unstarted" : "failed";
+    if (g?.status === "failed") return g.stop ?? "page";
     if (!g || g.status === "starting") return "starting";
     if (g.status === "over") return g.resigned ? "resigned" : "over";
     return g.status;
   });
-  stopped = $derived(this.line === "failed" || this.line === "unstarted"); // the game stopped: the line is red
+  stopped = $derived(this.game?.status === "failed"); // the game stopped: the line is red
   private now = $state(0); // the clock of the bot's thinking time, while it searches (performance.now)
   /** The bot's thinking time on its turn so far, as "2.3 s", while it searches. Else empty. */
   thinking = $derived.by(() => {

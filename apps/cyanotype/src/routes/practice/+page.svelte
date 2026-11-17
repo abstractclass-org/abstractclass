@@ -57,7 +57,7 @@
   import { sendPractice } from "#lib/practice/send.ts";
   import { NETWORKS, botName, keptGame, networkName, offersNetwork, practiceChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
-  import { broughtLine, gaugeWidth, komiLine, upright } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, gaugeWidth, komiLine, stoppedLine, upright } from "@abstractclass/practice/practice.ts";
   import { browserNumber, engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, PRACTICE_DISPLAY_KEY, SITE_NAME } from "#lib/site.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
@@ -175,8 +175,8 @@
   // site's text").
   const statusText = $derived.by(() => {
     const g = game, p = g?.position, line = page.line;
-    if (line === "unstarted") return `${ENGINE_NAME} did not start. Load the page again.`; // the error goes in the report only
-    if (line === "failed") return `The game stopped: ${g!.error}`;
+    const stopped = stoppedLine(line, ENGINE_NAME); // the site's words: the error goes in the report only
+    if (stopped) return stopped;
     if (line === "starting" || !g || !p) return `${ENGINE_NAME} starts…`;
     if (line === "resigned") return `You resigned. ${ENGINE_NAME} wins.`;
     // The review's words and its rule for a draw (@abstractclass/review/game.ts)
