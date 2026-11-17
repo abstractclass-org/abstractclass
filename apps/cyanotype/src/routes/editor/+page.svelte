@@ -280,8 +280,8 @@
         {#if fieldError}<p class="text-xs text-blunder" role="alert">{fieldError}</p>{/if}
       </div>
 
-      <PositionCheckStatus reading={!read} refused={read?.refused == null ? "" : errorSentence(read.refused)} check={read?.check ?? null}
-                           places="hexes">
+      <PositionCheckStatus reading={!read} refused={read?.refused == null ? "" : errorSentence(read.refused)}
+                           check={read?.check ?? null} places="hexes">
         {#if !mover.left}<p class="text-sm">The game is over at this position: all {LAST_COUNT} moves are played.</p>{/if}
       </PositionCheckStatus>
 

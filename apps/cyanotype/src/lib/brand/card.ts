@@ -5,17 +5,13 @@
 import { CELL_SIZE } from "#lib/board/cellMarks.ts";
 import { center, hexPath, type Hex } from "#lib/board/hex.ts";
 import type { Kind, Player } from "#lib/board/position.ts";
-import { siteThemes } from "@abstractclass/site/themeTokens.ts";
+import { siteTokens } from "@abstractclass/site/themeTokens.ts";
 import { LOGO_LARGE, shapeMarkup, starPath } from "./logo.ts";
 
 // The dark theme's colours: the site's tokens, from the style sheets that hold them, in the order that src/app.css
 // imports them. The lead takes the accent's colour, and the marks on the cells the colour of the text on the accent.
 // The grey under the lead is Hedge School's card's own. A token that the sheets do not hold stops the drawing.
-const { dark } = siteThemes(new URL("../../app.css", import.meta.url));
-function token(name: string): string {
-  if (!dark[name]) throw new Error(`the site's style sheets give no ${name} in the dark theme`);
-  return dark[name];
-}
+const token = siteTokens(new URL("../../app.css", import.meta.url), "dark");
 const BG = token("--bg"), TEXT = token("--text"), MUTED = token("--muted"), LEAD = token("--accent"), ABOUT = "#c9cace";
 const BOARD = token("--board-bg"), GRID = token("--board-dot"), BLUE = token("--blue"), RED = token("--red");
 const ON_CELL = token("--on-accent");

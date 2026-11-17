@@ -340,9 +340,9 @@ edit in the same commit), so their changes still apply.
     (`exports.ts`) holds the review link's note and copy (`shareNote`, `copyReviewLink`) and the Analysis board's
     exports (`deliverBoardExport`, `boardRecordNote`). The analysis package holds the board's file load
     (`loadBoardFile`), its notice of what it cannot take (`boardRefusal`), and the Review tab's file load
-    (`loadReviewTabFile`). The shared review's intro (Hedge
-    School's `Arrival.svelte`, Cyanotype's `SharedArrival.svelte`) stays in each site. Its words differ between the two
-    copies, and one text for both is a visible change. Hedge School's partner code (design 18) moved into the
+    (`loadReviewTabFile`). The shared review's intro (Hedge School's `Arrival.svelte`, Cyanotype's
+    `SharedArrival.svelte`) stays in each site. Its words differ between the two copies, and one text for both is a
+    visible change. Hedge School's partner code (design 18) moved into the
     packages before Cyanotype uses it (abscls-8tl1.74, design 33, "Partner sites"). The import package's
     `partners.ts` holds the partners' checks, the window messages and the receiving of a kept review. The analysis
     package's `games.ts` holds the stored game's partner. `exports.ts`'s `reviewExports` holds the Export menu's

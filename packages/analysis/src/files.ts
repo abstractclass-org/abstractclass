@@ -88,8 +88,8 @@ export interface ReviewTabSteps {
 
 /** A file loaded in the Review tab, as both sites' Review tabs load one. `kind` tells an analysis file, which opens on
  *  the Analysis board, and the board counts the load. A file whose network the board cannot take alone asks first: a
- *  cancel stays in the tab. Every other file goes to the review file's reader, which says what is wrong with it. Answers
- *  the problem that the tab shows when a step fails, in the error's own words, else null. */
+ *  cancel stays in the tab. Every other file goes to the review file's reader, which says what is wrong with it.
+ *  Answers the problem that the tab shows when a step fails, in the error's own words, else null. */
 export async function loadReviewTabFile(file: Blob, site: string, kind: (text: string) => "review" | "analysis" | null,
                                         steps: ReviewTabSteps): Promise<string | null> {
   const content = await file.text();
