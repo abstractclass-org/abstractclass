@@ -1517,3 +1517,38 @@ jobs of both sites run the step too, and a failed step deploys nothing.
   for 300 s (`headersTimeout` and `bodyTimeout`, read in the undici source that Node 24.21 and 26.13 hold). Both
   get another try. A server that holds a connection open with no answer stops the step after about 20 minutes:
   four tries of 300 s and 22 s of waits.
+
+### A search worker that fails for good (2026-11-17)
+
+- **The problem** (abscls-3q8i): since abscls-y27l, a worker's channel (`packages/engine/src/channel.ts`) keeps the
+  worker's failure, such as a worker out of memory, and each later request on it fails at once. The pool
+  (`packages/engine/src/pool.ts`) put the worker back with the free engines after its task failed. So each later task
+  that the pool gave it failed too, and the review's searches failed one after another (the panel's "Engine error").
+- **How the pool tells a dead worker:** by the channel's kept failure (`EngineWorker.failed`), not by the task's error.
+  A search that fails on a live worker (an error reply, or an error that the worker caught) leaves the worker in the
+  pool, and its task fails as before. A worker that ended by `terminate` has no failure.
+- **The change:** when a task ends on a CPU worker that failed, the pool ends the worker and starts another in its
+  place. The new worker loads the module and the network, which the page compiled and checked once (`compile` and
+  `checked` in `client.ts`), so the start fetches nothing. The task that failed on the dead worker goes back in the
+  queue at its priority, once. The next free engine takes it: the new worker, or another worker that comes free first.
+  The promise of `run` settles with the last run, as for a stopped task. The review marks a search's failure only when
+  the promise rejects, and each search clears its earlier mark when it starts. So a task that succeeds on its second
+  run shows no "Engine error".
+- **The limit:** a worker that the pool started in place of a failed one, and on which no task has ended yet, is not
+  replaced when it fails in its turn. The pool drops it and goes on with fewer workers. A worker that fails as it
+  loads is dropped too, as `resize` did before. So a worker that dies at each start makes one replacement and stops.
+  A task that fails on its second run fails with the worker's failure, and the panel shows "Engine error". When no
+  search worker is left, each task that no engine can take fails with that failure at once: a task for the CPU alone,
+  or every task when the GPU is not in the pool. Before, such a task waited for good. The idle release starts the
+  workers again with the next task after it.
+- **The GPU's own path** does not change: a GPU search that fails without an error reply drops the GPU from the pool,
+  and its task runs again on the CPU workers (`gpuLost`). No CPU worker starts in place of a GPU slot.
+- **Both sites** use this pool (`@abstractclass/engine`): Hedge School's review and Cyanotype's.
+- **Checked:** `packages/engine/src/pool.test.ts`, with a fake worker that fails for good on a chosen message. A
+  worker that fails at its first search after it loaded: the pool starts one new worker, the task runs once more on
+  it, and the next two tasks go to it. A worker that fails at each start after it loaded: one new worker, the task
+  fails with "the engine worker failed: Out of memory", and a later task fails at once and starts no worker. A new
+  worker that fails as it loads: the pool drops it, and the waiting task fails. A search error on a live worker: no
+  new worker, and the next task runs on the same worker. A GPU worker that fails: the GPU leaves the pool, the task
+  runs again on a CPU worker, and no worker starts. The first three tests fail on the earlier pool. The GPU's path
+  was checked with the fake worker only, not on a GPU.

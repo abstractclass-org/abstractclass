@@ -79,6 +79,10 @@ export class WorkerChannel<Request extends { id: number }> {
     return { id, done };
   }
 
+  /** The worker's failure, kept for good: each later request rejects with it (send). Null while the worker lives, and
+   *  after terminate, which is no failure. */
+  get failed(): Error | null { return this.failure; }
+
   /** Posts a message that has no reply, such as a stop. */
   post(m: Request) { this.worker.postMessage(m); }
 

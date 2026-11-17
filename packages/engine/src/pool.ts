@@ -8,6 +8,13 @@
 // gains by many searches at once, whose evaluations go to it together, and each of its searches runs slower than a CPU
 // worker's. So a task takes a free CPU worker first, and a free GPU slot when no CPU worker is free. A task that needs
 // the CPU module (`cpu`: a field that the GPU module refuses, such as the weak walls) waits for a CPU worker.
+//
+// A CPU worker can fail for good (it ran out of memory): its channel keeps the failure, and each later request on it
+// fails at once (channel.ts). The pool tells it by that kept failure (EngineWorker.failed), not by the task's error: a
+// search that fails on a live worker leaves the worker in the pool. The pool ends a worker that failed, starts another
+// in its place, and runs the task that failed on it once more. A worker started in place of one that failed is not
+// replaced in its turn until a task has ended on it: a worker that dies at each start ends the replacements, and the
+// pool goes on without it (replace).
 import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "./client.ts";
 import type { GpuEngines } from "./gpuClient.ts";
 import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "./protocol.ts";
@@ -48,6 +55,7 @@ interface Task {
   cpu?: boolean; // only a CPU worker takes it
   stop?: () => void; // while it runs, when it can stop
   stopped?: boolean; // stopped to give way: it runs again later
+  rerun?: boolean; // it failed on a CPU worker that failed for good, and runs once more
   engine?: SearchEngine; // while it runs
 }
 
@@ -71,6 +79,12 @@ export class EnginePool {
   onBacklog: (() => void) | null = null;
   private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
   private loading = 0; // the search workers that load now: each takes a task once it has loaded
+  // The workers started in place of workers that failed, until a task ends on them: one that fails too is not replaced
+  // (replace).
+  private replacements = new Set<SearchEngine>();
+  // The failure of the last search worker that the pool dropped. When no search worker is left, the tasks that no
+  // engine can take fail with it (strand).
+  private lost: unknown = null;
   // The release of idle engines (releaseWhenIdle): the search workers wanted, whether they are released now, and the
   // timer that releases them.
   private size: number;
@@ -157,17 +171,14 @@ export class EnginePool {
     while (this.engines.length < size) {
       const e = new EngineWorker();
       this.engines.push(e);
-      this.load?.(e).catch(() => {
-        const k = this.engines.indexOf(e);
-        if (k >= 0) this.engines.splice(k, 1); // a worker that cannot start is dropped
-        e.terminate();
-      });
+      this.startWorker(e);
     }
     while (this.engines.length > Math.max(1, size)) {
       const e = this.engines.pop()!;
       const k = this.free.indexOf(e);
       if (k >= 0) {
         this.free.splice(k, 1);
+        this.replacements.delete(e);
         e.terminate();
       } else this.retiring.add(e); // busy, or still loading (it ends when it has loaded)
     }
@@ -253,6 +264,7 @@ export class EnginePool {
     this.released = true;
     for (const e of this.engines) if (this.free.includes(e)) e.terminate(); else this.retiring.add(e);
     this.engines.length = 0;
+    this.replacements.clear(); // the next start's workers are new
     this.free = this.free.filter(e => e.kind === "gpu");
     this.dropGpu();
     this.onRelease?.();
@@ -275,7 +287,55 @@ export class EnginePool {
     this.queue.sort((a, b) => b.priority - a.priority);
   }
 
+  /** Loads a search worker that the pool added after its start. A worker that cannot start is dropped. */
+  private startWorker(e: EngineWorker) {
+    this.load?.(e).catch(error => this.drop(e, error));
+  }
+
+  /** Takes the search worker `e` out of the pool and ends it, for `failure`. */
+  private drop(e: EngineWorker, failure: unknown) {
+    const k = this.engines.indexOf(e);
+    if (k >= 0) this.engines.splice(k, 1);
+    this.retiring.delete(e);
+    this.replacements.delete(e);
+    e.terminate();
+    this.lost = failure;
+    this.dispatch(); // the tasks that no engine is left for fail (strand)
+  }
+
+  /** Ends the CPU worker `dead`, whose worker failed for good, and starts another in its place, which takes work once
+   *  it has loaded. A worker that was itself started in place of one that failed, and on which no task has ended, is
+   *  dropped instead: a worker that dies at each start (a network too large for the tab's memory) does not start
+   *  again and again. The pool then goes on with fewer workers, and the tasks that fail on them fail as an engine's
+   *  failure does (the panel's "Engine error"). */
+  private replace(dead: EngineWorker, failure: Error, again: boolean) {
+    const k = this.engines.indexOf(dead);
+    if (again || k < 0) { this.drop(dead, failure); return; }
+    dead.terminate();
+    const e = new EngineWorker();
+    this.engines[k] = e;
+    this.replacements.add(e);
+    this.startWorker(e);
+  }
+
+  /** When no search worker is left, after one failed: the waiting tasks that no engine can take fail with its failure,
+   *  as a task does when its search fails. A task for the CPU alone takes no GPU slot. */
+  private strand() {
+    if (this.lost === null || this.engines.length) return;
+    const stranded = this.queue.filter(t => t.cpu || !this.gpu);
+    if (!stranded.length) return;
+    this.queue = this.queue.filter(t => !stranded.includes(t));
+    for (const t of stranded) t.reject(this.lost);
+    this.scheduleRelease();
+  }
+
+  /** The failure of the CPU worker `engine`, kept for good, or null: a GPU slot, and a CPU worker that lives. */
+  private static failure(engine: SearchEngine): Error | null {
+    return engine instanceof EngineWorker ? engine.failed : null;
+  }
+
   private dispatch() {
+    this.strand();
     while (this.free.length && this.queue.length) {
       const k = Math.max(0, this.free.findIndex(e => e.kind === "cpu")); // a CPU worker first
       const t = this.queue.findIndex(q => EnginePool.takes(this.free[k], q)); // the most urgent that it can take
@@ -289,13 +349,16 @@ export class EnginePool {
         }, error => {
           if (task.stopped) this.requeue(task);
           else if (engine.kind === "gpu" && !(error instanceof EngineError)) this.gpuLost(task, error);
+          else if (EnginePool.failure(engine) && !task.rerun) { task.rerun = true; this.requeue(task); }
           else task.reject(error);
         })
         .finally(() => {
           this.running.delete(task);
           task.stop = undefined;
           task.engine = undefined;
+          const failure = EnginePool.failure(engine), again = this.replacements.delete(engine) && !!failure;
           if (this.retiring.delete(engine)) engine.terminate();
+          else if (failure) this.replace(engine as EngineWorker, failure, again);
           else this.free.push(engine);
           this.dispatch();
           this.scheduleRelease();

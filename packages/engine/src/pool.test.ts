@@ -1,39 +1,68 @@
 // Checks that a pool takes a rules worker that the page started before it: the review page starts one once the
 // engine's manifest is read, before it chooses the pool (the review's, or a review snapshot's). The pool does not start the
 // worker a second time, and its rules work. Also checks the GPU's first-use test when the GPU leaves the pool, and while
-// no search that it needs runs. Run: npm test.
+// no search that it needs runs. And a worker that fails for good (it runs out of memory): the pool starts another in
+// its place and runs the task once more, and a worker that dies at each start does not start again and again.
+// Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PROTOCOL } from "./protocol.ts";
 import type { Manifest } from "./client.ts";
 import type { GpuEngines } from "./gpuClient.ts";
-import type { SpeedMeter } from "./pool.ts";
+import type { SearchEngine, SpeedMeter } from "./pool.ts";
+import type { AnalysisQuery } from "./protocol.ts";
 
-/** A worker that keeps the messages that it gets, and answers each with a version of the site's protocol. */
+/** A worker that keeps the messages that it gets, and answers each with a version of the site's protocol (and a
+ *  search's visits). A worker that `fails` picks for a message fails for good on it, as a worker out of memory does: it
+ *  answers nothing more, and its error event comes. One whose `refuses` picks a message answers it with an error. */
 class FakeWorker {
   static made: FakeWorker[] = [];
+  static fails: ((w: FakeWorker, m: { type: string }) => boolean) | null = null;
+  static refuses: ((w: FakeWorker, m: { type: string }) => boolean) | null = null;
   sent: { type: string }[] = [];
+  dead = false;
+  ended = false;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: unknown = null;
+  onerror: ((event: { message: string; preventDefault(): void }) => void) | null = null;
   constructor() { FakeWorker.made.push(this); }
   postMessage(m: { type: string; id: number }) {
     this.sent.push(m);
-    const reply = { id: "v", protocol: PROTOCOL, build: "b", search: "the search", rules: "r", model: null, trained: [] };
+    if (this.dead) return;
+    if (FakeWorker.fails?.(this, m)) {
+      this.dead = true;
+      setImmediate(() => this.onerror?.({ message: "Out of memory", preventDefault() {} }));
+      return;
+    }
+    if (FakeWorker.refuses?.(this, m)) {
+      setImmediate(() => this.onmessage?.({ data: { type: "error", id: m.id, message: "the search failed" } }));
+      return;
+    }
+    const reply = { id: "v", protocol: PROTOCOL, build: "b", search: "the search", rules: "r", model: null, trained: [],
+                    rootInfo: { visits: 1 } };
     setImmediate(() => this.onmessage?.({ data: { type: "reply", id: m.id, reply, ms: 0, memory: 0 } }));
   }
-  terminate() {}
+  terminate() { this.ended = true; }
+  /** The searches that it was sent. */
+  get searches() { return this.sent.filter(m => m.type === "call" || m.type === "search").length; }
 }
 globalThis.Worker = FakeWorker as unknown as typeof Worker;
 globalThis.fetch = (async () => new Response("")) as typeof fetch;
 WebAssembly.compileStreaming = (async () => ({})) as unknown as typeof WebAssembly.compileStreaming;
 
 const { EngineWorker } = await import("./client.ts");
+const gpuClient = await import("./gpuClient.ts");
 const { EnginePool } = await import("./pool.ts");
 
 const MANIFEST = { artifacts: [
   { kind: "module", id: "module", url: "/engine/module/engine.wasm" },
   { kind: "gpu-library", id: "library", url: "/engine/library/library.js" },
-  { kind: "model", id: "net", url: "/engine/net/model.bin" },
+  // The SHA-256 of no bytes: what the fake fetch gives (client.ts, checked)
+  { kind: "model", id: "net", url: "/engine/net/model.bin",
+    sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
+  { kind: "gpu-module", id: "gpu-module", url: "/engine/gpu/engine.wasm" },
+  { kind: "ort-glue", id: "ort-glue", url: "/engine/ort/glue.mjs" },
+  { kind: "ort-wasm", id: "ort-wasm", url: "/engine/ort/ort.wasm" },
+  { kind: "graph", id: "graph", graphOf: "net", url: "/engine/net/model.onnx" },
 ] } as unknown as Manifest;
 
 test("a pool takes a rules worker started before it, and starts it no second time", async () => {
@@ -188,5 +217,112 @@ test("a task for the CPU alone stops a less urgent search on a CPU worker, not o
   } finally {
     pool.halt();
     pool.dropGpu();
+  }
+});
+
+/** A task's work: one search, and what it ran on. */
+const searchOn = (ran: string[] = []) => async (e: SearchEngine) => {
+  ran.push(e.kind);
+  await e.analyse({} as AnalysisQuery).done;
+  return "searched";
+};
+
+/** A pool of one search worker, started: the fake worker of its search worker, and of its rules worker. */
+async function startedPool() {
+  const pool = new EnginePool(1, new EngineWorker());
+  await pool.start(MANIFEST, "net");
+  const [rules, first] = FakeWorker.made.slice(-2);
+  return { pool, rules, first, made: FakeWorker.made.length };
+}
+
+test("a worker that fails after it loaded: one starts in its place, the task runs again, the next tasks go to it",
+     async () => {
+  const { pool, first, made } = await startedPool();
+  FakeWorker.fails = (w, m) => w === first && m.type === "call";
+  try {
+    assert.equal(await pool.run(1, "a", searchOn()), "searched");
+    assert.equal(FakeWorker.made.length, made + 1);
+    const next = FakeWorker.made.at(-1)!;
+    assert.ok(first.ended); // the pool ended the worker that failed
+    assert.deepEqual(next.sent.map(m => m.type), ["init", "model", "call"]); // the task ran once more, on the new one
+    assert.equal(await pool.run(1, "b", searchOn()), "searched");
+    assert.equal(await pool.run(1, "c", searchOn()), "searched");
+    assert.deepEqual([first.searches, next.searches, pool.engines.length], [1, 3, 1]);
+  } finally {
+    FakeWorker.fails = null;
+    pool.terminate();
+  }
+});
+
+test("a worker that fails at each start after it loads: one starts in its place, none in place of that one",
+     async () => {
+  const { pool, rules, made } = await startedPool();
+  FakeWorker.fails = (w, m) => w !== rules && m.type === "call";
+  try {
+    // The task fails on the second worker too: it fails as a search does (the panel's "Engine error")
+    await assert.rejects(pool.run(1, "a", searchOn()), /^Error: the engine worker failed: Out of memory$/);
+    assert.equal(FakeWorker.made.length, made + 1);
+    assert.equal(pool.engines.length, 0);
+    // No worker is left: a later task fails at once, and starts none
+    await assert.rejects(pool.run(1, "b", searchOn()), /Out of memory/);
+    assert.equal(FakeWorker.made.length, made + 1);
+  } finally {
+    FakeWorker.fails = null;
+    pool.terminate();
+  }
+});
+
+test("a worker that fails as it starts in place of one that failed: the pool drops it, the task fails", async () => {
+  const { pool, first, made } = await startedPool();
+  FakeWorker.fails = (w, m) => m.type === "call" ? w === first : m.type === "init"; // the workers after the first
+  try {
+    await assert.rejects(pool.run(1, "a", searchOn()), /Out of memory/);
+    assert.equal(FakeWorker.made.length, made + 1);
+    assert.equal(pool.engines.length, 0);
+  } finally {
+    FakeWorker.fails = null;
+    pool.terminate();
+  }
+});
+
+test("a search that fails on a live worker fails alone: the worker stays, and takes the next task", async () => {
+  const { pool, first, made } = await startedPool();
+  FakeWorker.refuses = (w, m) => w === first && m.type === "call";
+  try {
+    await assert.rejects(pool.run(1, "a", searchOn()), /^Error: the search failed$/);
+    FakeWorker.refuses = null;
+    assert.equal(await pool.run(1, "b", searchOn()), "searched");
+    assert.deepEqual([FakeWorker.made.length, first.searches, first.ended], [made, 2, false]); // one run each
+  } finally {
+    FakeWorker.refuses = null;
+    pool.terminate();
+  }
+});
+
+test("a GPU worker that fails: the GPU leaves the pool, its task runs again on a CPU worker, and no worker starts",
+     async () => {
+  const pool = new EnginePool(0, new EngineWorker());
+  const gpu = new gpuClient.GpuEngines();
+  await gpu.start(MANIFEST, "net", 1);
+  const gpuWorker = FakeWorker.made.at(-1)!, made = FakeWorker.made.length;
+  FakeWorker.fails = (w, m) => w === gpuWorker && m.type === "search";
+  const lost: unknown[] = [], ran: string[] = [];
+  pool.onGpuLost = e => lost.push(e);
+  try {
+    pool.addGpu(gpu);
+    const task = pool.run(1, "a", searchOn(ran));
+    while (!lost.length) await new Promise(r => setImmediate(r));
+    assert.match(String(lost[0]), /the engine worker failed: Out of memory/);
+    assert.deepEqual([pool.hasGpu, gpuWorker.ended, pool.waiting], [false, true, 1]); // the task waits for a CPU worker
+    const internals = pool as unknown as { free: unknown[]; dispatch(): void };
+    internals.free.push({ kind: "cpu", terminate() {}, analyse: () => ({ stop() {},
+      done: Promise.resolve({ ms: 0, reply: { rootInfo: { visits: 1 } } }) }) });
+    internals.dispatch();
+    assert.equal(await task, "searched");
+    assert.deepEqual(ran, ["gpu", "cpu"]);
+    assert.deepEqual([FakeWorker.made.length, pool.engines.length], [made, 0]); // a GPU slot has none in its place
+  } finally {
+    FakeWorker.fails = null;
+    pool.terminate();
   }
 });

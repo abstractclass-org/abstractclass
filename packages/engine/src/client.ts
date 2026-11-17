@@ -144,6 +144,10 @@ export class EngineWorker {
                                                           onPartial as (r: unknown, ms: number) => void);
     return { done, stop: () => this.channel.post({ type: "stop", id }) };
   }
+  /** The worker's failure (it ran out of memory, or its script did not load), or null while it lives. A worker that
+   *  failed fails each later request at once with this error (channel.ts): the pool starts another in its place
+   *  (pool.ts, replace). */
+  get failed(): Error | null { return this.channel.failed; }
   /** Ends the worker. The requests still waiting for a reply reject with Stopped. */
   terminate() { this.channel.terminate(); }
 }
