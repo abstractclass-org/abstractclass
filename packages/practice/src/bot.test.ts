@@ -65,20 +65,26 @@ test("a site's own check stands for the bot's refusal, with its own message", ()
   assert.deepEqual([e.message, botFault(e)], ["no game can reach its start.", "refused"]);
 });
 
-/** A game of one move a turn, Blue first, whose bot is `bot` and whose rules of the player's move throw with
- *  `rulesError` when it is set. */
+/** Where the rules of a game throw: as the game prepares, as it adds a move, or as it gets the player's rules. */
+type RulesStep = "prepare" | "add" | "humanRules";
+
+/** A game of one move a turn, Blue first, whose bot is `bot` and whose rules throw with `rulesError` at the step
+ *  `rulesAt`, when it is set. */
 class OneGame extends PracticeGame<KeptPractice, { player: Player }, { player: Player }, string> {
   rulesError: Error | null = null;
+  rulesAt: RulesStep = "humanRules";
   get mover(): Player | null { return this.position?.player ?? null; }
   protected get over() { return false; }
   protected keep() {}
-  protected async prepare() { await this.fromRules(); }
+  private rulesStep(step: RulesStep) { if (this.rulesError && this.rulesAt === step) throw this.rulesError; }
+  protected async prepare() { this.rulesStep("prepare"); await this.fromRules(); }
   protected async fromRules() { this.positions = [{ player: 0 }]; }
   protected async add() {
+    this.rulesStep("add");
     this.positions = [...this.positions, { player: (1 - this.position!.player) as Player }];
   }
   protected async humanRules() {
-    if (this.rulesError) throw this.rulesError;
+    this.rulesStep("humanRules");
     return "rules";
   }
 }
@@ -102,11 +108,16 @@ test("a game stops with why: the bot's fault, the page's fault, or a bot that di
     assert.equal(reported.length, 1);
     assert.equal(game.error, (reported[0] as Error).message); // the code's message, for the report
   }
-  // The rules of the player's move throw: the page's fault, after a bot's move that worked.
-  const game = new OneGame(kept(1), null!, botOf(() => "= D4"));
-  game.rulesError = new Error("the rules engine failed");
-  await game.start();
-  assert.deepEqual([game.status, game.stop, game.error], ["failed", "page", "the rules engine failed"]);
+  // The rules throw, with a bot that works: the page's fault, as the game prepares, as it adds the bot's move, or as it
+  // gets the rules of the player's move.
+  for (const at of ["prepare", "add", "humanRules"] as const) {
+    const game = new OneGame(kept(1), null!, botOf(() => "= D4")), reported: unknown[] = [];
+    game.onFail = e => reported.push(e);
+    [game.rulesError, game.rulesAt] = [new Error("the rules engine failed"), at];
+    await game.start();
+    assert.deepEqual([game.status, game.stop, game.error], ["failed", "page", "the rules engine failed"], at);
+    assert.equal(reported.length, 1, at);
+  }
   // A bot that started in no form: its start's error, whatever it was.
   const unstarted = new OneGame(kept(1), null!, PracticeBot.failed("words", new Error("the engine worker failed: x")));
   await unstarted.start();
