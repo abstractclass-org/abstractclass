@@ -12596,3 +12596,28 @@ name it as Hedge School's do, with the address from `packages/site/src/community
   `community.ts`, and `src/lib/edition.ts` no longer exports it.
 - **The tests:** `tests/developers-discord.spec.ts` also checks that Cyanotype's About links the shared address in
   its two sentences, and that its Privacy does under Questions.
+
+### Cyanotype's notices of a kept board that cannot open (2026-11-17)
+
+abscls-8tl1.87. On Cyanotype's Analysis board, a board kept in the browser whose start no game reaches gives way to a
+new board, with a notice. That notice replaced the refusal of a link, a file or a record brought in the same load, so
+the player did not see why the board brought did not open. New under such a board wrote a new board and showed no
+notice, where Hedge School's New shows the short notice (design 24, item 15).
+
+- **Both sentences show:** the refusal of the board brought comes first, then the kept board's notice, which ends
+  with "A new board is here instead.": the last sentence names the board on screen. The same order holds for a kept
+  board beyond the komi's limit, whose notice came first before. The page writes the notice once, when it has chosen
+  the board (`openingNotice` in `apps/cyanotype/src/routes/analysis/+page.svelte`).
+- **Hedge School has the other order:** its kept board's notice comes first (`tests/komi-limit.spec.ts`, "both
+  notices, the kept board's first"). Its board does not change in this work.
+- **New brings a board, as on Hedge School:** the standard start goes to the board's address (`position=` with the
+  standard start, `via=new`), and the page loads again. The opening asks before it replaces a board kept here that has
+  moves, and a kept board that cannot open gives way to it, with the short notice. `new` is one of the site's own ways
+  in: neither an import nor a load (design 17).
+- **The words are Hedge School's:** the shared `keptBoardNotice` and `boardRefusal`, and "Your own analysis is here
+  instead.", the same string as Hedge School's.
+- **The tests:** `tests/cyanotype-editor.spec.ts` has three cases beside the kept-start case: a link that does not
+  read (a komi beyond the cap) under the kept start, where both sentences show; a link's board under it, with the short
+  notice; and New's standard start under it, with the short notice. On a build of dev, the first and the third fail:
+  the link's refusal does not show, and New shows no notice. The second passes there: the short notice under a board
+  brought was already right, and no test checked it.

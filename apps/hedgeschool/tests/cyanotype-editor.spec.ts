@@ -5,7 +5,8 @@
 // them. The Import takes a position and the moves from it. A link's record opens at its `at`, and at the start without
 // one, as on Hedge School. A link and an analysis file with a set-up start open from it, and a start that the rules
 // refuse or that no game reaches leaves the board kept here, with a notice. A board kept here whose start no game
-// reaches gives way to a new board, with a notice. Each way in refuses a komi, which the board does not take yet
+// reaches gives way to a new board, with a notice: after a link's refusal, and in its short form under a link's board
+// or New's (Hedge School's design 24, item 15). Each way in refuses a komi, which the board does not take yet
 // (design 33, "The komi"). The review's refusal of a game from a set-up start is in cyanotype-games.spec.ts. The
 // board's engine is off, so nothing searches: the engine's rules check what comes in. The positions are Stamp Duty's
 // own (the lab's games, apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves
@@ -260,8 +261,9 @@ test("the Analysis board does not open a position that no game reaches: from the
                                                      { timeout: 120_000 });
 });
 
-test("the Analysis board does not open a kept board whose start no game reaches: a new board, with a notice", async ({ page }) => {
-  // A board kept before the position check, with one move from that start: a defence, as for a kept board with a komi
+/** Keeps a board whose start no game reaches, with one move from it, as this browser's Analysis board: one kept before
+ *  the position check. It writes from a page of the site's origin, before the board's page opens. */
+async function keepUnreached(page: Page) {
   await page.goto(at("/about"));
   await page.evaluate(([name, stores, store, id, kept]) => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open(name);
@@ -275,11 +277,43 @@ test("the Analysis board does not open a kept board whose start no game reaches:
     };
   }), [NAME, Object.values(STORES), STORES.branches, BOARD_ID,
        { version: 2, main: [MOVE], nodes: [[MOVE, 0]], start: UNREACHED }] as const);
+}
+/** The notice of that kept board: alone, a new board is here; under a board brought, the short notice. */
+const KEPT_GONE = `The Analysis board cannot open your own analysis: ${WHY.its}`;
+const KEPT_REFUSED = `${KEPT_GONE} A new board is here instead\\.`;
+
+test("the Analysis board does not open a kept board whose start no game reaches: a new board, with a notice", async ({ page }) => {
+  // A defence, as for a kept board with a komi
+  await keepUnreached(page);
   await page.goto(at("/analysis"));
-  await expect(page.getByRole("alert"))
-    .toHaveText(new RegExp(`^The Analysis board cannot open your own analysis: ${WHY.its} A new board is here instead\\.$`),
-                { timeout: 120_000 });
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^${KEPT_REFUSED}$`), { timeout: 120_000 });
   await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible({ timeout: 120_000 }); // ready
+  await expect(page.locator(".movelist button[data-path]")).toHaveCount(0);
+});
+
+test("a kept board whose start no game reaches, and a link that does not read: the link's refusal, then the kept board's notice", async ({ page }) => {
+  await keepUnreached(page);
+  await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [], nodes: [], komi: 90_981 }, 0)); // beyond the cap
+  await expect(page.getByRole("alert")).toHaveText(new RegExp("^The Analysis board cannot load this link: the Komi tag must "
+    + `be from -90,980 to 90,980 points: 90981\\. ${KEPT_REFUSED}$`), { timeout: 120_000 });
+  await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible({ timeout: 120_000 }); // ready
+  await expect(page.locator(".movelist button[data-path]")).toHaveCount(0);
+});
+
+test("a kept board whose start no game reaches, under a link's board: the link's board, and the short notice", async ({ page }) => {
+  await keepUnreached(page);
+  await page.goto(boardLink(CYANOTYPE!, { version: 2, main: [MOVE], nodes: [[MOVE, -1]], start: MIDDLE }, 1));
+  await expectBoard(page, MIDDLE, [MOVE]); // no question: the kept board's moves cannot open
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^${KEPT_GONE}$`), { timeout: 120_000 });
+});
+
+test("a kept board whose start no game reaches, then New's standard start: a new board, and the short notice", async ({ page }) => {
+  await keepUnreached(page);
+  await page.goto(at("/analysis"));
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^${KEPT_REFUSED}$`), { timeout: 120_000 });
+  await newMenu(page, /Standard start/);
+  await expectBoard(page, undefined, []); // New's board replaces the kept one in the store at once
+  await expect(page.getByRole("alert")).toHaveText(new RegExp(`^${KEPT_GONE}$`), { timeout: 120_000 });
   await expect(page.locator(".movelist button[data-path]")).toHaveCount(0);
 });
 

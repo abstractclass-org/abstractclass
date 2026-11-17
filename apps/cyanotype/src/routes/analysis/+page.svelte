@@ -10,7 +10,8 @@
   // game can reach it (protocol 0.8.0's check), so it analyzes no position that no game reaches. A record or a start
   // that fails leaves the board kept here, with a notice. One that passes asks first when the board kept here has
   // moves, as Hedge School's board does ("Replace your analysis?"). A board kept here whose start fails the check (one
-  // kept before the check) gives way to a new board, with a notice.
+  // kept before the check) gives way to a new board, with a notice. A board brought that fails too has its refusal first,
+  // then the kept board's notice.
   // The engine searches the position on screen only, and the moves the player asks to evaluate: no pass runs over the
   // line (GameAnalysis's board form). The tree is the player's: its first line is the main line, which "Make main line"
   // changes. One board in each browser, kept as the player leaves it. The engine's settings are the review's, and the
@@ -123,9 +124,11 @@
   /** Why the board kept here could not open (a komi beyond the limit, or a start that no game reaches), or null. A
    *  board brought then replaces it at once, and the notice names no new board. */
   let keptGone: string | null = null;
-  // The site's own pages that bring a board: the board editor's position, a practice game's "Analyze the game", and a
-  // game from a set-up start in Your games. Neither an import nor a load.
-  const OWN: string[] = ["editor", "practice", "your_games"];
+  /** Why a board brought could not open (refuse), or null: the board kept here opens in its place. */
+  let refused: string | null = null;
+  // The site's own pages that bring a board: the board editor's position, the New menu's standard start, a practice
+  // game's "Analyze the game", and a game from a set-up start in Your games. Neither an import nor a load.
+  const OWN: string[] = ["editor", "new", "practice", "your_games"];
   /** The board kept here, as it opens: its own network only while the site ships it (kept.ts, keptShipped). A kept
    *  board beyond the komi's limit (Hedge School's design 24), kept from a link before the link's check, does not open,
    *  as on Hedge School: the engine's numbers mean nothing beyond its cap. A new board opens, and replaces it in the
@@ -135,7 +138,6 @@
     const problem = keptKomiProblem(kept);
     if (!problem) return kept;
     keptGone = problem;
-    notice = keptBoardNotice(keptGone, false);
     return null;
   }
   /** The board kept here (`kept`, from keptBoard), at its kept place, and a board brought after the `#`, which leaves
@@ -172,16 +174,23 @@
       return { kept, at: keptAt };
     }
   }
-  /** The notice of a board brought that cannot open: the board kept here opens. Where the kept board could not open
-   *  either (keptBoard's notice, a kept board beyond the komi's limit), that notice stays first and names the new board. The
-   *  failure counts by why: a link or a file that does not read, a record that does not read, or a line that the
-   *  engine's rules refuse (`rules`). */
+  /** A board brought that cannot open: the board kept here opens, and openingNotice says why. The failure counts by
+   *  why: a link or a file that does not read, a record that does not read, or a line that the engine's rules refuse
+   *  (`rules`). */
   function refuse(problem: string, kind: Brought["kind"], rules = false) {
     if (loaded) trackLoadFailed(loaded, rules ? "rejected" : kind === "file" ? "file" : "link");
     if (imported) trackImportFailed("analysis", imported, rules ? "rejected" : kind === "record" ? "record" : "link");
     const verb = kind === "link" || kind === "file" ? "load" : "open";
-    const why = boardRefusal(verb, kind, problem);
-    notice = notice ? `${notice} ${why}` : `${why} Your own analysis is here instead.`;
+    refused = boardRefusal(verb, kind, problem);
+  }
+  /** The opening's notice, once the board is chosen: the refusal of a board brought (refuse), then the notice of the
+   *  board kept here that cannot open (keptGone), in Hedge School's words. The last sentence names the board on screen:
+   *  the board kept here, or the new board in its place. A board brought (`replaced`: a link, an analysis file, New or
+   *  the Import) takes the place of a kept board that cannot open, and the notice then names no new board. */
+  function openingNotice(replaced: boolean): string {
+    const gone = keptGone ? keptBoardNotice(keptGone, replaced) : "";
+    if (!refused) return gone;
+    return `${refused} ${gone || "Your own analysis is here instead."}`;
   }
   // A board brought, when the board kept here has moves of its own: the player chooses which to keep.
   const question = new ReplaceQuestion();
@@ -209,7 +218,6 @@
         const keptProblem = kept?.start ? await startProblem(rules, kept.start, "its start") : null;
         if (keptProblem) {
           keptGone = keptProblem;
-          notice = keptBoardNotice(keptGone, false);
           kept = null;
         }
         // The notice says what cannot open, so the problem names the start by it: "this position: no game can reach
@@ -218,7 +226,7 @@
           : b.board.start ? await startProblem(rules, b.board.start, b.kind === "position" ? "it" : "its start") : null;
         if (b && problem) refuse(problem, b.kind, true);
         brought = b && !problem && (!kept?.nodes.length || await question.ask()) ? b : undefined;
-        if (brought && keptGone) notice = keptBoardNotice(keptGone, true);
+        notice = openingNotice(!!brought);
         board = brought?.board ?? kept;
         own = board?.network ?? null;
         keptAt = chosen.at;
@@ -249,13 +257,11 @@
   });
   onDestroy(() => session.end());
 
-  /** A new board from the standard start, in the place of the board kept here. */
-  async function newBoard() {
-    // The New menu's ways each ask first where the board has moves, as Hedge School's (its design 21, item 5).
-    if (game?.keptBoard().nodes.length && !(await question.ask())) return;
-    await dbPut(STORES.branches, BOARD_ID, boardOfLine([]));
-    writeLocal(BOARD_AT_KEY, "");
-    location.reload();
+  /** The New menu's standard start: a board brought after the `#`, as on Hedge School. The page's opening asks first
+   *  where the board kept here has moves (Hedge School's design 21, item 5), and the board takes the place of a kept
+   *  board that cannot open, with the short notice (its design 24, item 15). */
+  function newBoard() {
+    importAddress(new URLSearchParams({ position: STANDARD_START, via: "new" }));
   }
 
   // The position on screen in the notation, which the board editor starts from (Lichess's editor starts from its board).

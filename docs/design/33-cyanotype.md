@@ -227,7 +227,9 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       link or a file take the check before they open the Analysis board, as Hedge School's do (its design 21). A
       record from a set-up start takes it before its moves. A board kept in the browser whose start fails the check
       (one kept before the check) gives way to a new board, with a notice, as a kept board with a komi does. A board
-      brought in its place opens at once, and the notice then does not name a new board (design 24, item 15).
+      brought in its place opens at once, and the notice then does not name a new board (design 24, item 15). When the
+      board brought cannot open either, its refusal comes first, then the kept board's notice, which names the new
+      board.
       describe_game gives no check: the site asks describe for it (`src/lib/review/recordCheck.ts`, `startChecked`).
     - Every position of the lab's games and of the review's test game (125 positions with legal moves) comes
       back from its notation as the same position, with the same legal moves (`position.engine.test.ts`, at
@@ -1017,7 +1019,9 @@ The Move header and the fade of a cut name are in the shared table, so Hedge Sch
 
 Cyanotype's board editor (`/editor`) and the Analysis board's New menu are Hedge School's (its design 21, items 5 and
 10), with Blueprints' pieces. The New menu has the standard start, the board editor from the position on screen, the
-Import of a position or moves, and an analysis file loaded. The Import's dialog is Hedge School's
+Import of a position or moves, and an analysis file loaded. The standard start goes to the board's address, as Hedge
+School's does (`via=new`): the board's opening asks before it replaces a board kept here that has moves, and it takes
+the place of a kept board that cannot open, with that board's short notice. The Import's dialog is Hedge School's
 (`packages/review/src/ImportDialog.svelte`): a position field, and the moves from that position, as a record or a plain
 list of moves (`src/lib/game/paste.ts`). The engine's rules check them in a worker of the page's own. Then the board's
 opening checks them again with the board's rules, before they replace the board kept here. The home page has the way
