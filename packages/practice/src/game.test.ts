@@ -27,6 +27,10 @@ class WordGame extends PracticeGame<KeptPractice, WordPosition, WordMove, string
   protected get over(): boolean { return !!this.position?.over; }
   protected keep(k: KeptPractice | null) { this.kepts.push(k && structuredClone(k)); }
   protected async prepare() {
+    await this.bot.command("words-new-game"); // the bot's part first, as each site's setUpBot
+    await this.fromRules();
+  }
+  protected async fromRules() {
     this.positions = Array.from({ length: this.kept.moves.length + 1 }, (_, n) => positionAt(n));
     this.played = this.kept.moves.map((word, n) => ({ player: positionAt(n).player, word }));
   }
@@ -173,6 +177,18 @@ test("a bot that started in no form stops the game's start with its error, repor
   await game.start();
   assert.equal(game.status, "failed");
   assert.equal(game.error, "the engine worker failed: no message");
+  assert.equal(game.mode, null); // it runs in no form
   assert.equal(reported.length, 1);
   assert.equal(await game.abort(), "set-aside-id"); // the way out, as after a later failure
+});
+
+test("a game kept with moves, whose bot started in no form, keeps its moves from the rules and names no form", async () => {
+  const k = kept(0, { moves: ["b1", "r1"], form: "gpu" });
+  const game = new WordGame(k, null!, PracticeBot.failed("words", new Error("the engine worker failed: no message")));
+  await game.start();
+  assert.equal(game.status, "failed");
+  assert.deepEqual(game.played.map(m => m.word), ["b1", "r1"]); // each site's aborted() keeps them in Your games
+  assert.equal(game.positions.length, 3);
+  assert.equal(game.kept.form, null); // the stored game names no form (Hedge School's design 25)
+  assert.deepEqual(game.kepts, []); // the game in progress stays as the browser keeps it, for a new load of the page
 });

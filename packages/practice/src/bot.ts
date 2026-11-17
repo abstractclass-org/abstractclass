@@ -11,47 +11,50 @@ import type { BotMode, BotRequest, ThreadedFiles } from "./botMessages.ts";
  *  (`enclosure`, `blueprints`), and `worker` the bot's worker module (botForms.ts). */
 export class PracticeBot {
   readonly game: string;
-  readonly mode: BotMode;
+  readonly mode: BotMode | null; // where the bot runs: null for a bot that started in no form (failed)
   private channel: WorkerChannel<BotRequest> | null;
   private failure: unknown = null; // the error of a start in no form (failed)
-  constructor(game: string, mode: BotMode, worker: Worker | null) {
+  constructor(game: string, mode: BotMode | null, worker: Worker | null) {
     this.game = game;
     this.mode = mode;
     this.channel = worker && new WorkerChannel<BotRequest>(worker);
   }
 
   /** A bot that started in no form, with the error of its start: each command fails with it, so that the game stops
-   *  as on a later failure (game.svelte.ts, fail). Its form is the last that startBot tries. */
+   *  as on a later failure (game.svelte.ts, fail). It has no form, and the game's data names none (Hedge School's
+   *  design 25). */
   static failed(game: string, failure: unknown): PracticeBot {
-    const bot = new PracticeBot(game, "single", null);
+    const bot = new PracticeBot(game, null, null);
     bot.failure = failure;
     return bot;
   }
 
   /** Starts the bot with the network `network` and the seed `seed`. A threaded form takes its files (`threaded`). */
   async start(manifest: Manifest, network: string, seed: number, threaded?: ThreadedFiles): Promise<void> {
+    const { mode, channel } = this.live();
     const file = (kind: ArtifactKind) => manifest.artifacts.find(a => a.kind === kind);
     const library = file("practice-library"), model = modelOf(manifest, network);
-    const module = file(this.mode === "single" ? "practice-module" : "practice-threaded-module");
+    const module = file(mode === "single" ? "practice-module" : "practice-threaded-module");
     if (!library || !model || !module) throw new Error("the manifest lacks the practice bot's files");
-    if (this.mode !== "single" && !threaded) throw new Error(`the bot's ${this.mode} form lacks its files`);
+    if (mode !== "single" && !threaded) throw new Error(`the bot's ${mode} form lacks its files`);
     const [compiled, checkedModel] = await Promise.all([compile(module.url), checked(model)]);
-    gtpAnswer((await this.liveChannel().send<string>({
-      type: "init", game: this.game, mode: this.mode, seed, threads: 1, ...threaded, library: library.url, module: compiled,
+    gtpAnswer((await channel.send<string>({
+      type: "init", game: this.game, mode, seed, threads: 1, ...threaded, library: library.url, module: compiled,
       model: checkedModel, ...sizesOption(manifest) }).done).reply);
   }
 
   /** A GTP command's answer. Throws with the bot's message when it refuses the command. */
   async command(line: string): Promise<string> {
-    return gtpAnswer((await this.liveChannel().send<string>({ type: "command", line }).done).reply);
+    return gtpAnswer((await this.live().channel.send<string>({ type: "command", line }).done).reply);
   }
 
   /** Ends the worker, and its CPU evaluators with it. */
   terminate() { this.channel?.terminate(); }
 
-  /** The worker's channel. A bot that started in no form has none: it throws the error of its start. */
-  private liveChannel(): WorkerChannel<BotRequest> {
-    if (!this.channel) throw this.failure;
-    return this.channel;
+  /** The bot's form and its worker's channel. A bot that started in no form has neither: it throws the error of its
+   *  start. */
+  private live(): { mode: BotMode; channel: WorkerChannel<BotRequest> } {
+    if (!this.mode || !this.channel) throw this.failure;
+    return { mode: this.mode, channel: this.channel };
   }
 }

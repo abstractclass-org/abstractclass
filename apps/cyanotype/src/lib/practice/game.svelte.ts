@@ -78,12 +78,27 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     if (unreached) throw new Error(unreached);
     this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
-    const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.setUp, this.kept.moves))).reply.positions;
+    const described = await this.byRules();
     if (this.setUp) {
       await this.bot.command(`blueprints-set-position ${this.setUp}`);
       for (let i = 0; i < this.kept.moves.length; i++)
         await this.bot.command(`play ${gtpColor(playerOf(described[i].mover))} ${this.kept.moves[i]}`);
     } else if (this.kept.moves.length) await this.bot.command(`blueprints-set-game ${this.kept.moves.join(" ")}`);
+    this.show(described);
+  }
+
+  protected async fromRules() {
+    this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
+    this.show(await this.byRules());
+  }
+
+  /** The engine's positions of the moves kept, from the game's start (setUp). */
+  private async byRules(): Promise<GamePosition[]> {
+    return (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.setUp, this.kept.moves))).reply.positions;
+  }
+
+  /** The game's positions and moves played, from the engine's positions of the moves kept. */
+  private show(described: GamePosition[]) {
     this.described = described;
     this.positions = described.map(f => this.positionOf(f));
     this.played = this.kept.moves.map((m, i) => playedOf(m, described[i], described[i + 1]));

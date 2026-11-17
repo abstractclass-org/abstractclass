@@ -38,8 +38,8 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
 
   get position(): P | undefined { return this.positions.at(-1); }
   get human(): Player { return this.kept.human; }
-  /** Where the bot runs (botForms.ts). */
-  get mode(): BotMode { return this.bot.mode; }
+  /** Where the bot runs (botForms.ts): null for a bot that started in no form (PracticeBot.failed). */
+  get mode(): BotMode | null { return this.bot.mode; }
 
   /** The player to move on the latest position. Null before the game's first position. */
   abstract get mover(): Player | null;
@@ -50,6 +50,8 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   /** Gives the bot the game's settings and start (setUpBot), plays the moves kept into it, and sets the positions and
    *  the moves played. */
   protected abstract prepare(): Promise<void>;
+  /** Sets the positions and the moves played of the moves kept, as prepare() does, from the rules alone. */
+  protected abstract fromRules(): Promise<void>;
   /** A move played, by either side: its position from the rules, kept with the game (its time is in it already).
    *  Never once the game has ended. */
   protected abstract add(move: string): Promise<void>;
@@ -73,7 +75,8 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   }
 
   /** The stored game's fields (Hedge School's design 25), before prepare(): a game kept before them, or resumed, gets
-   *  its own id, where the bot runs now, and a time for each move (unknown for the moves before this visit's). */
+   *  its own id, where the bot runs now (null for a bot that started in no form), and a time for each move (unknown
+   *  for the moves before this visit's). */
   private noteStored() {
     const k: KeptPractice = this.kept;
     k.id ??= crypto.randomUUID();
@@ -87,7 +90,9 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
     this.kept.undone = [...(this.kept.undone ?? []), { at: this.kept.moves.length + undone.length, undone }];
   }
 
-  /** Starts the game: its start and the moves kept (a game from an earlier visit, or a start brought), then the turn. */
+  /** Starts the game: its start and the moves kept (a game from an earlier visit, or a start brought), then the turn.
+   *  A start that fails before prepare() has set the moves kept still sets them, from the rules alone: Abort then keeps
+   *  them in Your games (aborted), and the stored game has them (Hedge School's design 25). */
   async start() {
     try {
       this.noteStored();
@@ -95,6 +100,8 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
       this.keep(this.kept);
       await this.next();
     } catch (e) {
+      // When the rules fail too, the game has no moves to keep: the report gives the first error.
+      if (!this.played.length && this.kept.moves.length) await this.fromRules().catch(() => {});
       this.fail(e);
     }
   }

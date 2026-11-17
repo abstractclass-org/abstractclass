@@ -40,11 +40,19 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
   protected async prepare() {
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);
-    const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
-    const positions = described.map(f => this.positionOf(f));
+    const { positions, played } = await this.byRules();
     for (let i = 0; i < this.kept.moves.length; i++) await this.bot.command(`play ${gtpColor(positions[i].player as Player)} ${this.kept.moves[i]}`);
     this.positions = positions;
-    this.played = this.kept.moves.map((m, i) => moveOf(positions[i], m, described[i + 1]));
+    this.played = played;
+  }
+
+  protected async fromRules() { ({ positions: this.positions, played: this.played } = await this.byRules()); }
+
+  /** The moves kept, by the rules: each position, and each move with its cut. */
+  private async byRules(): Promise<{ positions: Position[]; played: Move[] }> {
+    const described = (await this.rulesWorker.describeGame<GamePosition>(positionQuery(this.kept.start ?? null, this.kept.moves))).reply.positions;
+    const positions = described.map(f => this.positionOf(f));
+    return { positions, played: this.kept.moves.map((m, i) => moveOf(positions[i], m, described[i + 1])) };
   }
 
   /** The game's result: the bot's win when the player resigned, the scores' once the rules have ended it, else `*`. */

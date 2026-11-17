@@ -134,7 +134,9 @@ How strong each setting plays against people is not measured yet.
    Resign are red under the pointer and confirmed first, with a red button. No New game button during the game:
    - **Abort,** at any time: the game ends with no result, and goes into Your games as unfinished (`*`) when it has
      moves, so that it can still be reviewed. This departs from Lichess, which offers Abort only before the first
-     move: a game here has no clock and no enemy who waits, and an aborted game can still teach in its review.
+     move: a game here has no clock and no enemy who waits, and an aborted game can still teach in its review. A
+     game whose start failed has the moves kept from an earlier visit too: the rules give them without the bot
+     (item 14).
    - **Resign,** at any time, also while the bot searches: HedgeFund wins (`r+R` or `b+R`, as the meaf.us reader writes
      a resignation, with the tag `Termination "resignation"`).
    - **At the end** (the rules', or a resignation): the result, Review the game, and New game, which returns to the
@@ -174,13 +176,18 @@ How strong each setting plays against people is not measured yet.
     GPU when the GPU setting allows it, else on the CPU workers, both through the threaded bot. A browser without JSPI
     plays the one-thread bot. The board's rules (the legal edges, the positions) come from the analysis module's
     rules worker, as on the Analysis board.
-    - **A form that does not start** gives way to the next. When no form starts, the game stops before its first
-      position, as on a later failure: the error goes in one report, and Abort ends the game. The status line gives
-      the site's own words, not the error's message: "HedgeFund did not start. Load the page again." ("Stamp Duty"
-      on Cyanotype). The error's message is the code's, such as a module's address, and a player cannot act on it. A
-      script that does not load is most often an old page after a new deploy, so a new load of the page is the likely
-      cure. The line under the heading then gives only the bot's settings: the bot runs in no form. A bot's worker
+    - **A form that does not start** gives way to the next. When no form starts, the game stops as on a later
+      failure: the error goes in one report, and Abort ends the game. The status line gives the site's own words, not
+      the error's message: "HedgeFund did not start. Load the page again." ("Stamp Duty" on Cyanotype). The error's
+      message is the code's, such as a module's address, and a player cannot act on it. A script that does not load
+      is most often an old page after a new deploy, so a new load of the page is the likely cure. A bot's worker
       whose script does not load fails each request that the page sends to it, so the start does not wait for good.
+    - **A bot that runs in no form** has no form in the game's data. The line under the heading gives only the bot's
+      settings. The game sends no `practice_end`, as it sent no `practice_start` (design 17), and its stored game
+      names no form (design 25).
+    - **A start that fails** before the bot has the game's moves still shows the moves kept from an earlier visit:
+      the rules give them without the bot. Abort then keeps them in Your games (item 8), and the stored game holds
+      them (design 25).
     - **The threads:** 16 search threads on the GPU, and two for each CPU worker. They are the most that a move
       uses. KataGo's play settings give each thread at least 8 of a move's new playouts (`minPlayoutsPerThread`,
       KataGo's default for GTP). So a move with N new playouts searches with T threads: N / 8, rounded down, at least

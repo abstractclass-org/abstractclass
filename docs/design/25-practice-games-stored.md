@@ -25,7 +25,8 @@ Lichess and chess.com keep every game played on them:
    as Lichess keeps every game played on it. This replaces design 19's item 7 for the games played here. The games
    reviewed here were played on other sites: they stay in the browser.
 2. **What a stored game holds:** its moves, with their cuts; the bot (the network, the visits, the variety, the form:
-   GPU, CPU or one thread, and the engine's build); the player's side; how it ended, and its result; each takeback
+   GPU, CPU or one thread, or none for a bot that started in no form (design 24, item 14), and the engine's build);
+   the player's side; how it ended, and its result; each takeback
    (where it was, and the edges that it undid); each move's time (the player's thinking time, the bot's search time);
    the day it ended; and the site's version. A game with a komi (design 24) holds it, the engine's komi (Red's
    starting score), in the field `komi` and in its record's `Komi` tag: a game at 0 has neither, as before the komi.

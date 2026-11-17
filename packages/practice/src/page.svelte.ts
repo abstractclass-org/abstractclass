@@ -13,6 +13,7 @@ import type { BoardNote } from "@abstractclass/review/notes.ts";
 import type { EventParams } from "@abstractclass/site/analytics.svelte.ts";
 import { PracticeBot } from "./bot.ts";
 import { startBot } from "./botForms.ts";
+import type { BotMode } from "./botMessages.ts";
 import type { PracticeGame, PracticeStatus } from "./game.svelte.ts";
 import { newPractice, practiceFrom, practiceOutcome, type Brought, type KeptPractice, type PracticeChoices,
          type PracticeFrom, type PracticeOutcome } from "./practice.ts";
@@ -57,7 +58,6 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   game = $state<G | null>(null);
   starting = $state.raw<K | null>(null); // the game whose bot starts: its players' names, for the skeleton
   failed = $state(""); // the engine's rules could not load, or the page could not make the game: only this error shows
-  unstarted = $state(false); // the game's bot started in no form (play)
   ready = $state(false); // the rules are loaded: a game can start
   confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
   abortedId = $state<string | null>(null); // the last game was aborted, and the site keeps it under this id
@@ -76,7 +76,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   /** What the status line tells (PracticeLine). */
   line = $derived.by((): PracticeLine => {
     const g = this.game;
-    if (g?.status === "failed") return this.unstarted ? "unstarted" : "failed";
+    if (g?.status === "failed") return g.mode === null ? "unstarted" : "failed";
     if (!g || g.status === "starting") return "starting";
     if (g.status === "over") return g.resigned ? "resigned" : "over";
     return g.status;
@@ -151,19 +151,16 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     this.abortedId = null;
     this.viewAt = null;
     this.notesAt = {};
-    this.unstarted = false;
     // A bot that starts in no form fails the game's start with its error: the game stops as on a later failure, with
     // the error report and Abort. The status line gives the site's own words for it (PracticeLine, "unstarted").
     const bot = await startBot(this.site.game, this.manifest, kept.bot.network, this.site.engine(), kept.seed)
-      .catch((e: unknown) => {
-        this.unstarted = true;
-        return PracticeBot.failed(this.site.game, e);
-      });
+      .catch((e: unknown) => PracticeBot.failed(this.site.game, e));
     try {
       const g = (this.game = this.site.create(kept, this.rules, bot));
       g.onFail = e => this.site.engineError(e, "practice");
       await g.start(); // it reports its own errors (onFail)
-      if (g.status !== "failed") this.site.track("practice_start", { ...this.params(g), practice_from: from });
+      if (g.status !== "failed" && g.mode)
+        this.site.track("practice_start", { ...this.params(g, g.mode), practice_from: from });
       if (g.status !== "failed" && kept.komi) this.used("practice komi"); // design 17's feature: a game with a komi
     } catch (e) { // the page could not make the game
       bot.terminate();
@@ -263,15 +260,20 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     if (this.game) this.site.trackOnce(`${this.game.kept.started} ${name}`, "feature", { feature_name: name });
   }
 
-  /** A game's settings, with each event about it: counts and settings, never a move or the player's name. */
-  private params(g: G) { return this.events.practiceParams(g.kept, g.mode, navigator.hardwareConcurrency); }
+  /** A game's settings, with each event about it: counts and settings, never a move or the player's name. `form` is
+   *  where the bot runs. */
+  private params(g: G, form: BotMode) { return this.events.practiceParams(g.kept, form, navigator.hardwareConcurrency); }
 
-  /** A game's end, once: its event, then the site's part. */
+  /** A game's end, once: its event, then the site's part. A game whose bot started in no form sent no practice_start,
+   *  and sends no practice_end either (Hedge School's design 17). The site's part still keeps its moves (its
+   *  design 25). */
   private trackEnd(g: G, outcome: PracticeOutcome) {
     if (this.endSent === g) return;
     this.endSent = g;
-    const params = this.events.practiceEndParams(g.kept, g.mode, navigator.hardwareConcurrency, outcome, g.played.length);
-    this.site.track("practice_end", params);
+    if (g.mode) {
+      const params = this.events.practiceEndParams(g.kept, g.mode, navigator.hardwareConcurrency, outcome, g.played.length);
+      this.site.track("practice_end", params);
+    }
     this.site.ended?.(g, outcome);
   }
 }

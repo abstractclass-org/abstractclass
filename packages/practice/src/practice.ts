@@ -130,10 +130,11 @@ export interface KeptPractice<Form extends string = string> {
   takebacks?: number;
   botTurns?: number;
   botMs?: number;
-  // What a stored game holds (Hedge School's design 25): the game's own random id, where the bot ran, each takeback,
-  // and each move's time (the player's thinking time, or the bot's search), null where it is not known.
+  // What a stored game holds (Hedge School's design 25): the game's own random id, where the bot ran (null: in no
+  // form), each takeback, and each move's time (the player's thinking time, or the bot's search), null where it is not
+  // known.
   id?: string;
-  form?: Form;
+  form?: Form | null;
   undone?: Takeback[];
   ms?: (number | null)[];
 }

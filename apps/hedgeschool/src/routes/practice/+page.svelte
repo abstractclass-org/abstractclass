@@ -123,7 +123,7 @@
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : networkName(k.bot.network));
   // The bot's settings and where it runs, then the komi from the player's side (design 24). A bot that did not start
   // runs nowhere: the line gives only the settings.
-  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}${page.line === "unstarted" ? "" : `, ${BOT_WHERE[g.mode]}`}.` +
+  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}${g.mode ? `, ${BOT_WHERE[g.mode]}` : ""}.` +
     (g.kept.komi ? ` ${komiLine(g.kept, BOT_NAME)}` : "");
   // The status line, in the order that both sites share (page.line): a game that stopped says why first.
   const statusText = $derived.by(() => {
