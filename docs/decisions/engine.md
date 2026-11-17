@@ -1589,13 +1589,19 @@ jobs of both sites run the step too, and a failed step deploys nothing.
 - **What does not count:** the engine's error reply (`EngineError`, such as a position that cannot occur) shows that
   the module answers. It starts the count again, as each reply does. So a search error on a live worker leaves the
   worker in the pool, also many in a row.
-- **Only the pool's search workers** take the option. The rules worker, the practice bot (its fault "threw") and the
-  other workers of the sites do not change.
-- **The cost:** a position that makes the module trap each time fails its task. Each second such task in a row
-  starts a new worker, which loads the module and the network again, about a second.
+- **Only the pool's search workers** take the option. The CPU workers of the measure page's GPU test take it too, as
+  that test runs its searches on a pool (`packages/measure/src/run.svelte.ts`, `measureGpu`). The test drops each
+  search's error, so a replaced worker changes only its CPU speed for about a second. The rules worker, the practice
+  bot (its fault "threw") and the other workers of the sites do not change.
+- **The cost:** a position that makes the module trap each time fails its task. The first such task fails on its
+  worker. Each later one ends its worker and runs once more on a new worker, which loads the module and the network
+  again (about a second). It fails there too, and the new worker then holds one error. So each such task after the
+  first starts one new worker. A task runs again once at most, and no worker starts once the tasks end.
 - **Both sites** use this pool: Hedge School's review and Cyanotype's.
 - **Checked:** `packages/engine/src/channel.test.ts`: a worker that threw on two requests in a row fails for good,
   and a reply between two errors starts the count again. A channel without the option never fails for its errors.
   `packages/engine/src/pool.test.ts`: a worker that traps once, then fails each call: its first task fails, the pool
   starts one new worker, and the second task runs again on it. The engine's error replies three times in a row, then
-  errors that alternate with replies: no new worker. The first two of these tests fail on the earlier code.
+  errors that alternate with replies: no new worker. A position that traps on each worker: four tasks fail, each runs
+  again once at most, and three workers start, one for each task after the first. On the earlier code, the first of
+  these tests in each file fails, and so does the test of the position that traps on each worker.

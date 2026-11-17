@@ -108,8 +108,8 @@ export class EngineWorker {
   /** `failsAfterErrors`: the worker fails for good after that many requests in a row on which it threw (channel.ts,
    *  WorkerChannel). The pool's search workers take it, as the pool replaces a worker that failed (pool.ts). */
   constructor(options: { failsAfterErrors?: number } = {}) {
-    this.channel = new WorkerChannel<WorkerRequest>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
-                                                   options);
+    const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+    this.channel = new WorkerChannel<WorkerRequest>(worker, options);
   }
 
   /** Starts the manifest's module in the worker, through the engine's library (library.ts). Refuses a protocol that
@@ -152,9 +152,8 @@ export class EngineWorker {
     return { done, stop: () => this.channel.post({ type: "stop", id }) };
   }
   /** The worker's failure (it ran out of memory, its script did not load, or it threw on `failsAfterErrors` requests
-   *  in a row), or null while it lives. A worker that
-   *  failed fails each later request at once with this error (channel.ts): the pool starts another in its place
-   *  (pool.ts, replace). */
+   *  in a row), or null while it lives. A worker that failed fails each later request at once with this error
+   *  (channel.ts): the pool starts another in its place (pool.ts, replace). */
   get failed(): Error | null { return this.channel.failed; }
   /** Ends the worker. The requests still waiting for a reply reject with Stopped. */
   terminate() { this.channel.terminate(); }

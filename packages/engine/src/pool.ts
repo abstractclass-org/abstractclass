@@ -13,10 +13,10 @@
 // each later request on it fails at once (channel.ts). The pool tells it by that kept failure (EngineWorker.failed),
 // not by the task's error: a search that fails on a live worker leaves the worker in the pool. A trap leaves the
 // module usable as a rule, and a broken module cannot be told from the trap alone, so a search worker fails for good
-// when it threw on two requests in a row (searchWorker). The pool ends a worker that failed, starts another
-// in its place, and runs the task that failed on it once more. A worker started in place of one that failed is not
-// replaced in its turn until a task has ended on it: a worker that dies at each start ends the replacements, and the
-// pool goes on without it (replace).
+// when it threw on two requests in a row (searchWorker). The pool ends a worker that failed, starts another in its
+// place, and runs the task that failed on it once more. A worker started in place of one that failed is not replaced
+// in its turn until a task has ended on it: a worker that dies at each start ends the replacements, and the pool goes
+// on without it (replace).
 import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "./client.ts";
 import type { GpuEngines } from "./gpuClient.ts";
 import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "./protocol.ts";

@@ -341,9 +341,33 @@ test("a search error on a live worker leaves it in the pool: engine errors in a 
     await assert.rejects(pool.run(1, "d", searchOn()), /^Error: the search failed$/);
     assert.equal(await pool.run(1, "e", searchOn()), "searched");
     await assert.rejects(pool.run(1, "f", searchOn()), /^Error: the search failed$/);
-    assert.deepEqual([FakeWorker.made.length, first.searches, first.ended, pool.engines[0].failed], [made, 6, false, null]);
+    assert.deepEqual([FakeWorker.made.length, first.searches, first.ended, pool.engines[0].failed],
+                     [made, 6, false, null]);
   } finally {
     FakeWorker.engineErrors = null;
+    FakeWorker.refuses = null;
+    pool.terminate();
+  }
+});
+
+test("a position that traps on each worker: each task runs again once at most, and starts one new worker at most",
+     async () => {
+  // The rerun's error is the new worker's first, so the next such task ends that worker in its turn. So each such task
+  // after the first starts one worker (it loads the module and the network again), and none starts once they end.
+  const { pool, made } = await startedPool();
+  FakeWorker.refuses = (_, m) => m.type === "call";
+  try {
+    const started: number[] = [];
+    for (const tag of ["a", "b", "c", "d"]) {
+      await assert.rejects(pool.run(1, tag, searchOn()), /^Error: the search failed$/);
+      started.push(FakeWorker.made.length - made);
+    }
+    await settle();
+    assert.deepEqual(started, [0, 1, 2, 3]);
+    assert.equal(FakeWorker.made.length, made + 3);
+    assert.deepEqual(FakeWorker.made.slice(-4).map(w => [w.searches, w.ended]),
+                     [[2, true], [2, true], [2, true], [1, false]]);
+  } finally {
     FakeWorker.refuses = null;
     pool.terminate();
   }

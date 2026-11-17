@@ -2,9 +2,8 @@
 // Stopped, as a request still waiting does, and one sent after the worker failed rejects with its failure. A network
 // load sends its request only once the page has checked the network (client.ts, checked), and the pool can end
 // meanwhile. A channel that asks for it takes a worker that threw on two requests in a row as failed for good. And the
-// worker's side of a search in slices
-// (searchInSlices): it yields between slices without a timer, a stop ends it at the next slice, and its time limit at
-// the end of the slice in which the limit passes. Run: npm test.
+// worker's side of a search in slices (searchInSlices): it yields between slices without a timer, a stop ends it at the
+// next slice, and its time limit at the end of the slice in which the limit passes. Run: npm test.
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
 import { Stopped, WorkerChannel, searchInSlices } from "./channel.ts";

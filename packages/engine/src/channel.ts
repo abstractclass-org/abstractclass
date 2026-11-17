@@ -57,33 +57,29 @@ export class WorkerChannel<Request extends { id: number }> {
   private ended = false;
   private failure: Error | null = null; // the worker failed: each request fails with this error
   private errorsInARow = 0;
-  private readonly failsAfterErrors: number;
 
   constructor(worker: Worker, { failsAfterErrors = Infinity }: { failsAfterErrors?: number } = {}) {
     this.worker = worker;
-    this.failsAfterErrors = failsAfterErrors;
     worker.onmessage = (event: MessageEvent<ChannelReply>) => {
       const m = event.data;
       const p = this.pending.get(m.id);
       if (!p) return;
       if (m.type === "partial") { p.partial?.(m.reply, m.ms); return; }
       this.pending.delete(m.id);
-      this.errorsInARow = m.type === "error" ? this.errorsInARow + 1 : 0;
-      if (m.type === "error" && this.errorsInARow >= this.failsAfterErrors) {
-        this.failure = new WorkerFailed(`${m.message} (${this.errorsInARow} requests in a row)`);
-        p.reject(this.failure);
-        this.rejectAll(this.failure);
+      if (m.type === "error") {
+        if (++this.errorsInARow < failsAfterErrors) p.reject(new Error(m.message));
+        else p.reject(this.fail(`${m.message} (${this.errorsInARow} requests in a row)`));
+        return;
       }
-      else if (m.type === "error") p.reject(new Error(m.message));
-      else if (isError(m.reply)) p.reject(new EngineError(m.reply));
+      this.errorsInARow = 0; // a reply, the engine's error reply too, starts the count again
+      if (isError(m.reply)) p.reject(new EngineError(m.reply));
       else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory, late: m.late });
     };
     // The worker failed outside a request (its script did not load, or it ran out of memory): every request fails,
     // the requests sent after it too. A script that did not load fails before the page sends its first request.
     worker.onerror = (event: ErrorEvent) => {
       event.preventDefault();
-      this.failure = new WorkerFailed(event.message);
-      this.rejectAll(this.failure);
+      this.fail(event.message);
     };
   }
 
@@ -113,6 +109,13 @@ export class WorkerChannel<Request extends { id: number }> {
     this.ended = true;
     this.worker.terminate();
     this.rejectAll(new Stopped());
+  }
+
+  /** Keeps the worker's failure for good: each request that waits, and each later one, rejects with it. */
+  private fail(message: string): Error {
+    this.failure = new WorkerFailed(message);
+    this.rejectAll(this.failure);
+    return this.failure;
   }
 
   private rejectAll(e: Error) {
