@@ -1,6 +1,6 @@
 // The engine's network while it loads (design 06, item 7): a test holds the network's files, reads the engine header
 // while it says that the network loads, then lets the files go. tests/network-loading.spec.ts and the layout test's
-// case "layout of /openings" use it.
+// cases "layout of /openings" and "layout of a review" use it.
 import type { Page } from "@playwright/test";
 
 /** The engine header's words while the network loads (NETWORK_LOADS in packages/review/src/ReviewView.svelte). */

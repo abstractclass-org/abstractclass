@@ -9,7 +9,8 @@
 //   - the header is one row, each child of the header stays inside the header's content box, and the header keeps its
 //     height (--site-header).
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
-// scripts/test-fixture.mjs), the Review tab with that game kept, and Practice a game in progress from it. The import
+// scripts/test-fixture.mjs), in each display, then while the engine's network loads, the Review tab with that game
+// kept, and Practice a game in progress from it. The import
 // page shows the choice for a userscript's game, with the notice to update the userscript. Two tests check that the
 // monospaced font draws no ligatures, on Hedge School and on Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's
 // home page, and one its Notices page. Two check the site's menu open on a narrow window, on each site. Two check the
@@ -177,6 +178,16 @@ async function sweep(page: Page, label: string, ownRules?: OwnRules, heights = H
   }
   return found.length ? report(label, found) : "";
 }
+
+/** The engine header's state at each size, as a page's own rule: its line (`line`, from headerLine) has the words
+ *  while the network loads (`loads`), and only then. A line that the page hides or removes is a problem at that size:
+ *  the rule does not wait for it. */
+const headerSays = (line: Locator, loads: boolean): OwnRules => async () => {
+  if (!await line.count()) return ["the engine header's line is hidden or gone"];
+  if (((await line.textContent({ timeout: 5_000 })) ?? "").includes(NETWORK_WORDS) === loads) return [];
+  return [loads ? "the engine header does not say that the network loads"
+    : "the engine header still says that the network loads"];
+};
 
 /** Loads a review file in the Review tab, the fixture's by default, which opens its review, with the settings that the
  *  case keeps already. The case waits for the review in its own way. */
@@ -601,6 +612,19 @@ test("layout of a review", async ({ page }) => {
     await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
     reports.push(await sweep(page, `/review, ${name}`));
   }
+  // The review done while the engine's network still loads: the review's results come from its file, and the engine
+  // header says "Loading the engine's network…" in the place of the visits. A sweep saw these words only when its first
+  // size came before the network had loaded, and in DejaVu Sans (Linux's system-ui) they did not fit at 360 pixels
+  // (abscls-zt9j, abscls-wb5y). The test holds the network's files, so that the sweep sees the words at every size, in
+  // the default display.
+  const release = await holdNetworks(page);
+  await page.evaluate(k => localStorage.setItem(k, JSON.stringify({})), DISPLAY_KEY);
+  await page.reload();
+  await expect(page.getByText(/^Review done/)).toBeVisible({ timeout: 300_000 });
+  const line = await headerLine(page);
+  await expect(line).toContainText(NETWORK_WORDS);
+  reports.push(await sweep(page, "/review, while the engine's network loads", headerSays(line, true)));
+  release();
   // The Review tab with the game kept: "Continue your last review", its game cut to fit, and the list of games.
   await page.goto("/review");
   await expect(page.getByText("Continue your last review")).toBeVisible();
@@ -787,19 +811,11 @@ test("layout of /openings", async ({ page }) => {
   await page.locator("button[aria-expanded]", { hasText: "instead of A10-D9" }).click({ timeout: 60_000 });
   await expect(page.locator('button[aria-expanded="true"]')).toHaveCount(1);
   const line = await headerLine(page);
-  /** The engine header's state at each size: the line has the words while the network loads, and only then. A line
-   *  that the page hides or removes is a problem at that size: the rule does not wait for it. */
-  const says = (loads: boolean): OwnRules => async () => {
-    if (!await line.count()) return ["the engine header's line is hidden or gone"];
-    if (((await line.textContent({ timeout: 5_000 })) ?? "").includes(NETWORK_WORDS) === loads) return [];
-    return [loads ? "the engine header does not say that the network loads"
-      : "the engine header still says that the network loads"];
-  };
   await expect(line).toContainText(NETWORK_WORDS);
-  const reports = [await sweep(page, "/openings, while the network loads", says(true))];
+  const reports = [await sweep(page, "/openings, while the network loads", headerSays(line, true))];
   release();
   await expect(line).not.toContainText(NETWORK_WORDS, { timeout: 120_000 });
-  reports.push(await sweep(page, "/openings, the network loaded", says(false)));
+  reports.push(await sweep(page, "/openings, the network loaded", headerSays(line, false)));
   expect(reports.filter(Boolean).join("\n")).toBe("");
 });
 

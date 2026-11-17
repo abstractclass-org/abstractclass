@@ -12623,3 +12623,28 @@ notice, where Hedge School's New shows the short notice (design 24, item 15).
   - A link's board: the short notice. On a build of dev, this case passes: the short notice under a board brought was
     already right, and no test checked it.
   - New's standard start: the short notice. On a build of dev, this case fails: New shows no notice.
+
+### The review's 2 pixels at 360 were the engine header's words, and its layout case holds the network (2026-11-18)
+
+abscls-zt9j. "layout of a review" failed now and then on Linux CI (run 39639064560, the default display and "labels by
+edge, as text"): the page area scrolled sideways, 347 in 345, at width 360 and height 700 only. The cause is the fault
+of "The engine header's words fit a column of 360 pixels (2026-11-06)" (abscls-wb5y), on the review.
+
+- **The state:** the review's results come from its file, so "Review done" shows before the engine's network has
+  loaded. The engine header then says "Loading the engine's network…" in the place of the visits. The case sweeps
+  360 × 700 first, right after each display's reload, so only its first size can see the words. Before abscls-wb5y,
+  the words stayed on one line and pushed the gear to 347.2, 2 pixels past the page area's edge (319.7 to 347.2 in
+  DejaVu Sans, Linux's `system-ui`).
+- **Measured** in headless Chromium on Windows, DejaVu Sans in `system-ui`'s place, the case's four displays at
+  360 × 700 right after each reload (a probe, not kept). With the fault put back (the words' and the visits' spans
+  without their ellipsis): 13 of 25 runs failed, each with 347 in 345 and the gear past the edge. Each of the 20
+  measurements that showed the words was too wide, and no other one was. At dev a07fbbc7, with abscls-wb5y's fix: 25
+  of 25 runs passed, and 15 of the 100 measurements showed the words (they end with an ellipsis).
+- **The fix was already in packages/review** (abscls-wb5y, 5c0059d). The case now holds the network's files after the
+  four displays, reloads in the default display and sweeps every size while the header says that the network loads,
+  as "layout of /openings" does (abscls-0nax). The two cases share the rule of the header's state (`headerSays`).
+  With the fault, in DejaVu Sans, the new case failed 2 of 2 runs, in its held sweep only: 347 in 345 at 360, at the
+  three heights. Without the fault it passed 2 of 2 runs, in about 3.6 minutes each.
+- **Cyanotype's review** shows the same header (packages/review). Its stored review at 360 × 700, the network held,
+  DejaVu Sans: with the fault, 347 in 345 in 3 of 3 runs. At a07fbbc7, 345 in 345 in 3 of 3, with the words cut by
+  an ellipsis. Its layout case does not hold the network.
