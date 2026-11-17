@@ -1265,6 +1265,9 @@ export class GameAnalysis<G extends GameTypes> {
     }, { cpu: true })
       .catch(e => {
         if (notRun(e) || era !== this.era) { tried = false; return; }
+        // A failure is a try, also one before the work ran (the pool had no CPU worker left: pool.ts, strand). Else the
+        // walls would be asked for again at once, and fail again, for good.
+        tried = true;
         // The engine refuses the field by its name where its backend does not give the walls (the GPU module's)
         if (e instanceof EngineError && e.field === "includeWeakWalls") this.wallsUnsupported = true;
         // An engine error, as a map's (addMap): the panel shows it until the walls come

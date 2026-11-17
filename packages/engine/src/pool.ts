@@ -308,9 +308,9 @@ export class EnginePool {
    *  dropped instead: a worker that dies at each start (a network too large for the tab's memory) does not start
    *  again and again. The pool then goes on with fewer workers, and the tasks that fail on them fail as an engine's
    *  failure does (the panel's "Engine error"). */
-  private replace(dead: EngineWorker, failure: Error, again: boolean) {
+  private replace(dead: EngineWorker) {
     const k = this.engines.indexOf(dead);
-    if (again || k < 0) { this.drop(dead, failure); return; }
+    if (this.replacements.has(dead) || k < 0) { this.drop(dead, dead.failed); return; }
     dead.terminate();
     const e = new EngineWorker();
     this.engines[k] = e;
@@ -329,9 +329,9 @@ export class EnginePool {
     this.scheduleRelease();
   }
 
-  /** The failure of the CPU worker `engine`, kept for good, or null: a GPU slot, and a CPU worker that lives. */
-  private static failure(engine: SearchEngine): Error | null {
-    return engine instanceof EngineWorker ? engine.failed : null;
+  /** `engine` when it is a CPU worker that failed for good, or null: a GPU slot, and a CPU worker that lives. */
+  private static dead(engine: SearchEngine): EngineWorker | null {
+    return engine instanceof EngineWorker && engine.failed ? engine : null;
   }
 
   private dispatch() {
@@ -349,17 +349,18 @@ export class EnginePool {
         }, error => {
           if (task.stopped) this.requeue(task);
           else if (engine.kind === "gpu" && !(error instanceof EngineError)) this.gpuLost(task, error);
-          else if (EnginePool.failure(engine) && !task.rerun) { task.rerun = true; this.requeue(task); }
+          else if (EnginePool.dead(engine) && !task.rerun) { task.rerun = true; this.requeue(task); }
           else task.reject(error);
         })
         .finally(() => {
           this.running.delete(task);
           task.stop = undefined;
           task.engine = undefined;
-          const failure = EnginePool.failure(engine), again = this.replacements.delete(engine) && !!failure;
+          const dead = EnginePool.dead(engine);
           if (this.retiring.delete(engine)) engine.terminate();
-          else if (failure) this.replace(engine as EngineWorker, failure, again);
+          else if (dead) this.replace(dead);
           else this.free.push(engine);
+          this.replacements.delete(engine); // a task has ended on it
           this.dispatch();
           this.scheduleRelease();
         });

@@ -1537,10 +1537,17 @@ jobs of both sites run the step too, and a failed step deploys nothing.
 - **The limit:** a worker that the pool started in place of a failed one, and on which no task has ended yet, is not
   replaced when it fails in its turn. The pool drops it and goes on with fewer workers. A worker that fails as it
   loads is dropped too, as `resize` did before. So a worker that dies at each start makes one replacement and stops.
-  A task that fails on its second run fails with the worker's failure, and the panel shows "Engine error". When no
-  search worker is left, each task that no engine can take fails with that failure at once: a task for the CPU alone,
-  or every task when the GPU is not in the pool. Before, such a task waited for good. The idle release starts the
-  workers again with the next task after it.
+  A task that fails on its second run fails with the worker's failure, and the panel shows "Engine error".
+- **No search worker left:** each task that no engine can take fails at once with the last worker's failure: a task
+  for the CPU alone, or every task when the GPU is not in the pool. Before, such a task waited for good. The panel
+  shows "Engine error" for each search that the player asks for. After the idle release (`IDLE_RELEASE_MS`), the next
+  task starts the workers again, as new workers: each can get one replacement again. So a worker that dies at each
+  start starts again at most once in each idle period, and only for a task.
+- **The weak walls** asked for their search again at once when its task failed and their work had not run: the walls
+  took such a task as one of the engine off. A task that fails because no search worker is left also fails before its
+  work runs. So with no worker left, the walls asked again and failed again with no end, in microtasks, and the page
+  froze. The walls now take each failure as a try, as the maps do (`packages/analysis/src/analysis.svelte.ts`,
+  `askWalls`).
 - **The GPU's own path** does not change: a GPU search that fails without an error reply drops the GPU from the pool,
   and its task runs again on the CPU workers (`gpuLost`). No CPU worker starts in place of a GPU slot.
 - **Both sites** use this pool (`@abstractclass/engine`): Hedge School's review and Cyanotype's.
@@ -1552,3 +1559,9 @@ jobs of both sites run the step too, and a failed step deploys nothing.
   new worker, and the next task runs on the same worker. A GPU worker that fails: the GPU leaves the pool, the task
   runs again on a CPU worker, and no worker starts. The first three tests fail on the earlier pool. The GPU's path
   was checked with the fake worker only, not on a GPU.
+- **Checked in the review** (`packages/analysis/src/analysis.test.ts`, with a test pool that runs a task again as
+  this pool does): a search whose first run fails on a dead worker and whose second run ends leaves no failure in the
+  panel. A search whose two runs fail shows the worker's failure. Neither leaves a promise that rejects with no
+  handler, which the error reports would send as a report of its own (`capture_unhandled_rejections`): the end of a
+  search's marks (`markRunning`) handles the rejection of its result's promise. The weak walls whose task fails before
+  its work runs are asked for once. On the earlier walls code, the test counted 21 asks, and stopped them there.

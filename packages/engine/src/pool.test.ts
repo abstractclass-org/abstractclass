@@ -49,6 +49,9 @@ globalThis.Worker = FakeWorker as unknown as typeof Worker;
 globalThis.fetch = (async () => new Response("")) as typeof fetch;
 WebAssembly.compileStreaming = (async () => ({})) as unknown as typeof WebAssembly.compileStreaming;
 
+/** Lets the promises in flight settle, and the fake workers' replies come. */
+const settle = () => new Promise(r => setImmediate(r));
+
 const { EngineWorker } = await import("./client.ts");
 const gpuClient = await import("./gpuClient.ts");
 const { EnginePool } = await import("./pool.ts");
@@ -133,7 +136,6 @@ test("the GPU's first-use test waits while no search that it needs runs, and say
     const tick = (seconds: number) => {
       for (let s = 0; s < seconds; s++) { now += 1000; internals.speed.gpuSample(evaluations += 300); }
     };
-    const settle = () => new Promise(r => setImmediate(r));
     /** `n` searches of `seconds` each: the two CPU workers take the first two, the GPU the third. */
     const search = async (n: number, seconds: number) => {
       const tasks = Array.from({ length: n }, () => pool.run(0, "t", e => e.analyse({} as never).done));
@@ -311,7 +313,7 @@ test("a GPU worker that fails: the GPU leaves the pool, its task runs again on a
   try {
     pool.addGpu(gpu);
     const task = pool.run(1, "a", searchOn(ran));
-    while (!lost.length) await new Promise(r => setImmediate(r));
+    while (!lost.length) await settle();
     assert.match(String(lost[0]), /the engine worker failed: Out of memory/);
     assert.deepEqual([pool.hasGpu, gpuWorker.ended, pool.waiting], [false, true, 1]); // the task waits for a CPU worker
     const internals = pool as unknown as { free: unknown[]; dispatch(): void };

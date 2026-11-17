@@ -645,6 +645,48 @@ test("a search that fails ends its marks in the next batch, and the page gets th
   assert.match(game.engineError, /the engine failed/);
 });
 
+test("a search on a worker that failed for good runs once more: no failure holds when the rerun ends, and none rejects unhandled",
+     async () => {
+  // As the pool does for a CPU worker that failed for good (pool.ts, replace): the task runs once more, and its promise
+  // settles with that run
+  const { pool, searches } = fakePool();
+  const run = pool.run.bind(pool), dead = new Error("the engine worker failed: Out of memory");
+  pool.run = ((priority: number, tag: string, work: Work<unknown>, opts?: { cpu?: boolean }) =>
+    run(priority, tag, work, opts).catch(e => {
+      if (e !== dead) throw e;
+      return run(priority, tag, work, opts);
+    })) as typeof pool.run;
+  // A rejection that nothing handles is an error report of its own (posthog.ts, capture_unhandled_rejections)
+  const unhandled: unknown[] = [], onUnhandled = (e: unknown) => unhandled.push(e);
+  process.on("unhandledRejection", onUnhandled);
+  try {
+    const game = new GameAnalysis(words, pool, MOVES, "g-rerun");
+    await game.start();
+    void game.sweep();
+    await settle();
+    const swept = searches.length;
+    searches[0].fail(dead);
+    await turns();
+    assert.deepEqual(searches.slice(swept).map(s => s.moves), [[]]); // its rerun
+    for (const s of searches.slice(1)) s.end(SWEEP_VISITS);
+    await turns();
+    mock.timers.tick(BATCH_MS);
+    assert.equal(game.analysis[0]?.visits, SWEEP_VISITS);
+    assert.equal(game.engineError, "");
+    // A search whose rerun fails too: its failure holds, as a search's does
+    const labelled = searches.length;
+    searches[labelled - 1].fail(dead);
+    await turns();
+    searches.at(-1)!.fail(dead);
+    await turns();
+    assert.equal(searches.length, labelled + 1);
+    assert.equal(game.engineError, dead.message);
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off("unhandledRejection", onUnhandled);
+  }
+});
+
 test("a failed search marks only the moves that its position judges, until a new search of the position runs", async () => {
   const { game, searches } = await greatBranch();
   await game.addLine(["a", "x"], false);
@@ -1769,6 +1811,22 @@ test("the weak walls: the panel shows their search's failure until the walls com
   walls()[1].end(1, false, { weakWalls: WALLS });
   await turns();
   assert.equal(game.engineError, "");
+});
+
+test("the weak walls: a task that fails before its work runs (no CPU worker left) is not asked for again", async () => {
+  const { game, pool } = await noMaps(2, "g-walls8");
+  void game.sweep();
+  await turns();
+  // As the pool does when no search worker is left (pool.ts, strand): the task fails at once, and its work never runs.
+  // A loop of asks would never end: the test's pool stops answering after 20.
+  const run = pool.run.bind(pool), failure = new Error("the engine worker failed: Out of memory");
+  let asks = 0;
+  pool.run = ((priority: number, tag: string, work: Work<unknown>, opts?: { cpu?: boolean }) =>
+    tag !== "walls" ? run(priority, tag, work, opts) : ++asks > 20 ? new Promise(() => {}) : Promise.reject(failure)) as typeof pool.run;
+  game.askWalls(["a"]);
+  await turns();
+  assert.equal(asks, 1);
+  assert.equal(game.engineError, failure.message);
 });
 
 test("the panel's engine error goes with the variation deleted: no search of its positions runs again", async () => {
