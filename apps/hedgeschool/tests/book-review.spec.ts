@@ -860,6 +860,28 @@ function withVariations(without?: string) {
   return { name: "book-variations-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(f)) };
 }
 
+const TURN_FOUR_START = `${TURN_THREE_START} D9-G11 D10-G9`, TURN_FIVE_START = `${TURN_FOUR_START} K10-N11 L10-O11`;
+const L10_O11 = `${TURN_FOUR_START} L10-O11`, K10_N11 = `${L10_O11} K10-N11`;
+const G11_K13 = `${TURN_FIVE_START} G11-K13`, G9_H12 = `${G11_K13} G9-H12`;
+/** book-left-review.json with two of the game's turns in the other order as variations, evaluated in the file: Red's
+ *  turn 4 (L10-O11, then K10-N11) and Blue's turn 5 (G11-K13, then G9-H12). Each ends in the game's position after the
+ *  turn, whose result it takes. By turn, each takes a label that the move list does not show (Best, Excellent or Good),
+ *  and neither is hard: neither turn has a button of its own. The position after G11-K13 has no result, so Blue's turn
+ *  5 is "Not searched yet", and by edge its two moves wait for that search, which cannot run with the engine off. */
+function withTurnsReordered() {
+  const f = JSON.parse(readFileSync("tests/fixtures/book-left-review.json", "utf8"));
+  const nodes: [string, number, number][] = [];
+  for (const [start, first, second] of [[TURN_FOUR_START, "L10-O11", "K10-N11"], [TURN_FIVE_START, "G11-K13", "G9-H12"]]) {
+    const game = `${start} ${second} ${first}`, reordered = `${start} ${first} ${second}`;
+    const results = (f.analyses as [string, unknown][]).filter(([k]) => k.endsWith(`|${game}`));
+    expect(results.length).toBeGreaterThan(0);
+    f.analyses.push(...results.map(([k, a]) => [k.slice(0, -game.length) + reordered, a]));
+    nodes.push([`${start} ${first}`, 0, 1], [reordered, 0, 1]);
+  }
+  f.branches = { version: 2, nodes };
+  return { name: "book-reordered-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(f)) };
+}
+
 /** Opens withVariations() with the display settings `d` and evaluates D9-G11, after `before`. */
 async function evaluateD9G11(page: Page, d: Record<string, string>, before?: () => Promise<unknown>) {
   await display(page, d);
@@ -945,10 +967,11 @@ test.describe("a variation's label and ◆", () => {
   }
 
   // A move's title, in each form (design 07, item 11). By edge, the move holds its judgement, and its title names it:
-  // the label, and the ◆'s "Hard position". By turn the judgement is the turn's, so the move's title names the move
-  // only, as a game edge's by turn names no label (design 06, item 8): in text no title, and in pills and dots the
-  // turn's number and the move. The turn's own button holds the judgement's words in its title. D10-G9 opens Blue's
-  // turn 3, and D9-G11 ends it. G12-K10 ends Red's turn 4: not evaluated, it has the ◆ and no label.
+  // the label, and the ◆'s "Hard position". By turn the judgement is the turn's. Where the turn has its own button, the
+  // move's title names the move only, as a game edge's by turn names no label (design 06, item 8): in text no title,
+  // and in pills and dots the turn's number and the move. The button holds the judgement's words in its title. D10-G9
+  // opens Blue's turn 3, and D9-G11 ends it, with a label. G12-K10 ends Red's turn 4: not evaluated, it has the ◆ and
+  // no label. Each turn here has its button: a turn with none is in the last cases.
   const JUDGEMENT_WORDS = new RegExp(`\\b(${LABELS}|Book move)\\b|Hard position|Not searched yet|Evaluating|Not analyzed yet`);
   for (const judge of ["edge", "turn"]) for (const branchForm of ["text", "pills", "dots"]) {
     test(`by ${judge}, variations as ${branchForm}: a move's title names ${judge === "edge" ? "its judgement" : "the move only"}`, async ({ page }) => {
@@ -982,7 +1005,7 @@ test.describe("a variation's label and ◆", () => {
 
   // The words of a wait where no search can run (the engine is off, design 07, item 11), in text. By edge the move
   // holds them. By turn they are the turn's: G12-K10 ends Red's turn 4, whose ◆ gives the turn its own button, which
-  // holds them, and the move names the move only. A turn with no button keeps them on its move (search-wait.spec.ts).
+  // holds them, and the move names the move only. A turn with no button gives them to its move (search-wait.spec.ts).
   for (const judge of ["edge", "turn"]) {
     test(`by ${judge}: with the engine off, an evaluated move's wait is in the title of ${judge === "edge" ? "the move" : "the turn's button"}`, async ({ page }) => {
       await display(page, { judge, branchForm: "text" });
@@ -992,6 +1015,39 @@ test.describe("a variation's label and ◆", () => {
       await expect(judgementOf(page, judge, G12_K10))
         .toHaveAttribute("title", /^Not analyzed yet\. The engine is off\. .+ · Hard position$/);
       if (judge === "turn") await expect(moveAt(page, G12_K10)).not.toHaveAttribute("title");
+    });
+  }
+
+  // A turn with no button of its own gives the turn's tooltip to the move that ends it, in each form (design 07, item
+  // 11): "Review by" changes how the moves are grouped, not what a row tells. By edge each move holds its own, as
+  // before. withTurnsReordered gives Red's turn 4 a label that the move list does not show, and Blue's turn 5 that
+  // label and "Not searched yet". By edge, Red's two moves hold their own labels, and Blue's two wait.
+  const UNLISTED = "(Best|Excellent|Good)", OFF_WORDS = "Not analyzed yet\\. The engine is off\\. [^·]+";
+  for (const judge of ["edge", "turn"]) for (const branchForm of ["text", "pills", "dots"]) {
+    test(`by ${judge}, variations as ${branchForm}: a turn with no button ${judge === "edge" ? "changes nothing" : "gives its tooltip to its last move"}`, async ({ page }) => {
+      await display(page, { judge, branchForm });
+      await open(page, withTurnsReordered());
+      await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
+      const round = branchForm !== "text";
+      // The turn's number and the move come first in the round forms, which show no name
+      const titled = (named: string, words: string) => new RegExp(`^${round ? `${named} · ` : ""}${words}$`);
+      const moveOnly = (key: string, named: string) =>
+        round ? expect(moveAt(page, key)).toHaveAttribute("title", named) : expect(moveAt(page, key)).not.toHaveAttribute("title");
+      if (judge === "edge") {
+        await expect(moveAt(page, L10_O11)).toHaveAttribute("title", titled("4\\. L10-O11", UNLISTED));
+        await expect(moveAt(page, G11_K13)).toHaveAttribute("title", titled("5\\. G11-K13", OFF_WORDS));
+        await expect(moveAt(page, G9_H12)).toHaveAttribute("title", titled("5\\.\\.\\. G9-H12", `${OFF_WORDS} · Not searched yet`));
+      } else {
+        await moveOnly(L10_O11, "4. L10-O11");
+        await moveOnly(G11_K13, "5. G11-K13");
+        await expect(moveAt(page, G9_H12)).toHaveAttribute("title", titled("5\\.\\.\\. G9-H12", `${UNLISTED} · Not searched yet`));
+      }
+      await expect(moveAt(page, K10_N11)).toHaveAttribute("title", titled("4\\.\\.\\. K10-N11", UNLISTED));
+      // No turn has a button of its own, and the moves show no label: the board's badges show the labels
+      for (const key of [L10_O11, K10_N11, G11_K13, G9_H12]) {
+        await expect(judgementOf(page, "turn", key)).toHaveCount(0);
+        await expect(moveAt(page, key).getByRole("img")).toHaveCount(0);
+      }
     });
   }
 });

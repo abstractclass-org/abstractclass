@@ -35,14 +35,15 @@ async function settings(page: Page, display: Record<string, string>) {
   await keepBefore(page, DISPLAY_KEY, display);
 }
 
-async function open(page: Page, unit: "edge" | "turn") {
-  await settings(page, { judge: unit, branchForm: "text" });
+async function open(page: Page, unit: "edge" | "turn", branchForm = "text") {
+  await settings(page, { judge: unit, branchForm });
   await page.goto(boardLink("", board, 0));
   await expect(page.locator("button.mv[data-path]").first()).toBeVisible({ timeout: 60_000 });
 }
 
-/** The titles that say the engine is off, by the path of the move or the turn's cell that holds them. */
-const offTitles = (page: Page) => page.locator(`[title^="${OFF}"]`);
+/** The titles that say the engine is off, by the path of the move or the turn's cell that holds them. In pills and dots a
+ *  variation move's title starts with the turn's number and the move. */
+const offTitles = (page: Page) => page.locator(`[title*="${OFF}"]`);
 const title = (page: Page, path: string) => page.locator(`button.mv[data-path="${path}"]`).getAttribute("title");
 /** Nothing pulses, and no title says "Evaluating…": the text shows only in titles. */
 async function noWait(page: Page) {
@@ -61,16 +62,19 @@ test("by edge: with the engine off, every evaluated move with no label says why,
 });
 
 // By turn the text is the turn's. A variation's turn with no button of its own (no label, no "…", no ◆, design 07,
-// item 11) keeps it on the move that ends the turn, as here: no such button holds it. Where the turn has a button, the
-// button holds it, and the move does not (book-review.spec.ts, "a variation's label and ◆").
-test("by turn: the same texts, on the turn that ends in each evaluated move", async ({ page }) => {
-  await open(page, "turn");
-  // The variation's turns end in D10-G12 and K9-N11, and the game's first turn in A10-D9: its cell holds the text.
-  for (const path of ["D10-G12", "D10-G12 N11-Q10 K9-N11"]) expect(await title(page, path), path).toContain(OFF);
-  expect(await title(page, "D10-G12 N11-Q10"), "the middle of a turn").toBeNull();
-  await expect(offTitles(page)).toHaveCount(3);
-  await noWait(page);
-});
+// item 11) gives the turn's tooltip to the move that ends the turn, in each form, as here. Where the turn has a button,
+// the button holds it, and the move does not (book-review.spec.ts, "a variation's label and ◆").
+for (const branchForm of ["text", "pills", "dots"]) {
+  test(`by turn, variations as ${branchForm}: the same texts, on the turn that ends in each evaluated move`, async ({ page }) => {
+    await open(page, "turn", branchForm);
+    // The variation's turns end in D10-G12 and K9-N11, and the game's first turn in A10-D9: its cell holds the text.
+    for (const path of ["D10-G12", "D10-G12 N11-Q10 K9-N11"]) expect(await title(page, path), path).toContain(OFF);
+    // In the middle of a turn, the move only: in pills and dots the turn's number and the move, in text no title
+    expect(await title(page, "D10-G12 N11-Q10"), "the middle of a turn").toBe(branchForm === "text" ? null : "2. N11-Q10");
+    await expect(offTitles(page)).toHaveCount(3);
+    await noWait(page);
+  });
+}
 
 for (const unit of ["edge", "turn"] as const) {
   test(`in a review by ${unit}, "Review for" Blue hides the wait of Red's evaluated moves`, async ({ page }) => {

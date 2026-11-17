@@ -175,15 +175,15 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     "…" and the ◆ are the turn's own button after the move that ends the turn, as the game's judgement cell. That button
     acts as the move that ends the turn, takes its "here" and picked outlines, and its title is the turn's tooltip. The
     pointer on it lights the turn's edges in its row with it (design 06, item 8). The move's button stays round in pills
-    and dots, and a turn with no label, no "…" and no ◆ has no such button. By turn, a move's tooltip names the move
-    only, as a game edge's tooltip names no label by turn: no label, no "Hard position" and no wait. In text the move
-    has no tooltip, and in pills and dots its tooltip is the turn's number and the move. A turn with no such button
-    shows no label in the move list: Best, Excellent and Good show as the board's badges. But the move that ends that
-    turn keeps "Not analyzed yet" and the reason in its tooltip: they say why that move's searches give no label, and
-    no other part of the move list shows them. Each part is as tall as its glyph, so a label keeps the row's height. A
-    variation's parts have no slots of their own, because a variation's rows do not line up in columns. The moves
-    evaluated are kept with the variations. A variation that stops in a turn's middle has no turn label until the turn
-    ends.
+    and dots, and a turn with no label, no "…" and no ◆ has no such button. By turn, where the turn has such a button,
+    a move's tooltip names the move only, as a game edge's tooltip names no label by turn: no label, no "Hard position"
+    and no wait. In text the move then has no tooltip, and in pills and dots its tooltip is the turn's number and the
+    move. A turn with no such button gives the turn's tooltip to the move that ends the turn, in each form, as the
+    button would give it: the label (Best, Excellent or Good) or "Not analyzed yet" and the reason, then "Not searched
+    yet". "Review by" changes how the moves are grouped, not what a row tells, and that move is the only place in the
+    row for the turn's tooltip. Each part is as tall as its glyph, so a label keeps the row's height. A variation's
+    parts have no slots of their own, because a variation's rows do not line up in columns. The moves evaluated are
+    kept with the variations. A variation that stops in a turn's middle has no turn label until the turn ends.
     - **A move that is the engine's only good move** also asks for the position before the enemy's last turn, when
       that position has no result of the label budget: a Great needs it (design 10, item 6). A position of the game has
       it already. A position of a variation has it when the player looked at it or evaluated a move from it. The move

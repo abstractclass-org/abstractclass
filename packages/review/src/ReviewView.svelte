@@ -2263,12 +2263,11 @@
           {@const pulse = !slotted && waiting && why === null}
           <!-- By turn, the turn's own button: with a label, a "…" or a ◆ only (design 07, item 11) -->
           {@const turnButton = unit === "turn" && (slotted || pulse || !!hardness?.hard)}
-          <!-- The move's title: by edge with its judgement, which it holds. By turn the move only, as a game edge's by
-               turn (design 06, item 8): the judgement is the turn's, in its own button's title. A turn with no such
-               button keeps on its move why no search gives it a label ("Not analyzed yet" and the reason): it is true
-               of that move's searches (whyNoSearch), and no other part of the row shows it. -->
-          {@const judged = unit === "edge" ? labelTip : waiting && !turnButton ? status : ""}
-          {@const tip = tooltip(text ? "" : `${turnText(t)} ${view.notation(node.move)}`, judged)}
+          <!-- The move's title: by edge with its judgement, which it holds. By turn, where the turn has its own button,
+               the move only, as a game edge's by turn (design 06, item 8): the button's title holds the judgement. A
+               turn with no such button has no other place for its tooltip, so the move that ends it holds the turn's
+               (design 07, item 11): "Review by" changes how the moves are grouped, not what a row tells. -->
+          {@const tip = tooltip(text ? "" : `${turnText(t)} ${view.notation(node.move)}`, turnButton ? "" : labelTip)}
           {#snippet judgement(tip: string | undefined)}
             {#if slotted}{@render labelSlot(label, tip, bookAfter, `text-[0.9em] ${fit}`)}
             {:else if pulse}<span class={["text-[0.9em] text-muted animate-pulse motion-reduce:animate-none", fit]} title={status}>…</span>{/if}
