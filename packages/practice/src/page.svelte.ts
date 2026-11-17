@@ -56,7 +56,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   choices = $state<PracticeChoices>() as PracticeChoices;
   game = $state<G | null>(null);
   starting = $state.raw<K | null>(null); // the game whose bot starts: its players' names, for the skeleton
-  failed = $state(""); // the engine's rules could not load: the page shows only this error
+  failed = $state(""); // the engine's rules could not load, or the page could not make the game: only this error shows
   unstarted = $state(false); // the game's bot started in no form (play)
   ready = $state(false); // the rules are loaded: a game can start
   confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
@@ -81,6 +81,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     if (g.status === "over") return g.resigned ? "resigned" : "over";
     return g.status;
   });
+  stopped = $derived(this.line === "failed" || this.line === "unstarted"); // the game stopped: the line is red
   private now = $state(0); // the clock of the bot's thinking time, while it searches (performance.now)
   /** The bot's thinking time on its turn so far, as "2.3 s", while it searches. Else empty. */
   thinking = $derived.by(() => {
@@ -158,11 +159,17 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
         this.unstarted = true;
         return PracticeBot.failed(this.site.game, e);
       });
-    const g = (this.game = this.site.create(kept, this.rules, bot));
-    g.onFail = e => this.site.engineError(e, "practice");
-    await g.start();
-    if (g.status !== "failed") this.site.track("practice_start", { ...this.params(g), practice_from: from });
-    if (g.status !== "failed" && kept.komi) this.used("practice komi"); // design 17's feature: a game with a komi
+    try {
+      const g = (this.game = this.site.create(kept, this.rules, bot));
+      g.onFail = e => this.site.engineError(e, "practice");
+      await g.start(); // it reports its own errors (onFail)
+      if (g.status !== "failed") this.site.track("practice_start", { ...this.params(g), practice_from: from });
+      if (g.status !== "failed" && kept.komi) this.used("practice komi"); // design 17's feature: a game with a komi
+    } catch (e) { // the page could not make the game
+      bot.terminate();
+      this.failed = errorText(e);
+      this.site.engineError(e, "practice");
+    }
   }
 
   /** A new game with the settings chosen and the side picked, from the standard start or the start brought. */

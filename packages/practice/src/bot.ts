@@ -36,21 +36,21 @@ export class PracticeBot {
     if (!library || !model || !module) throw new Error("the manifest lacks the practice bot's files");
     if (this.mode !== "single" && !threaded) throw new Error(`the bot's ${this.mode} form lacks its files`);
     const [compiled, checkedModel] = await Promise.all([compile(module.url), checked(model)]);
-    gtpAnswer((await this.started().send<string>({ type: "init", game: this.game, mode: this.mode, seed, threads: 1, ...threaded,
-                                                 library: library.url, module: compiled, model: checkedModel,
-                                                 ...sizesOption(manifest) }).done).reply);
+    gtpAnswer((await this.liveChannel().send<string>({
+      type: "init", game: this.game, mode: this.mode, seed, threads: 1, ...threaded, library: library.url, module: compiled,
+      model: checkedModel, ...sizesOption(manifest) }).done).reply);
   }
 
   /** A GTP command's answer. Throws with the bot's message when it refuses the command. */
   async command(line: string): Promise<string> {
-    return gtpAnswer((await this.started().send<string>({ type: "command", line }).done).reply);
+    return gtpAnswer((await this.liveChannel().send<string>({ type: "command", line }).done).reply);
   }
 
   /** Ends the worker, and its CPU evaluators with it. */
   terminate() { this.channel?.terminate(); }
 
   /** The worker's channel. A bot that started in no form has none: it throws the error of its start. */
-  private started(): WorkerChannel<BotRequest> {
+  private liveChannel(): WorkerChannel<BotRequest> {
     if (!this.channel) throw this.failure;
     return this.channel;
   }

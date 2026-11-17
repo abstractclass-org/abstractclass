@@ -8,8 +8,10 @@
 // channel.ts). The context's route answers PostHog (tests/posthog.ts). The cases skip when a preview has no practice
 // bot, and fail in CI. Run: npm run test:layout -- tests/practice-bot-start.spec.ts --project=chromium, with BASE_URL
 // and CYANOTYPE_BASE_URL.
-import { expect, test, type BrowserContext, type Page } from "./page-log.ts";
+import { expect, test, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor, type Sent } from "./posthog.ts";
+import { declineGames } from "./cyanotype-consent.ts";
+import { keepBefore } from "./keep-before.ts";
 import { CONSENT_KEY } from "../src/lib/keys.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
@@ -29,16 +31,6 @@ const FAULTS = [
   { fault: "the worker refuses its start: the practice library does not load",
     route: (page: Page, library: string) => page.route(library, r => r.fulfill({ status: 404, body: "" })) },
 ];
-
-/** The visitor's Decline of the practice games' link on both sites, before any page loads: the consent banner would
- *  cover the page. */
-const declineGames = (context: BrowserContext) => context.addInitScript(keys => {
-  for (const key of keys) {
-    try {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, JSON.stringify({ games: "denied" }));
-    } catch { /* about:blank has no storage */ }
-  }
-}, [CONSENT_KEY, "cyanotype:consent:1"]);
 
 /** The practice library's address in the site's manifest. The case skips when the site has no practice bot. */
 async function practiceLibrary(page: Page, base: string): Promise<string> {
@@ -63,8 +55,9 @@ for (const { site, base, starting, stopped } of SITES) {
     for (const { fault, route } of FAULTS) {
       test(`a bot whose start fails (${fault}) stops the game, and Abort ends it`, async ({ context }) => {
         const sent = await answerPostHog(context);
-        await declineGames(context);
+        await declineGames(context); // the consent banners would cover the page: Cyanotype's choice, then Hedge School's
         const page = await context.newPage();
+        await keepBefore(page, CONSENT_KEY, { games: "denied" });
         const errors: string[] = [];
         page.on("pageerror", e => errors.push(String(e)));
         await route(page, await practiceLibrary(page, base()));
