@@ -9,7 +9,8 @@
 import * as shared from "@abstractclass/analysis/model.ts";
 import type { Game, Player } from "@abstractclass/analysis/game.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
-import { endingWords, smallMargin, type NotePart, type ViewTypes } from "@abstractclass/review/game.ts";
+import { endingWords, smallMargin, type GameWords, type NotePart,
+         type ViewTypes } from "@abstractclass/review/game.ts";
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import { moveName, moveText, moves, type BlueprintNumber, type Capture, type Move } from "../game/notation.ts";
 import { enginePosition } from "../game/position.ts";
@@ -20,6 +21,9 @@ import type { InputRules } from "../board/input.ts";
 import { footprintOf, starsOf, type Blueprint, type BoardMove, type Hand, type Kind, type SitePosition } from "../board/position.ts";
 import type { Display } from "./display.ts";
 import { mapWithView } from "./blueprintsMap.ts";
+
+/** Blueprints' word for a move: the review's (blueprintsView.ts) and a shared review's intro (SharedArrival.svelte). */
+export const WORDS: GameWords = { move: "move", moves: "moves", Move: "Move" };
 
 /** A position, as the board draws it (SitePosition) and the analysis reads it: who moves next with the moves left in
  *  that player's turn, the scores, whether the game has ended, the moves played, and each player's stars on the

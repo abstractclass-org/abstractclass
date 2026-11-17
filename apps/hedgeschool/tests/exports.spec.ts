@@ -2,26 +2,35 @@
 // 13, 17 and 21, Cyanotype's design 33): the shared code (packages/review/src/exports.ts, packages/analysis/src/files.ts)
 // with each site's own parts. On the Analysis board: the link and the annotated record copied, the analysis file and
 // the record saved, and a review file refused with the board's notice. In the review: the link copied, with the note
-// on its length. Nothing searches: the engine is off, and the review comes from a review file with its results.
+// on its length. A shared review's link: its intro (packages/review/src/SharedIntro.svelte) in the site's words.
+// Nothing searches: the engine is off, and the review comes from a review file with its results.
 // Cyanotype's cases skip, with a message, when CYANOTYPE_BASE_URL gives no preview with the engine's files. Run:
 // npx playwright test tests/exports.spec.ts --project=chromium, with BASE_URL and CYANOTYPE_BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { shareNote } from "../../../packages/review/src/exports.ts";
+import { reviewLink, type ReviewRun } from "../../../packages/analysis/src/share.ts";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
+import { parseRecord as readBlueprints } from "../../cyanotype/src/lib/game/record.ts";
+import { reviewLink as blueprintsLink } from "../../cyanotype/src/lib/game/share.ts";
+import { parseRecord } from "../src/lib/game/record.ts";
+import { ENCLOSURE_CODE } from "../src/lib/game/share.ts";
 import { CYANOTYPE, LITE, noReview, reviewStoredFile, testRecord } from "./cyanotype-review.ts";
 import { loadReviewFile } from "./review-file.ts";
 import { keepBefore } from "./keep-before.ts";
 import { CONSENT_KEY, ENGINE_KEY as HEDGE_SCHOOL_ENGINE } from "../src/lib/keys.ts";
 
 /** A site as these tests use it: its name, an address on it, its files' formats, a record of three moves for the
- *  Analysis board, what each page needs first (the engine off), and its review of a game from a review file. */
+ *  Analysis board and one of a single move, the link that shares a record's review (its path), what each page needs
+ *  first (the engine off), and its review of a game from a review file. */
 interface Site {
   name: string;
   at: (path: string) => string;
   analysisFormat: string;
   reviewFormat: string;
   record: string;
+  oneMove: string;
+  shareLink: (record: string, run: ReviewRun) => string;
   setUp: (page: Page) => Promise<void>;
   review: (page: Page) => Promise<void>;
 }
@@ -33,6 +42,8 @@ const SITES: Site[] = [
     analysisFormat: "hedge-school-analysis",
     reviewFormat: "hedge-school-review",
     record: "1. D10-G10 2. N11-Q10 L10-N11 *",
+    oneMove: "1. D10-G10 *",
+    shareLink: (record, run) => reviewLink("", run, players(parseRecord(record)), [], ENCLOSURE_CODE),
     // The visitor has answered the consent notice, which covers the page's foot until they choose. The engine is off.
     setUp: async page => {
       await keepBefore(page, CONSENT_KEY, { games: "denied" });
@@ -50,6 +61,8 @@ const SITES: Site[] = [
     analysisFormat: "cyanotype-analysis",
     reviewFormat: "cyanotype-review",
     record: testRecord(2), // 1 move in the first turn, 2 in the second
+    oneMove: testRecord(1),
+    shareLink: (record, run) => blueprintsLink("", players(readBlueprints(record)), [], run),
     setUp: async page => {
       const skip = await noReview(page);
       test.skip(!!skip, skip);
@@ -60,6 +73,11 @@ const SITES: Site[] = [
   },
 ];
 
+/** The game `game` with the players Ann and Bo. */
+const players = <G extends { tags: Record<string, string> }>(game: G): G =>
+  ({ ...game, tags: { ...game.tags, Blue: "Ann", Red: "Bo" } });
+/** A review that ran with a CPU module and a network that neither site has. */
+const UNKNOWN_RUN: ReviewRun = { module: "0".repeat(64), model: "0".repeat(64), visits: 1024 };
 /** The clipboard's text. Windows' clipboard gives each line end back as CR LF. */
 const clipboard = async (page: Page) =>
   (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
@@ -129,5 +147,28 @@ for (const site of SITES) {
       expect(link).toMatch(new RegExp(`^${literal(origin)}/review#packed=[\\w-]+`));
       await expect(page.getByText(shareNote(link.length), { exact: true })).toBeVisible();
     });
+
+    // The intro is one component on both sites (packages/review/src/SharedIntro.svelte): the game's length in the
+    // game's word for a move, the singular for one, and the rest word for word. The sender's network and engine are
+    // ones that the site does not have, so the intro says that the labels can differ.
+    for (const [moves, length] of [[1, site.name === "Hedge School" ? "1 edge" : "1 move"],
+                                   [3, site.name === "Hedge School" ? "3 edges" : "3 moves"]] as const) {
+      test(`a shared review's intro says what the link holds, in the site's words: ${length}`, async ({ page }) => {
+        await page.goto(site.at(site.shareLink(moves === 1 ? site.oneMove : site.record, UNKNOWN_RUN)));
+        const heading = page.getByRole("heading", { name: "A shared review" });
+        await expect(heading).toBeVisible({ timeout: 60_000 });
+        await expect(heading.locator("xpath=..").locator("p")).toHaveText([
+          `Ann against Bo, ${length}.`,
+          "The link carries the game, not the engine's work. Your browser reviews the game again, as it does a game "
+            + "that you import. The review shows each result when the engine finds it. With the sender's engine, "
+            + "network and depth, your review is the same as the sender's: the same quality labels, lines and accuracy. "
+            + "A GPU computes the network a little differently, so on a GPU a close call can rarely give another result.",
+          "The sender's review: a network that this site no longer has, at Standard (1,024 visits a position). The "
+            + "review uses your network, so its quality labels can differ. This site's engine changed after the sender "
+            + "made the link, so some quality labels can differ.",
+        ]);
+        await expect(page.getByRole("button", { name: "Review it" })).toBeVisible();
+      });
+    }
   });
 }

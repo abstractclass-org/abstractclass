@@ -8,8 +8,9 @@
   //   the page also says how to update it;
   // - a record from another site's link (`record=`, design 18), on the import page: checked with the engine's rules,
   //   given its cut marks, kept in this browser, and reviewed, with the partner's save page when the link names one;
-  // - a shared review (`packed=`, share.ts): what it holds, and that this browser reviews it again, then kept on a
-  //   click, with the sender's network and depth;
+  // - a shared review (`packed=`, share.ts): what it holds, and that this browser reviews it again (the intro that
+  //   Cyanotype shows too, @abstractclass/review/SharedIntro.svelte), then kept on a click, with the sender's network
+  //   and depth;
   // - a partner's page that kept a review (`from=`): it sends the review file once this page asks.
   // The game leaves the address at once, then the analytics start. Once the game is kept, the review opens it.
   import { onMount } from "svelte";
@@ -22,6 +23,8 @@
   import { hashParams } from "@abstractclass/site/addressHash.ts";
   import { openReview } from "@abstractclass/import/openReview.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
+  import SharedIntro from "@abstractclass/review/SharedIntro.svelte";
+  import { WORDS } from "./enclosure.ts";
   import { toolSource } from "#lib/game/tools.ts";
   import { gamePartner, receiveKeptReview } from "#lib/game/partners.ts";
   import { setGamePartner } from "#lib/game/store.ts";
@@ -162,20 +165,10 @@
     <p class="text-muted">Waiting for {phase.sender} to send the review…</p>
   {:else if phase.at === "share"}
     {@const { shared, here } = phase}
-    {@const names = playerNames(shared.tags)}
-    <h1 class="text-2xl font-bold">A shared review</h1>
-    <p><strong>{names.blue} against {names.red}</strong>, {shared.moves.length} edges{shared.branches.length
-      ? `, with ${shared.branches.length} ${shared.branches.length === 1 ? "move" : "moves"} in the sender's variations` : ""}.</p>
-    <p>The link carries the game, not the engine's work. <strong>Your browser reviews the game again</strong>, as it does
-      a game you import. The review shows each result as the engine finds it. With the sender's engine, network and
-      depth, your review is the same as the sender's: the same quality labels, lines and accuracy. A GPU computes the network a
-      little differently, so on a GPU a close call can rarely give another result.</p>
-    <p>The sender's review: {here.network ? networkName(here.network) : "a network this site no longer has"}, at
-      {reviewDepthText(shared.visits)}.
-      {#if !here.network}The review uses your network, so its quality labels can differ.
-      {:else}The game keeps them for its review. Other games review as before.{/if}
-      {#if !here.sameEngine}This site's engine changed after the sender made the link, so some quality labels can differ.{/if}</p>
-    <div><button class="btn-primary" type="button" onclick={() => reviewShared(shared, here)}>Review it</button></div>
+    <SharedIntro players={playerNames(shared.tags)} moves={shared.moves.length} branches={shared.branches.length}
+                 words={WORDS} network={here.network ? networkName(here.network) : null}
+                 depth={reviewDepthText(shared.visits)} sameEngine={here.sameEngine}
+                 onreview={() => reviewShared(shared, here)} />
   {:else if phase.at === "choose"}
     {@const { sent, record, source, stale } = phase}
     {@const names = playerNames(record.tags)}

@@ -821,8 +821,9 @@ build). The decision log gives the measurements that led to each choice.
       writes it from its review, and the Review tab from the store ("The review snapshot and the annotated record from
       the store"). When a link is longer than a Discord message takes, the note after it says to send the review file.
       The link's page (`src/lib/review/SharedArrival.svelte`) says what the link holds and what the sender's review ran
-      with. "Review it" keeps the game in the player's games, as a pasted record: the engine's rules check it first, as
-      the import page does, and a game that they refuse is not kept. So a link that the rules refuse says why.
+      with, in the intro that Hedge School shows too (`packages/review/src/SharedIntro.svelte`). "Review it" keeps the
+      game in the player's games, as a pasted record: the engine's rules check it first, as the import page does, and a
+      game that they refuse is not kept. So a link that the rules refuse says why.
     - **The recipient's review uses the sender's network and depth,** as Hedge School's: the game keeps them for its
       review (a game's own settings, Hedge School's design 09), when the site ships the sender's network. Other games
       review as before. With a network that the site does not ship, the review uses the recipient's, and the page

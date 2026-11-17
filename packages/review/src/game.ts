@@ -317,6 +317,9 @@ export interface NetworkParts {
 }
 
 /** What a site gives the view about its game. */
+/** The game's word for a move: "edge", "edges", "Edge" (Enclosure's), "move", "moves", "Move" (Blueprints'). */
+export interface GameWords { move: string; moves: string; Move: string }
+
 export interface ViewGame<G extends ViewTypes> extends Game<G> {
   // --- The board
   /** The board: the site's component, with the view's props. */
@@ -396,7 +399,7 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
   second?: SecondNumber<G>;
 
   // --- The texts
-  words: { move: string; moves: string; Move: string }; // the game's word for a move: "edge", "edges", "Edge"
+  words: GameWords;
   /** The game's outcome in words. */
   ending(data: ReviewData<G>): string;
   /** A margin in the game's format, with no unit, for the result's words (resultText): Enclosure's with one decimal,

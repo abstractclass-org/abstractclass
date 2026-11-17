@@ -24,7 +24,7 @@ import { moveName, moveText } from "../game/notation.ts";
 import { SITE_NAME } from "../site.ts";
 import { NETWORKS, networkMB, networkName } from "../analysis/engineSettings.ts";
 import { asPlayed, blueprints, captureOf, endingText, fmtMargin, lineMovers, playedText, shortNote, turnShortNote,
-         type Blueprints } from "./blueprints.ts";
+         WORDS, type Blueprints } from "./blueprints.ts";
 import { alignMap, boardState, mapIndex } from "./blueprintsMap.ts";
 import { loadDisplay, saveDisplay } from "./display.ts";
 import { imageCaption, imageName } from "./blueprintsImage.ts";
@@ -109,7 +109,7 @@ export const blueprintsView: ViewGame<Blueprints> = {
     },
   },
 
-  words: { move: "move", moves: "moves", Move: "Move" },
+  words: WORDS,
   ending: endingText,
   fmtMargin,
   shortNote,

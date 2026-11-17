@@ -16,7 +16,8 @@ import type { BookPlace } from "#lib/book/place.svelte.ts";
 import type { WeakWalls } from "@abstractclass/engine/protocol.ts";
 import type { Display } from "./display.ts";
 import { turnFromCount } from "@abstractclass/analysis/turns.ts";
-import { endingWords, smallMargin, type LayerSetting, type ViewTypes } from "@abstractclass/review/game.ts";
+import { endingWords, smallMargin, type GameWords, type LayerSetting,
+         type ViewTypes } from "@abstractclass/review/game.ts";
 export * from "@abstractclass/analysis/model.ts";
 export { fmtScore, PLAYER_NAME } from "@abstractclass/review/game.ts";
 export { edgeName, pointName, sameEdge, type Edge } from "#lib/engine/notation.ts";
@@ -42,6 +43,8 @@ export { turnFromCount }; // the notation's turns (the /notation page), which Bl
 export interface Move { player: Player; edge: Edge | null; cut: Edge | null }
 
 export const otherPlayer = (p: Player): Player => (1 - p) as Player;
+/** Enclosure's word for a move: the review's (enclosureView.ts) and a shared review's intro (Arrival.svelte). */
+export const WORDS: GameWords = { move: "edge", moves: "edges", Move: "Edge" };
 /** The area beside the scores in the players' cards (the review's, Practice's): its word, and the number's title. */
 export const AREA = { word: "area", title: "The area enclosed now, added at the turn's end" } as const;
 /** A move's text in the move lists (the review's, Practice's): as wide as the widest edge in the notation, 8
