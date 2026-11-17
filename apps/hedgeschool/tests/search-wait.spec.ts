@@ -5,9 +5,9 @@
 // then a turn of two), each evaluated. In a review, the same variation, with "Review for" set to Blue: Red's moves show
 // no wait, by edge and by turn. The last case turns the engine on, on the CPU, and fails one move's search. Only that
 // move says that the engine has an error, and the panel says the engine's error. A new search of its position clears
-// both (GameAnalysis.judgeFailed and engineError). No
-// position of the game makes the engine fail by itself. So the page's Worker gives the engine's error reply to the
-// first search of that position, and that search never reaches the engine (failFirstSearch).
+// both (GameAnalysis.judgeFailed and engineError). No position of the game makes the engine fail by itself. So the
+// page's Worker gives the engine's error reply to the first search of that position, and that search never reaches
+// the engine (failFirstSearch).
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { boardLink } from "../src/lib/game/board.ts";

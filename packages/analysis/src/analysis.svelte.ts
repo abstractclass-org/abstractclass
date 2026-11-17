@@ -54,11 +54,10 @@ const endedAt = <M>(a: Analysis<M>, reply: { terminated?: boolean }, visits: num
 /** Whether a task's error is no engine error: the pool dropped the task before it ran (Cancelled), or ended its worker
  *  for another pool (Stopped). */
 const notRun = (e: unknown) => e instanceof Cancelled || e instanceof Stopped;
-/** An engine failure that still holds: the engine's error, and the failure's place in the order of all failures (the
- *  panel shows the latest, engineError). */
-type Failure = { text: string; order: number };
 /** The catch of a search whose caller has nothing more to do: search() keeps its failure (markFailed). */
 const keptBySearch = () => {};
+/** The word that starts the key of another engine task's failure than a search's (GameAnalysis.failed). */
+const TASK_WORD = /^(walls|map|size) /;
 // The searches' results are applied together, at most this often: their results so far and their final results, with
 // what a search's end changes (the stages' progress, its mark). With every worker and the GPU's 16 searches posting a
 // slice, results come tens of times a second, the sweep's searches end one after another, and each change of the
@@ -133,16 +132,17 @@ export class GameAnalysis<G extends GameTypes> {
   // not searched again for the same settings.
   timed = $state.raw<Record<string, string>>({});
   error = $state(""); // why the rules refuse the game (start): the pages show it in the place of the review
-  // The positions whose last search failed (an engine error), by path key, with the error. Only the moves that wait
-  // for them say so (judgeFailed), and the panel shows the error while it holds (engineError). A position's mark clears
-  // when a new search of it runs. A result of the position clears it too: from any search of it (also one that ran
-  // when the other failed), or from the store. Another network clears all.
-  private failed = $state.raw(new Map<string, Failure>());
-  // The failures of the other engine tasks, for the panel (engineError): of a position's walls (`walls <path key>`)
-  // until its walls come, of its map (`map <path key>`) until a map comes, and of a search for the threat's size
-  // (`size <size key>`) until its result comes. Another network clears all.
-  private taskFailed = $state.raw(new Map<string, Failure>());
-  private failureCount = 0; // the failures so far: each failure's place in their order (Failure)
+  // The engine's failures that still hold, with their errors, the latest last: the panel shows it (engineError).
+  // - A search's failure, by its position's path key. Only the moves that wait for the position say so (judgeFailed).
+  //   It clears when a new search of the position runs, or when a result of the position comes: from any search of it
+  //   (also one that ran when the other failed), or from the store.
+  // - Another engine task's failure, by the task's word and its key, which no position's key is (a move's name is a
+  //   point's or an edge's): of a position's walls (`walls <path key>`) until its walls come, of its map
+  //   (`map <path key>`) until a map comes, and of a search for the threat's size (`size <size key>`) until its result
+  //   comes or the threat ends (dropThreat).
+  // The deletion of a position clears its failures and those of the positions after it (deleteFrom). Another network
+  // clears all.
+  private failed = $state.raw(new Map<string, string>());
   focusing = $state<string | null>(null); // the path key of the position searched for the player, while it runs
   // For each position, by path key, the visits of the deepest result that the store has: a result read from it, or a
   // search's final result, whose write comes before its batch. Only such a result meets a search's budget, and the
@@ -490,30 +490,31 @@ export class GameAnalysis<G extends GameTypes> {
       || (this.awaitsGreat(key) && this.greatNeeds.awaiting.get(key)!.some(hasFailed));
   }
 
-  /** The panel's engine error: the latest failure that still holds, of a search (failed) or of another engine task
-   *  (taskFailed). With none, the rules' refusal of the game (error), which always holds, or "". */
+  /** The panel's engine error: the latest failure that still holds (failed). With none, the rules' refusal of the game
+   *  (error), which always holds, or "". */
   get engineError(): string {
-    let latest: Failure | undefined;
-    for (const f of [...this.failed.values(), ...this.taskFailed.values()]) if (!latest || f.order > latest.order) latest = f;
-    return latest?.text ?? this.error;
+    return [...this.failed.values()].at(-1) ?? this.error;
   }
 
-  /** Notes that the search of the position with path key `key` failed with the error `text`, or (`text` null) that
-   *  the failure no longer holds: a new search runs, or a result came. */
+  /** Notes that the engine task under `key` (failed) failed with the error `text`, the latest failure, or (`text` null)
+   *  that its failure no longer holds: a new search runs, or a result came. With nothing to clear, nothing changes, so
+   *  that a result does not run the page again. */
   private markFailed(key: string, text: string | null) {
-    this.failed = this.noted(this.failed, key, text);
+    if (text === null && !this.failed.has(key)) return;
+    const next = new Map(this.failed);
+    next.delete(key); // a failure noted again goes last
+    if (text !== null) next.set(key, text);
+    this.failed = next;
   }
-  /** Notes the failure of another engine task (taskFailed), as markFailed does for a search. */
-  private markTaskFailed(key: string, text: string | null) {
-    this.taskFailed = this.noted(this.taskFailed, key, text);
+  /** Clears the failures whose keys `gone` picks (failed). */
+  private clearFailed(gone: (key: string) => boolean) {
+    if ([...this.failed.keys()].some(gone)) this.failed = new Map([...this.failed].filter(([k]) => !gone(k)));
   }
-  /** `failures` with the failure of `key` noted (`text`) or cleared (null): the same Map when nothing changes, so that
-   *  a result that clears nothing does not run the page again. */
-  private noted(failures: Map<string, Failure>, key: string, text: string | null): Map<string, Failure> {
-    if (text === null && !failures.has(key)) return failures;
-    const next = new Map(failures);
-    if (text === null) next.delete(key); else next.set(key, { text, order: ++this.failureCount });
-    return next;
+  /** Clears the failures of the position with path key `key` and of the positions after it, their threats' too: the
+   *  tree holds them no more (deleteFrom), so no search of them runs again. */
+  private dropFailuresFrom(key: string) {
+    const from = (k: string) => k === key || k.startsWith(`${key} `) || k.startsWith(`${key}|`);
+    this.clearFailed(k => from(k.replace(TASK_WORD, "")));
   }
 
   /** The searches that the Greats ask for (confirmGreats), derived once for each change of the analysis: the page reads
@@ -771,11 +772,13 @@ export class GameAnalysis<G extends GameTypes> {
       if (!(key in all)) return;
       const kept = Object.fromEntries(Object.entries(all).filter(([k]) => k !== key && !k.startsWith(`${key} `)));
       this.reindex(kept, mainIndex(path, this.mainNames) !== null ? path.slice(0, -1) : this.mainNames);
+      this.dropFailuresFrom(key);
       await this.keepBranches();
       return;
     }
     if (!(key in this.branches)) return;
     this.branches = Object.fromEntries(Object.entries(this.branches).filter(([k]) => k !== key && !k.startsWith(`${key} `)));
+    this.dropFailuresFrom(key);
     await this.keepBranches();
   }
 
@@ -1071,9 +1074,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.dropThreat();
     this.pool.halt();
     this.engineReady = false;
-    // The old network's failures
-    if (this.failed.size) this.failed = new Map();
-    if (this.taskFailed.size) this.taskFailed = new Map();
+    if (this.failed.size) this.failed = new Map(); // the old network's failures
     // The batch ends with the era: its results are dropped, and what waits for them runs now, before the reset below.
     this.batch.clear();
     this.applyBatch();
@@ -1259,7 +1260,7 @@ export class GameAnalysis<G extends GameTypes> {
       // game that has walls types them as its engine gives them
       else {
         this.walls = { ...this.walls, [key]: reply.weakWalls as G["walls"] };
-        this.markTaskFailed(`walls ${key}`, null); // an earlier search's failure holds no more
+        this.markFailed(`walls ${key}`, null); // an earlier search's failure holds no more
       }
     }, { cpu: true })
       .catch(e => {
@@ -1267,7 +1268,7 @@ export class GameAnalysis<G extends GameTypes> {
         // The engine refuses the field by its name where its backend does not give the walls (the GPU module's)
         if (e instanceof EngineError && e.field === "includeWeakWalls") this.wallsUnsupported = true;
         // An engine error, as a map's (addMap): the panel shows it until the walls come
-        else if (this.known(path)) this.markTaskFailed(`walls ${key}`, errorText(e));
+        else if (this.known(path)) this.markFailed(`walls ${key}`, errorText(e));
         else this.wallless = new Set(this.wallless).add(key); // a position after a move not in the tree can end the game
       })
       .finally(() => {
@@ -1277,6 +1278,12 @@ export class GameAnalysis<G extends GameTypes> {
           queueMicrotask(() => this.askWalls(this.wallsAsked));
       });
   }
+  /** Gives the position with path key `key` its map, from a map's search or the store: a failure of an earlier search
+   *  of its map holds no more. */
+  private keepMap(key: string, ownership: number[]) {
+    this.ownership = { ...this.ownership, [key]: ownership };
+    this.markFailed(`map ${key}`, null);
+  }
   /** A review snapshot's maps (freeze), read from the store with the review snapshot's search and network file. The store's memory
    *  answers a read again (cache.ts, mapGet). */
   private readMaps(paths: string[][], { search, model }: { search: string; model: string }) {
@@ -1284,7 +1291,7 @@ export class GameAnalysis<G extends GameTypes> {
       const key = pathKey(path);
       if (this.mapAt(path) || this.unstored.has(key) || this.hasNoMap(path)) continue;
       void mapGet(search, model, this.keyMovesOf(path)).then(stored => stored?.ownership, () => undefined).then(ownership => {
-        if (ownership) this.ownership = { ...this.ownership, [key]: ownership };
+        if (ownership) this.keepMap(key, ownership);
         else this.unstored = new Set(this.unstored).add(key);
       });
     }
@@ -1356,11 +1363,7 @@ export class GameAnalysis<G extends GameTypes> {
     // network drops it
     const task = { pass: tag === "mappass" }, holds = () => this.mapWork[key]?.task === task;
     const mark = (state: "waiting" | "searching") => { if (holds()) this.mapWork = { ...this.mapWork, [key]: { state, task } }; };
-    const keep = (ownership: number[]) => {
-      if (era !== this.era) return;
-      this.ownership = { ...this.ownership, [key]: ownership };
-      this.markTaskFailed(`map ${key}`, null); // an earlier task's failure holds no more
-    };
+    const keep = (ownership: number[]) => { if (era === this.era) this.keepMap(key, ownership); };
     this.mapWork = { ...this.mapWork, [key]: { state: "waiting", task } };
     let tried = false; // the store or a search answered, or the search failed: else the map may be asked for again
     void (async () => {
@@ -1385,9 +1388,9 @@ export class GameAnalysis<G extends GameTypes> {
       .catch(e => {
         if (notRun(e)) return;
         tried = true;
-        // An engine error: the panel shows it until the position has a map (keep, and a search's result with one)
-        if (inTree) { if (era === this.era) this.markTaskFailed(`map ${key}`, errorText(e)); }
-        else this.mapless = new Set(this.mapless).add(key);
+        if (!inTree) this.mapless = new Set(this.mapless).add(key);
+        // An engine error: the panel shows it until the position has a map (keepMap, or a search's result with one)
+        else if (era === this.era) this.markFailed(`map ${key}`, errorText(e));
       })
       .finally(() => {
         if (holds()) {
@@ -1491,7 +1494,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  it ended with (`done`), which no later result replaces. A failure of an earlier search for it holds no more. */
   private keepSizeResult(key: string, analysis: Analysis<G["move"]>, done: boolean) {
     if (!this.sizeResults[key]?.done) this.sizeResults = { ...this.sizeResults, [key]: { analysis, done } };
-    this.markTaskFailed(`size ${key}`, null);
+    this.markFailed(`size ${key}`, null);
   }
   /** The result of the position at `path` that the threat's size compares (threatCost), for the position before the
    *  pass and for the threat's: from a search with the threat's settings (the focus settings' visits and time limit),
@@ -1562,7 +1565,7 @@ export class GameAnalysis<G extends GameTypes> {
       });
     })()
       // An engine error: the panel shows it until a result for the size comes (keepSizeResult)
-      .catch(e => { if (!notRun(e) && era === this.era) this.markTaskFailed(`size ${key}`, errorText(e)); })
+      .catch(e => { if (!notRun(e) && era === this.era) this.markFailed(`size ${key}`, errorText(e)); })
       .finally(() => { if (this.sizeSearches.get(key) === run) this.sizeSearches.delete(key); });
   }
   /** The state of the threat at `path`, for the engine header: its search runs (`searching`) or waits for the engine
@@ -1579,7 +1582,8 @@ export class GameAnalysis<G extends GameTypes> {
     return this.idle && this.threatKeys?.position === pathKey(path) ? "waiting" : "unasked";
   }
   /** Ends the threat's searches: the earlier ones are stale. Stops them where they run, drops them where they wait, and
-   *  drops the results so far that its size would compare (sizeResults). A focus that goes on keeps its next ones. */
+   *  drops the results so far that its size would compare (sizeResults) and the failures of its size's searches
+   *  (failed): none of them runs again. A focus that goes on keeps its next ones. */
   private dropThreat() {
     const generation = ++this.threatGeneration;
     this.stopThreat?.();
@@ -1590,6 +1594,7 @@ export class GameAnalysis<G extends GameTypes> {
     this.threatWork = null;
     if (Object.values(this.sizeResults).some(s => !s.done))
       this.sizeResults = Object.fromEntries(Object.entries(this.sizeResults).filter(([, s]) => s.done));
+    this.clearFailed(k => k.startsWith("size "));
     return generation;
   }
 
@@ -1742,7 +1747,7 @@ export class GameAnalysis<G extends GameTypes> {
    *  A result with a map gives the position its map: a failure of the map's own search holds no more (addMap). */
   private keep(path: string[], a: Analysis<G["move"]>) {
     if ((this.analysisOf(path)?.visits ?? 0) > a.visits) return;
-    if (a.ownership) this.markTaskFailed(`map ${pathKey(path)}`, null);
+    if (a.ownership) this.markFailed(`map ${pathKey(path)}`, null);
     const i = mainIndex(path, this.mainNames);
     if (i !== null) {
       const next = this.analysis.slice();

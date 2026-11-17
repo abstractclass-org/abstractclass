@@ -1770,3 +1770,33 @@ test("the weak walls: the panel shows their search's failure until the walls com
   await turns();
   assert.equal(game.engineError, "");
 });
+
+test("the panel's engine error goes with the variation deleted: no search of its positions runs again", async () => {
+  const { game, searches } = await greatBranch();
+  await game.addLine(["a", "x"], false);
+  await game.judge(["a", "x"]);
+  await turns();
+  searches.findLast(s => s.moves.join(" ") === "a x")!.fail(new Error("the engine failed"));
+  await turns();
+  assert.equal(game.engineError, "the engine failed");
+  await game.deleteFrom(["a", "x"]);
+  assert.equal(game.engineError, "");
+});
+
+test("the panel's engine error goes with the threat: a failed search for its size runs no more", async () => {
+  const { game, searches } = await focusing(); // the Depth: 4,096 visits, 2 seconds
+  game.focus(["a"]);
+  game.askThreat(["a"]);
+  await turns();
+  searchesOf(searches, "a", 4096)[0].end(4096, false, valued(4096, 0.3, -20));
+  searchesOf(searches, "a pass", 4096)[0].end(4096, false, valued(4096, 0.8, 30));
+  await turns();
+  mock.timers.tick(BATCH_MS);
+  game.setDepth(1024, 2); // each position is searched to the new Depth for the size
+  await turns();
+  searchesOf(searches, "a", 1024)[0].fail(new Error("the engine failed"));
+  await turns();
+  assert.equal(game.engineError, "the engine failed");
+  game.askThreat(null); // the threat ends, and the searches for its size
+  assert.equal(game.engineError, "");
+});
