@@ -58,8 +58,10 @@ const markOf = (page: Page, move: string) => moveOf(page, move).getByRole("img",
 /** The move on screen in the move list, or null at the start. */
 const here = async (page: Page) => ((await page.locator(".mv.here").count()) ? (await page.locator(".mv.here").innerText()).trim() : null);
 const row = (page: Page, text: string | RegExp) => page.getByRole("button", { name: text });
+/** The quality labels' words, as a regular expression's alternatives. */
+const LABELS = "Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder";
 /** A quality label's badge, which shows no word: its word is its name. */
-const LABEL_WORDS = /^(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)$/;
+const LABEL_WORDS = new RegExp(`^(${LABELS})$`);
 /** A position symbol's name (symbols.ts, SYMBOL_NAME). */
 const SYMBOL_WORDS = /^(Equal position|Unclear position|(Blue|Red) is (slightly better|better|winning))$/;
 /** The book's table. */
@@ -845,14 +847,16 @@ const G12_K10 = `${TURN_THREE_START} D9-G11 D10-G9 K10-N11 G12-K10`;
 /** book-left-review.json with two variations, as a review file keeps them, and the result of each position that they
  *  need, so that nothing searches. Blue's turn 3 in the other order: D10-G9, a book move, then D9-G11, outside the
  *  book. Its end is the game's position after turn 3, whose result it takes. And G12-K10, the engine's second choice
- *  for the second edge of Red's turn 4, from the position after K10-N11, a hard one (the ◆). */
-function withVariations() {
+ *  for the second edge of Red's turn 4, from the position after K10-N11, a hard one (the ◆). With `without`, the file
+ *  has no result of the position after that move: a label of the move waits for that search. */
+function withVariations(without?: string) {
   const f = JSON.parse(readFileSync("tests/fixtures/book-left-review.json", "utf8"));
   const game = `${TURN_THREE_START} D9-G11 D10-G9`;
   const results = (f.analyses as [string, unknown][]).filter(([k]) => k.endsWith(`|${game}`));
   expect(results.length).toBeGreaterThan(0);
   f.branches = { version: 2, nodes: [[D10_G9, 0], [D9_G11, 0], [G12_K10, 0]] };
   f.analyses.push(...results.map(([k, a]) => [k.slice(0, -game.length) + D9_G11, a]));
+  if (without) f.analyses = (f.analyses as [string, unknown][]).filter(([k]) => !k.endsWith(`|${without}`));
   return { name: "book-variations-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(f)) };
 }
 
@@ -945,7 +949,7 @@ test.describe("a variation's label and ◆", () => {
   // only, as a game edge's by turn names no label (design 06, item 8): in text no title, and in pills and dots the
   // turn's number and the move. The turn's own button holds the judgement's words in its title. D10-G9 opens Blue's
   // turn 3, and D9-G11 ends it. G12-K10 ends Red's turn 4: not evaluated, it has the ◆ and no label.
-  const JUDGEMENT_WORDS = /\b(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder|Book move)\b|Hard position|Not searched yet|Evaluating|Not analyzed yet/;
+  const JUDGEMENT_WORDS = new RegExp(`\\b(${LABELS}|Book move)\\b|Hard position|Not searched yet|Evaluating|Not analyzed yet`);
   for (const judge of ["edge", "turn"]) for (const branchForm of ["text", "pills", "dots"]) {
     test(`by ${judge}, variations as ${branchForm}: a move's title names ${judge === "edge" ? "its judgement" : "the move only"}`, async ({ page }) => {
       await evaluateD9G11(page, { judge, branchForm });
@@ -957,7 +961,7 @@ test.describe("a variation's label and ◆", () => {
         // The turn's number and the move come first in the round forms, which show no name
         const titled = (named: string, judgement: string) => new RegExp(`^${round ? `${named} · ` : ""}${judgement}$`);
         await expect(moveAt(page, D9_G11)).toHaveAttribute("title", titled("3\\.\\.\\. D9-G11", `${word}( · .+)?`));
-        await expect(moveAt(page, D10_G9)).toHaveAttribute("title", /(^| · )(Best|Great|Excellent|Good|Inaccuracy|Mistake|Blunder)( · |$)/);
+        await expect(moveAt(page, D10_G9)).toHaveAttribute("title", new RegExp(`(^| · )(${LABELS})( · |$)`));
         await expect(moveAt(page, G12_K10)).toHaveAttribute("title", titled("4\\.\\.\\. G12-K10", "Hard position"));
         return;
       }
@@ -965,9 +969,12 @@ test.describe("a variation's label and ◆", () => {
         if (round) await expect(moveAt(page, key)).toHaveAttribute("title", named);
         else await expect(moveAt(page, key)).not.toHaveAttribute("title");
       }
-      // No move of the list names a judgement, the game's either (theirs name the lead): the turn's button does
-      for (const move of await page.locator(".movelist button.mv").all())
-        expect((await move.getAttribute("title")) ?? "").not.toMatch(JUDGEMENT_WORDS);
+      // No move of the list names a judgement, the game's either (theirs name the lead): the turn's button does. The
+      // list holds the variation's moves, so the check reads them.
+      const moves = page.locator(".movelist button.mv");
+      await expect(moves.and(moveAt(page, D9_G11))).toHaveCount(1);
+      const titles = await moves.evaluateAll(buttons => buttons.map(b => b.getAttribute("title") ?? ""));
+      expect(titles.filter(title => JUDGEMENT_WORDS.test(title))).toEqual([]);
       await expect(judgementOf(page, judge, D9_G11)).toHaveAttribute("title", new RegExp(`^${word}( · .+)?$`));
       await expect(judgementOf(page, judge, G12_K10)).toHaveAttribute("title", "Hard position");
     });
@@ -978,11 +985,8 @@ test.describe("a variation's label and ◆", () => {
   // holds them, and the move names the move only. A turn with no button keeps them on its move (search-wait.spec.ts).
   for (const judge of ["edge", "turn"]) {
     test(`by ${judge}: with the engine off, an evaluated move's wait is in the title of ${judge === "edge" ? "the move" : "the turn's button"}`, async ({ page }) => {
-      // The file without the result of the position after G12-K10: its label waits for that search
-      const f = withVariations(), file = JSON.parse(f.buffer.toString());
-      file.analyses = (file.analyses as [string, unknown][]).filter(([k]) => !k.endsWith(`|${G12_K10}`));
       await display(page, { judge, branchForm: "text" });
-      await open(page, { ...f, buffer: Buffer.from(JSON.stringify(file)) });
+      await open(page, withVariations(G12_K10));
       await expect(bookMarks(page).first()).toBeVisible({ timeout: 30_000 });
       await evaluate(page, G12_K10);
       await expect(judgementOf(page, judge, G12_K10))

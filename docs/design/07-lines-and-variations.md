@@ -180,9 +180,10 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     has no tooltip, and in pills and dots its tooltip is the turn's number and the move. A turn with no such button
     shows no label in the move list: Best, Excellent and Good show as the board's badges. But the move that ends that
     turn keeps "Not analyzed yet" and the reason in its tooltip: they say why that move's searches give no label, and
-    they would show nowhere else. Each part is as tall as its glyph, so a label keeps the row's height. A variation's
-    parts have no slots of their own, because a variation's rows do not line up in columns. The moves evaluated are
-    kept with the variations. A variation that stops in a turn's middle has no turn label until the turn ends.
+    no other part of the move list shows them. Each part is as tall as its glyph, so a label keeps the row's height. A
+    variation's parts have no slots of their own, because a variation's rows do not line up in columns. The moves
+    evaluated are kept with the variations. A variation that stops in a turn's middle has no turn label until the turn
+    ends.
     - **A move that is the engine's only good move** also asks for the position before the enemy's last turn, when
       that position has no result of the label budget: a Great needs it (design 10, item 6). A position of the game has
       it already. A position of a variation has it when the player looked at it or evaluated a move from it. The move
