@@ -1514,6 +1514,6 @@ jobs of both sites run the step too, and a failed step deploys nothing.
   `release-assets.githubusercontent.com`, which gives a `Content-Length`. Each try asks GitHub again, so it follows
   a new redirect.
 - **No try waits for good:** Node's fetch (undici) stops a try that has no head after 300 s, or no byte of the body
-  for 300 s (`headersTimeout` and `bodyTimeout`, read from the builds of Node 24.21 and 26.13). Both get another
-  try. A server that holds a connection open with no answer stops the step after about 20 minutes: four tries of
-  300 s and 22 s of waits.
+  for 300 s (`headersTimeout` and `bodyTimeout`, read in the undici source that Node 24.21 and 26.13 hold). Both
+  get another try. A server that holds a connection open with no answer stops the step after about 20 minutes:
+  four tries of 300 s and 22 s of waits.

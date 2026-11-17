@@ -3,7 +3,7 @@
 // cause. Such a failure is one of these:
 //
 // - No answer: fetch throws before the response's head, for a reset, a timeout or a lookup that failed.
-// - An HTTP status that a server gives for a passing failure: a 5xx (GitHub gives 504), 408 or 429.
+// - An HTTP status that a server gives for a transient failure: a 5xx (GitHub gives 504), 408 or 429.
 // - A body that stops before its end. Node's fetch counts the body's bytes against its Content-Length, and reads a
 //   chunked body to its last chunk. The read throws when the connection closes before that end
 //   (UND_ERR_RES_CONTENT_LENGTH_MISMATCH, or "Invalid EOF state" for a chunked body) or when it is reset
@@ -20,7 +20,7 @@ import { fetchReason } from "./errors.ts";
 /** The waits before the second, third and fourth try, in seconds. A file that never comes waits 22 s in all. */
 export const RETRY_WAITS_S: readonly number[] = [2, 5, 15];
 
-const passingStatus = (status: number) => status >= 500 || status === 408 || status === 429;
+const transientStatus = (status: number) => status >= 500 || status === 408 || status === 429;
 
 type Try = { bytes: Buffer } | { problem: string; transient: boolean; cause?: unknown };
 
@@ -33,7 +33,7 @@ async function tryOnce(url: string): Promise<Try> {
   }
   if (!response.ok) {
     await response.body?.cancel().catch(() => {});
-    return { problem: `${url} gave HTTP ${response.status}`, transient: passingStatus(response.status) };
+    return { problem: `${url} gave HTTP ${response.status}`, transient: transientStatus(response.status) };
   }
   try {
     return { bytes: Buffer.from(await response.arrayBuffer()) };

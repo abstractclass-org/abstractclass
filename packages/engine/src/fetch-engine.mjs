@@ -65,9 +65,7 @@ async function get(artifact) {
   throw new Error(`${artifact.id}: the source must be "local", "engines" or "release"`);
 }
 
-/** Downloads `asset` of release `tag` of the lock's repository. A transient failure gets a few more tries, each
- *  printed. A failed download stops the step with an error that names `id`, the URL and the HTTP status or the
- *  network's error: no answer, or a file that stops before its end (download.ts). */
+/** Downloads `asset` of release `tag` of the lock's repository, with download.ts's retry rule. */
 function download(id, tag, asset) {
   return downloadRetrying(id, `https://github.com/${lock.repository}/releases/download/${tag}/${asset}`);
 }

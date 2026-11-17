@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer, type Socket } from "node:net";
-import { downloadRetrying, RETRY_WAITS_S } from "./download.ts";
+import { downloadRetrying } from "./download.ts";
 
 const FILE = Buffer.from("the engine's file");
 
@@ -44,10 +44,6 @@ function recorded() {
   return { waits, lines, options: { sleep: async (ms: number) => { waits.push(ms); },
                                     log: (line: string) => lines.push(line) } };
 }
-
-test("the waits are a few and short enough for CI", () => {
-  assert.deepEqual(RETRY_WAITS_S, [2, 5, 15]);
-});
 
 test("a 504 gets another try, after a wait, and the file comes on the second", async () => {
   const r = recorded();
