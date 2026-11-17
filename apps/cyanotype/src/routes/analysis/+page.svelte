@@ -41,7 +41,7 @@
   import { BOARD_EXPORTS, boardRecordNote, deliverBoardExport, type ExportKind,
            type ExportResult } from "@abstractclass/review/exports.ts";
   import { addressNetwork, boardRefusal, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
-  import { holdsGame } from "@abstractclass/import/importHash.ts";
+  import { holdsGame } from "@abstractclass/site/addressHash.ts";
   import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";

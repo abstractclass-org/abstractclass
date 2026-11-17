@@ -1,5 +1,6 @@
 // What arrives after a page's `#`, as URL parameters: the site's ways in (design 22). The browser never sends that
-// part of an address to a server, and the analytics start only once it holds no game (holdsGame).
+// part of an address to a server, and the analytics start only once it holds no game (holdsGame, in
+// @abstractclass/site's addressHash.ts).
 // - The import page's (`/import`): every game that comes in from outside.
 //   - A site's tools for a game site's pages (bookmarklet.ts, userscript.ts) send the tool, its version, the site that
 //     it ran on, the position that its page showed, and the game's record. Hedge School's tools made before they said
@@ -22,10 +23,8 @@ export interface ImportHash {
   from: string | null;
 }
 
-// The parameters after the `#` (hashParams) and whether that part holds a game (holdsGame) are the site's package's
-// (its addressHash.ts says why). This file gives both to its callers too.
+// The parameters after the `#` (hashParams) are the site's package's (its addressHash.ts says why).
 import { hashParams } from "@abstractclass/site/addressHash.ts";
-export { hashParams, holdsGame } from "@abstractclass/site/addressHash.ts";
 
 /** What sent a record, for a way in that does not say. */
 const NO_SENDER = { tool: null, version: "", site: null, at: null, link: false, save: null, from: null } as const;

@@ -17,8 +17,9 @@
   import { importRecord, wayRefusals } from "#lib/game/import.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
-  import { analysisAddress, hashParams, readImportHash, staleTool, type ImportHash,
+  import { analysisAddress, readImportHash, staleTool, type ImportHash,
            type Tool } from "@abstractclass/import/importHash.ts";
+  import { hashParams } from "@abstractclass/site/addressHash.ts";
   import { openReview } from "@abstractclass/import/openReview.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
   import { toolSource } from "#lib/game/tools.ts";

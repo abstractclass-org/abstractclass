@@ -1,8 +1,8 @@
 // Whether the part of an address after its `#` holds a game. The browser never sends that part to a server, but the
 // analytics and the error reports could: the analytics start only once it holds no game (design 22), and the error
 // reports' scrubber hides it when it holds one (scrub.ts). The import's frame reads the rest of that part
-// (@abstractclass/import's importHash.ts, which gives these two functions to its callers too). They are here, below
-// the import's frame, so that the site's package does not depend on it (design 29, "The packages' order").
+// (@abstractclass/import's importHash.ts). These two functions are here, below the import's frame, so that the site's
+// package does not depend on it (design 29, "The packages' order"). Every caller takes them from here.
 
 /** The parameters after the `#`, or null for a bare record (an older tool's): a record's text starts with a tag, a turn
  *  or a move, never with a name and "=". */

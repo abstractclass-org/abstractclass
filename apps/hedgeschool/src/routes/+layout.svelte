@@ -7,7 +7,7 @@
 	import { ASKS_CONSENT, analytics, consentChosen, startAnalytics } from '#lib/analytics.svelte.ts';
 	import { flushPractice } from '#lib/practice/send.ts';
 	import { removeUnreadResults } from '@abstractclass/analysis/cache.ts';
-	import { holdsGame } from '@abstractclass/import/importHash.ts';
+	import { holdsGame } from '@abstractclass/site/addressHash.ts';
 	import ConsentBanner from '@abstractclass/site/ConsentBanner.svelte';
 	import ThemeMenu from '@abstractclass/site/ThemeMenu.svelte';
 	import SiteMenu from '@abstractclass/site/SiteMenu.svelte';

@@ -22,8 +22,9 @@
   import { onMount } from "svelte";
   import { replaceState } from "$app/navigation";
   import { BOOKMARK_VERSION } from "@abstractclass/import/bookmarklet.ts";
-  import { analysisAddress, holdsGame, readImportHash, staleTool, type ImportHash,
+  import { analysisAddress, readImportHash, staleTool, type ImportHash,
            type Tool } from "@abstractclass/import/importHash.ts";
+  import { holdsGame } from "@abstractclass/site/addressHash.ts";
   import { openReview } from "@abstractclass/import/openReview.ts";
   import ToolChoice from "@abstractclass/import/ToolChoice.svelte";
   import { errorSentence } from "@abstractclass/engine/errors.ts";

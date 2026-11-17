@@ -6,7 +6,7 @@
   import "../app.css";
   import { onMount } from "svelte";
   import { page } from "$app/state";
-  import { holdsGame } from "@abstractclass/import/importHash.ts";
+  import { holdsGame } from "@abstractclass/site/addressHash.ts";
   import { removeUnreadResults } from "@abstractclass/analysis/cache.ts";
   import { ASKS_CONSENT, analytics, consentChosen, startAnalytics } from "#lib/analytics.svelte.ts";
   import { flushPractice } from "#lib/practice/send.ts";

@@ -2,7 +2,8 @@
 // meaf.us tools' (userscript.test.ts). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { analysisAddress, holdsGame, readImportHash, reviewArrives, staleTool } from "@abstractclass/import/importHash.ts";
+import { analysisAddress, readImportHash, reviewArrives, staleTool } from "@abstractclass/import/importHash.ts";
+import { holdsGame } from "@abstractclass/site/addressHash.ts";
 
 const record = '[Site "https://www.enclosuregame.com/game/abc123"]\n\n1. D10-E13 2. Q10-R8 O11-Q10 *';
 const current = { bookmarklet: "1", userscript: "abc" };

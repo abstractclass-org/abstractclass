@@ -119,7 +119,7 @@ edit in the same commit), so their changes still apply.
    type-checked and tested with the packages below it alone, and a change in a package cannot break the tests of a
    package below it. When a lower package needs a part of a higher one, that part moves down. For example, the site's
    error reports hide the part of an address after its `#` when it holds a game. So `holdsGame` and `hashParams` are
-   in the site's `addressHash.ts`, and the import's `importHash.ts` gives them on to its callers. A check of
+   in the site's `addressHash.ts`, and every caller takes them from there, the import's `importHash.ts` too. A check of
    `npm run check:all` (`scripts/package-deps.mjs`) refuses a cycle among the `@abstractclass` dependencies of the
    package.json files in `packages/` and `apps/`, in any of their fields. It also refuses an import of an
    `@abstractclass` package that the importer's package.json does not list, because the first check sees only the
@@ -545,7 +545,7 @@ edit in the same commit), so their changes still apply.
   tells whether the check's code (the site's script and `release-check.mjs`) differs between that commit and the
   checkout (`checkoutDiffers`). When it differs, the lines that come from the checkout say `(from this checkout)`.
 - `packages/import/` (`@abstractclass/import`, item 10): `bookmarklet.ts`, `userscript.ts` and `pageCode.ts` (the
-  tools' frame), `importHash.ts` (the hash after the `#`, with the site package's `hashParams` and `holdsGame`) and
+  tools' frame), `importHash.ts` (the hash after the `#`, which it reads with the site package's `hashParams`) and
   `importEvents.ts` (the import's events), with tests on a
   test site whose games are words. `ToolChoice.svelte`: the import page's choice for a tool's game, between the review
   and the Analysis board, with each site's words (design 33, "How a game comes in from strategyjam.org"), and

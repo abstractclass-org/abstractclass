@@ -3,7 +3,7 @@
 // sends a kept review, and the ways in that the review takes. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { analysisAddress, hashParams, holdsGame, readImportHash, reviewArrives, staleTool } from "./importHash.ts";
+import { analysisAddress, readImportHash, reviewArrives, staleTool } from "./importHash.ts";
 
 const record = '[Event "a word game"]\n\n1. ab 2. cd ef *\n';
 const NONE = { tool: null, version: "", site: null, at: null, link: false, save: null, from: null };
@@ -28,13 +28,12 @@ test("another site's link, a partner's page that sends a kept review, and an old
                    { ...NONE, record: "", link: true, from: "https://partner.example" });
   // A bare record starts with a tag, a turn or a move, never with a name and "=", even when it holds one.
   const bare = '[Event "a=b"]\n\n1. ab *';
-  assert.equal(hashParams(encodeURIComponent(bare)), null);
   assert.deepEqual(readImportHash(encodeURIComponent(bare)), { ...NONE, record: bare });
 });
 
-// Which part holds a game (holdsGame): @abstractclass/site's addressHash.test.ts. This file gives it on.
-test("which part after the `#` the review's arrival step takes, and the holdsGame that this file gives on", () => {
-  assert.equal(holdsGame("#record=x"), true);
+// Which part holds a game (holdsGame) and a bare record's parameters (hashParams): @abstractclass/site's
+// addressHash.test.ts.
+test("which part after the `#` the review's arrival step takes", () => {
   for (const hash of ["#packed=AQx", "#from=https%3A%2F%2Fpartner.example", "#tool=userscript&v=old&record=x"])
     assert.equal(reviewArrives(hash), true, hash);
   for (const hash of ["#record=x", "#1.%20ab", "#record=x&tool=bookmarklet", "#game=abc", ""]) assert.equal(reviewArrives(hash), false, hash);

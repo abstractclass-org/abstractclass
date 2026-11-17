@@ -5,7 +5,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import data from "../board/fixtures.json" with { type: "json" };
-import { holdsGame, readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
+import { readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
+import { holdsGame } from "@abstractclass/site/addressHash.ts";
 import { LOGO_SMALL, svgElement } from "#lib/brand/logo.ts";
 import { parseRecord } from "./record.ts";
 import { TOOL_NAME, bookmarkletHref, bookmarkletScript, userscriptHeader, userscriptSource } from "./tools.ts";

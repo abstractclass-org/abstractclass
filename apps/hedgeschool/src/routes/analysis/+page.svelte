@@ -36,7 +36,7 @@
   import { BOARD_EXPORTS, boardRecordNote, deliverBoardExport, type ExportKind,
            type ExportResult } from "@abstractclass/review/exports.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
-  import { holdsGame } from "@abstractclass/import/importHash.ts";
+  import { holdsGame } from "@abstractclass/site/addressHash.ts";
   import { parseRecord, startTags, withStart } from "#lib/game/record.ts";
   import { givenStartProblem } from "@abstractclass/record/record.ts";
   import { variantProblem } from "#lib/game/import.ts";
