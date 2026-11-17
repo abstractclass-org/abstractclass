@@ -13,6 +13,7 @@
 // (`blueprints-set-position`), and its moves after it as `play`. The moves brought are the game's start: a takeback
 // stops at them. The turns, the takeback, Resign and Abort are the practice's (@abstractclass/practice/game.svelte.ts).
 import { positionQuery } from "@abstractclass/engine/protocol.ts";
+import { refusal } from "@abstractclass/practice/bot.ts";
 import { PracticeGame as BaseGame } from "@abstractclass/practice/game.svelte.ts";
 import { gtpColor, resignResult, type PracticeOutcome } from "@abstractclass/practice/practice.ts";
 import type { EngineWorker } from "@abstractclass/engine/client.ts";
@@ -75,7 +76,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
    *  this browser. The bot refuses such a start too, with the position check's first reason. */
   protected async prepare() {
     const unreached = this.kept.start ? await startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
-    if (unreached) throw new Error(unreached);
+    if (unreached) throw refusal(unreached); // as the bot refuses it
     this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     const described = await this.byRules();
@@ -159,7 +160,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
   /** The bot's move, which must be one of the rules' legal moves. */
   protected async botMove(player: Player): Promise<string> {
     const [legal, move] = await Promise.all([this.describe().then(d => d.legal), super.botMove(player)]);
-    if (!legal.includes(move)) throw new Error(`${ENGINE_NAME} played ${move}, which is not a legal move here`);
+    if (!legal.includes(move)) throw refusal(`${ENGINE_NAME} played ${move}, which is not a legal move here`);
     return move;
   }
 

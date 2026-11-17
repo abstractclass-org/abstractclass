@@ -17,6 +17,15 @@ const faults = new WeakMap<object, BotFault>();
 /** The fault of an error that a command of the bot threw (BotFault). Null for any other error. */
 export const botFault = (e: unknown): BotFault | null => (e instanceof Object && faults.get(e)) || null;
 
+/** An error that stands for the bot's refusal (BotFault "refused"): a site's own check of what the bot would get, or
+ *  of what it gave, at the game's position. Cyanotype's game checks a kept start before the bot gets it, and each of
+ *  the bot's moves against the rules' legal moves. */
+export function refusal(message: string): Error {
+  const e = new Error(message);
+  faults.set(e, "refused");
+  return e;
+}
+
 /** The practice bot in its own worker, in one form. `game` is the game's name in the bot's own commands
  *  (`enclosure`, `blueprints`), and `worker` the bot's worker module (botForms.ts). */
 export class PracticeBot {

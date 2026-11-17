@@ -66,8 +66,8 @@ async function humanMove(page: Page, player: 0 | 1, random: () => number): Promi
 
 /** Waits for the player's turn or the game's end: the status line's text. */
 async function turn(page: Page): Promise<string> {
-  await page.waitForFunction(s => /^(Your turn|The game is over|You resigned|The game stopped)/.test(document.querySelector(s)?.textContent ?? ""),
-                             STATUS, { timeout: 300_000 });
+  await page.waitForFunction(s => /^(Your turn|The game is over|You resigned|Stamp Duty (cannot continue|has an error|stopped|did not start)|The page has an error)/
+    .test(document.querySelector(s)?.textContent ?? ""), STATUS, { timeout: 300_000 });
   return (await page.locator(STATUS).textContent())!;
 }
 
@@ -307,6 +307,8 @@ const TOUCH = "Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a 
   + "of the opponent that touches it, except walls\\.";
 const WHY = { it: `no game can reach it\\. ${TOUCH}`, its: `no game can reach its start\\. ${TOUCH}` };
 const PLAY_HERE = { name: "Play the bot from here" };
+/** The status line of a game that stopped as the bot refused it (practice.ts, stoppedLine). */
+const REFUSED = "Stamp Duty cannot continue this game. Abort the game. Then start a new game.";
 
 /** The settings of a test from a position, for each page that opens: the board's engine off, the bot on the CPU, and
  *  the bot's choices at 8 visits, the player Red. Gives the bot's network. */
@@ -419,7 +421,8 @@ test("a kept game from a start that no game reaches stops before the bot plays, 
     started: new Date().toISOString(), start: UNREACHED,
   });
   await page.goto(at("/practice"));
-  expect(await turn(page)).toMatch(new RegExp(`^The game stopped: ${WHY.its}$`));
+  // The page's check stands for the bot's refusal (the bot refuses such a start too): the site's words, not the reason.
+  expect(await turn(page)).toBe(REFUSED);
   expect((await keptGame(page))?.moves).toEqual([]); // the bot played no move
   expect(errors).toEqual([]);
 });
@@ -439,7 +442,7 @@ test("the standard start in the address brings nothing, and a kept start that th
     started: new Date().toISOString(), start: "no position",
   });
   await page.goto(at("/practice"));
-  expect(await turn(page)).toMatch(/^The game stopped: \S/);
+  expect(await turn(page)).toBe(REFUSED);
   await page.getByRole("button", { name: "Abort", exact: true }).click();
   await page.getByRole("alertdialog", { name: "Abort" }).getByRole("button", { name: "Abort", exact: true }).click();
   await expect(page.getByRole("button", { name: "Play as Red" })).toBeEnabled();

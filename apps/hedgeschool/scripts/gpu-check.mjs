@@ -160,7 +160,7 @@ export async function gpuCheck(site) {
           const parts = [`at ${new URL(page.url()).pathname}`];
           const line = await text(settingsLine);
           if (line !== null) parts.push(`the GPU's line "${line}"`);
-          const other = await text(page.getByText(new RegExp(`^(${escape(bot)} |Reviewing|Review done|The game stopped)`)));
+          const other = await text(page.getByText(new RegExp(`^(${escape(bot)} |Reviewing|Review done|The page has an error)`)));
           if (other !== null) parts.push(`"${other}"`);
           return parts.join(", ");
         }
@@ -245,8 +245,10 @@ export async function gpuCheck(site) {
           : expected.where;
         if (!where.test(line)) fail(`the bot: "${line}", not ${where}${where === expected.where ? "" : `, after "${tested}"`}`);
         const lastTurn = new RegExp(`^${escape(bot)}'s last turn took`);
-        await page.getByText(new RegExp(`${lastTurn.source}|^The game stopped`)).waitFor({ timeout: upTo(waits.practice) });
-        const stopped = page.getByText(/^The game stopped/);
+        // A game that stopped says why in the site's words (practice.ts, stoppedLine): the error goes in the report only.
+        const stop = new RegExp(`^(${escape(bot)} (cannot continue|has an error|stopped|did not start)|The page has an error)`);
+        await page.getByText(new RegExp(`${lastTurn.source}|${stop.source}`)).waitFor({ timeout: upTo(waits.practice) });
+        const stopped = page.getByText(stop);
         if (await stopped.count()) fail(await stopped.innerText());
         else say(await page.getByText(lastTurn).innerText());
       });

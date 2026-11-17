@@ -52,15 +52,18 @@ test("a game that another tab ends while the engine loads gives way to the setti
   expect(errors).toEqual([]);
 });
 
-// A kept game whose start the engine cannot read stops before its first position. The status line says why, as on
-// Cyanotype's Practice (one order for both sites, page.svelte.ts's PracticeLine), and not that the bot starts.
+// A kept game whose start the engine cannot read stops before its first position: the bot refuses the start. The
+// status line says why, in the site's words (practice.ts, stoppedLine), as on Cyanotype's Practice (one order for both
+// sites, page.svelte.ts's PracticeLine), and not that the bot starts. The bot's message goes into the report only.
 test("a game that fails before its first position says why it stopped", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(String(e)));
   await keepBefore(page, CONSENT_KEY, { games: "denied" });
   await keepBefore(page, GAME, keptPractice({ start: "no position" }));
   await page.goto("/practice");
-  await expect(page.getByRole("status").filter({ hasText: /^The game stopped: \S/ })).toBeVisible({ timeout: 120_000 });
+  const stopped = "HedgeFund cannot continue this game. Abort the game. Then start a new game.";
+  await expect(page.getByRole("status").filter({ hasText: stopped })).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText("The game stopped")).toHaveCount(0);
   await expect(page.getByText("Starting HedgeFund…")).toHaveCount(0);
   expect(errors).toEqual([]);
 });

@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import "@abstractclass/analysis/testing/svelteModules.ts";
 import type { Player } from "@abstractclass/analysis/game.ts";
-import { PracticeBot, botFault } from "./bot.ts";
+import { PracticeBot, botFault, refusal } from "./bot.ts";
 import type { BotRequest } from "./botMessages.ts";
 import type { KeptPractice } from "./practice.ts";
 
@@ -58,6 +58,11 @@ test("an error that no command of the bot threw has no fault: a worker ended on 
   assert.equal(botFault(await rejection(bot.command("genmove b"))), null);
   assert.equal(botFault(new Error("the rules failed")), null);
   assert.equal(botFault("a string"), null);
+});
+
+test("a site's own check stands for the bot's refusal, with its own message", () => {
+  const e = refusal("no game can reach its start.");
+  assert.deepEqual([e.message, botFault(e)], ["no game can reach its start.", "refused"]);
 });
 
 /** A game of one move a turn, Blue first, whose bot is `bot` and whose rules of the player's move throw with
