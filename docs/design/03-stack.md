@@ -55,6 +55,13 @@ new builds arrive often.
     site's folder `apps/hedgeschool` (a file in the engine repository's checkout, `../../../engines`).
   - `npm run engine` gets each artifact, checks its SHA-256, and puts it in `static/engine/<ID>/`. It writes
     `static/engine/manifest.json`, which the site reads to find the files and to name them in its results.
+  - **A download that fails for a moment gets another try.** GitHub sometimes gives an HTTP 504, or closes a
+    connection before the last byte of a file. One such failure stopped the step, and with it a check, a CI run or a
+    deploy. Now the step tries a download again after 2, 5 and 15 seconds, and prints a line for each retry with the
+    file, the try and the cause. It retries when the server gives no answer (a reset or a timeout), when it gives an
+    HTTP 5xx, 408 or 429, and when the body stops before its `Content-Length` (Node's fetch counts the bytes). Any
+    other status, such as 404, stops the step at once. So does a whole file whose SHA-256 is not the lock's: another
+    try gives the same file (`packages/engine/src/download.ts`).
   - **Numbers copied from the release's manifest:** a lock may give the networks' `sizes` and an evaluator's
     `maxThreads`, copied by hand from the manifest of the release (`manifest.json`, an asset of the release). The CPU
     evaluator cannot check a size against its network. A wrong size traps or plays another move with no message. So

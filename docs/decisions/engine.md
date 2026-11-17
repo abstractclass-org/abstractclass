@@ -1479,3 +1479,30 @@ has 16 logical cores. Three runs of each, the median and the range:
   the walls' legend or reading, at every width.
 - **The whole layout test** in Chromium, after that change: 216 passed and 5 skipped (the 5 cases of
   `analytics-ask.spec.ts`, which need a build with `VITE_GA_ID`). "Layout of the weak walls" passed in 1.2 minutes.
+
+### The engine step retries a download that fails for a moment (2026-11-17)
+
+The engine step downloaded each release file once. In one review, two of three runs of `npm run check:all` stopped
+at Hedge School's engine step on a GitHub HTTP 504 for a release file. On 2026-11-17 a run stopped because the
+download of a network ended before its end: Node's fetch gave `UND_ERR_RES_CONTENT_LENGTH_MISMATCH`. Since CI
+downloads from two releases (Enclosure's and Blueprints' engines), such a failure stops a run more often. The Deploy
+jobs of both sites run the step too, and a failed step deploys nothing.
+
+- **The rule** (`packages/engine/src/download.ts`, design 03): a download tries again after 2, 5 and 15 seconds, so
+  a file that never comes stops the step after 22 seconds of waits. Each retry prints a line with the file's id,
+  its URL, the try ("try 1 of 4") and the cause. It retries when the server gives no answer (fetch throws: a reset,
+  a timeout), an HTTP 5xx, 408 or 429, and a body that stops before its end. A 404 or any other status stops the
+  step at once. A whole file whose SHA-256 is not the lock's stops it at once too.
+- **A cut body and a wrong file:** Node's fetch counts a body's bytes against its `Content-Length`. A connection
+  that closes before the last byte makes the read throw (`TypeError: terminated`, with the cause
+  `UND_ERR_RES_CONTENT_LENGTH_MISMATCH`), and a reset during the body throws with the cause `UND_ERR_SOCKET`. Both
+  are measured with a stub server in Node 26.13. So a body that reaches the SHA-256 check is whole, and a wrong
+  SHA-256 means a wrong file: another try would give the same bytes.
+- **Who runs the step,** and so takes the retry: `npm run check:all` (its `engine` and `cyanotype-engine` steps),
+  the Tests workflow (check:all and its two `npm run engine -- --deploy` steps), the Deploy workflow (Hedge School's
+  `npm run build:cloudflare` and Cyanotype's `npm run engine -- --deploy`), and the planning repository's
+  `scripts/site-suite`, which runs check:all.
+- **The test** (`packages/engine/src/download.test.ts`): a stub server that writes raw HTTP answers gives a 504, a
+  cut body or a reset before the file, and the download gets the file on its second try after one wait of 2 s.
+  Four failures stop it after the waits 2, 5 and 15 s. A 404 and a file with the wrong SHA-256 stop it after one
+  request, with no wait.
