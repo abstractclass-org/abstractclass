@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { check, COMPUTED_PATHS, computedImports, specifiers } from "./package-imports.mjs";
+import { dirname, join, relative } from "node:path";
+import { check, codeFiles, COMPUTED_PATHS, computedImports, specifiers } from "./package-imports.mjs";
 
 const script = join(import.meta.dirname, "package-imports.mjs");
 
@@ -42,6 +42,20 @@ test("the paths of the imports, the exports, the imports of a path alone and the
     ["./a.ts", 1], ["../b.mjs", 4], ["@abstractclass/record/record.ts", 5], ["./d.ts", 6], ["./e.ts", 7],
     ["./side-effect.css", 8], ["./f.mjs", 9],
   ]);
+});
+
+test("the files with code: .ts, .mts, .js, .mjs, .svelte, but in node_modules, build, static, the dot folders", t => {
+  const root = repository(t, Object.fromEntries([
+    "packages/a/src/a.ts", "packages/a/src/b.mts", "packages/a/src/c.js", "packages/a/src/d.mjs",
+    "packages/a/src/E.svelte",
+    "packages/a/src/f.json", "packages/a/src/g.css", "packages/a/src/h.d.ts.map",
+    "packages/a/node_modules/x/index.js", "packages/a/src/node_modules/y.ts", "apps/x/build/server/index.js",
+    "apps/x/static/engine/library.mjs", "apps/x/.svelte-kit/generated/root.js", "apps/x/src/.hidden/z.ts",
+  ].map(path => [path, ""])));
+  const found = [...codeFiles(join(root, "packages")), ...codeFiles(join(root, "apps"))]
+    .map(path => relative(root, path).replaceAll("\\", "/")).sort();
+  assert.deepEqual(found, ["packages/a/src/E.svelte", "packages/a/src/a.ts", "packages/a/src/b.mts",
+                           "packages/a/src/c.js", "packages/a/src/d.mjs"]);
 });
 
 test("a package that imports nothing of a site passes", t => {

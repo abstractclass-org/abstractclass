@@ -1,9 +1,10 @@
-// No package imports a site (design 29, item 1). This check reads each file with code in packages/ (.ts, .mts, .js,
-// .mjs, .svelte, but node_modules) and refuses an import whose path is in apps/, which names a site's package (the
-// name in a package.json of apps/), or which starts with SvelteKit's `$lib`: a site's build reads that alias as the
-// site's own src/lib. It reads the imports and exports `from` a path, the imports of a path alone and the dynamic
-// imports of a literal path. It cannot read a path that the code computes, such as a join of the site's folder. So it
-// refuses a dynamic import of a computed path too, but in the files that COMPUTED_PATHS names with what they load.
+// No package imports a site (design 29, item 1). This check reads each file with code in packages/ (codeFiles: .ts,
+// .mts, .js, .mjs and .svelte, but not in node_modules, build, static or the dot folders). It refuses an import whose
+// path is in apps/, which names a site's package (the name in a package.json of apps/), or which starts with
+// SvelteKit's `$lib`: a site's build reads that alias as the site's own src/lib. It reads the imports and exports
+// `from` a path, the imports of a path alone and the dynamic imports of a literal path. It cannot read a path that the
+// code computes, such as a join of the site's folder. So it refuses a dynamic import of a computed path too, but in the
+// files that COMPUTED_PATHS names with what they load.
 //
 //   node scripts/package-imports.mjs [ROOT]
 //
@@ -14,7 +15,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { gameSites } from "./sites.mjs";
 
-const CODE = /\.(?:ts|mts|js|mjs|svelte)$/;
+/** The names of the files with code, which both checks read (this one and package-deps.mjs). */
+export const CODE = /\.(?:ts|mts|js|mjs|svelte)$/;
+/** The folders that hold no source: the packages that npm installs, a build's output, the files that a site serves as
+ *  they are (its engine's libraries, which no build reads), and the dot folders (SvelteKit's generated code). */
+const SKIPPED = new Set(["node_modules", "build", "static"]);
 /** An import's or an export's path: `… from "P"`, `import "P"` and `import("P")`. */
 const SPECIFIER = new RegExp([
   /\b(?:import|export)\b[^"'`;]*?\bfrom\s*(["'])([^"'\n]+)\1/.source,
@@ -63,11 +68,11 @@ export function importsSite(file, specifier, apps, sites) {
   return name === "$lib" || sites.has(name);
 }
 
-/** Each file with code under `dir`, but node_modules. */
-function codeFiles(dir) {
+/** Each file with code under `dir`, but in node_modules, build, static and the dot folders. */
+export function codeFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "node_modules" ? [] : codeFiles(path);
+    if (entry.isDirectory()) return SKIPPED.has(entry.name) || entry.name.startsWith(".") ? [] : codeFiles(path);
     return CODE.test(entry.name) ? [path] : [];
   });
 }

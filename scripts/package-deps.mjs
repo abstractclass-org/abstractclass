@@ -5,9 +5,10 @@
 // npm's workspaces and Vite resolve a cycle, so no build fails on one. But a package in a cycle cannot be tested or
 // type-checked alone, and a change in one package of the cycle can break the other's tests.
 //
-// It also reads each file with code in those folders (.ts, .mts, .js, .mjs and .svelte, but not in node_modules,
-// build, static or the dot folders). It refuses an import of an @abstractclass package that the file's package.json
-// does not list: without that line, the first part of the check cannot see the dependency.
+// It also reads each file with code in those folders, with package-imports.mjs's walker (codeFiles: .ts, .mts, .js,
+// .mjs and .svelte, but not in node_modules, build, static or the dot folders). It refuses an import of an
+// @abstractclass package that the file's package.json does not list: without that line, the first part of the check
+// cannot see the dependency.
 //
 //   node scripts/package-deps.mjs [ROOT]
 //
@@ -16,12 +17,10 @@
 // Tests: node --test "scripts/*.test.mjs"
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { specifiers } from "./package-imports.mjs";
+import { codeFiles, specifiers } from "./package-imports.mjs";
 
 const SCOPE = "@abstractclass/";
 const FIELDS = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
-const CODE = /\.(?:ts|mts|js|mjs|svelte)$/;
-const SKIPPED = new Set(["node_modules", "build", "static"]);
 
 /** The cycles of `graph` (each name, with the names that it depends on), one for each group of names that reach each
  *  other: from the group's first name in order, by the fewest steps, back to that name. A name that depends on itself
@@ -70,15 +69,6 @@ function manifests(root) {
 /** The @abstractclass packages that `manifest` lists, in any field. */
 const listed = manifest =>
   [...new Set(FIELDS.flatMap(field => Object.keys(manifest[field] ?? {})).filter(name => name.startsWith(SCOPE)))];
-
-/** Each file with code under `dir`, but in node_modules, build, static and the dot folders. */
-function codeFiles(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return SKIPPED.has(entry.name) || entry.name.startsWith(".") ? [] : codeFiles(path);
-    return CODE.test(entry.name) ? [path] : [];
-  });
-}
 
 /** The cycles among the @abstractclass dependencies of the repository at `root`, and each import of an @abstractclass
  *  package that the importer's package.json does not list (its file from the root, its line and the package). */
