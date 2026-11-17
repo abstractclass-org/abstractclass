@@ -102,8 +102,15 @@ export const checked = (a: StoredArtifact) =>
 
 export class EngineWorker {
   readonly kind = "cpu" as const;
-  private channel = new WorkerChannel<WorkerRequest>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }));
+  private channel: WorkerChannel<WorkerRequest>;
   private started: Promise<Timed<VersionReply>> | null = null;
+
+  /** `failsAfterErrors`: the worker fails for good after that many requests in a row on which it threw (channel.ts,
+   *  WorkerChannel). The pool's search workers take it, as the pool replaces a worker that failed (pool.ts). */
+  constructor(options: { failsAfterErrors?: number } = {}) {
+    this.channel = new WorkerChannel<WorkerRequest>(new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
+                                                   options);
+  }
 
   /** Starts the manifest's module in the worker, through the engine's library (library.ts). Refuses a protocol that
    *  the site does not speak (checkVersion). The worker starts once: a later call answers the first call's start, so
@@ -144,7 +151,8 @@ export class EngineWorker {
                                                           onPartial as (r: unknown, ms: number) => void);
     return { done, stop: () => this.channel.post({ type: "stop", id }) };
   }
-  /** The worker's failure (it ran out of memory, or its script did not load), or null while it lives. A worker that
+  /** The worker's failure (it ran out of memory, its script did not load, or it threw on `failsAfterErrors` requests
+   *  in a row), or null while it lives. A worker that
    *  failed fails each later request at once with this error (channel.ts): the pool starts another in its place
    *  (pool.ts, replace). */
   get failed(): Error | null { return this.channel.failed; }

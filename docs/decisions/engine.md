@@ -1565,3 +1565,37 @@ jobs of both sites run the step too, and a failed step deploys nothing.
   handler, which the error reports would send as a report of its own (`capture_unhandled_rejections`): the end of a
   search's marks (`markRunning`) handles the rejection of its result's promise. The weak walls whose task fails before
   its work runs are asked for once. On the earlier walls code, the test counted 21 asks, and stopped them there.
+
+### A search worker whose module a trap broke (2026-11-18)
+
+- **The problem** (abscls-exbk): the pool replaces a CPU worker whose channel keeps a failure ("A search worker that
+  fails for good"). A trap of the engine's module (a `WebAssembly.RuntimeError`, an abort) is not such a failure. The
+  worker (`packages/engine/src/worker.ts`) catches the request's error and posts an error reply, and the pool keeps
+  the worker. If the trap broke the module, each later task on that worker fails.
+- **What the module does after a trap:** a later call on the same instance works. It does not fail, and it does not
+  hang. Measured in Node (V8, the CPU only) with the CPU module of engine-d6786eba and the network
+  b10c128-s89066368-d17827487, through `createCpuEngine`'s code with one hook in the clock import: a chosen clock read
+  throws a `WebAssembly.RuntimeError`, which unwinds the module's frames as a trap does. Three traps: a real one (a
+  buffer of 2 GB that the module cannot allocate aborts with "unreachable"), one in a search of 64 visits, and one in
+  a search in slices, which then stays open in the module. After each one, `query_version`, three searches of 64
+  visits and a search in slices of 400 visits gave the same replies as before the trap, in the same times. The
+  measurement could not read the module's stack pointer, which the module does not export. The memory grew from
+  91.5 MB to 100 MB after the trap in the search in slices.
+- **The choice:** a trap does not break the module as a rule, and a trap that breaks it cannot be told from one that
+  does not. So the pool does not end a worker at its first trap. A search worker fails for good when it threw on two
+  requests in a row (`failsAfterErrors` of `WorkerChannel`, which the pool's `searchWorker` sets to 2). The channel
+  then keeps a `WorkerFailed`, and the replace path of "A search worker that fails for good" takes the worker: the
+  task that failed second runs once more on the new worker. The first task fails, as a search error does.
+- **What does not count:** the engine's error reply (`EngineError`, such as a position that cannot occur) shows that
+  the module answers. It starts the count again, as each reply does. So a search error on a live worker leaves the
+  worker in the pool, also many in a row.
+- **Only the pool's search workers** take the option. The rules worker, the practice bot (its fault "threw") and the
+  other workers of the sites do not change.
+- **The cost:** a position that makes the module trap each time fails its task. Each second such task in a row
+  starts a new worker, which loads the module and the network again, about a second.
+- **Both sites** use this pool: Hedge School's review and Cyanotype's.
+- **Checked:** `packages/engine/src/channel.test.ts`: a worker that threw on two requests in a row fails for good,
+  and a reply between two errors starts the count again. A channel without the option never fails for its errors.
+  `packages/engine/src/pool.test.ts`: a worker that traps once, then fails each call: its first task fails, the pool
+  starts one new worker, and the second task runs again on it. The engine's error replies three times in a row, then
+  errors that alternate with replies: no new worker. The first two of these tests fail on the earlier code.

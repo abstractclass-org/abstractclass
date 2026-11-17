@@ -14,11 +14,14 @@ import type { AnalysisQuery } from "./protocol.ts";
 
 /** A worker that keeps the messages that it gets, and answers each with a version of the site's protocol (and a
  *  search's visits). A worker that `fails` picks for a message fails for good on it, as a worker out of memory does: it
- *  answers nothing more, and its error event comes. One whose `refuses` picks a message answers it with an error. */
+ *  answers nothing more, and its error event comes. One whose `refuses` picks a message answers it with an error (the
+ *  worker threw: "the search failed", or the text that `refuses` gives). One whose `engineErrors` picks a message
+ *  answers it with the engine's error reply. */
 class FakeWorker {
   static made: FakeWorker[] = [];
   static fails: ((w: FakeWorker, m: { type: string }) => boolean) | null = null;
-  static refuses: ((w: FakeWorker, m: { type: string }) => boolean) | null = null;
+  static refuses: ((w: FakeWorker, m: { type: string }) => boolean | string) | null = null;
+  static engineErrors: ((w: FakeWorker, m: { type: string }) => boolean) | null = null;
   sent: { type: string }[] = [];
   dead = false;
   ended = false;
@@ -33,12 +36,15 @@ class FakeWorker {
       setImmediate(() => this.onerror?.({ message: "Out of memory", preventDefault() {} }));
       return;
     }
-    if (FakeWorker.refuses?.(this, m)) {
-      setImmediate(() => this.onmessage?.({ data: { type: "error", id: m.id, message: "the search failed" } }));
+    const refused = FakeWorker.refuses?.(this, m);
+    if (refused) {
+      const message = typeof refused === "string" ? refused : "the search failed";
+      setImmediate(() => this.onmessage?.({ data: { type: "error", id: m.id, message } }));
       return;
     }
-    const reply = { id: "v", protocol: PROTOCOL, build: "b", search: "the search", rules: "r", model: null, trained: [],
-                    rootInfo: { visits: 1 } };
+    const reply = FakeWorker.engineErrors?.(this, m) ? { id: "a", error: "the position cannot occur" }
+      : { id: "v", protocol: PROTOCOL, build: "b", search: "the search", rules: "r", model: null, trained: [],
+          rootInfo: { visits: 1 } };
     setImmediate(() => this.onmessage?.({ data: { type: "reply", id: m.id, reply, ms: 0, memory: 0 } }));
   }
   terminate() { this.ended = true; }
@@ -52,7 +58,7 @@ WebAssembly.compileStreaming = (async () => ({})) as unknown as typeof WebAssemb
 /** Lets the promises in flight settle, and the fake workers' replies come. */
 const settle = () => new Promise(r => setImmediate(r));
 
-const { EngineWorker } = await import("./client.ts");
+const { EngineError, EngineWorker } = await import("./client.ts");
 const gpuClient = await import("./gpuClient.ts");
 const { EnginePool } = await import("./pool.ts");
 
@@ -296,6 +302,48 @@ test("a search that fails on a live worker fails alone: the worker stays, and ta
     assert.equal(await pool.run(1, "b", searchOn()), "searched");
     assert.deepEqual([FakeWorker.made.length, first.searches, first.ended], [made, 2, false]); // one run each
   } finally {
+    FakeWorker.refuses = null;
+    pool.terminate();
+  }
+});
+
+test("a worker whose module a trap broke: its first task fails, its second runs again on a worker started in its place",
+     async () => {
+  // The module traps once, and each later call fails (abscls-exbk): the worker posts an error each time (worker.ts).
+  const { pool, first, made } = await startedPool();
+  let traps = 0;
+  FakeWorker.refuses = (w, m) => w === first && m.type === "call" &&
+    (traps++ ? "RuntimeError: memory access out of bounds" : "RuntimeError: unreachable");
+  try {
+    await assert.rejects(pool.run(1, "a", searchOn()), /^Error: RuntimeError: unreachable$/);
+    assert.deepEqual([FakeWorker.made.length, first.ended], [made, false]); // one failure: the worker stays
+    assert.equal(await pool.run(1, "b", searchOn()), "searched");
+    const next = FakeWorker.made.at(-1)!;
+    assert.deepEqual([FakeWorker.made.length, first.ended, pool.engines.length], [made + 1, true, 1]);
+    assert.deepEqual(next.sent.map(m => m.type), ["init", "model", "call"]); // the task ran once more, on the new one
+    assert.equal(await pool.run(1, "c", searchOn()), "searched");
+    assert.deepEqual([first.searches, next.searches], [2, 2]);
+  } finally {
+    FakeWorker.refuses = null;
+    pool.terminate();
+  }
+});
+
+test("a search error on a live worker leaves it in the pool: engine errors in a row, and failures between replies",
+     async () => {
+  const { pool, first, made } = await startedPool();
+  FakeWorker.engineErrors = (w, m) => w === first && m.type === "call";
+  try {
+    for (const tag of ["a", "b", "c"]) await assert.rejects(pool.run(1, tag, searchOn()), EngineError);
+    FakeWorker.engineErrors = null;
+    let k = 0;
+    FakeWorker.refuses = (w, m) => w === first && m.type === "call" && k++ % 2 === 0; // fails, answers, fails...
+    await assert.rejects(pool.run(1, "d", searchOn()), /^Error: the search failed$/);
+    assert.equal(await pool.run(1, "e", searchOn()), "searched");
+    await assert.rejects(pool.run(1, "f", searchOn()), /^Error: the search failed$/);
+    assert.deepEqual([FakeWorker.made.length, first.searches, first.ended, pool.engines[0].failed], [made, 6, false, null]);
+  } finally {
+    FakeWorker.engineErrors = null;
     FakeWorker.refuses = null;
     pool.terminate();
   }

@@ -1,7 +1,8 @@
 // Checks the page's side of a worker (WorkerChannel): a request that the page sends after the worker ended rejects with
 // Stopped, as a request still waiting does, and one sent after the worker failed rejects with its failure. A network
 // load sends its request only once the page has checked the network (client.ts, checked), and the pool can end
-// meanwhile. And the worker's side of a search in slices
+// meanwhile. A channel that asks for it takes a worker that threw on two requests in a row as failed for good. And the
+// worker's side of a search in slices
 // (searchInSlices): it yields between slices without a timer, a stop ends it at the next slice, and its time limit at
 // the end of the slice in which the limit passes. Run: npm test.
 import { test, type TestContext } from "node:test";
@@ -30,6 +31,44 @@ test("a request sent after the worker failed rejects with its failure, and does 
   const channel = new WorkerChannel<{ id: number; type: "call" }>(worker);
   worker.onerror!({ message: "", preventDefault() {} } as ErrorEvent);
   await assert.rejects(channel.send({ type: "call" }).done, { message: "the engine worker failed: no message" });
+});
+
+/** A worker that answers each request at once: with an error (the worker threw) when `threw` says so, else a reply. */
+function answering(threw: (k: number) => boolean) {
+  let k = 0;
+  const worker = {
+    onmessage: null as ((event: { data: unknown }) => void) | null,
+    postMessage(m: { id: number }) {
+      const data = threw(k++) ? { type: "error", id: m.id, message: "RuntimeError: unreachable" }
+                              : { type: "reply", id: m.id, reply: {}, ms: 0, memory: 0 };
+      setImmediate(() => worker.onmessage?.({ data }));
+    },
+    terminate() {},
+  };
+  return worker as unknown as Worker;
+}
+const outcome = (done: Promise<unknown>) => done.then(() => "reply", (e: Error) => e.message);
+
+test("a worker that throws on two requests in a row fails for good (failsAfterErrors), and one reply between resets it",
+     async () => {
+  const channel = new WorkerChannel<{ id: number; type: "call" }>(answering(k => k !== 1), { failsAfterErrors: 2 });
+  const send = () => outcome(channel.send({ type: "call" }).done);
+  const failed = () => channel.failed?.message ?? null; // a call: assert.equal does not narrow it for the later checks
+  const trap = "RuntimeError: unreachable";
+  assert.deepEqual([await send(), await send(), await send()], [trap, "reply", trap]);
+  assert.equal(failed(), null);
+  const failure = "the engine worker failed: RuntimeError: unreachable (2 requests in a row)";
+  assert.equal(await send(), failure); // the second in a row
+  assert.equal(failed(), failure);
+  assert.equal(await send(), failure); // a later request fails at once with it
+});
+
+test("without failsAfterErrors, a worker that throws on each request never fails for good", async () => {
+  // The practice bot's channel (bot.ts): a request that threw is its fault "threw", not "crashed".
+  const channel = new WorkerChannel<{ id: number; type: "call" }>(answering(() => true));
+  for (let k = 0; k < 3; k++)
+    await assert.rejects(channel.send({ type: "call" }).done, { message: "RuntimeError: unreachable" });
+  assert.equal(channel.failed, null);
 });
 
 /** An engine's search of three slices: its replies, and the requests that it got. It answers a terminate at once. With

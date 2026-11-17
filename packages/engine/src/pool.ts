@@ -9,9 +9,11 @@
 // worker's. So a task takes a free CPU worker first, and a free GPU slot when no CPU worker is free. A task that needs
 // the CPU module (`cpu`: a field that the GPU module refuses, such as the weak walls) waits for a CPU worker.
 //
-// A CPU worker can fail for good (it ran out of memory): its channel keeps the failure, and each later request on it
-// fails at once (channel.ts). The pool tells it by that kept failure (EngineWorker.failed), not by the task's error: a
-// search that fails on a live worker leaves the worker in the pool. The pool ends a worker that failed, starts another
+// A CPU worker can fail for good (it ran out of memory, or a trap broke its module): its channel keeps the failure, and
+// each later request on it fails at once (channel.ts). The pool tells it by that kept failure (EngineWorker.failed),
+// not by the task's error: a search that fails on a live worker leaves the worker in the pool. A trap leaves the
+// module usable as a rule, and a broken module cannot be told from the trap alone, so a search worker fails for good
+// when it threw on two requests in a row (searchWorker). The pool ends a worker that failed, starts another
 // in its place, and runs the task that failed on it once more. A worker started in place of one that failed is not
 // replaced in its turn until a task has ended on it: a worker that dies at each start ends the replacements, and the
 // pool goes on without it (replace).
@@ -40,6 +42,11 @@ export const defaultPoolSize = () => Math.max(1, Math.min(8, Math.floor((navigat
  *  with HedgeFund 0.1 Lite, 240 MB with HedgeFund 0.1: docs/decisions/engine.md, "A review's memory"), and a finished
  *  review needs none of them until the player searches again. */
 export const IDLE_RELEASE_MS = { shown: 60_000, hidden: 15_000 };
+
+/** A search worker of the pool. It fails for good when it threw on two requests in a row (a trap of its module, then
+ *  another error: channel.ts, failsAfterErrors), and the pool replaces it then (replace). The engine's error replies
+ *  do not count, and a reply between two errors starts the count again (abscls-exbk). */
+const searchWorker = () => new EngineWorker({ failsAfterErrors: 2 });
 
 /** The rejection of a task that was cancelled before it ran. */
 export class Cancelled extends Error {
@@ -103,7 +110,7 @@ export class EnginePool {
   constructor(size: number, rules = new EngineWorker()) {
     this.size = size;
     this.rulesWorker = rules;
-    this.engines = Array.from({ length: size }, () => new EngineWorker());
+    this.engines = Array.from({ length: size }, searchWorker);
   }
 
   /** Starts the module in every worker, then loads the network in the search workers. `onRules` runs once the rules
@@ -169,7 +176,7 @@ export class EnginePool {
     this.size = size;
     if (this.released) return; // they start at this size with the next task
     while (this.engines.length < size) {
-      const e = new EngineWorker();
+      const e = searchWorker();
       this.engines.push(e);
       this.startWorker(e);
     }
@@ -312,7 +319,7 @@ export class EnginePool {
     const k = this.engines.indexOf(dead);
     if (this.replacements.has(dead) || k < 0) { this.drop(dead, dead.failed); return; }
     dead.terminate();
-    const e = new EngineWorker();
+    const e = searchWorker();
     this.engines[k] = e;
     this.replacements.add(e);
     this.startWorker(e);

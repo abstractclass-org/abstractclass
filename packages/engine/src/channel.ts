@@ -29,7 +29,7 @@ export class EngineError extends Error {
 }
 
 /** The rejection of each request of a worker that failed as a whole (its onerror): its script did not load, or it ran
- *  out of memory. */
+ *  out of memory. Also of a worker that threw on too many requests in a row (WorkerChannel, failsAfterErrors). */
 export class WorkerFailed extends Error {
   constructor(message: string) { super(`the engine worker failed: ${message || "no message"}`); }
 }
@@ -42,23 +42,39 @@ export class Stopped extends Error {
 type Pending = { resolve: (t: Timed<unknown>) => void; reject: (e: Error) => void; partial?: (r: unknown, ms: number) => void };
 export type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
 
-/** The page's side of one worker: a promise for each request. */
+/** The page's side of one worker: a promise for each request.
+ *
+ *  `failsAfterErrors`: after that many requests in a row on which the worker threw (an "error" reply, such as a trap
+ *  of the engine's module), the channel takes the worker as failed for good, as when it ran out of memory. The
+ *  request that makes the count rejects with that failure, and so does each later one. A reply between, the engine's
+ *  error reply too, starts the count again. A module stays usable after a trap (abscls-exbk measured it), so one error
+ *  does not end the worker. A module that a trap broke fails each later request, and the second one ends it. Without
+ *  the option, a worker's errors never fail the channel (the practice bot tells them as its fault "threw"). */
 export class WorkerChannel<Request extends { id: number }> {
   private pending = new Map<number, Pending>();
   private nextId = 0;
   private worker: Worker;
   private ended = false;
   private failure: Error | null = null; // the worker failed: each request fails with this error
+  private errorsInARow = 0;
+  private readonly failsAfterErrors: number;
 
-  constructor(worker: Worker) {
+  constructor(worker: Worker, { failsAfterErrors = Infinity }: { failsAfterErrors?: number } = {}) {
     this.worker = worker;
+    this.failsAfterErrors = failsAfterErrors;
     worker.onmessage = (event: MessageEvent<ChannelReply>) => {
       const m = event.data;
       const p = this.pending.get(m.id);
       if (!p) return;
       if (m.type === "partial") { p.partial?.(m.reply, m.ms); return; }
       this.pending.delete(m.id);
-      if (m.type === "error") p.reject(new Error(m.message));
+      this.errorsInARow = m.type === "error" ? this.errorsInARow + 1 : 0;
+      if (m.type === "error" && this.errorsInARow >= this.failsAfterErrors) {
+        this.failure = new WorkerFailed(`${m.message} (${this.errorsInARow} requests in a row)`);
+        p.reject(this.failure);
+        this.rejectAll(this.failure);
+      }
+      else if (m.type === "error") p.reject(new Error(m.message));
       else if (isError(m.reply)) p.reject(new EngineError(m.reply));
       else p.resolve({ reply: m.reply, ms: m.ms, memory: m.memory, late: m.late });
     };
