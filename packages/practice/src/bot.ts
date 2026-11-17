@@ -17,14 +17,16 @@ const faults = new WeakMap<object, BotFault>();
 /** The fault of an error that a command of the bot threw (BotFault). Null for any other error. */
 export const botFault = (e: unknown): BotFault | null => (e instanceof Object && faults.get(e)) || null;
 
+/** Gives the error `e` its fault, and gives back the same error. */
+function tagged<E>(e: E, fault: BotFault): E {
+  if (e instanceof Object) faults.set(e, fault);
+  return e;
+}
+
 /** An error that stands for the bot's refusal (BotFault "refused"): a site's own check of what the bot would get, or
  *  of what it gave, at the game's position. Cyanotype's game checks a kept start before the bot gets it, and each of
  *  the bot's moves against the rules' legal moves. */
-export function refusal(message: string): Error {
-  const e = new Error(message);
-  faults.set(e, "refused");
-  return e;
-}
+export const refusal = (message: string): Error => tagged(new Error(message), "refused");
 
 /** The practice bot in its own worker, in one form. `game` is the game's name in the bot's own commands
  *  (`enclosure`, `blueprints`), and `worker` the bot's worker module (botForms.ts). */
@@ -65,19 +67,14 @@ export class PracticeBot {
   /** A GTP command's answer. Throws with the bot's message when it refuses the command. Each error that it throws has
    *  its fault (botFault). */
   async command(line: string): Promise<string> {
-    const { channel } = this.live();
-    let reply: string;
-    try {
-      reply = (await channel.send<string>({ type: "command", line }).done).reply;
-    } catch (e) { // a worker ended on purpose (Stopped) has no fault: the game has ended
-      if (e instanceof Object && !(e instanceof Stopped)) faults.set(e, e instanceof WorkerFailed ? "crashed" : "threw");
-      throw e;
-    }
+    const { reply } = await this.live().channel.send<string>({ type: "command", line }).done.catch((e: unknown) => {
+      // A worker ended on purpose (Stopped) has no fault: the game has ended.
+      throw e instanceof Stopped ? e : tagged(e, e instanceof WorkerFailed ? "crashed" : "threw");
+    });
     try {
       return gtpAnswer(reply);
     } catch (e) {
-      faults.set(e as Error, "refused");
-      throw e;
+      throw tagged(e, "refused");
     }
   }
 
