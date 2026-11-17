@@ -5,9 +5,9 @@
 // npm's workspaces and Vite resolve a cycle, so no build fails on one. But a package in a cycle cannot be tested or
 // type-checked alone, and a change in one package of the cycle can break the other's tests.
 //
-// It also reads each file with code in those folders (.ts, .mts, .js, .mjs, .svelte; but node_modules, build, static
-// and the dot folders) and refuses an import of an @abstractclass package that the file's package.json does not list:
-// without that line, the first part of the check cannot see the dependency.
+// It also reads each file with code in those folders (.ts, .mts, .js, .mjs and .svelte, but not in node_modules,
+// build, static or the dot folders). It refuses an import of an @abstractclass package that the file's package.json
+// does not list: without that line, the first part of the check cannot see the dependency.
 //
 //   node scripts/package-deps.mjs [ROOT]
 //
@@ -39,13 +39,13 @@ export function cycles(graph) {
     if (done.has(start)) continue;
     const group = [...reach.get(start)].filter(name => reach.get(name)?.has(start));
     group.forEach(name => done.add(name));
-    // The shortest way back to `start`, inside its group.
+    // The shortest way back to `start`. Each name on it reaches `start`, so the way stays inside the group.
     const before = new Map(), queue = [start];
     let last = null;
     for (const name of queue) {
       const next = graph.get(name) ?? [];
       if (next.includes(start)) { last = name; break; }
-      for (const n of next) if (group.includes(n) && !before.has(n) && n !== start) before.set(n, name), queue.push(n);
+      for (const n of next) if (!before.has(n)) before.set(n, name), queue.push(n);
     }
     if (last === null) continue;
     const path = [last];

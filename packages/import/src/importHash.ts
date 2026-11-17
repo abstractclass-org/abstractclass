@@ -22,9 +22,8 @@ export interface ImportHash {
   from: string | null;
 }
 
-// The parameters after the `#` (hashParams), and whether that part holds a game (holdsGame), are the site's package's:
-// its error reports' scrubber needs holdsGame, and the site's package is below the import's (design 29, "The
-// packages' order"). This file gives both to its callers too.
+// The parameters after the `#` (hashParams) and whether that part holds a game (holdsGame) are the site's package's
+// (its addressHash.ts says why). This file gives both to its callers too.
 import { hashParams } from "@abstractclass/site/addressHash.ts";
 export { hashParams, holdsGame } from "@abstractclass/site/addressHash.ts";
 

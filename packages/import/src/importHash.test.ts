@@ -33,7 +33,7 @@ test("another site's link, a partner's page that sends a kept review, and an old
 });
 
 // Which part holds a game (holdsGame): @abstractclass/site's addressHash.test.ts. This file gives it on.
-test("which part after the `#` the review's arrival step takes, and the site's holdsGame given on", () => {
+test("which part after the `#` the review's arrival step takes, and the holdsGame that this file gives on", () => {
   assert.equal(holdsGame("#record=x"), true);
   for (const hash of ["#packed=AQx", "#from=https%3A%2F%2Fpartner.example", "#tool=userscript&v=old&record=x"])
     assert.equal(reviewArrives(hash), true, hash);

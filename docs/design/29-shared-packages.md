@@ -112,9 +112,10 @@ edit in the same commit), so their changes still apply.
    that the check names with what they load.
 
    **The packages' order.** Each package depends only on packages below it. At the bottom are the engine, the
-   storage and the record, which depend on no package. The analysis is on them. The site's frame is on them too, and
-   its tests load the analysis package's loader of runes. The review and the import's frame are on the site's frame.
-   The practice is on the review, and the measure on the analysis and the site's frame. So each package can be
+   storage and the record, which depend on no package. The analysis depends on them. The site's frame depends on
+   them too. Its tests also load the analysis package's loader of runes, so the analysis is in its
+   `devDependencies`. The review and the import's frame depend on the site's frame. The practice depends on the
+   review, and the measure depends on the analysis and the site's frame. So each package can be
    type-checked and tested with the packages below it alone, and a change in a package cannot break the tests of a
    package below it. When a lower package needs a part of a higher one, that part moves down. For example, the site's
    error reports hide the part of an address after its `#` when it holds a game. So `holdsGame` and `hashParams` are
