@@ -43,9 +43,11 @@ export const seconds = (ms: number) => `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 
 
 /** What the status line tells, in one order on both sites: a game that stopped says why first (a game that fails as it
  *  starts has no position yet), then the bot's start, the game's end by Resign or by the rules, and whose move it is.
- *  It is the game's status (PracticeStatus), with "resigned" for a game that the player ended by Resign: "playing" is
- *  the player's move on its way to the bot and the rules. Each site gives the words. */
-export type PracticeLine = PracticeStatus | "resigned";
+ *  It is the game's status (PracticeStatus), with "resigned" for a game that the player ended by Resign, and
+ *  "unstarted" for a game that stopped because its bot started in no form: the site's own words then, as the error's
+ *  message is the code's, for the error report only. "playing" is the player's move on its way to the bot and the
+ *  rules. Each site gives the words. */
+export type PracticeLine = PracticeStatus | "resigned" | "unstarted";
 
 export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   // What the page shows: nothing until the script knows whether a game is in progress (the prerendered page cannot
@@ -55,6 +57,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   game = $state<G | null>(null);
   starting = $state.raw<K | null>(null); // the game whose bot starts: its players' names, for the skeleton
   failed = $state(""); // the engine's rules could not load: the page shows only this error
+  unstarted = $state(false); // the game's bot started in no form (play)
   ready = $state(false); // the rules are loaded: a game can start
   confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
   abortedId = $state<string | null>(null); // the last game was aborted, and the site keeps it under this id
@@ -73,7 +76,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   /** What the status line tells (PracticeLine). */
   line = $derived.by((): PracticeLine => {
     const g = this.game;
-    if (g?.status === "failed") return "failed";
+    if (g?.status === "failed") return this.unstarted ? "unstarted" : "failed";
     if (!g || g.status === "starting") return "starting";
     if (g.status === "over") return g.resigned ? "resigned" : "over";
     return g.status;
@@ -147,10 +150,14 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     this.abortedId = null;
     this.viewAt = null;
     this.notesAt = {};
+    this.unstarted = false;
     // A bot that starts in no form fails the game's start with its error: the game stops as on a later failure, with
-    // the status line, the error report and Abort.
+    // the error report and Abort. The status line gives the site's own words for it (PracticeLine, "unstarted").
     const bot = await startBot(this.site.game, this.manifest, kept.bot.network, this.site.engine(), kept.seed)
-      .catch((e: unknown) => PracticeBot.failed(this.site.game, e));
+      .catch((e: unknown) => {
+        this.unstarted = true;
+        return PracticeBot.failed(this.site.game, e);
+      });
     const g = (this.game = this.site.create(kept, this.rules, bot));
     g.onFail = e => this.site.engineError(e, "practice");
     await g.start();

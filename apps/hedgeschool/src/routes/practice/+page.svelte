@@ -121,11 +121,14 @@
   });
 
   const nameOf = (k: KeptPractice, p: Player) => (p === k.human ? k.name || "You" : networkName(k.bot.network));
-  // The bot's settings and where it runs, then the komi from the player's side (design 24)
-  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}, ${BOT_WHERE[g.mode]}.${g.kept.komi ? ` ${komiLine(g.kept, BOT_NAME)}` : ""}`;
+  // The bot's settings and where it runs, then the komi from the player's side (design 24). A bot that did not start
+  // runs nowhere: the line gives only the settings.
+  const botLine = (g: PracticeGame) => `${botName(g.kept.bot)}${page.line === "unstarted" ? "" : `, ${BOT_WHERE[g.mode]}`}.` +
+    (g.kept.komi ? ` ${komiLine(g.kept, BOT_NAME)}` : "");
   // The status line, in the order that both sites share (page.line): a game that stopped says why first.
   const statusText = $derived.by(() => {
     const g = game, p = g?.position, line = page.line;
+    if (line === "unstarted") return "HedgeFund did not start. Load the page again."; // the error goes in the report only
     if (line === "failed") return `The game stopped: ${g!.error}`;
     if (line === "starting" || !p) return "Starting HedgeFund…";
     if (line === "resigned") return "You resigned: HedgeFund wins.";
@@ -207,7 +210,7 @@
       {:else}
         <h1 class="text-lg font-bold">Practice</h1>
         {#if g}<p class="text-xs text-muted">{botLine(g)}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
-        <p class={["mt-2 text-sm font-medium", page.line === "failed" && "text-blunder"]} role="status" aria-live="polite">{statusText}</p>
+        <p class={["mt-2 text-sm font-medium", (page.line === "failed" || page.line === "unstarted") && "text-blunder"]} role="status" aria-live="polite">{statusText}</p>
         <p class="min-h-[1.25rem] mb-1.5 text-xs text-muted">
           {#if g && !page.atLatest && g.status !== "over"}Looking back at {shown ? `edge ${shown}` : "the start"}: End returns to the game.
           {:else if g?.lastTurnMs != null && g.status !== "over"}HedgeFund's last turn took {seconds(g.lastTurnMs)}.{/if}

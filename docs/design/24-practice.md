@@ -175,9 +175,12 @@ How strong each setting plays against people is not measured yet.
     plays the one-thread bot. The board's rules (the legal edges, the positions) come from the analysis module's
     rules worker, as on the Analysis board.
     - **A form that does not start** gives way to the next. When no form starts, the game stops before its first
-      position, as on a later failure: the status line says why, the error goes in one report, and Abort ends the
-      game. A bot's worker whose script does not load fails each request that the page sends to it, so the start
-      does not wait for good.
+      position, as on a later failure: the error goes in one report, and Abort ends the game. The status line gives
+      the site's own words, not the error's message: "HedgeFund did not start. Load the page again." ("Stamp Duty"
+      on Cyanotype). The error's message is the code's, such as a module's address, and a player cannot act on it. A
+      script that does not load is most often an old page after a new deploy, so a new load of the page is the likely
+      cure. The line under the heading then gives only the bot's settings: the bot runs in no form. A bot's worker
+      whose script does not load fails each request that the page sends to it, so the start does not wait for good.
     - **The threads:** 16 search threads on the GPU, and two for each CPU worker. They are the most that a move
       uses. KataGo's play settings give each thread at least 8 of a move's new playouts (`minPlayoutsPerThread`,
       KataGo's default for GTP). So a move with N new playouts searches with T threads: N / 8, rounded down, at least

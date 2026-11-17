@@ -175,6 +175,7 @@
   // site's text").
   const statusText = $derived.by(() => {
     const g = game, p = g?.position, line = page.line;
+    if (line === "unstarted") return `${ENGINE_NAME} did not start. Load the page again.`; // the error goes in the report only
     if (line === "failed") return `The game stopped: ${g!.error}`;
     if (line === "starting" || !g || !p) return `${ENGINE_NAME} starts…`;
     if (line === "resigned") return `You resigned. ${ENGINE_NAME} wins.`;
@@ -263,7 +264,7 @@
         <h1 class="text-lg font-bold">Practice</h1>
         <!-- A start brought that the rules refused, while the game in progress goes on. -->
         {#if notice}<p class="mt-1 text-xs text-blunder" role="alert">{notice}</p>{/if}
-        {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}, {BOT_WHERE[g.mode]}.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
+        {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}{page.line === "unstarted" ? "" : `, ${BOT_WHERE[g.mode]}`}.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
         <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
           {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
         </p>
@@ -300,7 +301,7 @@
          that changes does not move the board: the bar is fixed under the board, and the board's box counts its
          height. The input's texts fit two lines of a phone (input.ts). -->
     {#snippet above()}
-      <p class={["min-h-10 one-column-layout:h-10 one-column-layout:overflow-hidden mb-1.5 text-sm", page.line === "failed" && "text-blunder"]}
+      <p class={["min-h-10 one-column-layout:h-10 one-column-layout:overflow-hidden mb-1.5 text-sm", (page.line === "failed" || page.line === "unstarted") && "text-blunder"]}
          role="status" aria-live="polite"
          data-testid="practice-status">{statusText}</p>
     {/snippet}

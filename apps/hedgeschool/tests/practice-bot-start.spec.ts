@@ -1,7 +1,9 @@
 // A practice bot that starts in no form (@abstractclass/practice, page.svelte.ts's play), on both sites: the game stops
-// before its first position as on a later failure. The status line says why, Abort ends the game, and the error goes
-// to PostHog once. Two faults make the start fail, with no GPU and no fault of the engine: the bot's worker script does
-// not load (a 404 for it), and the practice library does not load in the worker, so that the worker refuses the start.
+// before its first position as on a later failure. The status line says, in the site's words, that the bot did not
+// start and to load the page again, the line under the heading names no place where the bot runs, Abort ends the
+// game, and the error goes to PostHog once, with the code's message, which the page does not show. Two faults make the
+// start fail, with no GPU and no fault of the engine: the bot's worker script does not load (a 404 for it), and the
+// practice library does not load in the worker, so that the worker refuses the start.
 // The worker's script fails before the page sends its first request, which waited for good before (the engine's
 // channel.ts). The context's route answers PostHog (tests/posthog.ts). The cases skip when a preview has no practice
 // bot, and fail in CI. Run: npm run test:layout -- tests/practice-bot-start.spec.ts --project=chromium, with BASE_URL
@@ -13,8 +15,10 @@ import { CONSENT_KEY } from "../src/lib/keys.ts";
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
 const SITES = [
-  { site: "Hedge School", base: () => test.info().project.use.baseURL!, starting: "Starting HedgeFund…" },
-  { site: "Cyanotype", base: () => CYANOTYPE!, starting: "Stamp Duty starts…" },
+  { site: "Hedge School", base: () => test.info().project.use.baseURL!, starting: "Starting HedgeFund…",
+    stopped: "HedgeFund did not start. Load the page again." },
+  { site: "Cyanotype", base: () => CYANOTYPE!, starting: "Stamp Duty starts…",
+    stopped: "Stamp Duty did not start. Load the page again." },
 ];
 
 /** The faults that stop the bot's start: each routes the page's requests. `library` is the practice library's
@@ -52,7 +56,7 @@ const practiceErrors = (sent: Sent[]) => sent.filter(e => (e.event === "engine_e
 
 lookLikeAVisitor();
 
-for (const { site, base, starting } of SITES) {
+for (const { site, base, starting, stopped } of SITES) {
   test.describe(site, () => {
     test.skip(site === "Cyanotype" && CYANOTYPE === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
 
@@ -68,8 +72,10 @@ for (const { site, base, starting } of SITES) {
         const blue = page.getByRole("button", { name: "Play as Blue" });
         await expect(blue).toBeEnabled({ timeout: 120_000 });
         await blue.click();
-        await expect(page.getByRole("status").filter({ hasText: /^The game stopped: \S/ })).toBeVisible({ timeout: 120_000 });
+        await expect(page.getByRole("status").filter({ hasText: stopped })).toBeVisible({ timeout: 120_000 });
         await expect(page.getByText(starting)).toHaveCount(0);
+        await expect(page.getByText(/The game stopped|engine worker|dynamically imported/)).toHaveCount(0); // the code's
+        await expect(page.getByText(/on the GPU|on the CPU workers|on one thread/)).toHaveCount(0); // runs nowhere
         await expect.poll(() => practiceErrors(sent), { timeout: 15_000 }).toEqual(["$exception", "engine_error"]);
         // The way out, as after a later failure: Abort, then the settings card for a new game.
         await page.getByRole("button", { name: "Abort", exact: true }).click();

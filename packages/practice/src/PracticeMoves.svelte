@@ -16,7 +16,7 @@
     // page.svelte.ts gives svelte-check a second copy of it, by the path in node_modules. The sites' bots then differ.
     page: {
       game: { played: readonly M[] } | null; starting: { moves: readonly string[] } | null; shown: number;
-      line: PracticeStatus | "resigned";
+      line: PracticeStatus | "resigned" | "unstarted";
     };
     text: (move: M) => string; // a move's text in the list
     row: Snippet<[turn: Turn, k: number]>; // the rows of the turn `k`, from 0 at the game's first turn
