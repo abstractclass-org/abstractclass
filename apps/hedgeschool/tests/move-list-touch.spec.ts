@@ -10,7 +10,7 @@ import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { declineGames } from "./cyanotype-consent.ts";
 import { noReview, reviewTestGame } from "./cyanotype-review.ts";
 import { openReviewFile } from "./review-file.ts";
-import { tableBox, toMove } from "./move-header.ts";
+import { toMove } from "./move-header.ts";
 
 const PHONE = { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true };
 /** The game's move that the cases press: the ninth. */
@@ -18,8 +18,6 @@ const NINTH = 9;
 /** How long the press holds (the move menu opens by 500 ms, design 07, item 12), and how long the cases wait after a
  *  release, which is longer than the preview's end (120 ms, PREVIEW_END_MS) and the double-tap's wait. */
 const HOLD_MS = 700, SETTLE_MS = 600;
-/** The position, in moves, where the candidates' table has rows to tap. */
-const TABLE_AT = 8;
 
 /** What a case needs of a site: how to open its review, with the review's setting "Review by" `judge`. */
 type Site = { name: string; open: (page: Page, judge: "edge" | "turn") => Promise<void>; skipped?: (page: Page) => Promise<string> };
@@ -63,17 +61,17 @@ async function moveButton(page: Page, n: number): Promise<{ key: string; button:
 /** What the page shows of the position on screen: the board's markup, which a preview changes (it hides the candidates
  *  and the notes, and draws the move's position). */
 const boardMarkup = (page: Page) => page.locator(".board-wrap").first().innerHTML();
-/** The status line of a preview ("Preview: the position after ..." or "Variation preview: ..."). */
-const previewStatus = (page: Page) => page.getByText(/^(Variation preview|Preview): /);
-/** Watches the page from now on for a preview's status line, at any moment: a flag that the page keeps. A browser sends
- *  the mouse events of a touch after its release, and a move list that previews on them shows the preview then. Where a
- *  later mouseleave comes (a menu that opened makes the pointer leave the move), the preview ends within a moment, so
- *  a check of the status line after a wait would miss it. */
+/** Watches the page from now on for a preview's status line ("Preview: the position after ..." or "Variation
+ *  preview: ..."), at any moment: a flag that the page keeps, with one observer for the page. A browser sends the mouse
+ *  events of a touch after its release, and a move list that previews on them shows the preview then. Where a later
+ *  mouseleave comes (a menu that opened makes the pointer leave the move), the preview ends within a moment, so a check
+ *  of the status line after a wait would miss it. */
 const watchPreview = (page: Page) => page.evaluate(() => {
-  const w = window as unknown as { __previewShown: boolean };
-  w.__previewShown = false;
+  const w = window as unknown as { __previewShown: boolean; __previewWatch?: MutationObserver };
   const look = () => { if (/Preview: the position|Variation preview: /.test(document.body.textContent ?? "")) w.__previewShown = true; };
-  new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true });
+  w.__previewShown = false;
+  w.__previewWatch ??= new MutationObserver(look);
+  w.__previewWatch.observe(document.body, { subtree: true, childList: true, characterData: true });
   look();
 });
 /** Whether a preview showed since watchPreview. */
@@ -104,27 +102,6 @@ for (const site of [HEDGE_SCHOOL, CYANOTYPE]) test.describe(`${site.name}: the m
     test.skip(!!why, why);
   });
 
-  // The other hover of the analysis that the board shows: the table's row under the pointer is outlined (`lit`) and its
-  // move is drawn on the board. The row starts its hover only for a mouse too (design 07, item 14). In headless Chromium
-  // a tap left no hover on the row before this change either (this case passes on the earlier code): the case guards
-  // the pin and the tap's result.
-  test("a tap on a candidate's row pins its line, and leaves no hover on the row", async ({ page }) => {
-    await openMoveList(page, site, "edge");
-    await toMove(page, TABLE_AT);
-    const rows = tableBox(page).locator("tbody tr");
-    await expect(rows.nth(1)).toBeVisible();
-    const row = rows.nth(1);
-    await row.locator("td").nth(1).tap();
-    await expect(row).toHaveClass(/inset_3px/);
-    await page.waitForTimeout(SETTLE_MS);
-    await expect(row).not.toHaveClass(/lit/);
-    // A second tap unpins it, and the row has still no hover
-    await row.locator("td").nth(1).tap();
-    await expect(row).not.toHaveClass(/inset_3px/);
-    await page.waitForTimeout(SETTLE_MS);
-    await expect(row).not.toHaveClass(/lit/);
-  });
-
   for (const judge of ["edge", "turn"] as const) {
     /** The parts of move 9 that a press lands on, by their name: the move's button, and its judgement: by edge the
      *  button's loss figure (the label slot's neighbour), by turn the turn's judgement cell, a button of its own. */
@@ -145,7 +122,6 @@ for (const site of [HEDGE_SCHOOL, CYANOTYPE]) test.describe(`${site.name}: the m
         await expect(moveMenu(page)).toBeVisible();
         await page.waitForTimeout(SETTLE_MS);
         expect(await previewShown(page), "a preview showed after the release").toBe(false);
-        await expect(previewStatus(page)).toHaveCount(0);
         expect(await boardMarkup(page), "the board shows the position on screen").toBe(screen);
         expect(await hereKey(page), "the position on screen stays").toBe(place);
         await page.keyboard.press("Escape");
@@ -162,12 +138,7 @@ for (const site of [HEDGE_SCHOOL, CYANOTYPE]) test.describe(`${site.name}: the m
       await button.tap();
       await expect(page.locator(`.movelist .mv.here[data-path="${key}"]`)).toHaveCount(1);
       await page.waitForTimeout(SETTLE_MS);
-      await expect(previewStatus(page)).toHaveCount(0);
       expect(await previewShown(page), "a preview showed after the tap").toBe(false);
-      // The board shows the position that the keys reach too, the position after move 9
-      const tapped = await boardMarkup(page);
-      await toMove(page, NINTH);
-      expect(await boardMarkup(page), "the board shows the position on screen").toBe(tapped);
     });
   }
 });

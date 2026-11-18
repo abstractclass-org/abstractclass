@@ -1318,27 +1318,29 @@
   $effect(() => { if (pickedKey) movelist?.querySelector(".mv.picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
-  /** A pointer handler that acts only for a mouse. A touch screen has no hover (design 33, item 6), and a pen counts as
-   *  a touch (item 8): a browser sends a touch's mouseenter at its start and no mouseleave until the next touch
-   *  elsewhere, which would leave a preview on the board. The pointer events end with the touch (pointerleave comes
-   *  at its release), and the handler ignores them. */
+  /** A pointer handler that acts only for a mouse (design 07, item 14). A touch screen has no hover (design 33,
+   *  item 6), and a pen counts as a touch (item 8): after a touch's release a browser sends its mouseenter, and no
+   *  mouseleave until the next touch elsewhere, which would leave a preview on the board. The touch's own pointer
+   *  events end with it (pointerleave comes at its release), and the handler ignores them. */
   const byMouse = (act: () => void) => (ev: PointerEvent) => { if (ev.pointerType === "mouse") act(); };
+  /** The handlers that show the preview `p` while a mouse is on an element. */
+  const previews = (p: Preview) => ({
+    onpointerenter: byMouse(() => startPreview(p)), onpointerleave: byMouse(endPreview),
+  });
   /** What makes an element of the move list act as the game's move `index`: the move menu's key (`data-path`), a click
    *  to the position after the move, and its preview while the pointer is on it. A move's button, and by turn the
    *  turn's judgement cell as its last edge (design 06, item 8: a row's parts behave the same by edge and by turn). */
   const asMove = (index: number) => ({
     "data-path": mainKeys[index + 1], tabindex: -1,
     onclick: () => go(index + 1, true),
-    onpointerenter: byMouse(() => startPreview({ kind: "move", index })),
-    onpointerleave: byMouse(endPreview),
+    ...previews({ kind: "move", index }),
   });
   /** The same for a variation's move `p`: its button, and by turn the turn's label as the turn's last edge (design 07,
    *  item 11). */
   const asBranch = (p: string[]) => ({
     "data-path": pathKey(p), tabindex: -1,
     onclick: () => setPath(p, true),
-    onpointerenter: byMouse(() => startPreview({ kind: "branch", path: p })),
-    onpointerleave: byMouse(endPreview),
+    ...previews({ kind: "branch", path: p }),
   });
   // By turn, the pointer on a turn's label (the game's judgement cell, or a variation's label) lights the turn's edges
   // in the label's row and the label as one group, in the pointer's style of the row (design 06, item 8). An overlay
@@ -1346,12 +1348,13 @@
   // so a turn that wraps lights each line's part, and an edge in another row (a variation that starts in a turn's
   // middle) stays out. The group is the label's, by its key (its `data-path`, its last edge's).
   let lit = $state.raw<{ key: string; boxes: { x: number; y: number; w: number; h: number }[] } | null>(null);
-  /** The attachment that lights a turn's label's group while a pointer that hovers is on the label: the label, and the
-   *  elements of its row that act as one of the turn's edges (`keys()`, their paths' keys; the label acts as the last).
-   *  A touch lights nothing, as a move's pointer outline (`hover:`) does not show on a touch screen. While the pointer
-   *  stays, the boxes follow the row's elements as they change size or move (a "…" that becomes a label, a narrower
-   *  list, an element that comes into the row before them). The group goes out when the pointer leaves, and when the
-   *  label goes from under it (a turn whose label the list does not show), which ends the label's preview too. */
+  /** The attachment that lights a turn's label's group while a mouse is on the label: the label, and the elements of
+   *  its row that act as one of the turn's edges (`keys()`, their paths' keys; the label acts as the last). Only a
+   *  mouse lights it, as only a mouse starts the label's preview (`byMouse`): a touch or a pen lights nothing, as a
+   *  move's pointer outline (`hover:`) does not show on a touch screen. While the pointer stays, the boxes follow the
+   *  row's elements as they change size or move (a "…" that becomes a label, a narrower list, an element that comes
+   *  into the row before them). The group goes out when the pointer leaves, and when the label goes from under it (a
+   *  turn whose label the list does not show), which ends the label's preview too. */
   const lightsTurn = (keys: () => string[]) => (label: HTMLElement) => {
     let stop: (() => void) | null = null; // stops the watch of the row, while the pointer is on the label
     function measure() {
@@ -1369,9 +1372,9 @@
         return { x: x - origin.left, y: y - origin.top, w: Math.max(...l.map(r => r.right)) - x, h: Math.max(...l.map(r => r.bottom)) - y };
       }) };
     }
-    function over(e: PointerEvent) {
+    function over() {
       const row = label.parentElement;
-      if (e.pointerType === "touch" || !row) return;
+      if (!row) return;
       stop?.();
       // The row and each of its elements, but the group's boxes: a change of size measures again, and so does the
       // first watch of each (now, and an element that comes into the row later, which can move the members)
@@ -1390,12 +1393,13 @@
       stop = null;
       if (lit?.key === label.dataset.path) lit = null;
     }
-    label.addEventListener("pointerenter", over);
+    const enter = byMouse(over);
+    label.addEventListener("pointerenter", enter);
     label.addEventListener("pointerleave", out);
     return () => {
       if (stop) endPreview();
       out();
-      label.removeEventListener("pointerenter", over);
+      label.removeEventListener("pointerenter", enter);
       label.removeEventListener("pointerleave", out);
     };
   };
@@ -2375,12 +2379,12 @@
   {@render turnMark(step.turn, k)}
   {#if display.branchForm === "text"}
     <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
-            onclick={() => playPath(p, "engine line played")} onpointerenter={byMouse(() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k }))}
-            onpointerleave={byMouse(endPreview)} tabindex="-1" title={note}>{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, step.mover, before)} />{:else}{view.moveName(e)}{/if}</button>
+            onclick={() => playPath(p, "engine line played")}
+            {...previews({ kind: "engine", start: engine.start, line: engine.line, k: step.k })} tabindex="-1" title={note}>{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, step.mover, before)} />{:else}{view.moveName(e)}{/if}</button>
   {:else}
     <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100", ROUND_HOVER]}
-            onclick={() => playPath(p, "engine line played")} onpointerenter={byMouse(() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k }))}
-            onpointerleave={byMouse(endPreview)} tabindex="-1" title={note}>
+            onclick={() => playPath(p, "engine line played")}
+            {...previews({ kind: "engine", start: engine.start, line: engine.line, k: step.k })} tabindex="-1" title={note}>
       {@render edgeShape(e, step.mover, before)}
     </button>
   {/if}
