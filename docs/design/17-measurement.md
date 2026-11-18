@@ -76,7 +76,7 @@ The events use the site's words (design 22), each for one thing:
 | `editor_analyze` | the board editor's Analyze: a position that a game can reach goes to the Analysis board | none | whether an editor's position reaches the board |
 | `review_done` | the review ends, in this visit (a review that opened done, `done_before`, sends none) | as `review_open`, and `review_seconds` (a number), `minutes`, `worker_speed` (a CPU worker's visits a second, by 5), `gpu_used` | the engine's defaults: how long a review takes on real machines, by settings and cores |
 | `gpu_test` | Auto's first test of a GPU | `gpu_outcome` (faster, slower), `gpu_ratio` (the GPU's speed over a worker's), `gpu` (maker and kind, as WebGPU gives them), `network` | the GPU's default, and whether it pays off on laptops and phones |
-| `engine_error` | the engine fails | `error_kind` (load, rules, gpu, practice: the bot failed to start, or stopped, worker: a search worker failed for good), and `rerun` for a worker that failed after it loaded (succeeded, failed, cancelled: how the task that ran on it ended) | reliability |
+| `engine_error` | the engine fails | `error_kind` (load: the engine or a network of a page did not load, the Board editor's too, rules, gpu: the GPU did not start, or it left the pool, practice: Practice's rules engine or its bot did not start, the bot stopped, or the page could not make the game, worker: a search worker failed for good), and `rerun` for a worker that failed after it loaded (succeeded, failed, cancelled: how the task that ran on it ended) | reliability |
 | `setting_change` | an engine setting changes | `setting`, `setting_value`, `setting_scope` (browser, game) | whether the defaults fit |
 | `feature` | a feature's first use in a review, or on the Analysis board or in Openings in a visit | `feature_name` (the feature, below) | what to keep, to improve, or to explain |
 | `export` | an export, from the review or the Analysis board (the page's address tells which) | `export_kind` (share_link, review_file, analysis_file, record_copy, record_file, partner_save: the review file saved to a partner site, design 18), `link_length`, `link_too_long` | whether players share, and whether links fit a Discord message |
@@ -145,7 +145,15 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
      an idle release. Such a worker that fails while it loads sends one `worker` report with no `rerun`, because no
      task ran on it. A worker that fails in the pool's start makes the start fail, and the page sends the `load`
      report.
+   - A Board editor whose engine does not start sends one `load` report.
+   - The GPU sends one `gpu` report when it does not start, when a search on it fails (not by the engine's reply) and
+     it leaves the pool, and when its module is of another search than the workers' (their results would mix in the
+     store). The workers then do all the searches.
    - A game that the rules refuse (`rules`) sends only the event: the fault is in the game, not in the site.
+   - Practice's rules engine that does not start sends one `practice` report. No game can start then (design 24,
+     item 14).
+   - A game that the page cannot make sends one `practice` report, and the settings card says so (design 24,
+     item 14).
    - A practice game reports its first error, from the game itself.
 3. **Every event loses a game before it goes** (`packages/site/src/scrub.ts`, PostHog's `before_send`). A report
    holds text that the site does not write: the error's message, the stack's addresses and the page's address. So the
