@@ -55,21 +55,17 @@ const fetchJson: BookReader = async (url, signal) => {
 /** A reader held to the time limit (inTime). */
 type TimedReader = (url: string) => Promise<unknown>;
 
-/** The time limit of a read of a file of the book, by the file's address, in milliseconds. */
-type BookLimit = (url: string) => number;
-
-/** `read` held to the time limit `limit`: past it, the read's signal aborts and the read rejects, whether the reader
- *  stops or not. */
-function inTime(read: BookReader, limit: BookLimit): TimedReader {
+/** `read` held to the time limit (BOOK_TIME_LIMIT): past it, the read's signal aborts and the read rejects, whether the
+ *  reader stops or not. */
+function inTime(read: BookReader): TimedReader {
   return url => new Promise((resolve, reject) => {
-    const ms = limit(url);
     const abort = new AbortController();
     const reading = read(url, abort.signal); // a reader that throws at once rejects here, with no timer
     const timer = setTimeout(() => {
-      const e = new Error(`no answer in ${ms / 1000} s`);
+      const e = new Error(`no answer in ${BOOK_TIME_LIMIT / 1000} s`);
       abort.abort(e);
       reject(e);
-    }, ms);
+    }, BOOK_TIME_LIMIT);
     reading.then(resolve, reject).finally(() => clearTimeout(timer));
   });
 }
@@ -81,11 +77,9 @@ function checked<T extends { format: unknown; version: unknown }>(file: T): T {
 }
 
 /** The book of the index at `url`, in the site's form. It loads the index, then starts the start's part. Each file
- *  that does not load within its time limit counts as not loaded: `limit` gives each read's limit by the file's
- *  address, BOOK_TIME_LIMIT for every file by default. */
-export async function openBook(url: string, reader: BookReader = fetchJson,
-                               limit: BookLimit = () => BOOK_TIME_LIMIT): Promise<Book> {
-  const read = inTime(reader, limit);
+ *  that does not load within its time limit (BOOK_TIME_LIMIT, the same for every file) counts as not loaded. */
+export async function openBook(url: string, reader: BookReader = fetchJson): Promise<Book> {
+  const read = inTime(reader);
   let index: BookIndex;
   try {
     index = checked((await read(url)) as BookIndex);
