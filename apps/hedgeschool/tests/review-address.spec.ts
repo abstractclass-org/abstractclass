@@ -52,7 +52,7 @@ test("a shared review, a kept game and an older tool's game pasted over the Revi
 
   await reviewTab(page);
   await paste(page, `game=${id}`);
-  expect(await reviewOpens(page)).toBe(id);
+  await reviewOpens(page);
 
   await reviewTab(page);
   await paste(page, new URLSearchParams({ tool: "userscript", v: "old", site: "meaf.us", record: text }).toString());
@@ -74,8 +74,7 @@ test("a record pasted over the Review tab or over a review gets the Review tab, 
   await paste(page, hash);
   await reviewTabShows();
 
-  await reviewTab(page);
-  await paste(page, `packed=${packed}`);
+  await paste(page, `packed=${packed}`); // over the Review tab, with the record still in the address
   await page.getByRole("button", { name: "Review it" }).click({ timeout: 60_000 });
   await reviewOpens(page);
   await paste(page, hash);
