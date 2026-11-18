@@ -24,6 +24,10 @@ export type Consent = "granted" | "denied";
 export type Purpose = "games";
 export type EventParams = Record<string, string | number | boolean>;
 
+/** The kinds of the engine's caught failures (Analytics.engineError, Hedge School's design 17): a network or a bot that
+ *  did not load, the GPU worker lost, a practice game's bot, and a search worker lost after it loaded. */
+export type EngineErrorKind = "load" | "gpu" | "practice" | "worker";
+
 /** What a site gives its analytics: Cloudflare Web Analytics' token from its build (none in development), the keys of
  *  the practice games' consent where the build stores them, and the flag of internal traffic. PostHog's key is the
  *  build's VITE_POSTHOG_KEY, the same for every site (POSTHOG). */
@@ -114,10 +118,10 @@ export class Analytics {
    *  reliability report counts, and the error itself to PostHog's error tracking ("Error reports"), each with its
    *  `error_kind`. PostHog's client takes the page's uncaught errors by itself (posthog.ts), and both lose a game, a
    *  record and a name before they go (scrub.ts). A game that the rules refuse is not the site's fault: its page sends
-   *  only the event, with `error_kind` "rules". */
-  engineError = (error: unknown, kind: "load" | "gpu" | "practice") => {
-    this.track("engine_error", { error_kind: kind });
-    this.#withClient(c => c.captureException(error, { error_kind: kind }));
+   *  only the event, with `error_kind` "rules". `params` go with both: a lost search worker's `rerun` ("worker"). */
+  engineError = (error: unknown, kind: EngineErrorKind, params: EventParams = {}) => {
+    this.track("engine_error", { error_kind: kind, ...params });
+    this.#withClient(c => c.captureException(error, { error_kind: kind, ...params }));
   };
 
   /** Sends an event once for each `key` in this page's life: a feature's first use in a review, not each use. The key

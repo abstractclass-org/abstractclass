@@ -1478,7 +1478,8 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
      `engine_error`, `setting_change`, `feature`, `export`.
    - the board editor: `editor_open`, `editor_analyze`.
    - Practice: `practice_start`, `practice_end`, `engine_error`, `feature`.
-   - the engine's session, on the review and the Analysis board: `gpu_test`, and `engine_error` for the GPU.
+   - the engine's session, on the review and the Analysis board: `gpu_test`, and `engine_error` for the GPU and for
+     a search worker lost after it loaded (`worker`).
    - Support Us, on every page: `support_open` ("Support Us").
 
    **Where Cyanotype's events differ from Hedge School's:**

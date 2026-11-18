@@ -15,13 +15,14 @@ export class TestPage {
   readonly session: EngineSession<Words>;
   readonly end: () => void;
 
-  /** A page whose settings name the network `network`, and whose session makes its pools with `pool`. */
-  constructor(network: string, pool: SessionOptions<Words>["pool"]) {
+  /** A page whose settings name the network `network`, and whose session makes its pools with `pool`, and reports to
+   *  `tracker` if given. */
+  constructor(network: string, pool: SessionOptions<Words>["pool"], tracker?: SessionOptions<Words>["tracker"]) {
     this.settings.network = network;
     let session!: EngineSession<Words>;
     this.end = $effect.root(() => {
       session = new EngineSession({ settings: () => this.settings, game: () => this.game, position: () => [],
-                                    frozen: () => this.snapshot, pool });
+                                    frozen: () => this.snapshot, pool, ...(tracker ? { tracker } : {}) });
     });
     this.session = session;
     flushSync();

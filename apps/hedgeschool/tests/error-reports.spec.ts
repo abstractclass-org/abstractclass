@@ -98,6 +98,41 @@ for (const { site, base, record: text, importLink } of SITES) {
       expect(leaked(sent, text)).toEqual([]);
     });
 
+    test("a search worker that fails after it loaded, on the Analysis board opened with a record, is reported once, with its task's rerun", async ({ context }) => {
+      const sent = await answerPostHog(context);
+      const page = await context.newPage();
+      // The first worker that loads a network fails for good at its first search, as one out of memory does: its error
+      // event comes, and it answers nothing more (packages/engine/src/channel.ts). The pool starts another in its place,
+      // and the search runs again there (packages/engine/src/pool.ts, replace).
+      // No class fields: Playwright compiles them to helpers that the page lacks.
+      await page.addInitScript(() => {
+        const loaded = new WeakSet<Worker>(), dead = new WeakSet<Worker>();
+        let failed = false;
+        globalThis.Worker = class extends Worker {
+          override postMessage(m: unknown, options?: Transferable[] | StructuredSerializeOptions) {
+            const type = (m as { type?: string } | null)?.type;
+            if (dead.has(this)) return;
+            if (type === "model") loaded.add(this);
+            else if (loaded.has(this) && !failed && (type === "call" || type === "search")) {
+              failed = true;
+              dead.add(this);
+              setTimeout(() => this.onerror?.(new ErrorEvent("error", { message: "Out of memory" })));
+              return;
+            }
+            super.postMessage(m, options as StructuredSerializeOptions);
+          }
+        };
+      });
+      await page.goto(at(`/analysis#record=${encodeURIComponent(text)}`));
+      const lost = () => sent.filter(e => e.event === "engine_error" && e.properties.error_kind === "worker");
+      await expect.poll(() => lost().map(e => e.properties.rerun), { timeout: 60_000 }).toEqual(["succeeded"]);
+      await expect.poll(() => reports(sent).filter(e => e.properties.error_kind === "worker").length).toBe(1);
+      const report = reports(sent).find(e => e.properties.error_kind === "worker")!;
+      expect(report.properties.rerun).toBe("succeeded");
+      expect(exceptions([report])[0].value).toBe("the engine worker failed: Out of memory");
+      expect(leaked(sent, text)).toEqual([]);
+    });
+
     test("a tool's game on the Import page, and an error with its event's and its player's names, reach PostHog without them", async ({ context }) => {
       const sent = await answerPostHog(context);
       const page = await context.newPage();

@@ -2,7 +2,8 @@
 // engine's manifest is read, before it chooses the pool (the review's, or a review snapshot's). The pool does not start the
 // worker a second time, and its rules work. Also checks the GPU's first-use test when the GPU leaves the pool, and while
 // no search that it needs runs. And a worker that fails for good (it runs out of memory): the pool starts another in
-// its place and runs the task once more, and a worker that dies at each start does not start again and again.
+// its place and runs the task once more, and a worker that dies at each start does not start again and again. The page
+// hears once of each worker lost, with how its task ended (onWorkerLost), and of no task that fails on a live worker.
 // Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -60,7 +61,7 @@ const settle = () => new Promise(r => setImmediate(r));
 
 const { EngineError, EngineWorker } = await import("./client.ts");
 const gpuClient = await import("./gpuClient.ts");
-const { EnginePool } = await import("./pool.ts");
+const { Cancelled, EnginePool } = await import("./pool.ts");
 
 const MANIFEST = { artifacts: [
   { kind: "module", id: "module", url: "/engine/module/engine.wasm" },
@@ -235,20 +236,24 @@ const searchOn = (ran: string[] = []) => async (e: SearchEngine) => {
   return "searched";
 };
 
-/** A pool of one search worker, started: the fake worker of its search worker, and of its rules worker. */
+/** A pool of one search worker, started: the fake worker of its search worker, and of its rules worker. `lost` keeps
+ *  each worker that the pool lost (onWorkerLost): its failure's message, and how the task that ran on it ended. */
 async function startedPool() {
   const pool = new EnginePool(1, new EngineWorker());
+  const lost: [string, string][] = [];
+  pool.onWorkerLost = (error, rerun) => lost.push([(error as Error).message, rerun]);
   await pool.start(MANIFEST, "net");
   const [rules, first] = FakeWorker.made.slice(-2);
-  return { pool, rules, first, made: FakeWorker.made.length };
+  return { pool, rules, first, made: FakeWorker.made.length, lost };
 }
 
 test("a worker that fails after it loaded: one starts in its place, the task runs again, the next tasks go to it",
      async () => {
-  const { pool, first, made } = await startedPool();
+  const { pool, first, made, lost } = await startedPool();
   FakeWorker.fails = (w, m) => w === first && m.type === "call";
   try {
     assert.equal(await pool.run(1, "a", searchOn()), "searched");
+    assert.deepEqual(lost, [["the engine worker failed: Out of memory", "succeeded"]]); // one report, once the task ran
     assert.equal(FakeWorker.made.length, made + 1);
     const next = FakeWorker.made.at(-1)!;
     assert.ok(first.ended); // the pool ended the worker that failed
@@ -256,6 +261,24 @@ test("a worker that fails after it loaded: one starts in its place, the task run
     assert.equal(await pool.run(1, "b", searchOn()), "searched");
     assert.equal(await pool.run(1, "c", searchOn()), "searched");
     assert.deepEqual([first.searches, next.searches, pool.engines.length], [1, 3, 1]);
+    assert.equal(lost.length, 1);
+  } finally {
+    FakeWorker.fails = null;
+    pool.terminate();
+  }
+});
+
+test("a worker that fails, whose task the page cancels before it runs again: the report says the task was cancelled",
+     async () => {
+  const { pool, first, lost } = await startedPool();
+  FakeWorker.fails = (w, m) => w === first && m.type === "call";
+  try {
+    const a = pool.run(1, "a", searchOn());
+    while (!first.ended) await settle(); // the worker that takes the task again loads now
+    assert.deepEqual(lost, []); // the task has not ended
+    pool.cancel(tag => tag === "a");
+    await assert.rejects(a, Cancelled);
+    assert.deepEqual(lost, [["the engine worker failed: Out of memory", "cancelled"]]);
   } finally {
     FakeWorker.fails = null;
     pool.terminate();
@@ -264,13 +287,14 @@ test("a worker that fails after it loaded: one starts in its place, the task run
 
 test("a worker that fails at each start after it loads: one starts in its place, none in place of that one",
      async () => {
-  const { pool, rules, made } = await startedPool();
+  const { pool, rules, made, lost } = await startedPool();
   FakeWorker.fails = (w, m) => w !== rules && m.type === "call";
   try {
     // The task fails on the second worker too: it fails as a search does (the panel's "Engine error")
     await assert.rejects(pool.run(1, "a", searchOn()), /^Error: the engine worker failed: Out of memory$/);
     assert.equal(FakeWorker.made.length, made + 1);
     assert.equal(pool.engines.length, 0);
+    assert.deepEqual(lost.map(([, rerun]) => rerun), ["failed", "failed"]); // each worker lost, the replaced and the dropped
     // No worker is left: a later task fails at once, and starts none
     await assert.rejects(pool.run(1, "b", searchOn()), /Out of memory/);
     assert.equal(FakeWorker.made.length, made + 1);
@@ -294,13 +318,14 @@ test("a worker that fails as it starts in place of one that failed: the pool dro
 });
 
 test("a search that fails on a live worker fails alone: the worker stays, and takes the next task", async () => {
-  const { pool, first, made } = await startedPool();
+  const { pool, first, made, lost } = await startedPool();
   FakeWorker.refuses = (w, m) => w === first && m.type === "call";
   try {
     await assert.rejects(pool.run(1, "a", searchOn()), /^Error: the search failed$/);
     FakeWorker.refuses = null;
     assert.equal(await pool.run(1, "b", searchOn()), "searched");
     assert.deepEqual([FakeWorker.made.length, first.searches, first.ended], [made, 2, false]); // one run each
+    assert.deepEqual(lost, []); // no worker lost
   } finally {
     FakeWorker.refuses = null;
     pool.terminate();
@@ -310,14 +335,16 @@ test("a search that fails on a live worker fails alone: the worker stays, and ta
 test("a worker whose module a trap broke: its first task fails, its second runs again on a worker started in its place",
      async () => {
   // The module traps once, and each later call fails (abscls-exbk): the worker posts an error each time (worker.ts).
-  const { pool, first, made } = await startedPool();
+  const { pool, first, made, lost } = await startedPool();
   let traps = 0;
   FakeWorker.refuses = (w, m) => w === first && m.type === "call" &&
     (traps++ ? "RuntimeError: memory access out of bounds" : "RuntimeError: unreachable");
   try {
     await assert.rejects(pool.run(1, "a", searchOn()), /^Error: RuntimeError: unreachable$/);
-    assert.deepEqual([FakeWorker.made.length, first.ended], [made, false]); // one failure: the worker stays
+    assert.deepEqual([FakeWorker.made.length, first.ended, lost.length], [made, false, 0]); // one failure: the worker stays
     assert.equal(await pool.run(1, "b", searchOn()), "searched");
+    assert.deepEqual(lost.map(([, rerun]) => rerun), ["succeeded"]); // one report: the second failure in a row
+    assert.match(lost[0][0], /^the engine worker failed: RuntimeError: memory .* \(2 requests in a row\)$/);
     const next = FakeWorker.made.at(-1)!;
     assert.deepEqual([FakeWorker.made.length, first.ended, pool.engines.length], [made + 1, true, 1]);
     assert.deepEqual(next.sent.map(m => m.type), ["init", "model", "call"]); // the task ran once more, on the new one

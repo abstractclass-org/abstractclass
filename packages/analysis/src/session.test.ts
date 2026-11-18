@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import "./testing/svelteModules.ts";
-import type { EnginePool, Work } from "@abstractclass/engine/pool.ts";
+import type { EnginePool, TaskEnd, Work } from "@abstractclass/engine/pool.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
 import { reply, wordRules, words, type Words } from "./testing/game.ts";
 import { readAnalysisKey } from "./cache.ts";
@@ -32,6 +32,7 @@ class FakePool {
   released = false;
   terminated = false;
   onGpuLost: ((error: unknown) => void) | null = null;
+  onWorkerLost: ((error: unknown, rerun: TaskEnd) => void) | null = null; // the session sets it (#newPool)
   private sha: (network: string) => string;
   private loaded: Promise<void>;
   private settle!: { load(): void; fail(e: Error): void };
@@ -80,17 +81,20 @@ const turns = async () => { for (let k = 0; k < 20; k++) await new Promise(resol
 let pages = 0;
 /** A page whose settings name the network n1, with the manifest read, and the pools that its session makes. Each page's
  *  networks have SHA-256s of their own (`sha`): the store's results outlive a test. `written` gives the networks of
- *  the page's results written to the store, by their SHA-256. */
+ *  the page's results written to the store, by their SHA-256. `errors` keeps the engine's failures that the session
+ *  reported to the analytics: each one's message, kind and parameters. */
 function page() {
   const pools: FakePool[] = [], n = ++pages, sha = (network: string) => `${network}p${n}`;
+  const errors: [string, string, unknown][] = [];
   const p = new TestPage("n1", size => {
     const pool = new FakePool(size, sha);
     pools.push(pool);
     return asPool(pool);
-  });
+  }, { track: () => {}, networkName: id => id,
+       engineError: (e, kind, params) => errors.push([(e as Error).message, kind, params]) });
   p.session.manifest = MANIFEST;
   const written = () => new Set(store.puts(STORES.analysis).map(k => readAnalysisKey(String(k)).model).filter(m => m.endsWith(`p${n}`)));
-  return { page: p, pools, sha, written };
+  return { page: p, pools, sha, written, errors };
 }
 
 /** A review by an earlier engine shown as it was (design 20): the rules alone, no network, as the review's page opens
@@ -239,5 +243,20 @@ test("a network chosen while the review starts makes no pool once the session ha
   show();
   await turns();
   assert.equal(pools.length, 1);
+  p.end();
+});
+
+test("a search worker that each pool loses sends the error report of kind worker, with how its task ended", async () => {
+  const { page: p, pools, errors } = page();
+  const review = startReview(p);
+  await turns();
+  pools[0].load();
+  await review.answered;
+  pools[0].onWorkerLost!(new Error("the engine worker failed: Out of memory"), "succeeded");
+  p.choose("n2"); // the next network's pool
+  await turns();
+  pools[1].onWorkerLost!(new Error("the engine worker failed: Out of memory"), "failed");
+  assert.deepEqual(errors, [["the engine worker failed: Out of memory", "worker", { rerun: "succeeded" }],
+                            ["the engine worker failed: Out of memory", "worker", { rerun: "failed" }]]);
   p.end();
 });

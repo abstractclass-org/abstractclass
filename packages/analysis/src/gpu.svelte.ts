@@ -19,10 +19,11 @@ export const GPU_SEARCHES = 16;
 export const TEST_SECONDS = 20;
 
 /** How the analysis reports to the site's analytics (design 17): an event with its parameters, an engine's failure
- *  that it caught (the event engine_error and the error report), and a network's name for an event that names it. */
+ *  that it caught (the event engine_error and the error report, with the parameters of its kind), and a network's name
+ *  for an event that names it. */
 export interface Tracker {
   track(name: string, params?: Record<string, string | number | boolean>): void;
-  engineError(error: unknown, kind: "load" | "gpu"): void;
+  engineError(error: unknown, kind: "load" | "gpu" | "worker", params?: Record<string, string | number | boolean>): void;
   networkName(id: string): string;
 }
 

@@ -137,7 +137,7 @@ export class EngineSession<G extends GameTypes> {
   async start(make: (pool: EnginePool) => GameAnalysis<G> | Promise<GameAnalysis<G>>,
               onRules: (g: GameAnalysis<G>, pool: EnginePool) => Promise<void>): Promise<GameAnalysis<G> | null> {
     if (this.#ended) return null;
-    const before = this.pool, first = this.pool = this.#o.pool(this.#workers, this.takeRules());
+    const before = this.pool, first = this.pool = this.#newPool(this.takeRules());
     const network = this.network = this.#network;
     let g = null as GameAnalysis<G> | null; // the analysis, once the page shows it
     this.#analysis = null; // a network chosen meanwhile waits for the analysis made here
@@ -176,7 +176,7 @@ export class EngineSession<G extends GameTypes> {
     this.network = id;
     g.dropAnalysis();
     this.#o.dropped();
-    const next = this.#o.pool(this.#workers);
+    const next = this.#newPool();
     try {
       await next.start(this.manifest, id);
     } catch (e) {
@@ -190,6 +190,15 @@ export class EngineSession<G extends GameTypes> {
     g.usePool(next);
     this.#controlGpu(next);
     await g.sweep(); // the board's: ready again (GameAnalysis.sweep)
+  }
+
+  /** A pool of the settings' search workers, which takes the rules worker `rules` if given. Each search worker that it
+   *  loses after the worker loaded sends the error report of kind "worker", with how its task ended when it ran again
+   *  (EnginePool.onWorkerLost). */
+  #newPool(rules?: EngineWorker): EnginePool {
+    const pool = this.#o.pool(this.#workers, rules);
+    pool.onWorkerLost = (error, rerun) => this.#o.tracker.engineError(error, "worker", { rerun });
+    return pool;
   }
 
   /** The GPU worker (design 15), one control for each pool: Off, On, or Auto, which keeps the GPU where its first-use

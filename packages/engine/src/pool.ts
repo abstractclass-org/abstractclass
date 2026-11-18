@@ -64,7 +64,12 @@ interface Task {
   stopped?: boolean; // stopped to give way: it runs again later
   rerun?: boolean; // it failed on a CPU worker that failed for good, and runs once more
   engine?: SearchEngine; // while it runs
+  ended?: TaskEnd; // how it ended, once it has
+  lost?: unknown[]; // the failures of the CPU workers that failed for good under it, told once it ends (onWorkerLost)
 }
+
+/** How a task ended: its work's result, its failure, or its cancel (Cancelled) while it waited. */
+export type TaskEnd = "succeeded" | "failed" | "cancelled";
 
 export class EnginePool {
   readonly engines: EngineWorker[];
@@ -82,6 +87,11 @@ export class EnginePool {
   /** Called when the GPU fails (a lost device, its worker ended): the pool drops it, and its tasks run again on the CPU
    *  workers. */
   onGpuLost: ((error: unknown) => void) | null = null;
+  /** Called once for each CPU worker that failed for good after it loaded (it ran out of memory, or its module broke):
+   *  the pool ended it, and started another in its place or went on without it (replace). It gets the worker's failure,
+   *  and how the task that ran on the worker ended, once it has: the pool ran that task once more (a rerun), unless it
+   *  had run once more already. A worker that fails while it loads is not told here (startWorker, start). */
+  onWorkerLost: ((error: unknown, rerun: TaskEnd) => void) | null = null;
   /** Called when tasks wait and no engine is free: the GPU starts then (design 15). */
   onBacklog: (() => void) | null = null;
   private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
@@ -156,7 +166,10 @@ export class EnginePool {
     clearTimeout(this.idleTimer);
     if (this.released) { this.released = false; this.resize(this.size); }
     return new Promise<T>((resolve, reject) => {
-      this.enqueue({ priority, tag, work: work as Work<unknown>, resolve: resolve as (v: unknown) => void, reject, cpu });
+      const task: Task = { priority, tag, work: work as Work<unknown>, cpu,
+        resolve: value => { this.taskEnded(task, "succeeded"); resolve(value as T); },
+        reject: error => { this.taskEnded(task, error instanceof Cancelled ? "cancelled" : "failed"); reject(error); } };
+      this.enqueue(task);
       this.dispatch();
       this.giveWay();
     });
@@ -310,12 +323,21 @@ export class EnginePool {
     this.dispatch(); // the tasks that no engine is left for fail (strand)
   }
 
-  /** Ends the CPU worker `dead`, whose worker failed for good, and starts another in its place, which takes work once
-   *  it has loaded. A worker that was itself started in place of one that failed, and on which no task has ended, is
+  /** A task has ended, `end`: the page hears of each CPU worker that failed for good under it (onWorkerLost). */
+  private taskEnded(task: Task, end: TaskEnd) {
+    task.ended = end;
+    for (const failure of task.lost ?? []) this.onWorkerLost?.(failure, end);
+    task.lost = undefined;
+  }
+
+  /** Ends the CPU worker `dead`, whose worker failed for good under `task`, and starts another in its place, which
+   *  takes work once it has loaded. The page hears of it once the task has ended (onWorkerLost). A worker that was itself started in place of one that failed, and on which no task has ended, is
    *  dropped instead: a worker that dies at each start (a network too large for the tab's memory) does not start
    *  again and again. The pool then goes on with fewer workers, and the tasks that fail on them fail as an engine's
    *  failure does (the panel's "Engine error"). */
-  private replace(dead: EngineWorker) {
+  private replace(dead: EngineWorker, task: Task) {
+    if (task.ended) this.onWorkerLost?.(dead.failed, task.ended);
+    else (task.lost ??= []).push(dead.failed);
     const k = this.engines.indexOf(dead);
     if (this.replacements.has(dead) || k < 0) { this.drop(dead, dead.failed); return; }
     dead.terminate();
@@ -365,7 +387,7 @@ export class EnginePool {
           task.engine = undefined;
           const dead = EnginePool.dead(engine);
           if (this.retiring.delete(engine)) engine.terminate();
-          else if (dead) this.replace(dead);
+          else if (dead) this.replace(dead, task);
           else this.free.push(engine);
           this.replacements.delete(engine); // a task has ended on it
           this.dispatch();
