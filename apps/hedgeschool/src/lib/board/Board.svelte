@@ -564,9 +564,10 @@
   .preview.p1 { stroke: var(--red); }
 
   /* Candidates: the first choice in the engine's colour, the others grey. All are faded until hover, so that none
-     hides a short edge under it. */
+     hides a short edge under it. The hover is the class `hovered`, which only a mouse sets (byMouse), and not
+     `:hover`: a browser keeps `:hover` on a tapped element until the next tap elsewhere. */
   .candidate { cursor: pointer; opacity: 0.38; transition: opacity 0.12s; }
-  .candidate:hover, .candidate.hovered { opacity: 1; }
+  .candidate.hovered { opacity: 1; }
   .candidate.top { opacity: 1; pointer-events: none; }
   .candidate.off { visibility: hidden; }
   .cand-hit { stroke: transparent; stroke-width: 0.6; }
@@ -628,8 +629,12 @@
   .green { stroke: var(--note-green); }
   .grey { stroke: var(--note-grey); }
   .hit { fill: transparent; cursor: crosshair; touch-action: none; } /* a drag from a point plays, not scrolls */
-  .hit:hover { fill: var(--last); fill-opacity: 0.25; }
   .hit.inert { cursor: default; }
-  .hit.inert:hover { fill: transparent; }
+  /* The tint of the point under a mouse. A touch screen has no hover, and a browser keeps `:hover` on a tapped point,
+     so the rule needs a device that hovers, as Tailwind's `hover:` does. */
+  @media (hover: hover) {
+    .hit:hover { fill: var(--last); fill-opacity: 0.25; }
+    .hit.inert:hover { fill: transparent; }
+  }
   .hit:focus, .candidate:focus { outline: none; }
 </style>

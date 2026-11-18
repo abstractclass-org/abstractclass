@@ -130,7 +130,8 @@ test.describe("Hedge School: the board on a touch screen", () => {
   }
 
   // A tap on a candidate pins its line, and a second tap unpins it (design 07). A hover that a tap started would stay
-  // after the second tap: the candidate stays lit, and the board shows its line.
+  // after the second tap: the candidate stays lit, and the board shows its line. A browser also keeps `:hover` on the
+  // tapped candidate, so a `:hover` style would keep it unfaded.
   test("a tap on a candidate pins its line, a second tap unpins it, and no hover stays", async ({ page }) => {
     await openReview(page, 0);
     const candidate = board(page).locator("g.candidate:not(.top)").first();
@@ -141,6 +142,9 @@ test.describe("Hedge School: the board on a touch screen", () => {
     await page.waitForTimeout(SETTLE_MS);
     await expect(board(page).locator("g.line"), "the second tap unpins the line").toHaveCount(0);
     await expect(board(page).locator("g.candidate.top"), "no candidate stays lit").toHaveCount(0);
+    const opacities = await board(page).locator("g.candidate")
+      .evaluateAll(gs => gs.map(g => getComputedStyle(g).opacity));
+    expect(new Set(opacities), "every candidate is faded again").toEqual(new Set(["0.38"]));
   });
 
   // A tap or a long press on a label's badge has no action, and shows no note.
@@ -156,12 +160,20 @@ test.describe("Hedge School: the board on a touch screen", () => {
     });
   }
 
-  // The editor draws an edge from a first point to the point under the pointer, as a dashed ghost, while a mouse is on a
-  // legal end. A touch has no pointer to follow: the taps begin an edge and end it, and no ghost shows between them.
-  test("taps on points begin and end edges, and no ghost edge follows a touch", async ({ page }) => {
+  /** The editor's board, and its 361 points. */
+  async function openEditor(page: Page) {
     await page.goto("/editor");
     const points = page.locator("svg.board circle.hit");
     await expect(points).toHaveCount(361, { timeout: 30_000 });
+    return points;
+  }
+  const fill = (point: Locator) => point.evaluate(c => getComputedStyle(c).fill);
+
+  // The editor draws an edge from a first point to the point under the pointer, as a dashed ghost, while a mouse is on a
+  // legal end, and tints that point. A touch has no pointer to follow: the taps begin an edge and end it, no ghost shows
+  // between them, and the tapped point keeps no tint (a browser keeps `:hover` on it).
+  test("taps on points begin and end edges, and no ghost edge follows a touch", async ({ page }) => {
+    const points = await openEditor(page);
     const edges = () => page.locator("svg.board line.edge").count();
     const before = await edges();
     await watch(page, "svg.board line.preview");
@@ -175,17 +187,26 @@ test.describe("Hedge School: the board on a touch screen", () => {
     await expect.poll(edges, { message: "the third tap ends the next edge of the chain" }).toBe(before + 2);
     await page.waitForTimeout(SETTLE_MS);
     expect(await seen(page), "a ghost edge showed after a tap").toBe(false);
+    expect(await fill(c), "the tapped point keeps a tint").toBe(await fill(points.first()));
   });
 
   test("with a mouse, a point shows the ghost edge from the first point", async ({ page }) => {
-    await page.goto("/editor");
-    const points = page.locator("svg.board circle.hit");
-    await expect(points).toHaveCount(361, { timeout: 30_000 });
+    const points = await openEditor(page);
     await points.nth(180).click();
     await points.nth(181).hover();
     await expect(page.locator("svg.board line.preview")).toHaveCount(1);
     await page.mouse.move(1, 1);
     await expect(page.locator("svg.board line.preview")).toHaveCount(0);
+  });
+
+  // The tint needs a device that hovers, which a touch context is not, so this case runs in a desktop context.
+  test.describe("on a desktop", () => {
+    test.use({ hasTouch: false, isMobile: false, viewport: { width: 1280, height: 800 } });
+    test("with a mouse, the point under the pointer is tinted", async ({ page }) => {
+      const points = await openEditor(page);
+      await points.nth(180).hover();
+      expect(await fill(points.nth(180)), "the point is tinted").not.toBe(await fill(points.first()));
+    });
   });
 
   test("with a mouse, a label's badge lights its group and shows its note", async ({ page }) => {
