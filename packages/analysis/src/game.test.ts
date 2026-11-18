@@ -228,6 +228,8 @@ test("the analysis of a game takes its positions, its moves played, its rules an
   assert.deepEqual(game.positions.map(p => p.player), [0, 1, 0, 1]);
   assert.deepEqual(await game.rulesAt(["a"]), ["x", "y"]);
   assert.deepEqual(await game.lineSteps(["a"], ["d", "e"]), [2, 3]);
+  // A line played: its steps, and the position after its last edge (an engine line's image needs both)
+  assert.deepEqual(await game.linePlayed(["a"], ["d", "e"]), { steps: [2, 3], end: words.position(wordFields(3)) });
   await game.addLine(["a", "z"], false);
   assert.deepEqual(game.branches["a z"]?.move, { player: 1, edge: "z" });
 });

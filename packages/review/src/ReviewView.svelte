@@ -66,6 +66,7 @@
     pending(path: string[]): boolean; // the review's own searches can still change this position's analysis
     stoppedByTime(path: string[]): boolean; // the position's search stopped at its time limit
     lineSteps(path: string[], line: G["move"][]): Promise<G["step"][]>; // a line's moves played: what the board draws after each (the rules)
+    linePlayed(path: string[], line: G["move"][]): Promise<{ steps: G["step"][]; end: G["position"] }>; // the same, and the position after the last
     deleteFrom(path: string[]): Promise<void>; // deletes a variation node and what follows it
     promote(path: string[]): Promise<void>; // promotes a variation one step among the variations from its fork
     judge(path: string[]): Promise<void>; // evaluates a variation move's quality: searches its two positions
@@ -1236,8 +1237,30 @@
   // A long press opens the menu, and in some browsers its release then clicks the move (Chromium's touch emulation does,
   // after 900 ms and after 1,500 ms). That click goes nowhere: it would move the position on screen under the menu, and
   // the image of a main line move ahead of it would show the position after the move. A later click, on a move or to
-  // close the menu, works as before.
-  let pressAt = 0, menuAt = 0; // when the move list's last press began, and when the menu opened (0: closed)
+  // close the menu, works as before. The engine's line under the table has the same guard (lineGuard): there the click
+  // would play the line.
+  function clickGuard() {
+    let pressAt = 0, menuAt = 0; // when the last press began, and when the menu opened (0: closed)
+    return {
+      opened: (open: boolean) => (menuAt = open ? performance.now() : 0),
+      pressed: (e: PointerEvent) => (pressAt = e.timeStamp),
+      click: (e: MouseEvent) => { if (menuAt && pressAt < menuAt) { e.preventDefault(); e.stopPropagation(); } },
+    };
+  }
+  const moveGuard = clickGuard(), lineGuard = clickGuard();
+  // The menu of the engine's lines (lineMenu): a right-click or a long press on an edge of the engine's line under the
+  // table, or on a candidate's row, opens it with the image's items only, since its other items act on the tree. Its
+  // line, kept when the press begins: the engine's line from the position on screen up to that edge, or the row's
+  // candidate's line, as the board draws it. Elsewhere, and on a candidate with too few visits for a line, the
+  // browser's own menu opens.
+  let lineMenu = $state.raw<ImageSource | null>(null);
+  function engineLineAt(target: Element): ImageSource | null {
+    const edge = target.closest<HTMLElement>("[data-line-edge]")?.dataset.lineEdge;
+    if (edge !== undefined) return listLine ? engineImage(path, listLine.slice(0, Number(edge) + 1)) : null;
+    const rank = Number(target.closest<HTMLElement>("tr[data-rank]")?.dataset.rank);
+    const c = tableRows.find(r => r.rank === rank)?.c, line = c && trusted(c);
+    return line ? engineImage(path, line) : null;
+  }
   const menuBranch = $derived(menuPath !== null && (board || menuPath in branches) ? menuPath : null); // a move the menu edits
   /** A variation can be promoted when a variation node on its path, from its end back, is not the first variation from its parent. */
   function canPromote(key: string | null): boolean {
@@ -1259,15 +1282,28 @@
   // its first frame.
   let imageNote = $state.raw<ComponentProps<typeof Toast> | null>(null);
   type LineImage = { file: Promise<Blob>; name: string; animated: boolean };
-  /** The line of the image of the move `key` (imageLine): where it starts, and its edges as a preview draws them. */
-  function imageTreeLine(key: string) {
-    const { start, paths } = imageLine(key.split(" "), path, mainNames);
-    return { start, ...treeLine(paths) };
+  /** The line that an image draws: the path where it starts, its number of edges, and `drawn`, which gives its edges as
+   *  a preview draws them and the position after the last (none: the image is of the position at `start`). A line of
+   *  the tree has them at once. The engine's line asks the rules for them. */
+  type ImageSource = { start: string[]; count: number; drawn(): Promise<{ edges: LineMove<G>[]; end: G["position"] | null }> };
+  /** The line of the image of the move `key` (imageLine), in the tree. */
+  function treeImage(key: string): ImageSource {
+    const { start, paths } = imageLine(key.split(" "), path, mainNames), { edges, end } = treeLine(paths);
+    return { start, count: edges.length, drawn: async () => ({ edges, end: end ?? null }) };
   }
-  function imageOf(key: string, animated = false): LineImage {
-    const { start, edges, end } = imageTreeLine(key), from = positionOf(start), image = view.image;
+  /** The line of the image of the engine's `moves` from the position at `start`: the engine's line under the table, up
+   *  to the edge under the menu, or a candidate's line. The rules play it, as they play the line that the board draws. */
+  function engineImage(start: string[], moves: G["move"][]): ImageSource {
+    return { start, count: moves.length, drawn: async () => {
+      const from = positionOf(start);
+      if (!game || !from) throw new Error("the position is not in the tree");
+      const { steps, end } = await game.linePlayed(start, moves), movers = view.lineMovers(from, moves.length);
+      return { edges: moves.map((move, i) => ({ move, player: movers[i], step: steps[i] })), end };
+    } };
+  }
+  function imageOf(line: ImageSource, animated = false): LineImage {
+    const { start } = line, from = positionOf(start), image = view.image;
     if (!from || !image) return { file: Promise.reject(new Error("the position is not in the tree")), name: "", animated };
-    const caption = image.caption({ ...moveFrom(start), position: from }, end ?? null, edges.length);
     // Twice the board's size on screen, and at least 1,200 pixels wide.
     const width = Math.max(1200, Math.round(2 * (boardWrap?.getBoundingClientRect().width ?? 0)));
     const notes = $state.snapshot(notesAt[pathKey(start)] ?? []) as G["note"][];
@@ -1276,22 +1312,25 @@
     // earlier move of its turn, as the page's board marks the turn's moves. With a move of the line drawn, it marks
     // neither, as the page's board shows a variation's preview.
     const turn = { last: moveInto(start) ?? null, earlier: earlierOf(start) }, none = { last: null, earlier: [] };
-    const board = (k: number) => ({ position: from, ...(k ? none : turn), line: edges.slice(0, k), notes, layers });
-    const file = animated ? image.animate(lineFrames(edges.length).map(f => ({ board: board(f.edges), ms: f.ms })), caption, width)
-      : image.draw(board(edges.length), caption, width);
-    return { file, name: image.name(start, edges.length, animated), animated };
+    const file = line.drawn().then(({ edges, end }) => {
+      const caption = image.caption({ ...moveFrom(start), position: from }, end, edges.length);
+      const board = (k: number) => ({ position: from, ...(k ? none : turn), line: edges.slice(0, k), notes, layers });
+      return animated ? image.animate(lineFrames(edges.length).map(f => ({ board: board(f.edges), ms: f.ms })), caption, width)
+        : image.draw(board(edges.length), caption, width);
+    });
+    return { file, name: image.name(start, line.count, animated), animated };
   }
-  // The edges of the line that the menu's move gives: the animated image plays only a line of one edge or more.
-  const menuLineEdges = $derived(menuPath === null ? 0 : imageTreeLine(menuPath).edges.length);
+  // The line of the move under the menu
+  const menuImage = $derived(menuPath === null ? null : treeImage(menuPath));
   const imageFailed = (e: unknown) => (imageNote = { text: `The site cannot make the image: ${errorText(e)}`, failed: true });
   function saveImage({ file, name, animated }: LineImage) {
     used(animated ? "animated image saved" : "image saved");
     imageNote = null;
     file.then(b => view.image?.download(name, b), imageFailed);
   }
-  function copyImage(key: string) {
+  function copyImage(line: ImageSource) {
     used("image copied");
-    const image = imageOf(key);
+    const image = imageOf(line);
     // The note with Save stays longer: the player reads it, then chooses.
     (view.image?.copy(image.file) ?? Promise.resolve(false)).then(copied => (imageNote = copied ? { text: "Image copied" }
       : { text: "This browser cannot copy an image. Save the image as a file.", failed: true, ms: 15000,
@@ -1946,6 +1985,13 @@
        test game at its full size, in Glyphs: from there that game's names keep their full size. The rule goes by the
        box, not the window, since the window's height sets the side column's width too (docs/decisions/product.md,
        "The Lead column in a wide window, measured on Cyanotype"). -->
+  <!-- The menu of the engine's lines (lineMenu): on an edge of the line under the table, or on a candidate's row. Its
+       box adds no box to the layout (`contents`). A long press's release clicks nothing (lineGuard). -->
+  <ContextMenu.Root onOpenChange={lineGuard.opened}>
+  <ContextMenu.Trigger disabled={!lineMenu || !view.image}>
+  {#snippet child({ props })}
+  <div {...props} class="contents" onpointerdowncapture={e => { lineGuard.pressed(e); lineMenu = engineLineAt(e.target as Element); }}
+       onclickcapture={lineGuard.click}>
   <div class="@container/candidates flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
   <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"
@@ -1970,7 +2016,7 @@
         <tr class={["h-(--row)", rank === 1 && "font-semibold", hoverRank === rank && "lit outline outline-accent -outline-offset-1",
                     pinned && rank === selectedRank && "shadow-[inset_3px_0_0_var(--accent)]"]}
             style={rowTint(c.blueWin)} onpointerenter={byMouse(() => { hoverOnBoard = false; hover = c.edge; })} onpointerleave={byMouse(() => (hover = null))}
-            onclick={() => pick(rank)}
+            onclick={() => pick(rank)} data-rank={rank}
             title={analysis && !trusted(c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
           <td>{@render rankBadge(rank, onBoard.has(rank) ? "On the board" : undefined)}</td>
@@ -1992,6 +2038,28 @@
   </table>
   </div>
   {@render lineList()}
+  </div>
+  {/snippet}
+  </ContextMenu.Trigger>
+  <ContextMenu.Portal>
+    <ContextMenu.Content class="z-10 min-w-36 menu-box">
+      <ContextMenu.Group>
+        <ContextMenu.GroupHeading class="px-2 py-1 text-xs text-muted">Generate image</ContextMenu.GroupHeading>
+        {@render imageItems(lineMenu)}
+      </ContextMenu.Group>
+    </ContextMenu.Content>
+  </ContextMenu.Portal>
+  </ContextMenu.Root>
+{/snippet}
+
+<!-- The image's items of a menu (design 07, item 17): Copy static, Save static, and for a line of one edge or more
+     Save animated. The move menu's "Generate image" submenu, and the menu of the engine's lines. -->
+{#snippet imageItems(line: ImageSource | null)}
+  <ContextMenu.Item onSelect={() => line && copyImage(line)} class={MENU_ITEM}>Copy static</ContextMenu.Item>
+  <ContextMenu.Item onSelect={() => line && saveImage(imageOf(line))} class={MENU_ITEM}>Save static</ContextMenu.Item>
+  {#if line?.count}
+    <ContextMenu.Item onSelect={() => line && saveImage(imageOf(line, true))} class={MENU_ITEM}>Save animated</ContextMenu.Item>
+  {/if}
 {/snippet}
 
 <!-- The Analysis: the candidates table, or the book's table in its place, and the move list. -->
@@ -2014,14 +2082,14 @@
        ContextMenu), not the browser's: on a variation's move with its actions. On the game's moves in a review, only the
        image's, since the game's line stays as it is and its moves are evaluated already. Elsewhere (the engine's line,
        a note) each action is off. -->
-  <ContextMenu.Root onOpenChange={open => (menuAt = open ? performance.now() : 0)}>
+  <ContextMenu.Root onOpenChange={moveGuard.opened}>
   <ContextMenu.Trigger>
   {#snippet child({ props })}
   <!-- A click on a move does not focus it (Lichess's moves take no focus): the keys move through the game from the page,
        and a move kept in focus would show the browser's focus ring once a key is pressed, and take Space for itself. -->
   <div {...props} class={MOVE_LIST} bind:this={movelist}
-       onpointerdowncapture={e => { pressAt = e.timeStamp; menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null; }}
-       onclickcapture={e => { if (menuAt && pressAt < menuAt) { e.preventDefault(); e.stopPropagation(); } }}
+       onpointerdowncapture={e => { moveGuard.pressed(e); menuPath = (e.target as Element).closest<HTMLElement>("[data-path]")?.dataset.path ?? null; }}
+       onclickcapture={moveGuard.click}
        onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
     {#if !rowsDrawn}
       <!-- Grey bars until the rows come (rowsDrawn), in one element for the frame they show: a bar for each turn, a
@@ -2133,11 +2201,7 @@
           Generate image<span aria-hidden="true" class="text-muted">›</span>
         </ContextMenu.SubTrigger>
         <ContextMenu.SubContent class="z-10 min-w-36 menu-box" sideOffset={6}>
-          <ContextMenu.Item onSelect={() => menuPath && copyImage(menuPath)} class={MENU_ITEM}>Copy static</ContextMenu.Item>
-          <ContextMenu.Item onSelect={() => menuPath && saveImage(imageOf(menuPath))} class={MENU_ITEM}>Save static</ContextMenu.Item>
-          {#if menuLineEdges}
-            <ContextMenu.Item onSelect={() => menuPath && saveImage(imageOf(menuPath, true))} class={MENU_ITEM}>Save animated</ContextMenu.Item>
-          {/if}
+          {@render imageItems(menuImage)}
         </ContextMenu.SubContent>
       </ContextMenu.Sub>
       <ContextMenu.Separator class="my-1 h-px bg-line" />
@@ -2388,7 +2452,8 @@
 
 <!-- The engine's line under the table: the candidate's badge, then its edges. Pointing at an edge draws the line up to
      it on the board, and a click plays the line up to it as a variation. The edges already in the tree (the game's own
-     moves or a variation's) show as such, since a click goes along them and the variation starts after them. -->
+     moves or a variation's) show as such, since a click goes along them and the variation starts after them. A
+     right-click or a long press on an edge opens the image's items for the line up to it (lineMenu). -->
 {#snippet lineList()}
   <div class="flex-none h-[3.6em] mb-2 overflow-y-auto text-sm" role="group" aria-label="The engine's line"
        onpointerleave={byMouse(() => (listHover = null))}>
@@ -2410,7 +2475,7 @@
                             known && !glyphs && "underline decoration-dotted underline-offset-3",
                             listHover !== null && k <= listHover ? "bg-panel-2" : "hover:bg-panel-2"]}
                     style:border-bottom={known && glyphs ? "1px dotted currentColor" : undefined}
-                    onpointerenter={byMouse(() => (listHover = k))} onclick={() => play(k)} tabindex="-1"
+                    onpointerenter={byMouse(() => (listHover = k))} onclick={() => play(k)} tabindex="-1" data-line-edge={k}
                     title="{name}{where} · play the line to here">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, player, before, listSteps?.[k])} />{:else}{name}{/if}</button>
           {:else}
             {@const shade = listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100"}
@@ -2418,7 +2483,7 @@
                  that a turn's two shapes stay together. -->
             {#if k > 0}{#if t.first}<span class={turnDots ? "w-2" : "w-1"}></span>{:else if turnDots}{@render turnDot()}{/if}{/if}
             <button class="flex p-0 bg-transparent border-0 rounded-full" onpointerenter={byMouse(() => (listHover = k))} onclick={() => play(k)}
-                    tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
+                    tabindex="-1" data-line-edge={k} title="{turnText(t)} {name}{where} · play the line to here">
               {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} {before} />
               {:else}{@render edgeCircle(k + 1, player, !!known, shade)}{/if}
             </button>

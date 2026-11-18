@@ -1620,9 +1620,14 @@ export class GameAnalysis<G extends GameTypes> {
   /** Each edge of a line from the position at `path`, played: what the board draws after it (the game's step:
    *  Enclosure's is the edge it cuts, and the regions and areas after it). The rules, no network. */
   async lineSteps(path: string[], line: G["move"][]): Promise<G["step"][]> {
+    return (await this.linePlayed(path, line)).steps;
+  }
+  /** A line from the position at `path`, played: each edge's step (lineSteps), and the position after its last edge,
+   *  whose numbers the caption of the line's image gives. The rules, no network. */
+  async linePlayed(path: string[], line: G["move"][]): Promise<{ steps: G["step"][]; end: G["position"] }> {
     const query = this.query(path, line.map(m => this.game.moveName(m)));
     const { positions } = (await this.pool.rules.describeGame<G["fields"]>(query, path.length)).reply;
-    return positions.slice(1).map(p => this.game.step(p));
+    return { steps: positions.slice(1).map(p => this.game.step(p)), end: this.positionOf(positions[positions.length - 1]) };
   }
 
   /** Searches the position at `path` to `visits`, or takes the result from the cache. The budget is met only by a

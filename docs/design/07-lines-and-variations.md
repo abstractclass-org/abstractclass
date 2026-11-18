@@ -285,6 +285,16 @@ cut edges that are on the board, so a line drawn over the board can show edges t
         position made in the board editor has only a main line, so this is how a player shares a line from it.
       - Any other main line move (on screen, behind it, or on another line than the one on screen): the position
         after the move, with the edge that it cut, and no numbers.
+    - **The engine's line:** a right-click, or a long press on a touch screen, on an edge of the engine's line under
+      the candidates table opens a menu with the same three items, under the heading "Generate image". The line is
+      the engine's line from the position on screen up to that edge. On a candidate's row, the line is the
+      candidate's whole line, as the board draws it when the pointer is on the row. The menu has only the image's
+      items, since the move menu's other items act on the tree, and the engine's line is not in it. The rules play
+      the line for the image, as they play the line that the board draws. A candidate with too few visits for a
+      line, and the rest of the table, keep the browser's own menu. The board's candidates keep it too: a
+      right-click on the board writes the player's notes (item 16). A long press's release plays nothing, as in the
+      move list. One function draws the image of a line of the tree and of the engine's line (`imageOf` in
+      `ReviewView.svelte`): it takes the line's start and its edges.
     - **What the board draws:** all the line's edges at once with their numbers (the Static form of "Lines on the
       board", whatever the setting), the edges that they cut and the regions after the last edge, and the player's
       notes (item 16) on the position where the line starts. No candidates and no labels. The invincible edges follow
