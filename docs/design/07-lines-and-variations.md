@@ -226,6 +226,14 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     it off ("Preview played moves"). This is the site's own: Lichess's move list has none (its small board shows only
     a move of an engine line, `ui/lib/src/ceval/view/main.ts`, `renderPvBoard`), and the help pages of chess.com and
     Sabaki name none. Hover previews exist in browser extensions for those sites and in one Go client (SWHub).
+    - **A preview starts only from a mouse,** for every kind: a played move, a variation's move and a move of the
+      engine's line. The move list listens to `pointerenter` and `pointerleave` and acts only when `pointerType` is
+      `"mouse"`. A touch screen has no hover (design 33, item 6), and a pen counts as a touch (item 8). A browser also
+      sends `mouseenter` for a touch, but it sends no `mouseleave` until the next touch elsewhere, so a preview that
+      the touch started would stay on the board after the release, with a status line that says "Click to go there."
+      On a touch screen a tap goes to the move at once, so a preview there has no use. The same holds for the other
+      hovers of the review's analysis (the engine table's rows and the engine's line list under it): each acts only
+      for a mouse.
 15. **The engine's best line as a variation** under a Mistake's or a Blunder's note (Lichess shows the engine's line
     after a mistake as a variation): candidate 1's line from where the mistake started (by turn, from the turn's start),
     as far as the search trusts it (by visits, as the listed line), behind candidate 1's badge.

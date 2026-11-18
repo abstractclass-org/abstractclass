@@ -1318,22 +1318,27 @@
   $effect(() => { if (pickedKey) movelist?.querySelector(".mv.picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
+  /** A pointer handler that acts only for a mouse. A touch screen has no hover (design 33, item 6), and a pen counts as
+   *  a touch (item 8): a browser sends a touch's mouseenter at its start and no mouseleave until the next touch
+   *  elsewhere, which would leave a preview on the board. The pointer events end with the touch (pointerleave comes
+   *  at its release), and the handler ignores them. */
+  const byMouse = (act: () => void) => (ev: PointerEvent) => { if (ev.pointerType === "mouse") act(); };
   /** What makes an element of the move list act as the game's move `index`: the move menu's key (`data-path`), a click
    *  to the position after the move, and its preview while the pointer is on it. A move's button, and by turn the
    *  turn's judgement cell as its last edge (design 06, item 8: a row's parts behave the same by edge and by turn). */
   const asMove = (index: number) => ({
     "data-path": mainKeys[index + 1], tabindex: -1,
     onclick: () => go(index + 1, true),
-    onmouseenter: () => startPreview({ kind: "move", index }),
-    onmouseleave: endPreview,
+    onpointerenter: byMouse(() => startPreview({ kind: "move", index })),
+    onpointerleave: byMouse(endPreview),
   });
   /** The same for a variation's move `p`: its button, and by turn the turn's label as the turn's last edge (design 07,
    *  item 11). */
   const asBranch = (p: string[]) => ({
     "data-path": pathKey(p), tabindex: -1,
     onclick: () => setPath(p, true),
-    onmouseenter: () => startPreview({ kind: "branch", path: p }),
-    onmouseleave: endPreview,
+    onpointerenter: byMouse(() => startPreview({ kind: "branch", path: p })),
+    onpointerleave: byMouse(endPreview),
   });
   // By turn, the pointer on a turn's label (the game's judgement cell, or a variation's label) lights the turn's edges
   // in the label's row and the label as one group, in the pointer's style of the row (design 06, item 8). An overlay
@@ -1964,7 +1969,7 @@
       {#each tableRows as { c, rank, twins } (rank)}
         <tr class={["h-(--row)", rank === 1 && "font-semibold", hoverRank === rank && "lit outline outline-accent -outline-offset-1",
                     pinned && rank === selectedRank && "shadow-[inset_3px_0_0_var(--accent)]"]}
-            style={rowTint(c.blueWin)} onmouseenter={() => { hoverOnBoard = false; hover = c.edge; }} onmouseleave={() => (hover = null)}
+            style={rowTint(c.blueWin)} onpointerenter={byMouse(() => { hoverOnBoard = false; hover = c.edge; })} onpointerleave={byMouse(() => (hover = null))}
             onclick={() => pick(rank)}
             title={analysis && !trusted(c) ? "Too few visits to show the engine's line" : undefined}>
           <!-- A candidate on the board has its number in a badge, as the board draws it. The others have a plain number. -->
@@ -2370,12 +2375,12 @@
   {@render turnMark(step.turn, k)}
   {#if display.branchForm === "text"}
     <button class={["mv px-[0.2rem] py-px bg-transparent border-0 whitespace-nowrap opacity-75 hover:opacity-100 hover:bg-panel-2", SIDE_TEXT[step.mover]]}
-            onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
-            onmouseleave={endPreview} tabindex="-1" title={note}>{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, step.mover, before)} />{:else}{view.moveName(e)}{/if}</button>
+            onclick={() => playPath(p, "engine line played")} onpointerenter={byMouse(() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k }))}
+            onpointerleave={byMouse(endPreview)} tabindex="-1" title={note}>{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, step.mover, before)} />{:else}{view.moveName(e)}{/if}</button>
   {:else}
     <button class={["mv flex p-[0.08em] bg-transparent border-0 rounded-full opacity-75 hover:opacity-100", ROUND_HOVER]}
-            onclick={() => playPath(p, "engine line played")} onmouseenter={() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k })}
-            onmouseleave={endPreview} tabindex="-1" title={note}>
+            onclick={() => playPath(p, "engine line played")} onpointerenter={byMouse(() => startPreview({ kind: "engine", start: engine.start, line: engine.line, k: step.k }))}
+            onpointerleave={byMouse(endPreview)} tabindex="-1" title={note}>
       {@render edgeShape(e, step.mover, before)}
     </button>
   {/if}
@@ -2386,7 +2391,7 @@
      moves or a variation's) show as such, since a click goes along them and the variation starts after them. -->
 {#snippet lineList()}
   <div class="flex-none h-[3.6em] mb-2 overflow-y-auto text-sm" role="group" aria-label="The engine's line"
-       onmouseleave={() => (listHover = null)}>
+       onpointerleave={byMouse(() => (listHover = null))}>
     {#if listLine}
       <div class={["flex flex-wrap items-center gap-y-0.5", display.branchForm === "text" ? "gap-x-1" : "gap-x-0.5"]}>
         {@render rankBadge(listRank, `The engine's line from candidate ${listRank}`, "mr-1")}
@@ -2405,14 +2410,14 @@
                             known && !glyphs && "underline decoration-dotted underline-offset-3",
                             listHover !== null && k <= listHover ? "bg-panel-2" : "hover:bg-panel-2"]}
                     style:border-bottom={known && glyphs ? "1px dotted currentColor" : undefined}
-                    onmouseenter={() => (listHover = k)} onclick={() => play(k)} tabindex="-1"
+                    onpointerenter={byMouse(() => (listHover = k))} onclick={() => play(k)} tabindex="-1"
                     title="{name}{where} · play the line to here">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(e, player, before, listSteps?.[k])} />{:else}{name}{/if}</button>
           {:else}
             {@const shade = listHover !== null && k <= listHover ? "" : "opacity-70 hover:opacity-100"}
             <!-- Between two turns a space, wider where a middle dot stands between a turn's two shapes (turnDots), so
                  that a turn's two shapes stay together. -->
             {#if k > 0}{#if t.first}<span class={turnDots ? "w-2" : "w-1"}></span>{:else if turnDots}{@render turnDot()}{/if}{/if}
-            <button class="flex p-0 bg-transparent border-0 rounded-full" onmouseenter={() => (listHover = k)} onclick={() => play(k)}
+            <button class="flex p-0 bg-transparent border-0 rounded-full" onpointerenter={byMouse(() => (listHover = k))} onclick={() => play(k)}
                     tabindex="-1" title="{turnText(t)} {name}{where} · play the line to here">
               {#if display.branchForm === "pills"}<Shape move={e} {player} hollow={!!known} n={k + 1} class={shade} {before} />
               {:else}{@render edgeCircle(k + 1, player, !!known, shade)}{/if}
