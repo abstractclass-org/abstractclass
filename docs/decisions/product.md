@@ -12692,6 +12692,21 @@ under the header: "Part of this page did not load.", with the button "Load the p
 - **The two events, not the links' `error` events:** a link's event comes from the network as the head is read, and
   a script must listen before it, in a capture listener. The two events come only once the page's code runs, after
   the head's script. `vite:preloadError` is Vite's published way, and SvelteKit has no option for its start script.
+- **Only the page's own code** (the review of abscls-lwhe). Vite's loader sends `vite:preloadError` for every dynamic
+  import in the built code that fails, also where the code catches the failure: PostHog's client, the home page's
+  replay, the removal of earlier results, and a route that a hover preloads. The first build showed the notice on any
+  such event. With PostHog's client and the replay's scenes blocked, on a home page that worked, it showed the notice
+  on both sites. Now the script reads the page's `modulepreload` links at the end of the head, before the page's code
+  runs and before Vite's loader adds links of its own. It shows the notice only for a module among them. The browser
+  names the module that the page imported, not the chunk under it that failed. A chunk of the root layout that the
+  HTML does not preload (SvelteKit's preloads leave out `addressHash.ts`) failed as "…/nodes/0….js", which the page
+  preloads. Measured in headless Chromium on both sites' builds: the same home page shows no notice now, and the
+  start's and the route's failures still show it. Safari's message names no module, so Safari shows no notice.
+- **The 404 page and the links** (the same review). The built `404.html`, which Cloudflare Pages serves for an
+  unknown address, preloads only `nodes/0`. Its start loads the error page's node (`nodes/1`) with no catch: with
+  that node blocked, the page stayed empty with no notice on both sites. A node whose failure no code handles now
+  shows the notice too. SvelteKit catches the failure of a node that a hover preloads (no notice, and the page
+  works) and of a node that a link opens (its error page, "500", and no notice).
 - **One source:** SvelteKit's `transformPageChunk` puts the script in each page from `packages/site`, in the place
   that each `app.html` marks. The 404 page, which prerenders no layout, gets it too, where a `<svelte:head>` in the
   root layout would miss it.

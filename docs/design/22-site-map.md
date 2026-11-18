@@ -115,20 +115,25 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      of that code does not load (a bad connection, or a busy computer), the page stays as it was prerendered: Practice
      shows only its header. A box under the header then says "Part of this page did not load.", with the button "Load
      the page again", which reloads the page. Every page of both sites has it, the 404 page too
-     (`packages/site/src/loadNotice.ts`, Cyanotype's too). A script in each page's head watches, before the page's
-     code starts, for two events:
-     - **Vite's `vite:preloadError`,** the event that Vite's guide gives for a dynamic import of the built code that
-       fails ("Load Error Handling"). SvelteKit loads a page's own code through such an import, and catches its
-       failure.
-     - **An unhandled rejection of a module that did not load.** SvelteKit's start script in the page imports
-       `start.js` and the app's entry with no bundler between them, so no `vite:preloadError` comes, and nothing
-       catches the failure. The script reads the browsers' messages: Chrome's "Failed to fetch dynamically imported
-       module", Firefox's "error loading dynamically imported module", Safari's "Importing a module script failed".
+     (`packages/site/src/loadNotice.ts`, Cyanotype's too).
+     - **Only the page's own code shows it:** the modules that the page's HTML preloads. These are SvelteKit's start
+       and the route's nodes, with their chunks. The 404 page preloads only the root layout's node, so a route's node
+       that fails with no handler shows it too. A part that the page loads later and that fails leaves the page
+       working, and shows no notice. Examples are PostHog's client, the home page's replay and a route that a hover
+       preloads. The code of that part handles its failure. A link to a route whose code does not load shows
+       SvelteKit's error page, with no notice: the script cannot tell that failure from the failure of a hover's
+       preload.
+     - **How the script knows:** a script at the end of each page's head reads the preloads. It then watches for
+       Vite's `vite:preloadError` (Vite's guide, "Load Error Handling") and for a rejection that nothing handles.
+       SvelteKit's start script imports `start.js` and `app.js` with no catch, so their failure comes only as such a
+       rejection. The script reads the module from the error's message. Chrome and Firefox name it. Safari's message
+       does not, so Safari shows no notice.
 
      The script stops no error: SvelteKit still shows its error page, and the error reports still go. It styles the
      box itself, so the box shows when the site's style did not load either. The build puts the script in each page
-     (SvelteKit's `transformPageChunk`, in each site's `src/hooks.server.ts`) where `src/app.html` marks its place, so
-     both sites take it from one source. A site whose `app.html` lacks the mark does not build.
+     (SvelteKit's `transformPageChunk`, in the `handle` that each site's `src/hooks.server.ts` takes) where
+     `src/app.html` marks its place, so both sites take it from one source. A site whose `app.html` lacks the mark
+     does not build.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
      candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`, on the shared replay
