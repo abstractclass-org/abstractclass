@@ -193,11 +193,11 @@ export class EngineSession<G extends GameTypes> {
   }
 
   /** A pool of the settings' search workers, which takes the rules worker `rules` if given. Each search worker that it
-   *  loses after the worker loaded sends the error report of kind "worker", with how its task ended when it ran again
-   *  (EnginePool.onWorkerLost). */
+   *  loses sends the error report of kind "worker", with how its task ended when it ran again, or no `rerun` for a
+   *  worker that failed as it started (EnginePool.onWorkerLost). */
   #newPool(rules?: EngineWorker): EnginePool {
     const pool = this.#o.pool(this.#workers, rules);
-    pool.onWorkerLost = (error, rerun) => this.#o.tracker.engineError(error, "worker", { rerun });
+    pool.onWorkerLost = (error, rerun) => this.#o.tracker.engineError(error, "worker", rerun ? { rerun } : {});
     return pool;
   }
 

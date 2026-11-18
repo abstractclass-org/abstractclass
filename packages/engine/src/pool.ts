@@ -17,7 +17,7 @@
 // place, and runs the task that failed on it once more. A worker started in place of one that failed is not replaced
 // in its turn until a task has ended on it: a worker that dies at each start ends the replacements, and the pool goes
 // on without it (replace).
-import { EngineError, EngineWorker, modelOf, moduleOf, type Manifest, type Timed } from "./client.ts";
+import { EngineError, EngineWorker, modelOf, moduleOf, Stopped, type Manifest, type Timed } from "./client.ts";
 import type { GpuEngines } from "./gpuClient.ts";
 import type { AnalysisQuery, AnalysisReply, ModelInfo, VersionReply } from "./protocol.ts";
 
@@ -68,8 +68,13 @@ interface Task {
   lost?: unknown[]; // the failures of the CPU workers that failed for good under it, told once it ends (onWorkerLost)
 }
 
-/** How a task ended: its work's result, its failure, or its cancel (Cancelled) while it waited. */
+/** How a task ended: its work's result, its failure, or its end by the page: cancelled while it waited (Cancelled), or
+ *  its worker ended by terminate (Stopped). */
 export type TaskEnd = "succeeded" | "failed" | "cancelled";
+
+/** How a task that rejected with `error` ended. */
+const endOf = (error: unknown): TaskEnd =>
+  error instanceof Cancelled || error instanceof Stopped ? "cancelled" : "failed";
 
 export class EnginePool {
   readonly engines: EngineWorker[];
@@ -87,11 +92,10 @@ export class EnginePool {
   /** Called when the GPU fails (a lost device, its worker ended): the pool drops it, and its tasks run again on the CPU
    *  workers. */
   onGpuLost: ((error: unknown) => void) | null = null;
-  /** Called once for each CPU worker that failed for good after it loaded (it ran out of memory, or its module broke):
-   *  the pool ended it, and started another in its place or went on without it (replace). It gets the worker's failure,
-   *  and how the task that ran on the worker ended, once it has: the pool ran that task once more (a rerun), unless it
-   *  had run once more already. A worker that fails while it loads is not told here (startWorker, start). */
-  onWorkerLost: ((error: unknown, rerun: TaskEnd) => void) | null = null;
+  /** Called once for each CPU worker that failed for good, with its failure. A worker that failed after it loaded gives
+   *  how the task that ran on it ended, when it has ended (workerLost). A worker that failed as it started after the
+   *  pool's start gives null: no task ran on it (startWorker). A failure in the pool's start fails start(). */
+  onWorkerLost: ((error: unknown, rerun: TaskEnd | null) => void) | null = null;
   /** Called when tasks wait and no engine is free: the GPU starts then (design 15). */
   onBacklog: (() => void) | null = null;
   private load: ((e: EngineWorker) => Promise<void>) | null = null; // starts a search worker: the module, then the network
@@ -168,7 +172,7 @@ export class EnginePool {
     return new Promise<T>((resolve, reject) => {
       const task: Task = { priority, tag, work: work as Work<unknown>, cpu,
         resolve: value => { this.taskEnded(task, "succeeded"); resolve(value as T); },
-        reject: error => { this.taskEnded(task, error instanceof Cancelled ? "cancelled" : "failed"); reject(error); } };
+        reject: error => { this.taskEnded(task, endOf(error)); reject(error); } };
       this.enqueue(task);
       this.dispatch();
       this.giveWay();
@@ -307,9 +311,13 @@ export class EnginePool {
     this.queue.sort((a, b) => b.priority - a.priority);
   }
 
-  /** Loads a search worker that the pool added after its start. A worker that cannot start is dropped. */
+  /** Loads a search worker that the pool added after its start: in place of one that failed, by resize, or again after
+   *  the idle release. A worker that cannot start is dropped, and the page hears of it, unless the pool ended it. */
   private startWorker(e: EngineWorker) {
-    this.load?.(e).catch(error => this.drop(e, error));
+    this.load?.(e).catch(error => {
+      if (!(error instanceof Stopped)) this.onWorkerLost?.(error, null);
+      this.drop(e, error);
+    });
   }
 
   /** Takes the search worker `e` out of the pool and ends it, for `failure`. */
@@ -323,21 +331,26 @@ export class EnginePool {
     this.dispatch(); // the tasks that no engine is left for fail (strand)
   }
 
-  /** A task has ended, `end`: the page hears of each CPU worker that failed for good under it (onWorkerLost). */
+  /** A task has ended, `end`: the page hears of each CPU worker that failed for good under it (onWorkerLost), once. */
   private taskEnded(task: Task, end: TaskEnd) {
     task.ended = end;
     for (const failure of task.lost ?? []) this.onWorkerLost?.(failure, end);
-    task.lost = undefined;
+    task.lost = undefined; // a task that terminate() ended can still reject (strand)
   }
 
-  /** Ends the CPU worker `dead`, whose worker failed for good under `task`, and starts another in its place, which
-   *  takes work once it has loaded. The page hears of it once the task has ended (onWorkerLost). A worker that was itself started in place of one that failed, and on which no task has ended, is
+  /** A CPU worker failed for good under `task`, with `failure`. The page hears of it when the task has ended
+   *  (onWorkerLost). */
+  private workerLost(failure: unknown, task: Task) {
+    if (task.ended) this.onWorkerLost?.(failure, task.ended);
+    else (task.lost ??= []).push(failure);
+  }
+
+  /** Ends the CPU worker `dead`, whose worker failed for good, and starts another in its place, which takes work once
+   *  it has loaded. A worker that was itself started in place of one that failed, and on which no task has ended, is
    *  dropped instead: a worker that dies at each start (a network too large for the tab's memory) does not start
    *  again and again. The pool then goes on with fewer workers, and the tasks that fail on them fail as an engine's
    *  failure does (the panel's "Engine error"). */
-  private replace(dead: EngineWorker, task: Task) {
-    if (task.ended) this.onWorkerLost?.(dead.failed, task.ended);
-    else (task.lost ??= []).push(dead.failed);
+  private replace(dead: EngineWorker) {
     const k = this.engines.indexOf(dead);
     if (this.replacements.has(dead) || k < 0) { this.drop(dead, dead.failed); return; }
     dead.terminate();
@@ -386,8 +399,9 @@ export class EnginePool {
           task.stop = undefined;
           task.engine = undefined;
           const dead = EnginePool.dead(engine);
+          if (dead) this.workerLost(dead.failed, task); // before replace: its drop can end the task (strand)
           if (this.retiring.delete(engine)) engine.terminate();
-          else if (dead) this.replace(dead, task);
+          else if (dead) this.replace(dead);
           else this.free.push(engine);
           this.replacements.delete(engine); // a task has ended on it
           this.dispatch();
@@ -424,7 +438,9 @@ export class EnginePool {
     victim.stop!();
   }
 
+  /** Ends every worker. The page hears now of the workers lost under the tasks that still wait: the page ended them. */
   terminate() {
+    for (const t of this.queue) this.taskEnded(t, "cancelled");
     clearTimeout(this.idleTimer);
     if (this.idleRelease) document.removeEventListener("visibilitychange", this.onVisibility);
     this.engines.forEach(e => e.terminate());

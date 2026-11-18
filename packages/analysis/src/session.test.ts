@@ -32,7 +32,7 @@ class FakePool {
   released = false;
   terminated = false;
   onGpuLost: ((error: unknown) => void) | null = null;
-  onWorkerLost: ((error: unknown, rerun: TaskEnd) => void) | null = null; // the session sets it (#newPool)
+  onWorkerLost: ((error: unknown, rerun: TaskEnd | null) => void) | null = null; // the session sets it (#newPool)
   private sha: (network: string) => string;
   private loaded: Promise<void>;
   private settle!: { load(): void; fail(e: Error): void };
@@ -252,11 +252,14 @@ test("a search worker that each pool loses sends the error report of kind worker
   await turns();
   pools[0].load();
   await review.answered;
-  pools[0].onWorkerLost!(new Error("the engine worker failed: Out of memory"), "succeeded");
+  const oom = new Error("the engine worker failed: Out of memory");
+  pools[0].onWorkerLost!(oom, "succeeded");
   p.choose("n2"); // the next network's pool
   await turns();
-  pools[1].onWorkerLost!(new Error("the engine worker failed: Out of memory"), "failed");
-  assert.deepEqual(errors, [["the engine worker failed: Out of memory", "worker", { rerun: "succeeded" }],
-                            ["the engine worker failed: Out of memory", "worker", { rerun: "failed" }]]);
+  pools[1].onWorkerLost!(oom, "failed");
+  pools[1].onWorkerLost!(oom, null); // one that failed as it started: no task ran on it
+  assert.deepEqual(errors, [[oom.message, "worker", { rerun: "succeeded" }],
+                            [oom.message, "worker", { rerun: "failed" }],
+                            [oom.message, "worker", {}]]);
   p.end();
 });
