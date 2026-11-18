@@ -8,7 +8,6 @@ import { onDestroy, untrack } from "svelte";
 import type { Player } from "@abstractclass/analysis/game.ts";
 import type { EngineSettings } from "@abstractclass/analysis/settings.ts";
 import { EngineWorker, type Manifest } from "@abstractclass/engine/client.ts";
-import { errorText } from "@abstractclass/engine/errors.ts";
 import type { BoardNote } from "@abstractclass/review/notes.ts";
 import type { EventParams } from "@abstractclass/site/analytics.svelte.ts";
 import { PracticeBot } from "./bot.ts";
@@ -57,7 +56,11 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   choices = $state<PracticeChoices>() as PracticeChoices;
   game = $state<G | null>(null);
   starting = $state.raw<K | null>(null); // the game whose bot starts: its players' names, for the skeleton
-  failed = $state(""); // the engine's rules could not load, or the page could not make the game: only this error shows
+  // The engine's rules did not start: only the site's line for it shows (engineLine's "unstarted"), and the error goes
+  // into the report.
+  failed = $state(false);
+  // The page could not make the last game: the settings card says so (UNMADE_LINE) until a new game starts.
+  unmade = $state(false);
   ready = $state(false); // the rules are loaded: a game can start
   confirming = $state<"abort" | "resign" | null>(null); // Abort or Resign, waiting for its confirmation
   abortedId = $state<string | null>(null); // the last game was aborted, and the site keeps it under this id
@@ -138,7 +141,8 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       else if (kept) await this.play(kept, "resumed");
       else this.phase = "settings";
     } catch (e) {
-      this.failed = errorText(e);
+      this.failed = true;
+      this.site.engineError(e, "practice");
     }
   }
 
@@ -162,9 +166,10 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       if (g.status !== "failed" && g.mode)
         this.site.track("practice_start", { ...this.params(g, g.mode), practice_from: from });
       if (g.status !== "failed" && kept.komi) this.used("practice komi"); // design 17's feature: a game with a komi
-    } catch (e) { // the page could not make the game
+    } catch (e) { // the page could not make the game: the settings card, for a new game (UNMADE_LINE)
       bot.terminate();
-      this.failed = errorText(e);
+      this.toSettings();
+      this.unmade = true;
       this.site.engineError(e, "practice");
     }
   }
@@ -172,6 +177,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   /** A new game with the settings chosen and the side picked, from the standard start or the start brought. */
   newGame(side: "blue" | "red" | "random") {
     this.choices.side = side;
+    this.unmade = false;
     const chosen = $state.snapshot(this.choices);
     this.site.choices.save(chosen);
     const kept = newPractice(chosen, this.brought) as K, from = practiceFrom(this.brought);

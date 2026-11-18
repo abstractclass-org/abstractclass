@@ -228,6 +228,12 @@ export function stoppedLine(line: string, bot: string): string | null {
   return Object.hasOwn(words, line) ? words[line as PracticeStop] : null;
 }
 
+/** The settings card's line when the page could not make the game (PracticePage.unmade), in the form of stoppedLine's
+ *  lines. The game has no Abort then: the page has no game to show. The page keeps the game in progress, and a page
+ *  loaded again resumes it, so when that game is the cause (a kept game that the site's code cannot read), the page
+ *  fails on it again. A new game replaces the game kept. */
+export const UNMADE_LINE = "The page has an error. Start a new game.";
+
 /** A GTP response's text: `= TEXT` gives TEXT. Throws on `? ERROR`, with the bot's message. */
 export function gtpAnswer(response: string): string {
   if (response.startsWith("=")) return response.slice(1).trim();

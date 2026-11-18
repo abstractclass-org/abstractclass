@@ -57,7 +57,8 @@
   import { sendPractice } from "#lib/practice/send.ts";
   import { NETWORKS, botName, keptGame, networkName, offersNetwork, practiceChoices, type KeptPractice }
     from "#lib/practice/stampduty.ts";
-  import { broughtLine, gaugeWidth, komiLine, stoppedLine, upright } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, gaugeWidth, komiLine, stoppedLine, UNMADE_LINE, upright } from "@abstractclass/practice/practice.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { browserNumber, engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { ENGINE_NAME, PRACTICE_DISPLAY_KEY, SITE_NAME } from "#lib/site.ts";
   import Icon from "@abstractclass/site/Icon.svelte";
@@ -66,8 +67,6 @@
   import { playMove, preload } from "@abstractclass/site/sound.ts";
   import { loadDisplay, saveDisplay } from "#lib/review/display.ts";
   import { captures } from "#lib/sound.ts";
-
-  const MISSING = "The engine is not on this site. You cannot play a practice game.";
 
   let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
   let notice = $state(""); // a start brought that cannot be played
@@ -112,8 +111,8 @@
     if (kept && !offersNetwork(kept.bot.network)) { keptGame.keep(null); dropped = true; }
     const bringing = readBrought();
     void page.mount(!!bringing, async () => {
-      const manifest = await loadManifest().catch(() => null);
-      if (!manifest?.artifacts.some(a => a.kind === "practice-module")) throw new Error(MISSING);
+      const manifest = await loadManifest(); // its failure goes into the report as it is
+      if (!manifest?.artifacts.some(a => a.kind === "practice-module")) throw new Error("the manifest has no practice module");
       return manifest;
     }, async w => {
       // The start brought, checked by the rules: a record's start and moves, or a start alone.
@@ -202,7 +201,7 @@
           description="Practise Blueprints against {ENGINE_NAME} in your browser: choose its visits, variety and komi, then play." />
 
 {#if page.failed}
-  <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{page.failed}</p></main>
+  <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{engineLine("unstarted", ENGINE_NAME)}</p></main>
 {:else if page.phase === "settings"}
   <PracticeCard bind:choices={page.choices} networks={NETWORKS.map(n => [n.id, `${n.name} (${megabytes(n.bytes)} MB)`])}
                 networkHelp="The network that {ENGINE_NAME} plays with."
@@ -211,6 +210,7 @@
     {#snippet intro()}A game against {ENGINE_NAME}, the engine, in your browser, with no clock: it searches each move to
       the visits you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}
+      {#if page.unmade}<p class="mb-1 text-sm text-blunder" role="alert">{UNMADE_LINE}</p>{/if}
       {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
       {#if page.abortedId}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
       {#if page.brought}<p class="mb-1 text-sm">{broughtLine(page.brought, ["move", "moves"])}</p>{/if}

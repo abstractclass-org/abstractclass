@@ -266,7 +266,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
     over 13912 calls outside them.
   - **Faults with the WebGPU flags:** a GPU timeout of Windows (a TDR) on 2026-10-20 came from a client of the GPU on
     Windows while no training ran. Check that the GPU worker started before a measurement relies on it.
-    - **"The GPU did not start: 9943656": the headless shell refuses the device.** Playwright's
+    - **"Off: the GPU did not start", with the number 9943656 in the error report: the headless shell refuses the
+      device.** Playwright's
       `chrome-headless-shell` (Chromium 153.0.8010.12) ships no `dxil.dll` or `dxcompiler.dll`, the DirectX shader
       compiler. With the WebGPU flags, its WebGPU gives the RTX 5080's adapter ("nvidia blackwell"), but
       `GPUAdapter.requestDevice` rejects with "OperationError: Failed to execute 'requestDevice' on 'GPUAdapter':

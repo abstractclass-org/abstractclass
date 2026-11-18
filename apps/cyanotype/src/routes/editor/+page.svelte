@@ -27,8 +27,9 @@
   import { readPosition, STANDARD_START, writePosition } from "#lib/game/position.ts";
   import { hasCell, moveHandCell, paintCell, placeCell, removeAllCells, withCount, withMover, withScore } from "#lib/editor/position.ts";
   import { rulesBy, startChecked, type StartChecked } from "#lib/review/recordCheck.ts";
-  import { EDITOR_KEY, SITE_NAME } from "#lib/site.ts";
-  import { startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { EDITOR_KEY, ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
+  import { engineError, startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
 
   let made = $state.raw<SitePosition>(readPosition(STANDARD_START)); // the position as the player made it
   let loads = $state(0); // a new whole position: the board fits its view again
@@ -41,7 +42,7 @@
   let field = $state(""); // the position field, as the player types it
   let fieldError = $state("");
   let engine = $state.raw<EngineWorker | null>(null);
-  let failed = $state("");
+  let failed = $state(false); // the engine did not start
 
   const notation = $derived(writePosition(made));
   const mover = $derived(moverOf(made.ply));
@@ -73,7 +74,8 @@
         await e.init(manifest);
         engine = e;
       } catch (e) {
-        failed = errorText(e);
+        failed = true; // the site's line: the error goes in the report only
+        engineError(e, "load");
       }
     })();
   });
@@ -193,7 +195,7 @@
 
 <main class="box-content grid items-start gap-5 max-w-[1100px] mx-auto my-4 px-4 min-[961px]:grid-cols-[minmax(0,1fr)_minmax(280px,22rem)]">
   {#if failed}
-    <p class="text-blunder col-span-full" role="alert">{failed}</p>
+    <p class="text-blunder col-span-full" role="alert">{engineLine("unstarted", ENGINE_NAME)}</p>
   {:else}
     <!-- The board with both hands in its box: in a row above and below the field, or in a column on each side of a wide
          area. On a computer it takes the window's height under the header, and on a phone a fixed height, above the

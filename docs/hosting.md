@@ -510,8 +510,8 @@ Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
      `node scripts/release-check.mjs https://cyanotype-ztp.pages.dev`. Make sure that the last line of each run says
      `release-check: PASS`.
    - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
-     the message "The engine is not on this site." The script cannot do this check: it reads the site's files, but
-     it does not run the page's code, which starts the engine.
+     the message "Stamp Duty did not start. Load the page again." The script cannot do this check: it reads the
+     site's files, but it does not run the page's code, which starts the engine.
    - In the project's **Deployments**, the first production deployment is under **Production**, not under
      **Preview**. The script cannot do this check: it reads the site's public addresses only, not Cloudflare's
      dashboard.

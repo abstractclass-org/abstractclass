@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   botLabel, broughtLine, choicesStore, gtpAnswer, keptStore, komiHelp, komiLine, komiSide, komiTaken, newPractice,
   gaugeWidth, practiceFrom, practiceHref, practiceOutcome, resignResult, scoreResult, scoreStore, settingsCommands, stoppedLine, takebackCount,
-  turnsOf, upright, visitsStop, visitsTaken, type KeptPractice,
+  turnsOf, UNMADE_LINE, upright, visitsStop, visitsTaken, type KeptPractice,
 } from "./practice.ts";
 
 // The browser's local storage, in memory: Node has none.
@@ -87,6 +87,7 @@ test("a game that stopped says why in the site's words, with the site's bot, and
   assert.equal(stoppedLine("threw", "Bot"), "Bot has an error. Abort the game. Then start a new game.");
   assert.equal(stoppedLine("crashed", "Bot"), "Bot stopped. Load the page again.");
   assert.equal(stoppedLine("page", "Bot"), "The page has an error. Abort the game. Then load the page again.");
+  assert.equal(UNMADE_LINE, "The page has an error. Start a new game.");
   for (const line of ["starting", "human", "bot", "over", "resigned", "failed", "toString"])
     assert.equal(stoppedLine(line, "Bot"), null, line);
 });

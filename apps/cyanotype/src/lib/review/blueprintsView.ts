@@ -21,7 +21,7 @@ import { boardSvg, imageBoard } from "../board/image.ts";
 import { hexKey } from "../board/hex.ts";
 import { STARS } from "../board/position.ts";
 import { moveName, moveText } from "../game/notation.ts";
-import { SITE_NAME } from "../site.ts";
+import { ENGINE_NAME, SITE_NAME } from "../site.ts";
 import { NETWORKS, networkMB, networkName } from "../analysis/engineSettings.ts";
 import { asPlayed, blueprints, captureOf, endingText, fmtMargin, lineMovers, playedText, shortNote, turnShortNote,
          WORDS, type Blueprints } from "./blueprints.ts";
@@ -80,6 +80,7 @@ export const blueprintsView: ViewGame<Blueprints> = {
   // A move's text: as wide as its own (its glyphs: a box, the hex and +N). Moves run from 5 to 19 characters, so two do
   // not fit a row of the side column: each move has a row of its own.
   moveText: "",
+  engineName: ENGINE_NAME,
   oneMoveALine: true,
   // The table's name takes its cell's width, in the move list's monospaced font. Each name is as large as its cell
   // allows (`fitName`): the longest names are edits (1:-12,-10>3:-11,-12, 19 characters), which get smaller where the

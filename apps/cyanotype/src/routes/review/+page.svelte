@@ -35,6 +35,7 @@
   import { holdReview } from "@abstractclass/analysis/reviewLock.ts";
   import { modelOf, moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { readSession, writeSession } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
@@ -51,7 +52,7 @@
   import { gamePage, playerNames, type GameRecord } from "#lib/game/record.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
            type ReviewMark } from "#lib/game/store.ts";
-  import { SITE_NAME } from "#lib/site.ts";
+  import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
   import { deliverExport, reviewExports } from "#lib/review/reviewExports.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
   import { annotatedText } from "#lib/review/exportText.ts";
@@ -93,7 +94,8 @@
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current,
                                       frozen: () => !!snapshot, tracker: { track, engineError, networkName },
                                       dropped: () => bar.reset() });
-  const failure = $derived(error || session.error);
+  // The engine's failure shows as the site's line: the error goes in the report only
+  const failure = $derived(error || (session.error && engineLine("unstarted", ENGINE_NAME)));
   function changeEngine(change: Partial<EngineSettings>) {
     const { network, review, customReview, ...rest } = change;
     if (own?.from === "mark" && network !== undefined && offersNetwork(network)) own = null;
@@ -245,7 +247,7 @@
       await startReview(record, manifest, false);
     } catch (e) {
       // A review stopped for another tab, or by the page's close, fails its searches: no error to show.
-      if (!session.ended) { error = errorText(e); if (kept) engineError(e, "load"); }
+      if (!session.ended) { error = kept ? engineLine("unstarted", ENGINE_NAME) : errorText(e); if (kept) engineError(e, "load"); }
       if (!kept) stop(); // a game this browser lacks: its lock free for the tab that imports it
     }
   });
@@ -335,7 +337,7 @@
     try {
       await startReview(kept.record, session.manifest!, true);
     } catch (e) {
-      if (!session.ended) { error = errorText(e); engineError(e, "load"); }
+      if (!session.ended) { error = engineLine("unstarted", ENGINE_NAME); engineError(e, "load"); }
     }
   }
 
@@ -385,7 +387,7 @@
   {#if shown === undefined}<p class="{MESSAGE} text-muted hidden review-game:block">Reading the game with the engine's rules…</p>{/if}
   <div class={["contents", shown === undefined && "review-game:hidden"]}><ReviewHome chosen={shown !== undefined} /></div>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder" role="alert">The engine could not read this game: {game.error}</p>
+  <p class="{MESSAGE} text-blunder" role="alert">{game.refused ? `The engine could not read this game: ${game.error}` : engineLine("error", ENGINE_NAME)}</p>
 {:else if R}
   <ReviewView view={blueprintsView} {R} progress={bar.progress} {deeperPositions} {again} {siteLink} game={game ?? undefined}
               snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }}

@@ -149,6 +149,7 @@
   import SettingChoice from "@abstractclass/site/SettingChoice.svelte";
   import SettingToggle from "@abstractclass/site/SettingToggle.svelte";
   import { SETTINGS_HEAD, SWITCH, SWITCH_THUMB, settingId } from "@abstractclass/site/settings.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import Glyph from "./Glyph.svelte";
   import LabelBadge from "./LabelBadge.svelte";
   import { nameSize } from "./nameSize.ts";
@@ -1762,7 +1763,7 @@
 <!-- The top of the side panel: the review's progress or an engine error. -->
 {#snippet panelHead()}
   {#if game?.engineError}
-    <p class="mb-2.5 text-sm text-blunder select-text" role="alert">Engine error: {game.engineError}</p>
+    <p class="mb-2.5 text-sm text-blunder select-text" role="alert">{engineLine("error", view.engineName)}</p>
   {:else if progress}
     <!-- One height for the review's slot, while it runs and once it is done, each line on one line: the report and the
          moves under it never move as the review goes (Cloudflare measured the page's layout shift). The second line

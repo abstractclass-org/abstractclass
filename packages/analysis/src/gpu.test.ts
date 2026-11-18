@@ -182,3 +182,8 @@ test("the idle release in a hidden page, while the test waits: the line waits fo
     Reflect.deleteProperty(globalThis, "document");
   }
 });
+
+test("a GPU that did not start says so without the code's message", () => {
+  const line = gpuStatusText({ state: "failed", message: "RuntimeError: unreachable" });
+  assert.equal(line, "Off: the GPU did not start. The workers do all the searches.");
+});

@@ -30,6 +30,7 @@
   import { addressNetwork, boardRefusal, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
   import { linkAt } from "@abstractclass/analysis/boardLink.ts";
@@ -84,7 +85,8 @@
     void game?.setBoardNetwork(network);
     Object.assign(engine, rest);
   }
-  const failure = $derived(error || session.error);
+  // The engine's failure shows as the site's line: the error goes in the report only
+  const failure = $derived(error || (session.error && engineLine("unstarted")));
 
   const data = $derived(game?.data(PLAYERS) ?? null);
   // The review of the main line, with labels only on the moves evaluated (design 21).
@@ -241,7 +243,7 @@
       if (chosen.loaded) trackLoad(chosen.loaded, g.mainNames.length);
       await g.sweep(); // the board's sweep makes the engine ready, unless another network loads (GameAnalysis.sweep)
     } catch (e) {
-      error = errorText(e);
+      error = engineLine("unstarted");
       engineError(e, "load");
     }
   });
@@ -313,7 +315,7 @@
 {#if failure}
   <p class="{MESSAGE} text-blunder">{failure}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder">The engine could not read this board: {game.error}</p>
+  <p class="{MESSAGE} text-blunder">{game.refused ? `The engine could not read this board: ${game.error}` : engineLine("error")}</p>
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}

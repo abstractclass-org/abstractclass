@@ -161,10 +161,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     search of the position before it or after it, or a search that its Great waits for (`GameAnalysis.judgeFailed`).
     The failure stays until a new search of that position runs, until a search of it gives a result (also one that ran
     when the other failed), or until the store gives the position's result. Another move's failed search does not
-    change the move's text, and another network clears every failure. The panel's "Engine error" line shows the last
-    error of the analysis. The rule is the same by edge and by turn (design 06, item 8), in the review and on the
-    Analysis board. The board's main-line moves that the player evaluated get the same tooltips, and no "…": the
-    game's moves have none. A player that "Review for" leaves out shows no labels, so
+    change the move's text, and another network clears every failure. While the analysis has a failure, the panel
+    says "The engine has an error. Load the page again." The error itself goes into the error report only. The rule
+    is the same by edge and by turn (design 06, item 8), in the review and on the Analysis board.
+    The board's main-line moves that the player evaluated get the same tooltips, and no "…": the game's moves have
+    none. A player that "Review for" leaves out shows no labels, so
     their moves show no wait either. When the label comes, the move shows it as for the game (Great, Inaccuracy,
     Mistake, Blunder), by turn after the move that ends the turn, with every label in its tooltip, and the board shows
     the badges of the turn just played. A book move's label shows as the book mark (design 32, item 4). By edge, the

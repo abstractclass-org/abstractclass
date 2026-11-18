@@ -29,7 +29,8 @@
   import { modelOf } from "@abstractclass/engine/client.ts";
   import { loadEngine, networkName, reviewVisits, saveEngine, type EngineSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
+  import { errorSentence } from "@abstractclass/engine/errors.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { OPENINGS_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardOfRecord } from "#lib/game/board.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -94,7 +95,8 @@
   const waits = $derived(!!place?.showsBook && place.at.state !== "failed");
   const session = new EngineSession({ settings: () => (waits ? { ...engine, on: false } : engine), game: () => game,
                                       position: () => current, tracker: { track, engineError, networkName } });
-  const failure = $derived(error || session.error);
+  // The engine's failure shows as the site's line: the error goes in the report only
+  const failure = $derived(error || (session.error && engineLine("unstarted")));
 
   const data = $derived(game?.data(PLAYERS) ?? null);
   // The review of the main line, with labels only on the moves evaluated (design 21).
@@ -305,7 +307,7 @@
       track("openings_open", { openings_from: (await opening).from });
       await g.sweep();
     } catch (e) {
-      error = errorText(e);
+      error = engineLine("unstarted");
       engineError(e, "load");
     }
   });
@@ -318,7 +320,7 @@
 {#if failure}
   <p class="{MESSAGE} text-blunder">{failure}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder">The engine could not read this board: {game.error}</p>
+  <p class="{MESSAGE} text-blunder">{game.refused ? `The engine could not read this board: ${game.error}` : engineLine("error")}</p>
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}

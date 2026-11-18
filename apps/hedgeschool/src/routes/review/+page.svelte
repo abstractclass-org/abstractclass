@@ -36,6 +36,7 @@
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
@@ -96,7 +97,8 @@
   const session = new EngineSession({ settings: () => settings, game: () => game, position: () => current, frozen: () => !!snapshot,
                                       tracker: { track, engineError, networkName },
                                       dropped: () => bar.reset() });
-  const failure = $derived(error || session.error);
+  // The engine's failure shows as the site's line: the error goes in the report only
+  const failure = $derived(error || (session.error && engineLine("unstarted")));
   function changeEngine(change: Partial<EngineSettings>) {
     const { network, review, customReview, ...rest } = change;
     if (own?.from === "mark" && network !== undefined && offersNetwork(network)) own = null;
@@ -265,7 +267,7 @@
       await startReview(moves, false);
     } catch (e) {
       // A review stopped for another tab, or by the page's close, fails its searches: no error to show.
-      if (!session.ended) { error = errorText(e); if (kept) engineError(e, "load"); }
+      if (!session.ended) { error = kept ? engineLine("unstarted") : errorText(e); if (kept) engineError(e, "load"); }
       if (!kept) stop(); // a game this browser lacks: its lock free for the tab that imports it
     }
   });
@@ -350,7 +352,7 @@
     try {
       await startReview(kept.record.moves, true);
     } catch (e) {
-      if (!session.ended) { error = errorText(e); engineError(e, "load"); }
+      if (!session.ended) { error = engineLine("unstarted"); engineError(e, "load"); }
     }
   }
   /** Ends the engine and frees the game's lock, now or once it is held: the page closed, or this browser lacks the
@@ -394,7 +396,7 @@
 {:else if failure}
   <p class="{MESSAGE} text-blunder">{failure}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder">The engine could not read this game: {game.error}</p>
+  <p class="{MESSAGE} text-blunder">{game.refused ? `The engine could not read this game: ${game.error}` : engineLine("error")}</p>
 {:else if R}
   <ReviewView view={enclosureView} {R} progress={bar.progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
               game={game ?? undefined}

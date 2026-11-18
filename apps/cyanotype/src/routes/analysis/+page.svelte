@@ -43,6 +43,7 @@
   import { addressNetwork, boardRefusal, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
   import { holdsGame } from "@abstractclass/site/addressHash.ts";
   import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -61,7 +62,7 @@
   import { linkAt } from "@abstractclass/analysis/boardLink.ts";
   import { analysisFileName, exportAnalysis, fileKind, openAnalysisFile } from "#lib/game/analysisFile.ts";
   import { annotatedRecord } from "#lib/review/annotate.ts";
-  import { BOARD_AT_KEY, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
+  import { BOARD_AT_KEY, ENGINE_NAME, SITE_NAME, SITE_VERSION } from "#lib/site.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
@@ -96,7 +97,8 @@
     void game?.setBoardNetwork(network);
     Object.assign(engine, rest);
   }
-  const failure = $derived(error || session.error);
+  // The engine's failure shows as the site's line: the error goes in the report only
+  const failure = $derived(error || (session.error && engineLine("unstarted", ENGINE_NAME)));
 
   const data = $derived(game?.data(PLAYERS) ?? null);
   // The review of the main line, with labels only on the moves evaluated (Hedge School's design 21).
@@ -252,7 +254,7 @@
       if (brought && loaded) trackLoad(loaded, g.mainNames.length);
       await g.sweep(); // the board's sweep makes the engine ready
     } catch (e) {
-      error = errorText(e);
+      error = engineLine("unstarted", ENGINE_NAME);
       engineError(e, "load");
     }
   });
@@ -337,7 +339,7 @@
 {#if failure}
   <p class="{MESSAGE} text-blunder" role="alert">{failure}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder" role="alert">The engine could not read this board: {game.error}</p>
+  <p class="{MESSAGE} text-blunder" role="alert">{game.refused ? `The engine could not read this board: ${game.error}` : engineLine("error", ENGINE_NAME)}</p>
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}

@@ -204,6 +204,17 @@ How strong each setting plays against people is not measured yet.
     - **A start that fails** before the bot has the game's moves still shows the moves kept from an earlier visit:
       the rules give them without the bot. Abort then keeps them in Your games (item 8), and the stored game holds
       them (design 25).
+    - **The page's rules engine that does not start** stops the whole page before a game: no game can start without
+      it. The page shows only the site's line "The engine did not start. Load the page again." ("Stamp Duty did not
+      start. Load the page again." on Cyanotype), and the error goes in one report. The rules engine is the same for
+      each game of the page, so the way out is a new load of the page. Its causes are those of a bot's form that does
+      not start: an old page after a new deploy, or a module that the network did not give. A site with no engine
+      files shows the same line. The line comes from `engineLine` in the site package, which the Board editor, the
+      review and the Analysis board use too.
+    - **A game that the page cannot make** goes back to the settings card, which says "The page has an error. Start a
+      new game." (`UNMADE_LINE` in the practice package), and the error goes in one report. The game has no Abort:
+      the page has no game to show. The cause is most often a kept game that the site's code cannot read. The page
+      resumes the kept game at each load, so a new load fails again on it. A new game replaces the kept game.
     - **The threads:** 16 search threads on the GPU, and two for each CPU worker. They are the most that a move
       uses. KataGo's play settings give each thread at least 8 of a move's new playouts (`minPlayoutsPerThread`,
       KataGo's default for GTP). So a move with N new playouts searches with T threads: N / 8, rounded down, at least

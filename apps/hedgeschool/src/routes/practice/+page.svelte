@@ -29,7 +29,8 @@
   import { keptScore } from "@abstractclass/practice/scoreDisplay.svelte.ts";
   import ReplaceGame from "@abstractclass/practice/ReplaceGame.svelte";
   import { PracticePage, seconds } from "@abstractclass/practice/page.svelte.ts";
-  import { broughtLine, gaugeWidth, stoppedLine, upright } from "@abstractclass/practice/practice.ts";
+  import { broughtLine, gaugeWidth, stoppedLine, UNMADE_LINE, upright } from "@abstractclass/practice/practice.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { intoView } from "@abstractclass/site/pageScroll.ts";
   import { MOVE_HERE, TURN_NUMBER, moveButton, turnRow } from "@abstractclass/review/moveList.ts";
   import { loadManifest } from "@abstractclass/engine/client.ts";
@@ -147,7 +148,7 @@
           description="Practise Enclosure against the engine's bot in your browser: choose its network, visits, variety and komi, then review the game." />
 
 {#if page.failed}
-  <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{page.failed}</p></main>
+  <main class="max-w-160 mx-auto my-6 px-4"><p class="text-blunder" role="alert">{engineLine("unstarted")}</p></main>
 {:else if page.phase === "settings"}
   {@render settingsCard()}
 {:else if page.phase === "game"}
@@ -164,6 +165,7 @@
     {#snippet intro()}A game against the engine, in your browser, with no clock: the bot searches each move to the visits
       you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}
+      {#if page.unmade}<p class="mb-1 text-sm text-blunder" role="alert">{UNMADE_LINE}</p>{/if}
       {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
       {#if page.abortedId}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
       {#if page.brought}<p class="mb-1 text-sm">{broughtLine(page.brought, ["edge", "edges"])}</p>{/if}

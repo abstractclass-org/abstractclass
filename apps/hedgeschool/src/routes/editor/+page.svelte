@@ -20,7 +20,8 @@
            type EditorPosition } from "#lib/editor/position.ts";
   import { LAST_COUNT, moverOf } from "@abstractclass/analysis/turns.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { engineError, startAnalytics, track } from "#lib/analytics.svelte.ts";
+  import { engineLine } from "@abstractclass/site/engineLines.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import PositionCheckStatus from "@abstractclass/review/PositionCheckStatus.svelte";
@@ -43,7 +44,7 @@
   let field = $state(""); // the position field, as the player types it
   let fieldError = $state("");
   let engine = $state.raw<EngineWorker | null>(null);
-  let failed = $state("");
+  let failed = $state(false); // the engine did not start
 
   const notation = $derived(writePosition(pos));
   const mover = $derived(moverOf(pos.count));
@@ -67,7 +68,8 @@
         await e.init(manifest);
         engine = e;
       } catch (e) {
-        failed = errorText(e);
+        failed = true; // the site's line: the error goes in the report only
+        engineError(e, "load");
       }
     })();
   });
@@ -213,7 +215,7 @@
 
 <main class="box-content grid items-start gap-5 max-w-[1100px] mx-auto my-4 px-4 min-[961px]:grid-cols-[minmax(0,600px)_minmax(280px,1fr)]">
   {#if failed}
-    <p class="text-blunder col-span-full" role="alert">{failed}</p>
+    <p class="text-blunder col-span-full" role="alert">{engineLine("unstarted")}</p>
   {:else if !shown}
     <p class="text-muted col-span-full">Setting up the board with the engine's rules…</p>
   {:else}

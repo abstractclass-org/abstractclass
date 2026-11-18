@@ -132,6 +132,10 @@ export class GameAnalysis<G extends GameTypes> {
   // not searched again for the same settings.
   timed = $state.raw<Record<string, string>>({});
   error = $state(""); // why the rules refuse the game (start): the pages show it in the place of the review
+  // The rules refused the game (the engine's error reply), and `error` is their reason. Else the engine failed as it
+  // read the game (its worker did not start, or it threw): `error` is the code's message, and the pages show their
+  // own line (engineLine).
+  refused = $state(false);
   // The engine's failures that still hold, with their errors, the latest last: the panel shows it (engineError).
   // - A search's failure, by its position's path key. Only the moves that wait for the position say so (judgeFailed).
   //   It clears when a new search of the position runs, or when a result of the position comes: from any search of it
@@ -389,6 +393,7 @@ export class GameAnalysis<G extends GameTypes> {
       this.rulesReady = true;
     } catch (e) {
       this.error = errorText(e);
+      this.refused = e instanceof EngineError;
       return;
     }
     if (kept) await this.addNodes(branchNodes((await kept) ?? null)); // the board's come from its page (loadBoard)

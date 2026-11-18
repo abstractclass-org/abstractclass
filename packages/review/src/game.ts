@@ -373,6 +373,9 @@ export interface ViewGame<G extends ViewTypes> extends Game<G> {
    *  stand as they are (Enclosure's pills). */
   shape: { name: string; help: string; turnDot?: boolean };
   moveText: string; // the class of a move's text in the move list: as wide as the widest move
+  /** The site's name for its engine, in the engine panel's line for a failure (engineLine): Cyanotype's "Stamp Duty".
+   *  None: "The engine". */
+  engineName?: string;
   // Each move on a line of its own in the move list, the turn's number at its first: moves too long for two to a row
   // (Blueprints', as on Cyanotype's Practice). None: two to a row, as Lichess's
   oneMoveALine?: boolean;

@@ -64,7 +64,8 @@ export function gpuStatusText(s: GpuStatus): string {
     case "testing": return s.measuring ? "In use. Testing its speed against a worker…" : "In use. The speed test continues with the next searches.";
     case "on": return s.test ? `In use, ${s.adapter}: ${gpuRatio(s.test)} times a worker's speed.` : `In use, ${s.adapter}.`;
     case "slower": return `Off: ${s.adapter} is slower than a worker (${gpuRatio(s.test)} times its speed).`;
-    case "failed": return `The GPU did not start: ${s.message}`;
+    // The error's message is the code's, and goes into the error report only. The workers do the searches without it.
+    case "failed": return "Off: the GPU did not start. The workers do all the searches.";
   }
 }
 

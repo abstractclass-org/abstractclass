@@ -128,12 +128,13 @@ test("with the engine on, a failed search marks only its own move, until a new s
   // The main line's A10-D9 and the variation D10-G12, both evaluated, from the start on screen
   await page.goto(boardLink("", { version: 2, main: [], nodes: [["A10-D9", 0, 1], ["D10-G12", 1, 1]] }, 0));
   await expect(page.locator('button.mv[data-path="D10-G12"]')).toHaveAttribute("title", new RegExp(`^${ERROR}`), { timeout: 180_000 });
-  await expect(page.getByRole("alert").filter({ hasText: "Engine error: the test failed this search" })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "The engine has an error. Load the page again." })).toBeVisible();
+  await expect(page.getByText("the test failed this search")).toHaveCount(0); // the code's message: the report only
   // The other move's searches run on: it says no error
   expect(await title(page, "A10-D9")).not.toContain(ERROR);
   // The position on screen gets a new search: the move says the error no more
   await page.locator('button.mv[data-path="D10-G12"]').click();
   await expect.poll(() => title(page, "D10-G12"), { timeout: 60_000 }).not.toContain(ERROR);
   // No failure holds: the panel's line goes too (GameAnalysis.engineError)
-  await expect(page.getByRole("alert").filter({ hasText: "Engine error:" })).toHaveCount(0);
+  await expect(page.getByRole("alert").filter({ hasText: "The engine has an error." })).toHaveCount(0);
 });
