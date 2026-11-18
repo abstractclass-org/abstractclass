@@ -157,7 +157,8 @@ must make costs both of them a release.
 - The public description: `src/routes/developers/+page.svelte`, linked from `src/lib/SiteFooter.svelte`. Its sections
   are in `packages/import/src/developers/`, which Cyanotype's page shares (design 33, "Partner sites", item 9). The
   sections also name the players' Discord, which both sites share. The page gives Hedge School's parts: its refusals,
-  its buttons' style and its list of changes. The head for the buttons: `static/brand/hedge-school.svg`, which
+  its buttons' class name and its list of changes. The buttons' style is shared: `buttonCss` in
+  `packages/import/src/developers/buttonStyle.ts`. The head for the buttons: `static/brand/hedge-school.svg`, which
   `src/lib/collie.test.ts` keeps the same as the site's head. The privacy page: "Games in an address".
 - Tests: `src/lib/game/importHash.test.ts`, `src/lib/game/partners.test.ts` (Hedge School's list),
   `packages/import/src/partners.test.ts` (the shared checks and messages).

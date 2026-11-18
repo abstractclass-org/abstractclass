@@ -53,8 +53,8 @@
 
   <WhatCanChange site={SITE_NAME} lenient="unknown tags, a placement without its capture marks, the moves without turn numbers">
     {#snippet changes()}
-      <li>The first release: the link to a review, the link to the Analysis board, and the messages to save a review
-        and open it again, protocol 1.</li>
+      <li>2026-11-18: the link to a review, the link to the Analysis board, and the messages to save a review and open
+        it again, protocol 1.</li>
     {/snippet}
   </WhatCanChange>
 </main>
