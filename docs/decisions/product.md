@@ -12654,3 +12654,24 @@ commit, eb75947, is older than that fix.
 - **Cyanotype's review** shows the same header (packages/review). Its stored review at 360 × 700, the network held,
   DejaVu Sans: with the fault, 347 in 345 in 3 of 3 runs. At a07fbbc7, 345 in 345 in 3 of 3, with the words cut by
   an ellipsis. Its layout case does not hold the network.
+
+### The shared review's intro, one component on both sites (2026-11-18)
+
+abscls-mrn8. Hedge School's `Arrival.svelte` and Cyanotype's `SharedArrival.svelte` each held a copy of the intro to a
+shared review: the players, the game's length, how the review works and the sender's review. The copies differed in
+four places, so the earlier entry on the shared parts kept the intro in each site.
+
+- **One intro for both sites:** `packages/review/src/SharedIntro.svelte`. It takes the players' names, the move and
+  variation counts, the game's words (`GameWords` in `packages/review/src/game.ts`, and `WORDS` in each game's module),
+  the network's name on this site or none, the depth and the engine. Each site keeps reading the link, the manifest
+  lookup, the event `review_share_open`, keeping the game, and its own loading and failure messages. Hedge School
+  keeps its import flow.
+- **Cyanotype's words, in strict Simplified Technical English:** the intro is text that a player follows. Hedge
+  School's intro changes in four places: "1 edge" for a game of one edge, "a game that you import", "when the engine
+  finds it" and "a network that this site no longer has". Cyanotype's text stays the same, byte for byte, in each
+  case. A look at both sites' intros, dev against the branch, came before the review.
+- **The variations' count stays in moves** on Hedge School, though its game's length is in edges. This work changes
+  only the four forms above.
+- **The tests:** `tests/exports.spec.ts` checks each paragraph of the intro word for word, on each site: a game of one
+  edge or move and one of three, with an unknown network and engine, and with the preview's own network and one
+  variation. On a build of dev, Hedge School's cases fail.

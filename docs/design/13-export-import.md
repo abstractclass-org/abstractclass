@@ -187,7 +187,8 @@ searching it again, and to share it as text that others can read.
   `src/lib/review/ReviewHome.svelte` (the menu beside each game, Load a review file, the drop).
 - The share link: `packages/analysis/src/share.ts` (the format, with each site's moves as a parameter),
   `src/lib/game/share.ts` (Enclosure's moves), `shareLink` and `importShare` in `src/lib/game/reviewFile.ts`,
-  the recipient's page in `src/lib/review/Arrival.svelte`, `withOwn` in `src/lib/analysis/engineSettings.ts`.
+  the recipient's page in `src/lib/review/Arrival.svelte` (its intro is `packages/review/src/SharedIntro.svelte`,
+  which Cyanotype shares), `withOwn` in `src/lib/analysis/engineSettings.ts`.
 - The tests: `src/lib/game/reviewFile.test.ts`, `src/lib/review/annotate.test.ts`, `src/lib/game/share.test.ts`.
 
 ## Log entries
