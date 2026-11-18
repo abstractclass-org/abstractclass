@@ -185,10 +185,16 @@
   let shown = $state<string | null | undefined>(undefined);
   if (typeof document !== "undefined") markReviewPage();
   // Another game named after the `#` than the one the page shows, or a game named where it shows none (the Review tab's
-  // list, an address typed, back and forward): the page reviews that one from the start. A change of the `#` alone is
-  // the browser's own navigation, with no router's: it fires `hashchange`.
-  // Only once the page has chosen what it shows (`shown`): before, the address's game is the one it loads.
-  const otherGame = () => { if (!arriving && shown !== undefined && gameInAddress() !== shown) location.reload(); };
+  // list, an address typed, back and forward): the page reviews that one from the start. So does a way in that the
+  // review takes first (reviewArrives: a shared review, a partner's kept review, an older tool's game), as a link
+  // pasted in the address bar over the open page brings it (Cyanotype's review does the same). A record there gets
+  // the Review tab, as on a fresh load. A change of the `#` alone is the browser's own navigation, with no router's:
+  // it fires `hashchange`. Only once the page has chosen what it shows (`shown`): before, the address's game is the
+  // one it loads.
+  const otherGame = () => {
+    if (arriving || shown === undefined) return;
+    if (gameInAddress() !== shown || reviewArrives(location.hash)) location.reload();
+  };
   afterNavigate(otherGame);
   onMount(() => {
     window.addEventListener("hashchange", otherGame);

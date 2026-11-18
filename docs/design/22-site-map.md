@@ -67,7 +67,9 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      updated. That game shows the choice and the notice to update the tool, and counts `tool_out_of_date` (design 17) on
      `/review`: there, every tool's game is from a tool older than the import page. The review's choice can go when that
      count on `/review` stops (exploration 6, the tab **Old tools**, by page). A record on `/review` (`record=`, or a
-     bare one) gets the Review tab, and the analytics wait while it stays in the address.
+     bare one) gets the Review tab, and the analytics wait while it stays in the address. An address pasted over the
+     open page (a change of the `#` alone, with no load) opens as on a fresh load: another game, or a way in that the
+     review takes first, loads the page again (`otherGame` in `src/routes/review/+page.svelte`).
 5. **The pages:**
    - **The header:** Practice, Review, Analysis, Openings (later Puzzles, Learn), then Tools, The notation, About and
      "Support Us". Openings, the opening book's page (design 32), shows only in a build that serves the test book
