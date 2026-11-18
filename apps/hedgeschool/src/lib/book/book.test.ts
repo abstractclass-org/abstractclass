@@ -211,18 +211,18 @@ test("a part that does not load rejects each lookup in it, and a later lookup tr
 const START_PART = "/test-book/cases/0.json";
 
 /** A server of the test books' files over HTTP, which the loader's own reader fetches. The cases' start's part answers
- *  as `start` says: in full, never (no headers), with half of its body, or with a server error. `next(path)` settles
- *  when the server has the next request of `path`. `requests` counts the start part's requests, and `open` the ones
+ *  as `start` says: in full, never (no headers), with half of its body, or with a server error. `asked()` settles
+ *  when the server has the start part's next request. `requests` counts the start part's requests, and `open` the ones
  *  that the server still holds. `closed` settles when the last one closes: a request that the client aborts closes. */
 async function bookServer() {
-  const waiting = new Map<string, () => void>(); // a `next` for each path
+  let onAsked = () => {}; // settles the last `asked()`
   const server = {
     start: "answer" as "answer" | "no headers" | "half a body" | "error",
     requests: 0,
     open: 0,
     closed: Promise.resolve() as Promise<unknown>,
     url: "",
-    next: (path: string) => new Promise<void>(resolve => waiting.set(path, resolve)),
+    asked: () => new Promise<void>(resolve => { onAsked = resolve; }),
     close: () => {},
   };
   const http = createServer((req, res) => {
@@ -232,9 +232,8 @@ async function bookServer() {
       server.open++;
       res.on("close", () => server.open--);
       server.closed = once(res, "close");
+      onAsked();
     }
-    waiting.get(path)?.();
-    waiting.delete(path);
     if (start === "no headers") return;
     if (start === "error") { res.writeHead(500).end(); return; }
     if (!existsSync(file)) { res.writeHead(404).end(); return; }
@@ -262,12 +261,12 @@ function headersOf(path: string): Promise<void> {
   });
 }
 
-// The case runs on its own clock (setTimeout's mock): the time limit ends only when the case moves the clock, after the
-// server has the request. Real time, which a busy machine stretches, moves nothing. The server answers at once, or never,
-// so the case waits for each answer and for no time. The test's own timeout fails a loader that does not stop a request,
-// and `t.after` then closes the server. Node's fetch (undici) also starts its own timers with setTimeout. The case moves
-// the clock 30 s at most in each round. That ends no timeout of fetch's that matters: its headers and body timeouts are
-// 300 s, and an idle connection that its keep-alive timer closes gives way to a new one.
+// The case runs on its own clock (setTimeout's mock): the time limit ends only when the case moves the clock, after
+// the server has the request. Real time, which a busy machine stretches, moves nothing. The server answers at once, or
+// never, so the case waits for each answer and for no time. The test's own timeout fails a loader that does not stop a
+// request, and `t.after` then closes the server. Node's fetch (undici) also starts its own timers with setTimeout. The
+// case moves the clock 30 s at most in each round. That ends no timeout of fetch's that matters: its headers and body
+// timeouts are 300 s, and an idle connection that its keep-alive timer closes gives way to a new one.
 test("a part that does not answer in the time limit counts as not loaded: its headers, its body, or an error",
      { timeout: 20_000 }, async t => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
@@ -276,7 +275,7 @@ test("a part that does not answer in the time limit counts as not loaded: its he
   for (const start of ["no headers", "half a body", "error"] as const) {
     server.start = start;
     server.requests = 0;
-    const partAsked = server.next(START_PART);
+    const partAsked = server.asked();
     const headers = start === "half a body" ? headersOf(START_PART) : undefined;
     const book = await openBook(server.url); // it starts the start's part
     // The lookup joins that request now, in the same turn: an error answer must not come before it
@@ -290,9 +289,9 @@ test("a part that does not answer in the time limit counts as not loaded: its he
       assert.equal(state, "pending", `${start}: not before the time limit`);
       t.mock.timers.tick(1);
     }
-    const e = await outcome;
-    assert.ok(e instanceof BookLoadError && (start === "error" ? /500/ : /no answer in 30 s/).test(e.message),
-              `${start}: the lookup fails as a part that did not load: ${String(e)}`);
+    const failure = await outcome, reason = start === "error" ? /500/ : /no answer in 30 s/;
+    assert.ok(failure instanceof BookLoadError && reason.test(failure.message),
+              `${start}: the lookup fails as a part that did not load: ${String(failure)}`);
     assert.equal(book.peek(START), undefined, `${start}: the part counts as not loaded`);
     await server.closed;
     assert.equal(server.open, 0, `${start}: the loader stopped its request`);

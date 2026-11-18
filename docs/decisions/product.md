@@ -12217,19 +12217,24 @@ Beads abscls-vttz, from the review of abscls-heum.
 
 - **The change:** `BookLimit` and the `limit` parameter of `openBook` and `inTime` are gone from `book.ts`. Every read
   uses `BOOK_TIME_LIMIT`, 30 s. A limit by file was needed only while the case ran on real time. Since the case runs on
-  its own clock (the entry above), it waits for each request and not for time. Players see no change.
+  its own clock (the entry "The book's time-limit case runs on its own clock"), it waits for each request and not for
+  time. Players see no change.
 - **The case:** it uses the 30 s limit and moves the mocked clock past it. The test server has no hold, so the
-  `hold` parameter and its timer are gone. The server answers at once, or never. The case still waits for the server to
-  have the request before it moves the clock. Its lookup joins the start part's request in the same turn as `openBook`
-  returns, because an error answer now comes at once and a lookup that came after it would start a second request. The
-  clock moves 30 s at most in each round, and the shortest of fetch's own limits that matters is 300 s.
-  `node:timers/promises` was never imported in `book.test.ts`, so there was nothing else to remove.
+  `hold` parameter and its timer are gone. That timer was the global `setTimeout`, which the case's mock replaces: the
+  case has no real timer. The server answers at once, or never. The case still waits for the server to have the start
+  part's request before it moves the clock. Its lookup joins that request in the same turn as `openBook` returns. An
+  error answer now comes at once, and a lookup that came after it would start a second request. The clock moves 30 s
+  at most in each round. Fetch's headers and body time limits are 300 s. Its keep-alive timer closes only an idle
+  connection, and the next request opens a new one.
 - **Checked:**
   - Each fault in `book.ts` fails the case: a loader that does not abort its read (the test's timeout), a timer at half
     the limit ("not before the time limit"), and a timer that ends 1 ms before the limit (the same assertion).
-  - Under load: a job of `scripts/machine run` had 2 threads, and 30 busy Node processes in the job kept them busy. The
-    case passed 20 of 20 runs on Node 24.21 and 20 of 20 on Node 26.13. `book.test.ts` passes 14 of 14 on both, with 2
-    skipped cases that need the engine's files.
+  - Under load: 30 busy Node processes ran in a job of `scripts/machine run` that had 2 threads. The case passed 20 of
+    20 runs on Node 24.21 and 20 of 20 on Node 26.13. `book.test.ts` passes 14 of 14 on both, with 2 skipped cases
+    that need the engine's files.
+  - After the review, which gave the test server one `asked()` for the start part in place of `next(path)`: the three
+    faults fail the case again, and `book.test.ts` passes 16 of 16 on Node 24.21 and Node 26.13 in a worktree that has
+    the engine's files.
 
 ### Cyanotype's review page before its code runs, as Hedge School's (2026-11-14)
 
