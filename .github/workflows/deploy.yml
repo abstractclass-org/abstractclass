@@ -121,9 +121,6 @@ jobs:
   # site job's version. It runs in apps/cyanotype, so that it uploads Cyanotype's own Function in its functions/ folder
   # (docs/hosting.md, "Cyanotype's practice games"): in the workflow's default folder, it would upload Hedge School's.
   cyanotype:
-    # The launch switch (the comment at the top): previews only, until Cyanotype's launch. When the owner says to
-    # launch Cyanotype, the launch commit removes this `if:` and this comment (docs/hosting.md, "The launch switch").
-    if: github.ref_name != 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
