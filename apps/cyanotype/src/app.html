@@ -14,6 +14,8 @@
 				document.documentElement.dataset.theme = theme;
 			})();
 		</script>
+		<!-- The script that marks the head's links that do not load: hooks.server.ts puts it here, before them. -->
+		<!-- load-notice-links -->
 		%sveltekit.head%
 		<!-- The notice when the page's scripts do not load: hooks.server.ts puts its script here, after the preloads. -->
 		<!-- load-notice -->

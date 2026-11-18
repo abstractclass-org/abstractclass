@@ -12737,3 +12737,45 @@ under the header: "Part of this page did not load.", with the button "Load the p
   root layout would miss it.
 - **The notice's words** are strict Simplified Technical English. "Load the page again" is the way out of Practice's
   own notices (abscls-y27l, abscls-5csr).
+
+### Safari's notice when the page's code does not load (2026-11-19)
+
+abscls-o1xw. The notice of abscls-lwhe reads the module that did not load from the error's message. Safari's message,
+"Importing a module script failed.", names no module, so on Safari a page whose code did not load stayed empty with no
+notice. Now Safari shows the notice from the page's failed `modulepreload` links (design 22, "On Safari").
+
+- **How each failure shows in WebKit,** measured in Playwright's WebKit 26.6 on Windows, on both sites' builds, with
+  requests aborted by the test. `start.js` (on `/review`): an `error` event on its head link, then an unhandled
+  rejection with Safari's message. The route's nodes (on `/practice`): `error` events on their head links, then
+  `vite:preloadError` with Safari's message. The 404 page's error node (not preloaded): `vite:preloadError`, an `error`
+  event on the link that Vite's loader adds for it, and an unhandled rejection, all in the same millisecond. PostHog's
+  client and the home page's replay: `vite:preloadError` and an unhandled rejection with Safari's message, and `error`
+  events on the links that Vite's loader adds for their chunks. On Cyanotype, PostHog's link event came 11 ms after its
+  `vite:preloadError`, so the order of the two is not fixed. The error has no stack and no address.
+- **The links' `error` events: chosen.** WebKit fires them for each failed module, on the head's links and on Vite's.
+  A head link's event comes early: `start.js`'s came at 7 to 22 ms, and the script at the head's end ran at 102 to
+  139 ms. So a script before the head's links marks each failed link (`data-load-failed`). The script at the head's
+  end reads the marks on Safari's message, with the rules of the other browsers: a link that the HTML preloads, or,
+  for a rejection that nothing handles, a link of a node.
+- **Whether SvelteKit's start has finished: rejected.** On Hedge School's home page, PostHog's failure came 10 ms
+  before the start resolved: the layout starts PostHog as it mounts, inside the start. The time does not separate the
+  page's code from a later part.
+- **An import of each preloaded module again, to see which one fails: rejected.** WebKit asks the network again for
+  each import of a module that failed. A module that failed once and then loads would hide the failure, and an import
+  can run a module before the page does.
+- **Resource Timing: rejected.** WebKit gives no entry for a request that failed.
+- **Measured after the change,** with the same aborted requests (notice shown or not, WebKit and Chromium on each
+  site): `start.js`, the route's nodes and the 404 page's error node show it. PostHog's client with the replay, and a
+  page with nothing blocked, show none. A chunk of the page's code that the HTML does not preload (Hedge School's
+  `addressHash.ts` chunk, 201 bytes) shows it in Chromium only: no link of the HTML names it on Safari.
+- **Chrome and Firefox** keep their rules: the new rule acts only on Safari's message, which their messages never
+  are. Each Chromium case of `tests/load-notice.spec.ts` passes as before.
+- **The reload in Playwright's WebKit:** after an aborted `start.js`, the notice's button loads the page again, but
+  WebKit does not ask for `start.js` again in the same page, after `page.unroute`, after a route that lets it through,
+  and after a new `page.goto`. A 503 answer with `Cache-Control: no-store` in place of the abort gave the same. So
+  the WebKit case checks only that the button loads the page again. Whether Safari itself keeps the failure through a
+  reload is not measured: it needs a Mac or an iPhone.
+- **The tests:** the project `webkit` in `playwright.config.ts` runs `tests/load-notice.spec.ts` only. Its cases
+  stop PostHog's requests themselves: WebKit takes no switch that resolves no PostHog address. Its pages get no
+  WebGPU: Playwright's WebKit has no `navigator.gpu`. On the build before the change, the six WebKit cases that expect
+  the notice failed. The Tests workflow installs WebKit and runs the project in its part "other", on Linux.

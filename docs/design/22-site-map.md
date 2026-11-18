@@ -126,14 +126,21 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      - **How the script knows:** a script at the end of each page's head reads the preloads. It then watches for
        Vite's `vite:preloadError` (Vite's guide, "Load Error Handling") and for a rejection that nothing handles.
        SvelteKit's start script imports `start.js` and `app.js` with no catch, so their failure comes only as such a
-       rejection. The script reads the module from the error's message. Chrome and Firefox name it. Safari's message
-       does not, so Safari shows no notice.
+       rejection. The script reads the module from the error's message. Chrome and Firefox name it.
+     - **On Safari:** Safari's message ("Importing a module script failed.") names no module. Safari fires an `error`
+       event on each `modulepreload` link whose module did not load, so the failed links name it. A second script,
+       before the head's links, marks each failed link: a link's event can come before the script at the head's end
+       runs. On Safari's message, the notice shows when a link that the page's HTML preloads failed, or, for a
+       rejection that nothing handles, a link of a route's node. The link's event and the message come in either
+       order, so each one checks the other. A module of the page's code that SvelteKit's preloads leave out (the root
+       layout's `addressHash.ts`) has no link in the HTML. Chrome names the module that imports it, so Chrome shows
+       the notice, but Safari does not.
 
      The script stops no error: SvelteKit still shows its error page, and the error reports still go. It styles the
-     box itself, so the box shows when the site's style did not load either. The build puts the script in each page
-     (SvelteKit's `transformPageChunk`, in the `handle` that each site's `src/hooks.server.ts` takes) where
-     `src/app.html` marks its place, so both sites take it from one source. A site whose `app.html` lacks the mark
-     does not build.
+     box itself, so the box shows when the site's style did not load either. The build puts the two scripts in each
+     page (SvelteKit's `transformPageChunk`, in the `handle` that each site's `src/hooks.server.ts` takes) where
+     `src/app.html` marks their places, so both sites take them from one source. A site whose `app.html` lacks a mark
+     does not build. The browser tests run the notice's cases in Chromium and in WebKit, Safari's engine.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
      candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`, on the shared replay
@@ -234,7 +241,7 @@ ask where it goes (design 21): with that choice, "import" again names what the p
   `src/lib/game/share.ts` (`packed`),
   `src/routes/developers/+page.svelte`.
 - `packages/site/src/loadNotice.ts` (the notice when a page's code does not load), each site's `src/hooks.server.ts`
-  and the mark in its `src/app.html`, `tests/load-notice.spec.ts`.
+  and the marks in its `src/app.html`, `tests/load-notice.spec.ts`.
 
 ## Log entries
 
@@ -243,3 +250,4 @@ ask where it goes (design 21): with that choice, "import" again names what the p
 - [decisions/product.md](../decisions/product.md): "Review or Analyze for a game from the tools" (2026-10-19).
 - [decisions/product.md](../decisions/product.md): "A page whose code does not load says to load it again"
   (2026-11-18).
+- [decisions/product.md](../decisions/product.md): "Safari's notice when the page's code does not load" (2026-11-19).

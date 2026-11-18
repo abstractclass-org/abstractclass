@@ -17,8 +17,16 @@
 // - `unhandledrejection`: SvelteKit's start script in the page's body imports start.js and app.js with no bundler
 //   between and no catch, so their failure comes only as a rejection that nothing handles.
 // Chrome's message is "Failed to fetch dynamically imported module: <address>", and Firefox's "error loading
-// dynamically imported module: <address>". Safari's, "Importing a module script failed.", names no module, so Safari
-// shows no notice. The script lets each error go on as before: the error page and the error reports stay.
+// dynamically imported module: <address>". Safari's, "Importing a module script failed.", names no module
+// (abscls-o1xw). There the failed `modulepreload` links name it: Safari fires an `error` event on each link whose module
+// did not load, the head's own links and the links that Vite's loader adds for an import. A link's event can come from the
+// network while the head is read, before the script at the head's end runs. So a second script, before the head's
+// links (LOAD_LINKS_MARK), marks each failed link, and the first reads the marks. On Safari's message, the notice shows
+// when a link that the page's HTML preloads failed, or, for a failure that nothing handled, a link of a node: the
+// rules of the other browsers, with the failed links in the place of the message's address. The link's event and the
+// message come in either order, so each one checks the other. A module that SvelteKit's preloads leave out (the
+// root layout's addressHash.ts) fails on Safari with no link of the page's HTML, and shows no notice there. The
+// script lets each error go on as before: the error page and the error reports stay.
 
 import type { Handle } from "@sveltejs/kit/hooks";
 
@@ -29,12 +37,27 @@ export const LOAD_NOTICE = { text: "Part of this page did not load.", action: "L
 /** The place of the script in each site's src/app.html: after `%sveltekit.head%`, which holds the page's preloads. */
 export const LOAD_NOTICE_MARK = "<!-- load-notice -->";
 
+/** The place of the script that marks the failed links, in each site's src/app.html: before `%sveltekit.head%`. */
+export const LOAD_LINKS_MARK = "<!-- load-notice-links -->";
+
+/** The attribute that marks a `modulepreload` link whose module did not load. */
+const FAILED = "data-load-failed";
+
+/** Marks each `modulepreload` link whose module did not load. A link's `error` event does not bubble: a listener in
+ *  the capture phase gets it. */
+function markFailedLinks(failed: string) {
+  addEventListener("error", function (e) {
+    var link = e.target as HTMLLinkElement | null;
+    if (link && link.tagName === "LINK" && link.rel === "modulepreload") link.setAttribute(failed, "");
+  }, true);
+}
+
 /** Watches for the page's own code that does not load, and then shows the notice once. The head holds its text
  *  (`script`), so it uses nothing outside itself, in the older JavaScript of the theme's script. It styles the box in
  *  its own attribute, with the site's colour tokens and their light values, so that it shows when the site's style did
  *  not load either. */
-function watchLoad(text: string, action: string) {
-  var preloaded: Record<string, boolean> = {}, nodes = "", shown = false;
+function watchLoad(text: string, action: string, failed: string) {
+  var preloaded: Record<string, boolean> = {}, nodes = "", shown = false, safari = false, safariUnhandled = false;
   var links = document.querySelectorAll("link[rel=modulepreload]");
   for (var i = 0; i < links.length; i++) {
     var href = (links[i] as HTMLLinkElement).href, start = /^(.*\/)entry\/start\.[^/]+$/.exec(href);
@@ -60,30 +83,59 @@ function watchLoad(text: string, action: string) {
     box.appendChild(button);
     document.body.appendChild(box);
   }
-  function onLoadError(error: { message?: unknown } | null | undefined, unhandled: boolean) {
-    var failure = /dynamically imported module: (\S+)/.exec(String(error && error.message));
-    var own = failure && (preloaded[failure[1]] || (unhandled && nodes && failure[1].indexOf(nodes) === 0));
-    if (shown || !own) return;
+  function show() {
+    if (shown) return;
     shown = true;
     if (document.body) addBox(); else addEventListener("DOMContentLoaded", addBox);
+  }
+  /** Whether the module at `href` is the page's own code: the HTML preloads it, or it is a node whose failure nothing
+   *  handled. */
+  function own(href: string, unhandled: boolean) {
+    return preloaded[href] || (unhandled && nodes !== "" && href.indexOf(nodes) === 0);
+  }
+  /** On Safari: whether a failed link is the page's own code. */
+  function safariOwn() {
+    var links = document.querySelectorAll("link[rel=modulepreload][" + failed + "]");
+    for (var i = 0; i < links.length; i++) if (own((links[i] as HTMLLinkElement).href, safariUnhandled)) return true;
+    return false;
+  }
+  function onLoadError(error: { message?: unknown } | null | undefined, unhandled: boolean) {
+    var message = String(error && error.message), failure = /dynamically imported module: (\S+)/.exec(message);
+    if (failure) {
+      if (own(failure[1], unhandled)) show();
+    } else if (/^Importing a module script failed/.test(message)) {
+      safari = true;
+      if (unhandled) safariUnhandled = true;
+      if (safariOwn()) show();
+    }
   }
   addEventListener("vite:preloadError", function (e) {
     onLoadError((e as Event & { payload?: Error }).payload, false);
   });
   addEventListener("unhandledrejection", function (e) { onLoadError(e.reason, true); });
+  // A link's event after Safari's message. The listener of markFailedLinks, added before this one, has marked it.
+  addEventListener("error", function (e) {
+    var link = e.target as HTMLLinkElement | null;
+    if (safari && link && link.tagName === "LINK" && link.rel === "modulepreload" && safariOwn()) show();
+  }, true);
 }
 
-/** The script in each page's head. */
-export const LOAD_NOTICE_SCRIPT =
-  `<script>(${watchLoad})(${JSON.stringify(LOAD_NOTICE.text)}, ${JSON.stringify(LOAD_NOTICE.action)});</script>`;
+/** The script at the head's end. */
+export const LOAD_NOTICE_SCRIPT = `<script>(${watchLoad})(${JSON.stringify(LOAD_NOTICE.text)}, ` +
+  `${JSON.stringify(LOAD_NOTICE.action)}, ${JSON.stringify(FAILED)});</script>`;
 
-/** SvelteKit's `transformPageChunk` for a site's pages: puts the script in the place of LOAD_NOTICE_MARK. A head
- *  without the mark stops the build, so that no site loses the notice without a word. A later part of a page that
- *  streams holds no head, and passes as it is. */
+/** The script before the head's links. */
+export const LOAD_LINKS_SCRIPT = `<script>(${markFailedLinks})(${JSON.stringify(FAILED)});</script>`;
+
+/** SvelteKit's `transformPageChunk` for a site's pages: puts each script in the place of its mark. A head without both
+ *  marks stops the build, so that no site loses the notice without a word. A later part of a page that streams holds
+ *  no head, and passes as it is. */
 export function withLoadNotice({ html }: { html: string }): string {
-  if (html.includes(LOAD_NOTICE_MARK)) return html.replace(LOAD_NOTICE_MARK, () => LOAD_NOTICE_SCRIPT);
-  if (html.includes("</head>")) throw new Error(`The page's head has no ${LOAD_NOTICE_MARK} (the site's src/app.html)`);
-  return html;
+  if (!html.includes("</head>")) return html;
+  for (const mark of [LOAD_LINKS_MARK, LOAD_NOTICE_MARK]) {
+    if (!html.includes(mark)) throw new Error(`The page's head has no ${mark} (the site's src/app.html)`);
+  }
+  return html.replace(LOAD_LINKS_MARK, () => LOAD_LINKS_SCRIPT).replace(LOAD_NOTICE_MARK, () => LOAD_NOTICE_SCRIPT);
 }
 
 /** Each site's `handle` hook (its src/hooks.server.ts): the site is static, so it runs only in the build and in the

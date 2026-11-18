@@ -2,8 +2,11 @@
 // (CYANOTYPE_BASE_URL). Each case fails requests of the page's code. start.js fails in SvelteKit's start script, which
 // no bundler wraps: the script sees an unhandled rejection. The route's nodes fail in the router's import, which
 // SvelteKit catches: the script sees Vite's `vite:preloadError`. A part that the page loads later (PostHog's client,
-// the home page's replay) that fails leaves the page working, and shows no notice. Run:
-// npm run test:layout -- tests/load-notice.spec.ts, with CYANOTYPE_BASE_URL for Cyanotype's cases.
+// the home page's replay) that fails leaves the page working, and shows no notice. The cases run in Chromium and in
+// WebKit (the project webkit), whose message, as Safari's, names no module: there the failed links name it. No case
+// reaches PostHog: WebKit takes no switch of Chromium's that resolves none of its addresses (playwright.config.ts), so
+// each case stops PostHog's requests. Run: npm run test:layout -- tests/load-notice.spec.ts, with CYANOTYPE_BASE_URL
+// for Cyanotype's cases.
 import { expect, test, type Page } from "./page-log.ts";
 import { CYANOTYPE } from "./cyanotype-review.ts";
 import { LOAD_NOTICE } from "../../../packages/site/src/loadNotice.ts";
@@ -12,6 +15,9 @@ const START = "**/_app/immutable/entry/start.*.js";
 const SITES = [{ site: "Hedge School", base: "" }, { site: "Cyanotype", base: CYANOTYPE }];
 
 const notice = (page: Page) => page.locator("[data-load-notice]");
+
+/** The words of each browser for a module that did not load: Chromium's and Firefox's name it, WebKit's does not. */
+const NOT_LOADED = /dynamically imported module|Importing a module script failed/;
 
 /** The address of a page on the site whose preview is `base` (Hedge School's: the tests' baseURL). */
 const at = (base: string | undefined, path: string) => (base ? new URL(path, base).href : path);
@@ -26,15 +32,24 @@ async function preloads(page: Page, address: string): Promise<Set<string>> {
 for (const { site, base } of SITES) {
   test.describe(site, () => {
     test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.beforeEach(({ context }) => context.route(/^https:\/\/([^/]+\.)?posthog\.com\//, route => route.abort()));
 
-    test("a page whose start.js does not load says to load it again, and its button does", async ({ page }) => {
+    test("a page whose start.js does not load says to load it again, and its button does", async ({ page,
+      browserName }) => {
       await page.route(START, route => route.abort());
       await page.goto(at(base, "/review"));
       await expect(notice(page)).toBeVisible();
       await expect(notice(page)).toHaveRole("alert");
       await expect(notice(page)).toContainText(LOAD_NOTICE.text);
       await page.unroute(START);
-      await notice(page).getByRole("button", { name: LOAD_NOTICE.action }).click();
+      const button = notice(page).getByRole("button", { name: LOAD_NOTICE.action });
+      if (browserName === "webkit") {
+        // Playwright's WebKit loads the page again, but does not ask for start.js again in the same page, after a route
+        // or a reload: start.js fails again. So in WebKit the case checks only that the button loads the page again.
+        await Promise.all([page.waitForEvent("load"), button.click()]);
+        return;
+      }
+      await button.click();
       // The page loads now: the Review tab opens (ReviewHome.svelte, data-ready), and no notice shows.
       await expect(page.locator("[data-ready]")).toHaveCount(1, { timeout: 60_000 });
       await expect(notice(page)).toHaveCount(0);
@@ -91,12 +106,13 @@ for (const { site, base } of SITES) {
       // Vite's loader told the page (`vite:preloadError`), as it does for the page's own code.
       await expect(page.locator("html[data-preload-error]")).toHaveCount(1);
       // The replay's scenes did not load, and nothing caught that (Replay.svelte): an unhandled rejection.
-      await expect.poll(() => errors.some(message => message.includes("dynamically imported module"))).toBe(true);
-      // The app's own rejections with the browser's words, for a file that is not the page's code: the engine's, a
-      // worker's.
+      await expect.poll(() => errors.some(message => NOT_LOADED.test(message))).toBe(true);
+      // The app's own rejections with the browsers' words, for a file that is not the page's code: the engine's, a
+      // worker's. Safari's words name no file: no link of the page's code failed.
       await page.evaluate(() => {
         for (const path of ["/engine/x/rules.js", "/_app/immutable/workers/worker.js"])
           void Promise.reject(new TypeError(`Failed to fetch dynamically imported module: ${location.origin}${path}`));
+        void Promise.reject(new TypeError("Importing a module script failed."));
         return new Promise(resolve => setTimeout(resolve, 100));
       });
       await expect(notice(page)).toHaveCount(0);

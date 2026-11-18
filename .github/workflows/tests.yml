@@ -105,6 +105,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps --only-shell chromium
+      # WebKit, Safari's engine, for the load notice's cases (the project webkit in playwright.config.ts), in the part
+      # "other" only.
+      - if: matrix.part == 'other'
+        run: npx playwright install --with-deps webkit
       # Cyanotype's preview (port 4174) beside the site's, for the tests that open a Cyanotype page, which run only when
       # CYANOTYPE_BASE_URL gives the preview's address. Its build is the one that check:all made in this run (the step
       # cyanotype-build), with the engine's files of the step cyanotype-engine, so a stale build cannot pass.
@@ -117,6 +121,7 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
           npx playwright test --project=chromium ${{ matrix.grep }} ' layout\.spec\.ts '
+          if [ "${{ matrix.part }}" = other ]; then npx playwright test --project=webkit; fi
 
       # The failures' screenshots and the page's state, for a week.
       - if: failure()
