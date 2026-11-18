@@ -630,14 +630,14 @@ a push to `main` that the owner did not say to make. The owner's word to release
   repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs three jobs at the same
   time (`.github/workflows/tests.yml`). Each commit has its own run: a push cancels no run and waits for none, so each
   commit keeps its result. Each job builds the site as production does, with the practice games' storage on:
-  - **`test (layout)` and `test (other)`, on Linux:** two parts of one job, each on its own runner with its own
-    previews. Each runs `npm run check:all` at the root, then a part of the browser tests in Chromium: the layout test
-    (tests/layout.spec.ts) in `test (layout)`, and every other spec file in tests/ in `test (other)`. Among the others
-    is a Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts). The layout test
-    takes about half of the browser tests' time, so each part takes about half. `check:all` holds the one list of the
-    checks before the browser tests (`scripts/check-all.mjs`). Run it before a push to get the same result.
-    Cyanotype's engine tests take a large part of `test (other)`'s time: its practice games against the bot, and a
-    review of the test game's first three turns with the engine (`cyanotype-live-review.spec.ts`). The other tests of
+  - **`test (layout)` and `test (other)`, on Linux:** the two parts of the job `test`, each a job on its own runner with
+    its own previews. Each runs `npm run check:all` at the root, then a part of the browser tests in Chromium: the
+    layout test (tests/layout.spec.ts) in `test (layout)`, and every other spec file in tests/ in `test (other)`. Among
+    the others is a Decline in one tab while a practice game is open in another (tests/practice-games.spec.ts). The
+    layout test takes about half of the browser tests' time. A new spec file goes into `test (other)`. `check:all` holds
+    the one list of the checks before the browser tests (`scripts/check-all.mjs`). Run it before a push to get the same
+    result. Cyanotype's engine tests take a large part of `test (other)`'s time: its practice games against the bot, and
+    a review of the test game's first three turns with the engine (`cyanotype-live-review.spec.ts`). The other tests of
     its review load a stored review.
   - **`test-windows`, on Windows:** the layout test in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where

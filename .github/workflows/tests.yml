@@ -1,14 +1,14 @@
 # The site's tests on each push to dev (docs/hosting.md, "Deploy, check and roll back"): the type check, the unit tests,
 # and the browser tests in Chromium on Linux (the spec files in tests/, such as the layout sweep and the practice games'
-# consent across tabs), in two parts. Beside them, the layout sweep in Chromium on Windows. On a production build with the practice
-# games' storage on, so that the consent banner shows on every page, and the practice games' test runs. Both jobs also
-# serve Cyanotype's build (CYANOTYPE_BASE_URL), with its engine's release files, for the tests that open a Cyanotype
-# page. A run with no CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only a commit
-# whose run passed, so each commit has a concurrency group of its own: a push cancels no run of an older commit, and
-# waits for none. The deploy (deploy.yml) runs the check and the unit tests again before each upload, in a group of its
-# own, so deploys stay in order. The sweep in Edge stays an option before a release. The repository is public, so the
-# standard runners cost no minutes. Runs for older commits still use runner time and count toward the limit of
-# concurrent jobs (three jobs for each run).
+# consent across tabs), in two parts. Beside them, the layout sweep in Chromium on Windows. On a production build with
+# the practice games' storage on, so that the consent banner shows on every page, and the practice games' test runs.
+# Each job also serves Cyanotype's build (CYANOTYPE_BASE_URL), with its engine's release files, for the tests that open
+# a Cyanotype page. A run with no CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only
+# a commit whose run passed, so each commit has a concurrency group of its own: a push cancels no run of an older
+# commit, and waits for none. The deploy (deploy.yml) runs the check and the unit tests again before each upload, in a
+# group of its own, so deploys stay in order. The sweep in Edge stays an option before a release. The repository is
+# public, so the standard runners cost no minutes. Runs for older commits still use runner time and count toward the
+# limit of concurrent jobs (three jobs for each run).
 name: Tests
 
 on:
@@ -32,9 +32,15 @@ defaults:
 jobs:
   # The browser tests on Linux run in two parts at the same time, each on its own runner with its own previews: the
   # layout sweep (tests/layout.spec.ts) in one, every other spec file in the other. The sweep takes about half of the
-  # browser tests' time (19 to 21 of 36 to 40 minutes). Playwright's --shard does not fit: it divides by the count of
-  # tests and keeps each file whole, so it gave parts of about 12 and 28 minutes. A new spec file goes into the part
-  # "other". Each part runs check:all (about 2 minutes) and builds its own site, as the one job did.
+  # browser tests' time (19 to 21 of 41 to 47 minutes). Playwright's --shard does not fit: it divides by the count of
+  # tests and keeps each file whole, so on each file's times it gives parts of about 12 and 28 minutes. Each part runs
+  # check:all (about 2 minutes) and builds its own site, as the one job did.
+  #
+  # One regular expression divides the cases: the part "layout" runs the cases that it matches (--grep), and "other"
+  # the rest (--grep-invert), so each case runs in one part. Playwright tests it against the case's project, file name
+  # (from tests/), describe titles and title, joined by spaces. With its spaces it matches the file layout.spec.ts and
+  # not a file such as review-layout.spec.ts, so a new spec file goes into the part "other". A file filter in one part
+  # and --grep-invert in the other could lose a case that neither selects.
   #
   # The time limit. As one job, the Linux job took 37.8 to 47.6 minutes, then 50.2 on a slow runner, and GitHub
   # stopped it at its limit of 50 (abscls-hrrc). In two parts it took 25.3 and 28.7 minutes ("other": 22.6 and 25.7
@@ -43,20 +49,22 @@ jobs:
   # test game's first three turns, about 2 to 3 minutes. That test stops after 12 minutes. The other review tests load
   # a stored review. A slow runner adds about a quarter to the browser tests (the one job's times above), and a slow
   # Playwright install up to 9 minutes. So the part "other" takes up to about 44 minutes on a slow runner with a slow
-  # install, and "layout" up to about 39. If the live review stops at its limit, the run fails all the same. The
-  # Windows job took 22.7 and 22.9 minutes in the same runs. Each limit leaves a margin.
+  # install, and "layout" up to about 39. If the live review then stops at its limit, "other" takes up to about 53. A
+  # job that reaches its time limit ends as cancelled, without the failures' screenshots, so the limit of 60 keeps that
+  # case a failed test with its report. The Windows job took 22.7 and 22.9 minutes in the same runs. Each limit leaves
+  # a margin.
   test:
     name: test (${{ matrix.part }})
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
           - part: layout
-            tests: tests/layout.spec.ts
+            grep: --grep
           - part: other
-            tests: --grep-invert layout.spec.ts
+            grep: --grep-invert
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -108,7 +116,7 @@ jobs:
           npm run preview --workspace=cyanotype -- --host 127.0.0.1 --port 4174 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
-          npx playwright test --project=chromium ${{ matrix.tests }}
+          npx playwright test --project=chromium ${{ matrix.grep }} ' layout\.spec\.ts '
 
       # The failures' screenshots and the page's state, for a week.
       - if: failure()
