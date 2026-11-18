@@ -9,7 +9,9 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { shareNote } from "../../../packages/review/src/exports.ts";
+import { keptNode } from "../../../packages/analysis/src/kept.ts";
 import { reviewLink, type ReviewRun } from "../../../packages/analysis/src/share.ts";
+import { moduleOf, type Manifest } from "../../../packages/engine/src/client.ts";
 import { ENGINE_KEY } from "../../cyanotype/src/lib/site.ts";
 import { parseRecord as readBlueprints } from "../../cyanotype/src/lib/game/record.ts";
 import { reviewLink as blueprintsLink } from "../../cyanotype/src/lib/game/share.ts";
@@ -21,8 +23,9 @@ import { keepBefore } from "./keep-before.ts";
 import { CONSENT_KEY, ENGINE_KEY as HEDGE_SCHOOL_ENGINE } from "../src/lib/keys.ts";
 
 /** A site as these tests use it: its name, an address on it, its files' formats, a record of three moves for the
- *  Analysis board and one of a single move, the link that shares a record's review (its path), what each page needs
- *  first (the engine off), and its review of a game from a review file. */
+ *  Analysis board and one of a single move, with their lengths in a shared review's intro, the link that shares a
+ *  record's review (its path), what each page needs first (the engine off), and its review of a game from a review
+ *  file. */
 interface Site {
   name: string;
   at: (path: string) => string;
@@ -30,7 +33,8 @@ interface Site {
   reviewFormat: string;
   record: string;
   oneMove: string;
-  shareLink: (record: string, run: ReviewRun) => string;
+  lengths: { record: string; oneMove: string };
+  shareLink: (record: string, run: ReviewRun, variation?: boolean) => string;
   setUp: (page: Page) => Promise<void>;
   review: (page: Page) => Promise<void>;
 }
@@ -43,7 +47,11 @@ const SITES: Site[] = [
     reviewFormat: "hedge-school-review",
     record: "1. D10-G10 2. N11-Q10 L10-N11 *",
     oneMove: "1. D10-G10 *",
-    shareLink: (record, run) => reviewLink("", run, players(parseRecord(record)), [], ENCLOSURE_CODE),
+    lengths: { record: "3 edges", oneMove: "1 edge" },
+    shareLink: (record, run, variation) => {
+      const { game, branches } = sent(parseRecord(record), variation);
+      return reviewLink("", run, game, branches, ENCLOSURE_CODE);
+    },
     // The visitor has answered the consent notice, which covers the page's foot until they choose. The engine is off.
     setUp: async page => {
       await keepBefore(page, CONSENT_KEY, { games: "denied" });
@@ -62,7 +70,11 @@ const SITES: Site[] = [
     reviewFormat: "cyanotype-review",
     record: testRecord(2), // 1 move in the first turn, 2 in the second
     oneMove: testRecord(1),
-    shareLink: (record, run) => blueprintsLink("", players(readBlueprints(record)), [], run),
+    lengths: { record: "3 moves", oneMove: "1 move" },
+    shareLink: (record, run, variation) => {
+      const { game, branches } = sent(readBlueprints(record), variation);
+      return blueprintsLink("", game, branches, run);
+    },
     setUp: async page => {
       const skip = await noReview(page);
       test.skip(!!skip, skip);
@@ -73,11 +85,31 @@ const SITES: Site[] = [
   },
 ];
 
-/** The game `game` with the players Ann and Bo. */
-const players = <G extends { tags: Record<string, string> }>(game: G): G =>
-  ({ ...game, tags: { ...game.tags, Blue: "Ann", Red: "Bo" } });
+/** A game as a shared review's sender sends it: `game` with the players Ann and Bo, and the sender's variations. With
+ *  `variation`, one: the game's second move in place of its first. The link does not check it, and the intro counts
+ *  it. */
+const sent = <G extends { tags: Record<string, string>; moves: string[] }>(game: G, variation = false) => ({
+  game: { ...game, tags: { ...game.tags, Blue: "Ann", Red: "Bo" } },
+  branches: variation ? [keptNode(game.moves[1], 0)] : [],
+});
 /** A review that ran with a CPU module and a network that neither site has. */
 const UNKNOWN_RUN: ReviewRun = { module: "0".repeat(64), model: "0".repeat(64), visits: 1024 };
+/** A shared review's intro: the paragraph on how the review works, the same on both sites. */
+const HOW_IT_WORKS = "The link carries the game, not the engine's work. Your browser reviews the game again, as it "
+  + "does a game that you import. The review shows each result when the engine finds it. With the sender's engine, "
+  + "network and depth, your review is the same as the sender's: the same quality labels, lines and accuracy. A GPU "
+  + "computes the network a little differently, so on a GPU a close call can rarely give another result.";
+/** A shared review's intro for a network that the site has and the site's own engine: the game keeps them, and the
+ *  intro says nothing of the engine. The network's name is the site's. Each break in the template's lines gives white
+ *  space, which a pattern does not collapse. */
+const KEPT = new RegExp("^The sender's review: .+, at\\s+Standard \\(1,024 visits a position\\)\\.\\s+The game keeps "
+  + "them for its review\\. Other games review as before\\.\\s*$");
+/** The paragraphs of a shared review's intro, once its heading shows. */
+async function intro(page: Page) {
+  const heading = page.getByRole("heading", { name: "A shared review" });
+  await expect(heading).toBeVisible({ timeout: 60_000 });
+  return heading.locator("xpath=..").locator("p");
+}
 /** The clipboard's text. Windows' clipboard gives each line end back as CR LF. */
 const clipboard = async (page: Page) =>
   (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
@@ -151,18 +183,13 @@ for (const site of SITES) {
     // The intro is one component on both sites (packages/review/src/SharedIntro.svelte): the game's length in the
     // game's word for a move, the singular for one, and the rest word for word. The sender's network and engine are
     // ones that the site does not have, so the intro says that the labels can differ.
-    for (const [moves, length] of [[1, site.name === "Hedge School" ? "1 edge" : "1 move"],
-                                   [3, site.name === "Hedge School" ? "3 edges" : "3 moves"]] as const) {
+    for (const game of ["oneMove", "record"] as const) {
+      const length = site.lengths[game];
       test(`a shared review's intro says what the link holds, in the site's words: ${length}`, async ({ page }) => {
-        await page.goto(site.at(site.shareLink(moves === 1 ? site.oneMove : site.record, UNKNOWN_RUN)));
-        const heading = page.getByRole("heading", { name: "A shared review" });
-        await expect(heading).toBeVisible({ timeout: 60_000 });
-        await expect(heading.locator("xpath=..").locator("p")).toHaveText([
+        await page.goto(site.at(site.shareLink(site[game], UNKNOWN_RUN)));
+        await expect(await intro(page)).toHaveText([
           `Ann against Bo, ${length}.`,
-          "The link carries the game, not the engine's work. Your browser reviews the game again, as it does a game "
-            + "that you import. The review shows each result when the engine finds it. With the sender's engine, "
-            + "network and depth, your review is the same as the sender's: the same quality labels, lines and accuracy. "
-            + "A GPU computes the network a little differently, so on a GPU a close call can rarely give another result.",
+          HOW_IT_WORKS,
           "The sender's review: a network that this site no longer has, at Standard (1,024 visits a position). The "
             + "review uses your network, so its quality labels can differ. This site's engine changed after the sender "
             + "made the link, so some quality labels can differ.",
@@ -170,5 +197,19 @@ for (const site of SITES) {
         await expect(page.getByRole("button", { name: "Review it" })).toBeVisible();
       });
     }
+
+    // The other branches of the intro: the site's own engine and one of its networks, and a variation of the
+    // sender's, which the length line counts.
+    test("a shared review's intro with this site's engine and network, and one variation", async ({ page }) => {
+      const manifest: Manifest = await page.request.get(site.at("/engine/manifest.json")).then(r => r.json());
+      const model = manifest.artifacts.find(a => a.kind === "model")!;
+      const run = { module: moduleOf(manifest)!.sha256, model: model.sha256, visits: 1024 };
+      await page.goto(site.at(site.shareLink(site.record, run, true)));
+      await expect(await intro(page)).toHaveText([
+        `Ann against Bo, ${site.lengths.record}, with 1 move in the sender's variations.`,
+        HOW_IT_WORKS,
+        KEPT,
+      ]);
+    });
   });
 }

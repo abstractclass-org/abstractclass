@@ -316,10 +316,10 @@ export interface NetworkParts {
   help(board: boolean): string; // the Network setting's help, on the Analysis board or on the review
 }
 
-/** What a site gives the view about its game. */
 /** The game's word for a move: "edge", "edges", "Edge" (Enclosure's), "move", "moves", "Move" (Blueprints'). */
 export interface GameWords { move: string; moves: string; Move: string }
 
+/** What a site gives the view about its game. */
 export interface ViewGame<G extends ViewTypes> extends Game<G> {
   // --- The board
   /** The board: the site's component, with the view's props. */
