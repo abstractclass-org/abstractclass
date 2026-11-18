@@ -11,6 +11,7 @@
   // 06). Faint, not dashed: the 50% line is dashed.
   import type { ChartMark } from "@abstractclass/analysis/model.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
+  import { byMouse } from "./byMouse.ts";
 
   interface Props {
     blueWin: number[];
@@ -82,7 +83,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <svg bind:this={svg} viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="block w-full h-full bg-panel rounded cursor-pointer"
-     onclick={ev => onjump(at(ev))} onmousemove={ev => (hovered = at(ev))} onmouseleave={() => (hovered = null)}>
+     onclick={ev => onjump(at(ev))} onpointermove={byMouse(ev => (hovered = at(ev)))} onpointerleave={byMouse(() => (hovered = null))}>
   <defs>
     <clipPath id="above"><rect x="0" y="0" width={W} height={H / 2} /></clipPath>
     <clipPath id="below"><rect x="0" y={H / 2} width={W} height={H / 2} /></clipPath>

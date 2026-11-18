@@ -234,6 +234,13 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       On a touch screen a tap goes to the move at once, so a preview there has no use. The light of a turn's group
       (design 06, item 8) goes with the label's preview, so only a mouse lights it. The engine table's rows and the
       engine's line list under the table also act only for a mouse.
+    - **Every hover of the review acts only for a mouse,** on the board and in the charts too. Hedge School's board
+      lights a candidate and shows its line, shows a label's note, and draws the ghost edge on a point only for a mouse.
+      The Advantage and Difficulty charts show their note and their line only for a mouse. A tap still does what it
+      does without a hover: a tap on a candidate pins its line, a tap on a chart goes to its position, and a tap on a
+      point begins or ends an edge. A tap on a label's badge does nothing. One helper, `byMouse` in
+      `packages/review/src/byMouse.ts`, wraps each of these handlers, and no hover listens to `mouseenter`,
+      `mousemove` or `mouseleave`. The browser cases are in `tests/hover-touch.spec.ts`.
 15. **The engine's best line as a variation** under a Mistake's or a Blunder's note (Lichess shows the engine's line
     after a mistake as a variation): candidate 1's line from where the mistake started (by turn, from the turn's start),
     as far as the search trusts it (by visits, as the listed line), behind candidate 1's badge.

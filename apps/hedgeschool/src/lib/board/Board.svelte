@@ -29,6 +29,7 @@
   import LabelMark from "@abstractclass/review/LabelMark.svelte";
   import { signInk, type AreaMark, type SignKind } from "@abstractclass/review/ownership.ts";
   import { brushFor, drawnNote, samePoint, toggleNote, type BoardNote, type NoteBrush } from "@abstractclass/review/notes.ts";
+  import { byMouse } from "@abstractclass/review/byMouse.ts";
   import { wallInk, type WallMark } from "#lib/review/weakWalls.ts";
 
   interface Props {
@@ -407,8 +408,8 @@
         role="button"
         tabindex="-1"
         class:hovered={!!lit && sameEdge(lit.edge, c.edge)}
-        onmouseenter={() => enter(c)}
-        onmouseleave={leave}
+        onpointerenter={byMouse(() => enter(c))}
+        onpointerleave={byMouse(leave)}
         onclick={() => oncandidateclick?.(c.edge)}
         ondblclick={() => oncandidatedblclick?.(c.edge)}
         onkeydown={() => {}}
@@ -425,8 +426,8 @@
       <g class="mark-group" class:lit={markHover?.group === gi}>
         {#each g as m, i (i)}<line {...seg(m.edge)} class="mark-lit" style:stroke="var(--{m.label})" />{/each}
         {#each g as m, i (i)}
-          <g role="img" aria-label={m.note ?? m.label} onmouseenter={() => (markHover = { group: gi, mark: m })}
-             onmouseleave={() => (markHover = null)}>
+          <g role="img" aria-label={m.note ?? m.label} onpointerenter={byMouse(() => (markHover = { group: gi, mark: m }))}
+             onpointerleave={byMouse(() => (markHover = null))}>
             {@render badge(m)}
           </g>
         {/each}
@@ -514,8 +515,8 @@
         cx={x} cy={sy(y)} r="0.45" class={["hit", !on && "inert"]}
         role="button" tabindex="-1" aria-label={pointName(x, y)}
         onpointerdown={ev => pressPoint(ev, x, y)}
-        onmouseenter={() => (hoverPoint = [x, y])}
-        onmouseleave={() => (hoverPoint = null)}
+        onpointerenter={byMouse(() => (hoverPoint = [x, y]))}
+        onpointerleave={byMouse(() => (hoverPoint = null))}
         onkeydown={() => {}}
       />
       {/if}

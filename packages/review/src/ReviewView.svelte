@@ -8,6 +8,7 @@
   import Icon from "@abstractclass/site/Icon.svelte";
   import StepBar from "./StepBar.svelte";
   import { ONE_COLUMN } from "./oneColumn.ts"; // the analysis under the board, as the style below has it
+  import { byMouse } from "./byMouse.ts";
   import { intoView, pageScrollTop } from "@abstractclass/site/pageScroll.ts";
   import { GROUP_HOVER, MOVE_HERE, MOVE_HOVER, MOVE_LIST, ROUND_GROUP, ROUND_HERE, ROUND_HOVER, TURN_NUMBER, TURN_REM, keepInView, moveButton,
            turnRow } from "./moveList.ts";
@@ -1318,11 +1319,6 @@
   $effect(() => { if (pickedKey) movelist?.querySelector(".mv.picked")?.scrollIntoView({ block: "nearest" }); });
   /** Goes to a position on the game's line. */
   const go = (p: number, sound = false) => setPath(mainNames.slice(0, Math.max(0, Math.min(last, p))), sound);
-  /** A pointer handler that acts only for a mouse (design 07, item 14). A touch screen has no hover (design 33,
-   *  item 6), and a pen counts as a touch (item 8): after a touch's release a browser sends its mouseenter, and no
-   *  mouseleave until the next touch elsewhere, which would leave a preview on the board. The touch's own pointer
-   *  events end with it (pointerleave comes at its release), and the handler ignores them. */
-  const byMouse = (act: () => void) => (ev: PointerEvent) => { if (ev.pointerType === "mouse") act(); };
   /** The handlers that show the preview `p` while a mouse is on an element. */
   const previews = (p: Preview) => ({
     onpointerenter: byMouse(() => startPreview(p)), onpointerleave: byMouse(endPreview),

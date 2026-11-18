@@ -9,6 +9,7 @@
   import type { ChartMark } from "@abstractclass/analysis/model.ts";
   import { HARD } from "@abstractclass/analysis/labels.ts";
   import ChartTip, { pointerAt } from "./ChartTip.svelte";
+  import { byMouse } from "./byMouse.ts";
 
   interface Bar { from: number; to: number; c: number; hard: boolean; title: string; details: string[] }
   interface Props {
@@ -36,7 +37,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <svg bind:this={svg} viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="block w-full h-full bg-panel rounded cursor-pointer"
-     onclick={ev => { const b = at(ev); if (b) onjump(b.from); }} onmousemove={ev => (hovered = at(ev))} onmouseleave={() => (hovered = null)}>
+     onclick={ev => { const b = at(ev); if (b) onjump(b.from); }} onpointermove={byMouse(ev => (hovered = at(ev)))} onpointerleave={byMouse(() => (hovered = null))}>
   {#each bars as b (b.from)}
     <rect x={x(b.from)} width={Math.max(0, x(b.to) - x(b.from) - 0.15 * (W / n))} y={BASE - height(b.c)} height={height(b.c)}
           class={b.hard ? "fill-ink" : "fill-muted"} fill-opacity={b.hard ? 1 : hovered === b ? 0.8 : 0.5} />
