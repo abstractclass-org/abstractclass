@@ -111,6 +111,24 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      after each navigation, in the body's place, so that Page Down and Space scroll it. A touch screen keeps the usual
      page: its scroll bars take no room, and the header scrolls away, so that its browser's bars hide as the page
      scrolls.
+   - **A page whose code does not load says so.** Each page is prerendered, and its code then starts it. When a part
+     of that code does not load (a bad connection, or a busy computer), the page stays as it was prerendered: Practice
+     shows only its header. A box under the header then says "Part of this page did not load.", with the button "Load
+     the page again", which reloads the page. Every page of both sites has it, the 404 page too
+     (`packages/site/src/loadNotice.ts`, Cyanotype's too). A script in each page's head watches, before the page's
+     code starts, for two events:
+     - **Vite's `vite:preloadError`,** the event that Vite's guide gives for a dynamic import of the built code that
+       fails ("Load Error Handling"). SvelteKit loads a page's own code through such an import, and catches its
+       failure.
+     - **An unhandled rejection of a module that did not load.** SvelteKit's start script in the page imports
+       `start.js` and the app's entry with no bundler between them, so no `vite:preloadError` comes, and nothing
+       catches the failure. The script reads the browsers' messages: Chrome's "Failed to fetch dynamically imported
+       module", Firefox's "error loading dynamically imported module", Safari's "Importing a module script failed".
+
+     The script stops no error: SvelteKit still shows its error page, and the error reports still go. It styles the
+     box itself, so the box shows when the site's style did not load either. The build puts the script in each page
+     (SvelteKit's `transformPageChunk`, in each site's `src/hooks.server.ts`) where `src/app.html` marks its place, so
+     both sites take it from one source. A site whose `app.html` lacks the mark does not build.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
      candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`, on the shared replay
@@ -210,9 +228,13 @@ ask where it goes (design 21): with that choice, "import" again names what the p
   (`holdsGame`), `src/lib/game/board.ts` and
   `src/lib/game/share.ts` (`packed`),
   `src/routes/developers/+page.svelte`.
+- `packages/site/src/loadNotice.ts` (the notice when a page's code does not load), each site's `src/hooks.server.ts`
+  and the mark in its `src/app.html`, `tests/load-notice.spec.ts`.
 
 ## Log entries
 
 - [decisions/product.md](../decisions/product.md): "The site's pages and their addresses" (2026-10-14).
 - [decisions/product.md](../decisions/product.md): "The Review tab before the page's code runs" (2026-10-19).
 - [decisions/product.md](../decisions/product.md): "Review or Analyze for a game from the tools" (2026-10-19).
+- [decisions/product.md](../decisions/product.md): "A page whose code does not load says to load it again"
+  (2026-11-18).

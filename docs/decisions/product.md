@@ -12675,3 +12675,25 @@ four places, so the earlier entry on the shared parts kept the intro in each sit
 - **The tests:** `tests/exports.spec.ts` checks each paragraph of the intro word for word, on each site: a game of one
   edge or move and one of three, with an unknown network and engine, and with the preview's own network and one
   variation. On a build of dev, Hedge School's cases fail.
+
+### A page whose code does not load says to load it again (2026-11-18)
+
+abscls-lwhe. A page whose code did not load stayed as it was prerendered, with no word: Cyanotype's Practice showed
+only its header (abscls-z0jz). Two suite runs logged the cause: a chunk's request failed with `ERR_NO_BUFFER_SPACE`
+under the machine's load, then "Failed to fetch dynamically imported module". Each page of both sites now shows a box
+under the header: "Part of this page did not load.", with the button "Load the page again" (design 22).
+
+- **How each failure shows,** measured on Hedge School's built Practice page in headless Chromium, one request
+  aborted at a time. `start.js`, `app.js` or a chunk that `start.js` imports: an unhandled rejection, "Failed to fetch
+  dynamically imported module: …/start.js" (the start script's own import, with no catch). The page's own chunk
+  (`nodes/16`) or a chunk that it imports: Vite's `vite:preloadError` and no unhandled rejection, since SvelteKit
+  catches the router's import and shows its error page. Each failure also fired an `error` event on its
+  `modulepreload` link.
+- **The two events, not the links' `error` events:** a link's event comes from the network as the head is read, and
+  a script must listen before it, in a capture listener. The two events come only once the page's code runs, after
+  the head's script. `vite:preloadError` is Vite's published way, and SvelteKit has no option for its start script.
+- **One source:** SvelteKit's `transformPageChunk` puts the script in each page from `packages/site`, in the place
+  that each `app.html` marks. The 404 page, which prerenders no layout, gets it too, where a `<svelte:head>` in the
+  root layout would miss it.
+- **The notice's words** are strict Simplified Technical English. "Load the page again" is the way out of Practice's
+  own notices (abscls-y27l, abscls-5csr).
