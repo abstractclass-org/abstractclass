@@ -36,7 +36,7 @@
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { modelOf, moduleOf } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { engineLine } from "@abstractclass/site/engineLines.ts";
+  import { engineLine, unreadLine } from "@abstractclass/site/engineLines.ts";
   import { gamePage, playerNames } from "#lib/game/record.ts";
   import type { GamePartner } from "#lib/game/partners.ts";
   import { loadGame, markReviewed, rememberReview, reviewAgainWhy, reviewCovers, reviewMark, setGameSettings,
@@ -396,7 +396,7 @@
 {:else if failure}
   <p class="{MESSAGE} text-blunder">{failure}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder">{game.refused ? `The engine could not read this game: ${game.error}` : engineLine("error")}</p>
+  <p class="{MESSAGE} text-blunder">{unreadLine(game, "game")}</p>
 {:else if R}
   <ReviewView view={enclosureView} {R} progress={bar.progress} {deeperPositions} {again} snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }} {siteLink}
               game={game ?? undefined}

@@ -43,7 +43,7 @@
   import { addressNetwork, boardRefusal, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
   import { holdsGame } from "@abstractclass/site/addressHash.ts";
   import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
-  import { engineLine } from "@abstractclass/site/engineLines.ts";
+  import { engineLine, unreadLine } from "@abstractclass/site/engineLines.ts";
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { readLocal, writeLocal } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -339,7 +339,7 @@
 {#if failure}
   <p class="{MESSAGE} text-blunder" role="alert">{failure}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder" role="alert">{game.refused ? `The engine could not read this board: ${game.error}` : engineLine("error", ENGINE_NAME)}</p>
+  <p class="{MESSAGE} text-blunder" role="alert">{unreadLine(game, "board", ENGINE_NAME)}</p>
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}

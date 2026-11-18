@@ -1,5 +1,5 @@
 // The engine's failure on each page that runs it, on both sites: Practice, the Board editor, the review and the Analysis
-// board. Each page shows the site's line (engineLine in packages/site, UNMADE_LINE in packages/practice): what failed,
+// board, and Hedge School's Openings. Each page shows the site's line (engineLine in packages/site, UNMADE_LINE in packages/practice): what failed,
 // then what the player can do. The error's message is the code's: it goes into the error report only, and the page
 // never shows it. The engine's worker fails one request (engine-fault.ts), as practice-stop.spec.ts fails the bot's.
 import { expect, test, type Page } from "./page-log.ts";
@@ -28,6 +28,9 @@ const UNMADE = "The page has an error. Start a new game.";
 /** The reports of the engine's errors of one kind: the event engine_error, and PostHog's exception. */
 const reports = (sent: Sent[], kind: string) => sent.filter(e => (e.event === "engine_error" || e.event === "$exception")
   && e.properties.error_kind === kind).map(e => e.event).sort();
+/** The messages of the error reports of one kind: the code's, which the page does not show. */
+const messages = (sent: Sent[], kind: string) => sent.filter(e => e.event === "$exception" && e.properties.error_kind === kind)
+  .flatMap(e => (e.properties.$exception_list as { value: string }[]).map(x => x.value));
 
 /** Every event of the tab, once its page has gone for the site's Privacy page (as practice-stop.spec.ts reads them). */
 async function allEvents(page: Page, base: string, sent: Sent[]): Promise<Sent[]> {
@@ -66,6 +69,7 @@ for (const { site, base, engine, key, engineKey } of SITES) {
       await shows(page, UNSTARTED(engine));
       await expect(page.getByRole("button", { name: "Play as Blue" })).toHaveCount(0);
       await expect.poll(() => reports(sent, "practice"), { timeout: 15_000 }).toEqual(["$exception", "engine_error"]);
+      expect(messages(sent, "practice")).toEqual([FAULT_MESSAGE]); // the report has the code's message
       // The way out: the fault came once, so the page loaded again starts its engine
       await page.reload();
       await expect(page.getByRole("button", { name: "Play as Blue" })).toBeEnabled({ timeout: 120_000 });
@@ -83,6 +87,9 @@ for (const { site, base, engine, key, engineKey } of SITES) {
       await shows(page, UNMADE);
       await expect(page.getByText(/is not iterable/)).toHaveCount(0); // the code's message
       await expect.poll(() => reports(sent, "practice"), { timeout: 15_000 }).toEqual(["$exception", "engine_error"]);
+      const [message] = messages(sent, "practice"); // the report has the code's message, and the page does not show it
+      expect(message).toBeTruthy();
+      await expect(page.getByText(message)).toHaveCount(0);
       // The way out: a new game replaces the game kept
       await page.getByRole("button", { name: "Play as Blue" }).click();
       await expect(page.getByText(UNMADE)).toHaveCount(0);
@@ -94,6 +101,7 @@ for (const { site, base, engine, key, engineKey } of SITES) {
       await page.goto(new URL("/editor", base()).href);
       await shows(page, UNSTARTED(engine));
       await expect.poll(() => reports(sent, "load"), { timeout: 15_000 }).toEqual(["$exception", "engine_error"]);
+      expect(messages(sent, "load")).toEqual([FAULT_MESSAGE]); // the report has the code's message
     });
 
     test("the Analysis board's engine that does not start: the line and its report", async () => {
@@ -103,14 +111,23 @@ for (const { site, base, engine, key, engineKey } of SITES) {
       await expect.poll(() => reports(sent, "load"), { timeout: 15_000 }).toContain("engine_error");
     });
 
+    // Openings is Hedge School's page only. It starts its engine as the Analysis board does.
+    if (site === "Hedge School") test("Openings' engine that does not start: the line and its report", async () => {
+      await failOnce(page, "init");
+      await page.goto(new URL("/openings", base()).href);
+      await shows(page, UNSTARTED(engine));
+      await expect.poll(() => reports(sent, "load"), { timeout: 15_000 }).toContain("engine_error");
+    });
+
     test("a search that fails: the engine panel's line, and a new load clears it", async () => {
       await failOnce(page, "search");
       await page.goto(new URL("/analysis", base()).href);
       await shows(page, ERROR(engine));
-      // The way out: the fault came once, so the page loaded again searches with no failure
+      // The way out: the fault came once, so the page loaded again searches with no failure. The position's candidates
+      // show its search's result.
       await page.reload();
-      await page.waitForLoadState("load");
-      await page.waitForTimeout(5000);
+      const candidates = page.locator("table").filter({ hasText: "Visits" }).first().locator("[data-name]");
+      await expect(candidates.first()).toBeAttached({ timeout: 120_000 });
       await expect(page.getByText(ERROR(engine))).toHaveCount(0);
     });
 
@@ -125,8 +142,10 @@ for (const { site, base, engine, key, engineKey } of SITES) {
         await chooseReviewFile(page, "tests/fixtures/cyanotype-review.json");
       }
       await page.waitForURL(/#game=/, { timeout: 60_000 });
-      // The review's own navigation can still run: arm once the page stays
-      await expect(async () => { await page.waitForLoadState("load"); await armFault(page); }).toPass({ timeout: 30_000 });
+      // The tab then loads again by itself to review the game (the page's otherGame). Arm the fault once that review
+      // shows (main.review, not its busy skeleton), so that it comes at the test's own load and not at the page's.
+      await expect(page.locator("main.review:not([aria-busy])")).toBeVisible({ timeout: 120_000 });
+      await armFault(page);
       await page.reload();
       await shows(page, UNSTARTED(engine));
       await expect.poll(() => reports(sent, "load"), { timeout: 15_000 }).toContain("engine_error");

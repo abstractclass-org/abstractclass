@@ -9,7 +9,6 @@ import type { EnginePool } from "@abstractclass/engine/pool.ts";
 import type { GpuMode } from "./settings.ts";
 import { gpuFilesOf, megabytes, type Manifest } from "@abstractclass/engine/client.ts";
 import { GpuEngines, gpuSupport } from "@abstractclass/engine/gpuClient.ts";
-import { errorText } from "@abstractclass/engine/errors.ts";
 import { readLocalJson, writeLocal } from "@abstractclass/storage/local.ts";
 
 /** The searches that the GPU worker runs at once: one for each WebAssembly instance, their evaluations batched. The
@@ -50,7 +49,7 @@ export type GpuStatus =
   | { state: "testing"; measuring: boolean } // measuring: false while the test waits for searches (SpeedMeter.measured)
   | { state: "on"; adapter: string; test: GpuTest | null }
   | { state: "slower"; adapter: string; test: GpuTest }
-  | { state: "failed"; message: string };
+  | { state: "failed" }; // its error goes into the error report only (GpuControl.fail)
 
 /** The GPU's speed as a multiple of a worker's, to two figures: "9.6", "0.94". */
 const gpuRatio = (t: GpuTest) => String(Number((t.gpu / t.cpu).toPrecision(2)));
@@ -64,7 +63,6 @@ export function gpuStatusText(s: GpuStatus): string {
     case "testing": return s.measuring ? "In use. Testing its speed against a worker…" : "In use. The speed test continues with the next searches.";
     case "on": return s.test ? `In use, ${s.adapter}: ${gpuRatio(s.test)} times a worker's speed.` : `In use, ${s.adapter}.`;
     case "slower": return `Off: ${s.adapter} is slower than a worker (${gpuRatio(s.test)} times its speed).`;
-    // The error's message is the code's, and goes into the error report only. The workers do the searches without it.
     case "failed": return "Off: the GPU did not start. The workers do all the searches.";
   }
 }
@@ -108,7 +106,7 @@ export class GpuControl {
   private ended = false;
 
   constructor(private pool: EnginePool, private manifest: Manifest, private network: string, private tracker: Tracker) {
-    pool.onGpuLost = e => { if (!this.ended) this.status = { state: "failed", message: errorText(e) }; };
+    pool.onGpuLost = e => this.fail(e);
     // The pool released its idle engines, the GPU's among them: the GPU starts again at the next backlog, with its
     // stored test (apply).
     pool.onRelease = () => { if (!this.ended && this.mode !== "off") void this.apply(this.mode); };
@@ -155,7 +153,7 @@ export class GpuControl {
       await gpu.start(this.manifest, testFor.network, GPU_SEARCHES);
     } catch (e) {
       gpu.terminate();
-      if (!this.ended) { this.status = { state: "failed", message: errorText(e) }; this.tracker.engineError(e, "gpu"); }
+      this.fail(e);
       return;
     } finally {
       this.starting = false;
@@ -164,7 +162,7 @@ export class GpuControl {
     // Its results go in the store under the workers' search: a GPU module of another search would mix two.
     if (gpu.version?.search !== this.pool.search) {
       gpu.terminate();
-      this.status = { state: "failed", message: `the GPU module searches as ${gpu.version?.search}, the workers as ${this.pool.search}` };
+      this.fail(new Error(`the GPU module searches as ${gpu.version?.search}, the workers as ${this.pool.search}`));
       return;
     }
     this.pool.addGpu(gpu);
@@ -182,6 +180,14 @@ export class GpuControl {
     if (this.ended) return;
     if (this.mode === "on" || gpuFaster(test)) this.status = { state: "on", adapter, test };
     else { this.pool.dropGpu(); this.status = { state: "slower", adapter, test }; }
+  }
+
+  /** The GPU did not start, or it left the pool after a search failed: the line says so, and the error goes into the
+   *  error report only. Its message is the code's, and the workers do the searches without the GPU. */
+  private fail(error: unknown) {
+    if (this.ended) return;
+    this.status = { state: "failed" };
+    this.tracker.engineError(error, "gpu");
   }
 
   /** Ends the control: another pool took over, or the page closed. A GPU still loading then ends when it is ready. */

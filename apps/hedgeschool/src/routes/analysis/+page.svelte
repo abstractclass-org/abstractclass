@@ -30,7 +30,7 @@
   import { addressNetwork, boardRefusal, fileEngine, loadBoardFile, shippedModels } from "@abstractclass/analysis/files.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { engineLine } from "@abstractclass/site/engineLines.ts";
+  import { engineLine, unreadLine } from "@abstractclass/site/engineLines.ts";
   import { BOARD_ID, type KeptBoard } from "#lib/game/store.ts";
   import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "#lib/game/board.ts";
   import { linkAt } from "@abstractclass/analysis/boardLink.ts";
@@ -315,7 +315,7 @@
 {#if failure}
   <p class="{MESSAGE} text-blunder">{failure}</p>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder">{game.refused ? `The engine could not read this board: ${game.error}` : engineLine("error")}</p>
+  <p class="{MESSAGE} text-blunder">{unreadLine(game, "board")}</p>
 {:else if R && game && start}
   {@const g = game}
   {#if notice}<p class="{MESSAGE} mb-0 text-blunder" role="alert">{notice}</p>{/if}

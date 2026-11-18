@@ -12,7 +12,7 @@ const ARM = "engine-fault-armed";
 /** Fails the first request of `type` that the page's workers get, once in the tab (sessionStorage: a page loaded again
  *  runs its requests): "init", a worker's start (the first is the rules engine's), or "search", a search of a
  *  position. `armed` false: only once the page has armed it (armFault), so that the page loads well first. */
-export const failOnce = (page: Page, type: "init" | "search", armed = true) => page.addInitScript(([type, armed, ARM]) => {
+export const failOnce = (page: Page, type: "init" | "search", armed = true) => page.addInitScript(([type, armed, ARM, text]) => {
   const DONE = "engine-fault-test";
   const Real = window.Worker;
   window.Worker = class extends Real {
@@ -21,14 +21,14 @@ export const failOnce = (page: Page, type: "init" | "search", armed = true) => p
       if (m?.type === type && !sessionStorage.getItem(DONE) && (armed || sessionStorage.getItem(ARM))) {
         sessionStorage.setItem(DONE, type);
         setTimeout(() => this.dispatchEvent(new MessageEvent("message",
-          { data: { type: "error", id: m.id, message: "the test failed this request" } })));
+          { data: { type: "error", id: m.id, message: text } })));
         return;
       }
       // Both of Worker's forms, as in cyanotype-home.spec.ts: the if only picks super's overload for each form.
       if (Array.isArray(options)) super.postMessage(message, options); else super.postMessage(message, options);
     }
   };
-}, [type, armed, ARM] as const);
+}, [type, armed, ARM, FAULT_MESSAGE] as const);
 
 /** Arms a fault that failOnce made with `armed` false: it comes at the next load of the page. */
 export const armFault = (page: Page) => page.evaluate(key => sessionStorage.setItem(key, "1"), ARM);

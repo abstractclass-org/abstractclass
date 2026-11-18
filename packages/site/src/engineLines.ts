@@ -11,11 +11,18 @@
 export type EngineFault = "unstarted" | "error";
 
 /** The engine's name where the site gives none of its own (Hedge School's). */
-export const THE_ENGINE = "The engine";
+const THE_ENGINE = "The engine";
 
 /** The line for an engine that failed (`fault`), with the site's name for its engine (`engine`): Cyanotype's is
  *  "Stamp Duty". */
 export function engineLine(fault: EngineFault, engine: string = THE_ENGINE): string {
   return fault === "unstarted" ? `${engine} did not start. Load the page again.`
     : `${engine} has an error. Load the page again.`;
+}
+
+/** The line in the place of the review for a game that the engine did not read (GameAnalysis's error): the rules'
+ *  reason when they refused it (`refused`), which can say what is wrong with the record, else the engine's error line.
+ *  `what` is the thing read: the review's "game", or the Analysis board's "board". */
+export function unreadLine(game: { refused: boolean; error: string }, what: "game" | "board", engine?: string): string {
+  return game.refused ? `The engine could not read this ${what}: ${game.error}` : engineLine("error", engine);
 }

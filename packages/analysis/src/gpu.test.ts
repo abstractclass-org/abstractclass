@@ -135,6 +135,7 @@ test("the line stays once the GPU has left the pool (lost, or Off), or the contr
     runs.find(r => r.kind === "gpu")!.fail(new Error("the device was lost"));
     await settle();
     assert.equal(t.control.status.state, "failed");
+    assert.deepEqual(t.tracked, ["engine_error"]); // the lost GPU's error goes into one report: the line does not show it
     await t.end(10); // the workers' searches end, and the GPU's search runs again on a worker
     await t.end(10);
     assert.equal(t.control.status.state, "failed");
@@ -184,6 +185,6 @@ test("the idle release in a hidden page, while the test waits: the line waits fo
 });
 
 test("a GPU that did not start says so without the code's message", () => {
-  const line = gpuStatusText({ state: "failed", message: "RuntimeError: unreachable" });
+  const line = gpuStatusText({ state: "failed" });
   assert.equal(line, "Off: the GPU did not start. The workers do all the searches.");
 });

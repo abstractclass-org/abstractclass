@@ -35,7 +35,7 @@
   import { holdReview } from "@abstractclass/analysis/reviewLock.ts";
   import { modelOf, moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { engineLine } from "@abstractclass/site/engineLines.ts";
+  import { engineLine, unreadLine } from "@abstractclass/site/engineLines.ts";
   import { readSession, writeSession } from "@abstractclass/storage/local.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import ExportMenu from "@abstractclass/review/ExportMenu.svelte";
@@ -387,7 +387,7 @@
   {#if shown === undefined}<p class="{MESSAGE} text-muted hidden review-game:block">Reading the game with the engine's rules…</p>{/if}
   <div class={["contents", shown === undefined && "review-game:hidden"]}><ReviewHome chosen={shown !== undefined} /></div>
 {:else if game?.error && !game.rulesReady}
-  <p class="{MESSAGE} text-blunder" role="alert">{game.refused ? `The engine could not read this game: ${game.error}` : engineLine("error", ENGINE_NAME)}</p>
+  <p class="{MESSAGE} text-blunder" role="alert">{unreadLine(game, "game", ENGINE_NAME)}</p>
 {:else if R}
   <ReviewView view={blueprintsView} {R} progress={bar.progress} {deeperPositions} {again} {siteLink} game={game ?? undefined}
               snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }}
