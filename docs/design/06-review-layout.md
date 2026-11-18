@@ -261,9 +261,10 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      line, behind the row's content. The boxes follow the members when they change size or move (a "…" that becomes a
      label, a narrower list, an element that comes into the row before them), and they go with the label. A row is a
      flex or grid box that wraps its items, and CSS alone (`:has()`, a wrapper) cannot draw one outline round some of
-     its items on each line. Only a pointer that hovers lights the group. A touch
-     does not, as a move's pointer outline does not show on a touch screen. A cell with nothing in it is a plain
-     element. "Preview played moves" off turns the preview off, by edge and by turn. The cell keeps its widths (the
+     its items on each line. Only a mouse lights the group, as only a mouse starts the label's preview (design 07,
+     item 14). A touch or a pen does not: a move's pointer outline does not show on a touch screen, and a pen counts
+     as a touch (design 33, item 8). A cell with nothing in it is a plain element. "Preview played moves" off turns
+     the preview off, by edge and by turn. The cell keeps its widths (the
      slot's 2.2 characters, the ◆'s 1.2 and the loss's 5), so it never widens a column (`npm run test:layout`), and its
      label stands at the slot's left, as in a move's button. Its title is the turn's tooltip. Assistive technology does
      not read a quality label's badge, so by edge and by turn the label's word names its slot. The book mark keeps its
