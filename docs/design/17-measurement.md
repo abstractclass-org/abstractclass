@@ -251,8 +251,11 @@ outside, a tool's or another site's link, counts on the import page (`/import`),
 | By way in | Funnel | 2 to 5 | `import_source` |
 | By load | Funnel | 2 to 5 | `load_source` |
 
-"By way in" and "By load" start at the same step, which takes the imports and the loads. So a load shows under "By
-way in" with no `import_source`, and an import under "By load" with no `load_source`.
+"By way in" and "By load" start at the same step, which takes the imports and the loads. Each one takes its
+breakdown's value from the event of that step (PostHog's attribution to a step). PostHog's default, the first touch,
+takes the first value of any of the visitor's events, so it can give one way in the review of another. So a load
+shows under "By way in" with no `import_source`, and an import under "By load" with no `load_source`. A visitor who
+brings in games in two ways counts under each of them.
 
 A player who opens a game kept from an earlier visit has no import, so the funnel shows players' first reviews best.
 The daily hash ends a visitor's funnel when the day changes, so a review that runs past it counts as a drop.

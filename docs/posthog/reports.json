@@ -173,7 +173,8 @@
        },
        "filterTestAccounts": true,
        "funnelsFilter": {
-        "breakdownAttributionType": "first_touch",
+        "breakdownAttributionType": "step",
+        "breakdownAttributionValue": 0,
         "exclusions": [],
         "funnelOrderType": "ordered",
         "funnelStepReference": "total",
@@ -273,7 +274,8 @@
        },
        "filterTestAccounts": true,
        "funnelsFilter": {
-        "breakdownAttributionType": "first_touch",
+        "breakdownAttributionType": "step",
+        "breakdownAttributionValue": 0,
         "exclusions": [],
         "funnelOrderType": "ordered",
         "funnelStepReference": "total",

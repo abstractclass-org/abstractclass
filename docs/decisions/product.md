@@ -12817,8 +12817,16 @@ insight's definition as PostHog holds it, and [docs/posthog/README.md](../postho
   "None". Of the 22 parameters that the insights break down by or average, no other one lost a value. The insight
   breaks down by `JSONExtractString(properties, 'setting_value')`, which gave each value. A change of the property's
   type in PostHog is a change of the project's settings, so it is not made.
-- **The second pass:** an insight is found by its name (`insights-list`, `search`). The query that PostHog gives back
-  holds its defaults (a funnel's window of 14 days, a chart's settings). Sent again with `insight-update`, the
-  record's query of "1. Funnel: By way in" and of "5. Settings: Changes" came back the same.
+- **A second pass changes nothing:** `insights-list` with `search` finds an insight by its name. The query that
+  PostHog gives back holds its defaults (a funnel's window of 14 days, a chart's settings). Sent again with
+  `insight-update`, the record's query of "1. Funnel: By way in" and of "5. Settings: Changes" came back the same.
 - **The choices beyond the tables:** the last 30 days, by day. A Trends insight with a breakdown is a table, which
   gives each value over the whole range, an average too. One with no breakdown is a line.
+- **The funnels' breakdowns take the step "Game in"** (the review). PostHog's default attribution, the first touch,
+  takes "the first property value seen in any occurrence of funnel events": a visitor's first `import_source` or
+  `load_source`, whichever event started the funnel. Without the filter, "By way in" showed one completed review under
+  `pasted_record` with the times (5 min 46 s to "Review done") of the visitor's review from `userscript`, and "By load"
+  showed that review under `review_share_link`. With `breakdownAttributionType` `step` and `breakdownAttributionValue`
+  0, each value takes the event of the first step. "By way in" showed `pasted_record` (one review, 7 min 42 s) and
+  `userscript` (one review, 5 min 46 s) apart, and "By load" showed the import's review under none. A visitor who
+  brings in games in two ways now counts under each way.

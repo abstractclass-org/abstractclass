@@ -17,7 +17,12 @@ the record of each one, so that the next change is made the same way.
   visit`, `6. Imports and exports: Exports`. The name finds the insight: no other insight of the project has it.
 - **The kind, the events, the value and the breakdown:** as the row of design 17's table gives them. "Count" is the
   number of events (`total`). "Visitors" is PostHog's unique users (`dau`): the sites make no person profiles, so each
-  daily hash is one user. A row with two values ("count, and visitors") has two series of the same event.
+  daily hash is one user. A row with two values ("count, and visitors") has two series of the same event. Two rows
+  differ from their tables, as design 17 says under "The reports": the funnel's step "Game in" (all events, with a
+  HogQL filter) and the breakdown by `setting_value` (a HogQL expression). Keep their form from the record when you
+  change them: the table's form does not work in PostHog.
+- **A funnel's breakdown:** its value comes from the event of the funnel's first step (`breakdownAttributionType`
+  `step`, `breakdownAttributionValue` 0), not from PostHog's default, the first touch. Design 17 gives the reason.
 - **The filter of internal and test users:** on (`filterTestAccounts`), in each insight.
 - **The dates:** the last 30 days, by day. A dashboard's own date filter can change them.
 - **The view:** a table for a Trends insight with a breakdown, which gives each value over the whole range. A line
@@ -28,8 +33,8 @@ keeps the query with those defaults. Sent again, it gives the same query back, s
 
 ## How to change them
 
-The insights are made with the tools of PostHog's MCP server (`https://mcp.posthog.com/mcp`) in a Claude Code
-session, with no API key: `insights-list`, `insight-create`, `insight-update`, `insight-query`, `dashboard-get` and
+A Claude Code session makes the insights with the tools of PostHog's MCP server (`https://mcp.posthog.com/mcp`),
+with no API key: `insights-list`, `insight-create`, `insight-update`, `insight-query`, `dashboard-get` and
 `dashboard-update`. The tools act as the PostHog user who connected the server.
 
 1. Change the report's table in design 17 first.
