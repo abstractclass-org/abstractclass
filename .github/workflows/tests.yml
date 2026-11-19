@@ -56,7 +56,8 @@ jobs:
   # a margin. The load notice's cases in WebKit ran in the part "other" after abscls-o1xw. Its install of WebKit's
   # system packages took 27.8 minutes on a slow mirror, and the part took 51.7. In the next run the install took 36
   # seconds, and the part 32.3 minutes (28.9 of browser tests). The cases run in the job test-webkit now (abscls-xu4u),
-  # so a slow install cannot stop the Chromium tests. The time of the part "other" without WebKit is not measured yet.
+  # so a slow install cannot stop the Chromium tests. In its first three runs (dev 0b36e2bb, f0202527 and 5170395b),
+  # the part "other" without WebKit took 26.7, 21.4 and 30.6 minutes, and the job test-webkit 2.6, 1.8 and 10.3.
   test:
     name: test (${{ matrix.part }})
     runs-on: ubuntu-latest

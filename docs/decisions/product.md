@@ -12846,5 +12846,6 @@ insight's definition as PostHog holds it, and [docs/posthog/README.md](../postho
   shell again. Each job keeps its own cache of Playwright's browsers.
 - **Rejected: a third part of the job `test`.** A part runs all of `check:all` (the type checks, the unit tests, a
   third build of Cyanotype) and the Chromium steps, so it needs a condition on most of its steps.
-- **To measure:** the new job's time in two or three runs, and the part "other"'s time without WebKit. They go
-  into the workflow's time comment.
+- **Measured after the merge:** in the first three runs with the job test-webkit (dev 0b36e2bb, f0202527 and
+  5170395b), test-webkit took 2.6, 1.8 and 10.3 minutes, apt's speed making most of the spread, and the part "other"
+  without WebKit 26.7, 21.4 and 30.6. The workflow's time comment holds them too.
