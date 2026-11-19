@@ -142,8 +142,8 @@ learn one, and remove a note when it stops being true. The work itself is in bea
   stops with the session. The owner opens it from other devices through Tailscale: Vite then takes the machine's
   Tailscale name from the user environment variable `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`. The name stays out of
   the repository.
-- **Local builds leave `VITE_GA_ID` unset** (`VITE_EDITION=early npm run build`), so that test visits do not reach
-  Google Analytics.
+- **Local builds leave `VITE_POSTHOG_KEY` unset** (`VITE_EDITION=early npm run build`), so that test visits do not
+  reach PostHog ([hosting.md](hosting.md), section 4).
 - **This machine is often loaded** by the engine repository's training: its speed numbers are no baseline then.
   Compare two builds in pairs: each pair is one build's set of runs, then the other's, back to back, and the build
   that runs first takes turns. Before each set, read the machine's state (`scripts/machine status` in the planning

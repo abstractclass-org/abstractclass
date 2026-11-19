@@ -100,16 +100,18 @@ counts.
 - If the site shows ads one day, the card's words change in the same release.
 - The privacy page says that the site asks, and what it checks.
 
-## Where it is
+## Where it was
+
+The request's code went with Google Analytics. The commits before the removal hold it:
 
 - The check and the choice: `packages/site/src/analytics.svelte.ts` (`asksToAllow`, `closeAsk`, and the script's
   `load` and `error` events in `startAnalytics`).
-- The card: `packages/site/src/AnalyticsAsk.svelte`, in the card that it shares with the consent banner
-  (`packages/site/src/CornerCard.svelte`). The layout shows it (`src/routes/+layout.svelte`). Cyanotype shows the
+- The card: `packages/site/src/AnalyticsAsk.svelte`, in the card that it shared with the consent banner
+  (`packages/site/src/CornerCard.svelte`). The layout showed it (`src/routes/+layout.svelte`). Cyanotype showed the
   same card (its design 33, "Analytics and consent").
-- The check in a browser: `tests/analytics-ask.spec.ts`, on a build with a made-up measurement ID
-  (`VITE_GA_ID=G-TEST000000`). It stops the tag's script, puts a blocker's stand-in in its place, or loads it from
-  Google, and stops every other request to Google. A build without the Google tag skips it, as the builds of CI do.
+- The check in a browser: `tests/analytics-ask.spec.ts`, on a build with a made-up Google Analytics measurement ID.
+  It stopped the tag's script, put a blocker's stand-in in its place, or loaded it from Google, and stopped every
+  other request to Google. The builds no longer read a Google Analytics ID.
 
 ## Log entries
 

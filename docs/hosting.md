@@ -221,25 +221,9 @@ Worker: the free plan's daily request limit would apply, and `_headers` does not
 unlisted (`noindex`, design 23), while the live address is indexed. **Preview access** in the project's settings can
 put them behind a sign-in (Cloudflare Access).
 
-**The old names.** Before the variables took their site's name, the workflow read `VITE_EDITION`,
-`VITE_STORE_PRACTICE_GAMES` and `VITE_CF_ANALYTICS_TOKEN` as repository variables. `main` reads them until its next
-release. Hedge School's builds before PostHog read `VITE_GA_ID`, and Cyanotype's read `CYANOTYPE_GA_ID`.
-
-**The owner's steps, once, after the first release of `main` that reads the new names** (abscls-5llg):
-
-1. In a terminal where `gh` is signed in to GitHub, run these five commands. Each deletes one repository variable:
-
-   ```sh
-   gh variable delete VITE_EDITION --repo abstractclass-org/abstractclass
-   gh variable delete VITE_STORE_PRACTICE_GAMES --repo abstractclass-org/abstractclass
-   gh variable delete VITE_CF_ANALYTICS_TOKEN --repo abstractclass-org/abstractclass
-   gh variable delete VITE_GA_ID --repo abstractclass-org/abstractclass
-   gh variable delete CYANOTYPE_GA_ID --repo abstractclass-org/abstractclass
-   ```
-
-2. Open `https://github.com/abstractclass-org/abstractclass/settings/variables/actions`. Make sure that the page lists
-   these seven repository variables only: `CF_ANALYTICS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CYANOTYPE_EDITION`,
-   `CYANOTYPE_STORE_PRACTICE_GAMES`, `HEDGESCHOOL_EDITION`, `HEDGESCHOOL_STORE_PRACTICE_GAMES` and `POSTHOG_KEY`.
+**The repository's variables** are these seven: `CF_ANALYTICS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CYANOTYPE_EDITION`,
+`CYANOTYPE_STORE_PRACTICE_GAMES`, `HEDGESCHOOL_EDITION`, `HEDGESCHOOL_STORE_PRACTICE_GAMES` and `POSTHOG_KEY`
+(`https://github.com/abstractclass-org/abstractclass/settings/variables/actions`, or `gh variable list`).
 
 ## 4. PostHog
 
@@ -259,8 +243,7 @@ release. Hedge School's builds before PostHog read `VITE_GA_ID`, and Cyanotype's
 - **The site loads PostHog itself:** posthog-js from npm, in its slim bundle with no external loading
   (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
 - **Google Analytics, before PostHog:** Hedge School's property (`G-C5RY6DWGWN`) counted the site until the release
-  of 2026-11-09's change. No build sends to it after that release. Its repository variables, `VITE_GA_ID` and
-  `CYANOTYPE_GA_ID`, are among the old names of section 3.
+  of 2026-11-09's change. No build sends to it after that release, and no build reads a Google Analytics ID.
 
 **The owner's steps.**
 
