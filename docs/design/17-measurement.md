@@ -161,9 +161,9 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
    make), `export` (an export of the Export menu that did not complete) and `delete` (the practice games that the
    Privacy page did not delete). They are not the engine's, so no `engine_error` goes: the reliability report counts
    the engine. The page shows the site's own line, in strict Simplified Technical English (design 22, item 5; design
-   07, item 17; design 13, item 2; design 25), and the error's message goes into the report only. A failure that the player can mend, and that is no fault of the site's, sends no report: its
-   error carries its own line (`LineError`, `packages/site/src/lineError.ts`), such as a browser that blocks a
-   partner's tab (design 18).
+   07, item 17; design 13, item 2; design 25), and the error's message goes into the report only. A failure that the
+   player can mend, and that is no fault of the site's, sends no report: its error carries its own line (`LineError`,
+   `packages/site/src/lineError.ts`), such as a browser that blocks a partner's tab (design 18).
 4. **Every event loses a game before it goes** (`packages/site/src/scrub.ts`, PostHog's `before_send`). A report
    holds text that the site does not write: the error's message, the stack's addresses and the page's address. So the
    rules apply to each string of each event, the properties that PostHog's client adds too:
