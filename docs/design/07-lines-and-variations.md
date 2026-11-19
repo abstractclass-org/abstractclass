@@ -294,7 +294,8 @@ cut edges that are on the board, so a line drawn over the board can show edges t
       line, and the rest of the table, keep the browser's own menu. The board's candidates keep it too: a
       right-click on the board writes the player's notes (item 16). A long press's release plays nothing, as in the
       move list. One function draws the image of a line of the tree and of the engine's line (`imageOf` in
-      `ReviewView.svelte`): it takes the line's start and its edges.
+      `ReviewView.svelte`): it takes the line's start, its number of edges, and a function that gives its edges and
+      the position after the last.
     - **What the board draws:** all the line's edges at once with their numbers (the Static form of "Lines on the
       board", whatever the setting), the edges that they cut and the regions after the last edge, and the player's
       notes (item 16) on the position where the line starts. No candidates and no labels. The invincible edges follow

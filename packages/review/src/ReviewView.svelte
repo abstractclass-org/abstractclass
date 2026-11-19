@@ -1248,12 +1248,13 @@
     };
   }
   const moveGuard = clickGuard(), lineGuard = clickGuard();
-  // The menu of the engine's lines (lineMenu): a right-click or a long press on an edge of the engine's line under the
-  // table, or on a candidate's row, opens it with the image's items only, since its other items act on the tree. Its
-  // line, kept when the press begins: the engine's line from the position on screen up to that edge, or the row's
-  // candidate's line, as the board draws it. Elsewhere, and on a candidate with too few visits for a line, the
-  // browser's own menu opens.
-  let lineMenu = $state.raw<ImageSource | null>(null);
+  // The menu of the engine's lines: a right-click or a long press on an edge of the engine's line under the table, or on
+  // a candidate's row, opens it with the image's items only, since its other items act on the tree. Its line
+  // (lineMenuImage), kept when the press begins or the menu opens: the engine's line from the position on screen up to
+  // that edge, or the row's candidate's line, as the board draws it. The menu that the keyboard opens on an edge in
+  // focus takes that edge's line too. Elsewhere, and on a candidate with too few visits for a line, the browser's own
+  // menu opens.
+  let lineMenuImage = $state.raw<ImageSource | null>(null);
   function engineLineAt(target: Element): ImageSource | null {
     const edge = target.closest<HTMLElement>("[data-line-edge]")?.dataset.lineEdge;
     if (edge !== undefined) return listLine ? engineImage(path, listLine.slice(0, Number(edge) + 1)) : null;
@@ -1282,10 +1283,13 @@
   // its first frame.
   let imageNote = $state.raw<ComponentProps<typeof Toast> | null>(null);
   type LineImage = { file: Promise<Blob>; name: string; animated: boolean };
-  /** The line that an image draws: the path where it starts, its number of edges, and `drawn`, which gives its edges as
-   *  a preview draws them and the position after the last (none: the image is of the position at `start`). A line of
-   *  the tree has them at once. The engine's line asks the rules for them. */
-  type ImageSource = { start: string[]; count: number; drawn(): Promise<{ edges: LineMove<G>[]; end: G["position"] | null }> };
+  /** The line that an image draws: the path where it starts, its number of edges, and `drawn`, which takes the position
+   *  at `start` and gives the line's edges as a preview draws them and the position after the last (none: the image is
+   *  of the position at `start`). A line of the tree has them at once. The engine's line asks the rules for them. */
+  type ImageSource = {
+    start: string[]; count: number;
+    drawn(from: G["position"]): Promise<{ edges: LineMove<G>[]; end: G["position"] | null }>;
+  };
   /** The line of the image of the move `key` (imageLine), in the tree. */
   function treeImage(key: string): ImageSource {
     const { start, paths } = imageLine(key.split(" "), path, mainNames), { edges, end } = treeLine(paths);
@@ -1294,9 +1298,8 @@
   /** The line of the image of the engine's `moves` from the position at `start`: the engine's line under the table, up
    *  to the edge under the menu, or a candidate's line. The rules play it, as they play the line that the board draws. */
   function engineImage(start: string[], moves: G["move"][]): ImageSource {
-    return { start, count: moves.length, drawn: async () => {
-      const from = positionOf(start);
-      if (!game || !from) throw new Error("the position is not in the tree");
+    return { start, count: moves.length, drawn: async from => {
+      if (!game) throw new Error("the position is not in the tree");
       const { steps, end } = await game.linePlayed(start, moves), movers = view.lineMovers(from, moves.length);
       return { edges: moves.map((move, i) => ({ move, player: movers[i], step: steps[i] })), end };
     } };
@@ -1312,7 +1315,7 @@
     // earlier move of its turn, as the page's board marks the turn's moves. With a move of the line drawn, it marks
     // neither, as the page's board shows a variation's preview.
     const turn = { last: moveInto(start) ?? null, earlier: earlierOf(start) }, none = { last: null, earlier: [] };
-    const file = line.drawn().then(({ edges, end }) => {
+    const file = line.drawn(from).then(({ edges, end }) => {
       const caption = image.caption({ ...moveFrom(start), position: from }, end, edges.length);
       const board = (k: number) => ({ position: from, ...(k ? none : turn), line: edges.slice(0, k), notes, layers });
       return animated ? image.animate(lineFrames(edges.length).map(f => ({ board: board(f.edges), ms: f.ms })), caption, width)
@@ -1320,7 +1323,7 @@
     });
     return { file, name: image.name(start, line.count, animated), animated };
   }
-  // The line of the move under the menu
+  // The image's line of the move under the move menu.
   const menuImage = $derived(menuPath === null ? null : treeImage(menuPath));
   const imageFailed = (e: unknown) => (imageNote = { text: `The site cannot make the image: ${errorText(e)}`, failed: true });
   function saveImage({ file, name, animated }: LineImage) {
@@ -1985,13 +1988,15 @@
        test game at its full size, in Glyphs: from there that game's names keep their full size. The rule goes by the
        box, not the window, since the window's height sets the side column's width too (docs/decisions/product.md,
        "The Lead column in a wide window, measured on Cyanotype"). -->
-  <!-- The menu of the engine's lines (lineMenu): on an edge of the line under the table, or on a candidate's row. Its
-       box adds no box to the layout (`contents`). A long press's release clicks nothing (lineGuard). -->
+  <!-- The menu of the engine's lines (lineMenuImage): on an edge of the line under the table, or on a candidate's row.
+       Its box adds no box to the layout (`contents`). A long press's release clicks nothing (lineGuard). The line comes
+       from the press (a long press opens the menu from it) and again from the contextmenu event, which a menu that the
+       keyboard opens sends with no press. -->
   <ContextMenu.Root onOpenChange={lineGuard.opened}>
-  <ContextMenu.Trigger disabled={!lineMenu || !view.image}>
+  <ContextMenu.Trigger disabled={!lineMenuImage || !view.image}>
   {#snippet child({ props })}
-  <div {...props} class="contents" onpointerdowncapture={e => { lineGuard.pressed(e); lineMenu = engineLineAt(e.target as Element); }}
-       onclickcapture={lineGuard.click}>
+  <div {...props} class="contents" onpointerdowncapture={e => { lineGuard.pressed(e); lineMenuImage = engineLineAt(e.target as Element); }}
+       oncontextmenucapture={e => (lineMenuImage = engineLineAt(e.target as Element))} onclickcapture={lineGuard.click}>
   <div class="@container/candidates flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
   <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"
@@ -2045,7 +2050,7 @@
     <ContextMenu.Content class="z-10 min-w-36 menu-box">
       <ContextMenu.Group>
         <ContextMenu.GroupHeading class="px-2 py-1 text-xs text-muted">Generate image</ContextMenu.GroupHeading>
-        {@render imageItems(lineMenu)}
+        {@render imageItems(lineMenuImage)}
       </ContextMenu.Group>
     </ContextMenu.Content>
   </ContextMenu.Portal>
@@ -2453,7 +2458,7 @@
 <!-- The engine's line under the table: the candidate's badge, then its edges. Pointing at an edge draws the line up to
      it on the board, and a click plays the line up to it as a variation. The edges already in the tree (the game's own
      moves or a variation's) show as such, since a click goes along them and the variation starts after them. A
-     right-click or a long press on an edge opens the image's items for the line up to it (lineMenu). -->
+     right-click or a long press on an edge opens the image's items for the line up to it (lineMenuImage). -->
 {#snippet lineList()}
   <div class="flex-none h-[3.6em] mb-2 overflow-y-auto text-sm" role="group" aria-label="The engine's line"
        onpointerleave={byMouse(() => (listHover = null))}>

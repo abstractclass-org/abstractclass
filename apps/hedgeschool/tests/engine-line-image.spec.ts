@@ -2,17 +2,19 @@
 // review from its stored results with the engine off. A right-click on an edge of the engine's line under the
 // candidates table opens a menu with the image's items: "Copy static", "Save static" and "Save animated". Each image
 // is of the line from the position on screen up to that edge: its file's name gives the start and the number of
-// edges, and the static image's caption gives the numbers before the first edge and after the last. On a candidate's
-// row the menu gives the candidate's whole line. The click plays nothing. On a touch screen (390 x 844) a long press on an edge opens the same menu, and its release plays nothing.
+// edges, and the static image's caption gives the numbers before the first edge and after the last. The same moves,
+// played as a variation, give the same static image from the move menu, byte for byte. On a candidate's
+// row the menu gives the candidate's whole line. The click plays nothing. On a touch screen (390 x 844) a long press
+// on an edge or on a candidate's row opens the same menu, and its release plays no line and pins no candidate.
 // A Cyanotype case skips, with a message, when its preview has none of the engine's files. With LINE_IMAGE_DIR set,
 // the spec saves there a crop of each menu and the saved images, for a look. Run:
 // npx playwright test tests/engine-line-image.spec.ts --project=chromium.
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { declineGames } from "./cyanotype-consent.ts";
 import { noReview, reviewTestGame } from "./cyanotype-review.ts";
 import { toMove } from "./move-header.ts";
-import { expect, test, type Page } from "./page-log.ts";
+import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { openReviewFile } from "./review-file.ts";
 
 const LOOK_DIR = process.env.LINE_IMAGE_DIR;
@@ -42,6 +44,30 @@ const lineEdges = (page: Page) => page.getByRole("group", { name: "The engine's 
 const hereKey = (page: Page) => page.locator(".movelist .mv.here").first().getAttribute("data-path");
 /** The moves in the move list, a variation's too: a click that played the line would add some. */
 const listed = (page: Page) => page.locator(".movelist .mv[data-path]").count();
+/** Keeps the place on screen and the number of moves in the move list. The check that it gives says that they stay:
+ *  a click that played the line would change them. */
+async function unplayed(page: Page) {
+  const place = await hereKey(page), moves = await listed(page);
+  return async () => {
+    expect(await hereKey(page), "the position on screen stays").toBe(place);
+    expect(await listed(page), "the line is not played").toBe(moves);
+  };
+}
+/** The first candidate's row, and the left mark that it has while it is pinned (a click on it pins it). */
+const firstRow = (page: Page) => page.locator("tr[data-rank='1']");
+const rowMark = (page: Page) => firstRow(page).evaluate(row => getComputedStyle(row).boxShadow);
+
+/** A long press on the middle of `target`, with CDP touch events: touchStart, HOLD_MS, touchEnd. */
+async function longPress(page: Page, target: Locator) {
+  await target.scrollIntoViewIfNeeded();
+  const box = (await target.boundingBox())!, x = box.x + box.width / 2, y = box.y + box.height / 2;
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    await page.waitForTimeout(HOLD_MS);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  } finally { await cdp.detach(); }
+}
 
 /** Keeps each text that the page writes on a canvas from now on: an image's caption is written so
  *  (@abstractclass/review/boardImage.ts). `written` gives them. */
@@ -93,10 +119,11 @@ for (const site of [HEDGE_SCHOOL, CYANOTYPE]) test.describe(`${site.name}: the i
     await toMove(page, AT);
     const edge = lineEdges(page).nth(EDGES - 1);
     await expect(edge).toBeVisible({ timeout: 60_000 });
-    const place = await hereKey(page), moves = await listed(page);
+    const stays = await unplayed(page);
     await watchCaptions(page);
     await edge.click({ button: "right" });
     await expect(page.getByRole("menuitem")).toHaveText(["Copy static", "Save static", "Save animated"]);
+    await expect(page.getByRole("menu").getByText("Generate image", { exact: true }), "the menu's heading").toBeVisible();
     await lookAt(page, `${site.file}-menu-1280.png`);
     const still = await downloaded(page, () => page.getByRole("menuitem", { name: "Save static" }).click());
     expect.soft(still.name, "the static image's name").toBe(name(false));
@@ -114,38 +141,45 @@ for (const site of [HEDGE_SCHOOL, CYANOTYPE]) test.describe(`${site.name}: the i
     // A candidate's row: the candidate's whole line, as the board draws it while the pointer is on the row. The first
     // row's line is the line under the table (the selected candidate's: rank 1).
     const whole = await lineEdges(page).count();
-    await page.locator("tr[data-rank='1']").click({ button: "right" });
+    await firstRow(page).click({ button: "right" });
     const row = await downloaded(page, () => page.getByRole("menuitem", { name: "Save static" }).click());
     expect.soft(row.name, "the row's image's name").toBe(`${site.file}-after-${site.move}-${AT}-line-${whole}.png`);
-    expect(await hereKey(page), "the position on screen stays").toBe(place);
-    expect(await listed(page), "the line is not played").toBe(moves);
+    await stays();
+    // The same moves played as a variation (a click on the edge): the move menu's image of the variation's last move is
+    // the same file, byte for byte, since one function draws both (imageOf).
+    await edge.click();
+    await page.locator(".movelist .mv.here").first().click({ button: "right" });
+    await page.getByRole("menuitem", { name: "Generate image" }).click();
+    const played = await downloaded(page, () => page.getByRole("menuitem", { name: "Save static" }).click());
+    expect.soft(played.name, "the variation's image's name").toBe(still.name);
+    expect(readFileSync(played.path).equals(readFileSync(still.path)), "the variation's image is the engine line's").toBe(true);
   });
 
   test.describe("on a touch screen", () => {
     test.use(PHONE);
-    test("a long press on an edge of the engine's line opens the menu, and its release plays nothing", async ({ page }) => {
+    test("a long press on an edge of the engine's line or on a row opens the menu, and its release plays nothing", async ({ page }) => {
       await site.open(page);
       await toMove(page, AT);
       await page.getByRole("tab", { name: "Analysis", exact: true }).tap();
       await page.mouse.move(1, 1); // a phone has no mouse pointer (move-list-touch.spec.ts)
       const edge = lineEdges(page).nth(EDGES - 1);
       await expect(edge).toBeVisible({ timeout: 60_000 });
-      await edge.scrollIntoViewIfNeeded();
-      const place = await hereKey(page), moves = await listed(page);
-      const box = (await edge.boundingBox())!, x = box.x + box.width / 2, y = box.y + box.height / 2;
-      const cdp = await page.context().newCDPSession(page);
-      try {
-        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-        await page.waitForTimeout(HOLD_MS);
-        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-      } finally { await cdp.detach(); }
+      const stays = await unplayed(page);
+      await longPress(page, edge);
       await expect(page.getByRole("menuitem")).toHaveText(["Copy static", "Save static", "Save animated"]);
       await page.waitForTimeout(SETTLE_MS);
       await lookAt(page, `${site.file}-menu-390.png`);
-      expect(await hereKey(page), "the position on screen stays").toBe(place);
-      expect(await listed(page), "the line is not played").toBe(moves);
+      await stays();
       const still = await downloaded(page, () => page.getByRole("menuitem", { name: "Save static" }).tap());
       expect.soft(still.name, "the static image's name").toBe(name(false));
+      // A candidate's row: its click pins the candidate (its left mark), so a release that clicked would change it.
+      await expect(page.getByRole("menu")).toBeHidden();
+      const mark = await rowMark(page);
+      await longPress(page, firstRow(page));
+      await expect(page.getByRole("menuitem")).toHaveText(["Copy static", "Save static", "Save animated"]);
+      await page.waitForTimeout(SETTLE_MS);
+      expect(await rowMark(page), "the candidate is not pinned").toBe(mark);
+      await stays();
     });
   });
 });
