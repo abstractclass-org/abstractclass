@@ -7,13 +7,13 @@ import { download } from "@abstractclass/site/download.ts";
 
 /** What an export makes, by name (Hedge School's design 17): a share link, a review file or an analysis file, the
  *  annotated record copied or as a file, or the review file saved to a partner site. */
+export type ExportKind = "share_link" | "review_file" | "analysis_file" | "record_copy" | "record_file" | "partner_save";
+
 /** The Export menu's line for an export that failed, where the failure gives no line of its own (LineError): text that
  *  a player follows, in strict Simplified Technical English. Its causes go away on a second try: a clipboard that
  *  refuses the text while the page does not have the focus, the browser's storage that does not give the game, or a
  *  partner's page that did not answer. */
 export const EXPORT_FAILED = "The site did not complete the export. Try again.";
-
-export type ExportKind = "share_link" | "review_file" | "analysis_file" | "record_copy" | "record_file" | "partner_save";
 
 /** An entry of the Export menu: what it makes, its label, a line on what the other end gets, and the note after it. */
 export type ExportItem = [ExportKind, string, string, string];

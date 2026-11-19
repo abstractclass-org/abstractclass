@@ -13,7 +13,3 @@ export class LineError extends Error {
     this.line = line;
   }
 }
-
-/** The line that a page shows for a caught error: a LineError's own line, else `otherwise`, the page's line for a
- *  failure that it cannot explain. */
-export const lineOf = (e: unknown, otherwise: string) => (e instanceof LineError ? e.line : otherwise);
