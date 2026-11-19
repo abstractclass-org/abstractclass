@@ -10,14 +10,17 @@ const id = (ms: number, count = 0) => {
   return `${t.slice(0, 8)}-${t.slice(8)}-7${count.toString(16).padStart(3, "0")}-8000-000000000000`;
 };
 
+/** The site that sent the events. */
+const SITE = "http://127.0.0.1:4173";
+
 /** An event as posthog-js sends it, with the id `uuid`. */
 const event = (uuid: string) => ({ uuid, event: "export", properties: {} });
 
 /** The events with these ids, as the route keeps them. */
-const sent = (...uuids: string[]): Sent[] => uuids.map(uuid => ({ path: "/e/", ...event(uuid) }));
+const sent = (...uuids: string[]): Sent[] => uuids.map(uuid => ({ origin: SITE, path: "/relay/e/", ...event(uuid) }));
 
 /** A beacon's body as posthog-js sends it, a gzip of a JSON batch, with the events of these ids. */
-const beacon = (...uuids: string[]) => ({ path: "/e/", body: gzipSync(JSON.stringify({ batch: uuids.map(event) })) });
+const beacon = (...uuids: string[]) => ({ url: `${SITE}/relay/e/`, body: gzipSync(JSON.stringify({ batch: uuids.map(event) })) });
 
 /** The ids of the events, in their order. */
 const ids = (all: Sent[]) => all.map(e => e.uuid);
@@ -39,7 +42,7 @@ test("beacons out of order, and an event that came twice, keep one event each in
 });
 
 test("an event without its id, or with an id that is not a UUIDv7, is refused", () => {
-  const plain = (e: object) => ({ path: "/e/", body: Buffer.from(JSON.stringify([e])) });
+  const plain = (e: object) => ({ url: `${SITE}/relay/e/`, body: Buffer.from(JSON.stringify([e])) });
   expect(() => inCaptureOrder([], [plain({ event: "feature", properties: {} })])).toThrow(/without its uuid/);
   expect(() => inCaptureOrder(sent("550e8400-e29b-41d4-a716-446655440000"), [])).toThrow(/not a UUIDv7/);
 });

@@ -12886,3 +12886,44 @@ failed, then the way out. The error goes into a report of its own (design 17, "E
   text. The delete answers the site's store with 503. Each case checks the line, that the page shows no message of
   the code, and one `$exception` of its kind that holds the code's message. `partners.test.ts` checks the partner's
   lines.
+
+### PostHog's requests through the sites' own address (2026-11-19)
+
+abscls-fywh. Both sites send PostHog's requests to `/relay/` on their own address, and a Pages Function of each site
+passes them on to PostHog's US hosts (design 11, item 7). This reverses design 27's item 6 for PostHog: AdGuard's
+tracking protection list and Firefox's strict tracking protection stopped PostHog's hosts, and those visitors were
+missing from every count of design 17. Design 27 gives the reasons.
+
+- **PostHog's guide for Cloudflare, with one departure.** The Function is the guide's Worker
+  (`https://posthog.com/docs/advanced/proxy/cloudflare`, US region): `/static/` and `/array/` to
+  `us-assets.i.posthog.com`, through Cloudflare's cache, and every other path to `us.i.posthog.com` with its query,
+  method and whole body. It removes the cookies and an Authorization that is not a PostHog key, and it sets
+  `X-Forwarded-For` from `CF-Connecting-IP`. The departure: the guide's Worker serves a subdomain from its root, and
+  the Function serves a path of the site, so it removes `/relay` before it forwards. A path needs no DNS record and
+  no Worker of its own, and the requests stay on the page's origin. The code is one module that both sites share,
+  `packages/site/src/posthogProxy.ts`. Each site's `functions/relay/[[path]].ts` takes it, and each site's
+  `static/_routes.json` adds `/relay/*`.
+- **The path:** the guide says "Don't use obvious path names like `/analytics`, `/tracking`, `/telemetry`, or
+  `/posthog`. Blockers will catch them. Use something unique to your app instead." `/relay` names no analytics. It
+  is an ordinary word of many sites, so a general rule of a blocker's list cannot take it without breaking those
+  sites. Only a rule for these sites' own addresses can stop it.
+- **The client:** `api_host` is `/relay` and `ui_host` is `https://us.posthog.com`, as the guide gives them. posthog-js
+  1.447.4 takes a path as `api_host` and puts each endpoint after it. Every other option stays.
+- **The Content Security Policy:** neither site's `_headers` names PostHog's hosts, so it does not change.
+- **The Privacy pages do not change.** They say what PostHog receives, the IP address too, and that Cloudflare
+  receives each request. Both stay true: the Function passes the same data to the same PostHog, and Cloudflare
+  already received every request to the site.
+- **Measured.** The unit cases (`packages/site/src/posthogProxy.test.ts`, 8) check the hosts, the path and the headers
+  that the Function passes. Hedge School's build of check:all (with check:all's made-up key) ran under `wrangler@4.144.0
+  pages dev` with its Functions. A POST to `/relay/e/` with another made-up key came back from PostHog as `200
+  {"status":"Ok"}`: PostHog's capture takes the request and drops an unknown key. `/relay/static/array.js` gave
+  PostHog's script (383,809 bytes), and `/relay/array/<made-up key>/config` PostHog's 404. In headless Chromium (the
+  layout test's launch options, as a visitor's browser), the About page sent its events to
+  `http://127.0.0.1:4208/relay/e/`, PostHog answered 200 through the Function, and the browser sent no request to a
+  PostHog host. The browser tests now check that both sites send only to their own origin and `/relay/e/`. The site
+  suite passed: check:all, and 426 cases of the layout test with none skipped.
+- **Not measured here:** the live sites. Once the release is live, PostHog's Activity
+  (`https://us.posthog.com/activity/explore`) must show the sites' events, and the dashboard must still fill. The
+  geolocation from `X-Forwarded-For` shows there too.
+- **The quota:** each request to `/relay/` counts against the account's 100,000 Functions and Workers requests a
+  day (hosting.md, section 4).

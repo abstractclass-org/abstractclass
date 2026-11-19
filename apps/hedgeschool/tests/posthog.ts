@@ -1,18 +1,26 @@
 // PostHog's part of the browser tests, for both sites' builds of check:all, which have a made-up PostHog key
-// (scripts/check-all.mjs). No request reaches PostHog: the browser resolves none of its addresses
-// (playwright.config.ts), and here Playwright's route answers them in PostHog's place, and keeps what the pages sent.
+// (scripts/check-all.mjs). The pages send PostHog's requests to the site's own path (POSTHOG_PATH), whose Function the
+// previews do not run. No request reaches PostHog: the browser resolves none of its addresses (playwright.config.ts),
+// and here Playwright's route answers the site's path and PostHog's addresses in PostHog's place, and keeps what the
+// pages sent, with the address that each request went to.
 // The route is the context's, so it keeps the events of every page of the context and across the pages' loads.
 // As a page goes, PostHog's client sends the events that it still holds by `navigator.sendBeacon`, which neither
 // Playwright's route nor its events see (Chromium's CDP does not report it either). keepBeacons keeps those in the
 // page, and withBeacons adds them.
 import { gunzipSync } from "node:zlib";
 import { test, type BrowserContext, type Page } from "@playwright/test";
+import { POSTHOG_PATH } from "../../../packages/site/src/posthogProxy.ts";
 
-/** PostHog's hosts: the route's, and the beacons' that keepBeacons keeps. */
+/** PostHog's hosts, which a page must not send to: the route answers them too, so that a test sees such a request
+ *  (its `origin`), and does not wait for a request that the browser stopped. */
 const POSTHOG = /(^|\.)posthog\.com$/;
 
-/** An event that a page sent to PostHog, with its request's path. */
-export interface Sent { path: string; uuid: string; event: string; properties: Record<string, unknown> }
+/** Whether a request goes to PostHog: to the site's path for it, or to PostHog's hosts. The route's test, and the
+ *  beacons' that keepBeacons keeps. */
+const toPostHog = (url: URL) => url.pathname.startsWith(`${POSTHOG_PATH}/`) || POSTHOG.test(url.hostname);
+
+/** An event that a page sent to PostHog, with its request's origin and path. */
+export interface Sent { origin: string; path: string; uuid: string; event: string; properties: Record<string, unknown> }
 
 /** A desktop Chrome's name, as a visitor's browser gives it. */
 const VISITOR = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
@@ -42,24 +50,24 @@ function decode(body: Buffer): unknown[] {
   return Array.isArray(json) ? json : json.batch ?? [json];
 }
 
-/** The events of a body that posthog-js sent to `path`. Each has its id, which withBeacons merges by: one without it
+/** The events of a body that posthog-js sent to `url`. Each has its id, which withBeacons merges by: one without it
  *  is refused, so that no two events merge for lack of one. */
-function events(path: string, body: Buffer): Sent[] {
+function events(url: string, body: Buffer): Sent[] {
+  const { origin, pathname: path } = new URL(url);
   return decode(body).map(e => {
     const { uuid, event, properties } = e as { uuid: string; event: string; properties: Record<string, unknown> };
     if (typeof uuid !== "string" || !uuid) throw new Error(`an event to PostHog without its uuid: ${event}`);
-    return { path, uuid, event, properties };
+    return { origin, path, uuid, event, properties };
   });
 }
 
 /** Answers every request to PostHog in PostHog's place, and returns the events that the pages sent, with each
- *  request's path. */
+ *  request's origin and path. */
 export async function answerPostHog(context: BrowserContext): Promise<Sent[]> {
   const sent: Sent[] = [];
-  await context.route(url => POSTHOG.test(url.hostname), async (route, request) => {
-    const path = new URL(request.url()).pathname;
+  await context.route(toPostHog, async (route, request) => {
     const body = request.postDataBuffer();
-    if (body) sent.push(...events(path, body));
+    if (body) sent.push(...events(request.url(), body));
     await route.fulfill({ contentType: "application/json", body: JSON.stringify({ status: 1 }) });
   });
   return sent;
@@ -80,7 +88,7 @@ const BEACONS = "test:posthog-beacons";
  *  the site's next page in the tab reads (withBeacons). posthog-js gives the beacon a Blob, which a page cannot read at
  *  once: the pages' Blob keeps the parts that each Blob was made of. */
 export async function keepBeacons(context: BrowserContext) {
-  await context.addInitScript(([key, host]) => {
+  await context.addInitScript(([key, host, path]) => {
     const posthog = new RegExp(host);
     const parts = new WeakMap<Blob, BlobPart[]>();
     const NativeBlob = window.Blob;
@@ -99,17 +107,17 @@ export async function keepBeacons(context: BrowserContext) {
     const send = navigator.sendBeacon.bind(navigator);
     navigator.sendBeacon = (url, data) => {
       const to = new URL(url, location.href);
-      if (posthog.test(to.hostname)) {
-        const kept = JSON.parse(sessionStorage.getItem(key) ?? "[]") as { path: string; body: string }[];
+      if (to.pathname.startsWith(`${path}/`) || posthog.test(to.hostname)) {
+        const kept = JSON.parse(sessionStorage.getItem(key) ?? "[]") as { url: string; body: string }[];
         // One character at a time: a spread of a large body would pass more arguments than a call takes.
         let binary = "";
         for (const b of bytes(data)) binary += String.fromCharCode(b);
-        kept.push({ path: to.pathname, body: btoa(binary) });
+        kept.push({ url: to.href, body: btoa(binary) });
         sessionStorage.setItem(key, JSON.stringify(kept));
       }
       return send(url, data);
     };
-  }, [BEACONS, POSTHOG.source] as const);
+  }, [BEACONS, POSTHOG.source, POSTHOG_PATH] as const);
 }
 
 /** An event's id as posthog-js makes it, a UUIDv7: the time of the capture in milliseconds, then a count that rises
@@ -122,8 +130,8 @@ const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
  *  the route does not see, and a slow machine puts more events there. Each event comes once, by its id, as PostHog
  *  keeps it: a beacon that the browser refuses goes again by fetch, which the route sees. An event whose id is not a
  *  UUIDv7 is refused, so that none takes its place by chance. */
-export function inCaptureOrder(sent: Sent[], beacons: { path: string; body: Buffer }[]): Sent[] {
-  const all = [...sent, ...beacons.flatMap(b => events(b.path, b.body))];
+export function inCaptureOrder(sent: Sent[], beacons: { url: string; body: Buffer }[]): Sent[] {
+  const all = [...sent, ...beacons.flatMap(b => events(b.url, b.body))];
   const notV7 = all.find(e => !UUID_V7.test(e.uuid));
   if (notV7) throw new Error(`an event to PostHog whose id is not a UUIDv7: ${notV7.event}, ${notV7.uuid}`);
   const seen = new Set<string>();
@@ -135,6 +143,6 @@ export function inCaptureOrder(sent: Sent[], beacons: { path: string; body: Buff
  *  `page`, which must show a page of the site. Each event once, in the order of its capture (inCaptureOrder). */
 export async function withBeacons(page: Page, sent: Sent[]): Promise<Sent[]> {
   const kept = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) ?? "[]"), BEACONS) as
-    { path: string; body: string }[];
-  return inCaptureOrder(sent, kept.map(b => ({ path: b.path, body: Buffer.from(b.body, "base64") })));
+    { url: string; body: string }[];
+  return inCaptureOrder(sent, kept.map(b => ({ url: b.url, body: Buffer.from(b.body, "base64") })));
 }

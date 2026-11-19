@@ -5,10 +5,10 @@
 //
 //   node scripts/no-posthog.mjs DIR
 //
-// It names each script of the build that names PostHog's address (`i.posthog.com`, which the client of
-// packages/site/src/posthog.ts always holds) or its client's extensions (`__PosthogExtensions__`), and exits 1. The
-// pages' text may name PostHog (the Privacy page): only the scripts count. Without one, it says how many scripts it
-// read, and exits 0. Tests: node --test "scripts/*.test.mjs"
+// It names each script of the build that names PostHog's address (`i.posthog.com`, which posthog-js always holds as
+// its default host, also with the sites' own address as `api_host`) or its client's extensions
+// (`__PosthogExtensions__`), and exits 1. The pages' text may name PostHog (the Privacy page): only the scripts
+// count. Without one, it says how many scripts it read, and exits 0. Tests: node --test "scripts/*.test.mjs"
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 

@@ -338,9 +338,11 @@ Cyanotype's.
 - **Releases in order:** the footer names each release's commit. Compare a report's weeks before and after a release.
 - **Visitors by the day:** PostHog's hash changes each day, so a visitor who comes back on another day counts again,
   and returns cannot be told from new visitors (design 11).
-- **Blockers:** a browser whose blocker stops PostHog's requests is in no count. uBlock Origin's default lists do not
-  stop them. AdGuard's tracking protection list and Firefox's strict tracking protection do. The site does not ask
-  those visitors to allow it (design 27, withdrawn).
+- **Blockers:** the sites send PostHog's requests to their own address, and a Pages Function passes them on to
+  PostHog (design 11, item 7). So a blocker whose list names PostHog's hosts does not stop them: AdGuard's tracking
+  protection list and Firefox's strict tracking protection did, and those visitors were in no count. uBlock Origin's
+  default lists did not. The reason is design 27, item 6. A blocker that lists the site's own path for PostHog still
+  stops them. The site does not ask those visitors to allow it (design 27, withdrawn).
 - **Most worth having:** `review_done`'s minutes and speed by machine, which no feedback gives.
 
 ## Why

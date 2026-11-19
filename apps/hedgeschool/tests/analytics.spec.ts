@@ -1,10 +1,12 @@
 // The measuring with PostHog (design 11 and 17), on both sites' builds of check:all, each with a made-up PostHog key
-// (scripts/check-all.mjs). No request reaches PostHog: tests/posthog.ts answers its addresses in its place, and keeps
-// what the pages sent. That a build without the key holds none of PostHog's code is check:all's step
+// (scripts/check-all.mjs). The pages send PostHog's requests to the site's own path (design 27, item 6), whose
+// Function the previews do not run. No request reaches PostHog: tests/posthog.ts answers the path and PostHog's
+// addresses in PostHog's place, and keeps what the pages sent. That a build without the key holds none of PostHog's code is check:all's step
 // `cyanotype-no-posthog`, on a build of Cyanotype without the key.
 import { test, expect, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor } from "./posthog.ts";
 import { CONSENT_KEY } from "../src/lib/keys.ts";
+import { POSTHOG_PATH } from "../../../packages/site/src/posthogProxy.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 
@@ -33,8 +35,10 @@ test("Hedge School, a build with PostHog's key: after ?internal=on, its page vie
   expect(views().every(e => e.properties.internal === true)).toBe(true);
   for (const e of sent) expect(String(e.properties.$current_url ?? "")).not.toContain("#");
 
-  // Only events: no feature flags, no remote settings, no script from PostHog.
-  expect([...new Set(sent.map(e => e.path))]).toEqual(["/e/"]);
+  // Only events, to the site's own address and its path for PostHog: none to PostHog's hosts, no feature flags, no
+  // remote settings, no script from PostHog.
+  expect([...new Set(sent.map(e => e.origin))]).toEqual([new URL(baseURL!).origin]);
+  expect([...new Set(sent.map(e => e.path))]).toEqual([`${POSTHOG_PATH}/e/`]);
   expect(sent.map(e => e.event).filter(e => !["$pageview", "$pageleave"].includes(e))).toEqual([]);
 });
 
@@ -79,7 +83,9 @@ test("Cyanotype, a build with PostHog's key: its page views carry internal: true
   await page.waitForURL("**/about");
   await expect.poll(() => views().map(e => e.properties.$pathname), { timeout: 15_000 }).toContain("/about");
   expect(views().every(e => e.properties.internal === true && e.properties.$cookieless_mode === true)).toBe(true);
-  expect([...new Set(sent.map(e => e.path))]).toEqual(["/e/"]);
+  // Only events, to Cyanotype's own address and its path for PostHog.
+  expect([...new Set(sent.map(e => e.origin))]).toEqual([new URL(CYANOTYPE!).origin]);
+  expect([...new Set(sent.map(e => e.path))]).toEqual([`${POSTHOG_PATH}/e/`]);
 
   // The consent, in a build that stores practice games (check:all's): the banner asks for the games' link only, as
   // Hedge School's does, and the privacy page holds the same choice. Nothing of PostHog's in the browser, and no cookie.

@@ -20,6 +20,18 @@ for these reasons:
   400 or more (`on_request_error`). A blocked request has no answer, so the page could not know of it without a check
   of blockers, which item 2 rejects.
 
+Item 6 ("No way past a blocker") is reversed as well, on 2026-11-19. Both sites send PostHog's requests to their own
+address, and a Pages Function of each site passes them on to PostHog (design 11, item 7). The reasons:
+
+- **A blocker took visitors out of every count.** AdGuard's tracking protection list and Firefox's strict tracking
+  protection stop PostHog's hosts. Design 17's decisions read the counts, and those visitors were missing from all of
+  them.
+- **The visitor's choice was about cookies, and PostHog sets none.** Item 6 kept the Google tag, which set cookies
+  after a consent, from passing a blocker. PostHog runs in its cookieless mode and keeps nothing in the browser, and
+  the Privacy page says what it receives. The site shows no ads.
+- **PostHog offers it.** Its quickstart and its guide for Cloudflare give the proxy
+  (`https://posthog.com/docs/advanced/proxy`), and the sites follow the guide (`packages/site/src/posthogProxy.ts`).
+
 The card (`packages/site/src/CornerCard.svelte`) stays for the consent banner. The key `hedge-school:analytics-ask:1`
 and Cyanotype's `cyanotype:analytics-ask:1` stay in the browsers that set them, unread. The rest of this document is
 the decision as it was.
@@ -66,7 +78,8 @@ counts.
    > [Close] Privacy
 
 6. **No way past a blocker.** The site does not send the tag through its own address (a first-party proxy, or
-   Cloudflare Zaraz) to get past a blocker. That would override the visitor's own choice.
+   Cloudflare Zaraz) to get past a blocker. That would override the visitor's own choice. Reversed for PostHog: its
+   requests go through the site's own address ("Withdrawn", above).
 7. **No event for the card.** The card shows only in a page where the tag did not run, so an event of its showing or
    of its Close cannot reach Google Analytics: design 17's events go through the tag. Cloudflare Web Analytics takes
    no events.

@@ -14,7 +14,7 @@ entries before it).
 | DNS | Cloudflare (the zone `abstractclass.org`, free plan), with DNSSEC | Answers for the domain. Porkbun keeps only the registration. |
 | The code | The public GitHub repository `abstractclass-org/abstractclass`: `dev` for the work, `main` for the live site | A push to `main` deploys the live site. A push to another branch deploys a preview. |
 | The deploy | GitHub Actions (`.github/workflows/deploy.yml`) | On each push: builds the site and uploads it to Pages with Wrangler. `main` goes to production, another branch to a preview (section 3). A site that is not launched yet deploys previews only ("The launch switch"). |
-| The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the one Function. Also at `hedgeschool.pages.dev`. |
+| The host | Cloudflare Pages, the project `hedgeschool`, with no Git connection | Serves the files that the deploy uploads, and runs the two Functions. Also at `hedgeschool.pages.dev`. |
 | The engine | GitHub Releases of the public repository `abstractclass-org/enclosure-engine` | The module and the networks, pinned by SHA-256 in `engine.lock.json`. The build downloads them. |
 | Visit counts | PostHog (one project for all the sites, section 4) and Cloudflare Web Analytics, both with no cookies | Counted in the browser (`src/lib/analytics.svelte.ts`). Cyanotype uses the same two (section 9). |
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout test on Windows ("Deploy, check and roll back"). |
@@ -23,8 +23,9 @@ entries before it).
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
 | Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with its own Function for its practice games, and the same analytics as Hedge School's (section 9). |
 
-The site is static files: every page is prerendered, and the engine runs in the visitor's browser. One Pages Function
-runs at Cloudflare, on `/api/practice-games` only (`static/_routes.json`): it keeps the practice games (section 7).
+The site is static files: every page is prerendered, and the engine runs in the visitor's browser. Two Pages
+Functions run at Cloudflare, on their paths only (`static/_routes.json`): `/api/practice-games` keeps the practice
+games (section 7), and `/relay/` passes PostHog's requests on to PostHog (section 4).
 
 ## 1. The domain on Cloudflare
 
@@ -228,10 +229,11 @@ put them behind a sign-in (Cloudflare Access).
 ## 4. PostHog
 
 - **One project for all the sites,** in PostHog's US region: the app at `https://us.posthog.com`, the events to
-  `https://us.i.posthog.com`. Each event names its site's host (`$host`), so a report splits the sites. The project's
-  token, which PostHog shows under Settings → Project (`https://us.posthog.com/settings/project`), is the repository
-  variable `POSTHOG_KEY`. The deploy gives it to each site's build as `VITE_POSTHOG_KEY`, on
-  `main` only. A project token is public: it goes into the pages' code, and it can only send events.
+  `https://us.i.posthog.com`, through each site's own address (below). Each event names its site's host (`$host`), so a
+  report splits the sites. The project's token, which PostHog shows under Settings → Project
+  (`https://us.posthog.com/settings/project`), is the repository variable `POSTHOG_KEY`. The deploy gives it to each
+  site's build as `VITE_POSTHOG_KEY`, on `main` only. A project token is public: it goes into the pages' code, and it
+  can only send events.
 - **The project's settings** (Settings → Project, `https://us.posthog.com/settings/project`):
   - **Web analytics → Enable cookieless tracking:** on. The sites run PostHog in its cookieless mode, and without this
     setting PostHog drops their events. Done on 2026-11-09.
@@ -246,6 +248,24 @@ put them behind a sign-in (Cloudflare Access).
   step `cyanotype-no-posthog` refuses a script of that build that holds PostHog's code.
 - **The site loads PostHog itself:** posthog-js from npm, in its slim bundle with no external loading
   (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
+- **A reverse proxy on the site's own address:** the client sends PostHog's requests to `/relay/` on the site's own
+  address (its `api_host`), and a Pages Function (`functions/relay/[[path]].ts`) passes them on to PostHog's US
+  hosts: `/static/` and `/array/` to `https://us-assets.i.posthog.com`, every other path to `https://us.i.posthog.com`.
+  It is PostHog's Worker for Cloudflare (`https://posthog.com/docs/advanced/proxy/cloudflare`), shared by the sites
+  in `packages/site/src/posthogProxy.ts`, which says what it forwards: the browser's request without its cookies, and
+  the browser's IP address (Cloudflare's `CF-Connecting-IP`) as `X-Forwarded-For`, so that PostHog places the visit.
+  A blocker whose list names PostHog's hosts does not stop the requests (design 27, item 6). The path names no
+  analytics, as PostHog's guide asks. The client's `ui_host` stays `https://us.posthog.com`. The proxy needs no setting
+  in Cloudflare or in PostHog.
+- **The proxy uses the account's Functions quota.** Each request to `/relay/` runs the Function, and Cloudflare counts
+  it against the Workers Free plan's 100,000 requests a day, which the account's Workers and Pages Functions share
+  and which resets at midnight UTC (`https://developers.cloudflare.com/pages/functions/pricing/`). posthog-js sends a
+  page's events in batches. Requests to the site's files run no Function, and Cloudflare does not count them. Past
+  the limit, the Function's requests fail, and their events are lost. The site's files are "free and unlimited", so
+  the pages still load.
+- **The previews run the Function too,** with no harm: a preview's build has no PostHog key, so its pages send
+  nothing. The Function only passes on a request that someone sends to it, to PostHog's own hosts, as PostHog's
+  address would take it directly.
 - **Google Analytics, before PostHog:** Hedge School's property (`G-C5RY6DWGWN`) counted the site until the release
   of 2026-11-09's change. No build sends to it after that release, and no build reads a Google Analytics ID.
 
@@ -462,8 +482,9 @@ practice games' storage, `CYANOTYPE_STORE_PRACTICE_GAMES` ("Cyanotype's practice
   or opens a review that a partner kept.
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
   have with it, and with status 404.
-- **Its one Function,** on `/api/practice-games` only (`static/_routes.json`), keeps the practice games against Stamp
-  Duty in Cyanotype's own D1 databases ("Cyanotype's practice games", below). The job runs Wrangler in
+- **Its two Functions,** on their paths only (`static/_routes.json`): `/api/practice-games` keeps the practice games
+  against Stamp Duty in Cyanotype's own D1 databases ("Cyanotype's practice games", below), and `/relay/` passes
+  PostHog's requests on to PostHog, as Hedge School's does (section 4). The job runs Wrangler in
   `apps/cyanotype`, so the deployment takes Cyanotype's `functions/` folder, not Hedge School's. The browser keeps the
   visitor's games, settings and choices (its Privacy page).
 

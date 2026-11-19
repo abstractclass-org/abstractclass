@@ -87,7 +87,10 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
    IP address, the browser and a salt of the day, on its servers. One PostHog project, in PostHog's US region, takes
    the events of all the sites, and each event names its site's host. The client is posthog-js from npm, in its slim
    bundle with no external loading: it sends only page views, page leaves and the site's own events, and loads no
-   script from PostHog (`packages/site/src/posthog.ts` names each option and why). The privacy page names what
+   script from PostHog (`packages/site/src/posthog.ts` names each option and why). Its requests go to the site's own
+   address, on the path `/relay/`. A Pages Function of each site passes them on to PostHog's US hosts, as PostHog's
+   guide for Cloudflare gives it (`packages/site/src/posthogProxy.ts`), so a blocker whose list names PostHog's hosts
+   does not stop them (design 27, item 6). The privacy page names what
    PostHog receives, that it stores the data in the US, and the transfer basis for visitors from the EU, the UK and
    Switzerland: PostHog's certification under the EU-U.S. Data Privacy Framework, its UK Extension and the Swiss-U.S.
    Data Privacy Framework. The banner asks only for the practice games' link (design 25). Neither service sees a
@@ -365,6 +368,6 @@ read the game from the player's own page.
   Undo" (2026-10-16), "strategyjam.org games through the bookmarklet and the userscript" (2026-10-18), "A meaf.us
   game's review links back to its game" (2026-10-21), "The Privacy page says what goes where, in less detail"
   (2026-10-22), "Cyanotype's early access, as Hedge School's" (2026-11-07), "PostHog in place of Google Analytics"
-  (2026-11-09).
+  (2026-11-09), "PostHog's requests through the sites' own address" (2026-11-19).
 - [decisions/architecture.md](../decisions/architecture.md): "The site's repository is public" (2026-10-17), "The
   repository's variables name their site" (2026-11-13).

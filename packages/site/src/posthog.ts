@@ -11,16 +11,22 @@ import { AnalyticsExtensions, ErrorTrackingExtensions } from "posthog-js/dist/ex
 // (posthog.com/docs/libraries/js.md: "Finally you can also import specific extra dependencies").
 import "posthog-js/dist/exception-autocapture";
 import { scrubEvent } from "./scrub.ts";
+import { POSTHOG_PATH } from "./posthogProxy.ts";
 
-/** PostHog's address for the project, in its US region. */
-const POSTHOG_HOST = "https://us.i.posthog.com";
+/** PostHog's app for the project, in its US region: the links of PostHog's own features, such as its toolbar. */
+const POSTHOG_APP = "https://us.posthog.com";
 
 export type PostHogClient = Pick<typeof posthog, "capture" | "captureException" | "register">;
 
 /** Starts PostHog with the project's key. `properties` go with every event of the page, the first page view too. */
 export function startPostHog(key: string, properties: Record<string, string | number | boolean>): PostHogClient {
   posthog.init(key, {
-    api_host: POSTHOG_HOST,
+    // The requests go to the site's own address, and its Function passes them to PostHog's US region
+    // (posthogProxy.ts): a blocker whose list names PostHog's hosts does not stop them (Hedge School's design 27, item
+    // 6). PostHog's guide: "The `ui_host` must point to PostHog's actual domain so features like the toolbar link
+    // correctly" (posthog.com/docs/advanced/proxy/cloudflare).
+    api_host: POSTHOG_PATH,
+    ui_host: POSTHOG_APP,
     // The defaults of PostHog's latest snapshot: an option set here overrides its default.
     defaults: "2026-08-30",
     // No cookie and nothing in the browser's storage: PostHog counts visitors by a hash on its servers. The project's
