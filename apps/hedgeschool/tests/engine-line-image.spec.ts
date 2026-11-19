@@ -2,8 +2,8 @@
 // review from its stored results with the engine off. A right-click on an edge of the engine's line under the
 // candidates table opens a menu with the image's items: "Copy static", "Save static" and "Save animated". Each image
 // is of the line from the position on screen up to that edge: its file's name gives the start and the number of
-// edges, and the static image's caption gives the numbers before the first edge and after the last. The same moves,
-// played as a variation, give the same static image from the move menu, byte for byte. On a candidate's
+// edges, and the static image's caption gives the numbers before the first edge and after the last. The same edges,
+// played in the tree, give the same static image from the move menu, byte for byte. On a candidate's
 // row the menu gives the candidate's whole line. The click plays nothing. On a touch screen (390 x 844) a long press
 // on an edge or on a candidate's row opens the same menu, and its release plays no line and pins no candidate.
 // A Cyanotype case skips, with a message, when its preview has none of the engine's files. With LINE_IMAGE_DIR set,
@@ -145,14 +145,21 @@ for (const site of [HEDGE_SCHOOL, CYANOTYPE]) test.describe(`${site.name}: the i
     const row = await downloaded(page, () => page.getByRole("menuitem", { name: "Save static" }).click());
     expect.soft(row.name, "the row's image's name").toBe(`${site.file}-after-${site.move}-${AT}-line-${whole}.png`);
     await stays();
-    // The same moves played as a variation (a click on the edge): the move menu's image of the variation's last move is
-    // the same file, byte for byte, since one function draws both (imageOf).
+    // The same edges in the tree: a click on the edge plays them, along the game's moves or as a variation. Back at
+    // the same position on screen, the move menu's image of the last of them is the same file, byte for byte, since
+    // one function draws both (imageOf). The menu closed over the table, so the pointer is on another row, and the
+    // list shows that row's line: the pointer leaves the table first.
+    const start = await hereKey(page);
+    await page.mouse.move(1, 1);
     await edge.click();
-    await page.locator(".movelist .mv.here").first().click({ button: "right" });
+    await expect.poll(() => hereKey(page), "the click plays the line").not.toBe(start);
+    const end = await hereKey(page);
+    await toMove(page, AT);
+    await page.locator(`.movelist .mv[data-path="${end}"]`).click({ button: "right" });
     await page.getByRole("menuitem", { name: "Generate image" }).click();
-    const played = await downloaded(page, () => page.getByRole("menuitem", { name: "Save static" }).click());
-    expect.soft(played.name, "the variation's image's name").toBe(still.name);
-    expect(readFileSync(played.path).equals(readFileSync(still.path)), "the variation's image is the engine line's").toBe(true);
+    const tree = await downloaded(page, () => page.getByRole("menuitem", { name: "Save static" }).click());
+    expect.soft(tree.name, `the image's name of the line's last edge in the tree (${end})`).toBe(still.name);
+    expect(readFileSync(tree.path).equals(readFileSync(still.path)), "the tree's image is the engine line's").toBe(true);
   });
 
   test.describe("on a touch screen", () => {
