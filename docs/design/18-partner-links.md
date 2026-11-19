@@ -37,6 +37,12 @@ must make costs both of them a release.
    with `protocol: 1`, the file and its name, and the save page posts `hedge-school:saved` or `hedge-school:failed`.
    The field is `protocol`, not `version`: the review file has a `version` of its own. Each side checks the other's
    origin. This site waits a minute for each answer. The partner's page stores the file with its own sign-in.
+   - **A save that fails** shows a line in the Export menu's note, in strict Simplified Technical English. A browser
+     that blocks the new tab: "The browser did not open enclosuregame.com. Let this site open pop-ups. Then try
+     again." The partner's `failed`: "enclosuregame.com did not save the review: " and the reason that the message
+     gives, else "enclosuregame.com did not save the review. Try again." Neither is the site's fault, so neither sends
+     an error report (design 17, "Error reports"). A page that does not answer, or a file that the site did not make,
+     shows the menu's own line for a failed export, and sends a report (design 13, item 2).
 7. **A saved review opens again from the partner's page,** by the same messages the other way. A review by an
    earlier engine opens as a review snapshot of it (design 20). At the player's click,
    the partner's page opens `/review#from=` and its origin, with `window.open`. The review posts

@@ -10,8 +10,8 @@
 //
 // PostHog also takes events (Hedge School's design 17): what a visitor did, in counts and ranges (measure.ts), for the
 // decisions in that design. A browser with the flag of internal traffic (internalTraffic.ts) marks its events, so that
-// the owner's visits stay out. It takes the error reports too (engineError, and the page's uncaught errors in
-// posthog.ts), with no game, record or name in them (scrub.ts).
+// the owner's visits stay out. It takes the error reports too (engineError, siteError and its pageError, and the page's
+// uncaught errors in posthog.ts), with no game, record or name in them (scrub.ts).
 //
 // The consent has one purpose (Hedge School's design 25), in a build that stores practice games: the random number
 // that links this browser's practice games, where the site stores them. The banner's Accept and Decline set it, and
@@ -27,6 +27,11 @@ export type EventParams = Record<string, string | number | boolean>;
 /** The kinds of the engine's caught failures (Analytics.engineError, Hedge School's design 17): a network or a bot that
  *  did not load, the GPU worker lost, a practice game's bot, and a search worker lost after it loaded. */
 export type EngineErrorKind = "load" | "gpu" | "practice" | "worker";
+
+/** The kinds of the site's other caught failures (Analytics.siteError, Hedge School's design 17): a page that failed,
+ *  which the error page shows in its place (pageError), the image of a line that the review did not make, an export of
+ *  the Export menu that did not complete, and the practice games that the site did not delete. */
+export type SiteErrorKind = "page" | "image" | "export" | "delete";
 
 /** What a site gives its analytics: Cloudflare Web Analytics' token from its build (none in development), the keys of
  *  the practice games' consent where the build stores them, and the flag of internal traffic. PostHog's key is the
@@ -124,9 +129,17 @@ export class Analytics {
     this.#withClient(c => c.captureException(error, { error_kind: kind, ...params }));
   };
 
-  /** A page that failed, which the site's error page shows in its place (pageError.ts): the error itself to PostHog's
-   *  error tracking, with the `error_kind` "page". No event: no report counts these. */
-  pageError = (error: unknown) => this.#withClient(c => c.captureException(error, { error_kind: "page" }));
+  /** A failure that the site caught, not the engine's (Hedge School's design 17): the error itself to PostHog's error
+   *  tracking ("Error reports"), with its `error_kind`, and no event. The page shows the site's own line, and the
+   *  error's message goes into the report only. The reliability report counts only the engine's failures
+   *  (engineError). */
+  siteError = (error: unknown, kind: SiteErrorKind) => {
+    this.#withClient(c => c.captureException(error, { error_kind: kind }));
+  };
+
+  /** A page that failed, which the site's error page shows in its place (pageError.ts): a site's error of the kind
+   *  "page", for SvelteKit's `handleError` (pageErrors), which gives the error alone. */
+  pageError = (error: unknown) => this.siteError(error, "page");
 
   /** Sends an event once for each `key` in this page's life: a feature's first use in a review, not each use. The key
    *  stays in the page: it may name the game. */

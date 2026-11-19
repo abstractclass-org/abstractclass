@@ -45,7 +45,7 @@
   import { changeOwn, loadEngine, networkName, offersNetwork, ownSettings, reviewVisits, saveEngine, withOwn,
            type EngineSettings, type OwnSettings } from "#lib/analysis/engineSettings.ts";
   import { trackSettingChange } from "#lib/analysis/settingChanges.ts";
-  import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { engineError, startAnalytics, siteError, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { trackExport } from "#lib/game/sources.ts";
   import { CORE_RANGES, EDGE_RANGES, MINUTE_RANGES, range } from "@abstractclass/site/measure.ts";
   import { captureMarksStep, startChecked } from "#lib/review/storedReview.ts";
@@ -393,12 +393,14 @@
               snapshot={snapshot && { text: snapshot.text, onagain: reviewAgain }}
               deepVisits={snapshot ? 0 : engine.visits} onposition={path => (current = path)} onplay={path => game!.addLine(path)}
               reviewVisits={depth} labelVisits={LABEL_VISITS} engine={settings} onengine={changeEngine}
+              onfail={siteError}
               onfeature={name => kept && trackOnce(`${kept.id} ${name}`, "feature", { feature_name: name })}
               ownSettings={own?.from} gpu={session.gpuView}>
     {#snippet tools(unit)}
       <!-- Export (Hedge School's design 13): once the review is done, "Save to …" first for a partner's game, a link
            that shares it, its review file, or the annotated record, labelled by the view's unit. -->
-      <ExportMenu icon run={kind => exportAs(kind, unit)} items={reviewExports(partnerName)} ready={bar.done} ontrack={trackExport}
+      <ExportMenu icon run={kind => exportAs(kind, unit)} items={reviewExports(partnerName)} ready={bar.done}
+                  ontrack={trackExport} onfail={siteError}
                   why={snapshot ? "Review again to export: this review used an earlier engine." : "Export once the review is done."} />
     {/snippet}
   </ReviewView>

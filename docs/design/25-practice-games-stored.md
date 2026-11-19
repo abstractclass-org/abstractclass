@@ -135,6 +135,9 @@ Lichess and chess.com keep every game played on them:
   practice games" deletes them, and the number with them. It asks first, in the same dialog as a game's delete
   (`packages/site/src/ConfirmDialog.svelte`, design 11). The dialog's text on the privacy page says what goes and
   where, and that the games in the Review tab stay. The waiting games with the number leave the queue unsent.
+  A delete that fails says "The site did not delete your practice games. Try again later.", and the number and the
+  button stay. The site's database did not answer, or answered with an error, or the browser is offline: each can
+  pass. The error's message goes into the error report only (design 17, "Error reports", `delete`).
   The site keeps the deleted number alone, and keeps no game that arrives with it later: a game on its way from another
   tab, or sent again after a failed send, does not come back after the delete. The check is in the insert's own
   statement, so that a delete cannot come between them. Each tab follows a choice made in another tab (the browser's

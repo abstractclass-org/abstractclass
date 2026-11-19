@@ -8,7 +8,6 @@
   import { onMount } from "svelte";
   import { Switch } from "bits-ui";
   import type { Analytics, Purpose } from "@abstractclass/site/analytics.svelte.ts";
-  import { errorText } from "@abstractclass/engine/errors.ts";
   import { SWITCH, SWITCH_THUMB } from "@abstractclass/site/settings.ts";
   import ConfirmDialog, { type Answer } from "@abstractclass/site/ConfirmDialog.svelte";
 
@@ -20,6 +19,10 @@
   const LABEL: Record<Purpose, string> = {
     games: "Group my games against bots with a random ID in this browser",
   };
+  // The delete's failure: the site's line, text that a player follows (strict Simplified Technical English), and the
+  // error in the site's error report only. The site's database did not answer, or answered with an error, or the
+  // browser is offline: each can pass, so the way out is a later try. The random ID stays, and so does the button.
+  const DELETE_FAILED = "The site did not delete your practice games. Try again later.";
   let asking = $state(false);
   async function answerDelete(answer: Answer) {
     asking = false;
@@ -30,7 +33,8 @@
       number = null;
       deleted = `Deleted ${n} ${n === 1 ? "game" : "games"}.`;
     } catch (e) {
-      deleted = `The site deleted no games: ${errorText(e)}. Try again later.`;
+      deleted = DELETE_FAILED;
+      analytics.siteError(e, "delete");
     } finally {
       deleting = false;
     }

@@ -30,6 +30,13 @@ searching it again, and to share it as text that others can read.
 2. **Where:**
    - **The review page:** an Export menu beside the display settings' ☰: the review file, the annotated record copied,
      or the annotated record as a file. A short note beside it says what it did, or why it failed.
+   - **An export that fails** shows the site's line, in strict Simplified Technical English: "The site did not
+     complete the export. Try again." (`EXPORT_FAILED`, `packages/review/src/exports.ts`). Its causes pass on a second
+     try: a clipboard that refuses the text while the page does not have the focus, the browser's storage that does
+     not give the game, or a partner's page that does not answer. The error's message is the code's, and a player
+     cannot act on it: it goes into the error report only (design 17, "Error reports", `export`). A failure that the
+     player can mend gives its own line in its place, and sends no report: a browser that blocks the partner's tab
+     (design 18).
    - **The Review tab** (design 22): the same menu beside each game, and "Load a review file", which takes a file
      chosen or dropped anywhere on the page. A file is loaded, not imported: it is Hedge School's own saved work
      (design 22, the words). The tab builds its annotated record from the stored results, with no

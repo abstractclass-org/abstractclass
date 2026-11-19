@@ -6,6 +6,8 @@
 // the player asks: the sites have no server. Each site gives its parts (partnerSite) in its src/lib/game/partners.ts:
 // its messages' name, its name, its list of partners and the partners' test switch.
 
+import { LineError } from "@abstractclass/site/lineError.ts";
+
 export interface Partner { name: string; hosts: string[] }
 
 /** What a game keeps of the site it came from: the partner's name and its save page. The shared store keeps it
@@ -72,11 +74,17 @@ export function partnerSite(site: PartnerSite) {
   }
 
   /** Opens the partner's save page at once (the browser allows a new tab only within the click), then sends it the
-   *  review file when the page is ready, and resolves with the partner's answer. `file` may still be in the making. */
+   *  review file when the page is ready, and resolves with the partner's answer. `file` may still be in the making.
+   *  A failure that the player can mend rejects with its line (LineError): a browser that blocks the partner's tab,
+   *  and the partner's refusal, with its reason when it gives one. The partner's page says why too. A page that does
+   *  not answer, and a file that the site did not make, reject with the code's error, for the error report. */
   function saveToPartner(partner: GamePartner, file: Promise<{ name: string; review: unknown }>): Promise<void> {
     const target = new URL(partner.save).origin;
     const win = window.open(partner.save, "_blank");
-    if (!win) return Promise.reject(new Error(`the browser did not open ${partner.name}: allow this site's pop-ups`));
+    if (!win) {
+      return Promise.reject(new LineError(`The browser did not open ${partner.name}. Let this site open pop-ups. `
+        + "Then try again."));
+    }
     return new Promise((resolve, reject) => {
       let timer = setTimeout(() => end(new Error(`${partner.name} did not answer`)), READY_MS);
       const end = (error?: Error) => {
@@ -95,7 +103,10 @@ export function partnerSite(site: PartnerSite) {
           } catch (e) { end(e instanceof Error ? e : new Error(String(e))); return; }
           timer = setTimeout(() => end(new Error(`${partner.name} did not say whether it saved the review`)), SAVED_MS);
         } else if (m?.type === saved) end();
-        else if (m?.type === failed) end(new Error(`${partner.name}: ${m.message || "it did not save the review"}`));
+        else if (m?.type === failed) {
+          end(new LineError(m.message ? `${partner.name} did not save the review: ${m.message}`
+            : `${partner.name} did not save the review. Try again.`));
+        }
       };
       window.addEventListener("message", onMessage);
     });

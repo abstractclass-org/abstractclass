@@ -12849,3 +12849,40 @@ insight's definition as PostHog holds it, and [docs/posthog/README.md](../postho
 - **Measured after the merge:** in the first three runs with the job test-webkit (dev 0b36e2bb, f0202527 and
   5170395b), test-webkit took 2.6, 1.8 and 10.3 minutes, apt's speed making most of the spread, and the part "other"
   without WebKit 26.7, 21.4 and 30.6. The workflow's time comment holds them too.
+
+### The review's image, export and delete failures say the site's line (2026-11-19)
+
+abscls-2hk8. Three failures still showed the code's message after a fixed start, on both sites: "The site cannot
+make the image: …" (the image of a line), "Export failed: …" (the Export menu) and "The site deleted no games: …"
+(the Privacy page's delete). None of them sent an error report. Each now shows one line in strict Simplified
+Technical English, in the form of Practice's stop lines (abscls-5csr) and the engine's lines (abscls-cmku): what
+failed, then the way out. The error goes into a report of its own (design 17, "Error reports", item 3).
+
+- **The image: "The site did not make the image. Try again."** The causes in the code: the rules did not play the
+  engine's line (`linePlayed`), the line's position left the tree while the menu was open, the board's SVG did not
+  decode, or the canvas gave no PNG (`toBlob` gives null when the canvas is too large for the browser's memory). A
+  second try draws the image again. A rules engine that failed shows its own line in the engine panel.
+- **The export: "The site did not complete the export. Try again."** The causes: the clipboard refuses the text when
+  the page does not have the focus (the share link and the record copied), the browser's storage does not give the
+  game or its variations, the review is not ready, or the partner's page does not answer in a minute. Each passes on
+  a second try.
+- **The partner's save keeps lines of its own** (design 18), as a `LineError`, which the menu shows as it is: "The
+  browser did not open enclosuregame.com. Let this site open pop-ups. Then try again.", and the partner's refusal
+  with its reason ("enclosuregame.com did not save the review: …"), else "… did not save the review. Try again." A
+  second try does not mend a blocked tab, so the generic line would send the player the wrong way. The partner's
+  reason is its own words for the player, not the code's. Neither failure is the site's fault, so neither sends a
+  report, as a game that the rules refuse sends none.
+- **The delete: "The site did not delete your practice games. Try again later."** The causes: the browser is
+  offline, the site's database does not answer, or it answers with an error (the request's status). Each can pass,
+  so the way out is a later try. The random ID and the button stay.
+- **The report: `siteError`,** beside `engineError` in the shared analytics: PostHog's `captureException` with
+  `error_kind` `image`, `export` or `delete`, and no `engine_error` event. The reliability report counts the engine's
+  failures, and these are not the engine's. ReviewView and the Export menu take an `onfail` callback, and each page
+  gives the site's `siteError`. The Privacy page's games list calls it from the site's analytics. The error page's
+  report (abscls-w131, `pageError`, `error_kind` `page`) is one more kind of the same `SiteErrorKind`: `pageError`
+  calls `siteError` with `page`, so both send the report in one way.
+- **The tests:** `tests/site-failure.spec.ts`, on both sites. The image and the export run on the Analysis board,
+  which has the review's parts, with the engine off: a canvas that gives no PNG, and a clipboard that refuses the
+  text. The delete answers the site's store with 503. Each case checks the line, that the page shows no message of
+  the code, and one `$exception` of its kind that holds the code's message. `partners.test.ts` checks the partner's
+  lines.

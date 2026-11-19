@@ -46,7 +46,7 @@ export function startPostHog(key: string, properties: Record<string, string | nu
     // using the `capture_exceptions` option"). An object names each kind: the client takes a kind that it lacks as off.
     // The init option wins over the project's setting (posthog.com/docs/libraries/js/config.md, "Init config and
     // project settings"), so the reports need no setting in PostHog. The site's caught failures go by captureException
-    // (analytics.svelte.ts, engineError).
+    // (analytics.svelte.ts, engineError and siteError).
     capture_exceptions: {
       capture_unhandled_errors: true,
       capture_unhandled_rejections: true,

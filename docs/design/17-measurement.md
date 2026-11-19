@@ -155,7 +155,16 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
    - A game that the page cannot make sends one `practice` report, and the settings card says so (design 24,
      item 14).
    - A practice game reports its first error, from the game itself.
-3. **Every event loses a game before it goes** (`packages/site/src/scrub.ts`, PostHog's `before_send`). A report
+3. **The site's other caught failures** go by `siteError`, which sends the error report only, with its `error_kind`:
+   `page` (a page that failed, which the site's error page shows in its place: SvelteKit gives the error to each
+   site's `handleError`, which gives it to `pageError`), `image` (the review's image of a line that the site did not
+   make), `export` (an export of the Export menu that did not complete) and `delete` (the practice games that the
+   Privacy page did not delete). They are not the engine's, so no `engine_error` goes: the reliability report counts
+   the engine. The page shows the site's own line, in strict Simplified Technical English (design 22, item 5; design
+   07, item 17; design 13, item 2; design 25), and the error's message goes into the report only. A failure that the player can mend, and that is no fault of the site's, sends no report: its
+   error carries its own line (`LineError`, `packages/site/src/lineError.ts`), such as a browser that blocks a
+   partner's tab (design 18).
+4. **Every event loses a game before it goes** (`packages/site/src/scrub.ts`, PostHog's `before_send`). A report
    holds text that the site does not write: the error's message, the stack's addresses and the page's address. So the
    rules apply to each string of each event, the properties that PostHog's client adds too:
    - the text of each record that the page read, with no quotes too, and as an address spells it: each tag's value
@@ -174,13 +183,13 @@ follow the events' rules: no cookie, nothing in the browser, and so no consent.
 
    Each goes as "…", so that a report shows where text was. The message's other words stay, so the report still says
    what failed.
-4. **What the rules miss:** a value of one character or a plain number, and a typed text of a record that the page
+5. **What the rules miss:** a value of one character or a plain number, and a typed text of a record that the page
    did not read, in an error's message with no quotes. The sites' own messages put no such text there, but a
    library's message or a partner site's message can hold any text.
-5. **The check:** `packages/record/src/texts.test.ts` fails when other code in the sites or the packages reads a
+6. **The check:** `packages/record/src/texts.test.ts` fails when other code in the sites or the packages reads a
    tag's value from a record's text, with a regex that captures it. Such code would skip the reader's note. A reader
    that works without a regex, such as the packed link's, notes its tags itself, and its own test checks that.
-6. **The privacy pages** of both sites say what a report holds and what the site removes from it.
+7. **The privacy pages** of both sites say what a report holds and what the site removes from it.
 
 ## Using it
 

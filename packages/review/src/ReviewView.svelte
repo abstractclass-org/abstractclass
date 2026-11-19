@@ -159,7 +159,6 @@
   import { searchFill, visitsText } from "./searchLine.ts";
   import { LINE_STEP_MS, LineDrawing } from "./lineDrawing.svelte.ts";
   import { imageLine, lineFrames } from "./lineImage.ts";
-  import { errorText } from "@abstractclass/engine/errors.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
     opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
@@ -190,6 +189,9 @@
     // own network, from an analysis file ("analysis_file", Hedge School's design 21).
     ownSettings?: "stored" | "mark" | "analysis_file";
     onfeature?: (name: string) => void; // a feature used (design 17): the page counts its first use in each review
+    // A failure that the view caught, for the site's error report (design 17): an image that it did not make. The view
+    // shows the site's line, and the error's message goes into the report only.
+    onfail?: (error: unknown, kind: "image") => void;
     onposition?: (path: string[]) => void; // the position on screen changed: its path in the game's tree
     onplay?: (path: string[]) => Promise<void>; // adds a line from the start to the tree
     reviewVisits?: number; // the review's depth: a position searched less is a first estimate on the chart
@@ -207,7 +209,7 @@
   }
   let { view, R, progress = null, game, deepVisits = 0, onposition, onplay, labelVisits = 0, engine, onengine, gpu, reviewVisits = 0,
         deeperPositions = 0, again = null, snapshot = null, board = null, start, tools: pageTools, siteLink = null,
-        ownSettings, onfeature, fold = null, engineNote = null }: Props = $props();
+        ownSettings, onfeature, onfail, fold = null, engineNote = null }: Props = $props();
   const branches = $derived(game?.branches ?? {});
   const used = (name: string) => onfeature?.(name);
   const last = $derived(R.data.positions.length - 1);
@@ -1325,7 +1327,13 @@
   }
   // The image's line of the move under the move menu.
   const menuImage = $derived(menuPath === null ? null : treeImage(menuPath));
-  const imageFailed = (e: unknown) => (imageNote = { text: `The site cannot make the image: ${errorText(e)}`, failed: true });
+  // An image that the site did not make: the site's line, and the error in the site's error report only (`onfail`).
+  // The causes: the rules did not play the engine's line, the line's position left the tree, or the browser did not
+  // draw or encode the image (a canvas too large for its memory). A second try draws it again.
+  const imageFailed = (e: unknown) => {
+    imageNote = { text: "The site did not make the image. Try again.", failed: true };
+    onfail?.(e, "image");
+  };
   function saveImage({ file, name, animated }: LineImage) {
     used(animated ? "animated image saved" : "image saved");
     imageNote = null;

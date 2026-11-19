@@ -83,13 +83,21 @@ test("Save to: the save page opens, gets the review once ready, in the site's me
   await withWindow(failing, async () => {
     const saving = saveToPartner(partner, Promise.resolve({ name: "game.json", review: {} }));
     await failing.receive(failing.opened, target, { type: "site-here:failed", message: "sign in first" });
-    await assert.rejects(saving, { message: "partner.example: sign in first" });
+    // The partner's refusal: its reason, in the site's line, which the Export menu shows as it is
+    await assert.rejects(saving, { name: "LineError", line: "partner.example did not save the review: sign in first" });
+  });
+  const silent = fakeWindow();
+  await withWindow(silent, async () => {
+    const saving = saveToPartner(partner, Promise.resolve({ name: "game.json", review: {} }));
+    await silent.receive(silent.opened, target, { type: "site-here:failed" }); // a refusal with no reason
+    await assert.rejects(saving, { name: "LineError", line: "partner.example did not save the review. Try again." });
   });
   const blocked = fakeWindow();
   Object.assign(blocked.win, { open: () => null }); // the browser refused the pop-up
   await withWindow(blocked, () =>
     assert.rejects(saveToPartner(partner, Promise.resolve({ name: "", review: {} })),
-                   { message: "the browser did not open partner.example: allow this site's pop-ups" }));
+                   { name: "LineError",
+                     line: "The browser did not open partner.example. Let this site open pop-ups. Then try again." }));
 });
 
 test("a kept review: the page asks its opener in the site's messages, loads the file and keeps the save page", async () => {

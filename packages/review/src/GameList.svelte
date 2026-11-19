@@ -5,7 +5,8 @@
   export interface GameRow {
     id: string; title: string; href: string; detail: string;
     exports: { run: (kind: ExportKind) => Promise<ExportResult | void>; items: ExportItem[]; ready: boolean; why: string;
-               ontrack?: (kind: ExportKind, result: ExportResult | void) => void };
+               ontrack?: (kind: ExportKind, result: ExportResult | void) => void;
+               onfail?: (error: unknown, kind: "export") => void };
   }
 </script>
 

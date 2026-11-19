@@ -5,15 +5,19 @@
   // or the review's bar, it had no room for the link's length or a warning. It opens only once the game's review is
   // done (`ready`): before, `why` says what to do. In the step bar its button is an icon (`icon`), as New's beside it,
   // so that the bar's tools fit beside the steps on a phone (Hedge School's design 06, item 4). In a game's row it keeps
-  // its word. `ontrack` takes each export done, for a site's analytics.
+  // its word. `ontrack` takes each export done, for a site's analytics. An export that fails shows the site's line, in
+  // strict Simplified Technical English: a failure that the player can mend gives its own (LineError), such as a
+  // browser that blocks the partner's tab. Any other gives EXPORT_FAILED, and `onfail` takes its error for the site's
+  // error report: the error's message is the code's, and the page does not show it.
   import { DropdownMenu } from "bits-ui";
   import Icon from "@abstractclass/site/Icon.svelte";
   import Toast from "@abstractclass/site/Toast.svelte";
-  import { errorText } from "@abstractclass/engine/errors.ts";
-  import type { ExportItem, ExportKind, ExportResult } from "./exports.ts";
-  let { run, items, side = "top", icon = false, ready = true, why = "", ontrack }:
+  import { LineError } from "@abstractclass/site/lineError.ts";
+  import { EXPORT_FAILED, type ExportItem, type ExportKind, type ExportResult } from "./exports.ts";
+  let { run, items, side = "top", icon = false, ready = true, why = "", ontrack, onfail }:
     { run: (kind: ExportKind) => Promise<ExportResult | void>; items: ExportItem[]; side?: "top" | "bottom"; icon?: boolean;
-      ready?: boolean; why?: string; ontrack?: (kind: ExportKind, result: ExportResult | void) => void } = $props();
+      ready?: boolean; why?: string; ontrack?: (kind: ExportKind, result: ExportResult | void) => void;
+      onfail?: (error: unknown, kind: "export") => void } = $props();
   let note = $state(""), failed = $state(false), busy = $state(false);
 
   async function choose(kind: ExportKind, done: string) {
@@ -25,7 +29,11 @@
       note = r?.note || done;
       ontrack?.(kind, r);
     } catch (e) {
-      note = `Export failed: ${errorText(e)}`;
+      if (e instanceof LineError) note = e.line;
+      else {
+        note = EXPORT_FAILED;
+        onfail?.(e, "export");
+      }
       failed = true;
     } finally {
       busy = false;

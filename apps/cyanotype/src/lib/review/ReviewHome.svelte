@@ -27,7 +27,7 @@
   import { annotatedFromStore } from "./exportText.ts";
   import { SITE_NAME } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
-  import { setVisitor, track } from "#lib/analytics.svelte.ts";
+  import { setVisitor, siteError, track } from "#lib/analytics.svelte.ts";
   import { trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed } from "#lib/game/sources.ts";
   import { GAME_RANGES, range } from "@abstractclass/site/measure.ts";
   import ChooseNetwork, { NetworkChoice } from "@abstractclass/review/ChooseNetwork.svelte";
@@ -171,6 +171,7 @@
       detail: `${movesText(record.moves.length)}${record.result && record.result !== "*" ? ` · ${record.result}` : ""} · `
         + `added ${new Date(game.added).toLocaleDateString()}`,
       exports: { run: kind => exportGame(game.id, game.record, kind), items: reviewExports(), ontrack: trackExport,
+        onfail: siteError,
         ready: reviewCovers(game.reviewed, want),
         why: setUp ? "A game from a set-up start opens on the Analysis board: export it there."
           : !game.reviewed ? "Open the game to review it, then export."

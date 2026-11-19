@@ -45,7 +45,7 @@
   import { STORES, dbGet, dbPut } from "@abstractclass/storage/db.ts";
   import { mainIndex, pathKey } from "@abstractclass/analysis/tree.ts";
   import { keptBoardNotice, keptShipped } from "@abstractclass/analysis/kept.ts";
-  import { engineError, startAnalytics, track, trackOnce } from "#lib/analytics.svelte.ts";
+  import { engineError, startAnalytics, siteError, track, trackOnce } from "#lib/analytics.svelte.ts";
   import { isImportSource, trackExport, trackImport, trackImportFailed, trackLoad, trackLoadFailed, type ImportSource,
            type LoadSource } from "#lib/game/sources.ts";
   import { readPasted } from "#lib/game/paste.ts";
@@ -322,6 +322,7 @@
   <ReviewView view={enclosureView} {R} game={g} deepVisits={engine.visits} onposition={path => (current = path)} {start}
               onplay={path => g.playLine(path)} reviewVisits={budget} labelVisits={LABEL_VISITS} engine={settings}
               onengine={changeEngine} ownSettings={own ? "analysis_file" : undefined}
+              onfail={siteError}
               onfeature={name => trackOnce(`board ${name}`, "feature", { feature_name: name })} gpu={session.gpuView}
               board={{ judged: g.judgedMain, onmain: path => g.setMain(path) }}>
       {#snippet tools(unit)}
@@ -333,7 +334,8 @@
                  importer={{ open: () => (importing = true), hint: "A game record, finished or not, a list of edges, or a position." }} />
         <!-- Export (design 21): the analysis by link, as a file with the engine's results, or as the annotated record,
              labelled by the view's unit (@abstractclass/review/exports.ts, BOARD_EXPORTS). -->
-        <ExportMenu icon run={kind => exportAs(kind, unit)} items={BOARD_EXPORTS} ontrack={trackExport} />
+        <ExportMenu icon run={kind => exportAs(kind, unit)} items={BOARD_EXPORTS}
+                    ontrack={trackExport} onfail={siteError} />
       {/snippet}
     </ReviewView>
 {:else}

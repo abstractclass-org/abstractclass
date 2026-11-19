@@ -319,8 +319,11 @@ cut edges that are on the board, so a line drawn over the board can show edges t
     - **The clipboard:** `navigator.clipboard.write` with a `ClipboardItem` (Chrome, Edge, Safari, Firefox 127 and
       later). The write starts within the player's click, while the canvas still draws the image, as Safari and
       Firefox ask. Where the browser refuses an image, a note says "This browser cannot copy an image. Save the image
-      as a file." with a "Save image" button. "Save static" gives a file, `hedge-school-after-edge-N-line-M.png`: the
-      line starts after edge N and has M edges.
+      as a file." with a "Save image" button. An image that the site does not make says "The site did not make the
+      image. Try again.": the rules did not play the engine's line, the line's position left the tree, or the browser
+      did not draw or encode the image (a canvas too large for its memory). A second try draws it again. The error's
+      message goes into the error report only (design 17, "Error reports", `image`). "Save static" gives a file,
+      `hedge-school-after-edge-N-line-M.png`: the line starts after edge N and has M edges.
     - **The animated image** ("Save animated"): an animated GIF that plays the line as the board's Animated form of
       "Lines on the board" draws it. The first frame is the whole line, for 2 seconds: an app that shows only an
       animation's first frame, or a still preview of it, shows the line. Next is the position where the line starts,
