@@ -124,6 +124,10 @@ export class Analytics {
     this.#withClient(c => c.captureException(error, { error_kind: kind, ...params }));
   };
 
+  /** A page that failed, which the site's error page shows in its place (pageError.ts): the error itself to PostHog's
+   *  error tracking, with the `error_kind` "page". No event: no report counts these. */
+  pageError = (error: unknown) => this.#withClient(c => c.captureException(error, { error_kind: "page" }));
+
   /** Sends an event once for each `key` in this page's life: a feature's first use in a review, not each use. The key
    *  stays in the page: it may name the game. */
   trackOnce = (key: string, name: string, params: EventParams = {}) => {

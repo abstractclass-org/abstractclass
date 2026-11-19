@@ -82,6 +82,23 @@ for (const { site, base, record: text, importLink } of SITES) {
       expect(JSON.stringify(sent)).not.toContain("record=");
     });
 
+    test("a link to a page whose code does not load is reported, with its kind, and the page shows no message of the code", async ({ context }) => {
+      const sent = await answerPostHog(context);
+      const page = await context.newPage();
+      await open(page, sent);
+      // Each route's node but the root layout's and the error page's (tests/error-page.spec.ts).
+      await page.route(/\/_app\/immutable\/nodes\/(?![01]\.)[^/]+\.js$/, route => route.abort());
+      await page.getByRole("banner").getByRole("link", { name: "Notation", exact: true }).click();
+      await expect(page.locator("[data-error-page]")).toBeVisible();
+      // A hover's preload that failed and the link's own load each make one report.
+      await expect.poll(() => reports(sent).length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
+      for (const report of reports(sent)) {
+        expect(report.properties).toMatchObject({ error_kind: "page" });
+        expect(exceptions([report])[0].value).toMatch(/dynamically imported module/);
+      }
+      await expect(page.locator("[data-error-page]")).not.toContainText(/module|Internal Error|500/);
+    });
+
     test("an engine that fails to load, on the Analysis board opened with a record, and an error with a player's name are reported without them", async ({ context }) => {
       const sent = await answerPostHog(context);
       const page = await context.newPage();

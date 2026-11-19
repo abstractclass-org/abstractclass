@@ -120,9 +120,8 @@ ask where it goes (design 21): with that choice, "import" again names what the p
        and the route's nodes, with their chunks. The 404 page preloads only the root layout's node, so a route's node
        that fails with no handler shows it too. A part that the page loads later and that fails leaves the page
        working, and shows no notice. Examples are PostHog's client, the home page's replay and a route that a hover
-       preloads. The code of that part handles its failure. A link to a route whose code does not load shows
-       SvelteKit's error page, with no notice: the script cannot tell that failure from the failure of a hover's
-       preload.
+       preloads. The code of that part handles its failure. A link to a route whose code does not load shows the
+       site's error page, with no notice: the script cannot tell that failure from the failure of a hover's preload.
      - **How the script knows:** a script at the end of each page's head reads the preloads. It then watches for
        Vite's `vite:preloadError` (Vite's guide, "Load Error Handling") and for a rejection that nothing handles.
        SvelteKit's start script imports `start.js` and `app.js` with no catch, so their failure comes only as such a
@@ -136,11 +135,24 @@ ask where it goes (design 21): with that choice, "import" again names what the p
        layout's `addressHash.ts`) has no link in the HTML. Chrome names the module that imports it, so Chrome shows
        the notice, but Safari does not.
 
-     The script stops no error: SvelteKit still shows its error page, and the error reports still go. It styles the
+     The script stops no error: the site's error page still shows, and the error reports still go. It styles the
      box itself, so the box shows when the site's style did not load either. The build puts the two scripts in each
      page (SvelteKit's `transformPageChunk`, in the `handle` that each site's `src/hooks.server.ts` takes) where
      `src/app.html` marks their places, so both sites take them from one source. A site whose `app.html` lacks a mark
      does not build. The browser tests run the notice's cases in Chromium and in WebKit, Safari's engine.
+   - **A page that failed shows the site's error page.** SvelteKit shows it in the place of the page, in the site's
+     frame. Each site has one, from one source (`packages/site/src/ErrorPage.svelte` and `pageError.ts`). Without it,
+     SvelteKit showed its own page, "500" with no way out.
+     - **A module of the page's code that did not load:** the load notice's words, "Part of this page did not load.",
+       and its button "Load the page again". The usual case is a link to a page whose code does not load.
+     - **An address that the site does not have:** "There is no page at this address.", with a link to the home page.
+     - **Each other error:** "An error stopped this page.", with the button "Load the page again".
+
+     Each line is strict Simplified Technical English, and the page never shows the code's message: the player
+     cannot act on it. SvelteKit gives each error that it caught to the site's `handleError` (each site's
+     `src/hooks.client.ts`). It knows a module that did not load by the browsers' words, as the load notice does. It
+     sends the error to the error report, with the `error_kind` "page". SvelteKit's own errors, such as an address
+     that the site does not have, go to no report. The page stays out of search results.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
      candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`, on the shared replay
@@ -242,6 +254,8 @@ ask where it goes (design 21): with that choice, "import" again names what the p
   `src/routes/developers/+page.svelte`.
 - `packages/site/src/loadNotice.ts` (the notice when a page's code does not load), each site's `src/hooks.server.ts`
   and the marks in its `src/app.html`, `tests/load-notice.spec.ts`.
+- `packages/site/src/ErrorPage.svelte` and `pageError.ts` (the error page), each site's `src/routes/+error.svelte`
+  and `src/hooks.client.ts` (`handleError`), `tests/error-page.spec.ts`.
 
 ## Log entries
 
