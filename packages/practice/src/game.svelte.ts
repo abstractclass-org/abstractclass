@@ -56,10 +56,10 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   /** Gives the bot the game's settings and start (setUpBot), plays the moves kept into it, and sets the positions and
    *  the moves played. */
   protected abstract prepare(): Promise<void>;
-  /** What is wrong with the game's set-up start by the site's rules, or null: the start that a game kept in this
-   *  browser gives the bot. The page checks a start brought, not a game kept. A start that the check refuses stops the
-   *  game before the bot gets anything, as the bot's refusal (refusal), with the check's words for the error report. */
-  protected async startProblem(): Promise<string | null> { return null; }
+  /** What is wrong with the game's set-up start (`kept.start`) by the site's rules, or null. The page checks a start
+   *  brought, not a game kept in this browser. A start that the check refuses stops the game before the bot gets
+   *  anything, as the bot's refusal (refusal), with the check's words for the error report. */
+  protected async startProblem(_start: string): Promise<string | null> { return null; }
   /** Sets the positions and the moves played of the moves kept, as prepare() does, from the rules alone. */
   protected abstract fromRules(): Promise<void>;
   /** A move played, by either side: its position from the rules, kept with the game (its time is in it already).
@@ -106,7 +106,7 @@ export abstract class PracticeGame<K extends KeptPractice, P, M extends { player
   async start() {
     try {
       this.noteStored();
-      const problem = await this.startProblem();
+      const problem = this.kept.start ? await this.startProblem(this.kept.start) : null;
       if (problem) throw refusal(problem); // as the bot refuses it
       await this.prepare();
       this.keep(this.kept);

@@ -68,8 +68,8 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   // moves from it.
   brought = $state.raw<Brought | null>(null);
   replacing = $state(false); // the question before a start brought sets the game in progress aside
-  // Why the page refused a start brought, in the site's words: on the settings card, or beside the game in progress,
-  // which goes on. It stays until a new game starts or the page goes back to the settings card.
+  // Why the page refused a start brought (refuse): on the settings card, or beside the game in progress, which goes
+  // on. It stays until a new game starts or the page goes back to the settings card.
   notice = $state("");
   notesAt = $state<Record<number, BoardNote[]>>({}); // the player's notes on the board, by position (design 07)
   // The position on the board: the game's latest (null), or an earlier one, to look back. Moves are made only at the
@@ -175,6 +175,11 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
       this.unmade = true;
       this.site.engineError(e, "practice");
     }
+  }
+
+  /** Refuses a start brought (`notice`): `what` names it, and `reason` says why, in the site's words. */
+  refuse(what: "record" | "position", reason: string) {
+    this.notice = `Practice cannot start from this ${what}: ${reason}`;
   }
 
   /** A new game with the settings chosen and the side picked, from the standard start or the start brought. */

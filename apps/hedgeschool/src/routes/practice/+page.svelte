@@ -83,7 +83,7 @@
         if (problem) throw new Error(problem);
         page.brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
       } catch (e) {
-        page.notice = `Practice cannot start from this record: ${errorText(e)}`;
+        page.refuse("record", errorText(e));
       }
     }
     void page.mount(page.brought !== null, async () => {

@@ -70,15 +70,12 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     return withKomi(sitePosition(fields), this.kept.komi ?? 0);
   }
 
-  /** A set-up start that the engine cannot read or that no game reaches, in the words of the card's notice
-   *  (recordCheck.ts): the practice's flow stops the game with them before the bot gets it. The bot refuses such a
-   *  start too, with the position check's first reason. */
-  protected async startProblem() {
-    return this.kept.start ? startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
-  }
+  /** The set-up start's check by the engine's rules, in the words of the card's notice (recordCheck.ts). The bot
+   *  refuses such a start too, with the position check's first reason. */
+  protected startProblem(start: string) { return startProblem(rulesBy(this.rulesWorker), start, "its start"); }
 
   /** Gives the bot the game's settings and its komi, sets its game to the game's start and the moves kept (a start
-   *  brought, a game from an earlier visit), and notes a new build. The start has passed its check (startProblem). */
+   *  brought, a game from an earlier visit), and notes a new build. */
   protected async prepare() {
     this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));

@@ -196,7 +196,7 @@ test("a game kept with moves, whose bot started in no form, keeps its moves from
 });
 
 test("a start that the site's check refuses stops the game before the bot gets it, as the bot's refusal", async () => {
-  const bot = fakeBot(["b1"]), game = gameOf(kept(1, { moves: ["b1", "r1"] }), bot);
+  const bot = fakeBot(["b1"]), game = gameOf(kept(1, { start: "a set-up start", moves: ["b1", "r1"] }), bot);
   game.problem = "no game can reach its start.";
   const reported: unknown[] = [];
   game.onFail = e => reported.push(e);

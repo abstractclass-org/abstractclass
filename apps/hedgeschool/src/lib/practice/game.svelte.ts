@@ -36,15 +36,11 @@ export class PracticeGame extends BaseGame<KeptPractice, Position, Move, EdgeRul
     return withKomi(boardPosition(fields), this.kept.komi ?? 0);
   }
 
-  /** A set-up start that the engine cannot read or that no game reaches (game/check.ts): the practice's flow stops the
-   *  game with the check's words before the bot gets it, as Cyanotype's does. */
-  protected async startProblem() {
-    return this.kept.start ? startProblem(this.rulesWorker, this.kept.start) : null;
-  }
+  /** The set-up start's check by the engine's rules (game/check.ts). */
+  protected startProblem(start: string) { return startProblem(this.rulesWorker, start); }
 
   /** Gives the bot the game's settings, its komi and its start (a set-up start, interface 0.1.1), plays the game's
-   *  moves into it (a game kept from an earlier visit, or a record brought), and notes a new build. The start has
-   *  passed its check (startProblem). */
+   *  moves into it (a game kept from an earlier visit, or a record brought), and notes a new build. */
   protected async prepare() {
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     if (this.kept.start) await this.bot.command(`enclosure-set-position ${this.kept.start}`);

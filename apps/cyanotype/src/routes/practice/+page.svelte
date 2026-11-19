@@ -98,7 +98,7 @@
       const record = text === null ? null : readPasted(text, position).record;
       return { record, start: setUpStart(record ? record.tags.Position : position) ?? null };
     } catch (e) {
-      page.notice = `Practice cannot start from this record: ${errorSentence(e)}`;
+      page.refuse("record", errorSentence(e));
       return null;
     }
   }
@@ -118,7 +118,7 @@
       if (!bringing) return;
       const r = rulesBy(w), problem = bringing.record ? await recordProblem(r, bringing.record)
         : bringing.start ? await startProblem(r, bringing.start) : null;
-      if (problem) page.notice = `Practice cannot start from this ${bringing.record ? "record" : "position"}: ${errorSentence(problem)}`;
+      if (problem) page.refuse(bringing.record ? "record" : "position", errorSentence(problem));
       else page.brought = { start: bringing.start, moves: bringing.record?.moves ?? [] };
     });
   });
