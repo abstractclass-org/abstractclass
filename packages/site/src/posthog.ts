@@ -22,9 +22,9 @@ export type PostHogClient = Pick<typeof posthog, "capture" | "captureException" 
 export function startPostHog(key: string, properties: Record<string, string | number | boolean>): PostHogClient {
   posthog.init(key, {
     // The requests go to the site's own address, and its Function passes them to PostHog's US region
-    // (posthogProxy.ts): a blocker whose list names PostHog's hosts does not stop them (Hedge School's design 27, item
-    // 6). PostHog's guide: "The `ui_host` must point to PostHog's actual domain so features like the toolbar link
-    // correctly" (posthog.com/docs/advanced/proxy/cloudflare).
+    // (posthogProxy.ts): a blocker whose list names PostHog's hosts does not stop them
+    // (Hedge School's design 27, item 6). PostHog's guide: "The `ui_host` must point to PostHog's actual domain so
+    // features like the toolbar link correctly" (posthog.com/docs/advanced/proxy/cloudflare).
     api_host: POSTHOG_PATH,
     ui_host: POSTHOG_APP,
     // The defaults of PostHog's latest snapshot: an option set here overrides its default.
