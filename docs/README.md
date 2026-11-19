@@ -12,6 +12,7 @@ the root.
 | [design/](design/README.md) | The design documents, one per decision still in force. |
 | [decisions/](decisions/README.md) | The decision log (an archive), by topic. The backlog and the work in flight are in beads (label `site`). |
 | [requests/](requests/README.md) | Requests to the engine repository, and their status. |
+| [posthog/](posthog/README.md) | The record of PostHog's dashboard of design 17's reports and its insights, and how to change them. |
 | [hosting.md](hosting.md) | How the site is served (the domain, Cloudflare Pages, the analytics), how each part was set up, and how to deploy, check and roll back. |
 | [research/](research/01-ux-survey.md) | Research before decisions. [01-ux-survey.md](research/01-ux-survey.md): how chess and Go analysis and training tools design their pages, and first design ideas. [02-search-tree-reuse.md](research/02-search-tree-reuse.md): reusing the engine's search tree across budgets and positions. [03-opening-explorers.md](research/03-opening-explorers.md): how people explore opening books in chess and Go. |
 | [ux/](ux/book-explorer/context-book-explorer.md) | A design's working files, from the players to the screens: [ux/book-explorer/](ux/book-explorer/context-book-explorer.md) for the opening book explorer (design 32). |

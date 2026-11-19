@@ -1,0 +1,1719 @@
+{
+ "project": "https://us.posthog.com/project/721449",
+ "dashboard": {
+  "name": "The reports (design 17)",
+  "description": "Design 17's six reports, for Hedge School and Cyanotype: where players stop, the engine's defaults, the GPU, the features, the settings, and the imports and exports.",
+  "id": 2379239,
+  "url": "https://us.posthog.com/project/721449/dashboard/2379239",
+  "group_display": "sections",
+  "groups": {
+   "report-1": {
+    "title": "1. Funnel: where do players drop off?"
+   },
+   "report-2": {
+    "title": "2. Engine defaults: are they right?"
+   },
+   "report-3": {
+    "title": "3. GPU: does it pay off?"
+   },
+   "report-4": {
+    "title": "4. Features: which earn their place?"
+   },
+   "report-5": {
+    "title": "5. Settings: do the defaults fit?"
+   },
+   "report-6": {
+    "title": "6. Imports and exports: do they work?"
+   }
+  }
+ },
+ "reports": [
+  {
+   "group_key": "report-1",
+   "title": "1. Funnel: where do players drop off?",
+   "insights": [
+    {
+     "name": "1. Funnel: From the visit",
+     "description": "Design 17, report 1 (Funnel), the row \"From the visit\".",
+     "id": 14344389,
+     "short_id": "Dvoyov3V",
+     "url": "https://us.posthog.com/project/721449/insights/Dvoyov3V",
+     "tile": {
+      "id": 15804205,
+      "layout_sm": {
+       "x": 0,
+       "y": 0,
+       "w": 12,
+       "h": 6
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "funnelsFilter": {
+        "breakdownAttributionType": "first_touch",
+        "exclusions": [],
+        "funnelOrderType": "ordered",
+        "funnelStepReference": "total",
+        "funnelVizType": "steps",
+        "funnelWindowInterval": 14,
+        "funnelWindowIntervalUnit": "day",
+        "hideIncompleteConversionWindowPeriods": false,
+        "layout": "vertical",
+        "legendPosition": "bottom",
+        "showAnnotations": true,
+        "showLegend": false,
+        "showSummaryOnDashboards": false,
+        "showValuesOnSeries": false
+       },
+       "kind": "FunnelsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Review tab",
+         "event": "$pageview",
+         "kind": "EventsNode",
+         "name": "$pageview",
+         "properties": [
+          {
+           "key": "$pathname",
+           "operator": "exact",
+           "type": "event",
+           "value": [
+            "/review"
+           ]
+          }
+         ]
+        },
+        {
+         "custom_name": "Game in",
+         "kind": "EventsNode",
+         "name": "All events",
+         "properties": [
+          {
+           "key": "event in ('import_game', 'load_saved')",
+           "type": "hogql"
+          },
+          {
+           "key": "$pathname",
+           "operator": "exact",
+           "type": "event",
+           "value": [
+            "/review",
+            "/import"
+           ]
+          }
+         ]
+        },
+        {
+         "custom_name": "Review open",
+         "event": "review_open",
+         "kind": "EventsNode",
+         "name": "review_open"
+        },
+        {
+         "custom_name": "Review done",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "name": "review_done"
+        },
+        {
+         "custom_name": "Export",
+         "event": "export",
+         "kind": "EventsNode",
+         "name": "export",
+         "properties": [
+          {
+           "key": "$pathname",
+           "operator": "exact",
+           "type": "event",
+           "value": [
+            "/review"
+           ]
+          }
+         ]
+        }
+       ],
+       "version": 2
+      }
+     }
+    },
+    {
+     "name": "1. Funnel: By way in",
+     "description": "Design 17, report 1 (Funnel), the row \"By way in\".",
+     "id": 14344392,
+     "short_id": "r6Ua0ERx",
+     "url": "https://us.posthog.com/project/721449/insights/r6Ua0ERx",
+     "tile": {
+      "id": 15804208,
+      "layout_sm": {
+       "x": 0,
+       "y": 6,
+       "w": 6,
+       "h": 6
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown": "import_source",
+        "breakdown_type": "event"
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "funnelsFilter": {
+        "breakdownAttributionType": "first_touch",
+        "exclusions": [],
+        "funnelOrderType": "ordered",
+        "funnelStepReference": "total",
+        "funnelVizType": "steps",
+        "funnelWindowInterval": 14,
+        "funnelWindowIntervalUnit": "day",
+        "hideIncompleteConversionWindowPeriods": false,
+        "layout": "vertical",
+        "legendPosition": "bottom",
+        "showAnnotations": true,
+        "showLegend": false,
+        "showSummaryOnDashboards": false,
+        "showValuesOnSeries": false
+       },
+       "kind": "FunnelsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Game in",
+         "kind": "EventsNode",
+         "name": "All events",
+         "properties": [
+          {
+           "key": "event in ('import_game', 'load_saved')",
+           "type": "hogql"
+          },
+          {
+           "key": "$pathname",
+           "operator": "exact",
+           "type": "event",
+           "value": [
+            "/review",
+            "/import"
+           ]
+          }
+         ]
+        },
+        {
+         "custom_name": "Review open",
+         "event": "review_open",
+         "kind": "EventsNode",
+         "name": "review_open"
+        },
+        {
+         "custom_name": "Review done",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "name": "review_done"
+        },
+        {
+         "custom_name": "Export",
+         "event": "export",
+         "kind": "EventsNode",
+         "name": "export",
+         "properties": [
+          {
+           "key": "$pathname",
+           "operator": "exact",
+           "type": "event",
+           "value": [
+            "/review"
+           ]
+          }
+         ]
+        }
+       ],
+       "version": 2
+      }
+     }
+    },
+    {
+     "name": "1. Funnel: By load",
+     "description": "Design 17, report 1 (Funnel), the row \"By load\".",
+     "id": 14344393,
+     "short_id": "bATiDgqm",
+     "url": "https://us.posthog.com/project/721449/insights/bATiDgqm",
+     "tile": {
+      "id": 15804209,
+      "layout_sm": {
+       "x": 6,
+       "y": 6,
+       "w": 6,
+       "h": 6
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown": "load_source",
+        "breakdown_type": "event"
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "funnelsFilter": {
+        "breakdownAttributionType": "first_touch",
+        "exclusions": [],
+        "funnelOrderType": "ordered",
+        "funnelStepReference": "total",
+        "funnelVizType": "steps",
+        "funnelWindowInterval": 14,
+        "funnelWindowIntervalUnit": "day",
+        "hideIncompleteConversionWindowPeriods": false,
+        "layout": "vertical",
+        "legendPosition": "bottom",
+        "showAnnotations": true,
+        "showLegend": false,
+        "showSummaryOnDashboards": false,
+        "showValuesOnSeries": false
+       },
+       "kind": "FunnelsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Game in",
+         "kind": "EventsNode",
+         "name": "All events",
+         "properties": [
+          {
+           "key": "event in ('import_game', 'load_saved')",
+           "type": "hogql"
+          },
+          {
+           "key": "$pathname",
+           "operator": "exact",
+           "type": "event",
+           "value": [
+            "/review",
+            "/import"
+           ]
+          }
+         ]
+        },
+        {
+         "custom_name": "Review open",
+         "event": "review_open",
+         "kind": "EventsNode",
+         "name": "review_open"
+        },
+        {
+         "custom_name": "Review done",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "name": "review_done"
+        },
+        {
+         "custom_name": "Export",
+         "event": "export",
+         "kind": "EventsNode",
+         "name": "export",
+         "properties": [
+          {
+           "key": "$pathname",
+           "operator": "exact",
+           "type": "event",
+           "value": [
+            "/review"
+           ]
+          }
+         ]
+        }
+       ],
+       "version": 2
+      }
+     }
+    }
+   ]
+  },
+  {
+   "group_key": "report-2",
+   "title": "2. Engine defaults: are they right?",
+   "insights": [
+    {
+     "name": "2. Engine defaults: Time by settings",
+     "description": "Design 17, report 2 (Engine defaults), the row \"Time by settings\".",
+     "id": 14344394,
+     "short_id": "cPiOJIwt",
+     "url": "https://us.posthog.com/project/721449/insights/cPiOJIwt",
+     "tile": {
+      "id": 15804210,
+      "layout_sm": {
+       "x": 0,
+       "y": 12,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "depth",
+          "type": "event"
+         },
+         {
+          "property": "network",
+          "type": "event"
+         },
+         {
+          "property": "cores",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Average seconds",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "math": "avg",
+         "math_property": "review_seconds",
+         "name": "review_done"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "2. Engine defaults: Minutes",
+     "description": "Design 17, report 2 (Engine defaults), the row \"Minutes\".",
+     "id": 14344412,
+     "short_id": "7hjUY77l",
+     "url": "https://us.posthog.com/project/721449/insights/7hjUY77l",
+     "tile": {
+      "id": 15804229,
+      "layout_sm": {
+       "x": 6,
+       "y": 12,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "minutes",
+          "type": "event"
+         },
+         {
+          "property": "depth",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "review_done"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "2. Engine defaults: Machines",
+     "description": "Design 17, report 2 (Engine defaults), the row \"Machines\".",
+     "id": 14344413,
+     "short_id": "kMhkJ38Y",
+     "url": "https://us.posthog.com/project/721449/insights/kMhkJ38Y",
+     "tile": {
+      "id": 15804230,
+      "layout_sm": {
+       "x": 0,
+       "y": 17,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "cores",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Average worker speed",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "math": "avg",
+         "math_property": "worker_speed",
+         "name": "review_done"
+        },
+        {
+         "custom_name": "Count",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "review_done"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "2. Engine defaults: Started and ended",
+     "description": "Design 17, report 2 (Engine defaults), the row \"Started and ended\".",
+     "id": 14344414,
+     "short_id": "qGgEVe8t",
+     "url": "https://us.posthog.com/project/721449/insights/qGgEVe8t",
+     "tile": {
+      "id": 15804231,
+      "layout_sm": {
+       "x": 6,
+       "y": 17,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "depth",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Started",
+         "event": "review_open",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "review_open"
+        },
+        {
+         "custom_name": "Ended",
+         "event": "review_done",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "review_done"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    }
+   ]
+  },
+  {
+   "group_key": "report-3",
+   "title": "3. GPU: does it pay off?",
+   "insights": [
+    {
+     "name": "3. GPU: GPU tests",
+     "description": "Design 17, report 3 (GPU), the row \"GPU tests\".",
+     "id": 14344415,
+     "short_id": "ODOaefcI",
+     "url": "https://us.posthog.com/project/721449/insights/ODOaefcI",
+     "tile": {
+      "id": 15804232,
+      "layout_sm": {
+       "x": 0,
+       "y": 22,
+       "w": 12,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "gpu",
+          "type": "event"
+         },
+         {
+          "property": "gpu_outcome",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "gpu_test",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "gpu_test"
+        },
+        {
+         "custom_name": "Average ratio",
+         "event": "gpu_test",
+         "kind": "EventsNode",
+         "math": "avg",
+         "math_property": "gpu_ratio",
+         "name": "gpu_test"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    }
+   ]
+  },
+  {
+   "group_key": "report-4",
+   "title": "4. Features: which earn their place?",
+   "insights": [
+    {
+     "name": "4. Features: Feature users",
+     "description": "Design 17, report 4 (Features), the row \"Feature users\".",
+     "id": 14344416,
+     "short_id": "KaTaqV5b",
+     "url": "https://us.posthog.com/project/721449/insights/KaTaqV5b",
+     "tile": {
+      "id": 15804233,
+      "layout_sm": {
+       "x": 0,
+       "y": 27,
+       "w": 12,
+       "h": 6
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "feature_name",
+          "type": "event"
+         },
+         {
+          "property": "$pathname",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Visitors",
+         "event": "feature",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "feature"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "4. Features: Review users",
+     "description": "Design 17, report 4 (Features), the row \"Review users\".",
+     "id": 14344417,
+     "short_id": "2U9CU5pD",
+     "url": "https://us.posthog.com/project/721449/insights/2U9CU5pD",
+     "tile": {
+      "id": 15804234,
+      "layout_sm": {
+       "x": 0,
+       "y": 33,
+       "w": 4,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Visitors",
+         "event": "review_open",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "review_open"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsLineGraph",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "4. Features: Board users",
+     "description": "Design 17, report 4 (Features), the row \"Board users\".",
+     "id": 14344418,
+     "short_id": "KlxxIbQ0",
+     "url": "https://us.posthog.com/project/721449/insights/KlxxIbQ0",
+     "tile": {
+      "id": 15804235,
+      "layout_sm": {
+       "x": 4,
+       "y": 33,
+       "w": 4,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Visitors",
+         "event": "analysis_open",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "analysis_open"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsLineGraph",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "4. Features: Editor users",
+     "description": "Design 17, report 4 (Features), the row \"Editor users\".",
+     "id": 14344428,
+     "short_id": "TU8oUWxL",
+     "url": "https://us.posthog.com/project/721449/insights/TU8oUWxL",
+     "tile": {
+      "id": 15804253,
+      "layout_sm": {
+       "x": 8,
+       "y": 33,
+       "w": 4,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Editor opened",
+         "event": "editor_open",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "editor_open"
+        },
+        {
+         "custom_name": "Editor's Analyze",
+         "event": "editor_analyze",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "editor_analyze"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsLineGraph",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    }
+   ]
+  },
+  {
+   "group_key": "report-5",
+   "title": "5. Settings: do the defaults fit?",
+   "insights": [
+    {
+     "name": "5. Settings: Changes",
+     "description": "Design 17, report 5 (Settings), the row \"Changes\".",
+     "id": 14344429,
+     "short_id": "IcFEts8X",
+     "url": "https://us.posthog.com/project/721449/insights/IcFEts8X",
+     "tile": {
+      "id": 15804254,
+      "layout_sm": {
+       "x": 0,
+       "y": 38,
+       "w": 12,
+       "h": 6
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "setting",
+          "type": "event"
+         },
+         {
+          "property": "JSONExtractString(properties, 'setting_value')",
+          "type": "hogql"
+         },
+         {
+          "property": "$pathname",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "setting_change",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "setting_change"
+        },
+        {
+         "custom_name": "Visitors",
+         "event": "setting_change",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "setting_change"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    }
+   ]
+  },
+  {
+   "group_key": "report-6",
+   "title": "6. Imports and exports: do they work?",
+   "insights": [
+    {
+     "name": "6. Imports and exports: Ways in",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Ways in\".",
+     "id": 14344430,
+     "short_id": "PGRj41SP",
+     "url": "https://us.posthog.com/project/721449/insights/PGRj41SP",
+     "tile": {
+      "id": 15804255,
+      "layout_sm": {
+       "x": 0,
+       "y": 44,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "import_source",
+          "type": "event"
+         },
+         {
+          "property": "import_to",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "import_game",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "import_game"
+        },
+        {
+         "custom_name": "Visitors",
+         "event": "import_game",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "import_game"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "6. Imports and exports: Failed imports",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Failed imports\".",
+     "id": 14344431,
+     "short_id": "TEHrzDKA",
+     "url": "https://us.posthog.com/project/721449/insights/TEHrzDKA",
+     "tile": {
+      "id": 15804256,
+      "layout_sm": {
+       "x": 6,
+       "y": 44,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "import_source",
+          "type": "event"
+         },
+         {
+          "property": "import_failure",
+          "type": "event"
+         },
+         {
+          "property": "import_to",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "import_failed",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "import_failed"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "6. Imports and exports: Loads",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Loads\".",
+     "id": 14344432,
+     "short_id": "UuKG3bRJ",
+     "url": "https://us.posthog.com/project/721449/insights/UuKG3bRJ",
+     "tile": {
+      "id": 15804257,
+      "layout_sm": {
+       "x": 0,
+       "y": 49,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "load_source",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "load_saved",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "load_saved"
+        },
+        {
+         "custom_name": "Visitors",
+         "event": "load_saved",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "load_saved"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "6. Imports and exports: Failed loads",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Failed loads\".",
+     "id": 14344433,
+     "short_id": "WpNhkGLl",
+     "url": "https://us.posthog.com/project/721449/insights/WpNhkGLl",
+     "tile": {
+      "id": 15804258,
+      "layout_sm": {
+       "x": 6,
+       "y": 49,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "load_source",
+          "type": "event"
+         },
+         {
+          "property": "load_failure",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "load_failed",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "load_failed"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "6. Imports and exports: Share links",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Share links\".",
+     "id": 14344434,
+     "short_id": "2vEbb28z",
+     "url": "https://us.posthog.com/project/721449/insights/2vEbb28z",
+     "tile": {
+      "id": 15804259,
+      "layout_sm": {
+       "x": 0,
+       "y": 54,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "network_found",
+          "type": "event"
+         },
+         {
+          "property": "same_engine",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "review_share_open",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "review_share_open"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "6. Imports and exports: Old tools",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Old tools\".",
+     "id": 14344435,
+     "short_id": "ZtV3T8qd",
+     "url": "https://us.posthog.com/project/721449/insights/ZtV3T8qd",
+     "tile": {
+      "id": 15804260,
+      "layout_sm": {
+       "x": 6,
+       "y": 54,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "stale_tool",
+          "type": "event"
+         },
+         {
+          "property": "$pathname",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "tool_out_of_date",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "tool_out_of_date"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "6. Imports and exports: Missing games",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Missing games\".",
+     "id": 14344436,
+     "short_id": "NapbhPgu",
+     "url": "https://us.posthog.com/project/721449/insights/NapbhPgu",
+     "tile": {
+      "id": 15804261,
+      "layout_sm": {
+       "x": 0,
+       "y": 59,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "game_missing",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "game_missing"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsLineGraph",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    },
+    {
+     "name": "6. Imports and exports: Exports",
+     "description": "Design 17, report 6 (Imports and exports), the row \"Exports\".",
+     "id": 14344437,
+     "short_id": "l1fBeEwr",
+     "url": "https://us.posthog.com/project/721449/insights/l1fBeEwr",
+     "tile": {
+      "id": 15804262,
+      "layout_sm": {
+       "x": 6,
+       "y": 59,
+       "w": 6,
+       "h": 5
+      }
+     },
+     "query": {
+      "kind": "InsightVizNode",
+      "source": {
+       "breakdownFilter": {
+        "breakdown_type": "event",
+        "breakdowns": [
+         {
+          "property": "export_kind",
+          "type": "event"
+         },
+         {
+          "property": "$pathname",
+          "type": "event"
+         }
+        ]
+       },
+       "dateRange": {
+        "date_from": "-30d",
+        "excludeIncompletePeriods": false,
+        "explicitDate": false
+       },
+       "filterTestAccounts": true,
+       "interval": "day",
+       "kind": "TrendsQuery",
+       "properties": [],
+       "series": [
+        {
+         "custom_name": "Count",
+         "event": "export",
+         "kind": "EventsNode",
+         "math": "total",
+         "name": "export"
+        },
+        {
+         "custom_name": "Visitors",
+         "event": "export",
+         "kind": "EventsNode",
+         "math": "dau",
+         "name": "export"
+        }
+       ],
+       "trendsFilter": {
+        "aggregationAxisFormat": "numeric",
+        "display": "ActionsTable",
+        "excludeBoxPlotOutliers": true,
+        "hideWeekends": false,
+        "legendPosition": "bottom",
+        "metricColorByDirection": false,
+        "metricShowChange": true,
+        "metricSummary": "total",
+        "resultCustomizationBy": "value",
+        "showAlertThresholdLines": false,
+        "showAnnotations": true,
+        "showLegend": false,
+        "showMultipleYAxes": false,
+        "showPercentStackView": false,
+        "showValuesOnSeries": false,
+        "smoothingIntervals": 1,
+        "stackBreakdownValues": false,
+        "yAxisScaleType": "linear",
+        "yAxisStartAtZero": true
+       },
+       "version": 4
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

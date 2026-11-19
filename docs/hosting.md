@@ -235,7 +235,11 @@ put them behind a sign-in (Cloudflare Access).
 - **The project's settings** (Settings → Project, `https://us.posthog.com/settings/project`):
   - **Web analytics → Enable cookieless tracking:** on. The sites run PostHog in its cookieless mode, and without this
     setting PostHog drops their events. Done on 2026-11-09.
-  - **Filter out internal and test users:** an entry that drops the owner's events (the owner's steps, below).
+  - **Filter out internal and test users:** an entry that drops the owner's events (the owner's steps, below). Done
+    on 2026-11-19: the filter holds "`internal` is not set", beside an entry that drops the cohort "Internal / Test
+    users", and "Enable this filter on all new insights" is on.
+- **The reports:** design 17's six reports are insights on the dashboard "The reports (design 17)".
+  [docs/posthog/README.md](posthog/README.md) gives its address and how to change an insight.
 - **Builds on a developer's machine leave `VITE_POSTHOG_KEY` unset,** so that test visits are not counted, and the
   build holds none of PostHog's code. check:all gives both sites' builds a made-up key, for the browser tests, and
   the tests' browser resolves none of PostHog's addresses. It also builds Cyanotype once without the key, and its

@@ -12791,3 +12791,34 @@ notice. Now Safari shows the notice from the page's failed `modulepreload` links
   on a later try (WebKit asks again for a failed module on each import): an optional part that fails later then shows
   the notice on a working page. A fix needs a time window or a sign that a module loaded, which WebKit's links do not
   give.
+
+### The six reports as PostHog insights (2026-11-19)
+
+abscls-d02z. Design 17's six reports are 21 PostHog insights on one dashboard, "The reports (design 17)"
+(`https://us.posthog.com/project/721449/dashboard/2379239`), one group of tiles for each report. The tools of
+PostHog's MCP server made them, with no API key. [docs/posthog/reports.json](../posthog/reports.json) records each
+insight's definition as PostHog holds it, and [docs/posthog/README.md](../posthog/README.md) says how to change one.
+
+- **The project's filter of internal and test users,** read first: it holds "`internal` is not set" and an entry that
+  drops the cohort "Internal / Test users". "Enable this filter on all new insights" is on. Each insight has the
+  filter on.
+- **The events that the live sites sent** from 2026-11-17 to the time of the check: `$pageview` (37), `$pageleave`
+  (29), `review_open` (12), `$exception` (6), `export` (6), `feature` (6), `load_saved` (6), `setting_change` (6),
+  `review_share_open` (4), `analysis_open` (2), `import_game` (2), `game_missing` (1), `practice_start` (1) and
+  `review_done` (1). Each one has the parameters of design 17's events table. `review_seconds` and `worker_speed`
+  are numbers, as their averages need. `gpu_test`, `editor_open`, `editor_analyze`, `import_failed`, `load_failed`
+  and `tool_out_of_date` had not come yet, so their parameters are not in PostHog's list of properties yet. Their
+  insights fill when the events come. Most of the events carry `internal`: the filtered insights start almost empty.
+- **The funnel's step "Game in": all events with a HogQL filter.** A funnel's step takes one event.
+  `query-funnel` refuses a step with no event, but a saved insight takes it, and the saved funnel computes: 3 visitors
+  through "Game in" and "Review open" with the filter on.
+- **`setting_value` is a Boolean to PostHog.** PostHog types each property from its first values. Of the 6
+  `setting_change` events, 4 values (`512` twice, a network's name, `2`) read as none, so the breakdown showed
+  "None". Of the 22 parameters that the insights break down by or average, no other one lost a value. The insight
+  breaks down by `JSONExtractString(properties, 'setting_value')`, which gave each value. A change of the property's
+  type in PostHog is a change of the project's settings, so it is not made.
+- **The second pass:** an insight is found by its name (`insights-list`, `search`). The query that PostHog gives back
+  holds its defaults (a funnel's window of 14 days, a chart's settings). Sent again with `insight-update`, the
+  record's query of "1. Funnel: By way in" and of "5. Settings: Changes" came back the same.
+- **The choices beyond the tables:** the last 30 days, by day. A Trends insight with a breakdown is a table, which
+  gives each value over the whole range, an average too. One with no breakdown is a line.

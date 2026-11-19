@@ -207,10 +207,28 @@ PostHog shows the events in **Activity** at once.
 
 ### The reports
 
-Six reports answer the questions of the events table. They become PostHog insights, made by PostHog's API in a later
-step. Each report below gives what it shows. Each row of a report's table is one insight: its kind (a **Trends**
-insight counts events or visitors, a **Funnel** follows visitors through steps), its events, its breakdown and its
-filter. **Visitors** counts PostHog's daily hash: one visitor for each browser and day (design 11).
+Six reports answer the questions of the events table. Each report below gives what it shows. Each row of a report's
+table is one insight: its kind (a **Trends** insight counts events or visitors, a **Funnel** follows visitors through
+steps), its events, its breakdown and its filter. **Visitors** counts PostHog's daily hash: one visitor for each
+browser and day (design 11).
+
+The insights are on PostHog's dashboard "The reports (design 17)", one group of tiles for each report, each insight
+named by its report and its row (`1. Funnel: From the visit`). Each one has the filter of internal and test users on,
+and shows the last 30 days. A Trends insight with a breakdown is a table, which gives each value over the whole range.
+[docs/posthog/README.md](../posthog/README.md) gives the dashboard's address and how to change an insight, and
+[docs/posthog/reports.json](../posthog/reports.json) records each insight's definition as PostHog holds it. A change
+to a table here goes there too.
+
+Two rows are not in PostHog as the tables write them:
+
+- **The funnel's step "Game in":** a funnel's step takes one event, not two. The step takes all events, with the
+  filter `event in ('import_game', 'load_saved')` (a HogQL expression) and the filter on `$pathname`. It counts the
+  same events.
+- **The breakdown by `setting_value` (report 5, "Changes"):** PostHog gives each property one type, from its first
+  values. `setting_value`'s first values were `true` and `false`, so its type is Boolean, and PostHog reads each other
+  value (`512`, a network's name) as none. The insight breaks down by the HogQL expression
+  `JSONExtractString(properties, 'setting_value')`, which reads the value as the event sent it. The property's type
+  in PostHog's data management stays as it is.
 
 #### 1. Funnel: where do players drop off?
 
@@ -232,6 +250,9 @@ outside, a tool's or another site's link, counts on the import page (`/import`),
 | From the visit | Funnel | 1 to 5 | none |
 | By way in | Funnel | 2 to 5 | `import_source` |
 | By load | Funnel | 2 to 5 | `load_source` |
+
+"By way in" and "By load" start at the same step, which takes the imports and the loads. So a load shows under "By
+way in" with no `import_source`, and an import under "By load" with no `load_source`.
 
 A player who opens a game kept from an earlier visit has no import, so the funnel shows players' first reviews best.
 The daily hash ends a visitor's funnel when the day changes, so a review that runs past it counts as a drop.
@@ -372,6 +393,7 @@ Cyanotype's.
   `packages/record/src/texts.ts`, with the check that the reader is the one code that reads a tag's value in
   `texts.test.ts`. The check in a browser, on both sites: `tests/error-reports.spec.ts`.
 - The privacy page: `src/routes/privacy/+page.svelte`.
+- The reports in PostHog: [docs/posthog/](../posthog/README.md), the record of the dashboard and its insights.
 
 ## Log entries
 
@@ -393,3 +415,4 @@ Cyanotype's.
 - [decisions/product.md](../decisions/product.md): "PostHog in place of Google Analytics" (2026-11-09): the events go
   to PostHog, and the explorations become PostHog insights.
 - [decisions/product.md](../decisions/product.md): "Error reports to PostHog, without the games" (2026-11-16).
+- [decisions/product.md](../decisions/product.md): "The six reports as PostHog insights" (2026-11-19).
