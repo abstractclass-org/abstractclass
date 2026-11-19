@@ -4,17 +4,21 @@ Design 17's six reports ([design 17](../design/17-measurement.md), "The reports"
 dashboard, in the one PostHog project of all the sites ([hosting.md](../hosting.md), section 4). This folder keeps
 the record of each one, so that the next change is made the same way.
 
-- **The dashboard:** "The reports (design 17)",
+- **The dashboard:** "Site reports: Hedge School and Cyanotype",
   [us.posthog.com/project/721449/dashboard/2379239](https://us.posthog.com/project/721449/dashboard/2379239). Each
-  report is one group of its tiles, under the report's heading.
+  report is one group of its tiles, under the report's question with no number ("Funnel: where do players drop
+  off?").
 - **The record:** [reports.json](reports.json). It holds the dashboard (its name, description, id, address and
-  groups) and, for each report, its insights. Each insight has its name, description, id, short id and address, its
-  tile (the tile's id and its box on the desktop grid) and its query as PostHog holds it.
+  groups) and, for each report, its insights. Each insight has its name, its report's number and its row in design
+  17 (`report`, `row`), its description, id, short id and address, its tile (the tile's id and its box on the desktop
+  grid) and its query as PostHog holds it.
 
 ## What each insight holds
 
-- **The name:** the report's number and name, and the row's name, as design 17 gives them: `1. Funnel: From the
-  visit`, `6. Imports and exports: Exports`. The name finds the insight: no other insight of the project has it.
+- **The name and the description:** for the reader in PostHog. The name says what the chart shows ("Worker speed by
+  number of cores"). The description says in one or two sentences what the chart counts, its events, and how to read
+  it. Neither names design 17 or a report's number: `report` and `row` in the record keep that mapping. The name
+  finds the insight: no other insight of the project has it.
 - **The kind, the events, the value and the breakdown:** as the row of design 17's table gives them. "Count" is the
   number of events (`total`). "Visitors" is PostHog's unique users (`dau`): the sites make no person profiles, so each
   daily hash is one user. A row with two values ("count, and visitors") has two series of the same event. Two rows

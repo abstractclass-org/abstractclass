@@ -212,12 +212,13 @@ table is one insight: its kind (a **Trends** insight counts events or visitors, 
 steps), its events, its breakdown and its filter. **Visitors** counts PostHog's daily hash: one visitor for each
 browser and day (design 11).
 
-The insights are on PostHog's dashboard "The reports (design 17)", one group of tiles for each report, each insight
-named by its report and its row (`1. Funnel: From the visit`). Each one has the filter of internal and test users on,
-and shows the last 30 days. A Trends insight with a breakdown is a table, which gives each value over the whole range.
-[docs/posthog/README.md](../posthog/README.md) gives the dashboard's address and how to change an insight, and
-[docs/posthog/reports.json](../posthog/reports.json) records each insight's definition as PostHog holds it. A change
-to a table here goes there too.
+The insights are on PostHog's dashboard "Site reports: Hedge School and Cyanotype", one group of tiles for each
+report. Each insight's name and description say what it shows ("Worker speed by number of cores"), with no report's
+number. Each one has the filter of internal and test users on, and shows the last 30 days. A Trends insight with a
+breakdown is a table, which gives each value over the whole range. [docs/posthog/README.md](../posthog/README.md)
+gives the dashboard's address and how to change an insight, and [docs/posthog/reports.json](../posthog/reports.json)
+records each insight's definition as PostHog holds it, with its report and its row here. A change to a table here goes
+there too.
 
 Two rows are not in PostHog as the tables write them:
 

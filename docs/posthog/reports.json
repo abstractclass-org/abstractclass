@@ -1,40 +1,42 @@
 {
  "project": "https://us.posthog.com/project/721449",
  "dashboard": {
-  "name": "The reports (design 17)",
-  "description": "Design 17's six reports, for Hedge School and Cyanotype: where players stop, the engine's defaults, the GPU, the features, the settings, and the imports and exports.",
+  "name": "Site reports: Hedge School and Cyanotype",
+  "description": "How players use Hedge School and Cyanotype: where they stop before a review ends, how long reviews take, whether the GPU pays off, which features and settings they use, and whether imports and exports work. Each chart shows the last 30 days and leaves out internal and test users. A visitor is one browser on one day.",
   "id": 2379239,
   "url": "https://us.posthog.com/project/721449/dashboard/2379239",
   "group_display": "sections",
   "groups": {
    "report-1": {
-    "title": "1. Funnel: where do players drop off?"
+    "title": "Funnel: where do players drop off?"
    },
    "report-2": {
-    "title": "2. Engine defaults: are they right?"
+    "title": "Engine defaults: are they right?"
    },
    "report-3": {
-    "title": "3. GPU: does it pay off?"
+    "title": "GPU: does it pay off?"
    },
    "report-4": {
-    "title": "4. Features: which earn their place?"
+    "title": "Features: which earn their place?"
    },
    "report-5": {
-    "title": "5. Settings: do the defaults fit?"
+    "title": "Settings: do the defaults fit?"
    },
    "report-6": {
-    "title": "6. Imports and exports: do they work?"
+    "title": "Imports and exports: do they work?"
    }
   }
  },
  "reports": [
   {
    "group_key": "report-1",
-   "title": "1. Funnel: where do players drop off?",
+   "title": "Funnel: where do players drop off?",
    "insights": [
     {
-     "name": "1. Funnel: From the visit",
-     "description": "Design 17, report 1 (Funnel), the row \"From the visit\".",
+     "name": "Review funnel: from the Review tab to an export",
+     "report": 1,
+     "row": "From the visit",
+     "description": "Visitors who go from the Review tab to a game brought in, a review started, a review finished and an export from the review. The drop between two steps shows where players stop. A review that runs past the end of the day counts as a drop.",
      "id": 14344389,
      "short_id": "Dvoyov3V",
      "url": "https://us.posthog.com/project/721449/insights/Dvoyov3V",
@@ -145,8 +147,10 @@
      }
     },
     {
-     "name": "1. Funnel: By way in",
-     "description": "Design 17, report 1 (Funnel), the row \"By way in\".",
+     "name": "Review funnel by way of import",
+     "report": 1,
+     "row": "By way in",
+     "description": "The review funnel from the game brought in to the export, split by how the game was imported (import_source). Loads of saved work show with no value. A way in whose players stop sooner needs work.",
      "id": 14344392,
      "short_id": "r6Ua0ERx",
      "url": "https://us.posthog.com/project/721449/insights/r6Ua0ERx",
@@ -246,8 +250,10 @@
      }
     },
     {
-     "name": "1. Funnel: By load",
-     "description": "Design 17, report 1 (Funnel), the row \"By load\".",
+     "name": "Review funnel by kind of saved work",
+     "report": 1,
+     "row": "By load",
+     "description": "The review funnel from the game brought in to the export, split by what was loaded (load_source): a file, a share link or a partner's review. Imports show with no value. A kind whose players stop sooner needs work.",
      "id": 14344393,
      "short_id": "bATiDgqm",
      "url": "https://us.posthog.com/project/721449/insights/bATiDgqm",
@@ -350,11 +356,13 @@
   },
   {
    "group_key": "report-2",
-   "title": "2. Engine defaults: are they right?",
+   "title": "Engine defaults: are they right?",
    "insights": [
     {
-     "name": "2. Engine defaults: Time by settings",
-     "description": "Design 17, report 2 (Engine defaults), the row \"Time by settings\".",
+     "name": "Review time by depth, network and cores",
+     "report": 2,
+     "row": "Time by settings",
+     "description": "The average seconds that a finished review took (review_done), for each depth, network and number of cores. A long time at the default depth on common machines says that the default is too deep.",
      "id": 14344394,
      "short_id": "cPiOJIwt",
      "url": "https://us.posthog.com/project/721449/insights/cPiOJIwt",
@@ -432,8 +440,10 @@
      }
     },
     {
-     "name": "2. Engine defaults: Minutes",
-     "description": "Design 17, report 2 (Engine defaults), the row \"Minutes\".",
+     "name": "Finished reviews by minutes and depth",
+     "report": 2,
+     "row": "Minutes",
+     "description": "Finished reviews (review_done), counted by the minutes they took and by their depth. Many long reviews at one depth say that the depth is slow on players' machines.",
      "id": 14344412,
      "short_id": "7hjUY77l",
      "url": "https://us.posthog.com/project/721449/insights/7hjUY77l",
@@ -506,8 +516,10 @@
      }
     },
     {
-     "name": "2. Engine defaults: Machines",
-     "description": "Design 17, report 2 (Engine defaults), the row \"Machines\".",
+     "name": "Worker speed by number of cores",
+     "report": 2,
+     "row": "Machines",
+     "description": "The average speed of one CPU worker, in visits a second, and the number of finished reviews (review_done), for each number of cores. The speeds help size the pool of workers.",
      "id": 14344413,
      "short_id": "kMhkJ38Y",
      "url": "https://us.posthog.com/project/721449/insights/kMhkJ38Y",
@@ -584,8 +596,10 @@
      }
     },
     {
-     "name": "2. Engine defaults: Started and ended",
-     "description": "Design 17, report 2 (Engine defaults), the row \"Started and ended\".",
+     "name": "Reviews started and finished by depth",
+     "report": 2,
+     "row": "Started and ended",
+     "description": "Reviews started (review_open) and finished (review_done), for each depth. Many starts and few ends at a depth mean that players do not wait for it: that depth is too deep for a default.",
      "id": 14344414,
      "short_id": "qGgEVe8t",
      "url": "https://us.posthog.com/project/721449/insights/qGgEVe8t",
@@ -664,11 +678,13 @@
   },
   {
    "group_key": "report-3",
-   "title": "3. GPU: does it pay off?",
+   "title": "GPU: does it pay off?",
    "insights": [
     {
-     "name": "3. GPU: GPU tests",
-     "description": "Design 17, report 3 (GPU), the row \"GPU tests\".",
+     "name": "GPU tests: faster or slower than a worker",
+     "report": 3,
+     "row": "GPU tests",
+     "description": "Auto's first test of each GPU (gpu_test), by the GPU's maker and kind and by the result, faster or slower. The ratio is the GPU's speed over one CPU worker's: above 1, the GPU is faster.",
      "id": 14344415,
      "short_id": "ODOaefcI",
      "url": "https://us.posthog.com/project/721449/insights/ODOaefcI",
@@ -752,11 +768,13 @@
   },
   {
    "group_key": "report-4",
-   "title": "4. Features: which earn their place?",
+   "title": "Features: which earn their place?",
    "insights": [
     {
-     "name": "4. Features: Feature users",
-     "description": "Design 17, report 4 (Features), the row \"Feature users\".",
+     "name": "Feature users by feature and page",
+     "report": 4,
+     "row": "Feature users",
+     "description": "Visitors who used each feature (feature), by the feature and the page: /review for the review, /analysis for the Analysis board. A feature counts at its first use in a review or a visit. Compare each with the visitors who open a review or the board.",
      "id": 14344416,
      "short_id": "KaTaqV5b",
      "url": "https://us.posthog.com/project/721449/insights/KaTaqV5b",
@@ -829,8 +847,10 @@
      }
     },
     {
-     "name": "4. Features: Review users",
-     "description": "Design 17, report 4 (Features), the row \"Review users\".",
+     "name": "Visitors who open a review",
+     "report": 4,
+     "row": "Review users",
+     "description": "Visitors who started a review or opened a review snapshot (review_open), each day. Compare the feature users with this number.",
      "id": 14344417,
      "short_id": "2U9CU5pD",
      "url": "https://us.posthog.com/project/721449/insights/2U9CU5pD",
@@ -890,8 +910,10 @@
      }
     },
     {
-     "name": "4. Features: Board users",
-     "description": "Design 17, report 4 (Features), the row \"Board users\".",
+     "name": "Visitors who open the Analysis board",
+     "report": 4,
+     "row": "Board users",
+     "description": "Visitors who opened the Analysis board (analysis_open), each day. Compare the board's feature users with this number.",
      "id": 14344418,
      "short_id": "KlxxIbQ0",
      "url": "https://us.posthog.com/project/721449/insights/KlxxIbQ0",
@@ -951,8 +973,10 @@
      }
     },
     {
-     "name": "4. Features: Editor users",
-     "description": "Design 17, report 4 (Features), the row \"Editor users\".",
+     "name": "Visitors who use the board editor",
+     "report": 4,
+     "row": "Editor users",
+     "description": "Visitors who opened the board editor (editor_open), and visitors who sent a position from it to the Analysis board with Analyze (editor_analyze), each day.",
      "id": 14344428,
      "short_id": "TU8oUWxL",
      "url": "https://us.posthog.com/project/721449/insights/TU8oUWxL",
@@ -1022,11 +1046,13 @@
   },
   {
    "group_key": "report-5",
-   "title": "5. Settings: do the defaults fit?",
+   "title": "Settings: do the defaults fit?",
    "insights": [
     {
-     "name": "5. Settings: Changes",
-     "description": "Design 17, report 5 (Settings), the row \"Changes\".",
+     "name": "Engine setting changes by setting and value",
+     "report": 5,
+     "row": "Changes",
+     "description": "Changes to the engine's settings (setting_change), by the setting, its new value and the page: the number of changes and of visitors. A setting that most players change away from its default asks for another default.",
      "id": 14344429,
      "short_id": "IcFEts8X",
      "url": "https://us.posthog.com/project/721449/insights/IcFEts8X",
@@ -1113,11 +1139,13 @@
   },
   {
    "group_key": "report-6",
-   "title": "6. Imports and exports: do they work?",
+   "title": "Imports and exports: do they work?",
    "insights": [
     {
-     "name": "6. Imports and exports: Ways in",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Ways in\".",
+     "name": "Imports by way in and destination",
+     "report": 6,
+     "row": "Ways in",
+     "description": "Games imported from outside the site (import_game), by the way in and by where each went, the review or the Analysis board: the number of imports and of visitors. It shows which ways in to keep and improve.",
      "id": 14344430,
      "short_id": "PGRj41SP",
      "url": "https://us.posthog.com/project/721449/insights/PGRj41SP",
@@ -1197,8 +1225,10 @@
      }
     },
     {
-     "name": "6. Imports and exports: Failed imports",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Failed imports\".",
+     "name": "Failed imports by way in and reason",
+     "report": 6,
+     "row": "Failed imports",
+     "description": "Imports that the site refused (import_failed), by the way in, the reason and the destination. The reason is record (not read), rejected (the rules or the storage refused it) or link (broken). A rise after a release points to a new fault.",
      "id": 14344431,
      "short_id": "TEHrzDKA",
      "url": "https://us.posthog.com/project/721449/insights/TEHrzDKA",
@@ -1275,8 +1305,10 @@
      }
     },
     {
-     "name": "6. Imports and exports: Loads",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Loads\".",
+     "name": "Loads of saved work by source",
+     "report": 6,
+     "row": "Loads",
+     "description": "Saved work loaded (load_saved), by its source: a review or analysis file, a share link or a partner's review. It shows the number of loads and of visitors.",
      "id": 14344432,
      "short_id": "UuKG3bRJ",
      "url": "https://us.posthog.com/project/721449/insights/UuKG3bRJ",
@@ -1352,8 +1384,10 @@
      }
     },
     {
-     "name": "6. Imports and exports: Failed loads",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Failed loads\".",
+     "name": "Failed loads by source and reason",
+     "report": 6,
+     "row": "Failed loads",
+     "description": "Loads that the site refused (load_failed), by the source and the reason: file or link (not read), or rejected (the rules or the storage refused its game). A rise after a release points to a new fault.",
      "id": 14344433,
      "short_id": "WpNhkGLl",
      "url": "https://us.posthog.com/project/721449/insights/WpNhkGLl",
@@ -1426,8 +1460,10 @@
      }
     },
     {
-     "name": "6. Imports and exports: Share links",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Share links\".",
+     "name": "Review share links: do they arrive whole?",
+     "report": 6,
+     "row": "Share links",
+     "description": "Review share links opened (review_share_open), by whether the review's network was found (network_found) and whether the engine is the same (same_engine). Many links with false in either column mean that shared reviews do not arrive whole.",
      "id": 14344434,
      "short_id": "2vEbb28z",
      "url": "https://us.posthog.com/project/721449/insights/2vEbb28z",
@@ -1500,8 +1536,10 @@
      }
     },
     {
-     "name": "6. Imports and exports: Old tools",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Old tools\".",
+     "name": "Requests to update an old tool",
+     "report": 6,
+     "row": "Old tools",
+     "description": "How often the import page or the review asks a player to update the bookmarklet or the userscript (tool_out_of_date), by the tool and the page. A fall means that players have the new tools.",
      "id": 14344435,
      "short_id": "ZtV3T8qd",
      "url": "https://us.posthog.com/project/721449/insights/ZtV3T8qd",
@@ -1574,8 +1612,10 @@
      }
     },
     {
-     "name": "6. Imports and exports: Missing games",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Missing games\".",
+     "name": "Review addresses opened without their game",
+     "report": 6,
+     "row": "Missing games",
+     "description": "Review addresses opened in a browser that does not keep their game (game_missing). A rise means that players send review addresses to others, and those addresses do not work in another browser.",
      "id": 14344436,
      "short_id": "NapbhPgu",
      "url": "https://us.posthog.com/project/721449/insights/NapbhPgu",
@@ -1635,8 +1675,10 @@
      }
     },
     {
-     "name": "6. Imports and exports: Exports",
-     "description": "Design 17, report 6 (Imports and exports), the row \"Exports\".",
+     "name": "Exports by kind and page",
+     "report": 6,
+     "row": "Exports",
+     "description": "Exports (export) by kind and by page: share links, review and analysis files, records copied or saved, and saves to a partner site. It shows the number of exports and of visitors, and so whether players share.",
      "id": 14344437,
      "short_id": "l1fBeEwr",
      "url": "https://us.posthog.com/project/721449/insights/l1fBeEwr",
