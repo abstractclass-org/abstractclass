@@ -141,18 +141,21 @@ ask where it goes (design 21): with that choice, "import" again names what the p
      `src/app.html` marks their places, so both sites take them from one source. A site whose `app.html` lacks a mark
      does not build. The browser tests run the notice's cases in Chromium and in WebKit, Safari's engine.
    - **A page that failed shows the site's error page.** SvelteKit shows it in the place of the page, in the site's
-     frame. Each site has one, from one source (`packages/site/src/ErrorPage.svelte` and `pageError.ts`). Without it,
-     SvelteKit showed its own page, "500" with no way out.
+     frame. Each site has one, from one source (`packages/site/src/ErrorPage.svelte` and `pageError.ts`). SvelteKit's
+     own page, in a site with none, is "500" with no way out.
      - **A module of the page's code that did not load:** the load notice's words, "Part of this page did not load.",
-       and its button "Load the page again". The usual case is a link to a page whose code does not load.
+       and its button "Load the page again". The usual case is a link to a page whose code does not load. On a full
+       load of such a page, the load notice shows too, with the same words.
      - **An address that the site does not have:** "There is no page at this address.", with a link to the home page.
      - **Each other error:** "An error stopped this page.", with the button "Load the page again".
 
      Each line is strict Simplified Technical English, and the page never shows the code's message: the player
      cannot act on it. SvelteKit gives each error that it caught to the site's `handleError` (each site's
-     `src/hooks.client.ts`). It knows a module that did not load by the browsers' words, as the load notice does. It
-     sends the error to the error report, with the `error_kind` "page". SvelteKit's own errors, such as an address
-     that the site does not have, go to no report. The page stays out of search results.
+     `src/hooks.client.ts`). `handleError` knows a module that did not load by the browsers' words, as the load notice
+     does. It sends the error to the error report, with the `error_kind` "page". SvelteKit also gives it the failure
+     of a hover's preload. SvelteKit keeps no preload that failed, so a link that the player points at and then
+     clicks can send two reports. SvelteKit's own errors, such as an address that the site does not have, go to no
+     report. The page stays out of search results.
    - **Home:** what Hedge School is, and Practice as its first call to action ("Practice against bot"), beside a
      board that plays scenes from reviewed games as the review shows them judged by edge: the engine's first three
      candidates before each edge, and each edge's label on it (`src/lib/home/HomeReplay.svelte`, on the shared replay
