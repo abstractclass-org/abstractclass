@@ -39,8 +39,9 @@ export default defineConfig({
       ? [{ name: "edge", use: { browserName: "chromium" as const, channel: "msedge", launchOptions: { ...showScrollBars, args: NO_POSTHOG } } }]
       : []),
     // WebKit, Safari's engine, for the load notice's cases only: Safari's message for a module that did not load names
-    // no module (@abstractclass/site/loadNotice.ts). It needs `npx playwright install webkit` once. Its pages get no
-    // WebGPU: Playwright's WebKit has no navigator.gpu, on Windows too.
+    // no module (@abstractclass/site/loadNotice.ts). It needs `npx playwright install webkit` once. On Windows it takes
+    // no switch off the GPU, and needs none: it has no navigator.gpu, and it opens a device on the GPU only for WebGL,
+    // which no page of the sites uses (decisions/product.md, "Safari's notice when the page's code does not load").
     { name: "webkit", testMatch: /load-notice\.spec\.ts$/, use: { browserName: "webkit" } },
   ],
 });

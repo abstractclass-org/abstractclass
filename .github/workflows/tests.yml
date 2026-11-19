@@ -49,7 +49,9 @@ jobs:
   # test game's first three turns, about 2 to 3 minutes. That test stops after 12 minutes. The other review tests load
   # a stored review. A slow runner adds about a quarter to the browser tests (the one job's times above), and a slow
   # Playwright install up to 9 minutes. So the part "other" takes up to about 44 minutes on a slow runner with a slow
-  # install, and "layout" up to about 39. If the live review then stops at its limit, "other" takes up to about 53. A
+  # install, and "layout" up to about 39. The part "other" also installs WebKit and runs the load notice's cases in
+  # it: on the Windows machine those cases took under 10 seconds, and on GitHub's runners they are not measured yet.
+  # If the live review then stops at its limit, "other" takes up to about 53. A
   # job that reaches its time limit ends as cancelled, without the failures' screenshots, so the limit of 60 keeps that
   # case a failed test with its report. The Windows job took 22.7 and 22.9 minutes in the same runs. Each limit leaves
   # a margin.
@@ -99,16 +101,16 @@ jobs:
       - run: npm run check:all
         working-directory: .
 
+      # A key for each part: the part "other" also keeps WebKit. When the key finds a cache, actions/cache does not save
+      # it again, so with one key for both parts the part "other" would download WebKit in each run.
       - name: Cache Playwright's browsers
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright install --with-deps --only-shell chromium
-      # WebKit, Safari's engine, for the load notice's cases (the project webkit in playwright.config.ts), in the part
-      # "other" only.
-      - if: matrix.part == 'other'
-        run: npx playwright install --with-deps webkit
+          key: playwright-${{ matrix.part }}-${{ hashFiles('package-lock.json') }}
+      # The part "other" also installs WebKit, Safari's engine, for the load notice's cases (the project webkit in
+      # playwright.config.ts). One install, so that apt installs the system's packages once.
+      - run: npx playwright install --with-deps --only-shell chromium ${{ matrix.part == 'other' && 'webkit' || '' }}
       # Cyanotype's preview (port 4174) beside the site's, for the tests that open a Cyanotype page, which run only when
       # CYANOTYPE_BASE_URL gives the preview's address. Its build is the one that check:all made in this run (the step
       # cyanotype-build), with the engine's files of the step cyanotype-engine, so a stale build cannot pass.

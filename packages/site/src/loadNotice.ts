@@ -18,15 +18,15 @@
 //   between and no catch, so their failure comes only as a rejection that nothing handles.
 // Chrome's message is "Failed to fetch dynamically imported module: <address>", and Firefox's "error loading
 // dynamically imported module: <address>". Safari's, "Importing a module script failed.", names no module
-// (abscls-o1xw). There the failed `modulepreload` links name it: Safari fires an `error` event on each link whose module
-// did not load, the head's own links and the links that Vite's loader adds for an import. A link's event can come from the
-// network while the head is read, before the script at the head's end runs. So a second script, before the head's
-// links (LOAD_LINKS_MARK), marks each failed link, and the first reads the marks. On Safari's message, the notice shows
-// when a link that the page's HTML preloads failed, or, for a failure that nothing handled, a link of a node: the
-// rules of the other browsers, with the failed links in the place of the message's address. The link's event and the
-// message come in either order, so each one checks the other. A module that SvelteKit's preloads leave out (the
-// root layout's addressHash.ts) fails on Safari with no link of the page's HTML, and shows no notice there. The
-// script lets each error go on as before: the error page and the error reports stay.
+// (abscls-o1xw). There the failed `modulepreload` links name it: Safari fires an `error` event on each link whose
+// module did not load, the head's own links and the links that Vite's loader adds for an import. A link's event can
+// come from the network while the head is read, before the script at the head's end runs. So a second script, before
+// the head's links (LOAD_LINKS_MARK), marks each failed link, and the first reads the marks. On Safari's message, the
+// notice shows when a link that the page's HTML preloads failed, or, for a failure that nothing handled, a link of a
+// node: the rules of the other browsers, with the failed links in the place of the message's address. The link's
+// event and the message come in either order, so each one checks the other. A module that SvelteKit's preloads leave
+// out (the root layout's addressHash.ts) fails on Safari with no link of the page's HTML, and shows no notice there.
+// The script lets each error go on as before: the error page and the error reports stay.
 
 import type { Handle } from "@sveltejs/kit/hooks";
 
@@ -113,11 +113,9 @@ function watchLoad(text: string, action: string, failed: string) {
     onLoadError((e as Event & { payload?: Error }).payload, false);
   });
   addEventListener("unhandledrejection", function (e) { onLoadError(e.reason, true); });
-  // A link's event after Safari's message. The listener of markFailedLinks, added before this one, has marked it.
-  addEventListener("error", function (e) {
-    var link = e.target as HTMLLinkElement | null;
-    if (safari && link && link.tagName === "LINK" && link.rel === "modulepreload" && safariOwn()) show();
-  }, true);
+  // A link's event after Safari's message: the listener of markFailedLinks, added before this one, has marked the
+  // link. The error of another element changes no mark, so the check finds what it found before.
+  addEventListener("error", function () { if (safari && !shown && safariOwn()) show(); }, true);
 }
 
 /** The script at the head's end. */

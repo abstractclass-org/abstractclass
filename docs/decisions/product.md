@@ -12776,6 +12776,18 @@ notice. Now Safari shows the notice from the page's failed `modulepreload` links
   the WebKit case checks only that the button loads the page again. Whether Safari itself keeps the failure through a
   reload is not measured: it needs a Mac or an iPhone.
 - **The tests:** the project `webkit` in `playwright.config.ts` runs `tests/load-notice.spec.ts` only. Its cases
-  stop PostHog's requests themselves: WebKit takes no switch that resolves no PostHog address. Its pages get no
-  WebGPU: Playwright's WebKit has no `navigator.gpu`. On the build before the change, the six WebKit cases that expect
-  the notice failed. The Tests workflow installs WebKit and runs the project in its part "other", on Linux.
+  stop PostHog's requests themselves: WebKit takes no switch that resolves no PostHog address. On the build before
+  the change, the six WebKit cases that expect the notice failed. The Tests workflow installs WebKit and runs the
+  project in its part "other", on Linux. That part's cache of Playwright's browsers has a key of its own, so that it
+  keeps WebKit: actions/cache does not save again under a key that it found.
+- **WebKit and the GPU on Windows:** Playwright's WebKit takes no switch off the GPU, and needs none. It has no
+  `navigator.gpu`. Its GPU process opened a device on the GPU only for WebGL: with a WebGL context it loaded NVIDIA's
+  Direct3D driver (`nvwgf2umx.dll`) and showed in `nvidia-smi`. With a plain page or a 2D canvas it did neither. No
+  page of the sites uses WebGL: each site's home, Review and Practice pages left no WebKit process on the GPU.
+- **Two limits on Safari,** found in the review. Each one needs two failures in one page, and Chrome shows no notice
+  in either. A rejection that nothing handles keeps the rule of a node for the rest of the page: after an optional
+  part's rejection (the home page's replay, PostHog's client), a node whose link fails later counts as the page's
+  code, also when SvelteKit handles its failure (a preload on hover). A link also stays marked when its module loads
+  on a later try (WebKit asks again for a failed module on each import): an optional part that fails later then shows
+  the notice on a working page. A fix needs a time window or a sign that a module loaded, which WebKit's links do not
+  give.
