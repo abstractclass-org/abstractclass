@@ -630,21 +630,23 @@ a push to `main` that the owner did not say to make. The owner's word to release
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.
   - **`test-webkit`, on Linux:** the load notice's cases (tests/load-notice.spec.ts) in WebKit, Safari's engine, on
-    both sites. It runs only the engine and build steps of `check:all`. Its install of WebKit's system packages can
-    take half an hour, so it has a job and a time limit of its own: a slow install cannot stop the Chromium tests.
+    both sites. It runs only the engine and build steps of `check:all`. Its install of WebKit's system packages
+    usually takes under a minute, but it took half an hour on a slow mirror. So it has a job and a time limit of its
+    own: a slow install cannot stop the Chromium tests.
 
   The sweep loads each page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A
-  failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `browser-tests-layout` and
+  failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `browser-tests-layout`,
   `browser-tests-other` and `browser-tests-webkit` for Linux, `layout-sweep-windows` for Windows).
 
   Each job also serves Cyanotype's build (`apps/cyanotype`) on port 4174, beside the site's preview on port 4173, and
   sets `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The build is the early access (`VITE_EDITION=early`), as the site's
   is. It has the engine's release files that `apps/cyanotype/engine.lock.json` pins, so the tests that need them run,
   such as the review of Cyanotype's test game. Each part of the job `test` takes the build and the files that its own
-  `check:all` made (its steps `cyanotype-engine` and `cyanotype-build`). The job `test-windows` gets the files and
-  builds in steps of its own, because `check:all` does not run there. Each job keeps Cyanotype's downloads in a cache,
-  by the lock. Each Cyanotype test that a job runs uses this preview. In CI, `playwright.config.ts` stops the run with
-  a message when `CYANOTYPE_BASE_URL` is missing. Outside CI, the Cyanotype tests skip without it
+  `check:all` made (its steps `cyanotype-engine` and `cyanotype-build`). The job `test-webkit` runs these steps of
+  `check:all` too, with its option `--only`. The job `test-windows` gets the files and builds in steps of its own,
+  because `check:all` does not run there. Each job keeps Cyanotype's downloads in a cache, by the lock. Each Cyanotype
+  test that a job runs uses this preview. In CI, `playwright.config.ts` stops the run with a message when
+  `CYANOTYPE_BASE_URL` is missing. Outside CI, the Cyanotype tests skip without it
   ([working-notes.md](working-notes.md), "The tests on Cyanotype").
 - **The sweep in Edge, as an option,** on this computer, by the owner: it shows Edge's own drawing, with this
   computer's settings. A plain `npm run test:layout` runs Chromium alone. The project `edge` comes only when the

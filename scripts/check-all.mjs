@@ -6,11 +6,13 @@
 // Cyanotype is also built once without the key, for the check that such a build holds none of PostHog's code. A
 // failed step does not stop the steps after it, except an engine step: the others need its files.
 // The output ends with one line: `check:all: PASS` or `check:all: FAIL`, then each step with PASS, FAIL or SKIP.
-// `--only <step>,<step>` runs only the named steps, in the list's order: the workflow's job test-webkit takes the
+// `--only <step>,<step>` runs only the named steps, in this list's order: the workflow's job test-webkit takes the
 // engines and the builds of the browser tests from here, so that its builds are the ones that the other parts test.
+// With another argument, or a name that is not a step, check:all stops before its first step, with exit code 2.
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const site = join(root, "apps/hedgeschool");
@@ -80,14 +82,20 @@ const allSteps = [
   { name: "cyanotype-build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/cyanotype/build" },
 ];
 
-const onlyAt = process.argv.indexOf("--only");
-const only = onlyAt === -1 ? undefined : (process.argv[onlyAt + 1] ?? "").split(",").filter(Boolean);
-const unknown = only?.filter(name => !allSteps.some(step => step.name === name)) ?? [];
-if (only?.length === 0 || unknown.length > 0) {
-  console.error(`check:all: --only takes step names, from: ${allSteps.map(step => step.name).join(", ")}` +
-    (unknown.length > 0 ? `. Not a step: ${unknown.join(", ")}` : ""));
+const names = allSteps.map(step => step.name);
+const refuse = why => {
+  console.error(`check:all: ${why}. --only takes step names, from: ${names.join(", ")}`);
   process.exit(2);
+};
+let only;
+try {
+  only = parseArgs({ options: { only: { type: "string" } } }).values.only?.split(",").filter(Boolean);
+} catch (error) {
+  refuse(error.message);
 }
+const unknown = only?.filter(name => !names.includes(name)) ?? [];
+if (unknown.length > 0) refuse(`Not a step: ${unknown.join(", ")}`);
+if (only?.length === 0) refuse("No step named");
 const steps = only ? allSteps.filter(step => only.includes(step.name)) : allSteps;
 
 const results = [];

@@ -53,10 +53,10 @@ jobs:
   # install, and "layout" up to about 39. If the live review then stops at its limit, "other" takes up to about 53. A
   # job that reaches its time limit ends as cancelled, without the failures' screenshots, so the limit of 60 keeps that
   # case a failed test with its report. The Windows job took 22.7 and 22.9 minutes in the same runs. Each limit leaves
-  # a margin. The load notice's cases in WebKit ran in the part "other" for one run (abscls-o1xw): its install of
-  # WebKit's system packages took 27.8 minutes, and the part took 51.7. They run in the job test-webkit now
-  # (abscls-xu4u), so a slow install cannot stop the Chromium tests. The part "other"'s time without WebKit is to be
-  # measured again.
+  # a margin. The load notice's cases in WebKit ran in the part "other" after abscls-o1xw. Its install of WebKit's
+  # system packages took 27.8 minutes on a slow mirror, and the part took 51.7. In the next run the install took 36
+  # seconds, and the part 32.3 minutes (28.9 of browser tests). The cases run in the job test-webkit now (abscls-xu4u),
+  # so a slow install cannot stop the Chromium tests. The time of the part "other" without WebKit is not measured yet.
   test:
     name: test (${{ matrix.part }})
     runs-on: ubuntu-latest
@@ -103,9 +103,8 @@ jobs:
       - run: npm run check:all
         working-directory: .
 
-      # A key for each part, and one for the job test-webkit, so that each keeps its own browsers: when the key finds a
-      # cache, actions/cache does not save it again, so a job whose browser is not in the cache would download it in
-      # each run.
+      # A key for each part, and one for the job test-webkit: actions/cache does not save again a key that it found, so
+      # a job that shared a key with a job of other browsers would download its own browser in each run.
       - name: Cache Playwright's browsers
         uses: actions/cache@v6
         with:
@@ -135,11 +134,9 @@ jobs:
 
   # The load notice's cases in WebKit, Safari's engine (the project webkit in playwright.config.ts), on both sites. A
   # job of its own, with its own time limit: WebKit needs about 160 system packages that the runner's image does not
-  # hold, and apt fetches them in each run. In their first run on GitHub (in the part "other"), apt took 27.8 minutes
-  # on a slow mirror. Not a third part of the job test: a part runs all of check:all and the Chromium steps. This job
-  # runs only what the cases need, check:all's engine and build steps for both sites, so its builds are the ones that
-  # the parts test. Its time on GitHub is to be measured. The limit of 45 leaves about a quarter of an hour over that
-  # install's 27.8 minutes, npm ci and the builds.
+  # hold, and apt fetches them in each run, once in 27.8 minutes (the time comment above). The job runs only
+  # check:all's engine and build steps for both sites, so its builds are the ones that the parts test. The limit of 45
+  # leaves about a quarter of an hour over that install, npm ci and the builds.
   test-webkit:
     runs-on: ubuntu-latest
     timeout-minutes: 45
