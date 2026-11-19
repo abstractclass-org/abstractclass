@@ -48,6 +48,18 @@ export async function checkMoves(record: GameRecord): Promise<Checked> {
  *  first sentence stands alone, as the Import shows it alone. */
 const positionProblem = (d: DescribeReply): string | null => checkProblem(d.check, "No game can reach this position");
 
+/** What is wrong with a game's set-up start by the engine's rules, or null: the engine reads it, and a game can reach
+ *  it (protocol 0.5's check, with the engine's reasons). A start that the engine cannot read gets its refusal. `rules`:
+ *  a rules worker that has started, as Practice's (practice/game.svelte.ts checks a kept game's start with it). */
+export async function startProblem(rules: Pick<EngineWorker, "describe">, start: string): Promise<string | null> {
+  try {
+    return checkProblem((await rules.describe<DescribeReply>({ position: start, moves: [] })).reply.check,
+                        "no game can reach its start");
+  } catch (e) {
+    return errorText(e);
+  }
+}
+
 /** Whether a set-up position could occur in a game (protocol 0.5's check, design 21): what is wrong, or null. A
  *  position whose form the engine refuses gets that refusal. Null when the site has no engine. */
 export async function checkPosition(position: string): Promise<string | null> {

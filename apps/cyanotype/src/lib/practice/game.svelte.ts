@@ -55,7 +55,7 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     return end?.outcome ? endResult(end, this.kept.komi ?? 0) : null;
   });
   // The set-up start in the engine's one-line form, or null: the standard start. prepare() sets it once the check has
-  // read the start, so that a start that the engine cannot read stops the game, not the page.
+  // read the start (startProblem), so that a start that the engine cannot read stops the game, not the page.
   private setUp: string | null = null;
 
   /** The player to move on the latest position. */
@@ -70,13 +70,16 @@ export class PracticeGame extends BaseGame<KeptPractice, SitePosition, PlayedMov
     return withKomi(sitePosition(fields), this.kept.komi ?? 0);
   }
 
+  /** A set-up start that the engine cannot read or that no game reaches, in the words of the card's notice
+   *  (recordCheck.ts): the practice's flow stops the game with them before the bot gets it. The bot refuses such a
+   *  start too, with the position check's first reason. */
+  protected async startProblem() {
+    return this.kept.start ? startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
+  }
+
   /** Gives the bot the game's settings and its komi, sets its game to the game's start and the moves kept (a start
-   *  brought, a game from an earlier visit), and notes a new build. A set-up start that no game reaches stops the game
-   *  first, in the words of the card's notice (startProblem): the page checks a start brought, but not a game kept in
-   *  this browser. The bot refuses such a start too, with the position check's first reason. */
+   *  brought, a game from an earlier visit), and notes a new build. The start has passed its check (startProblem). */
   protected async prepare() {
-    const unreached = this.kept.start ? await startProblem(rulesBy(this.rulesWorker), this.kept.start, "its start") : null;
-    if (unreached) throw refusal(unreached); // as the bot refuses it
     this.setUp = this.kept.start ? enginePosition(this.kept.start) : null;
     await this.setUpBot(botCommands(this.kept.bot, this.kept.komi));
     const described = await this.byRules();

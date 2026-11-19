@@ -68,6 +68,9 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   // moves from it.
   brought = $state.raw<Brought | null>(null);
   replacing = $state(false); // the question before a start brought sets the game in progress aside
+  // Why the page refused a start brought, in the site's words: on the settings card, or beside the game in progress,
+  // which goes on. It stays until a new game starts or the page goes back to the settings card.
+  notice = $state("");
   notesAt = $state<Record<number, BoardNote[]>>({}); // the player's notes on the board, by position (design 07)
   // The position on the board: the game's latest (null), or an earlier one, to look back. Moves are made only at the
   // latest, as in a game on Lichess.
@@ -178,6 +181,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
   newGame(side: "blue" | "red" | "random") {
     this.choices.side = side;
     this.unmade = false;
+    this.notice = "";
     const chosen = $state.snapshot(this.choices);
     this.site.choices.save(chosen);
     const kept = newPractice(chosen, this.brought) as K, from = practiceFrom(this.brought);
@@ -191,6 +195,7 @@ export class PracticePage<K extends KeptPractice, G extends Game<K>> {
     this.game?.end();
     this.game = null;
     this.confirming = null;
+    this.notice = "";
     this.site.settings?.();
     this.phase = "settings";
   }

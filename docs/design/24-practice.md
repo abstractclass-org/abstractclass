@@ -102,8 +102,16 @@ How strong each setting plays against people is not measured yet.
    - **Practice refuses a record of other rules** (its `Rules` tag), in its own words (`variantProblem` in
      `src/lib/game/import.ts`): "Practice cannot start from this record: This game uses other rules (X). Practice
      plays games of the online rules only." The bot plays the online rules only. A set-up start is no refusal.
+   - **A refusal while a game is in progress keeps its notice beside that game,** under the side column's heading,
+     and the game goes on. The player keeps the reason. The notice goes when a new game starts or the page goes back to
+     the settings card (`notice` in `packages/practice/src/page.svelte.ts`). Cyanotype's Practice does the same.
    - **The bot from a set-up start:** `enclosure-set-position` (the bot's interface 0.1.1, request 20), before the
      record's moves. The bot refuses a position that no game reaches, as the position check does.
+   - **A kept game's set-up start is checked with the rules before the bot gets it** (`startProblem` in
+     `src/lib/game/check.ts`, through the practice's `startProblem` hook). The page checks a record brought, not a game
+     kept in this browser. A start that the engine cannot read, or that no game reaches, stops the game as the bot's
+     refusal: "HedgeFund cannot continue this game. Abort the game. Then start a new game." The check's words go into
+     the error report. The bot gets no command. Cyanotype's Practice does the same.
    - **The record's edges are the game's start:** a takeback stops at them, as they were not played against the bot.
      The kept game counts them, and the stored game will too (design 25).
    - **The record and the move list number the turns from the start's own** (the engine repository's design 04,

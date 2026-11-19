@@ -23,9 +23,11 @@ class WordGame extends PracticeGame<KeptPractice, WordPosition, WordMove, string
   kepts: (KeptPractice | null)[] = []; // each keep, as the site's storage would hold it
   ended = 0; // the calls of `ended`, the site's part of a game's end
   setAside = "set-aside-id"; // what `aborted` answers
+  problem: string | null = null; // what `startProblem` answers: the site's check of the start
   get mover(): Player | null { return this.position?.player ?? null; }
   protected get over(): boolean { return !!this.position?.over; }
   protected keep(k: KeptPractice | null) { this.kepts.push(k && structuredClone(k)); }
+  protected async startProblem() { return this.problem; }
   protected async prepare() {
     await this.bot.command("words-new-game"); // the bot's part first, as each site's setUpBot
     await this.fromRules();
@@ -191,4 +193,19 @@ test("a game kept with moves, whose bot started in no form, keeps its moves from
   assert.equal(game.positions.length, 3);
   assert.equal(game.kept.form, null); // the stored game names no form (Hedge School's design 25)
   assert.deepEqual(game.kepts, []); // the game in progress stays as the browser keeps it, for a new load of the page
+});
+
+test("a start that the site's check refuses stops the game before the bot gets it, as the bot's refusal", async () => {
+  const bot = fakeBot(["b1"]), game = gameOf(kept(1, { moves: ["b1", "r1"] }), bot);
+  game.problem = "no game can reach its start.";
+  const reported: unknown[] = [];
+  game.onFail = e => reported.push(e);
+  await game.start();
+  assert.equal(game.status, "failed");
+  assert.equal(game.stop, "refused"); // the site's words for a start that the bot refuses (practice.ts, stoppedLine)
+  assert.equal(game.error, "no game can reach its start."); // the check's words, for the error report
+  assert.equal(reported.length, 1);
+  assert.deepEqual(bot.lines, []); // the bot got nothing
+  assert.deepEqual(game.played.map(m => m.word), ["b1", "r1"]); // from the rules alone: Abort keeps them
+  assert.equal(await game.abort(), "set-aside-id");
 });

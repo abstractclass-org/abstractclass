@@ -56,7 +56,6 @@
   // beside the board, with each player's area against their points in a second lane.
   const score = keptScore(PRACTICE_DISPLAY_KEY, true, name => page.used(name));
 
-  let notice = $state(""); // a record brought that cannot be played
   let settingsOpen = $state(false); // the display settings, in the moves' place
 
   // The page's flow, with Hedge School's game. A game's end goes to the site too (design 25), and a game set aside by a
@@ -67,7 +66,7 @@
     track, trackOnce, engineError,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
-    settings: () => { settingsOpen = false; notice = ""; },
+    settings: () => { settingsOpen = false; },
     forward: into => { if (display.sound) void playMove(display.volume, display.moveSound, !!into.cut); },
   });
   const game = $derived(page.game);
@@ -84,7 +83,7 @@
         if (problem) throw new Error(problem);
         page.brought = { start: setUpStart(r?.tags.Position) ?? position, moves: r?.moves ?? [] };
       } catch (e) {
-        notice = `Practice cannot start from this record: ${errorText(e)}`;
+        page.notice = `Practice cannot start from this record: ${errorText(e)}`;
       }
     }
     void page.mount(page.brought !== null, async () => {
@@ -166,7 +165,7 @@
       you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}
       {#if page.unmade}<p class="mb-1 text-sm text-blunder" role="alert">{UNMADE_LINE}</p>{/if}
-      {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
+      {#if page.notice}<p class="mb-1 text-sm text-blunder" role="alert">{page.notice}</p>{/if}
       {#if page.abortedId}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
       {#if page.brought}<p class="mb-1 text-sm">{broughtLine(page.brought, ["edge", "edges"])}</p>{/if}
     {/snippet}
@@ -211,6 +210,8 @@
         {@render displaySettings()}
       {:else}
         <h1 class="text-lg font-bold">Practice</h1>
+        <!-- A record brought that the page refused, while the game in progress goes on. -->
+        {#if page.notice}<p class="mt-1 text-xs text-blunder" role="alert">{page.notice}</p>{/if}
         {#if g}<p class="text-xs text-muted">{botLine(g)}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
         <p class={["mt-2 text-sm font-medium", page.stopped && "text-blunder"]} role="status" aria-live="polite">{statusText}</p>
         <p class="min-h-[1.25rem] mb-1.5 text-xs text-muted">

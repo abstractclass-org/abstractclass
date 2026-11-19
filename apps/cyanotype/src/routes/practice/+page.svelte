@@ -69,7 +69,6 @@
   import { captures } from "#lib/sound.ts";
 
   let dropped = $state(false); // the kept game's network is not in this build: the game cannot go on
-  let notice = $state(""); // a start brought that cannot be played
   let settingsOpen = $state(false); // the display settings, in the side column's place
 
   // The page's flow, with Cyanotype's game. A game's end goes to the site too (Hedge School's design 25), and a game set
@@ -80,7 +79,7 @@
     track, trackOnce, engineError,
     ended: (g, outcome) => sendPractice(g.stored(outcome, browserNumber())),
     setAside: saveUnfinished,
-    settings: () => { settingsOpen = false; notice = ""; },
+    settings: () => { settingsOpen = false; },
     forward: into => { if (display.sound) void playMove(display.volume, display.moveSound, captures(into.move)); },
   });
   const game = $derived(page.game);
@@ -99,7 +98,7 @@
       const record = text === null ? null : readPasted(text, position).record;
       return { record, start: setUpStart(record ? record.tags.Position : position) ?? null };
     } catch (e) {
-      notice = `Practice cannot start from this record: ${errorSentence(e)}`;
+      page.notice = `Practice cannot start from this record: ${errorSentence(e)}`;
       return null;
     }
   }
@@ -119,7 +118,7 @@
       if (!bringing) return;
       const r = rulesBy(w), problem = bringing.record ? await recordProblem(r, bringing.record)
         : bringing.start ? await startProblem(r, bringing.start) : null;
-      if (problem) notice = `Practice cannot start from this ${bringing.record ? "record" : "position"}: ${errorSentence(problem)}`;
+      if (problem) page.notice = `Practice cannot start from this ${bringing.record ? "record" : "position"}: ${errorSentence(problem)}`;
       else page.brought = { start: bringing.start, moves: bringing.record?.moves ?? [] };
     });
   });
@@ -127,7 +126,6 @@
   /** A new game with the settings chosen and the side picked, from the standard start or the start brought. */
   function newGame(side: "blue" | "red" | "random") {
     dropped = false;
-    notice = "";
     page.newGame(side);
   }
 
@@ -211,7 +209,7 @@
       the visits you set. The game then goes into <a href="/review">Your games</a>, for its review.{/snippet}
     {#snippet notes()}
       {#if page.unmade}<p class="mb-1 text-sm text-blunder" role="alert">{UNMADE_LINE}</p>{/if}
-      {#if notice}<p class="mb-1 text-sm text-blunder" role="alert">{notice}</p>{/if}
+      {#if page.notice}<p class="mb-1 text-sm text-blunder" role="alert">{page.notice}</p>{/if}
       {#if page.abortedId}<p class="mb-1 text-sm" role="status">The game you aborted is in <a href="/review">Your games</a>, unfinished.</p>{/if}
       {#if page.brought}<p class="mb-1 text-sm">{broughtLine(page.brought, ["move", "moves"])}</p>{/if}
       {#if dropped}<p class="mb-1 text-sm" role="status">This site does not have the network of your last game. You cannot
@@ -263,7 +261,7 @@
       {:else}
         <h1 class="text-lg font-bold">Practice</h1>
         <!-- A start brought that the rules refused, while the game in progress goes on. -->
-        {#if notice}<p class="mt-1 text-xs text-blunder" role="alert">{notice}</p>{/if}
+        {#if page.notice}<p class="mt-1 text-xs text-blunder" role="alert">{page.notice}</p>{/if}
         {#if g}<p class="text-xs text-muted">{botName(g.kept.bot)}{g.mode ? `, ${BOT_WHERE[g.mode]}` : ""}.{g.kept.komi ? ` ${komiLine(g.kept, ENGINE_NAME)}` : ""}</p>{:else}<div class="h-3 mt-1 w-3/4 {BONE}"></div>{/if}
         <p class="min-h-[1.25rem] mt-1 mb-1.5 text-xs text-muted">
           {#if g?.lastTurnMs != null && g.status !== "over"}{ENGINE_NAME}'s last turn took {seconds(g.lastTurnMs)}.{/if}
