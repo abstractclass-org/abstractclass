@@ -83,23 +83,23 @@ Enclosure meet in a Discord, and the site can serve them before puzzles and less
      line under the review's progress says it while the review runs. In the Review tab, the game's Export, off until the
      review is done, says it too. A network or a depth that the player chose is not an update, and has no notice.
 7. **Analytics: Cloudflare's and PostHog's.** Neither sets cookies or keeps data in the browser, so neither asks for
-   consent. PostHog runs in its cookieless mode (`cookieless_mode: 'always'`): it counts visitors by a hash of the
-   IP address, the browser and a salt of the day, on its servers. One PostHog project, in PostHog's US region, takes
-   the events of all the sites, and each event names its site's host. The client is posthog-js from npm, in its slim
-   bundle with no external loading: it sends only page views, page leaves and the site's own events, and loads no
-   script from PostHog (`packages/site/src/posthog.ts` names each option and why). Its requests go to the site's own
-   address, on the path `/relay/`. A Pages Function of each site passes them on to PostHog's US hosts, as PostHog's
-   guide for Cloudflare gives it (`packages/site/src/posthogProxy.ts`), so a blocker whose list names PostHog's hosts
-   does not stop them (design 27, item 6). The privacy page names what
-   PostHog receives, that it stores the data in the US, and the transfer basis for visitors from the EU, the UK and
-   Switzerland: PostHog's certification under the EU-U.S. Data Privacy Framework, its UK Extension and the Swiss-U.S.
-   Data Privacy Framework. The banner asks only for the practice games' link (design 25). Neither service sees a
-   game: the bookmarklet hands a game to the import page in the address's fragment (after `#`), and that page removes
-   it before it starts them. Every other page starts them from the layout, and the review page names its game after
-   the `#` too (`/review#game=ID`): PostHog receives each address without its `#` part
-   (`disable_capture_url_hashes`). PostHog also takes events, in counts and ranges, for the decisions that wait on
-   data (design 17). The build names the services (`VITE_POSTHOG_KEY`, `VITE_CF_ANALYTICS_TOKEN`). Without them, as
-   in development and in the previews, nothing loads, and a build without PostHog's key holds none of its code.
+   consent. PostHog runs in its cookieless mode (`cookieless_mode: 'always'`): it counts visitors by a hash of the IP
+   address, the browser and a salt of the day, on its servers. One PostHog project, in PostHog's US region, takes the
+   events of all the sites, and each event names its site's host. The client is posthog-js from npm, in its slim bundle
+   with no external loading: it sends only page views, page leaves and the site's own events, and loads no script from
+   PostHog (`packages/site/src/posthog.ts` names each option and why). Its requests go to the site's own address, on the
+   path `/relay/`. A Pages Function of each site passes them on to PostHog's US hosts, as PostHog's guide for Cloudflare
+   gives it (`packages/site/src/posthogProxy.ts`), so a blocker whose list names PostHog's hosts does not stop them
+   (design 27, item 6). The privacy page names what PostHog receives, that it stores the data in the US, and the
+   transfer basis for visitors from the EU, the UK and Switzerland: PostHog's certification under the EU-U.S. Data
+   Privacy Framework, its UK Extension and the Swiss-U.S. Data Privacy Framework. The banner asks only for the practice
+   games' link (design 25). Neither service sees a game: the bookmarklet hands a game to the import page in the
+   address's fragment (after `#`), and that page removes it before it starts them. Every other page starts them from the
+   layout, and the review page names its game after the `#` too (`/review#game=ID`): PostHog receives each address
+   without its `#` part (`disable_capture_url_hashes`). PostHog also takes events, in counts and ranges, for the
+   decisions that wait on data (design 17). The build names the services (`VITE_POSTHOG_KEY`,
+   `VITE_CF_ANALYTICS_TOKEN`). Without them, as in development and in the previews, nothing loads, and a build without
+   PostHog's key holds none of its code.
 8. **The notation page:** a full description of the position notation and the game record notation, written so that
    other developers can follow it, as PGN's standard describes PGN. The notations are decided in the engine
    repository's design (its `docs/design/04-notation-and-protocol.md`). That repository is private, so this page is

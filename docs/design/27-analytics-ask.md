@@ -26,9 +26,9 @@ address, and a Pages Function of each site passes them on to PostHog (design 11,
 - **A blocker took visitors out of every count.** AdGuard's tracking protection list and Firefox's strict tracking
   protection stop PostHog's hosts. Design 17's decisions read the counts, and those visitors were missing from all of
   them.
-- **The visitor's choice was about cookies, and PostHog sets none.** Item 6 kept the Google tag, which set cookies
-  after a consent, from passing a blocker. PostHog runs in its cookieless mode and keeps nothing in the browser, and
-  the Privacy page says what it receives. The site shows no ads.
+- **PostHog keeps nothing in the browser.** Item 6 kept the Google tag, which set cookies after a consent, from
+  passing a blocker. PostHog runs in its cookieless mode and keeps nothing in the browser, and the Privacy page says
+  what it receives. The site shows no ads.
 - **PostHog offers it.** Its quickstart and its guide for Cloudflare give the proxy
   (`https://posthog.com/docs/advanced/proxy`), and the sites follow the guide (`packages/site/src/posthogProxy.ts`).
 

@@ -12895,9 +12895,9 @@ tracking protection list and Firefox's strict tracking protection stopped PostHo
 missing from every count of design 17. Design 27 gives the reasons.
 
 - **PostHog's guide for Cloudflare, with one departure.** The Function is the guide's Worker
-  (`https://posthog.com/docs/advanced/proxy/cloudflare`, US region): `/static/` and `/array/` to
-  `us-assets.i.posthog.com`, through Cloudflare's cache, and every other path to `us.i.posthog.com` with its query,
-  method and whole body. It removes the cookies and an Authorization that is not a PostHog key, and it sets
+  (`https://posthog.com/docs/advanced/proxy/cloudflare`, US region), each path with its query: `/static/` and
+  `/array/` to `us-assets.i.posthog.com`, through Cloudflare's cache, and every other path to `us.i.posthog.com` with
+  its method and whole body. It removes the cookies and an Authorization that is not a PostHog key, and it sets
   `X-Forwarded-For` from `CF-Connecting-IP`. The departure: the guide's Worker serves a subdomain from its root, and
   the Function serves a path of the site, so it removes `/relay` before it forwards. A path needs no DNS record and
   no Worker of its own, and the requests stay on the page's origin. The code is one module that both sites share,
@@ -12913,15 +12913,16 @@ missing from every count of design 17. Design 27 gives the reasons.
 - **The Privacy pages do not change.** They say what PostHog receives, the IP address too, and that Cloudflare
   receives each request. Both stay true: the Function passes the same data to the same PostHog, and Cloudflare
   already received every request to the site.
-- **Measured.** The unit cases (`packages/site/src/posthogProxy.test.ts`, 8) check the hosts, the path and the headers
-  that the Function passes. Hedge School's build of check:all (with check:all's made-up key) ran under `wrangler@4.144.0
-  pages dev` with its Functions. A POST to `/relay/e/` with another made-up key came back from PostHog as `200
-  {"status":"Ok"}`: PostHog's capture takes the request and drops an unknown key. `/relay/static/array.js` gave
-  PostHog's script (383,809 bytes), and `/relay/array/<made-up key>/config` PostHog's 404. In headless Chromium (the
-  layout test's launch options, as a visitor's browser), the About page sent its events to
-  `http://127.0.0.1:4208/relay/e/`, PostHog answered 200 through the Function, and the browser sent no request to a
-  PostHog host. The browser tests now check that both sites send only to their own origin and `/relay/e/`. The site
-  suite passed: check:all, and 426 cases of the layout test with none skipped.
+- **Measured.** The unit cases (`packages/site/src/posthogProxy.test.ts`, 9) check the hosts, the path and the headers
+  that the Function passes, and that each site's `functions/relay/` folder and `_routes.json` hold the client's path.
+  Hedge School's build of check:all (with check:all's made-up key) ran under `wrangler@4.144.0 pages dev` with its
+  Functions. A POST to `/relay/e/` with another made-up key came back from PostHog as `200 {"status":"Ok"}`: PostHog's
+  capture takes the request and drops an unknown key. `/relay/static/array.js` gave PostHog's script (383,809 bytes),
+  and `/relay/array/<made-up key>/config` PostHog's 404. In headless Chromium (the layout test's launch options, as a
+  visitor's browser), the About page sent its events to `http://127.0.0.1:4208/relay/e/`, PostHog answered 200 through
+  the Function, and the browser sent no request to a PostHog host. The browser tests now check that both sites send only
+  to their own origin and `/relay/e/`. The site suite passed: check:all, and 426 cases of the layout test with none
+  skipped.
 - **Not measured here:** the live sites. Once the release is live, PostHog's Activity
   (`https://us.posthog.com/activity/explore`) must show the sites' events, and the dashboard must still fill. The
   geolocation from `X-Forwarded-For` shows there too.

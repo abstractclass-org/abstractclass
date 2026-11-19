@@ -1,8 +1,8 @@
 // The measuring with PostHog (design 11 and 17), on both sites' builds of check:all, each with a made-up PostHog key
 // (scripts/check-all.mjs). The pages send PostHog's requests to the site's own path (design 27, item 6), whose
 // Function the previews do not run. No request reaches PostHog: tests/posthog.ts answers the path and PostHog's
-// addresses in PostHog's place, and keeps what the pages sent. That a build without the key holds none of PostHog's code is check:all's step
-// `cyanotype-no-posthog`, on a build of Cyanotype without the key.
+// addresses in PostHog's place, and keeps what the pages sent. That a build without the key holds none of PostHog's
+// code is check:all's step `cyanotype-no-posthog`, on a build of Cyanotype without the key.
 import { test, expect, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor } from "./posthog.ts";
 import { CONSENT_KEY } from "../src/lib/keys.ts";

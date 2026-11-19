@@ -12,16 +12,17 @@
 export const POSTHOG_PATH = "/relay";
 
 /** PostHog's hosts in its US region: the events, and the assets (its scripts and the project's remote settings). */
-export const API_HOST = "us.i.posthog.com";
-export const ASSET_HOST = "us-assets.i.posthog.com";
+const API_HOST = "us.i.posthog.com";
+const ASSET_HOST = "us-assets.i.posthog.com";
 
 /** PostHog's address for a request to the site's POSTHOG_PATH, or null for any other path. The guide's Worker sends
- *  `/static/` and `/array/` to the assets' host without the query, and every other path to the events' host with it. */
+ *  `/static/` and `/array/` to the assets' host, and every other path to the events' host, each with its query (the
+ *  guide's `pathWithParams`: posthog-js names its script's version there, `/static/<name>.js?v=<version>`). */
 export function posthogTarget(url: URL): URL | null {
   if (!url.pathname.startsWith(`${POSTHOG_PATH}/`)) return null;
   const path = url.pathname.slice(POSTHOG_PATH.length);
-  if (path.startsWith("/static/") || path.startsWith("/array/")) return new URL(`https://${ASSET_HOST}${path}`);
-  return new URL(`https://${API_HOST}${path}${url.search}`);
+  const host = path.startsWith("/static/") || path.startsWith("/array/") ? ASSET_HOST : API_HOST;
+  return new URL(`https://${host}${path}${url.search}`);
 }
 
 /** What the Function needs of Cloudflare: its fetch and its cache (`caches.default`). Tests give their own. */

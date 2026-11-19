@@ -484,9 +484,9 @@ practice games' storage, `CYANOTYPE_STORE_PRACTICE_GAMES` ("Cyanotype's practice
   have with it, and with status 404.
 - **Its two Functions,** on their paths only (`static/_routes.json`): `/api/practice-games` keeps the practice games
   against Stamp Duty in Cyanotype's own D1 databases ("Cyanotype's practice games", below), and `/relay/` passes
-  PostHog's requests on to PostHog, as Hedge School's does (section 4). The job runs Wrangler in
-  `apps/cyanotype`, so the deployment takes Cyanotype's `functions/` folder, not Hedge School's. The browser keeps the
-  visitor's games, settings and choices (its Privacy page).
+  PostHog's requests on to PostHog, as Hedge School's does (section 4). The job runs Wrangler in `apps/cyanotype`, so
+  the deployment takes Cyanotype's `functions/` folder, not Hedge School's. The browser keeps the visitor's games,
+  settings and choices (its Privacy page).
 
 **The owner's steps, once** (abscls-8tl1.3). Do not set a repository variable for the project: the workflow names it.
 Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.

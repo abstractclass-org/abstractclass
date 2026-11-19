@@ -2,6 +2,7 @@
 // Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { POSTHOG_PATH, posthogProxy, posthogTarget, type ProxyDeps } from "./posthogProxy.ts";
 
 const SITE = "https://hedgeschool.abstractclass.org";
@@ -11,7 +12,10 @@ function proxy(answer = () => new Response("ok"), withCache = false) {
   const fetched: Request[] = [];
   const stored = new Map<string, Response>();
   const waits: Promise<unknown>[] = [];
-  const cache = { match: async (r: Request) => stored.get(r.url)?.clone(), put: async (r: Request, res: Response) => { stored.set(r.url, res); } };
+  const cache = {
+    match: async (r: Request) => stored.get(r.url)?.clone(),
+    put: async (r: Request, res: Response) => { stored.set(r.url, res); },
+  };
   const deps: ProxyDeps = {
     fetch: async request => { fetched.push(request); return answer(); },
     cache: () => withCache ? cache as unknown as Pick<Cache, "match" | "put"> : undefined,
@@ -21,23 +25,24 @@ function proxy(answer = () => new Response("ok"), withCache = false) {
   return { fetched, stored, waits, call };
 }
 
-test("the path is no word that a blocker's list catches, and the events go to the events' host with their query", () => {
+test("the path is no word that a blocker's list catches, and events go to the events' host with their query", () => {
   assert.doesNotMatch(POSTHOG_PATH, /posthog|analytic|track|telemetry|ingest|ph\b/i);
   assert.equal(posthogTarget(new URL(`${SITE}${POSTHOG_PATH}/e/?compression=gzip-js&ver=1.2`))?.href,
                "https://us.i.posthog.com/e/?compression=gzip-js&ver=1.2");
   assert.equal(posthogTarget(new URL(`${SITE}${POSTHOG_PATH}/i/v0/e/`))?.href, "https://us.i.posthog.com/i/v0/e/");
-  assert.equal(posthogTarget(new URL(`${SITE}${POSTHOG_PATH}/flags/?v=2`))?.href, "https://us.i.posthog.com/flags/?v=2");
+  assert.equal(posthogTarget(new URL(`${SITE}${POSTHOG_PATH}/flags/?v=2`))?.href,
+               "https://us.i.posthog.com/flags/?v=2");
 });
 
-test("/static/ and /array/ go to the assets' host, without the query, as the guide's Worker sends them", () => {
-  assert.equal(posthogTarget(new URL(`${SITE}${POSTHOG_PATH}/static/array.js?v=1`))?.href,
-               "https://us-assets.i.posthog.com/static/array.js");
+test("/static/ and /array/ go to the assets' host, with their query, as the guide's Worker sends them", () => {
+  assert.equal(posthogTarget(new URL(`${SITE}${POSTHOG_PATH}/static/surveys.js?v=1.447.4`))?.href,
+               "https://us-assets.i.posthog.com/static/surveys.js?v=1.447.4");
   assert.equal(posthogTarget(new URL(`${SITE}${POSTHOG_PATH}/array/phc_x/config.js`))?.href,
                "https://us-assets.i.posthog.com/array/phc_x/config.js");
 });
 
 test("a path outside the proxy's, or one that only starts with its word, goes nowhere", async () => {
-  for (const path of ["/", "/api/practice-games", `${POSTHOG_PATH}`, `${POSTHOG_PATH}x/e/`, `/static${POSTHOG_PATH}/e/`]) {
+  for (const path of ["/", "/api/practice-games", POSTHOG_PATH, `${POSTHOG_PATH}x/e/`, `/static${POSTHOG_PATH}/e/`]) {
     assert.equal(posthogTarget(new URL(`${SITE}${path}`)), null, path);
   }
   const { fetched, call } = proxy();
@@ -45,7 +50,7 @@ test("a path outside the proxy's, or one that only starts with its word, goes no
   assert.equal(fetched.length, 0);
 });
 
-test("an event: its method and body as they came, the browser's IP address, and no cookie or other credential", async () => {
+test("an event: its method and body as they came, the browser's IP address, no cookie or credential", async () => {
   const { fetched, call } = proxy(() => new Response('{"status":1}', { status: 200 }));
   const body = new Uint8Array([0x1f, 0x8b, 1, 2, 3]);
   const response = await call(new Request(`${SITE}${POSTHOG_PATH}/e/?compression=gzip-js`, {
@@ -91,7 +96,8 @@ test("a GET goes on with no body", async () => {
 });
 
 test("an asset comes from PostHog once, then from the cache, with no header of the browser's", async () => {
-  const { fetched, waits, call } = proxy(() => new Response("asset", { headers: { "cache-control": "max-age=60" } }), true);
+  const answer = () => new Response("asset", { headers: { "cache-control": "max-age=60" } });
+  const { fetched, waits, call } = proxy(answer, true);
   const request = () => new Request(`${SITE}${POSTHOG_PATH}/static/array.js`, { headers: { cookie: "hedge=1" } });
   assert.equal(await (await call(request())).text(), "asset");
   await Promise.all(waits);
@@ -104,9 +110,27 @@ test("an asset comes from PostHog once, then from the cache, with no header of t
   assert.equal(fetched.length, 1);
 });
 
-test("without Cloudflare's cache (a test, or an address that has none), an asset still comes from PostHog", async () => {
+test("without Cloudflare's cache (a test, or an address with none), an asset still comes from PostHog", async () => {
   const { fetched, waits, call } = proxy(() => new Response("asset"));
   assert.equal(await (await call(new Request(`${SITE}${POSTHOG_PATH}/static/array.js`))).text(), "asset");
   assert.equal(fetched.length, 1);
   assert.equal(waits.length, 0);
+});
+
+// Pages takes a Function's path from its folder, and runs it only on the paths of static/_routes.json. The browser
+// tests answer POSTHOG_PATH in the Function's place, so a path that the folder or the routes no longer match would
+// lose the live sites' events with no failed test.
+test("each site of this package has its Function on POSTHOG_PATH, and routes the path to it", () => {
+  const apps = new URL("../../../apps/", import.meta.url);
+  const sites = readdirSync(apps).filter(app => {
+    const pkg = new URL(`${app}/package.json`, apps);
+    return existsSync(pkg) && "@abstractclass/site" in (JSON.parse(readFileSync(pkg, "utf8")).dependencies ?? {});
+  });
+  assert.deepEqual(sites.sort(), ["cyanotype", "hedgeschool"]);
+  for (const site of sites) {
+    const fn = readFileSync(new URL(`${site}/functions${POSTHOG_PATH}/[[path]].ts`, apps), "utf8");
+    assert.match(fn, /export const onRequest = posthogProxy\(\);/, site);
+    const routes = JSON.parse(readFileSync(new URL(`${site}/static/_routes.json`, apps), "utf8"));
+    assert.ok(routes.include.includes(`${POSTHOG_PATH}/*`), site);
+  }
 });
