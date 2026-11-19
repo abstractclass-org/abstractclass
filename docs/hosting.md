@@ -614,7 +614,7 @@ a push to `main` that the owner did not say to make. The owner's word to release
 ## Deploy, check and roll back
 
 - **Check the tests first:** release only a commit whose run of the workflow **Tests** passed (GitHub, the
-  repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs three jobs at the same
+  repository's **Actions** tab, or the mark beside the commit). On each push to `dev` it runs four jobs at the same
   time (`.github/workflows/tests.yml`). Each commit has its own run: a push cancels no run and waits for none, so each
   commit keeps its result. Each job builds the site as production does, with the practice games' storage on:
   - **`test (layout)` and `test (other)`, on Linux:** the two parts of the job `test`, each a job on its own runner with
@@ -629,10 +629,13 @@ a push to `main` that the owner did not say to make. The owner's word to release
   - **`test-windows`, on Windows:** the layout test in Playwright's own Chromium, with Windows' scroll bars, Windows'
     fonts (`system-ui` is Segoe UI there) and Windows' drawing of text. Linux does not show these. They change where
     text wraps or overflows.
+  - **`test-webkit`, on Linux:** the load notice's cases (tests/load-notice.spec.ts) in WebKit, Safari's engine, on
+    both sites. It runs only the engine and build steps of `check:all`. Its install of WebKit's system packages can
+    take half an hour, so it has a job and a time limit of its own: a slow install cannot stop the Chromium tests.
 
   The sweep loads each page at every width from 360 to 1,920 pixels, with real scroll bars (tests/layout.spec.ts). A
   failed run keeps the failures' screenshots for a week (the run's **Artifacts**: `browser-tests-layout` and
-  `browser-tests-other` for Linux, `layout-sweep-windows` for Windows).
+  `browser-tests-other` and `browser-tests-webkit` for Linux, `layout-sweep-windows` for Windows).
 
   Each job also serves Cyanotype's build (`apps/cyanotype`) on port 4174, beside the site's preview on port 4173, and
   sets `CYANOTYPE_BASE_URL=http://127.0.0.1:4174`. The build is the early access (`VITE_EDITION=early`), as the site's

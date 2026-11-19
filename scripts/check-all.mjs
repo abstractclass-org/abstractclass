@@ -6,6 +6,8 @@
 // Cyanotype is also built once without the key, for the check that such a build holds none of PostHog's code. A
 // failed step does not stop the steps after it, except an engine step: the others need its files.
 // The output ends with one line: `check:all: PASS` or `check:all: FAIL`, then each step with PASS, FAIL or SKIP.
+// `--only <step>,<step>` runs only the named steps, in the list's order: the workflow's job test-webkit takes the
+// engines and the builds of the browser tests from here, so that its builds are the ones that the other parts test.
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,7 +19,7 @@ const cyanotype = join(root, "apps/cyanotype");
 /** A made-up PostHog project key, in the form of a real one: `phc_` and 44 characters. */
 const TEST_POSTHOG_KEY = "phc_TEST0000000000000000000000000000000000000000";
 
-const steps = [
+const allSteps = [
   // No package.json with a key twice (a merge can leave two "dependencies" blocks), and the root scripts' own tests.
   { name: "json-keys", cwd: root, command: 'node --test "scripts/*.test.mjs" && node scripts/json-keys.mjs' },
   // Each jam site's engine lock has every kind of Hedge School's, or an exception that names the gap's issue (design
@@ -77,6 +79,16 @@ const steps = [
   },
   { name: "cyanotype-build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/cyanotype/build" },
 ];
+
+const onlyAt = process.argv.indexOf("--only");
+const only = onlyAt === -1 ? undefined : (process.argv[onlyAt + 1] ?? "").split(",").filter(Boolean);
+const unknown = only?.filter(name => !allSteps.some(step => step.name === name)) ?? [];
+if (only?.length === 0 || unknown.length > 0) {
+  console.error(`check:all: --only takes step names, from: ${allSteps.map(step => step.name).join(", ")}` +
+    (unknown.length > 0 ? `. Not a step: ${unknown.join(", ")}` : ""));
+  process.exit(2);
+}
+const steps = only ? allSteps.filter(step => only.includes(step.name)) : allSteps;
 
 const results = [];
 for (const step of steps) {

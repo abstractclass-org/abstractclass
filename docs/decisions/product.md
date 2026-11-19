@@ -12830,3 +12830,19 @@ insight's definition as PostHog holds it, and [docs/posthog/README.md](../postho
   0, each value takes the event of the first step. "By way in" showed `pasted_record` (one review, 7 min 42 s) and
   `userscript` (one review, 5 min 46 s) apart, and "By load" showed the import's review under none. A visitor who
   brings in games in two ways now counts under each way.
+
+### The WebKit cases in a CI job of their own (2026-11-19)
+
+- **Measured:** in the first run of the Tests workflow with WebKit in the part "other" (run 44431921317), the step
+  that installs Chromium and WebKit took 27.8 minutes, and the part took 51.7 of its 60 minutes. It took 23 to 29
+  before. apt fetched about 160 system packages for WebKit (GStreamer, fonts and others) from Ubuntu's mirror, with
+  30 to 180 seconds between packages. The runner's image does not hold them, and the cache of Playwright's browsers
+  holds only the browsers. The part "layout" installed Chromium's packages in 13 seconds in the same run.
+- **Chosen: a job of its own, `test-webkit`,** with a time limit of 45 minutes. It runs `npm ci`, the engines'
+  caches, only the engine and build steps of `check:all` (`--only`), the two previews and the project `webkit`. A
+  slow install there cannot stop the Chromium tests. The parts "layout" and "other" install only Chromium's headless
+  shell again. Each job keeps its own cache of Playwright's browsers.
+- **Rejected: a third part of the job `test`.** A part runs all of `check:all` (the type checks, the unit tests, a
+  third build of Cyanotype) and the Chromium steps, so it needs a condition on most of its steps.
+- **To measure:** the new job's time in two or three runs, and the part "other"'s time without WebKit. The
+  workflow's time comment takes them.
