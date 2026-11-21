@@ -91,9 +91,12 @@
              aria-label="Komi" aria-valuetext={komiHelp(choices.komi, bot)}
              class="w-full mt-1 accent-(--accent)"
              oninput={e => { komiTyped = null; choices.komi = e.currentTarget.valueAsNumber || 0; }} />
-      <!-- The slider's ends say whose head start each is, whatever colour each side plays. -->
-      <div class="flex justify-between text-xs text-muted tabular-nums">
-        <span>{bot} ahead</span><span>0</span><span>You ahead</span>
+      <!-- The slider's ends say whose head start each is, whatever colour each side plays. The two outer columns are
+           equal, so the 0 stands at the slider's middle, where the thumb stands at komi 0, whatever the bot's name. -->
+      <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-2 text-xs text-muted tabular-nums">
+        <span data-testid="komi-label-bot">{bot} ahead</span>
+        <span data-testid="komi-zero">0</span>
+        <span data-testid="komi-label-you" class="text-right">You ahead</span>
       </div>
     </div>
     <div class="py-1.5">
