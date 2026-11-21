@@ -92,9 +92,10 @@
              class="w-full mt-1 accent-(--accent)"
              oninput={e => { komiTyped = null; choices.komi = e.currentTarget.valueAsNumber || 0; }} />
       <!-- The slider's ends say whose head start each is, whatever colour each side plays. The two outer columns are
-           equal, so the 0 stands at the slider's middle, where the thumb stands at komi 0, whatever the bot's name. -->
+           equal, so the 0 stands at the slider's middle, where the thumb stands at komi 0, whatever the bot's name. A
+           name too long for its column wraps, and a word too long for it breaks, so the name does not run over the 0. -->
       <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-2 text-xs text-muted tabular-nums">
-        <span data-testid="komi-label-bot">{bot} ahead</span>
+        <span data-testid="komi-label-bot" class="wrap-break-word">{bot} ahead</span>
         <span data-testid="komi-zero">0</span>
         <span data-testid="komi-label-you" class="text-right">You ahead</span>
       </div>
