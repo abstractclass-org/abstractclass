@@ -82,3 +82,13 @@ test("a board's link refuses a komi beyond the game's limit, in the record's wor
   for (const beyond of [5000.5, -6000])
     assert.throws(() => read(beyond), (e: Error) => e.message === `the Komi tag must be from -5,000 to 5,000 points: ${beyond}`);
 });
+
+test("a board's link of a game of several board sizes: each size's komi limit, by the board's start", () => {
+  // Tak's limit depends on the size (Mistak's design 34, item 8): here 2 on 5x5 and 4 on 6x6, by the size's TPS.
+  const five = "x5/x5/x5/x5/x5 1 1", six = "x6/x6/x6/x6/x6/x6 1 1", bySize = (start: string | null) => (start === six ? 4 : 2);
+  const read = (start: string, komi: number) =>
+    readBoardLink(packedOf({ version: 2, main: [], nodes: [], start, komi }), null, WORDS, p => p ?? null, bySize);
+  assert.equal(read(six, 4).board.komi, 4);
+  assert.equal(read(five, -2).board.komi, -2);
+  assert.throws(() => read(five, 4), (e: Error) => e.message === "the Komi tag must be from -2 to 2 points: 4");
+});

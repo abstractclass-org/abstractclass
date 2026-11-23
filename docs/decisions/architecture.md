@@ -397,3 +397,29 @@ public repository and the history rewrites.
 - **Checked:** a search of `apps/*/src` and `packages/*/src` finds no import of `holdsGame` or `hashParams` from
   `importHash.ts`. Both checks pass on the repository. A new test gives the walker the files that it reads and the
   folders that it skips. An import of `@abstractclass/review` planted in the site's package still fails package-deps.
+
+### The shared packages take a game of several board sizes (2026-11-23)
+
+- **What:** the shared packages take a game with more than one board, for Mistak's 5x5 and 6x6 (design 34, "What
+  the sites share", items 1 and 8, abscls-shfz.18.8). The game interface gives each size's name and empty board
+  (`sizes`, `BoardSize`, in `packages/analysis/src/game.ts`).
+- **The key:** a Tak game's start is always a TPS, the empty board's for a game from the start. `keyMoves` keys a
+  start as a word of its own, so `a1` on 5x5 and `a1` on 6x6 key apart with no change to the key.
+- **The review's parts:** the stored review, the removal of earlier results, the review files, and the keys of a
+  game's line and of its snapshot took the standard start for every game. They now take the game's start where they
+  take its komi, as an optional field. A game of one board gives none, so Hedge School's and Cyanotype's keys stay as
+  they were.
+- **The komi limit of each size:** each check of a komi takes one number or a limit by the start (`KomiLimit`,
+  `limitAt`, in `packages/record/src/record.ts`): the record's reader (by its tags), a board's link, an analysis file
+  and the board kept in the browser. The record's reader checks a limit by the tags once the tags end, so the `Size`
+  tag can come after the `Komi` tag. A number limit is checked at the `Komi` tag, as before. The engine step keeps one
+  cap: the engine's `Rules::MAX_USER_KOMI` is one number for every size.
+- **Left for Practice's settings:** `practiceFrom`, `broughtLine` and `practiceHref`
+  (`packages/practice/src/practice.ts`), the practice game's start (`game.svelte.ts`) and `startTags`
+  (`packages/record/src/record.ts`) take any start as a set-up start. A size's empty board is its size's standard
+  start, so the work that puts the size into Practice's settings changes them.
+- **Left for Mistak's review page:** each site's review page keys its line and builds its analysis with the komi
+  alone (`lineKeyMoves`, `GameAnalysis`). Mistak's page passes the game's start to both.
+- **Checked:** new tests of the key of each size, of a reviewed game's line, snapshot and variations, of the removal
+  of earlier results, and of each size's komi limit in the record's reader, a board's link, an analysis file and the
+  kept board. The packages' other tests pass with no change.

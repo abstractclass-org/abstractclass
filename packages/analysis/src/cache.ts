@@ -46,10 +46,11 @@ export function atShape(entries: [string, unknown][]): [string, unknown][] {
  *  evaluations at a nonzero komi apart in the same way. From the standard start at komi 0, the moves alone. */
 export const keyMoves = (start: string | null, moves: string[], komi = 0) =>
   [...(start ? [`@${start.replaceAll(" ", "_")}`] : []), ...(komi ? [`komi=${komi}`] : []), ...moves];
-/** The moves part of each position's key on a game's line from the standard start, at `komi`: the start, then after
- *  each move. */
-export const lineKeyMoves = (moves: string[], komi = 0) =>
-  Array.from({ length: moves.length + 1 }, (_, i) => keyMoves(null, moves.slice(0, i), komi));
+/** The moves part of each position's key on a game's line from its `start`, at `komi`: the start, then after each
+ *  move. A reviewed game starts from the standard start (null), or a game of several board sizes from its size's
+ *  empty board (game.ts, BoardSize), so that its keys name the size. */
+export const lineKeyMoves = (moves: string[], komi = 0, start: string | null = null) =>
+  Array.from({ length: moves.length + 1 }, (_, i) => keyMoves(start, moves.slice(0, i), komi));
 /** The moves part of the key of a position's parent, from the moves part of its key: the key without its last move.
  *  Null at a start, the standard start ("") or a key of a set-up start's word and the komi's alone (keyMoves), which no
  *  move leads to. */
@@ -232,9 +233,11 @@ export async function snapshotSearch(search: string | undefined, model: string, 
 export const snapshotExcept = (why: "engine" | "network", site: string | null | undefined) =>
   (why === "engine" ? site ?? undefined : undefined);
 
-/** The positions whose results a review snapshot needs, by their keys' moves (keyMoves) at the game's `komi`: each one
- *  of the game's line after the start, which every game at that komi shares, up to the last before its last move. */
-export const snapshotPositions = (moves: string[], komi = 0) => lineKeyMoves(moves, komi).slice(1, -1);
+/** The positions whose results a review snapshot needs, by their keys' moves (keyMoves) at the game's `komi`, from its
+ *  `start` (lineKeyMoves): each one of the game's line after the start, which every game at that komi and start
+ *  shares, up to the last before its last move. */
+export const snapshotPositions = (moves: string[], komi = 0, start: string | null = null) =>
+  lineKeyMoves(moves, komi, start).slice(1, -1);
 
 /** snapshotSearch's choice among `keys`. `search`, when given, is the only search to take: the mark's. `holds`: how many
  *  of the positions it must hold, all of them by default. */

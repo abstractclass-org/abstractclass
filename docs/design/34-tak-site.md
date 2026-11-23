@@ -140,8 +140,12 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    values for a size or an opening that it did not learn, so its labels there would mislead. Takana reviews the
    double black stack opening too, and the site refuses it until the engine trains it. Each site's
    `scripts/engine.mjs` gives its komi limit, its record's `MAX_RECORD_KOMI`, to the engine step (`fetchEngine`).
-   Tak's limit depends on the size, so the work checks whether that step needs a limit for each size. Each new size
-   or opening that the engine learns is a new release of the site.
+   Tak's limit depends on the size. So each check of a komi (the record's reader, a board's link, an analysis file, the
+   board kept in the browser) takes a limit by the start (`KomiLimit`, `packages/record/src/record.ts`), and the
+   record's reader checks the `Komi` tag once the tags end, so that the `Size` tag can come after it. The engine
+   step needs no limit for each size: the engine's cap is one number for every size (`Rules::MAX_USER_KOMI`), and
+   each size's trained range lies within it. Each new size or opening that the engine learns is a new release of the
+   site.
 9. **Unfinished games, as on Hedge School.**
    - **The import and the review** take a record whose result is `*`, and review it as any game (design 21, item 8).
    - **The Analysis board** starts from any position, as on Hedge School (design 21): a game, the standard start of
@@ -402,11 +406,24 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
 **What Mistak is the first to need,** each in the package where it serves every game:
 
 1. **Board sizes:** a game with more than one board. The stored results' keys and the engine's query must name the
-   size: `a1` on 5x5 and on 6x6 are two moves. `keyMoves` (`packages/analysis/src/cache.ts`) keys a set-up start as
-   a word of its own, and a standard start as no word. So the work first checks the simplest form: a Tak game's start
-   is always a TPS, the empty board's for a game from the start, and the key needs no change. The game interface
-   then gives the empty board of each size. The Analysis board's New, the board editor and Practice's settings
-   choose the size.
+   size: `a1` on 5x5 and on 6x6 are two moves. The simplest form holds: a Tak game's start is always a TPS, the empty
+   board's for a game from the start. `keyMoves` (`packages/analysis/src/cache.ts`) keys a start as a word of its
+   own, so the key needs no change. The game interface gives the name and the empty board of each size (`sizes`,
+   design 29, item 2). The Analysis board's New, the board editor and Practice's settings choose the size.
+   - **The review's parts took the standard start for every game:** the stored review, the removal of earlier
+     results, the review files, and the keys of a game's line and of its snapshot. They now take the game's start
+     where they take its komi, so a reviewed game of a size keys its results from its size's empty board. A game of
+     one board gives none, and its keys stay as they were.
+   - **What still takes any start as a set-up start:** Practice's `practiceFrom` (the event's `set_up_start`),
+     `broughtLine` ("the Analysis board's set-up position") and the practice game's start (`game.svelte.ts`, which
+     sends any start to the site's `startProblem`). Also the start's address (`practiceHref`, `position=`) and a
+     record's tags (`startTags`, a `Position` tag), which work for an empty board but name it as a set-up start. By the
+     shared glossary, the standard start written in the position notation is no set-up start, and each size's empty
+     board is its size's standard start. The work that puts the size into Practice's settings takes the game's
+     `sizes` for each of these.
+   - **A site's own parts stay its own:** its game's id puts the start before the moves, as both sites' ids do. Its
+     review page passes the game's start to `lineKeyMoves` and to `GameAnalysis`, where both sites pass the komi
+     alone, and refuses a set-up start only (`setUpRefusal`).
 2. **Draws and results of several kinds** ("Draws"): the draw chance in the meter and the table, and a result that
    the game interface gives, beside the result by the scores.
 3. **Two plies a row in the move list,** with PTN's numbers, as Lichess shows chess. The game interface's `turn`

@@ -96,7 +96,9 @@ function store(id, file, bytes, compress = false) {
 
 /** The engine step, in the site's folder: gets, checks and stores the lock's files, then checks the modules in Node.
  *  `maxKomi` is the site's MAX_RECORD_KOMI, which each practice module's komi cap must be (practice-check.ts). The
- *  lock's engine modules must come from one engine commit (lock-check.ts, checkOneEngineCommit). */
+ *  cap is one number for every board size (the engine's Rules::MAX_USER_KOMI), so a game of several sizes gives it
+ *  here too: each size's own limit (Mistak's design 34, item 8) is the site's check, within the cap. The lock's engine
+ *  modules must come from one engine commit (lock-check.ts, checkOneEngineCommit). */
 export async function fetchEngine({ maxKomi }) {
   if (!(Number.isFinite(maxKomi) && maxKomi > 0))
     throw new Error(`fetchEngine needs the site's komi limit, its record's MAX_RECORD_KOMI (a number above 0), not ` +

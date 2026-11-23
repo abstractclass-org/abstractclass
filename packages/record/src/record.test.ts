@@ -126,6 +126,20 @@ test("a game's limit on the komi: a Komi tag beyond it is an error that names th
   assert.equal(read('[Komi "99999"]\n\n1. apple *').komi, 99999);
 });
 
+test("a game of several board sizes: each size's komi limit, by the record's tags, in either order", () => {
+  // Tak's limit depends on the size (Mistak's design 34, item 8): here 2 on 5x5 and 4 on 6x6, by a `Size` tag.
+  const bySize = (text: string) =>
+    readRecord(text, { ...words, maxKomi: tags => (tags.Size === "6" ? 4 : 2) });
+  assert.equal(bySize('[Size "6"]\n[Komi "4"]\n\n1. apple *').komi, 4);
+  assert.equal(bySize('[Komi "4"]\n[Size "6"]\n\n1. apple *').komi, 4); // the size after the komi
+  assert.equal(bySize('[Size "5"]\n[Komi "2"]\n\n1. apple *').komi, 2);
+  for (const text of ['[Size "5"]\n[Komi "4"]\n\n1. apple *', '[Komi "4"]\n[Size "5"]\n\n1. apple *'])
+    assert.throws(() => bySize(text), (e: unknown) => e instanceof RecordError &&
+      e.offset === text.indexOf("[Komi") && e.message === "the Komi tag must be from -2 to 2 points: 4");
+  // A record of tags alone ends its tags at its end: the komi's error comes before "no moves".
+  assert.throws(() => bySize('[Komi "4"]\n[Size "5"]'), /from -2 to 2 points/);
+});
+
 test("isKomi: a number that a Komi tag can give, whole or half points", () => {
   for (const n of [0, 300, -300, 120.5, -0.5, 99999.5]) assert.equal(isKomi(n), true, String(n));
   for (const n of [6.25, 1e6, NaN, Infinity, "300", null, undefined]) assert.equal(isKomi(n), false, String(n));

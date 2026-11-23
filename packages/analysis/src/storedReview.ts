@@ -45,6 +45,9 @@ export interface ReviewFromStore<G extends GameTypes> {
   id: string; // the game's id in the store
   moves: string[];
   komi: number;
+  // The game's start: a game of several board sizes starts from its size's empty board (game.ts, BoardSize), which its
+  // results' keys name. None: the standard start.
+  start?: string | null;
   open(g: GameAnalysis<G>, visits: number, search: string, model: string): Promise<string | null>;
 }
 
@@ -62,13 +65,15 @@ export async function annotatedFromStore<G extends GameTypes>(stored: ReviewFrom
   const pool = new EnginePool(0); // the rules alone: no search
   try {
     await pool.start(manifest, network);
-    const game = new GameAnalysis(stored.game, pool, stored.moves, stored.id, null, { komi: stored.komi });
+    const start = stored.start ?? null, game = new GameAnalysis(stored.game, pool, stored.moves, stored.id, start, {
+      komi: stored.komi,
+    });
     const problem = await stored.open(game, visits, pool.search!, model.sha256);
     if (problem !== null) throw new Error(problem);
     const data = game.data(players);
     if (!data) throw new Error("the engine could not read this game");
     // A game this browser has not reviewed with the current engine and network, or only in part: the review page
-    // reviews it. The start is left out: every game shares it, so another game's review stores it.
+    // reviews it. The start is left out: every game (of its size) shares it, so another game's review stores it.
     const own = data.analysis.slice(1, data.moves.length), found = own.filter(a => a).length;
     if (found === 0) throw new Error("open the game to review it first");
     if (found < own.length) throw new Error("open the game to finish its review first");
@@ -81,19 +86,20 @@ export async function annotatedFromStore<G extends GameTypes>(stored: ReviewFrom
 /** Opens a game's last review, by an earlier engine or network file (`why`), as it was (Hedge School's design 20): the
  *  engine's rules alone (`rules`, a pool of none of the engine's search workers), no network, and the stored results of
  *  the mark's search, which hold the game's line at the review's depth. For an older mark, which names no search, the
- *  search that holds it. The start is left out of that test: every game shares it. So are the positions whose values
- *  the site's step gave (Hedge School's opening book, its design 32): the review took their values there, and the
- *  review snapshot takes them as the review did. `step` is the site's step after the rules (startStored, at the mark's
- *  depth). Answers the review's analysis, frozen (GameAnalysis.freeze), or null when the store lacks the results, the
- *  rules refuse the game or the site's step does: the caller then ends `rules`. */
+ *  search that holds it. The start is left out of that test: every game (of its size) shares it. So are the positions
+ *  whose values the site's step gave (Hedge School's opening book, its design 32): the review took their values there,
+ *  and the review snapshot takes them as the review did. `step` is the site's step after the rules (startStored, at the
+ *  mark's depth). Answers the review's analysis, frozen (GameAnalysis.freeze), or null when the store lacks the
+ *  results, the rules refuse the game or the site's step does: the caller then ends `rules`. */
 export async function openSnapshot<G extends GameTypes>(stored: Omit<ReviewFromStore<G>, "open">, rules: EnginePool, manifest: Manifest,
                                                         network: string, mark: ReviewMark, why: "engine" | "network",
                                                         step: StoredStep<G>): Promise<GameAnalysis<G> | null> {
   // The store is read while the rules worker starts: an earlier engine's search is not the site's. The positions that
   // the test needs come once the rules give the game's positions and the site's step its values there.
   const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
-  const g = new GameAnalysis(stored.game, rules, stored.moves, stored.id, null, { komi: stored.komi });
-  const line = snapshotPositions(stored.moves, stored.komi);
+  const start = stored.start ?? null;
+  const g = new GameAnalysis(stored.game, rules, stored.moves, stored.id, start, { komi: stored.komi });
+  const line = snapshotPositions(stored.moves, stored.komi, start);
   let taken = false;
   // An older mark, which names no search, is older than the book: its review searched every position, and the removal
   // of earlier results keeps them by that rule (Hedge School's earlierResults.ts)

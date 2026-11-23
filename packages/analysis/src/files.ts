@@ -10,7 +10,7 @@
 import { atShape, isAnalysisKey, ofModels, parentKeyMoves, readAnalysisKey, readable } from "./cache.ts";
 import { boardLines, type KeptBoard } from "./kept.ts";
 import { boardPositionKeys } from "./boardLink.ts";
-import { isKomi, komiLimitProblem } from "@abstractclass/record/record.ts";
+import { isKomi, komiLimitProblem, limitAt, type KomiLimit } from "@abstractclass/record/record.ts";
 import { STORES, dbEntriesWhere, dbPutMany } from "@abstractclass/storage/db.ts";
 import { modelOf, moduleOf, type Manifest } from "@abstractclass/engine/client.ts";
 import { errorSentence, errorText } from "@abstractclass/engine/errors.ts";
@@ -176,10 +176,10 @@ export function analysisFileName(format: string, now = new Date()): string {
 /** Reads an analysis file of `site` in `format`. Throws an Error that tells the player what is wrong. Its version rule
  *  is the review file's (Hedge School's design 13). A board's komi is a number of whole or half points, as a record's
  *  `Komi` tag is (Hedge School's design 24). It is within the game's limit `maxKomi`, either way (its record's
- *  `MAX_RECORD_KOMI`, its engine's cap): beyond it, the analysis module searches with no error, but its numbers mean
- *  nothing. A site reads the file before it keeps its results (keepAnalyses), so a file that the board cannot open
- *  puts none in the store. */
-export function readAnalysisFile(text: string, site: string, format: string, maxKomi: number): AnalysisFile {
+ *  `MAX_RECORD_KOMI`, its engine's cap), at the board's start (KomiLimit): beyond it, the analysis module searches
+ *  with no error, but its numbers mean nothing. A site reads the file before it keeps its results (keepAnalyses), so
+ *  a file that the board cannot open puts none in the store. */
+export function readAnalysisFile(text: string, site: string, format: string, maxKomi: KomiLimit): AnalysisFile {
   const f = readSiteFile(text, site, format, ANALYSIS_FILE_VERSION, "analysis file") as Partial<AnalysisFile> & { analyses: [string, unknown][] };
   const b = f.board;
   const boardOk = !!b && b.version === 2 && Array.isArray(b.main) && b.main.every(m => typeof m === "string") && Array.isArray(b.nodes) &&
@@ -187,7 +187,8 @@ export function readAnalysisFile(text: string, site: string, format: string, max
     (b.start === undefined || typeof b.start === "string") &&
     (b.komi === undefined || isKomi(b.komi));
   if (!boardOk) throw new Error(`${site} cannot read the analysis file's lines.`);
-  const komi = b.komi ?? 0, beyond = komiLimitProblem(komi, maxKomi, komi, "the analysis file's komi");
+  const komi = b.komi ?? 0, max = limitAt(maxKomi, b.start ?? null);
+  const beyond = komiLimitProblem(komi, max, komi, "the analysis file's komi");
   if (beyond) throw new Error(beyond);
   // An engine that the reader cannot use is as none: the results' keys then give the network (fileNetwork).
   const e = f.engine as Partial<FileEngine> | null | undefined;

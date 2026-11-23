@@ -60,3 +60,21 @@ test("the removal takes the results that no game needs, and keeps the site's own
   assert.equal(earlierRemovalDue(engineFiles(ENGINE)), false);
   assert.equal(earlierRemovalDue("m3 b2 b3"), true);
 });
+
+test("a game of several board sizes: the removal keeps what its review snapshot reads from its size's empty board", async () => {
+  // A site whose records give the game's start: its size's empty board (game.ts, BoardSize). "6: a b c" is a game on
+  // the board "six" (Mistak's design 34, "What the sites share", item 1).
+  const sized = gameStore<{ moves: string[]; start: string }>({
+    parse: text => ({ start: text.slice(0, text.indexOf(":")), moves: text.slice(text.indexOf(":") + 2).split(" ") }),
+    id: record => `w-${record.start}-${record.moves.join("")}`, lastReviewKey: "words:last-review:1",
+  });
+  for (const s of [STORES.games, STORES.branches, STORES.analysis]) db.rows(s).clear();
+  const mark = { module: "m1", model: "b2", network: "net", visits: 512, at: "2026-11-01T00:00:00Z", search: "s1" };
+  db.rows(STORES.games).set("w-6-abc", { record: "6: a b c", added: "2026-11-01T00:00:00Z", reviewed: mark });
+  const from = (start: string) => LINE.map(m => [`@${start}`, ...m]);
+  // The same moves on the other size are another game's positions, which no stored game needs.
+  const read = results("s1", from("6")), other = results("s1", from("5"));
+  for (const key of [...read, ...other]) db.rows(STORES.analysis).set(key, {});
+  await removeUnneeded(engineFiles(ENGINE), ENGINE, sized.readGames);
+  assert.deepEqual([...db.rows(STORES.analysis).keys()].sort(), [...read].sort());
+});

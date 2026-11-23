@@ -2,7 +2,7 @@
 // and the Analysis board's tree under BOARD_ID, both in the `branches` store (@abstractclass/storage/db.ts). A site's
 // store of games re-exports these (Hedge School's src/lib/game/store.ts).
 import { errorSentence } from "@abstractclass/engine/errors.ts";
-import { komiLimitProblem } from "@abstractclass/record/record.ts";
+import { komiLimitProblem, limitAt, type KomiLimit } from "@abstractclass/record/record.ts";
 import { keyMoves } from "./cache.ts";
 import { pathKey, prefixKeys } from "./tree.ts";
 
@@ -38,12 +38,12 @@ export const keptShipped = (board: KeptBoard | null, ships: (network: string) =>
   (board?.network && !ships(board.network) ? boardLines(board) : board);
 
 /** Why the board kept here cannot open at its komi, or null: a komi beyond the game's limit `maxKomi`, either way (its
- *  record's `MAX_RECORD_KOMI`, its engine's cap). Each game's analysis module searches beyond the cap with no error,
- *  but its numbers there mean nothing (Hedge School's design 24). A link kept a board before the link's check of the
- *  limit (boardLink.ts, readBoardLink). The record's words name the komi as the board's: "its komi must be from -5,052
- *  to 5,052 points: 6000". */
-export const keptKomiProblem = (board: KeptBoard | null, maxKomi: number): string | null =>
-  board?.komi ? komiLimitProblem(board.komi, maxKomi, board.komi, "its komi") : null;
+ *  record's `MAX_RECORD_KOMI`, its engine's cap), at the board's start (KomiLimit). Each game's analysis module
+ *  searches beyond the cap with no error, but its numbers there mean nothing (Hedge School's design 24). A link kept a
+ *  board before the link's check of the limit (boardLink.ts, readBoardLink). The record's words name the komi as the
+ *  board's: "its komi must be from -5,052 to 5,052 points: 6000". */
+export const keptKomiProblem = (board: KeptBoard | null, maxKomi: KomiLimit): string | null =>
+  board?.komi ? komiLimitProblem(board.komi, limitAt(maxKomi, board.start ?? null), board.komi, "its komi") : null;
 
 /** The Analysis board's notice of the board kept here that cannot open, from its `problem` (keptKomiProblem, or a
  *  site's own check), ended by one period. A new board opens in its place, and the notice says so. Where a board

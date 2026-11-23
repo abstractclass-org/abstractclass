@@ -3,7 +3,7 @@
 // keep theirs. The main line is the first line from the start, as the board keeps it (GameAnalysis.reindex). A set-up
 // start goes in the link's tags as `Position`, and a komi as `Komi` (Hedge School's design 24), as a record carries
 // them. Each site packs its own moves (MoveCode).
-import { komiLimitProblem, komiOf, startTags } from "@abstractclass/record/record.ts";
+import { komiLimitProblem, komiOf, limitAt, startTags, type KomiLimit } from "@abstractclass/record/record.ts";
 import { positionKeys, type KeptBoard } from "./kept.ts";
 import { decodeShare, encodeShare, type MoveCode } from "./share.ts";
 
@@ -30,14 +30,15 @@ export const linkAt = (at: string | null): number => Math.max(0, Math.floor(Numb
 
 /** A board from a link's `packed` and `at`. `start` reads the link's `Position` tag as the board's set-up start: none
  *  for the standard start. The `Komi` tag is the board's komi: none for 0. `maxKomi` is the game's komi limit, either
- *  way (its record's `MAX_RECORD_KOMI`, its engine's cap): beyond it, the analysis module searches with no error, but
- *  its numbers mean nothing (Hedge School's design 24). Throws an Error that says what is wrong with the link. */
+ *  way (its record's `MAX_RECORD_KOMI`, its engine's cap), at the board's start (KomiLimit): beyond it, the analysis
+ *  module searches with no error, but its numbers mean nothing (Hedge School's design 24). Throws an Error that says
+ *  what is wrong with the link. */
 export function readBoardLink(packed: string, at: string | null, code: MoveCode,
                               start: (position: string | undefined) => string | null | undefined,
-                              maxKomi: number): { board: KeptBoard; at: number } {
+                              maxKomi: KomiLimit): { board: KeptBoard; at: number } {
   const s = decodeShare(packed, code), from = start(s.tags.Position), komi = komiOf(s.tags.Komi);
   if (komi === null) throw new Error(`the link's komi is not a number of points, whole or half: ${s.tags.Komi}`);
-  const beyond = komiLimitProblem(komi, maxKomi, s.tags.Komi ?? komi);
+  const beyond = komiLimitProblem(komi, limitAt(maxKomi, from ?? null), s.tags.Komi ?? komi);
   if (beyond) throw new Error(beyond);
   return { board: { version: 2, main: [], nodes: s.branches, ...(from ? { start: from } : {}), ...(komi ? { komi } : {}) },
            at: linkAt(at) };

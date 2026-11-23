@@ -7,7 +7,7 @@ import { analysisKey } from "./cache.ts";
 import { ANALYSIS_FILE_VERSION, addressNetwork, belongs, boardNetwork, boardRefusal, exportAnalysis, fileEngine, fileKind,
          fileNetwork, loadBoardFile, loadReviewTabFile, readAnalysisFile, withNetwork, type AnalysisFile } from "./files.ts";
 import type { Manifest } from "@abstractclass/engine/client.ts";
-import type { KeptBoard } from "./kept.ts";
+import { keptKomiProblem, type KeptBoard } from "./kept.ts";
 import { STORES, dbPut } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
@@ -58,6 +58,17 @@ test("an analysis file whose komi is beyond the game's limit says so (Hedge Scho
   assert.equal(readAnalysisFile(file({ ...board, komi: -5000 }), "Test", FORMAT, 5000).board.komi, -5000);
   assert.throws(() => readAnalysisFile(file({ ...board, komi: 5000.5 }), "Test", FORMAT, 5000),
     (e: Error) => e.message === "the analysis file's komi must be from -5,000 to 5,000 points: 5000.5");
+});
+
+test("a game of several board sizes: an analysis file's and a kept board's komi within their size's limit", () => {
+  // Tak's limit depends on the size (Mistak's design 34, item 8): here 2 on 5x5 and 4 on 6x6, by the size's TPS.
+  const five = "x5/x5/x5/x5/x5 1 1", six = "x6/x6/x6/x6/x6/x6 1 1", bySize = (start: string | null) => (start === six ? 4 : 2);
+  const board = (start: string, komi: number): KeptBoard => ({ version: 2, main: [], nodes: [], start, komi });
+  assert.equal(readAnalysisFile(file(board(six, 4)), "Test", FORMAT, bySize).board.komi, 4);
+  assert.throws(() => readAnalysisFile(file(board(five, 4)), "Test", FORMAT, bySize),
+    (e: Error) => e.message === "the analysis file's komi must be from -2 to 2 points: 4");
+  assert.equal(keptKomiProblem(board(six, -4), bySize), null);
+  assert.equal(keptKomiProblem(board(five, -4), bySize), "its komi must be from -2 to 2 points: -4");
 });
 
 const MANIFEST = { artifacts: [{ kind: "module", sha256: "m1", search: "s1" },

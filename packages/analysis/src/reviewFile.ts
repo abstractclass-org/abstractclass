@@ -40,8 +40,12 @@ export function gameAnalyses(entries: [string, unknown][], positions: Set<string
 /** The CPU modules of a manifest's search, by SHA-256: a file's review counts as done where it ran with one. */
 export const shippedModules = (manifest: Manifest | null) => (manifest ? searchModules(manifest) : null);
 
+/** A game's record as the review files read it: its moves, its komi, and its start, which its results' keys name (a
+ *  game of several board sizes: its size's empty board, game.ts, BoardSize; none: the standard start). */
+export interface FileRecord { moves: string[]; komi: number; start?: string | null }
+
 /** What a site gives its review files. */
-export interface ReviewFileSite<R extends { moves: string[]; komi: number }> {
+export interface ReviewFileSite<R extends FileRecord> {
   name: string; // the site's name, which the files' texts give: "Hedge School"
   format: string; // the files' format: "hedge-school-review"
   prefix: string; // the start of a file's name: "hedge-school"
@@ -55,16 +59,16 @@ export interface ReviewFileSite<R extends { moves: string[]; komi: number }> {
 }
 
 /** A site's review files. */
-export function reviewFiles<R extends { moves: string[]; komi: number }>(site: ReviewFileSite<R>) {
+export function reviewFiles<R extends FileRecord>(site: ReviewFileSite<R>) {
   /** The review file of a game, its record and its variations, with its results among `entries` (of `models` when
    *  given). `version` is the site's version, which the file names. `reviewed`: the game's mark. */
   function build(record: string, branches: KeptBranches | null, entries: [string, unknown][], version: string,
                  models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
-    const { moves, komi } = site.parse(record);
+    const { moves, komi, start = null } = site.parse(record);
     return {
       format: site.format, version: REVIEW_FILE_VERSION, exported: now.toISOString(), site: version,
       review: reviewed && { ...reviewed, networkName: site.networkName(reviewed.network) }, record, branches,
-      analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches, komi), models)),
+      analyses: atShape(gameAnalyses(entries, positionKeys(moves, branches, komi, start), models)),
     };
   }
 
@@ -137,7 +141,7 @@ export function reviewFiles<R extends { moves: string[]; komi: number }>(site: R
       const stored = await site.loadGame(id);
       if (!stored) throw new Error(`This browser has no game ${id}.`);
       const branches = (await dbGet<KeptBranches>(STORES.branches, id)) ?? null;
-      const positions = positionKeys(stored.record.moves, branches, stored.record.komi);
+      const { moves, komi, start = null } = stored.record, positions = positionKeys(moves, branches, komi, start);
       const entries = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
       return build(stored.game.record, branches, entries, version, models, stored.game.reviewed ?? null);
     },

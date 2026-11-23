@@ -154,7 +154,9 @@ edit in the same commit), so their changes still apply.
      scoreScale: number;                         // the engine's points per Go point (KataGame's SCORE_SCALE)
      afterKey?(move: G["move"], before: G["position"]): string; // the position after a move, as a key (none: its name)
      enginePosition?(start: string): string;     // the engine's position for a set-up start in the notation (none: the notation's)
+     sizes?: readonly BoardSize[];               // a game of several board sizes: each size's name and empty board (none: one board)
    }
+   interface BoardSize { name: string; start: string } // "6x6", and its empty board in the position notation
    ```
 
    - **The board's drawing, the notation's texts and the import stay in the site.** The interface carries only what
@@ -167,6 +169,14 @@ edit in the same commit), so their changes still apply.
      (`edgeName`) puts the lower point first: it is the edge's one spelling. A move's name has no space (a path in the
      tree joins the names with spaces), is not "pass", and does not start with "@" (the cache's mark of a set-up
      start).
+   - **A game of several board sizes** (Tak's 5x5 and 6x6) gives the name and the empty board of each size
+     (`sizes`). Each of its games keeps its size's empty board as its start, a reviewed game too. So the queries and
+     the stored results' keys name the size: `a1` on 5x5 and `a1` on 6x6 are two positions. The review's parts take
+     the start where they take the komi: the stored review (`ReviewFromStore`), the removal of earlier results
+     (`ReadGames`), the review files (`FileRecord`), and the keys of a game's line and of its snapshot
+     (`lineKeyMoves`, `snapshotPositions`). A game of one board gives no start there, and its keys stay as they were.
+     The komi limit can depend on the size: each check of a komi takes one number or a limit by the start
+     (`KomiLimit`, in the record package).
    - **The turn structure comes from the positions:** each position says who moves next (`player`), and a turn is a
      run of one player's moves. `turn` gives only the notation's numbers. Enclosure's first turn has one edge, then
      two a turn. A game of one move a turn numbers each move.

@@ -17,10 +17,11 @@ import { shippedModels } from "./files.ts";
 import { reviewAgainWhy, reviewMark, type ReviewMark, type StoredGame } from "./games.ts";
 
 /** A site's reader of its stored games (gameStore's readGames): each entry of the store with its record read, the
- *  moves and the komi among them, and its id, which a game that a site kept before it had a list of games takes from
- *  its key. It leaves out a game whose record does not read: such a game cannot open, so it needs no result. */
-export type ReadGames =
-  (entries: [string, unknown][]) => { game: StoredGame; record: { moves: string[]; komi?: number } }[];
+ *  moves, the komi and the start among them (a game of several board sizes: its size's empty board, game.ts,
+ *  BoardSize), and its id, which a game that a site kept before it had a list of games takes from its key. It leaves
+ *  out a game whose record does not read: such a game cannot open, so it needs no result. */
+export type ReadGames = (entries: [string, unknown][]) =>
+  { game: StoredGame; record: { moves: string[]; komi?: number; start?: string | null } }[];
 
 /** Removes the stored results that no game needs (unneededResults), in one transaction with the read of the games, their
  *  variations and the results' keys. `files` are the site's engine files (cache.ts, engineFiles), which the browser's
@@ -34,12 +35,14 @@ function keptGames(games: [string, unknown][], branches: [string, unknown][], re
   const branchesOf = new Map(branches);
   return readGames(games).map(({ game, record }) =>
     ({ moves: record.moves, branches: (branchesOf.get(game.id) as KeptBranches | undefined) ?? null, mark: game.reviewed,
-       komi: record.komi }));
+       komi: record.komi, start: record.start ?? null }));
 }
 
 /** A stored game as the removal reads it: its moves, its variations, the mark of its last review, and its komi (its
- *  record's, Hedge School's design 24), which its results' keys name. */
-export interface KeptGame { moves: string[]; branches: KeptBranches | null; mark?: ReviewMark; komi?: number }
+ *  record's, Hedge School's design 24) and its start (ReadGames), which its results' keys name. */
+export interface KeptGame {
+  moves: string[]; branches: KeptBranches | null; mark?: ReviewMark; komi?: number; start?: string | null;
+}
 
 /** The stored results that nothing reads, among `keys` (in the store's order): of a shape that the readers read
  *  (readable), neither of the site's search with a network file it ships nor read by a stored game's review snapshot. A
@@ -67,12 +70,12 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
   // The positions that the review snapshots read, by the search and the network file of their results, each with the review
   // depths of the games that read it.
   const snapshotReads = new Map<string, Map<string, Set<number>>>();
-  for (const { moves, branches, mark, komi = 0 } of games) {
+  for (const { moves, branches, mark, komi = 0, start = null } of games) {
     if (!mark) continue;
     // A review snapshot opens where the site would review the game again (storedReview.ts, openSnapshot).
     const why = reviewAgainWhy(mark, reviewMark(engine, mark.network, mark.visits));
     if (!why) continue;
-    const line = snapshotPositions(moves, komi);
+    const line = snapshotPositions(moves, komi, start);
     const ofLine = line.flatMap(m => atMoves.get(m.join(" ")) ?? []).sort((a, b) => a - b).map(i => keys[i]);
     // A review that took the book's values holds no result at the positions that the book holds, and the review
     // snapshot leaves them out of its test (Hedge School's design 32, "A book position's values"). The removal reads no
@@ -82,7 +85,8 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
                                mark.search === undefined ? line.length : 1);
     if (held === undefined) continue;
     const at = `${held}|${mark.model}`, positions = snapshotReads.get(at) ?? new Map<string, Set<number>>();
-    for (const p of positionKeys(moves, branches, komi)) positions.set(p, (positions.get(p) ?? new Set()).add(mark.visits));
+    for (const p of positionKeys(moves, branches, komi, start))
+      positions.set(p, (positions.get(p) ?? new Set()).add(mark.visits));
     snapshotReads.set(at, positions);
   }
   // The review depths that read a stored key's position (search, network file and moves): a review snapshot reads the

@@ -38,10 +38,20 @@ export interface Notation<Mark> {
   start?(tags: Record<string, string>): { turn: number; first: boolean };
   /** The largest komi, either way, that the game's engine takes: its cap, past which a practice module refuses the
    *  komi. The reader refuses a `Komi` tag beyond it: the analysis module searches there with no error, but its
-   *  numbers mean nothing (Hedge School's design 24). Without it, the reader takes any komi that a tag can give
-   *  (KOMI). */
-  maxKomi?: number;
+   *  numbers mean nothing (Hedge School's design 24). A game of several board sizes gives the limit by the record's
+   *  tags (KomiLimit), and the reader checks the komi when the tags end, so that a size's tag can come after it.
+   *  Without it, the reader takes any komi that a tag can give (KOMI). */
+  maxKomi?: KomiLimit<Record<string, string>>;
 }
+
+/** A game's komi limit, either way, as a check of a komi takes it: one number, or the limit at each start, for a game
+ *  whose limit depends on the board's size (Tak: each size's trained range, Mistak's design 34, item 8). `S` is what
+ *  the check knows of the start: a record's tags, or a board's start in the position notation (null: the standard
+ *  start). */
+export type KomiLimit<S = string | null> = number | ((start: S) => number);
+
+/** The komi limit at the start `start` (KomiLimit). */
+export const limitAt = <S>(limit: KomiLimit<S>, start: S): number => (typeof limit === "number" ? limit : limit(start));
 
 export interface GameRecord<Mark> {
   tags: Record<string, string>;
@@ -173,6 +183,15 @@ function readCommands<Mark>(comment: string, record: GameRecord<Mark>, move: num
 export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRecord<Mark> {
   const record: GameRecord<Mark> = { tags: {}, moves: [], marked: [], ends: [], result: null, evals: [], clocks: [], komi: 0 };
   let depth = 0, expectedTurn: number | null = null; // the next turn's number, once the first turn sets it
+  // The Komi tag until the reader checks its limit: at the tag for one limit, and when the tags end for a limit by
+  // the tags.
+  let komiTag: { value: string; at: number } | null = null;
+  const checkKomi = () => {
+    if (!komiTag) return;
+    const beyond = komiLimitProblem(record.komi, limitAt(notation.maxKomi ?? Infinity, record.tags), komiTag.value);
+    if (beyond) throw new RecordError(beyond, komiTag.at);
+    komiTag = null;
+  };
   for (const t of tokenize(text)) {
     if (t.kind === "open") { depth++; continue; }
     if (t.kind === "close") {
@@ -191,14 +210,15 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
         const komi = komiOf(t.value);
         if (komi === null)
           throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
-        const beyond = komiLimitProblem(komi, notation.maxKomi ?? Infinity, t.value);
-        if (beyond) throw new RecordError(beyond, t.at);
         record.komi = komi;
+        komiTag = { value: t.value, at: t.at };
+        if (typeof notation.maxKomi !== "function") checkKomi();
       }
       record.tags[t.name] = t.value;
     } else if (t.kind === "comment") {
       if (record.moves.length) readCommands(t.text, record, record.moves.length - 1);
     } else {
+      checkKomi(); // the tags end at the first word
       const w = t.text;
       if (record.result !== null) throw new RecordError(`nothing may follow the result (${record.result})`, t.at);
       const turn = TURN.exec(w);
@@ -230,6 +250,7 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
       }
     }
   }
+  checkKomi(); // a record of tags alone
   if (depth > 0) throw new RecordError("a ( has no closing )", text.length);
   if (!record.moves.length) throw new RecordError("the record has no moves", 0);
   record.evals.length = record.clocks.length = record.moves.length;

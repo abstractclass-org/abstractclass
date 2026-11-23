@@ -222,7 +222,9 @@ export class GameAnalysis<G extends GameTypes> {
   readonly board: boolean; // the Analysis board's form (design 21)
   private readonly viewValues: AnalysisOptions["viewValues"] | null; // the board's own values for its view (AnalysisOptions)
   private readonly fixedMain: boolean; // the main line ends where the page sets it (AnalysisOptions)
-  readonly startPosition: string | null; // the board's set-up start, in the notation: the standard start when null
+  // The board's start in the notation: a set-up start, or the standard start of a game's size, its empty board
+  // (game.ts, BoardSize). Null for the standard start of a game of one board
+  readonly startPosition: string | null;
   readonly komi: number; // the game's komi, Red's starting score (AnalysisOptions)
   // The board's main-line moves that the player asked to evaluate, by path key: only these have labels. A variation node
   // keeps its own flag (judged).
@@ -233,7 +235,7 @@ export class GameAnalysis<G extends GameTypes> {
   private batchSteps: (() => void)[] = [];
   private batchTimer?: ReturnType<typeof setTimeout>;
 
-  /** The analysis of the moves `moves` of `game`, from `startPosition` (the board's set-up start), whose tree is kept
+  /** The analysis of the moves `moves` of `game`, from `startPosition` (the board's start), whose tree is kept
    *  under `id`: the game's id (the site's store), or BOARD_ID for the Analysis board, which takes the board's form. A
    *  board kept under another id takes the form by `options` (AnalysisOptions `board`). */
   constructor(game: Game<G>, pool: EnginePool, moves: string[], id: string, startPosition: string | null = null,

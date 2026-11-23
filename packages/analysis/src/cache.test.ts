@@ -4,8 +4,10 @@
 // shape that they read is found, and the removal of older shapes takes the others, once. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAP_VISITS, SHAPE, analysisKey, cacheGetAtLeast, isAnalysisKey, isOlderShape, mapGet, mapKey, mapPut, removalDue, searchHolding,
-         snapshotSearch } from "./cache.ts";
+import { MAP_VISITS, SHAPE, analysisKey, cacheGetAtLeast, isAnalysisKey, isOlderShape, keyMoves, lineKeyMoves, mapGet, mapKey,
+         mapPut, parentKeyMoves, removalDue, searchHolding, snapshotPositions, snapshotSearch } from "./cache.ts";
+import type { BoardSize } from "./game.ts";
+import { positionKeys } from "./kept.ts";
 import { STORES } from "@abstractclass/storage/db.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
 
@@ -144,4 +146,29 @@ test("a map added to a stored review is kept beside the results, under its own m
 test("a review snapshot never takes the added maps as a search", () => {
   const maps = line.map(m => mapKey("s1", "n1", m)).map(k => k.replace(`|${MAP_VISITS}|`, "|512|"));
   assert.equal(searchHolding(maps, "n1", line, 512), undefined);
+});
+
+// A game of several board sizes (Mistak's design 34, "What the sites share", item 1): Tak's empty boards, in TPS, as
+// the game gives them (game.ts, BoardSize). A game from the empty board keeps it as its start.
+const sizes: BoardSize[] = [{ name: "5x5", start: "x5/x5/x5/x5/x5 1 1" }, { name: "6x6", start: "x6/x6/x6/x6/x6/x6 1 1" }];
+const [five, six] = sizes.map(s => s.start);
+
+test("a game of several board sizes: a1 on 5x5 and a1 on 6x6 key apart, each by its size's empty board", () => {
+  assert.equal(analysisKey("s1", "n1", keyMoves(five, ["a1"]), 512), "5|s1|n1|512|@x5/x5/x5/x5/x5_1_1 a1");
+  assert.equal(analysisKey("s1", "n1", keyMoves(six, ["a1"]), 512), "5|s1|n1|512|@x6/x6/x6/x6/x6/x6_1_1 a1");
+  // A1's parent is the size's empty board, which no move leads to.
+  assert.equal(parentKeyMoves("@x6/x6/x6/x6/x6/x6_1_1 a1"), "@x6/x6/x6/x6/x6/x6_1_1");
+  assert.equal(parentKeyMoves("@x6/x6/x6/x6/x6/x6_1_1"), null);
+});
+
+test("a reviewed game of a size: its line's keys, its snapshot's and its variations' name the size", () => {
+  assert.deepEqual(lineKeyMoves(["a1", "f6"], 0, five),
+    [["@x5/x5/x5/x5/x5_1_1"], ["@x5/x5/x5/x5/x5_1_1", "a1"], ["@x5/x5/x5/x5/x5_1_1", "a1", "f6"]]);
+  assert.deepEqual(snapshotPositions(["a1", "f6", "e5"], 2, six),
+    [["@x6/x6/x6/x6/x6/x6_1_1", "komi=2", "a1"], ["@x6/x6/x6/x6/x6/x6_1_1", "komi=2", "a1", "f6"]]);
+  assert.deepEqual(positionKeys(["a1"], { version: 2, nodes: [["b2", 0]] }, 0, five),
+    new Set(["@x5/x5/x5/x5/x5_1_1", "@x5/x5/x5/x5/x5_1_1 a1", "@x5/x5/x5/x5/x5_1_1 b2"]));
+  // A game of one board keeps its keys from the standard start, as before.
+  assert.deepEqual(lineKeyMoves(["a1"]), [[], ["a1"]]);
+  assert.deepEqual(snapshotPositions(["a1", "b2", "c3"], 2), [["komi=2", "a1"], ["komi=2", "a1", "b2"]]);
 });

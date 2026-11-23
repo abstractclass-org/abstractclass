@@ -63,8 +63,19 @@ export interface Moves<M> {
   mapOf?(ownership: number[], view: EngineView | undefined): number[];
 }
 
+/** A board size of a game that has several (Tak's 5x5 and 6x6: Mistak's design 34, "What the sites share", item 1):
+ *  its name as the site writes it ("6x6"), and its empty board, the standard start of that size, in the position
+ *  notation (Tak's TPS). */
+export interface BoardSize { name: string; start: string }
+
 /** A game, as the analysis and the review compute with it. */
 export interface Game<G extends GameTypes> extends Moves<G["move"]> {
+  /** The board sizes of a game that has several. Each game, a reviewed one too, keeps its size's empty board as its
+   *  start, so that the engine's queries and the stored results' keys name the size (cache.ts, keyMoves): `a1` on 5x5
+   *  and on 6x6 are two positions. The review passes that start where it passes the komi (storedReview.ts,
+   *  ReviewFromStore; earlierResults.ts, ReadGames; reviewFile.ts). None: the game has one board, and its standard
+   *  start is written as no start (null). */
+  sizes?: readonly BoardSize[];
   /** A position from the engine's fields. */
   position(fields: G["fields"]): G["position"];
   /** The move `name` played, from the position `before` to the position `after`. */
