@@ -12928,3 +12928,19 @@ missing from every count of design 17. Design 27 gives the reasons.
   geolocation from `X-Forwarded-For` shows there too.
 - **The quota:** each request to `/relay/` counts against the account's 100,000 Functions and Workers requests a
   day (hosting.md, section 4).
+
+### The Tak site: the plan (2026-11-23)
+
+- **What:** the plan of a third site, for Tak, with Hedge School's and Cyanotype's features
+  ([design/34-tak-site.md](../design/34-tak-site.md), abscls-teoc). Proposed: the owner's answers to its questions
+  decide each cut and each postponement.
+- **Read for it:** Hedge School's designs 01 to 32 and Cyanotype's design 33 ("The gaps from Hedge School"), both
+  sites' pages and `src/lib`, the packages, and the engine repository's `games/tak/docs/research/` and
+  `games/tak/docs/design/`.
+- **What carries over:** the pages, the review, the labels, the accuracy, the exports, the partners' frame, the
+  analytics and the site's frame, with Tak's board, PTN, TPS and playtak's import in the place of the game's parts.
+- **What the Tak site is the first to need:** board sizes, draws and results that are not by the scores, two plies a
+  row in the move list, and a record in a format that the game's community owns.
+- **The owner's questions:** the name, the letter to Tak's rights holder and Support Us, the Analysis board's free
+  parts, Practice, the tools, the postponements that wait for the engine, the parts that are Enclosure's alone, the
+  prototypes, playtak's games in the repository, and other sizes and openings.
