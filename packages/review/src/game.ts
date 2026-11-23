@@ -14,8 +14,8 @@
 import type { Component, Snippet } from "svelte";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
-import { resultOfRecord, resultOfScores, type ScoreResult } from "@abstractclass/analysis/result.ts";
-import type { MoveReview, ReviewData, TurnReview, Unit } from "@abstractclass/analysis/model.ts";
+import { resultAt, resultOfRecord, type GameResult, type ScoreResult } from "@abstractclass/analysis/result.ts";
+import { pct, type MoveReview, type ReviewData, type TurnReview, type Unit } from "@abstractclass/analysis/model.ts";
 import type { AreaMark, MapStyle } from "./ownership.ts";
 
 /** The players, in every game (the glossary): Blue moves first, Red second. */
@@ -35,16 +35,22 @@ export function smallMargin(m: number): string | undefined {
   while (digits < 6 && Number(m.toFixed(digits)) === 0) digits++;
   return m.toFixed(digits);
 }
-/** A result in words: "A draw", or the winner and the margin with no unit (the glossary's "Score"): "Blue won by 28.5".
- *  `fmtMargin` writes the margin in the game's format (ViewGame `fmtMargin`). */
-export const resultText = (r: ScoreResult, fmtMargin: (m: number) => string): string =>
-  r.winner === null ? "A draw" : `${PLAYER_NAME[r.winner]} won by ${fmtMargin(r.margin)}`;
-/** A game's outcome in words, for each game's `ending`: by the scores when the rules ended the game (`overByRules`),
- *  else as the record says it ended (a result by the scores, a resignation, a forfeit, or no end yet). `move`: the
- *  game's word for a move ("edge"). */
-export function endingWords(data: Pick<ReviewData<GameTypes>, "moves" | "result" | "ending">, overByRules: boolean,
-                            move: string, fmtMargin: (m: number) => string): string {
-  if (overByRules) return resultText(resultOfScores([data.result.blue, data.result.red]), fmtMargin);
+/** The draw chance in words, for the win-chance bar's tooltip (the glossary's "Win chance"): "Draw chance 25.4%". None in
+ *  a game whose engine gives none. */
+export const drawNote = (draw: number | undefined): string | undefined =>
+  (draw === undefined ? undefined : `Draw chance ${pct(draw)}`);
+/** A result in words: the words that the game gives (GameResult), or by the scores: "A draw", or the winner and the
+ *  margin with no unit (the glossary's "Score"): "Blue won by 28.5". `fmtMargin` writes the margin in the game's format
+ *  (ViewGame `fmtMargin`). */
+export const resultText = (r: GameResult | ScoreResult, fmtMargin: (m: number) => string): string =>
+  "words" in r ? r.words : r.winner === null ? "A draw" : `${PLAYER_NAME[r.winner]} won by ${fmtMargin(r.margin)}`;
+/** A game's outcome in words, for each game's `ending`: when the rules ended the game (`overByRules`), the last
+ *  position's result, its own or by the scores (resultAt); else as the record says it ended (the record's own words, a
+ *  result by the scores, a resignation, a forfeit, or no end yet). `move`: the game's word for a move ("edge"). */
+export function endingWords(data: Pick<ReviewData<GameTypes>, "moves" | "result" | "ending"> & Partial<Pick<ReviewData<GameTypes>, "positions">>,
+                            overByRules: boolean, move: string, fmtMargin: (m: number) => string): string {
+  if (overByRules) return resultText(resultAt({ scores: [data.result.blue, data.result.red], result: data.positions?.[data.moves.length]?.result }), fmtMargin);
+  if (data.ending?.own) return data.ending.own.words;
   const result = data.ending?.result ?? "", byScores = resultOfRecord(result), n = data.moves.length;
   if (byScores) return resultText(byScores, fmtMargin);
   const m = /^([br])\+([RF])$/.exec(result);

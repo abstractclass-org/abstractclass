@@ -17,16 +17,17 @@
 import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
 import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_MOVE_GAP, accuracyWeight, classify, listed, meterGroup,
          type Label, type MeterGroup } from "./labels.ts";
-import { resultOfScores } from "./result.ts";
+import { resultAt, resultOfScores, type GameResult } from "./result.ts";
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, listed, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
 
 /** Values from Blue's side. `lead` (the engine's scoreLead) and `margin` (scoreSelfplay) are in the game's score, and `spread`
  *  (scoreStdev) the spread of the final score after the move. `visits` is the visits through the move (KataGo's
  *  edgeVisits). `line` is the engine's expected continuation, the move first (KataGo's pv), up to a pass, and
- *  `lineVisits` the visits through each of its edges (KataGo's pvEdgeVisits). */
+ *  `lineVisits` the visits through each of its edges (KataGo's pvEdgeVisits). `draw` is the chance of a draw, which
+ *  `blueWin` counts as half a win. Absent in a game whose engine gives none. */
 export interface Candidate<M> {
-  edge: M; visits: number; blueWin: number; lead?: number; margin?: number; line?: M[];
+  edge: M; visits: number; blueWin: number; draw?: number; lead?: number; margin?: number; line?: M[];
   prior?: number; // the network's policy for the move: KaTrain's complexity weighs the candidates by it
   lineVisits?: number[];
   // A symmetric twin (protocol 0.4): in a position that is its own image, the searched edge of which this edge is the
@@ -38,13 +39,14 @@ export interface Candidate<M> {
 /** `ownership`: the engine's ownership of each of the game's points (KataGo's, @abstractclass/engine/protocol.ts,
  *  AnalysisReply), from Blue's side, in hundredths: 100 is Blue's at every turn end left, −100 Red's. Absent from a
  *  reply without it.
+ *  `draw`: the chance of a draw, as a candidate's.
  *  `book`: the values come from an opening book, minimaxed through its tree, not from a search: the review takes them
  *  in place of searching the position (GameAnalysis.useBook, Hedge School's design 32). `visits` is then the visits of
  *  the book's searches, and `complexity` the book's own (`complexity` below takes it). No move from or into such a
  *  position is Great: a Great compares two equal searches (design 10), and the book's values are no search of a depth
  *  that a review can match. */
 export interface Analysis<M> {
-  blueWin: number; visits: number; lead?: number; margin?: number; spread?: number; candidates: Candidate<M>[];
+  blueWin: number; visits: number; draw?: number; lead?: number; margin?: number; spread?: number; candidates: Candidate<M>[];
   ownership?: number[]; book?: true; complexity?: number;
 }
 /** Whether an analysis counts as deep enough for a label: `minVisits` or more, or the book's values. */
@@ -52,7 +54,9 @@ export const deepEnough = <M>(a: Analysis<M> | undefined, minVisits: number): a 
   !!a && (!!a.book || a.visits >= minVisits);
 export interface ReviewData<G extends GameTypes> {
   players: { blue: string; red: string };
-  result: { blue: number; red: number }; // the scores after the last edge
+  // The scores after the last edge: the result, where the rules ended the game and the last position has none of its
+  // own (game.ts, PositionInfo `result`)
+  result: { blue: number; red: number };
   ending?: GameEnding; // how the record says the game ended, for a game that the rules did not end
   moves: G["played"][];
   positions: G["position"][];
@@ -331,12 +335,17 @@ export function judgeBranchMove<M>(game: Moves<M>, before: Analysis<M> | undefin
                      && confirmedOnly(winAfter, second, mover, equalDepth(minVisits, after.visits))).label;
 }
 
+/** Blue's win chance of a result: 1, 0, or 0.5 for a draw. */
+const winOf = (winner: Player | null) => (winner === null ? 0.5 : winner === 0 ? 1 : 0);
+
 /** Blue's win chance at the game's end, from the final scores (Blue's, then Red's): 1, 0, or 0.5 for a draw by the
  *  record's rule (result.ts), so that the win bar and the line at the end agree. */
-export function resultWin(scores: readonly [number, number]): number {
-  const { winner } = resultOfScores(scores);
-  return winner === null ? 0.5 : winner === 0 ? 1 : 0;
-}
+export const resultWin = (scores: readonly [number, number]): number => winOf(resultOfScores(scores).winner);
+
+/** The values of a position where the game has ended: Blue's win chance, by the game's own result or by the scores
+ *  (resultAt), and Blue's final margin, which only a result by the scores has. */
+export const endValues = (p: Pick<PositionInfo, "scores" | "result">): { blueWin: number; blueScore: number | undefined } =>
+  ({ blueWin: winOf(resultAt(p).winner), blueScore: p.result ? undefined : p.scores[0] - p.scores[1] });
 
 /** The engine's best turn from a position's first choice: its edge, and the next edge of its line for a turn of two. */
 const bestTurn = <M>(first: Candidate<M> | undefined, twoEdges: boolean): M[] | undefined =>
@@ -350,7 +359,7 @@ export interface AfterValues { blueWin: number; blueScore: number | undefined; v
  *  it has `minVisits`, or the book's values. */
 export function valuesAfter<M>(p: PositionInfo, a: Analysis<M> | undefined, kind: ScoreKind = "lead", minVisits = 0):
     AfterValues | undefined {
-  if (p.over) return { blueWin: resultWin(p.scores), blueScore: p.scores[0] - p.scores[1] };
+  if (p.over) return endValues(p);
   return deepEnough(a, minVisits) ? { blueWin: a.blueWin, blueScore: scoreOf(a, kind), visits: a.visits, ...(a.book ? { book: a.book } : {}) }
     : undefined;
 }
@@ -388,14 +397,13 @@ function summarize(items: Judged[]): [PlayerSummary, PlayerSummary] {
 }
 
 export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, kind: ScoreKind = "lead", minVisits = 0): Review<G> {
-  const blueResult = data.result.blue - data.result.red;
-  const final = resultWin([data.result.blue, data.result.red]);
   const n = data.moves.length, over = data.positions[n]?.over ?? true;
+  const final = endValues({ scores: [data.result.blue, data.result.red], result: data.positions[n]?.result });
   // The position after the last edge is the end when the game is over: its value is the result. A line that stops
   // before (an unfinished game, the Analysis board's line) has a search there, as any position.
   const end = (i: number) => i === n && over;
-  const blueWin = data.positions.map((_, i) => (end(i) ? final : data.analysis[i]?.blueWin ?? NaN));
-  const blueScore = data.positions.map((_, i) => (end(i) ? blueResult : scoreOf(data.analysis[i], kind)));
+  const blueWin = data.positions.map((_, i) => (end(i) ? final.blueWin : data.analysis[i]?.blueWin ?? NaN));
+  const blueScore = data.positions.map((_, i) => (end(i) ? final.blueScore : scoreOf(data.analysis[i], kind)));
   const deep = (j: number) => end(j) || deepEnough(data.analysis[j], minVisits);
   // Both ends of an edge or a turn analysed, to the label budget.
   const known = (i: number, j: number) => !Number.isNaN(blueWin[i]) && !Number.isNaN(blueWin[j]) && deep(i) && deep(j);
@@ -654,5 +662,7 @@ export function onlyJudged<G extends GameTypes>(R: Review<G>, judged: (edge: num
 export const opensTurn = <G extends GameTypes>(t: TurnReview<G>, i: number) => t.edges[0].index === i && !t.continued;
 
 /** How a record says its game ended (the notation's result and Termination tag): `b+28.5`, `r+R` (resigned), `b+F`
- *  (forfeited: left the game), `0` (a draw), `*` (not over, or not known). */
-export interface GameEnding { result: string | null; termination?: string }
+ *  (forfeited: left the game), `0` (a draw), `*` (not over, or not known). `own`: the result as the game's own reader
+ *  gives it, where the game's records write a result in another form (Tak's `1-0`, a resignation or time). None:
+ *  `result` gives the words. */
+export interface GameEnding { result: string | null; termination?: string; own?: GameResult }

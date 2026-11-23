@@ -10,16 +10,19 @@ export function toAnalysis<M>(game: Moves<M>, r: AnalysisReply): Analysis<M> {
   const ownership = r.ownership?.map(hundredths);
   return {
     blueWin: r.rootInfo.winrate, visits: r.rootInfo.visits, lead: r.rootInfo.scoreLead, margin: r.rootInfo.scoreSelfplay,
-    spread: r.rootInfo.scoreStdev,
+    spread: r.rootInfo.scoreStdev, ...drawOf(r.rootInfo),
     // A candidate that a search of more views checked (protocol 0.7) has its check's values: its visits are the check's
     candidates: [...r.moveInfos].sort((a, b) => a.order - b.order).map(c => ({
       edge: game.parseMove(c.move), visits: c.checkVisits ?? c.edgeVisits, blueWin: c.winrate, lead: c.scoreLead, margin: c.scoreSelfplay, prior: c.prior,
-      ...withLine(game, c), ...(c.isSymmetryOf ? { twinOf: game.parseMove(c.isSymmetryOf) } : {}),
+      ...drawOf(c), ...withLine(game, c), ...(c.isSymmetryOf ? { twinOf: game.parseMove(c.isSymmetryOf) } : {}),
     })),
     // The game's area map of the ownership (game.ts, Moves.mapOf): the ownership itself, or with its place
     ...(ownership ? { ownership: game.mapOf?.(ownership, r.view) ?? ownership } : {}),
   };
 }
+
+/** A reply's draw chance, where it gives one: a result without it stays as it was, with no field. */
+const drawOf = (v: { drawChance?: number }): { draw?: number } => (v.drawChance === undefined ? {} : { draw: v.drawChance });
 
 /** An ownership in whole hundredths: the map needs no finer steps, and a stored result keeps 361 small numbers. Never
  *  −0, which JSON writes as 0. */

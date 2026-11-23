@@ -1,10 +1,10 @@
 // How the lists write a note's moves in glyphs (game.ts, inGlyphs): a middle dot between two moves side by side. A
-// game's result in words (resultText, smallMargin, endingWords). The rule for a draw has its own tests
-// (@abstractclass/analysis's result.test.ts).
+// game's result in words (resultText, smallMargin, endingWords), and the draw chance (drawNote). The rule for a draw has
+// its own tests (@abstractclass/analysis's result.test.ts).
 // Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { endingWords, GLYPH_SEPARATOR, inGlyphs, resultOfScores, resultText, smallMargin, type NotePart,
+import { drawNote, endingWords, GLYPH_SEPARATOR, inGlyphs, resultOfScores, resultText, smallMargin, type NotePart,
          type ViewTypes } from "./game.ts";
 
 /** A move as a note names it: an object, as each game's played move is. */
@@ -50,4 +50,30 @@ test("a game's outcome in words: by the scores when the rules ended it, else as 
   assert.equal(ending(false, data(3, 9, "r+F")), "Red won: Blue left the game after move 2");
   assert.equal(ending(false, data(3, 9, "*")), "Unfinished after move 2");
   assert.equal(ending(false, data(3, 9, null)), "Unfinished after move 2");
+});
+
+test("the game's own result in words: the words that the game gives, with no margin", () => {
+  const whole = (m: number) => String(Math.round(m));
+  assert.equal(resultText({ winner: 0, words: "White won by a road" }, whole), "White won by a road");
+  assert.equal(resultText({ winner: null, words: "A draw: 50 plies" }, whole), "A draw: 50 plies");
+});
+
+test("a game's outcome in words: the last position's own result, then the record's own, before the scores", () => {
+  type Data = Parameters<typeof endingWords>[0];
+  const road = { winner: 1, words: "Black won by a road" } as const, resigned = { winner: 0, words: "White won: Black resigned" } as const;
+  const data = (over: boolean, result?: typeof road, own?: typeof resigned): Data =>
+    ({ moves: [{}, {}], result: { blue: 9, red: 4 }, positions: [{}, {}, { player: 0, over, scores: [9, 4], ...(result ? { result } : {}) }],
+       ending: { result: "1-0", ...(own ? { own } : {}) } }) as unknown as Data;
+  const ending = (d: Data, over: boolean) => endingWords(d, over, "move", m => m.toFixed(1));
+  assert.equal(ending(data(true, road), true), "Black won by a road"); // the scores favour the loser
+  assert.equal(ending(data(true, road, resigned), true), "Black won by a road"); // what the rules say, not the record
+  assert.equal(ending(data(true), true), "Blue won by 5.0"); // a flat win: by the scores
+  assert.equal(ending(data(false, undefined, resigned), false), "White won: Black resigned");
+  assert.equal(ending(data(false), false), "Unfinished after move 2"); // the shared code does not read "1-0"
+});
+
+test("the draw chance in the meter's words: none where the reply gives none", () => {
+  assert.equal(drawNote(0.254), "Draw chance 25.4%");
+  assert.equal(drawNote(0), "Draw chance 0.0%");
+  assert.equal(drawNote(undefined), undefined);
 });

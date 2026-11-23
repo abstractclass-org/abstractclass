@@ -385,12 +385,28 @@ placement and no flattening. The engine's network gives a win, a draw and a loss
 
 - **The win chance counts a draw as half,** as KataGo's no-result does. The engine's reply gives it so (the request,
   item 6), and the labels' bands and the charts work as they are.
-- **The draw chance shows** in the meter's tooltip and the table's row, from the reply's draw field.
+- **The draw chance shows** in the meter's tooltip and the table's row, from the reply's draw field. The meter is the
+  win-chance bar and its gauge, which has a tooltip only with a draw chance. The table has a column "Draw" where the
+  results have one. At the game's end and at an opening book's values, the meter shows none. A reply with no draw
+  field leaves the results, the bar and the table as they were. The field's name is the engine's choice. Until its
+  build gives one, the shared code reads `drawChance` (`packages/engine/src/protocol.ts`), in `reply.ts` alone.
 - **The result takes the game's kind:** a road, the flats, a resignation or time, or a draw (`R-0`, `F-0`, `1-0`,
   `1/2-1/2`). The review's value at the end and the records' result read it. The result by the scores
   (`result.ts`) stays the kind of Enclosure and Blueprints. The game interface gives each game's result: its winner
   or a draw, and its words. So Tak's kinds stay in Tak's reader, and the shared code reads only the winner and the
   words.
+  - **Where the rules end the game and the scores do not decide it** (a road, the draw after 50 plies), the position
+    that the game interface gives has its own result (`PositionInfo.result`, a `GameResult`: the winner or null, and
+    the words). The review's last value is then 1, 0 or 0.5 by the winner, and the same on the Analysis board and in a
+    variation. It has no margin: the last move's loss is in the win chance alone, and its points lost are not known.
+    The page shows the words in the place of the margin, and the Report gives no scores after them. The chart's note
+    still shows the score, as the result does not repeat it. A komi does not change such a result.
+  - **A flat win and a flat tie** are results by the scores, with the komi, as Enclosure's. Their position has no
+    result of its own.
+  - **A resignation or time** ends the record, not the game by the rules. The review's last value is then the
+    engine's search, as on Hedge School. The record's reader gives the result to the page (`GameEnding.own`), and
+    `endingWords` shows its words. If the rules ended the game too, the position's result counts, not the record's.
+  - **Practice** still takes its result by the scores (`scoreResult`, `practiceOutcome`). Tak's Practice changes that.
 
 ## What the sites share, and what a third site adds
 

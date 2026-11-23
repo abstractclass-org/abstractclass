@@ -13,6 +13,7 @@
 // the next move of that choice's line (model.ts, judgeTurn). A game of longer turns, or one where the order within a
 // turn matters, needs those rules changed first.
 import type { EngineView } from "@abstractclass/engine/protocol.ts";
+import type { GameResult } from "./result.ts";
 
 /** A player: 0 moves first (Enclosure's Blue), 1 second (Red). */
 export type Player = 0 | 1;
@@ -21,7 +22,10 @@ export type Player = 0 | 1;
 export interface PositionInfo {
   player: Player; // who moves next
   over: boolean; // the game has ended here (the engine's outcome)
-  scores: [number, number]; // each player's score: the result, where the game ends
+  scores: [number, number]; // each player's score: the result, where the game ends and `result` is absent
+  // The game's own result, where the game ends and the scores do not decide it: a road, or a draw by a rule (Tak). It
+  // has no margin, and a komi does not change it. None: the result by the scores (result.ts, resultAt).
+  result?: GameResult;
   count?: number; // the moves played so far, as the notation counts them
 }
 

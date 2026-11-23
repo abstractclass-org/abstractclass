@@ -282,6 +282,12 @@ edit in the same commit), so their changes still apply.
      the tooltip of the game's last move in the move list when the rules ended the game ("Result: Red +0.03", as the
      chart's note writes it: design 06). Practice uses them in its stored result and its outcome
      (`@abstractclass/practice`'s `scoreResult` and `practiceOutcome`), and in each site's line at the game's end.
+   - **The game's own result** (design 34, "Draws"), beside the result by the scores: for an end that the scores do not
+     decide (a Tak road). The game's position gives it (`PositionInfo.result`), with the winner, or null for a draw, and
+     its words. The record's reader gives one for a record's end in its own form (`GameEnding.own`). The shared code
+     reads only these two, and the kinds of a game's results stay in its site. `resultAt` gives a position's result, and
+     `endValues` the values at the end: no score for a game's own result. The bar has the draw chance as a note
+     (`drawNote`) where a result has one.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
      board's own layers (`layers`: Enclosure's regions before the area map's settings, and its invincible edges after
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its
@@ -499,8 +505,9 @@ edit in the same commit), so their changes still apply.
   (`turnSoFar`), each frame's hold (`sceneHold`) and the candidates' ranks that a frame shows (`SCENE_CANDIDATES`).
   Each site's `scripts/home-replay.mjs` gives its game's positions and moves, and draws the frames.
 - `packages/analysis/src/game.ts`: the game interface. `result.ts`: the result by the scores, with its one rule for a
-  draw (item 9). `packages/analysis/src/testing/game.ts`: the test game, with the rules and a search's reply for a
-  test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the engine session's tests.
+  draw, and the game's own result (item 9). `packages/analysis/src/testing/game.ts`: the test game, with the rules and
+  a search's reply for a test's pool. `packages/analysis/src/testing/page.svelte.ts`: a page for the engine session's
+  tests.
 - `apps/hedgeschool/src/lib/review/enclosure.ts`: Enclosure's game and its part of the review, and Enclosure's types
   for the view.
 - `packages/review/` (`@abstractclass/review`): the view (`ReviewView.svelte`) and its parts, on the same rules. Its

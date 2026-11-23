@@ -15,7 +15,8 @@
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
   import type { GameTypes, Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState, WallState } from "@abstractclass/analysis/analysis.svelte.ts";
-  import { PLAYER_NAME, resultOfScores, resultText, smallMargin, WHOLE, type ViewTypes } from "./game.ts";
+  import { drawNote, PLAYER_NAME, resultText, smallMargin, WHOLE, type ViewTypes } from "./game.ts";
+  import { resultAt, type GameResult, type ScoreResult } from "@abstractclass/analysis/result.ts";
 
   /** The review in progress: what the engine does now, and the stages as parts of one bar, each with its share of the
    *  work (by visits) and how much of it is done (0 to 1). `waiting`: no work runs (the engine is off). `maps`: the
@@ -161,7 +162,7 @@
   import { imageLine, lineFrames } from "./lineImage.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, resultWin, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, endValues, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -1648,7 +1649,7 @@
     };
     if (mainAt === null) return `A variation from ${view.words.move} ${pos + 1} · ${over ? "Game over" : turnHere()}`; // where it leaves the game
     if (board) {
-      if (over) return `Game over · ${resultText(resultOfScores(position.scores), view.fmtMargin)}`;
+      if (over) return `Game over · ${resultText(resultAt(position), view.fmtMargin)}`;
       return `${view.words.Move} ${(position.count ?? path.length) + 1} · ${turnHere()}`;
     }
     if (pos === last) return R.endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
@@ -1669,7 +1670,13 @@
   // The win chance above the board: the board's own where it has one (Openings: the book's at a book position, design
   // 32), else the review's or the search's
   const blueWin = $derived(game?.winAt(path) ?? (mainAt !== null ? R.blueWin[mainAt]
-    : over ? resultWin(position.scores) : analysis?.blueWin ?? NaN));
+    : over ? endValues(position).blueWin : analysis?.blueWin ?? NaN));
+  // The draw chance of the same values, for the bar's tooltip, in a game whose engine gives it. None of the book's
+  // values, and none at the game's end.
+  const draw = $derived(over || game?.winAt(path) != null ? undefined
+    : mainAt !== null ? R.data.analysis[mainAt]?.draw : analysis?.draw);
+  // The table's column of draw chances: in a game whose engine gives them
+  const drawColumn = $derived(analysis?.draw !== undefined || R.data.analysis.some(a => a?.draw !== undefined));
   // A turn's or an edge's loss in the move list: the mover's loss in the lead, in at most 5 characters (−1.2k), or the win
   // chance lost when the analysis has no scores. Nothing until it is judged.
   function lossShort(e: Pick<MoveJudgment<G["move"]>, "label" | "loss" | "pointsLost">): string {
@@ -1685,21 +1692,24 @@
     return v === 0 ? even : `${PLAYER_NAME[blue > 0 ? 0 : 1]} +${(digits ? ONE_DIGIT : WHOLE).format(v)}`;
   };
   // A game's result in the same form, with one decimal, by the rule for a draw (resultOfScores): `even` for a draw, and
-  // a win that one decimal writes as 0.0 with more decimals, "Red +0.03" (smallMargin).
-  const resultSide = (scores: readonly [number, number], even = "even") => {
-    const { winner, margin } = resultOfScores(scores);
-    return winner === null ? even : `${PLAYER_NAME[winner]} +${smallMargin(margin) ?? ONE_DIGIT.format(margin)}`;
+  // a win that one decimal writes as 0.0 with more decimals, "Red +0.03" (smallMargin). The game's own result has no
+  // margin: its words.
+  const resultSide = (r: GameResult | ScoreResult, even = "even") => {
+    if ("words" in r) return r.words;
+    return r.winner === null ? even : `${PLAYER_NAME[r.winner]} +${smallMargin(r.margin) ?? ONE_DIGIT.format(r.margin)}`;
   };
   // The position whose number is the game's result: the end of a game that the rules ended (the model's rule,
   // R.endedByRules). The end of a record that ends before is not: its number is the engine's lead.
   const isResult = (i: number) => i === last && R.endedByRules;
+  // The game's own result there, which the scores do not give (a road): its tip and the Report show no margin
+  const ownResult = $derived(R.endedByRules ? R.data.positions[last]?.result : undefined);
   // The number after a move with its name, in the move's tooltip in the move list and in the chart's tip, or undefined
   // before its analysis: the lead, "Lead: Red +27.5", the engine's estimate (GLOSSARY.md, "Lead"). After a game's last
   // move, when the rules ended it, the number is the game's result, so its name is "Result:", and it takes the rule
   // for a draw (resultSide), so that a win by 0.03 never reads "even": "Result: Red +0.03". A record that ends before
   // the rules end the game keeps the engine's lead there.
   const leadOrResult = (i: number) => {
-    if (isResult(i)) return `Result: ${resultSide([R.data.result.blue, R.data.result.red])}`;
+    if (isResult(i)) return `Result: ${resultSide(resultAt({ scores: [R.data.result.blue, R.data.result.red], result: ownResult }))}`;
     const s = R.blueScore[i];
     return s === undefined ? undefined : `Lead: ${sideText(s, 1)}`;
   };
@@ -1710,8 +1720,8 @@
   // result after its last move when the rules ended it (leadOrResult). Under it, the score and the area of the lines
   // shown: the lines are scaled and have no axis, so their numbers are only here. The result repeats the score, so a
   // position with the result (isResult) has no score. The end of a record that ends before has one, as any position:
-  // there the score so far is in no other line. Made for the position pointed at only: the chart asks for one note at
-  // a time.
+  // there the score so far is in no other line. So has a game's own result, which is no score. Made for the position
+  // pointed at only: the chart asks for one note at a time.
   function chartTip(i: number) {
     const e = i > 0 ? R.edges[i - 1] : null, t = e ? R.turnOf[e.index] : null;
     // By turn, the chart shows the turns' ends only: the turn whole, with its label.
@@ -1721,7 +1731,7 @@
     // The end of a game that the rules ended is settled (chartSettled): its result never reads as a first estimate.
     const words = leadOrResult(i);
     const value = words === undefined ? "Not analyzed yet" : `${words}${chartSettled[i] ? "" : " · first estimate"}`;
-    const details = [showScore && !isResult(i) && `Score: ${sideText(scoreDiff[i], 1)}`,
+    const details = [showScore && (!isResult(i) || !!ownResult) && `Score: ${sideText(scoreDiff[i], 1)}`,
                      showArea && !!view.second && `${view.second.name}: ${sideText(areaDiff[i], 1)}`].filter(d => d !== false);
     return { title, value, details };
   }
@@ -1909,8 +1919,7 @@
   <p class="mb-3 text-xs text-muted">Analyzed in your browser. Quality labels judge each move by the engine's win chance. ◆ marks a
     hard position. <a href="/how-reviews-work" target="_blank" rel="noopener noreferrer">How it works</a></p>
   <p class="mb-3.75">
-    <strong>{ending}</strong>
-    ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{R.endedByRules ? "" : " on the board"}).
+    <strong>{ending}</strong>{ownResult ? "" : ` (${fmtScore(R.data.result.blue)} to ${fmtScore(R.data.result.red)}${R.endedByRules ? "" : " on the board"})`}.
     {#if reviewRuns}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->
@@ -2009,7 +2018,7 @@
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
   <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"
          bind:this={table} style:width={movesOpen ? `max(100%, ${nameFit.open}px)` : undefined}>
-    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" /><col class="w-12" /></colgroup>
+    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" />{#if drawColumn}<col class="w-15" />{/if}<col class="w-12" /></colgroup>
     <thead>
       <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
         <!-- The Move header, while it can open or close the column: a button, its mark after the word. A click does not
@@ -2020,7 +2029,7 @@
               title={movesOpen ? "Make the column narrow again" : `Show the ${view.words.moves} in full`}
               onmousedown={e => e.preventDefault()} onclick={() => (movesOpen = !movesOpen)}>{view.words.Move}<span
               aria-hidden="true">{movesOpen ? "‹" : "›"}</span></button>{:else}{view.words.Move}{/if}</th>
-        <th>{PLAYER_NAME[mover]} wins</th><th>Lead</th>
+        <th>{PLAYER_NAME[mover]} wins</th><th>Lead</th>{#if drawColumn}<th>Draw</th>{/if}
         <th>Visits</th>
       </tr>
     </thead>
@@ -2038,13 +2047,13 @@
                 data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(c.edge, mover, position)} />{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
                 class="flex-none leading-none font-normal text-muted" title="{view.twinWords ?? "Mirror"}: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
           <td>{pct(moverWin(c.blueWin, mover))}</td>
-          <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td>
+          <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td>{#if drawColumn}<td>{c.draw !== undefined ? pct(c.draw) : "–"}</td>{/if}
           <td>{c.visits}</td>
         </tr>
       {/each}
       {#each Array.from({ length: Math.max(0, TABLE_ROWS - tableRows.length) }, (_, k) => k) as k (k)}
         <tr class="h-(--row)">
-          <td class="italic text-muted" colspan="5">{k === 0 && !tableRows.length ? (over ? "The game is over." : "Not analyzed yet.") : ""}</td>
+          <td class="italic text-muted" colspan={drawColumn ? 6 : 5}>{k === 0 && !tableRows.length ? (over ? "The game is over." : "Not analyzed yet.") : ""}</td>
         </tr>
       {/each}
     </tbody>
@@ -2888,14 +2897,14 @@
       {#snippet blue()}{@render player(0)}{/snippet}
       {#snippet red()}{@render player(1)}{/snippet}
       {#snippet bar()}
-        <ShareBar share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]} empty="not analyzed yet" title="Win chance from the engine's search" />
+        <ShareBar share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]} empty="not analyzed yet" title="Win chance from the engine's search" note={drawNote(draw)} />
       {/snippet}
     </PlayerRow>
     </div>
     <div class="flex">
       {#if display.win === "gauge"}
         <ShareBar upright share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]}
-                  title={Number.isNaN(blueWin) ? "Win chance: not analyzed yet" : `${PLAYER_NAME[0]}'s win chance ${pct(blueWin)}`} />
+                  title={Number.isNaN(blueWin) ? "Win chance: not analyzed yet" : `${PLAYER_NAME[0]}'s win chance ${pct(blueWin)}`} note={drawNote(draw)} />
       {/if}
       <div class="board-wrap relative rounded overflow-hidden" bind:this={boardWrap}>
         <!-- The game's board (the game's `Board`). While a variation's preview shows, the board is at the row's start,
@@ -3005,7 +3014,7 @@
           <strong class="text-ink">{sideText(analysis.margin!, 0, "0")} ± {Math.round(analysis.spread!)}</strong>
           · lead {sideText(analysis.lead, 0, "0")}
         {:else if over}
-          Final margin <strong class="text-ink">{resultSide(position.scores, "0")}</strong>
+          {position.result ? "Result" : "Final margin"} <strong class="text-ink">{resultSide(resultAt(position), "0")}</strong>
         {:else}{engineNote ?? "Not analyzed yet"}{/if}
       </p>
       {#if !engineOpen && threatOn}

@@ -425,3 +425,19 @@ public repository and the history rewrites.
 - **Checked:** new tests of the key of each size, of a reviewed game's line, snapshot and variations, of the removal
   of earlier results, and of each size's komi limit in the record's reader, a board's link, an analysis file and the
   kept board. The packages' other tests pass with no change.
+
+### The draw chance and the game's own result (2026-11-24)
+
+- **What:** the shared packages take a game with draws and with results that the scores do not give, for Mistak
+  (design 34, "Draws", abscls-shfz.18.9). An analysis and a candidate keep the reply's draw chance (`draw`), and a
+  position keeps the game's own result (`PositionInfo.result`). The record's reader can give its own result
+  (`GameEnding.own`). Design 34 gives what each end of a Tak game does on the page, and design 29, item 9, the shared
+  code's part.
+- **What stays:** a reply with no draw field has no `draw` field in its result, so the stored results, the review
+  files and the keys are as they were. The result by the scores is the kind of Enclosure and Blueprints. The win
+  chance and the labels are computed as before.
+- **Where it shows:** the win-chance bar's and gauge's tooltip, a "Draw" column in the table where the results have
+  one, and the words of a result. Neither site has such a reply or such an end.
+- **Checked:** new tests of a reply with a draw chance, of each kind of result (a road, a draw by a rule, a flat win, a
+  flat tie, a record's own result, none), and of the page with and without a draw chance (`draw-chance.spec.ts`, on
+  Hedge School's layout-test game with the chance written into its stored results).

@@ -138,6 +138,7 @@ export interface MoveInfo {
   // 0.7, in a search of more views: the visits of the search of the candidate's child position (its check), whose
   // values the candidate then has. `visits` are its visits in the searches of the views.
   checkVisits?: number;
+  drawChance?: number; // RootInfo's, for the position after the move
 }
 
 /** A view of Blueprints' board (0.7): the hex in its middle, its orientation (0 to 5) and its radius in hexes. */
@@ -158,6 +159,10 @@ export interface RootInfo {
   // view, then one for each candidate that a second search checked.
   views?: EngineView[];
   searches?: number;
+  // The chance of a draw, in a game with draws. The win chance counts a draw as half a win, as KataGo counts a
+  // no-result (docs/requests/31-tak-browser-build.md, item 6). The request leaves the field's name to the engine
+  // repository: until its build gives one, this name is the site's, and only the analysis's reply.ts reads it.
+  drawChance?: number;
 }
 
 export interface AnalysisReply {

@@ -16,18 +16,20 @@
     empty?: string; // the text of a bar with no share yet
     sub?: [number, number] | null; // each side's part of its own part, 0 to 1
     title: string; // what the bar shows: its tooltip, and the gauge's name
+    note?: string; // a second number beside the share (the draw chance), after the title. A gauge with one has a tooltip
   }
-  let { share, upright = false, labels = null, empty = "", sub = null, title }: Props = $props();
+  let { share, upright = false, labels = null, empty = "", sub = null, title, note }: Props = $props();
 
   const GAUGE_TEXT_PX = 40; // the length of a side's part of the gauge that has room for its text, written up
   const GAUGE_TEXT = "absolute left-1/2 -translate-x-1/2 rotate-180 [writing-mode:vertical-rl] text-[0.6rem] leading-none font-semibold tracking-[0.1em] text-white tabular-nums";
   const none = $derived(Number.isNaN(share));
+  const full = $derived(note ? `${title} · ${note}` : title);
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
   let height = $state(0);
 </script>
 
 {#if !upright}
-  <div class="grid gap-0.5 min-w-0" {title}>
+  <div class="grid gap-0.5 min-w-0" title={full}>
     <div class={["flex rounded-[3px] overflow-hidden", sub ? "h-3" : "h-[1.15rem]", none ? "items-center justify-center bg-panel-2" : "bg-red"]}>
       {#if !none}
         <div class="flex items-center pl-1.5 text-xs font-bold text-white bg-blue transition-[width] duration-200" style="width: {100 * share}%">
@@ -52,7 +54,7 @@
 {:else}
   <div class="flex flex-none self-stretch gap-0.5 mr-1.5">
     <div class={["relative flex flex-col-reverse w-4 rounded-[3px] overflow-hidden", none ? "bg-panel-2" : "bg-red"]}
-         role="img" aria-label={title} bind:clientHeight={height}>
+         role="img" aria-label={full} title={note ? full : undefined} bind:clientHeight={height}>
       {#if !none}
         <div class="bg-blue transition-[height] duration-200" style="height: {100 * share}%"></div>
         <!-- Each side's text at its own end, inside the gauge. Small and written up the gauge, so that it can be narrow. -->
