@@ -32,18 +32,18 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
 ### Tak, as the site needs it
 
 - **The board:** a square grid, 3x3 to 8x8. A square is `a1` to `h8`, and `a1` is the first player's lower left
-  corner. Each player has flat stones and capstones: 21 and 1 on 5x5, 30 and 1 on 6x6 (`research/rules-theory.md`,
-  1.2).
+  corner (`research/ptn-ninja.md`, 5.2). Each player has flat stones and capstones: 21 and 1 on 5x5, 30 and 1 on 6x6
+  (`research/rules-theory.md`, 1.2).
 - **A move** places a stone on an empty square (a flat, a standing stone or a capstone), or moves a stack that the
   mover's stone tops. A stack move carries up to the board's side in stones, in one direction, and drops at least one
   stone on each square of its path. Standing stones and capstones stop a stack. A capstone alone, at the end of its
   move, flattens a standing stone. There is no pass.
-- **The first turn:** each player places one of the **opponent's** flats. This is the swap opening, playtak's
-  default. playtak also has "no-swap" and "double black stack".
+- **The first turn:** each player places one of the **opponent's** flats. This is the swap opening, the default of a
+  record with no `Opening` tag (`research/ptn-ninja.md`, 5.3). playtak also has "no-swap" and "double black stack".
 - **The end:** a road of flats and capstones that joins two opposite edges wins. When the board is full, or a player
   has no stones left, the most flats on top win. The komi adds half flats to the second player's count, in a flat
-  win only. A flat tie is a draw. playtak also draws a game after 50 plies with no placement and no flattening, and
-  the engine follows that rule (`design/02-rules.md`).
+  win only. A flat tie is a draw. playtak also draws a game after 50 plies with no placement and no flattening. The
+  engine's rules propose the same draw rule, which waits for a decision (`design/02-rules.md`).
 - **Where people play:** playtak.com. Of its 883,250 games, 73% are 5x5 and 23% are 6x6. In 2026, 6x6 games had komi
   0 (53%), 2 (40%) or 2.5 (7%), and 5x5 games komi 0 (`research/rules-theory.md`, 2.2).
 - **Tak's own formats:** PTN for moves and games, TPS for a position (`research/ptn-ninja.md`, section 5).
@@ -60,18 +60,22 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
 - **ptn.ninja** is the community's board and viewer (AGPL-3.0). A link is `https://ptn.ninja/<PTN>&ply=<n>`, with the
   PTN as text or compressed by lz-string (`research/ptn-ninja.md`, 2.6). Its own extensions add branches and notes
   to PTN (5.4), and engine notes such as `{name:"Tiltak" … pv> c3 d4}` (3.6).
-- **Takana** reviews a game in Discord from a playtak id or PTN (`research/community.md`, 1.0). It gives a mark for
-  each move (Spectakular, Brilliant, Great, Tactical, Good, Innacurate, Mistake, Blunder, Fatal), each player's
-  accuracy from the loss of win chance, the flat count on its chart, "game snapshots", and a ptn.ninja link with two
-  suggested moves for each position. Its thresholds and its weights are not public.
+- **Takana** reviews a game in Discord from a playtak id or PTN (`research/community.md`, 1.0), at three levels
+  (Quick, Standard and Deep). It gives the game's statistics, a mark for each move (Spectakular, Brilliant, Great,
+  Tactical, Good, Innacurate, Mistake, Blunder, Fatal) with a key on a move that every other move would make a
+  Mistake, each player's accuracy from the loss of win chance, the flat count on its chart, "game snapshots", and a
+  ptn.ninja link with two suggested moves for each position. Its thresholds and its weights are not public. "Takana's
+  features" gives the site's part for each one.
 
 ### The rules of this work
 
 - **Tak is another's game.** "We build AI and analysis for it, never our own copy of the game" (the engine
   repository's `games/tak/docs/design/02-rules.md`). The site runs no play between people.
-- **Finished games only.** The engine's design 09 ("Decision: play and analysis", items 4 and 5) has the review read a
-  finished game from playtak's API and refuse a game without a result. It refuses a public engine for other tools,
-  because it "could analyse a game in progress".
+- **Finished games only.** The engine's design 09 (proposed, "Decision: play and analysis", items 4 and 5) has the
+  review read a finished game from playtak's API and refuse a game without a result. It keeps its TEI engine from
+  other tools, because "A TEI engine that others run can analyse a game in progress in PTN Ninja, and our engine
+  cannot tell". The epic abscls-shfz gives the same rule in the coordinator's words, with no quote of the owner's.
+  So question 11 asks the owner to confirm it.
 - **Tak's formats, none invented:** PTN, TPS, playtak's ids and ptn.ninja's links.
 - **The engine runs in the visitor's browser, on the CPU,** from the engine repository's browser pipeline
   (`core/wasm/`). Tak has no engine code and no network yet. Its training waits for the GPU (abscls-shfz.2).
@@ -83,17 +87,18 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    board and its stacks, the player's own moves, the notation (PTN) and the position (TPS), the import from playtak,
    the players' cards (the flats and the stones left), the sounds and the texts that name a move. A design document
    of Hedge School holds for the Tak site, unless this document names a departure. This is design 33's item 2.
-2. **The name** is the owner's choice (question 1). Until then this document says "the Tak site", and its folder is
+2. **The name** waits for question 1. Until then this document says "the Tak site", and its folder is
    `apps/<name>`. The name goes into the folder, the storage keys, the messages and the review file's format, so the
    app's first commit needs it.
-3. **Move, do not copy** (design 29, item 11). A part that a second site uses is in `packages/` already. A part that
-   the Tak site is the first to need, and that is not Tak's alone, goes into a package in its first commit ("What the
-   sites share, and what a third site adds").
+3. **Move, do not copy** (design 29, item 11, and design 33, item 4). A part that a second site uses is in
+   `packages/` already. A part that the Tak site is the first to need, and that is not Tak's alone, goes into a
+   package in its first commit ("What the sites share, and what a third site adds").
 4. **The moves: PTN's strings.** The engine and the site name a move by one PTN spelling, so that the move tree and the
-   stored results key on it (design 29, item 2). The written form is the short one: no `F`, no count of 1, and no drops
-   when all the stones go to the next square (`a1`, `c3>`, `3b2+12`). The reader takes every spelling that ptn.ninja
-   and playtak write, the explicit 1s too (`1e4<1`), and reads it as the short form. The engine request settles the
-   form with the engine repository.
+   stored results key on it (design 29, item 2). The written form is the short one, the form to which ptn.ninja
+   normalizes a move (`research/ptn-ninja.md`, 5.6): no `F`, no count of 1, and no drops when all the stones go to the
+   next square (`a1`, `c3>`, `3b2+12`). PTN allows each of these omissions (5.2). The reader takes every spelling that
+   ptn.ninja and playtak's export write, the explicit 1s too (`1e4<1`), and reads it as the short form. The engine
+   request settles the form with the engine repository.
 5. **The marks.** The writer writes `*` on a flattening, as the PTN page "most strongly" recommends. The reader
    refuses a `*` that the move does not confirm, as Cyanotype's reader refuses a capture mark. It reads `'` and `"`,
    and keeps no meaning from them: a mark of tak or Tinuë is a claim that the site does not check. The quality marks
@@ -111,15 +116,19 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    School (design 21, item 9). The engine's position check (as request 16 and request 28 gave the two other games)
    checks that a game can reach it.
 8. **The sizes, the opening and the komi.** The site reviews what the engine's network plays: 6x6 and 5x5, the swap
-   opening, and the komi that the release names as trained (`games/tak/docs/design/04-board-sizes-and-komi.md`: 5x5
-   at 0, 6x6 at 0 and 2, with a spread of one flat). It refuses another size, another opening or a komi outside that
-   range before the review, with its reason, as Hedge School refuses other rules (design 18, item 3). The engine
-   lock's komi limit goes to the engine step, as each site's `scripts/engine.mjs` gives it now. Each new size or
-   opening that the engine learns is a new release of the site.
+   opening, and the komi that the release names as trained. The engine's design 04 proposes 5x5 at 0 and 6x6 at 0 and
+   2, each with a normal spread of one flat (`games/tak/docs/design/04-board-sizes-and-komi.md`). The owner's
+   message in abscls-shfz adds "I'm thinking to add even more komi variants", so the site takes its range from the
+   release. It refuses another size, another opening or a komi outside that
+   range before the review, with its reason, as Hedge School refuses other rules (design 18, item 3). Each site's
+   `scripts/engine.mjs` gives its komi limit, its record's `MAX_RECORD_KOMI`, to the engine step (`fetchEngine`).
+   Tak's limit depends on the size, so the work checks whether that step needs a limit for each size. Each new size
+   or opening that the engine learns is a new release of the site.
 9. **Finished games only.**
    - **The import and the review** refuse a record whose result is `*` or missing, with the reason. This departs from
-     Hedge School's design 21, item 8, which reviews an unfinished game. The engine's design 09 gives the rule.
-   - **The Analysis board** follows the owner's answer to question 3.
+     Hedge School's design 21, item 8, which reviews an unfinished game. The engine's design 09 proposes the rule,
+     and question 11 asks the owner to confirm it.
+   - **The Analysis board** follows the answer to question 3.
    - **No engine for other tools.** The site offers no engine to other pages: no TEI, no window messages that search a
      position. A partner's messages (design 18) carry a finished review only.
 10. **The ways in:**
@@ -171,19 +180,38 @@ those that design 33 ("The gaps from Hedge School") names.
 | The layout: the board, the charts, the columns, the tabs | 06 | With a change | The board is square. A stack needs room for its height ("The board"). |
 | The engine's lines and the player's variations | 07 | With a change | A line on hover draws each move: a placement's stone, and a stack move's path with its drops. |
 | The image of a line, and its GIF | 07, item 17 | With a change | Tak's board in the image. The shared code is `packages/review/src/lineImage.ts` and `gif.ts`. |
-| The quality labels | 10 | With a change | Chess.com's bands on the win chance, as on both sites. A draw counts as half a win in the win chance ("Draws"). Takana's own classes (Spectakular, Fatal) are not a published method, and the site does not take them. |
+| The quality labels | 10 | With a change | Chess.com's bands on the win chance, as on both sites. A draw counts as half a win in the win chance ("Draws"). Takana's own classes (Spectakular, Fatal) are not a published method: question 12. |
 | Hard positions, the accuracy's weights, the Difficulty chart | 14 | As it is | KaTrain's complexity on the win chance. |
 | The Advantage chart | 06, 14 | With a change | A second line for the flat count, with the komi, as Takana's chart shows it and as Hedge School's chart has its area line. The engine gives the flat count in the position ("The engine request", item 4). |
 | The players' cards | 06 | With a change | Each player's name and rating (`Player1`, `Rating1`), the flats on top, the stones and the capstones left. |
 | The lead | 06, 09 | With a change | Tak's network has no lead. Its score head gives the flat margin if the game ends by the flat count (`games/tak/docs/design/06-heads-and-results.md`). The table and the meter name it so, in flats. |
 | A review by an earlier engine opens as a snapshot | 20 | As it is | `packages/analysis/src/storedReview.ts`. The word "snapshot" is the glossary's: Takana's "game snapshots" are a game's highlights, another thing. |
-| The area map | 30 | Put off (question 6) | Tak's network has a map of a flat ending (head C0) and a map of the winning road (head C4), "analysis later" in the engine's design 06. The area map's styles fit the flat map. |
+| The area map | 30 | Put off (question 6) | Tak's network has a map of a flat ending (head C0) and a map of road threats (head C4), "Analysis later" in the engine's design 06. The area map's styles fit the flat map. |
 | The weak walls | 30 | Left out (question 7) | Enclosure's edges alone. Tak's standing stones are another thing. |
 | The threat | 31 | Put off (question 6) | Tak has no pass. The threat needs the engine to search the position with the other player to move. In Tak that is the road threat, and it is worth the work. |
 | The opening book in the review | 32 | Put off (question 6) | With the Openings page. |
 | The move sounds | 08 | With a change | "The sounds". |
 | The player's notes | 33 | As it is | `packages/review/src/notes.ts`, with Tak's move names. |
-| The archive check, the review lock, the kept tree, the removal of earlier results | 20, 29 | As it is | The analysis package. |
+| The review lock, the kept tree, the removal of earlier results | 11, 20, 29 | As it is | The analysis package. |
+| The archive check: an archive's records read through the site's code path | 33 | With a change | playtak's games through the import, the reader and the engine's check. It runs locally and commits no game (question 9). |
+
+### Takana's features
+
+Takana is the community's review bot (`research/community.md`, 1.0). Each of its features, and the site's part:
+
+| Takana's feature | The site's part |
+|---|---|
+| A review from a playtak id or PTN | The import (item 10). |
+| Three levels: Quick, Standard and Deep | The engine's settings: the visits, the time and the depth (designs 09 and 16). |
+| The game's statistics | The review's Report: the result and the counts of each label (design 06). |
+| A mark for each move | The labels, on chess.com's bands (design 10). |
+| The key: every other move would be a Mistake | Great, the only good move (design 10, item 6). |
+| Spectakular, Brilliant and Tactical: rare top moves | Left out (question 12). Their rarity score and thresholds are not public. |
+| Fatal: a move that hangs a road, a tinuë or a gaelet | A Blunder by its loss of win chance (design 10). The mark of its own is left out (question 12). |
+| Each player's accuracy from the loss of win chance | The accuracy (design 14). |
+| The flat count on the chart | The flat line on the Advantage chart ("The review"). |
+| "Game snapshots": rare moves, the start of the middle game, big Fatals and Blunders | Left out (question 12). Hedge School has no list of a game's highlights. |
+| A ptn.ninja link with two suggested moves in each position | The annotated record's engine notes, opened in ptn.ninja, and "Open in PTN Ninja" (items 6 and 10). |
 
 ### The Analysis board and its starts
 
@@ -201,19 +229,19 @@ those that design 33 ("The gaps from Hedge School") names.
 
 | Feature | Design | Carries over | Why, and the work |
 |---|---|---|---|
-| The engine in the browser, its workers, its pool | 02, 03 | As it is | `packages/engine` knows no game. Tak's module speaks the same protocol (the request). |
+| The engine in the browser, its workers, its pool | 02, 03, 09 | As it is | `packages/engine` knows no game. Tak's module speaks the same protocol (the request). |
 | The engine's settings: the switch, the visits, the time, the depth, the workers | 09, 16 | As it is | |
 | The networks' choice | 09 | Put off (question 6) | Hedge School offers two networks. Tak's first release has one, as Cyanotype's has. |
 | The GPU | 15 | Put off (question 6) | The pipeline can build a GPU module from an ONNX graph. The first build runs on the CPU. |
 | The engine lock and its kinds | 29 | With a change | The check `engine-kinds` refuses a kind of Hedge School's that the Tak site lacks, unless its exceptions file names the issue. Each put-off kind (the GPU, the practice bot) gets its line there. |
-| Each site's own terms of the engine | request 14 | As it is | The release's terms file, on the Notices page. |
+| The terms of the engine's release | requests 14, 29 | As it is | The release's terms file, on the Notices page. |
 
 ### Import, export and the partners
 
 | Feature | Design | Carries over | Why, and the work |
 |---|---|---|---|
 | The Import dialog and the import page | 11, 22 | With a change | Item 10. |
-| The review file and the analysis file | 13 | As it is | The site's own formats (`packages/analysis/src/reviewFile.ts`), with the site's format name. |
+| The review file and the analysis file | 13, 21 | As it is | The site's own formats (`packages/analysis/src/reviewFile.ts`), with the site's format name. |
 | The annotated record | 13 | With a change | PTN with ptn.ninja's branches and engine notes (item 6). |
 | The shared link (`#packed=`) | 13, 22 | As it is | |
 | Partner sites | 18 | With a change | The frame in `packages/import`, an empty list, as Cyanotype's. No window message searches a position (item 9). |
@@ -233,15 +261,16 @@ those that design 33 ("The gaps from Hedge School") names.
 
 | Feature | Design | Carries over | Why, and the work |
 |---|---|---|---|
+| The product's shape: the store in this browser, the explanations, the devices, the look | 04 | As it is | The shared packages, with Tak's texts. |
 | The header, the footer, the menu, the theme | 29 | As it is | `packages/site`, with the site's name and links. The header's breakpoints need the layout test with Tak's links. |
 | The early access and its build switch | 11 | As it is | `edition.ts` and `SiteName.svelte`, with the site's own repository variable. |
 | Search engines and link previews | 23 | With a change | A preview image of Tak's board. |
 | The logo and the colour | 12 | With a change | A logo of the site's own. No art of Tak's (question 2). |
-| The analytics, with PostHog and no consent | 17 | As it is | The shared analytics, with the site's Cloudflare token. |
+| The analytics, with PostHog and no consent | 17 | As it is | The shared analytics. The account's one Web Analytics site, `abstractclass.org`, takes every subdomain's beacon, so the site uses the shared `CF_ANALYTICS_TOKEN` and needs no Cloudflare step of its own (`docs/hosting.md`, sections 5 and 9). |
 | Support Us | 22 | Question 2 | Tips for a site about another's game. |
 | The error page, the notices of a page that does not load | | As it is | `packages/site`. |
 
-### Enclosure's alone
+### The parts that only Enclosure has
 
 These are not in Cyanotype either. Each one stays out (question 7): enclosuregame.com as a partner, the tools for
 meaf.us and Constellation's export, the board's layers of Enclosure (its regions and its invincible edges), the weak
@@ -260,8 +289,10 @@ Tak's board is the site's own part, as Blueprints' hexes are Cyanotype's.
   code calls the first player "blue" (design 29, item 2), and the site's texts say "White" and "Black".
 - **The player's own move,** from the engine's list of legal moves, as Cyanotype's board takes a move. The site has no
   rules. A placement: the square, then the stone. A stack move: the stack, the count, then each square of the path,
-  where each click drops one more stone. The input matches the clicks against the list. 6x6 has 4,572 move slots
-  (`games/tak/docs/design/03-moves-and-policy.md`), so the list is short enough to send in each reply.
+  where each click drops one more stone. The input matches the clicks against the list. The engine's `describe` reply
+  gives the list for the position on the board, as it does for Cyanotype (`packages/engine/src/client.ts`). The
+  analysis replies do not carry it. 6x6 has 4,572 move slots (`games/tak/docs/design/03-moves-and-policy.md`), so the
+  list is short enough for that reply.
 
 ## The sounds
 
@@ -277,12 +308,14 @@ with no margin, a game can end by resignation or time (`1-0`), and playtak draws
 placement and no flattening. The engine's network gives a win, a draw and a loss
 (`games/tak/docs/design/06-heads-and-results.md`). The shared code reads a win chance.
 
-- **The win chance counts a draw as half,** as KataGo's no-result does, so that the labels' bands and the charts work
-  as they are.
+- **The win chance counts a draw as half,** as KataGo's no-result does. The engine's reply gives it so (the request,
+  item 6), and the labels' bands and the charts work as they are.
 - **The draw chance shows** in the meter's tooltip and the table's row, from the reply's draw field.
 - **The result takes the game's kind:** a road, the flats, a resignation or time, or a draw (`R-0`, `F-0`, `1-0`,
-  `1/2-1/2`). The review's value at the end and the records' result read it. This is a change in the analysis
-  package's result and in the record package, for every game whose result is not by the scores.
+  `1/2-1/2`). The review's value at the end and the records' result read it. The result by the scores
+  (`result.ts`) stays the kind of Enclosure and Blueprints. The game interface gives each game's result: its winner
+  or a draw, and its words. So Tak's kinds stay in Tak's reader, and the shared code reads only the winner and the
+  words.
 
 ## What the sites share, and what a third site adds
 
@@ -292,18 +325,23 @@ record's frame (`packages/record`), the site's frame, its analytics and Support 
 the Analysis board's view (`packages/review`), the import's frame, the tools and the partners (`packages/import`),
 Practice (`packages/practice`) and the engine measure (`packages/measure`). The engine repository shares the browser
 pipeline (`core/wasm/`): one WebAssembly module for each game, the network loaded at run time, the practice bot's
-modules and an optional GPU module. Its JavaScript (`createCpuEngine` in `gpu_engine.mjs`, `practice_bot.mjs`,
-`cpu_evaluator.mjs`) is the same for each game.
+modules and an optional GPU module. Its JavaScript stays in `games/enclosure/wasm/` (`core/wasm/README.md`):
+`createCpuEngine` in `gpu_engine.mjs` runs any game's module, beside `practice_bot.mjs` and `cpu_evaluator.mjs`.
 
 **What the Tak site is the first to need,** each in the package where it serves every game:
 
-1. **Board sizes:** a game with more than one board. The standard start, the stored results' keys and the engine's
-   query must name the size: `a1` on 5x5 and on 6x6 are two moves. The analysis package's `keyMoves` and the game
-   interface get the start of each size.
-2. **Draws and results of several kinds** in the result and the win chance ("Draws"), in the analysis package and
-   the record package.
-3. **Two plies a row in the move list,** with PTN's numbers, as Lichess shows chess. Hedge School's move list shows a
-   turn a row, and Cyanotype's a move a row. The review package's move list takes the row's form from the game.
+1. **Board sizes:** a game with more than one board. The stored results' keys and the engine's query must name the
+   size: `a1` on 5x5 and on 6x6 are two moves. `keyMoves` (`packages/analysis/src/cache.ts`) keys a set-up start as
+   a word of its own, and a standard start as no word. So the work first checks the simplest form: a Tak game's start
+   is always a TPS, the empty board's for a game from the start, and the key needs no change. The game interface
+   then gives the empty board of each size.
+2. **Draws and results of several kinds** ("Draws"): the draw chance in the meter and the table, and a result that
+   the game interface gives, beside the result by the scores.
+3. **Two plies a row in the move list,** with PTN's numbers, as Lichess shows chess. The game interface's `turn`
+   gives the notation's numbers, and the review judges a move by the same turns (`judgeTurn` in
+   `packages/analysis/src/model.ts`): Enclosure's turn of two edges is one row and one judgement. Tak numbers two
+   plies a turn and judges each ply. The shared change keeps the notation's numbers and the rows apart from the unit
+   that the review judges.
 4. **A record in a format that the game's community owns.** The record package's frame is Hedge School's form, with
    each game's moves as a parameter. PTN is close to it (tags, numbered moves, comments, results). Its branches and
    its notes are ptn.ninja's. The work checks first whether the record package takes PTN's parts as parameters, or
@@ -324,7 +362,8 @@ request 23 asked for Blueprints. So the work goes in three stages.
    - The app and its shell, its deploy job with the launch switch, and its pages' texts.
    - PTN's reader and writer of moves and records, TPS's reader and writer, with tests on records written by hand and
      on ptn.ninja's examples in its own documents.
-   - The board drawn from a TPS, on `/lab/board`.
+   - The board drawn from a TPS, on `/lab/board`, in the shape of the engine's position fields (the request, item 4).
+     The next stage then changes only where the fields come from.
    - The check of CORS on playtak's API, and the fetch of a game by its id.
    - The Import dialog and the import page, which read and refuse records by their tags (the size, the opening, the
      komi, the result).
@@ -347,9 +386,9 @@ A request in `docs/requests/` and an issue with the label `engines`, as request 
 
 1. **Early, with any network:** the rules first, in the module of the browser pipeline.
 2. **PTN's moves, whole,** in one spelling (item 4), in every reply and every query.
-3. **The protocol that `packages/engine` speaks** (0.6.1 for Hedge School, 0.8.0 for Cyanotype), so that the
-   package needs no change. A query carries the size (as the position's TPS, or the start of a size) and the komi
-   in half flats.
+3. **The protocol that `packages/engine` speaks** (0.6.x for Hedge School, 0.8.0 for Cyanotype). The package then
+   changes only by the reply's new fields (items 6 and 7). A query carries the size (as the position's TPS, or the
+   start of a size) and the komi in half flats.
 4. **The position's fields** that the site draws: each stack's stones, the stones and capstones left, the flats on
    top for each player, whether the game ends there, and how (a road, the flats, a draw, the 50-ply rule).
 5. **A position's check** from a TPS, with its reasons, as protocols 0.5 and 0.8.0 give it for the two other games.
@@ -392,7 +431,7 @@ A request in `docs/requests/` and an issue with the label `engines`, as request 
 - **Takana's classes:** the community knows them, but their thresholds are not public. The site's labels follow
   chess.com and Lichess, as both sites do.
 - **A server that fetches playtak's games:** it avoids CORS, but it adds a server where the static site has none
-  (design 19). It is the fallback if playtak refuses CORS and its administrators do not change it.
+  (design 02). It is the fallback if playtak refuses CORS and its administrators do not change it.
 
 ## Consequences
 
@@ -428,13 +467,14 @@ A request in `docs/requests/` and an issue with the label `engines`, as request 
    **Recommendation:** put Practice off, with its stored games, "Play the bot from here" and the start from a
    position. People play the bot on playtak, where the game lives. Decide again when the playtak bot runs.
 5. **The tools for playtak's pages** (a bookmarklet and a userscript). playtak's client shows games in progress too,
-   and the import by id covers each finished game. **Recommendation:** put them off until a player asks.
+   and the import by id covers each finished game. A tool, if it comes, runs on playtak's page, reads a finished game
+   only, and never helps in a game in progress or a ranked game. **Recommendation:** put them off until a player asks.
 6. **The postponements that wait for the engine:** the GPU (design 15), the area map (design 30), the threat
    (design 31), the opening book with the Openings page (design 32) and the networks' choice (design 09). Each one
    needs a part of the engine that its first release will not have. **Recommendation:** put each one off with its own
    issue, which depends on the engine's issue, as Cyanotype did.
-7. **Enclosure's alone:** the weak walls, the board's layers of Enclosure, Practice's area lane, enclosuregame.com,
-   and the tools for meaf.us and Constellation. **Recommendation:** leave them out, as Cyanotype did.
+7. **The parts that only Enclosure has:** the weak walls, the board's layers of Enclosure, Practice's area lane,
+   enclosuregame.com, and the tools for meaf.us and Constellation. **Recommendation:** leave them out, as Cyanotype did.
 8. **The prototypes** (Puzzles, Learn, the engine lab). **Recommendation:** leave them out while they are prototypes
    on Hedge School, as Cyanotype does. Tak's puzzles would be Tinuë puzzles, after a solver.
 9. **playtak's games in the repository and on the pages.** playtak asks people not to scrape it, and its database has
@@ -444,41 +484,82 @@ A request in `docs/requests/` and an issue with the label `engines`, as request 
    commits nothing. The import fetches a game only when a player asks for it.
 10. **Other sizes and openings.** Takana also reviews 6x6 and 5x5 with the double black stack opening.
     **Recommendation:** refuse other sizes and openings until the engine trains them (item 8).
+11. **Unfinished games in the review and the import.** Hedge School reviews a game whose result is `*` (design 21,
+    item 8). The engine's design 09 proposes that the review read finished games only, and the epic abscls-shfz
+    gives that rule in the coordinator's words. No message of the owner's that the epic quotes states it. A record's
+    result is the site's only sign that a game is over. **Recommendation:** refuse a record whose result is `*` or
+    missing, with the reason (item 9), and keep the rule in this document once the owner confirms it.
+12. **Takana's features that Hedge School does not have:** the marks of rare top moves (Spectakular, Brilliant and
+    Tactical), the Fatal mark and the game snapshots ("Takana's features"). Their rules and thresholds are not
+    public. **Recommendation:** leave them out. A list of a game's key moments would be a new feature for every
+    site, in `packages/review`, and a plan of its own.
 
 ## The tickets proposed
 
 The coordinator files them. Each one has the labels `site` and `tak` (the request's issue has `engines`), under
-abscls-shfz.18.
+abscls-shfz.18. Each one names its work, its check, and the tickets that it waits for ("After"). A ticket with no
+"After" can start at once.
 
-1. **Tak site: the name, the engine's name and the address:** the owner's choice (question 1), before the app.
-2. **Tak site: the engine request, Tak in the browser before the trained network:** `docs/requests/31-…`, with an
-   `engines` issue that holds its items.
-3. **Tak site: the app, its shell and its deploy job with the launch switch:** `apps/<name>` with its pages' frame and
-   texts, previews only.
-4. **Tak site: PTN's moves and records, and TPS:** the reader and the writer, the short form, the marks, the tags, with
-   tests on hand-written records.
-5. **Tak site: the board and its stacks, drawn from a position:** `/lab/board`, both themes, every width down to 360
-   pixels.
-6. **Tak site: a playtak game by its id, pasted PTN and a ptn.ninja link:** the CORS check first, the Import dialog and
-   the import page, the refusals.
-7. **Shared: a game with several board sizes:** the start of each size in the game interface and the stored results'
-   keys, with Hedge School's and Cyanotype's tests unchanged.
-8. **Shared: draws and a result's kind in the result, the win chance and the records:** a draw as half, the draw
-   chance shown, a road win with no margin.
-9. **Shared: the move list with two plies a row:** PTN's numbers, the row's form from the game.
-10. **Tak site: the player's own moves, from the engine's legal moves:** placements with their stone, stack moves with
-    their drops (after ticket 2).
+1. **Tak site: the name, the engine's name and the address:** the answer to question 1. Check: the names in this
+   document, in the glossary (ticket 17) and in the request (ticket 2).
+2. **Tak site: the engine request, Tak in the browser before the trained network:** `docs/requests/31-…`, with the
+   items of "The engine request", and an `engines` issue that holds them. Check: the request's row in
+   `docs/requests/README.md`, and the two linked both ways. Tickets 10 and 14 wait for that `engines` issue, which
+   waits for the engine's rules (abscls-shfz.3).
+3. **Tak site: the app, its shell and its deploy job with the launch switch:** `apps/<name>` with its pages' frame,
+   the texts of About, Privacy, Notices, How reviews work, Notation and Developers, and Support Us built and switched
+   off (question 2). Previews only. Check: `npm run check:all` with the third site, the layout test with the site's
+   links, a push to `main` that skips the deploy, and a preview that answers `noindex`. After: 1, 17.
+4. **Tak site: PTN's moves and records, and TPS:** first the check whether `packages/record` takes PTN's parts as
+   parameters ("What the sites share", item 4), then the reader and the writer: the short form, the marks, the tags
+   and the results. Check: tests on hand-written records and on the examples of ptn.ninja's documents, each spelling
+   read as the short form, and a record written and read back unchanged. After: 3.
+5. **Tak site: the board and its stacks, drawn from a position:** `/lab/board`, in the shape of the engine's position
+   fields. Check: the board lab in both themes, at every width down to 360 pixels, and the layout test. After: 3, 4.
+6. **Tak site: a playtak game by its id, pasted PTN and a ptn.ninja link:** the Import dialog and the import page,
+   the fetch by id, and the refusals by the tags (the size, the opening, the komi, the result). Check: a test of each
+   refusal and of each way in, and a game fetched by its id from a preview in a real browser. After: 3, 4, 18.
+7. **Shared: a game with several board sizes:** the empty board of each size, and the size in the stored results'
+   keys. Check: a test that `a1` on 5x5 and `a1` on 6x6 key apart, with Hedge School's and Cyanotype's tests
+   unchanged.
+8. **Shared: draws and the game's own result:** the draw chance in the meter and the table, a result that the game
+   interface gives, and a road win with no margin. Check: tests of a reply with a draw chance and of each kind of
+   result, with Hedge School's and Cyanotype's tests unchanged.
+9. **Shared: two plies a row in the move list:** the notation's numbers and the rows apart from the unit that the
+   review judges. Check: a test of a game that numbers two plies a turn and judges each ply, the layout test, and
+   Hedge School's and Cyanotype's move lists unchanged.
+10. **Tak site: the engine's rules on the site:** the player's own moves from the engine's legal moves (placements
+    with their stone, stack moves with their drops), the rules' check of a record's moves and marks, and the position
+    check of a TPS. Check: each legal move of the test positions entered by clicks, a click that matches no move
+    refused, and a record with a false `*` refused. After: ticket 2's `engines` issue, 5, 6.
 11. **Tak site: the review and the Analysis board on Tak's board:** the view's Tak part, the players' cards, the flat
-    line on the chart, the flat margin (after tickets 2, 7, 8 and 9).
-12. **Tak site: the annotated record in PTN, and links to ptn.ninja:** ptn.ninja's branches and engine notes, "Open in
-    PTN Ninja".
-13. **Tak site: the move sounds:** the removal's sound for a move that covers an opponent's stone.
-14. **Tak site: the engine measure with Tak's positions:** `/lab/measure` (its numbers after a network).
-15. **Tak site: an issue for each put-off feature:** the GPU, the area map, the threat, the opening book, the
-    networks' choice, Practice and the tools, each with its dependency, and the engine lock's exceptions file.
-16. **Tak site: the letter to Crab Fragment Labs:** the owner's step before the launch (question 2).
+    line on the chart and the flat margin, and the archive check of playtak's games, run locally. Check: a review end
+    to end in a real browser with the test network (the sweep, the variations, the exports, the review file, the
+    snapshot), and the archive check with no game committed. After: 7, 8, 9, 10.
+12. **Tak site: the annotated record in PTN, and links to ptn.ninja:** ptn.ninja's branches and engine notes, and
+    "Open in PTN Ninja". Check: an exported record that ptn.ninja opens with its branches and notes, and that the
+    site's reader reads back. After: 4, 11.
+13. **Tak site: the move sounds:** the removal's sound for a move that covers an opponent's stone. Check: a test of
+    which move plays which sound. After: 11.
+14. **Tak site: the engine measure with Tak's positions:** `/lab/measure`, its numbers after a network. Check: a run
+    of the measure with the test network. After: ticket 2's `engines` issue, 3.
+15. **Tak site: an issue for each put-off feature:** from the answers to questions 3 to 8, 10 and 12, each one with
+    its dependency, and each put-off kind of the engine lock in its exceptions file. Check: `engine-kinds` passes, and
+    each put-off feature has its issue. After: 3, and the answers.
+16. **Tak site: the letter to Crab Fragment Labs:** the owner's step before the launch (question 2). Check: the
+    answer recorded in the issue. Support Us waits for it to turn on, and the launch (ticket 20) waits for it.
 17. **Planning repository: `glossary/tak.md`:** Tak's official words (flat, standing stone, capstone, road, tak,
-    Tinuë, komi, PTN, TPS), and the site's words, in the shared glossary's "Contexts".
+    Tinuë, komi, PTN, TPS), and the site's words, in the shared glossary's "Contexts". Check: the file, linked from
+    `GLOSSARY.md`. After: 1.
+18. **Tak site: the CORS check of playtak's API:** a request to `api.playtak.com` from another site's page. Check: the
+    answer recorded in ticket 6 and in this document. If the API refuses, the site asks playtak's administrators
+    (item 10).
+19. **Tak site: the trained network:** the labels and the accuracy on real games, the search budgets, the engine
+    measure's numbers, the home page's replay of one of the engine's own games, and the first preview with the
+    network. Check: the review's constants measured on Tak's games and recorded in the decision log, and the owner's
+    test on a preview. After: 11, 14, and the engine's release with a trained network.
+20. **Tak site: the launch:** one commit, when the owner says to launch it ("How the site stays unlaunched"). Check:
+    the site's address answers, with no `noindex`. After: 16, 19.
 
 ## Where it is
 

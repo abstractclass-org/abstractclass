@@ -12943,4 +12943,5 @@ missing from every count of design 17. Design 27 gives the reasons.
   row in the move list, and a record in a format that the game's community owns.
 - **The owner's questions:** the name, the letter to Tak's rights holder and Support Us, the Analysis board's free
   parts, Practice, the tools, the postponements that wait for the engine, the parts that are Enclosure's alone, the
-  prototypes, playtak's games in the repository, and other sizes and openings.
+  prototypes, playtak's games in the repository, other sizes and openings, unfinished games in the review and the
+  import, and Takana's features that Hedge School does not have.
