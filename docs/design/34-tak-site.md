@@ -423,7 +423,10 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
      `sizes` for each of these.
    - **A site's own parts stay its own:** its game's id puts the start before the moves, as both sites' ids do. Its
      review page passes the game's start to `lineKeyMoves` and to `GameAnalysis`, where both sites pass the komi
-     alone, and refuses a set-up start only (`setUpRefusal`).
+     alone, and refuses a set-up start only (`setUpRefusal`). Both sites read a start with one function (`setUpStart`:
+     a board's link, a record's board, the game's id, the review's refusal), which gives none for the standard start.
+     Mistak keeps each size's empty board as the start and still takes it as no set-up start: with none, a board from
+     5x5's empty board takes the keys and the komi limit of no size.
 2. **Draws and results of several kinds** ("Draws"): the draw chance in the meter and the table, and a result that
    the game interface gives, beside the result by the scores.
 3. **Two plies a row in the move list,** with PTN's numbers, as Lichess shows chess. The game interface's `turn`

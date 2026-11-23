@@ -187,8 +187,8 @@ export function readAnalysisFile(text: string, site: string, format: string, max
     (b.start === undefined || typeof b.start === "string") &&
     (b.komi === undefined || isKomi(b.komi));
   if (!boardOk) throw new Error(`${site} cannot read the analysis file's lines.`);
-  const komi = b.komi ?? 0, max = limitAt(maxKomi, b.start ?? null);
-  const beyond = komiLimitProblem(komi, max, komi, "the analysis file's komi");
+  const komi = b.komi ?? 0;
+  const beyond = komiLimitProblem(komi, limitAt(maxKomi, b.start ?? null), komi, "the analysis file's komi");
   if (beyond) throw new Error(beyond);
   // An engine that the reader cannot use is as none: the results' keys then give the network (fileNetwork).
   const e = f.engine as Partial<FileEngine> | null | undefined;

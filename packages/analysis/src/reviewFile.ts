@@ -64,7 +64,7 @@ export function reviewFiles<R extends FileRecord>(site: ReviewFileSite<R>) {
    *  given). `version` is the site's version, which the file names. `reviewed`: the game's mark. */
   function build(record: string, branches: KeptBranches | null, entries: [string, unknown][], version: string,
                  models: Set<string> | null = null, reviewed: ReviewMark | null = null, now = new Date()): ReviewFile {
-    const { moves, komi, start = null } = site.parse(record);
+    const { moves, komi, start } = site.parse(record);
     return {
       format: site.format, version: REVIEW_FILE_VERSION, exported: now.toISOString(), site: version,
       review: reviewed && { ...reviewed, networkName: site.networkName(reviewed.network) }, record, branches,
@@ -141,7 +141,7 @@ export function reviewFiles<R extends FileRecord>(site: ReviewFileSite<R>) {
       const stored = await site.loadGame(id);
       if (!stored) throw new Error(`This browser has no game ${id}.`);
       const branches = (await dbGet<KeptBranches>(STORES.branches, id)) ?? null;
-      const { moves, komi, start = null } = stored.record, positions = positionKeys(moves, branches, komi, start);
+      const { moves, komi, start } = stored.record, positions = positionKeys(moves, branches, komi, start);
       const entries = await dbEntriesWhere(STORES.analysis, key => belongs(key, positions, models));
       return build(stored.game.record, branches, entries, version, models, stored.game.reviewed ?? null);
     },

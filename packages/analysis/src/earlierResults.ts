@@ -35,7 +35,7 @@ function keptGames(games: [string, unknown][], branches: [string, unknown][], re
   const branchesOf = new Map(branches);
   return readGames(games).map(({ game, record }) =>
     ({ moves: record.moves, branches: (branchesOf.get(game.id) as KeptBranches | undefined) ?? null, mark: game.reviewed,
-       komi: record.komi, start: record.start ?? null }));
+       komi: record.komi, start: record.start }));
 }
 
 /** A stored game as the removal reads it: its moves, its variations, the mark of its last review, and its komi (its
@@ -70,7 +70,7 @@ export function unneededResults(keys: string[], games: KeptGame[], engine: Manif
   // The positions that the review snapshots read, by the search and the network file of their results, each with the review
   // depths of the games that read it.
   const snapshotReads = new Map<string, Map<string, Set<number>>>();
-  for (const { moves, branches, mark, komi = 0, start = null } of games) {
+  for (const { moves, branches, mark, komi = 0, start } of games) {
     if (!mark) continue;
     // A review snapshot opens where the site would review the game again (storedReview.ts, openSnapshot).
     const why = reviewAgainWhy(mark, reviewMark(engine, mark.network, mark.visits));

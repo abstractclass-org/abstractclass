@@ -65,9 +65,7 @@ export async function annotatedFromStore<G extends GameTypes>(stored: ReviewFrom
   const pool = new EnginePool(0); // the rules alone: no search
   try {
     await pool.start(manifest, network);
-    const start = stored.start ?? null, game = new GameAnalysis(stored.game, pool, stored.moves, stored.id, start, {
-      komi: stored.komi,
-    });
+    const game = new GameAnalysis(stored.game, pool, stored.moves, stored.id, stored.start, { komi: stored.komi });
     const problem = await stored.open(game, visits, pool.search!, model.sha256);
     if (problem !== null) throw new Error(problem);
     const data = game.data(players);
@@ -97,9 +95,8 @@ export async function openSnapshot<G extends GameTypes>(stored: Omit<ReviewFromS
   // The store is read while the rules worker starts: an earlier engine's search is not the site's. The positions that
   // the test needs come once the rules give the game's positions and the site's step its values there.
   const started = rules.start(manifest, network).then(() => snapshotExcept(why, rules.search));
-  const start = stored.start ?? null;
-  const g = new GameAnalysis(stored.game, rules, stored.moves, stored.id, start, { komi: stored.komi });
-  const line = snapshotPositions(stored.moves, stored.komi, start);
+  const g = new GameAnalysis(stored.game, rules, stored.moves, stored.id, stored.start, { komi: stored.komi });
+  const line = snapshotPositions(stored.moves, stored.komi, stored.start);
   let taken = false;
   // An older mark, which names no search, is older than the book: its review searched every position, and the removal
   // of earlier results keeps them by that rule (Hedge School's earlierResults.ts)

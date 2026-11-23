@@ -72,9 +72,9 @@ export interface BoardSize { name: string; start: string }
 export interface Game<G extends GameTypes> extends Moves<G["move"]> {
   /** The board sizes of a game that has several. Each game, a reviewed one too, keeps its size's empty board as its
    *  start, so that the engine's queries and the stored results' keys name the size (cache.ts, keyMoves): `a1` on 5x5
-   *  and on 6x6 are two positions. The review passes that start where it passes the komi (storedReview.ts,
-   *  ReviewFromStore; earlierResults.ts, ReadGames; reviewFile.ts). None: the game has one board, and its standard
-   *  start is written as no start (null). */
+   *  and on 6x6 are two positions. The review passes that start where it passes the komi: ReviewFromStore
+   *  (storedReview.ts), ReadGames (earlierResults.ts) and FileRecord (reviewFile.ts). None: the game has one board,
+   *  and its standard start is written as no start (null). */
   sizes?: readonly BoardSize[];
   /** A position from the engine's fields. */
   position(fields: G["fields"]): G["position"];

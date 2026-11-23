@@ -419,7 +419,9 @@ public repository and the history rewrites.
   (`packages/record/src/record.ts`) take any start as a set-up start. A size's empty board is its size's standard
   start, so the work that puts the size into Practice's settings changes them.
 - **Left for Mistak's review page:** each site's review page keys its line and builds its analysis with the komi
-  alone (`lineKeyMoves`, `GameAnalysis`). Mistak's page passes the game's start to both.
+  alone (`lineKeyMoves`, `GameAnalysis`). Mistak's page passes the game's start to both. Both sites read a start
+  with one function (`setUpStart`), which gives none for the standard start. Mistak keeps each size's empty board as the
+  start and still takes it as no set-up start, so that a board from it keeps its size's keys and komi limit.
 - **Checked:** new tests of the key of each size, of a reviewed game's line, snapshot and variations, of the removal
   of earlier results, and of each size's komi limit in the record's reader, a board's link, an analysis file and the
   kept board. The packages' other tests pass with no change.
