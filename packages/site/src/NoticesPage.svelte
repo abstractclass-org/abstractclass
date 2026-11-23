@@ -2,7 +2,9 @@
   // Each site's notices page (design 11), the same on every site: the site's own terms, the engine's terms and the
   // works of others in its modules, then what the pages ship of others' work (LibraryNotices.svelte: the libraries,
   // ONNX Runtime Web and the font Fira Code), and the icon. A site that ships sounds gives their items (`sounds`), and
-  // the last section's title names them. Each site puts its own footer after the page.
+  // the last section's title names them. Each site puts its own footer after the page. A site that ships no engine
+  // release yet (Mistak, design 34, "Before the network") gives no lock: its page has no engine's section, and no
+  // section on the engine on the GPU, whose library comes with the engine.
   //
   // The engine release's terms (its LICENSE.txt: the engine's own code and the networks) and its notices (its
   // NOTICES.txt: the works compiled into the modules, with their licences' full texts) are shipped beside the modules,
@@ -24,15 +26,16 @@
     copyright: string;
     /** The engine's name, as the site shows it. */
     engine: string;
-    /** The site's engine.lock.json: its release's terms and notices, and its repository. */
-    lock: Lock;
+    /** The site's engine.lock.json: its release's terms and notices, and its repository. None while the site ships no
+     *  engine. */
+    lock?: Lock;
     /** The list items of the sounds that the site ships, if any. */
     sounds?: Snippet;
   } = $props();
 
   /** The address of the lock's file of this kind, which the site serves beside the modules, by fetch-engine.mjs's rule.
    *  A lock with no such file stops the build: the site would ship the engine without its terms or its notices. */
-  const shipped = (kind: "terms" | "notices") => {
+  const shipped = (lock: Lock, kind: "terms" | "notices") => {
     const a = lock.artifacts.find(x => x.kind === kind);
     if (!a) throw new Error(`engine.lock.json names no "${kind}" artifact: the site must ship the engine's ${kind}`);
     return `/engine/${a.dir ?? a.id}/${a.file}`;
@@ -49,20 +52,24 @@
   ];
 </script>
 
-<PageMeta title="Notices · {site}" description="The licences of the works that {site} uses, and the terms of its engine." />
+<PageMeta title="Notices · {site}"
+          description="The licences of the works that {site} uses{lock ? ', and the terms of its engine' : ''}." />
 
 <main class={PROSE}>
   <h1>Notices</h1>
 
   <h2>{site}</h2>
   <p>{site}'s own code, text and design are {copyright}. All rights reserved.</p>
-  <p>The other works below are by others. Their licences cover those works only, not {site} or its engine.</p>
+  <p>The other works below are by others. Their licences cover those works only, not
+    {site}{lock ? " or its engine" : ""}.</p>
 
+  {#if lock}
   <h2>The engine</h2>
   <p>The engine, {engine}, and its networks: {copyright}, all rights reserved. The engine is built from a fork of
     <a href="https://github.com/lightvector/KataGo">KataGo</a>. KataGo's code is under the MIT licence, and the other
     works that the engine compiles in are under their own licences. Each engine release carries its terms
-    (<a href={shipped("terms")}>LICENSE.txt</a>) and these licences (<a href={shipped("notices")}>NOTICES.txt</a>).</p>
+    (<a href={shipped(lock, "terms")}>LICENSE.txt</a>) and these licences
+    (<a href={shipped(lock, "notices")}>NOTICES.txt</a>).</p>
   <p><strong>The engine's outputs.</strong> The engine's outputs are what these files produce: analyses, moves, scores,
     win chances, policies, ownership, and the review files that hold them. You may keep, share and publish the outputs
     as analysis, for example the review of a game. Players and the sites that the holder works with may do so too. You
@@ -76,8 +83,9 @@
   <ul>
     {#each IN_MODULE as work (work)}<li>{work}</li>{/each}
   </ul>
+  {/if}
 
-  <LibraryNotices />
+  <LibraryNotices gpu={lock !== undefined} />
 
   <h2>{sounds ? "An icon and the sounds" : "An icon"}</h2>
   <ul>

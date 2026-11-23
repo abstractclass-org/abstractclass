@@ -32,6 +32,9 @@
 // FAIL on its check's line, with the reason, and the check goes on to its last line. Another error of a check, such
 // as a body that is not JSON or a wrong SHA-256, gives FAIL with its message.
 //
+// A site that ships no engine release yet (Mistak, until its engine comes: its design 34, "Before the network") gives
+// its folder in the place of a lock. Its check then has no engine's lines, and Git runs in that folder.
+//
 // It reads public pages only, and a site's own checks may send a request that stores nothing. Each line says PASS,
 // FAIL or INFO. The last line is `release-check: PASS` or `release-check: FAIL`.
 //
@@ -60,7 +63,8 @@ function orStop(read, prefix = "") {
 /** Runs the checks on the command line's address, prints a line for each, and ends the process: exit code 0 when all
  *  pass, 1 when one fails, 2 for a wrong command line, a home page that does not answer, a footer that names no
  *  commit, or a commit that gives no lock. The site's parts:
- *  - `lock`: the URL of the site's engine.lock.json.
+ *  - `lock`: the URL of the site's engine.lock.json. A site that ships no engine gives none.
+ *  - `folder`: with no lock, the URL of the site's folder, which holds its package.json. Git runs there.
  *  - `branchOf`: the commit of each pages.dev address: the project's, origin/main, and dev's preview, origin/dev.
  *  - `menu`: the links that the header shows.
  *  - `leadHome`: the pages that lead home: a redirect, or a page that refreshes to /. None by default.
@@ -70,7 +74,11 @@ function orStop(read, prefix = "") {
  *  The site's script gives `menu`, `leadHome` and `ownChecks` in its own file, not from a file that it imports: their
  *  lines say "(from this checkout)" when the site's script or this file differs from the commit's, and Git compares
  *  only these two files. */
-export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [], ownChecks }) {
+export async function releaseCheck({ lock: lockUrl, folder, branchOf, menu, leadHome = [], ownChecks }) {
+  // The file in whose folder Git runs (releaseLock.ts): the lock, else the site's package.json. A commit's lock: with
+  // no lock, the commit alone.
+  const at = lockUrl ?? new URL("package.json", folder);
+  const lockOf = ref => lockUrl ? lockAt(lockUrl, ref) : { commit: commitOf(at, ref), lock: undefined };
   const [baseArg, commitArg] = process.argv.slice(2);
   if (!baseArg) stop("usage: node scripts/release-check.mjs <base URL> [<commit>]");
   const base = baseArg.replace(/\/+$/, "");
@@ -83,8 +91,8 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
       + commitHint);
   }
   // With <commit>, its lock, before any request. The commit that the footer must name.
-  const given = commitArg === undefined ? undefined : orStop(() => lockAt(lockUrl, commitArg));
-  const commit = given?.commit ?? orStop(() => commitOf(lockUrl, branch));
+  const given = commitArg === undefined ? undefined : orStop(() => lockOf(commitArg));
+  const commit = given?.commit ?? orStop(() => commitOf(at, branch));
 
   // The home page: its footer's version gives the lock without <commit>.
   const { home, html } = await fetch(`${base}/`).then(async home => ({ home, html: await home.text() }))
@@ -93,7 +101,7 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   const version = footerCommit(html);
   if (!given && !version) stop(`${base}/ answers ${home.status}, and no footer on it names a commit. ${commitHint}`);
   const { commit: lockCommit, lock } = given
-    ?? orStop(() => lockAt(lockUrl, version), `The footer of ${base}/ names commit ${version}. `);
+    ?? orStop(() => lockOf(version), `The footer of ${base}/ names commit ${version}. `);
 
   const results = [];
   const check = (name, pass, detail = "") => {
@@ -111,14 +119,14 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   };
   // The name of a check of a part that this checkout's site script gives, not the commit: marked when that code
   // differs.
-  const codeDiffers = checkoutDiffers(lockUrl, lockCommit,
+  const codeDiffers = checkoutDiffers(at, lockCommit,
     [pathToFileURL(realpathSync(process.argv[1])), new URL(import.meta.url)]);
   const marked = name => codeDiffers ? `${name} (from this checkout)` : name;
   const cacheOf = r => r.headers.get("cache-control") ?? "";
 
   console.log(`INFO  ${base}, ${live ? "the live site" : "not the live site"}, commit ${commit} `
-    + `(${given ? `given: ${commitArg}` : branch}), the engine lock of commit ${lockCommit}`
-    + (given ? "" : ", read from the footer"));
+    + `(${given ? `given: ${commitArg}` : branch}), ${lock ? `the engine lock of commit ${lockCommit}` : "no engine"}`
+    + (given || !lock ? "" : ", read from the footer"));
 
   check("the home page answers 200", home.status === 200, String(home.status));
   check(`the footer's version is ${commit}`, version === commit, String(version));
@@ -154,6 +162,25 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
     });
   } else check("the home page names a file in /_app/immutable/", false);
 
+  if (lock) await engineChecks(base, lock, check, checkRequest, cacheOf);
+
+  if (ownChecks) await ownChecks(base, (name, run) => checkRequest(marked(name), run));
+
+  if (live) {
+    await checkRequest("the domain's answers are signed (DNSSEC validated)", async () => {
+      const dns = await (await fetch(`https://dns.google/resolve?name=${host}&type=A&do=1`)).json();
+      return [dns.AD === true, `AD=${dns.AD} Status=${dns.Status}`];
+    });
+  }
+
+  const pass = results.every(Boolean);
+  console.log(`release-check: ${pass ? "PASS" : "FAIL"} ${base} at ${commit}, ${results.filter(Boolean).length} of `
+    + `${results.length} checks`);
+  process.exit(pass ? 0 : 1);
+}
+
+/** The engine's files, as the page reads them: the manifest, and the files of the site's engine lock `lock`. */
+async function engineChecks(base, lock, check, checkRequest, cacheOf) {
   // A manifest that does not answer, or that is not JSON, names no file. A body that breaks off (an error with a
   // cause) fails the request.
   let manifest = { artifacts: [] };
@@ -197,18 +224,4 @@ export async function releaseCheck({ lock: lockUrl, branchOf, menu, leadHome = [
   const networks = lock.artifacts.filter(a => a.kind === "model").sort((a, b) => b.bytes - a.bytes);
   await checkWhole(networks[0], "the largest network");
   await checkWhole(lock.artifacts.find(a => a.kind === "terms"), "the terms");
-
-  if (ownChecks) await ownChecks(base, (name, run) => checkRequest(marked(name), run));
-
-  if (live) {
-    await checkRequest("the domain's answers are signed (DNSSEC validated)", async () => {
-      const dns = await (await fetch(`https://dns.google/resolve?name=${host}&type=A&do=1`)).json();
-      return [dns.AD === true, `AD=${dns.AD} Status=${dns.Status}`];
-    });
-  }
-
-  const pass = results.every(Boolean);
-  console.log(`release-check: ${pass ? "PASS" : "FAIL"} ${base} at ${commit}, ${results.filter(Boolean).length} of `
-    + `${results.length} checks`);
-  process.exit(pass ? 0 : 1);
 }

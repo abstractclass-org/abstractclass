@@ -4,7 +4,8 @@
 # in WebKit on Linux. On a production build with the practice games' storage on, so that the consent banner shows on
 # every page, and the practice games' test runs.
 # Each job also serves Cyanotype's build (CYANOTYPE_BASE_URL), with its engine's release files, for the tests that open
-# a Cyanotype page. A run with no CYANOTYPE_BASE_URL stops (apps/hedgeschool/playwright.config.ts). A release takes only
+# a Cyanotype page, and Mistak's build (MISTAK_BASE_URL), for the tests that open a Mistak page. A run with either
+# address empty stops (apps/hedgeschool/playwright.config.ts). A release takes only
 # a commit whose run passed, so each commit has a concurrency group of its own: a push cancels no run of an older
 # commit, and waits for none. The deploy (deploy.yml) runs the check and the unit tests again before each upload, in a
 # group of its own, so deploys stay in order. The sweep in Edge stays an option before a release. The repository is
@@ -114,15 +115,19 @@ jobs:
       - run: npx playwright install --with-deps --only-shell chromium
       # Cyanotype's preview (port 4174) beside the site's, for the tests that open a Cyanotype page, which run only when
       # CYANOTYPE_BASE_URL gives the preview's address. Its build is the one that check:all made in this run (the step
-      # cyanotype-build), with the engine's files of the step cyanotype-engine, so a stale build cannot pass.
+      # cyanotype-build), with the engine's files of the step cyanotype-engine, so a stale build cannot pass. Mistak's
+      # preview (port 4175) in the same way, from the step mistak-build, for the tests that open a Mistak page.
       - name: The browser tests, in Chromium
         env:
           CYANOTYPE_BASE_URL: http://127.0.0.1:4174
+          MISTAK_BASE_URL: http://127.0.0.1:4175
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
           npm run preview --workspace=cyanotype -- --host 127.0.0.1 --port 4174 --strictPort &
+          npm run preview --workspace=mistak -- --host 127.0.0.1 --port 4175 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4175/ > /dev/null && break; sleep 1; done
           npx playwright test --project=chromium ${{ matrix.grep }} ' layout\.spec\.ts '
 
       # The failures' screenshots and the page's state, for a week.
@@ -136,7 +141,7 @@ jobs:
   # The load notice's cases in WebKit, Safari's engine (the project webkit in playwright.config.ts), on both sites. A
   # job of its own, with its own time limit: WebKit needs about 160 system packages that the runner's image does not
   # hold, and apt fetches them in each run, once in 27.8 minutes (the time comment above). The job runs only
-  # check:all's engine and build steps for both sites, so its builds are the ones that the parts test. The limit of 45
+  # check:all's engine and build steps for the sites, so its builds are the ones that the parts test. The limit of 45
   # leaves about a quarter of an hour over that install, npm ci and the builds.
   test-webkit:
     runs-on: ubuntu-latest
@@ -161,7 +166,7 @@ jobs:
         with:
           path: apps/cyanotype/node_modules/.cache/engine
           key: cyanotype-engine-v2-${{ hashFiles('apps/cyanotype/engine.lock.json') }}
-      - run: npm run check:all -- --only engine,build,cyanotype-engine,cyanotype-build
+      - run: npm run check:all -- --only engine,build,mistak-build,cyanotype-engine,cyanotype-build
         working-directory: .
 
       - name: Cache Playwright's browsers
@@ -173,11 +178,14 @@ jobs:
       - name: The load notice's cases, in WebKit
         env:
           CYANOTYPE_BASE_URL: http://127.0.0.1:4174
+          MISTAK_BASE_URL: http://127.0.0.1:4175
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
           npm run preview --workspace=cyanotype -- --host 127.0.0.1 --port 4174 --strictPort &
+          npm run preview --workspace=mistak -- --host 127.0.0.1 --port 4175 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4175/ > /dev/null && break; sleep 1; done
           npx playwright test --project=webkit
 
       - if: failure()
@@ -228,6 +236,11 @@ jobs:
         env:
           VITE_EDITION: early
           VITE_STORE_PRACTICE_GAMES: "on"
+      # Mistak's build in the early edition, for the layout test below, as Cyanotype's. It has no engine yet.
+      - run: npm run build
+        working-directory: apps/mistak
+        env:
+          VITE_EDITION: early
 
       # Playwright keeps its browsers in the user's AppData on Windows.
       - name: Cache Playwright's browsers
@@ -238,17 +251,20 @@ jobs:
       # The headless shell only: the project chromium runs headless, with no channel.
       - run: npx playwright install --only-shell chromium
       # Bash, not the default PowerShell, for the commands of the Linux job: the previews in the background, the waits.
-      # Cyanotype's preview and CYANOTYPE_BASE_URL, as on Linux, so that the layout sweep runs on Cyanotype's pages too,
-      # with Windows' fonts and rendering.
+      # Cyanotype's preview and CYANOTYPE_BASE_URL, and Mistak's preview and MISTAK_BASE_URL, as on Linux, so that the
+      # layout sweep runs on both sites' pages too, with Windows' fonts and rendering.
       - name: The layout sweep, in Chromium on Windows
         shell: bash
         env:
           CYANOTYPE_BASE_URL: http://127.0.0.1:4174
+          MISTAK_BASE_URL: http://127.0.0.1:4175
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
           npm run preview --workspace=cyanotype -- --host 127.0.0.1 --port 4174 --strictPort &
+          npm run preview --workspace=mistak -- --host 127.0.0.1 --port 4175 --strictPort &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4175/ > /dev/null && break; sleep 1; done
           npx playwright test tests/layout.spec.ts --project=chromium
 
       - if: failure()

@@ -10,8 +10,9 @@ export const OPENINGS = EARLY_ACCESS && import.meta.env.VITE_TEST_BOOK === "1";
 export const SITE_NAME = "Hedge School";
 /** The live site's address: the canonical address of every page, wherever the page is served (design 23). */
 export const SITE_ORIGIN = "https://hedgeschool.abstractclass.org";
-/** The site's own copyright: its code, text and design. The works of others that it ships are on the notices page. */
-export const SITE_COPYRIGHT = "© 2026 Yshan";
+/** The site's own copyright: its code, text and design, as every site has it. The works of others that it ships are
+ *  on the notices page. */
+export { SITE_COPYRIGHT } from "@abstractclass/site/copyright.ts";
 export const SITE_VERSION: string = __SITE_VERSION__;
 /** The engine files that the build ships (vite.config.ts): its CPU module and networks, by SHA-256. */
 export const ENGINE_FILES: string = __ENGINE_FILES__;

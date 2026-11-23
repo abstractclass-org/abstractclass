@@ -31,6 +31,8 @@
   // Its WebAssembly module also contains the works that the repository's ThirdPartyNotices.txt lists. The version is
   // the package's (notices.spec.ts compares both with node_modules/onnxruntime-web).
   const ORT_VERSION = "1.30.0";
+  // `gpu`: the site ships the engine, and so ONNX Runtime Web with it. A site with no engine yet ships neither.
+  let { gpu = true }: { gpu?: boolean } = $props();
   const ORT_COPYRIGHT = "Copyright (c) Microsoft Corporation. All rights reserved.";
 </script>
 
@@ -40,6 +42,7 @@
   {#each MIT as [name, href, copyright] (name)}<li><a {href}>{name}</a>: {copyright}.</li>{/each}
 </ul>
 
+{#if gpu}
 <h2>The engine on the GPU</h2>
 <p>
   On the GPU, the engine runs its network with <a href="https://github.com/microsoft/onnxruntime">ONNX Runtime Web</a>
@@ -51,6 +54,7 @@
   <a href="https://github.com/microsoft/onnxruntime/blob/v{ORT_VERSION}/ThirdPartyNotices.txt">ThirdPartyNotices.txt</a>
   lists them.
 </p>
+{/if}
 
 <h2>The MIT licence, of the works above</h2>
 <pre class="whitespace-pre-wrap">Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated

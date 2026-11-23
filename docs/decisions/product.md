@@ -13017,3 +13017,59 @@ missing from every count of design 17. Design 27 gives the reasons.
   a preview.
 - **Not measured:** what else is on the API's list, whether the administrators would add an address, and a
   browser's own request. Ticket 5 checks a game fetched by its id from a preview in a real browser.
+
+### Mistak's shell: the app, its pages' texts and its deploy job (2026-11-23)
+
+- **What:** `apps/mistak`, the third site, with the frame of the two others (`packages/site`): the header with Notation
+  and About, the footer, the site's menu below 900 pixels, the theme, Support Us, the error page, the analytics with
+  no consent, the sitemap, `robots.txt` and the headers with `noindex` on Cloudflare's addresses (design 34, "The site's
+  frame"; abscls-shfz.18.4). Its pages: Home, About, Notation, How a review works, For developers, Privacy and Notices.
+  The game's pages (Practice, Review, Analysis) and Tools join the header with their own work.
+- **The logo:** a stack, Tak's own idea, in plain shapes: flat stones under a capstone, cream on a dark pine tile
+  (`#24443d`), the lower stones fading as into a mist, for the name. Two drawings by size, as Cyanotype's, and no art
+  of Tak's (design 34, "The rights"). The accent stays the sites' lavender, which the partners' buttons share. The link
+  preview picture has the logo where Tak's board comes with the board's work (abscls-shfz.18.6).
+- **Moved into `packages/site`:** the logo's drawing tools (`brand.ts`: a drawing's shapes as SVG) and the
+  writing of a site's logo files (`brandFiles.ts`: the favicon, the ICO file, the iOS icon, the card and the buttons'
+  head). Cyanotype's `logo.ts` and `scripts/brand.mjs` take them from there. Its brand script, run again through the
+  package, wrote its five files byte for byte as they were.
+- **Copies that stay for now:** Mistak's `hooks.client.ts`, `hooks.server.ts`, `+layout.ts`, `+error.svelte`, its
+  relay Function, `app.html`, `Logo.svelte`, the card's text helper and the tests of `site.ts` and of the logo are
+  Cyanotype's files with Mistak's names. The first six are each site's own thin parts on the packages, as on both sites.
+  `Logo.svelte`, the helper and the tests hold code that two sites now share, which design 29, item 11, asks to move:
+  the review judges them.
+- **The copyright line:** one shared constant, `packages/site/src/copyright.ts`, which each site's own module
+  re-exports (`site.ts` in Mistak and Cyanotype, `edition.ts` in Hedge School), so that their footers and their notices
+  pages read it as before. The hooks' check of private words refuses the holder's name in a new line, and gets a rule
+  that allows this one line of this one file (abscls-y276). The hub's page is static HTML and keeps its own line.
+  The source: tak-coord's comment in abscls-shfz.18.4 (2026-11-24, 00:41 CST) records the owner's words in tak-coord's
+  chat (session e5b0c9da-2714-4851-94f3-1747e38971ab), verbatim: "1. shared constant, 2. no". The first answers "which
+  form Mistak's copyright line takes", and the second whether to ask playtak's administrators to list Mistak's address.
+  tak-coord's reading: a shared constant that the three sites import, and a rule for that line alone. The session that
+  wrote this entry read the comment, not the transcript.
+- **A site with no engine yet:** Mistak ships no engine release until the engine's rules come (design 34, "Before the
+  network"). So the shared notices page takes no lock: it then shows no engine's section and no section on ONNX Runtime
+  Web, which comes with the engine. The shared check of a deployed site takes the site's folder in the place of a lock,
+  and has no engine's lines. Both sites with an engine pass their locks as before.
+  `apps/mistak/engine.lock.exceptions.json` names, for each kind of Hedge School's lock, the issue that brings it: the
+  engine's rules on the site (abscls-shfz.18.11), the GPU (abscls-shfz.18.16) and Practice (abscls-shfz.18.22).
+- **The texts say what is there now.** Home and About say that the review, the Analysis board and Practice come with
+  the engine. How a review works gives the shared sections and Tak's items: each move judged, a draw as half a win.
+  Notation gives PTN and TPS with links to the US Tak Association's pages, the site's short form and its marks, with
+  examples written by hand. Privacy names what the site does now: the request to playtak's API comes with the import.
+  For developers says that the links come with the import: the shared sections write Hedge School's record (its tags
+  `Blue` and `Red`), and Tak's record is PTN's (abscls-shfz.18.7).
+- **Not decided here:** where Mistak's players ask and report. The other sites name webgoatguy's Discord, which is not
+  Tak's community, so Mistak's pages name no Discord until the owner chooses.
+- **The deploy job `mistak`:** as Cyanotype's job, with the launch switch from its first commit
+  (`docs/hosting.md`, "The launch switch") and no engine step. The jobs `deploy`, `cyanotype` and `hub` do not
+  change. Its `if:` also waits for the repository variable `MISTAK_EDITION`:
+  `if: github.ref_name != 'main' && vars.MISTAK_EDITION != ''`. The owner sets the variable after the Pages project
+  `mistak` exists (`docs/hosting.md`, section 10). Before, GitHub skips the job, so each push to `dev` keeps every run
+  green: with no project, the job would fail at its address step, as Cyanotype's would (the coordinator's decision,
+  2026-11-24 00:13 CST, in abscls-shfz.18.4). An unset variable reads as an empty string in GitHub's expressions. The
+  launch commit removes the whole `if:`, when the variable is set.
+- **The tests:** each job of the workflow **Tests** serves Mistak's build on port 4175 (`MISTAK_BASE_URL`), and
+  `playwright.config.ts` stops a CI run without it. The layout test sweeps Mistak's home, Notation, Notices and How a
+  review works, and checks its menu, its Support Us dialog, its "Early Access" link in both themes and its monospaced
+  font. `check:all` type-checks, tests and builds Mistak, before Cyanotype's steps.

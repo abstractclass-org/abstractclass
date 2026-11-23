@@ -11,6 +11,8 @@ node_modules
 /apps/hedgeschool/build
 /apps/cyanotype/.svelte-kit
 /apps/cyanotype/build
+/apps/mistak/.svelte-kit
+/apps/mistak/build
 
 # OS
 .DS_Store
@@ -29,6 +31,7 @@ vite.config.ts.timestamp-*
 # workers' screenshots of a change (runs/<issue>-look/).
 /apps/hedgeschool/runs/
 /apps/cyanotype/runs/
+/apps/mistak/runs/
 
 # Playwright Test (npm run test:layout)
 /apps/hedgeschool/test-results/

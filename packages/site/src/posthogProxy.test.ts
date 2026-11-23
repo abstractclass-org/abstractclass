@@ -126,7 +126,7 @@ test("each site of this package has its Function on POSTHOG_PATH, and routes the
     const pkg = new URL(`${app}/package.json`, apps);
     return existsSync(pkg) && "@abstractclass/site" in (JSON.parse(readFileSync(pkg, "utf8")).dependencies ?? {});
   });
-  assert.deepEqual(sites.sort(), ["cyanotype", "hedgeschool"]);
+  assert.deepEqual(sites.sort(), ["cyanotype", "hedgeschool", "mistak"]);
   for (const site of sites) {
     const fn = readFileSync(new URL(`${site}/functions${POSTHOG_PATH}/[[path]].ts`, apps), "utf8");
     assert.match(fn, /export const onRequest = posthogProxy\(\);/, site);

@@ -9,8 +9,9 @@ export const SITE_VERSION: string = typeof __SITE_VERSION__ === "string" ? __SIT
 export const ENGINE_FILES: string = typeof __ENGINE_FILES__ === "string" ? __ENGINE_FILES__ : "";
 /** The live site's address: the canonical address of every page, wherever the page is served (design 23). */
 export const SITE_ORIGIN = "https://cyanotype.abstractclass.org";
-/** The site's own copyright: its code, text and design. The works of others that it ships are on the notices page. */
-export const SITE_COPYRIGHT = "© 2026 Yshan";
+/** The site's own copyright: its code, text and design, as every site has it. The works of others that it ships are
+ *  on the notices page. */
+export { SITE_COPYRIGHT } from "@abstractclass/site/copyright.ts";
 /** The key under which this browser keeps the visitor's theme. Also in src/app.html, which reads it before the page
  *  draws. */
 export const THEME_KEY = "cyanotype:theme:1";

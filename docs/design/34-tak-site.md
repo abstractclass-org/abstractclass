@@ -1,6 +1,6 @@
 # Mistak, the Tak site: a plan, on Hedge School's and Cyanotype's design
 
-**Status:** proposed. Nothing is built.
+**Status:** proposed. The site's shell is built (abscls-shfz.18.4): `apps/mistak`, unlaunched.
 **Planned:** 2026-11-23 (abscls-teoc). **Revised:** 2026-11-23 (abscls-shfz.18.1).
 **Scope:** every feature of Hedge School and of Cyanotype, unless a fact blocks it ("The rules of this work").
 
@@ -753,7 +753,14 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
 
 ## Where it is
 
-Nothing is built. This document is the plan. The engine's plan is in the engine repository's `games/tak/docs/design/`.
+This document is the plan. The engine's plan is in the engine repository's `games/tak/docs/design/`.
+
+- **The shell** (ticket 2, abscls-shfz.18.4): `apps/mistak` with the sites' frame, the pages Home, About, Notation,
+  How a review works, For developers, Privacy and Notices, the logo (a stack under a capstone, on a pine tile), the
+  check of a deployed site, and the deploy job `mistak` with the launch switch (`docs/hosting.md`, section 10). The
+  site ships no engine yet, so its notices page and its check of a deployed site have no engine's parts, and its
+  engine lock's exceptions name the issues that bring each part. The Pages project is the owner's step.
+- **The rest** of "The tickets proposed" is not built.
 
 ## Log
 

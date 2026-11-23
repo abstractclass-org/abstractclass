@@ -11,10 +11,11 @@
 // The review shows a game of HedgeFund against itself, reviewed (tests/fixtures/hedgefund-review.json, made by
 // scripts/test-fixture.mjs), in each display, then while the engine's network loads, the Review tab with that game
 // kept, and Practice a game in progress from it. The import page shows the choice for a userscript's game, with the
-// notice to update the userscript. Two tests check that the monospaced font draws no ligatures, on Hedge School and on
-// Cyanotype (CYANOTYPE_BASE_URL). One sweeps Cyanotype's home page, and one its Notices page. Two check the site's menu
-// open on a narrow window, on each site. Two check the Support Us dialog, on each site, in a wide window and on a
-// phone. Four check the header's "Early Access" link, on each site in each theme. Two check Cyanotype's Practice
+// notice to update the userscript. Three tests check that the monospaced font draws no ligatures, on Hedge School, on
+// Cyanotype (CYANOTYPE_BASE_URL) and on Mistak (MISTAK_BASE_URL). One sweeps Cyanotype's home page, and one its Notices
+// page. Four sweep Mistak's home page, Notation page, Notices page and How a review works. Three check the site's menu
+// open on a narrow window, on each site. Three check the Support Us dialog, on each site, in a wide window and on a
+// phone. Six check the header's "Early Access" link, on each site in each theme. Two check Cyanotype's Practice
 // (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Four check that a practice
 // game's and a review's one column agree with themselves between 799 and 800 pixels wide, on each site. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
@@ -224,14 +225,21 @@ function monoSettings(page: Page) {
 // The monospaced font draws no ligatures (design 06, item 11), on both sites: a record's text shows as it is, and the
 // columns keep their width of 0.6 em a character. Fira Code's ligatures keep that width, so the settings show them,
 // not the width. The pages: each site's Notation page and editor, whose position field is in Fira Code.
-// Cyanotype's test runs when CYANOTYPE_BASE_URL gives its running preview (in CI, playwright.config.ts requires it).
+// Cyanotype's test runs when CYANOTYPE_BASE_URL gives its running preview, and Mistak's when MISTAK_BASE_URL gives its
+// (in CI, playwright.config.ts requires both). Mistak's page is its Notation page: it has no editor yet.
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
+const MISTAK = process.env.MISTAK_BASE_URL;
+/** Why a case of a site skips: no address of its preview. Hedge School's preview is always there (BASE_URL). */
+const NO_PREVIEW: Record<string, string> = {
+  "Cyanotype": "CYANOTYPE_BASE_URL gives no Cyanotype preview", "Mistak": "MISTAK_BASE_URL gives no Mistak preview",
+};
 for (const [site, urls] of Object.entries({
   "Hedge School": ["/notation", "/editor"],
   "Cyanotype": CYANOTYPE ? [new URL("/notation", CYANOTYPE).href, new URL("/editor", CYANOTYPE).href] : [],
+  "Mistak": MISTAK ? [new URL("/notation", MISTAK).href] : [],
 })) {
   test(`the monospaced font draws no ligatures on ${site}`, async ({ page }) => {
-    test.skip(!urls.length, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(!urls.length, NO_PREVIEW[site]);
     for (const url of urls) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
@@ -256,6 +264,21 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
     await page.goto(new URL(path, CYANOTYPE).href);
     await page.waitForLoadState("networkidle");
     expect(await sweep(page, `Cyanotype's ${path}`)).toBe("");
+  });
+}
+
+// Mistak's pages (its design 34), when MISTAK_BASE_URL gives its preview: its frame and its texts, until its engine
+// comes. The home page: the invitation and the logo. The Notation page: its examples in code blocks, which scroll
+// sideways on purpose, and its tables. The Notices page: the licences, with their texts in code blocks. How a review
+// works: its table of bands and its formulas in code blocks. Each sweep checks the header's row, with the site's menu
+// closed below 900 pixels. The About page is in the menu's and the Support Us dialog's tests below.
+for (const [name, path] of [["home page", "/"], ["Notation page", "/notation"], ["Notices page", "/notices"],
+                            ["How a review works", "/how-reviews-work"]]) {
+  test(`layout of Mistak's ${name}`, async ({ page }) => {
+    test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
+    await page.goto(new URL(path, MISTAK).href);
+    await page.waitForLoadState("networkidle");
+    expect(await sweep(page, `Mistak's ${path}`)).toBe("");
   });
 }
 
@@ -298,14 +321,15 @@ const answerConsent = (key: string) => {
   localStorage.setItem(key, JSON.stringify({ games: "denied" }));
 };
 
-// The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on both sites, at each width where the header
-// shows it, by steps of 10, at the lowest of the sweep's heights: Hedge School's below 1,024 pixels, Cyanotype's below
-// 900. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
+// The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on each site, at each width where the header
+// shows it, by steps of 10, at the lowest of the sweep's heights: Hedge School's below 1,024 pixels, Cyanotype's and
+// Mistak's below 900. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
 // pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. The visitor has
 // answered the consent notice, which would cover the menu until they choose.
-for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 900]] as const) {
+for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 900],
+                                   ["Mistak", MISTAK, 900]] as const) {
   test(`layout of the site's menu on ${site}`, async ({ page }) => {
-    test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(base === undefined, NO_PREVIEW[site]);
     await page.addInitScript(answerConsent, CONSENT_KEY);
     await page.goto(base ? new URL("/about", base).href : "/about");
     await page.waitForLoadState("networkidle");
@@ -344,14 +368,14 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
   });
 }
 
-// The Support Us dialog (packages/site/src/SupportDialog.svelte, design 22), on both sites: from the header's button
+// The Support Us dialog (packages/site/src/SupportDialog.svelte, design 22), on each site: from the header's button
 // in a window of 1,280 × 900, and from the site's menu on a phone of 390 × 844. In the wide window the dialog has no
 // scroll bar of its own, and the note under Ko-fi's panel is in view (Cyanotype's design 33, "Support Us": its first,
 // longer words cut the note off). On the phone the dialog stays inside the window's width, and it can scroll. At both
 // sizes the page keeps the sweep's rules. No request goes to Ko-fi: its frame keeps its height.
-for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as const) {
+for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE], ["Mistak", MISTAK]] as const) {
   test(`layout of the Support Us dialog on ${site}`, async ({ page }) => {
-    test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(base === undefined, NO_PREVIEW[site]);
     await page.addInitScript(answerConsent);
     await declineGames(page.context());
     await page.route(/ko-fi\.com/, route => route.abort());
@@ -388,17 +412,17 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as c
   });
 }
 
-// The header's "Early Access" link (design 11, "The header", and packages/site/src/SiteName.svelte), on both sites, in
+// The header's "Early Access" link (design 11, "The header", and packages/site/src/SiteName.svelte), on each site, in
 // the early edition that check:all and the workflows build (VITE_EDITION=early), at 360 and 1,280 pixels, in each
 // theme (the theme menu's System, on the browser's scheme). On the home page, the link is in the header, after the
 // name, in the accent colour, in the window, with nothing over it. The sweeps of each home page check the header's own
 // rules (one row, inside its content box, its own height) at every width. A click on the link opens the About page at
 // its section on the early access, in the window. The header is never over the page (SiteFrame.svelte: the page area
 // is below it, or scrolls with it), so it cannot cover the section.
-for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as const) {
+for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE], ["Mistak", MISTAK]] as const) {
   for (const colorScheme of ["light", "dark"] as const) {
     test(`the Early Access link on ${site}, ${colorScheme}`, async ({ page }) => {
-      test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+      test.skip(base === undefined, NO_PREVIEW[site]);
       await page.addInitScript(answerConsent, CONSENT_KEY);
       await page.emulateMedia({ colorScheme });
       const found: string[] = [];

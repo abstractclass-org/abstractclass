@@ -6,7 +6,8 @@
 # The build is the one that Cloudflare's own build ran (npm run build:cloudflare): the engine's release with its SHA-256
 # checks, the unit tests, the type check, then the build. A failed step deploys nothing, and the site stays as it was.
 # The job hub deploys the hub at abstractclass.org (apps/hub) to its own Pages project, beside the site's job. The job
-# cyanotype deploys Cyanotype (apps/cyanotype) to its own Pages project too.
+# cyanotype deploys Cyanotype (apps/cyanotype) to its own Pages project too, and the job mistak deploys Mistak
+# (apps/mistak) to its own.
 #
 # The launch switch (docs/hosting.md, "The launch switch"): a site that is not launched yet does not go live with
 # another site's release. Its job deploys previews only: an `if:` on the branch skips the job on main. The site's
@@ -185,6 +186,78 @@ jobs:
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           args=(--project-name=cyanotype --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
+          first=${MESSAGE%%$'\n'*}
+          if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
+          npx --yes wrangler@4.144.0 pages deploy build "${args[@]}"
+
+  # Mistak, Tak's site (design 34; docs/hosting.md, "Mistak"): apps/mistak, built and checked as Cyanotype's build is,
+  # to the Pages project mistak. It ships no engine yet, so it has no engine step. A push to another branch deploys a
+  # preview. A push to main deploys the live site only after Mistak's launch (the launch switch, at the top). Its pages
+  # are prerendered, and the canonical address is the live one in src/lib/site.ts. Its build takes the branch
+  # variables, as Cyanotype's does, for the address of its tools for playtak's pages. Wrangler is the site job's
+  # version. It runs in apps/mistak, so that it uploads Mistak's own Function in its functions/ folder: in the
+  # workflow's default folder, it would upload Hedge School's.
+  mistak:
+    # The launch switch (the comment at the top): previews only, until Mistak's launch. When the owner says to launch
+    # Mistak, the launch commit removes this `if:` and this comment (docs/hosting.md, "The launch switch"). Until the
+    # owner's setup (docs/hosting.md, section 10): the job also waits for the repository variable MISTAK_EDITION,
+    # which the owner sets after the Pages project mistak exists. Without it, GitHub skips the job, and a push deploys
+    # no preview of Mistak and fails no run.
+    if: github.ref_name != 'main' && vars.MISTAK_EDITION != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/mistak
+    env:
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+        working-directory: .
+
+      # The branch and the preview's address, as in Cyanotype's job: the host is the project's pages.dev address, from
+      # Cloudflare's API (its `subdomain`), which is not always <project>.pages.dev. When the API gives no pages.dev
+      # address, the job fails here and deploys nothing.
+      - name: The branch and its address
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/mistak"
+          host=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$url" | jq -r '.result.subdomain') || true
+          if [[ "$host" != *.pages.dev ]]; then
+            echo "::error::Cloudflare's API gave no pages.dev address for the Pages project mistak."
+            exit 1
+          fi
+          alias=$(printf '%s' "$BRANCH" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g')
+          echo "CF_PAGES_BRANCH=$BRANCH" >> "$GITHUB_ENV"
+          echo "CF_PAGES_URL=https://$alias.$host" >> "$GITHUB_ENV"
+
+      # The shared packages' checks and tests (design 29), then the site's own: a failed step deploys nothing.
+      - name: The packages' checks and tests
+        run: npm run check --workspace=packages && npm test --workspace=packages
+        working-directory: .
+      # The build's edition: Mistak's own repository variable, MISTAK_EDITION (docs/hosting.md, section 3). Its
+      # analytics: the shared POSTHOG_KEY and CF_ANALYTICS_TOKEN, as for both sites' builds. Only the live site has
+      # them: previews are not counted.
+      - run: npm run check && npm test && npm run build
+        env:
+          VITE_EDITION: ${{ vars.MISTAK_EDITION }}
+          VITE_POSTHOG_KEY: ${{ github.ref_name == 'main' && vars.POSTHOG_KEY || '' }}
+          VITE_CF_ANALYTICS_TOKEN: ${{ github.ref_name == 'main' && vars.CF_ANALYTICS_TOKEN || '' }}
+
+      - name: Upload to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          args=(--project-name=mistak --branch="$BRANCH" --commit-hash="$GITHUB_SHA")
           first=${MESSAGE%%$'\n'*}
           if [ -n "$first" ]; then args+=(--commit-message="${first:0:300}"); fi
           npx --yes wrangler@4.144.0 pages deploy build "${args[@]}"

@@ -8,6 +8,10 @@
 // partner sites' buttons, static/brand/cyanotype.svg). logo.test.ts keeps the favicon's file and the buttons' head
 // equal to their drawing.
 import { center, hexPath, TOUCHING, type Hex } from "#lib/board/hex.ts";
+import { svgDocument, type Shape } from "@abstractclass/site/brand.ts";
+
+// The drawing tools, which every site's logo shares: from @abstractclass/site/brand.ts.
+export { shapeMarkup, svgDocument, svgElement, type Shape } from "@abstractclass/site/brand.ts";
 
 /** The print's Prussian blue, and the white of its lines. */
 const PRUSSIAN_BLUE = "#163f6f";
@@ -15,9 +19,6 @@ const LINE = "#f2f6fb";
 
 /** The size from which the full drawing replaces the simple one, as the collie's. */
 export const LARGE_FROM = 48;
-
-/** One shape of a drawing: its SVG element and its attributes. */
-export type Shape = readonly ["rect" | "path", Readonly<Record<string, string | number>>];
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -65,24 +66,6 @@ export const TOUCH_ICON = /* @__PURE__ */ large(0);
 
 /** The drawing for a size. */
 export const logoAt = (size: number): readonly Shape[] => (size < LARGE_FROM ? LOGO_SMALL : LOGO_LARGE);
-
-/** A drawing's shapes as SVG elements, each after `indent`. */
-export const shapeMarkup = (shapes: readonly Shape[], indent = "") =>
-  shapes.map(([tag, a]) => `${indent}<${tag}${Object.entries(a).map(([k, v]) => ` ${k}="${v}"`).join("")}/>`).join("");
-
-/** A drawing's opening tag: `size` pixels for the view of 100 × 100, then `attributes`, each after a space. */
-const svgTag = (size: number, attributes = "") =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}"${attributes}>`;
-
-/** A drawing as an SVG document of `size` pixels, which a browser draws as a file and an `<img>` shows. */
-export const svgDocument = (shapes: readonly Shape[], size = 100, comment = "") =>
-  svgTag(size) + (comment && `\n  <!-- ${comment} -->`) + shapeMarkup(shapes, "\n  ") + "\n</svg>\n";
-
-/** A drawing as one SVG element of `size` pixels, on one line and hidden from screen readers, for a page that is not
- *  the site's own: the strategyjam.org tools' button and Tampermonkey's lists show the simple drawing
- *  (src/lib/game/tools.ts). */
-export const svgElement = (shapes: readonly Shape[], size: number) =>
-  svgTag(size, ' aria-hidden="true"') + shapeMarkup(shapes) + "</svg>";
 
 /** The favicon's file (src/lib/assets/favicon.svg): the simple drawing, the same on light and dark tabs. The page
  *  never uses it or the iOS icon, and the marks of pure calls keep both out of the page's code. */

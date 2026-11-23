@@ -30,7 +30,9 @@
   <DropdownMenu.Portal>
     <DropdownMenu.Content align="start" sideOffset={4} class="z-20 min-w-44 menu-box">
       {#each tabs as link (link.href)}{@render entry(link)}{/each}
-      <DropdownMenu.Separator class="my-1 h-px bg-line" />
+      <!-- A site whose game pages are not built yet has no tabs (Mistak, before its engine): no line above its first
+           link. -->
+      {#if tabs.length}<DropdownMenu.Separator class="my-1 h-px bg-line" />{/if}
       {#each about as link (link.href)}{@render entry(link)}{/each}
       <DropdownMenu.Separator class="my-1 h-px bg-line sm:hidden" />
       <DropdownMenu.Item class="menu-item sm:hidden flex items-center gap-1.5 text-accent" onSelect={support}><Icon name="heart" />Support Us</DropdownMenu.Item>

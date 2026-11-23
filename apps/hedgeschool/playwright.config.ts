@@ -11,13 +11,16 @@ import { defineConfig } from "@playwright/test";
 import { OFF_THE_GPU } from "@abstractclass/site/chromium.ts";
 import { withEdge } from "./scripts/edge.mjs";
 
-// Each Cyanotype test skips on its own when CYANOTYPE_BASE_URL is empty. In CI, this file stops every run without the
-// address, whichever tests it selects. So one check covers every spec file, and a new spec file needs no check of its
-// own. Outside CI, the Cyanotype tests still skip (docs/hosting.md, "Deploy, check and roll back").
-if (process.env.CI && !process.env.CYANOTYPE_BASE_URL) {
-  throw new Error("CYANOTYPE_BASE_URL is empty. In CI, set it to the address of Cyanotype's preview " +
-    "(.github/workflows/tests.yml sets it). Without it, every Cyanotype test skips, and the run passes but tests no " +
-    "Cyanotype page.");
+// Each Cyanotype test skips on its own when CYANOTYPE_BASE_URL is empty, and each Mistak test when MISTAK_BASE_URL is.
+// In CI, this file stops every run without either address, whichever tests it selects. So one check covers every spec
+// file, and a new spec file needs no check of its own. Outside CI, those tests still skip (docs/hosting.md, "Deploy,
+// check and roll back").
+for (const [variable, site] of [["CYANOTYPE_BASE_URL", "Cyanotype"], ["MISTAK_BASE_URL", "Mistak"]]) {
+  if (process.env.CI && !process.env[variable]) {
+    throw new Error(`${variable} is empty. In CI, set it to the address of ${site}'s preview ` +
+      `(.github/workflows/tests.yml sets it). Without it, every ${site} test skips, and the run passes but tests no ` +
+      `${site} page.`);
+  }
 }
 
 const showScrollBars = { ignoreDefaultArgs: ["--hide-scrollbars"] };

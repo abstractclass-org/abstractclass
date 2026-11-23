@@ -1,7 +1,7 @@
 # Hosting: how the site is set up and deployed
 
 This document tells how Hedge School is served, how each part was set up, and how to deploy, check and roll back.
-Section 8 tells the same of the hub at `abstractclass.org`, and section 9 of Cyanotype.
+Section 8 tells the same of the hub at `abstractclass.org`, section 9 of Cyanotype, and section 10 of Mistak.
 The decisions and their reasons are in [design/11-early-access.md](design/11-early-access.md) (item 5 and item 7). The
 log of the setup is in [decisions/product.md](decisions/product.md) ("Cloudflare Pages: the repository's side" and the
 entries before it).
@@ -22,6 +22,7 @@ entries before it).
 | Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews. Cyanotype has `cyanotype-games` and `cyanotype-games-preview` | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). Cyanotype's own Function keeps its games against StampDuty (section 9). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
 | Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with its own Function for its practice games, and the same analytics as Hedge School's (section 9). |
+| Mistak | `apps/mistak`, deployed by the job `mistak` of **Deploy** to the Pages project `mistak`, previews only until its launch | Tak's site, to be at `mistak.abstractclass.org`: prerendered pages, with no engine yet (section 10) |
 
 The site is static files: every page is prerendered, and the engine runs in the visitor's browser. Two Pages
 Functions run at Cloudflare, on their paths only (`static/_routes.json`): `/api/practice-games` keeps the practice
@@ -182,6 +183,7 @@ from that file, not from the project's settings.
 | `HEDGESCHOOL_STORE_PRACTICE_GAMES` | variable | `on` (section 7) |
 | `CYANOTYPE_EDITION` | variable | `early` (section 9) |
 | `CYANOTYPE_STORE_PRACTICE_GAMES` | variable | `on` (section 9, "Cyanotype's practice games") |
+| `MISTAK_EDITION` | variable | `early` (section 10) |
 | `POSTHOG_KEY` | variable | PostHog's project token (section 4) |
 | `CF_ANALYTICS_TOKEN` | variable | Cloudflare Web Analytics' token (section 5) |
 
@@ -224,7 +226,8 @@ put them behind a sign-in (Cloudflare Access).
 
 **The repository's variables** are these seven: `CF_ANALYTICS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CYANOTYPE_EDITION`,
 `CYANOTYPE_STORE_PRACTICE_GAMES`, `HEDGESCHOOL_EDITION`, `HEDGESCHOOL_STORE_PRACTICE_GAMES` and `POSTHOG_KEY`
-(`https://github.com/abstractclass-org/abstractclass/settings/variables/actions`, or `gh variable list`).
+(`https://github.com/abstractclass-org/abstractclass/settings/variables/actions`, or `gh variable list`). Mistak's
+`MISTAK_EDITION` is the eighth, once the owner sets it (section 10, step 2).
 
 ## 4. PostHog
 
@@ -605,16 +608,72 @@ A later change to the schema is a new file in `apps/cyanotype/migrations/`, run 
 preview first. Its comments are block comments (`/* … */`) only: the Console joins a pasted file into one line, where a
 line comment (`--`) hides the rest of the file.
 
+## 10. Mistak (mistak.abstractclass.org)
+
+Mistak is Tak's site ([design 34](design/34-tak-site.md)), in `apps/mistak`. Its own Pages project, `mistak`, serves
+it, apart from the other sites'. It is not launched: the job `mistak` of the workflow **Deploy** deploys previews only,
+and a push to `main` does not run it ("The launch switch", below). Until the owner's setup below, the job also waits
+for the repository variable `MISTAK_EDITION`: without it, GitHub skips the job, so a push deploys no preview of Mistak
+and fails no run. Once the variable is set, on each push to another branch, the job checks and
+builds the site, as Cyanotype's job does: the packages' checks and tests, then the site's type check, unit tests and
+build. Mistak ships no engine yet ([design 34](design/34-tak-site.md), "Before the network"), so the job has no engine
+step. Then it uploads `build/` with Wrangler, to a preview at `<branch>.<the project's pages.dev address>`. A failed
+step deploys nothing. The job uses the site's secret `CLOUDFLARE_API_TOKEN` and the repository variables of section 3:
+the shared `CLOUDFLARE_ACCOUNT_ID`, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN`, and Mistak's own edition, `MISTAK_EDITION`.
+
+- **The early access:** the build takes `MISTAK_EDITION` as its `VITE_EDITION`, from the first deploy. With `early`,
+  the header shows "Early Access" beside the name, and it leads to the About page's section on the early access.
+- **The build's address** goes into the build, as Cyanotype's does: the tools for playtak's pages will update from it.
+  Before the build, the job reads the project's pages.dev address from Cloudflare's API (its `subdomain`). When the
+  API gives no address, the job fails with a message and deploys nothing.
+- **Its pages** are prerendered. Each names its live address as canonical (`src/lib/site.ts`).
+- **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, and a year's cache
+  for the build's hashed files. `static/robots.txt` names its sitemap.
+- **Its 404 page,** `404.html`, from the build (`vite.config.ts`).
+- **Its Function,** on its path only (`static/_routes.json`): `/relay/` passes PostHog's requests on to PostHog, as
+  Hedge School's does (section 4). Previews have no PostHog key, so their pages send nothing to it.
+- **No analytics on the previews, no address and no link:** until the launch, the site has no PostHog key and no
+  Web Analytics token (the job gives them to `main` only), no domain, and no link from the hub or from the other
+  sites ([design 34](design/34-tak-site.md), "How the site stays unlaunched").
+
+**The owner's steps, once,** before the previews can deploy. Until step 2 is done, GitHub skips the job `mistak`
+on each push. Do step 1 before step 2: with the variable and no project, the job fails at its step "The branch and its
+address" on each push to a branch other than `main`, and deploys nothing.
+
+1. **Make the Pages project, with `main` as its production branch.** On a computer with Node.js, in a terminal, run
+   `npx wrangler@4.144.0 login`, and allow the access in the browser that opens. Then run
+   `npx wrangler@4.144.0 pages project create mistak --production-branch=main`. The project's name is `mistak`. The
+   command prints the project's address. If it is not `https://mistak.pages.dev/`, Pages gave another address because
+   that one is taken: tell the coordinator the address that the command printed, because
+   `apps/mistak/scripts/release-check.mjs` names the address.
+2. **Set the edition.** In GitHub, open
+   `https://github.com/abstractclass-org/abstractclass/settings/variables/actions` and click **New repository
+   variable**. Name: `MISTAK_EDITION`. Value: `early`. Click **Add variable**. The variable is the repository's, for
+   every branch. From the next push, the job `mistak` runs.
+3. **Deploy a preview.** In GitHub, open
+   `https://github.com/abstractclass-org/abstractclass/actions/workflows/deploy.yml`, click **Run workflow**, choose
+   the branch `dev`, and click **Run workflow**. Wait until the run's job `mistak` shows a pass.
+4. **Check the preview.** In a terminal, in the repository's folder `apps/mistak`, run `git fetch`, then
+   `node scripts/release-check.mjs https://dev.mistak.pages.dev`, with the project's address of step 1 after `dev.`.
+   Make sure that the last line says `release-check: PASS`. Its lines include `X-Robots-Tag: noindex`, and the
+   footer's version, which shows that the job deployed the latest commit of `dev`.
+5. **End Wrangler's login** on the computer of step 1, if you do not use Wrangler there:
+   `npx wrangler@4.144.0 logout`.
+
+The launch comes later, when the owner says to launch the site (abscls-shfz.18.19): the domain
+`mistak.abstractclass.org`, then the launch commit, which removes the job's `if:` ("The launch switch", below).
+
 ## The launch switch
 
 A push to `main` deploys each launched site live, and a push to another branch deploys a preview of each site. A site
 that is not launched yet must not go live with another site's release. So its job in `.github/workflows/deploy.yml`
-deploys previews only: on `main`, an `if:` on the branch skips the job. The job `cyanotype` has this switch until
-Cyanotype's launch:
+deploys previews only: on `main`, an `if:` on the branch skips the job. The job `mistak` has this switch until
+Mistak's launch, as the job `cyanotype` had it until Cyanotype's. Its `if:` also waits for the owner's setup of
+section 10, the repository variable `MISTAK_EDITION`:
 
 ```yaml
-  cyanotype:
-    if: github.ref_name != 'main'
+  mistak:
+    if: github.ref_name != 'main' && vars.MISTAK_EDITION != ''
 ```
 
 A skipped job deploys nothing, and the site's live address stays as it was. The run of `main` still passes. The
@@ -673,6 +732,12 @@ a push to `main` that the owner did not say to make. The owner's word to release
   test that a job runs uses this preview. In CI, `playwright.config.ts` stops the run with a message when
   `CYANOTYPE_BASE_URL` is missing. Outside CI, the Cyanotype tests skip without it
   ([working-notes.md](working-notes.md), "The tests on Cyanotype").
+
+  Each job also serves Mistak's build (`apps/mistak`) on port 4175, and sets `MISTAK_BASE_URL=http://127.0.0.1:4175`,
+  in the same way: the early access, from the step `mistak-build` of `check:all` in the jobs `test` and
+  `test-webkit`, and from a step of its own in `test-windows`. Mistak has no engine yet, so it has no engine step and
+  no cache. In CI, `playwright.config.ts` stops the run when `MISTAK_BASE_URL` is missing. Outside CI, the Mistak tests
+  skip without it.
 - **The sweep in Edge, as an option,** on this computer, by the owner: it shows Edge's own drawing, with this
   computer's settings. A plain `npm run test:layout` runs Chromium alone. The project `edge` comes only when the
   environment has `HS_EDGE=1`. In `apps/hedgeschool`, build as production does (`VITE_EDITION=early npm run build`),

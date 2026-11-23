@@ -1,0 +1,20 @@
+@import "tailwindcss";
+/* The sites' shared style: Hedge School's colour tokens, its base styles and its page area (packages/site). */
+@import "@abstractclass/site/site.css";
+/* The font-mono utility, with its setting of no ligatures (site.css). Mistak's pages hold code only in the prose's
+   style for now (prose.ts: `[&_code]:font-mono`), so Tailwind finds no `font-mono` of its own to make. The parts that
+   use it come with the board and the review, as on both sites, and the layout test reads the utility's settings as
+   the reference of every text in Fira Code. */
+@source inline("font-mono");
+
+/* Mistak's accent (design 34, "The site's frame"): Hedge School's lavender (apps/hedgeschool/src/app.css), on the
+   tokens that the sites share, as Cyanotype's. Its logo carries its own colour (src/lib/brand/logo.ts). The
+   partners' buttons take the pale lavender on every site (@abstractclass/import's buttonStyle.ts). */
+:root, [data-theme="light"] {
+  --accent: #6f5aa8; /* lavender: 5.2:1 as text on the page, 5.7:1 under white text */
+  --on-accent: #ffffff; /* text on the accent */
+}
+:root[data-theme="dark"] {
+  --accent: #b8a6e8; /* pale lavender: 5.9:1 as text on panel-2, 8.2:1 under near-black text */
+  --on-accent: #16181c;
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="32" height="32">
+  <!-- Mistak's logo (mistak.abstractclass.org). Use it, unchanged but for its size, only in a button or a
+       link that leads to Mistak: mistak.abstractclass.org/developers#buttons. -->
+  <rect width="100" height="100" rx="18" fill="#24443d"/>
+  <rect x="18" y="67" width="64" height="15" rx="4" fill="#efe8d8"/>
+  <rect x="18" y="49" width="64" height="15" rx="4" fill="#efe8d8"/>
+  <rect x="36" y="12" width="28" height="34" rx="7" fill="#efe8d8"/>
+</svg>
