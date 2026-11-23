@@ -537,7 +537,8 @@ request 23 asked for Blueprints. So the work goes in three stages.
 
 ## The engine request
 
-A request in `docs/requests/` and an issue with the label `engines`, as request 23 was for Blueprints:
+[Request 31](../requests/31-tak-browser-build.md), with two issues with the label `engines` (abscls-shfz.24 for
+items 1 to 8, abscls-shfz.25 for item 9), as request 23 was for Blueprints:
 
 1. **Early, with any network:** the rules first, in the module of the browser pipeline.
 2. **PTN's moves, whole,** in one spelling (item 4), in every reply and every query.
