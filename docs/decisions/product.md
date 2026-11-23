@@ -12998,14 +12998,22 @@ missing from every count of design 17. Design 27 gives the reasons.
 
 - **What:** the check of whether a page on another site can read playtak's API from the browser
   ([design/34-tak-site.md](../design/34-tak-site.md), "The check of CORS", abscls-shfz.18.17).
-- **Measured:** 14 requests with `curl` and an `Origin` header, between 13:12 and 13:13 UTC. No browser ran it. A GET
+- **Measured:** 14 requests with `curl` and an `Origin` header. No browser ran it. A GET
   of `/v1/games-history/ptn/883258` and of `/v1/games-history?id=883258`, and an OPTIONS preflight, with the origin
   `https://dev.mistak.pages.dev`, got status 500 and `Not allowed by CORS`, with no `Access-Control-*` header. The
   origins `https://playtak.com` and `https://ptn.ninja` got the data and their own origin in
   `Access-Control-Allow-Origin`. `https://www.playtak.com`, `localhost` and `https://hedgeschool.pages.dev` got the
   500. A request with no `Origin` header got the data (200). The responses show a rate limit of 30 requests a second.
-- **Decided:** the import by id goes through a Pages Function of the site. It takes digit ids on two fixed paths, sends
-  no cookie and no `Origin`, and caches a finished game for a day. The site also asks playtak's administrators to list
-  its address, and the Function works without their answer. Pasted PTN needs no network.
+  A second check the same day repeated three of the requests (the GET and the preflight from the preview's origin,
+  the preflight from `https://playtak.com`) and got the same answers. A 15th request, for an id with no game, got 404.
+- **The API's source:** `api/src/main.ts` in `USTakAssociation/playtak-api` reads the list from the environment
+  variable `CORS_DOMAIN`: exact origins, or `*` for every origin. It checks the `Origin` header alone, and a request
+  with no `Origin` passes. So no list of addresses can hold the previews.
+- **Proposed:** the import by id goes through a Pages Function of the site at once. It takes digit ids on one fixed
+  path, sends none of the browser's headers, and caches a finished game for a day. After the launch, the owner asks
+  playtak's administrators to list the site's address, and the Function works without their answer. Pasted PTN needs
+  no network. The plan before the check took pasted PTN until the administrators answered, and a server only if they
+  refused. The Function comes first because no list can hold the previews, and ticket 5's check fetches a game from
+  a preview.
 - **Not measured:** what else is on the API's list, whether the administrators would add an address, and a
   browser's own request. Ticket 5 checks a game fetched by its id from a preview in a real browser.

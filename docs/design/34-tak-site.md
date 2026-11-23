@@ -152,9 +152,9 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
     - **A playtak game by its id:** the Import dialog and the import page take an id (`/import#playtak=883250`, a
       parameter named by its payload, design 22). The API refuses a request from the site's page, so the site's own
       Pages Function fetches the PTN from playtak's API and gives it to the page ("The check of CORS"). The API's
-      history holds finished games, so a game in progress comes in by the tools. The site also asks playtak's
-      administrators to list its address. If they do, the page can fetch the PTN itself, and the Function stays for
-      the previews. Pasted PTN works with no network.
+      history holds finished games, so a game in progress comes in by the tools. After the launch, the owner asks
+      playtak's administrators to list the site's address, and the Function works with no answer. Pasted PTN works
+      with no network.
     - **A game from playtak's page,** finished or in progress, by the bookmarklet or the userscript ("The tools for
       playtak's pages").
     - **Pasted PTN,** in the Import dialog, as Hedge School takes its record.
@@ -426,9 +426,11 @@ PTN, of playtak's page and of ptn.ninja's links, the players' cards, and the tex
 
 ## The check of CORS
 
-The check ran on 2026-11-23 (13:12 to 13:13 UTC), with `curl` and an `Origin` header, in 14 requests. The id was 883258,
-the newest finished game then (`games-history?limit=1` gives it). A real browser sends the same `Origin` header, and
-the API's answer does not depend on anything else, so a browser gets the same answer. No browser ran this check.
+The check ran on 2026-11-23, with `curl` and an `Origin` header, in 14 requests. The id was 883258, the newest
+finished game then (`games-history?limit=1` gives it). No browser ran it. The API's check reads the `Origin` header
+alone (`api/src/main.ts` in `USTakAssociation/playtak-api`), so a browser that sends the same header gets the same
+answer. A request of the first row, to repeat it:
+`curl -s -D - -o /dev/null -H "Origin: https://dev.mistak.pages.dev" https://api.playtak.com/v1/games-history/ptn/883258`.
 
 | Request | Origin | Answer |
 |---|---|---|
@@ -441,56 +443,63 @@ the API's answer does not depend on anything else, so a browser gets the same an
 | The same GET | `https://www.playtak.com`, `http://localhost:5173`, `http://localhost:4173`, `https://hedgeschool.pages.dev` | 500, "Not allowed by CORS" |
 | Both GETs and `?limit=1` | None | 200: PTN as `text/plain`, and the history as JSON |
 
-What the answers show:
+What the answers and the API's source show:
 
-- **The API has a list of allowed origins.** The check found `https://playtak.com` and `https://ptn.ninja` on it, and the
-  API echoes an allowed origin back with `Vary: Origin`. It refuses every
-  other origin, `https://www.playtak.com` and `localhost` included. The refusal is a status 500 with no CORS header,
-  so a browser blocks the page's read of it. A request with no `Origin` header, as a server sends, gets the data.
+- **The API has a list of allowed origins:** the environment variable `CORS_DOMAIN`, which holds exact origins, or `*`
+  for every origin (`api/src/main.ts`). The check found `https://playtak.com` and `https://ptn.ninja` on it, and the
+  API echoes an allowed origin back with `Vary: Origin`. It refuses every other origin, `https://www.playtak.com` and
+  `localhost` included. The refusal is a status 500 with no CORS header, so a browser blocks the page's read of it. A
+  request with no `Origin` header, as a server sends, passes the check and gets the data.
 - **No other limit showed.** The responses carry `x-ratelimit-limit: 30` with a reset of 1 second, and no
-  `Cache-Control`. The PTN has the tags that the plan expects (`[Site "PlayTak.com"]`, `[Event "Online Play"]`). The
-  history's JSON has `notation` in playtak's own move form (`P A6,M D5 D6 1`), `result`, `komi`, `opening`, `size` and
-  the players, as `research/playtak.md` describes.
-- **Nothing here says what the list holds besides the two origins** or whether its administrators would add one.
-  The previews' addresses change with each branch (`<branch>.mistak.pages.dev`), so a list that holds one address
-  per site could not cover them. A wildcard in the list would be a request for a change of their code.
+  `Cache-Control`. The PTN has the tags that the plan expects (`[Site "PlayTak.com"]`, `[Event "Online Play"]`). An id
+  with no game gets status 404.
+- **The list takes no pattern.** The previews' addresses change with each branch (`<branch>.mistak.pages.dev`), so
+  only `*` could cover them, and `*` opens the API to every site. Nothing here says what else the list holds, or
+  whether the administrators would add an address.
 
 **The answer:** the page cannot read playtak's API from the browser, from a preview or from the site's own address.
 The import by id goes through the smallest proxy that the sites' hosting already allows.
 
 - **The proxy is a Pages Function** of the site, `functions/api/playtak/[[path]].ts` or a path like it, on the model of
-  the PostHog proxy (`packages/site/src/posthogProxy.ts`, `functions/relay/[[path]].ts` on the two other sites). Its
-  shared code goes into `packages/`, and the Function and its route in `static/_routes.json` are the site's.
-- **It is not an open proxy.** It takes `GET /api/playtak/ptn/<digits>` and `GET /api/playtak/game/<digits>` only,
-  from the site's own address, and refuses every other path and method with status 404 or 405. It forwards to
-  `https://api.playtak.com/v1/games-history/ptn/<digits>` and `/v1/games-history?id=<digits>`, with no cookie and no
-  `Origin` header, and with a `User-Agent` that names Mistak. It passes the status and the body back with the
-  content type, and it answers a status 5xx or a timeout of the API with its own status 502.
+  the PostHog proxy (`packages/site/src/posthogProxy.ts`, `functions/relay/[[path]].ts` on the two other sites): its
+  handler takes its fetch and its cache as parameters, so that tests give their own. It is the site's own part, as the
+  fetch of a game by its id is ("What the sites share, and what a third site adds", item 5). The include `/api/*` in
+  `static/_routes.json` routes it, as on the two other sites.
+- **It is not an open proxy.** It takes `GET /api/playtak/ptn/<digits>` only, and refuses every other path and method
+  with status 404 or 405. It sends a new request to `https://api.playtak.com/v1/games-history/ptn/<digits>`. The
+  request has none of the browser's headers, so no cookie and no `Origin`, and its `User-Agent` names Mistak. The
+  Function passes the status and the body back with the content type. It answers a status 5xx or a timeout of the API
+  with its own status 502. Its answers have no CORS header, so another site's page cannot read them. A script outside
+  a browser can call it, but it gets one game's PTN for each request.
 - **It caches a finished game.** A finished game never changes, so the Function sets `Cache-Control: public,
-  max-age=86400` on a 200 answer and keeps it in Cloudflare's Cache API (`caches.default`, as the PostHog proxy does).
-  The Cache API caches nothing on a `*.pages.dev` address, so only the site's own address saves requests to playtak.
-  An import of one game then costs playtak one request at most a day, and the cache answers the rest. This keeps to
-  playtak's request not to scrape its API: one request for each game that a player asks for, and never a list.
-- **The cost:** a player's import runs the Function once, and a repeat of it from the cache runs it once too. Each run
-  counts against the Workers Free plan's 100,000 requests a day, which the account's Functions share (`docs/hosting.md`,
-  "A reverse proxy on the site's own address"). The sites' own use of the Function is far below that: a player
-  imports a game now and then, and the PostHog proxy sends batches. A Function needs no setting in Cloudflare beyond
-  the deploy that the site already has. The paid plan is not needed.
+  max-age=86400` on a 200 answer. It keeps that answer in Cloudflare's Cache API (`caches.default`, which the PostHog
+  proxy uses for PostHog's assets). It caches no other answer. The Cache API keeps a copy in each data center apart
+  from the others (`https://developers.cloudflare.com/workers/runtime-apis/cache/`). So an import of one game costs
+  playtak at most one request a day in each data center that serves it, and the cache answers the rest. playtak's games
+  page asks people not to scrape its API (`research/playtak.md`). The Function sends one request for each game that a
+  player asks for, and never asks for a list.
+- **The cost:** each import runs the Function once, from the cache or not. Each run counts against the Workers Free
+  plan's daily requests, which the account's Functions share (`docs/hosting.md`, "The proxy uses the account's
+  Functions quota"). A player imports a game now and then, so these runs are few beside the PostHog proxy's batches.
+  The Function needs no setting in Cloudflare and no paid plan.
 - **The limits:**
-  - **playtak's rate limit** is 30 requests a second for each address. The Function's requests leave from Cloudflare's
-    addresses, which many sites share, so a burst from another site could use the limit up. The Function retries a
-    status 429 once after one second, then answers 502, and the page offers pasted PTN.
+  - **playtak's rate limit** is 30 requests a second, and its headers do not say what it counts. If it counts by
+    address, the Function's requests leave from Cloudflare's addresses, which many sites share, so a burst from
+    another site could use the limit up. The Function retries a status 429 once after one second, then answers 502,
+    and the page offers pasted PTN.
   - **The Function's own protection:** a limit on one address's requests belongs to Cloudflare's rate-limiting rules
     (a setting that the owner makes), and the plan does not rely on it. The path check and the digits-only id keep the
-    Function from reaching any other part of playtak's API.
+    Function from reaching any other part of playtak's API. A script that calls the Function many times uses up the
+    account's Functions quota, as it can with the two other Functions.
   - **A change of playtak's API** breaks the Function as it breaks the browser's fetch, and pasted PTN still works.
   - **A game in progress** is not in the history, so the Function cannot give it. The tools give it.
-- **The privacy text:** a player's import by id sends the id to the site's Function and from it to playtak. The
-  Function keeps no log of its own beyond what Cloudflare keeps for any request. Privacy names this request (design 34,
-  "The pages").
-- **If the administrators list the site's address,** the page fetches from the API itself, with no Function in
-  between, and the Function stays for the previews and for a failed direct request. The plan's choice (item 10) is
-  that the site asks. The Function works with no answer to the request, so the import does not wait for it.
+- **The privacy text:** a player's import by id sends the id to the site's Function, and the Function sends it to
+  playtak. The Function keeps no log of its own beyond what Cloudflare keeps for any request. Privacy names this
+  request ("The pages").
+- **The request to playtak's administrators** is the owner's step, after the launch, when the site's address exists:
+  ask them to add `https://mistak.abstractclass.org` to `CORS_DOMAIN`. It is the plan's choice (item 10). The import
+  does not wait for it, because the Function works with no answer. A listing would let the live site's page fetch the
+  PTN itself. The previews keep the Function.
 - **Not done in this check:** the Function, its tests, and the check of a game fetched by its id from a preview in a
   real browser. Those belong to ticket 5, which waits for this one.
 
@@ -595,8 +604,8 @@ A request in `docs/requests/` and an issue with the label `engines`, as request 
 ## Consequences
 
 - **The site depends on playtak's API** for its main way in. A change there breaks the import by id, and pasted PTN
-  still works. The API refuses the page's own request, so the site adds a Pages Function that fetches for the player,
-  and it counts against the account's Functions quota ("The check of CORS").
+  still works. The import by id runs the site's Pages Function, which counts against the account's Functions quota
+  ("The check of CORS").
 - **The tools depend on playtak's page,** as Hedge School's depend on meaf.us's. A change of `playtak-ui` can break
   them, and the tools page then has a newer tool.
 - **Each new size or opening** is a release of the engine, then of the site.
@@ -629,10 +638,10 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
    fields, and the link previews' image of Tak's board (design 23). Check: the board lab in both themes, at every
    width down to 360 pixels, the layout test, and the preview image in the built site. After: 2, 3.
 5. **Mistak: a playtak game by its id, pasted PTN and a ptn.ninja link:** the Import dialog and the import page,
-   the fetch by id through the site's Pages Function ("The check of CORS": the API refuses the page's own request),
-   and the refusals by the tags (the size, the opening, the komi). Check: a test of each refusal and of each way in, a
-   test of the Function's path and method checks, a record with the result `*` taken, and a game fetched by its id
-   from a preview in a real browser. After: 2, 3, 16.
+   the fetch by id through the site's Pages Function ("The check of CORS"), and the refusals by the tags (the size,
+   the opening, the komi). Check: a test of each refusal and of each way in, a test of the Function's path and method
+   checks, a record with the result `*` taken, and a game fetched by its id from a preview in a real browser. After:
+   2, 3, 16.
 6. **Shared: a game with several board sizes:** the empty board of each size, the size in the stored results' keys
    (first the simplest form, "What the sites share", item 1, with what the shared code does otherwise at a set-up
    start), and the komi limit of each size (item 8). Check: a test that `a1` on 5x5 and `a1` on 6x6 key apart, a
@@ -669,8 +678,9 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
     Tinuë, komi, PTN, TPS), and the site's words (Mistak, Takumi), in the shared glossary's "Contexts". Check: the
     file, linked from `GLOSSARY.md`.
 16. **Mistak: the CORS check of playtak's API:** a request to `api.playtak.com` from another site's page. Check: the
-    answer recorded in ticket 5 and in this document. If the API refuses, the site asks playtak's administrators
-    (item 10). Done: the API refuses, and the import by id goes through a Pages Function ("The check of CORS").
+    answer recorded in ticket 5 and in this document. If the API refuses, the owner asks playtak's administrators
+    (item 10). Done: the API refuses, and the import by id goes through a Pages Function ("The check of CORS"). The
+    owner's request to the administrators comes after the launch.
 17. **Mistak: the trained network:** the labels and the accuracy on real games, the search budgets, the engine
     measure's numbers, the home page's replay of one of the engine's own games, and the first preview with the
     network. Check: the review's constants measured on Tak's games and recorded in the decision log, and the owner's
