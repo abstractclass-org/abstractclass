@@ -12961,3 +12961,28 @@ missing from every count of design 17. Design 27 gives the reasons.
 - **Not changed:** the entries above and `docs/requests/` (history, with the owner's words as written), the engine's
   releases already published, and the records made before: a stored practice game or review file keeps the name it
   was made with.
+
+### The Tak site: the plan revised (2026-11-23)
+
+- **What:** the plan for the Tak site ([design/34-tak-site.md](../design/34-tak-site.md)), revised to the answers
+  to its questions (abscls-shfz.18.1). The answers are in a comment of abscls-shfz.18.
+- **The rule:** every feature of Hedge School and Cyanotype carries over, unless a fact blocks it: a part of the
+  engine that does not exist yet, a licence or a platform's rule. Another rule of the plan is not a blocker.
+- **Now in the plan:** the Analysis board with all its starts and the board editor, Practice against the site's bot
+  with its stored games, its set-up starts, "Play the bot from here" and its points bar, the tools for playtak's
+  pages, and the review of unfinished games (design 21, item 8). The site has no rule of "finished games only, never
+  help during a game in progress": the import, the review, the Analysis board and the tools work on a game in
+  progress as on both sites. The engine's design 09 proposes that rule, and the engine request asks the engine
+  repository to drop it. A public TEI engine of the engine's own comes later, once it is strong enough.
+- **Blocked by the engine:** Practice (the practice bot, a new item of the request), the GPU, the area map, the
+  threat, the opening book and the networks' choice. Each one gets an issue that depends on the engine's.
+- **Kept:** the parts that only Enclosure has and the prototypes stay out. Untrained sizes, openings and komi are
+  refused. No playtak game goes into the public repository. Takana's rare-move marks, Fatal and snapshots stay out
+  for now (abscls-shfz.18.2).
+- **No letter to Tak's rights holder:** the site does not write to Crab Fragment Labs before its launch, and
+  Support Us is as on both sites. The plan says who Crab Fragment Labs is.
+- **The names:** the site is Mistak (`mistak.abstractclass.org`), and its engine is Takumi. The finance puns of the
+  two other sites are no rule. The names go into the folder, the storage keys, the messages, the files' formats and
+  the D1 databases. No question of the plan stays open.
+- **The tickets:** three new ones (the Analysis board's starts and the editor, the tools, Practice), a second
+  `engines` issue for the practice bot, and none for the names or for a letter.
