@@ -438,6 +438,14 @@ public repository and the history rewrites.
   chance and the labels are computed as before.
 - **Where it shows:** the win-chance bar's and gauge's tooltip, a "Draw" column in the table where the results have
   one, and the words of a result. Neither site has such a reply or such an end.
+- **The Draw column's room:** beside the moves, the columns with the Draw column take 284 pixels, and at 360 pixels the
+  table's box has 264. So the Move column was 0 pixels wide there, with no name and no header to open it. With the Draw
+  column, the table is now 324 pixels wide at least, and a narrower box scrolls sideways. The Move column keeps the 40
+  pixels that it has at 360 without the Draw column. Measured on Hedge School's layout-test game, the Move column
+  without and with the Draw column was 101 and 41 pixels at 1,376 by 952 (a box of 325), and 175 and 115 at 1,920 by
+  1,080 (a box of 411).
 - **Checked:** new tests of a reply with a draw chance, of each kind of result (a road, a draw by a rule, a flat win, a
   flat tie, a record's own result, none), and of the page with and without a draw chance (`draw-chance.spec.ts`, on
-  Hedge School's layout-test game with the chance written into its stored results).
+  Hedge School's layout-test game with the chance written into its stored results, at 1,376 and 360 pixels). On 4,000
+  random games, `review` before and after the change gave the same win chances, losses and labels (235,690 labels), and
+  a draw chance in the results changed none of them.

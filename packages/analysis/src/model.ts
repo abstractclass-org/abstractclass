@@ -17,7 +17,7 @@
 import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
 import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_MOVE_GAP, accuracyWeight, classify, listed, meterGroup,
          type Label, type MeterGroup } from "./labels.ts";
-import { resultAt, resultOfScores, type GameResult } from "./result.ts";
+import { resultOfScores, type Ended, type GameResult } from "./result.ts";
 export { BAD_LABELS, HARD, LABELS, METER_GROUPS, listed, type Label, type MeterGroup } from "./labels.ts";
 export type { Player } from "./game.ts";
 
@@ -343,9 +343,17 @@ const winOf = (winner: Player | null) => (winner === null ? 0.5 : winner === 0 ?
 export const resultWin = (scores: readonly [number, number]): number => winOf(resultOfScores(scores).winner);
 
 /** The values of a position where the game has ended: Blue's win chance, by the game's own result or by the scores
- *  (resultAt), and Blue's final margin, which only a result by the scores has. */
-export const endValues = (p: Pick<PositionInfo, "scores" | "result">): { blueWin: number; blueScore: number | undefined } =>
-  ({ blueWin: winOf(resultAt(p).winner), blueScore: p.result ? undefined : p.scores[0] - p.scores[1] });
+ *  (result.ts, resultAt), and Blue's final margin, which only a result by the scores has. */
+export const endValues = (p: Ended): { blueWin: number; blueScore: number | undefined } =>
+  p.result ? { blueWin: winOf(p.result.winner), blueScore: undefined }
+    : { blueWin: resultWin(p.scores), blueScore: p.scores[0] - p.scores[1] };
+
+/** A game's data as finalOf reads it. With no positions, the game has no result of its own. */
+export type FinalData = Pick<ReviewData<GameTypes>, "moves" | "result"> & Partial<Pick<ReviewData<GameTypes>, "positions">>;
+/** What the result of a game whose rules ended it is read from (resultAt, endValues): the final scores, and the last
+ *  position's own result, where it has one. */
+export const finalOf = (data: FinalData): Ended =>
+  ({ scores: [data.result.blue, data.result.red], result: data.positions?.[data.moves.length]?.result });
 
 /** The engine's best turn from a position's first choice: its edge, and the next edge of its line for a turn of two. */
 const bestTurn = <M>(first: Candidate<M> | undefined, twoEdges: boolean): M[] | undefined =>
@@ -398,7 +406,7 @@ function summarize(items: Judged[]): [PlayerSummary, PlayerSummary] {
 
 export function review<G extends GameTypes>(game: Game<G>, data: ReviewData<G>, kind: ScoreKind = "lead", minVisits = 0): Review<G> {
   const n = data.moves.length, over = data.positions[n]?.over ?? true;
-  const final = endValues({ scores: [data.result.blue, data.result.red], result: data.positions[n]?.result });
+  const final = endValues(finalOf(data));
   // The position after the last edge is the end when the game is over: its value is the result. A line that stops
   // before (an unfinished game, the Analysis board's line) has a search there, as any position.
   const end = (i: number) => i === n && over;

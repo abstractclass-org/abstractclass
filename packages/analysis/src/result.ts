@@ -27,9 +27,12 @@ function byMargin(winner: Player, m: number): ScoreResult {
 export const resultOfScores = (scores: readonly [number, number]): ScoreResult =>
   byMargin(scores[0] > scores[1] ? 0 : 1, Math.abs(scores[0] - scores[1]));
 
+/** What a game's result is read from: the scores, and the game's own result where it gives one. */
+export type Ended = Pick<PositionInfo, "scores" | "result">;
+
 /** The result of a position where the game has ended: the game's own, where the position has one, else by the scores.
  *  Only a result by the scores has a margin. */
-export const resultAt = (p: Pick<PositionInfo, "scores" | "result">): GameResult | ScoreResult =>
+export const resultAt = (p: Ended): GameResult | ScoreResult =>
   p.result ?? resultOfScores(p.scores);
 
 /** The result that a record gives by the scores (`b+28.5`, `r+3`, `0`), by the same rule. Null for any other: a

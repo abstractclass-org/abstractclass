@@ -286,8 +286,8 @@ edit in the same commit), so their changes still apply.
      decide (a Tak road). The game's position gives it (`PositionInfo.result`), with the winner, or null for a draw, and
      its words. The record's reader gives one for a record's end in its own form (`GameEnding.own`). The shared code
      reads only these two, and the kinds of a game's results stay in its site. `resultAt` gives a position's result, and
-     `endValues` the values at the end: no score for a game's own result. The bar has the draw chance as a note
-     (`drawNote`) where a result has one.
+     `endValues` the values at the end: no score for a game's own result. Both read a reviewed game's end through
+     `finalOf`. The bar has the draw chance as a note (`drawNote`) where a result has one.
    - **The display settings and the sounds:** the site keeps the settings under its own key (`display`), and lists its
      board's own layers (`layers`: Enclosure's regions before the area map's settings, and its invincible edges after
      them). The sounds (`sounds`) have the site's settings and the game's sound for each move (Enclosure's cut has its

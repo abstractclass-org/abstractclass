@@ -162,7 +162,7 @@
   import { imageLine, lineFrames } from "./lineImage.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, endValues, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, endValues, finalOf, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -1032,6 +1032,7 @@
   // view.
   let nameFit = $state({ short: false, open: 0 });
   let scrollBar = $state(0);
+  let boxWidth = $state(0); // the box's width, as its observer (below) last saw it
   /** Measures the table's names. A name's full width is its content's width at its cell's font size. Closed, a name is
    *  as large as its cell allows where the game asks for it (`fitName`, nameSize.ts): its full size, or smaller where
    *  it is wider than the cell, down to the game's least size, where it is cut. Else its class (`nameText`) gives its
@@ -1067,25 +1068,26 @@
     names.forEach((el, i) => el.toggleAttribute("data-cut", cuts[i]));
     if (nameFit.short !== short || nameFit.open !== open) nameFit = { short, open };
   }
-  // The names are measured once the table shows a position's rows, in their form, open or closed; again when the box's
-  // width changes (a hidden tab's box has none); and when the fonts load.
+  // The names are measured once the table shows a position's rows, in their form, open or closed; again when the Draw
+  // column comes or goes, or the box's width changes (a hidden tab's box has none); and when the fonts load.
   $effect(() => {
-    void here; void tableNames; void glyphs; void movesOpen; void table;
+    void here; void tableNames; void glyphs; void movesOpen; void table; void drawColumn;
     untrack(fitNames);
   });
   $effect(() => {
     if (!tableBox) return;
     let width = -1;
     const sized = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width !== width) { width = entry.contentRect.width; fitNames(); }
+      if (entry.contentRect.width !== width) { width = boxWidth = entry.contentRect.width; fitNames(); }
     });
     sized.observe(tableBox);
     void document.fonts?.ready.then(() => fitNames());
     return () => sized.disconnect();
   });
-  // The scroll bar of the open table, under its rows
+  // The scroll bar of the open table, under its rows, and of a table with the Draw column, which can be wider than its
+  // box while it is closed too
   $effect(() => {
-    void nameFit; void movesOpen;
+    void nameFit; void movesOpen; void (drawColumn && boxWidth);
     if (tableBox) scrollBar = tableBox.offsetHeight - tableBox.clientHeight;
   });
   // A new position starts the table at its top.
@@ -1669,11 +1671,12 @@
     played: R.edges[movePreview.index], after: ". Click to go there." } : null);
   // The win chance above the board: the board's own where it has one (Openings: the book's at a book position, design
   // 32), else the review's or the search's
-  const blueWin = $derived(game?.winAt(path) ?? (mainAt !== null ? R.blueWin[mainAt]
+  const boardWin = $derived(game?.winAt(path));
+  const blueWin = $derived(boardWin ?? (mainAt !== null ? R.blueWin[mainAt]
     : over ? endValues(position).blueWin : analysis?.blueWin ?? NaN));
   // The draw chance of the same values, for the bar's tooltip, in a game whose engine gives it. None of the book's
   // values, and none at the game's end.
-  const draw = $derived(over || game?.winAt(path) != null ? undefined
+  const draw = $derived(over || boardWin !== undefined ? undefined
     : mainAt !== null ? R.data.analysis[mainAt]?.draw : analysis?.draw);
   // The table's column of draw chances: in a game whose engine gives them
   const drawColumn = $derived(analysis?.draw !== undefined || R.data.analysis.some(a => a?.draw !== undefined));
@@ -1681,9 +1684,8 @@
   // chance lost when the analysis has no scores. Nothing until it is judged.
   function lossShort(e: Pick<MoveJudgment<G["move"]>, "label" | "loss" | "pointsLost">): string {
     if (!e.label) return "";
-    if (e.pointsLost === undefined) return `−${Math.round(100 * e.loss)}%`;
-    const text = shortPoints(e.pointsLost);
-    return text === "0" ? "0" : `−${text}`;
+    const text = e.pointsLost === undefined ? `${Math.round(100 * e.loss)}%` : shortPoints(e.pointsLost);
+    return text === "0" || text === "0%" ? "0" : `−${text}`;
   }
   // Who is ahead, from Blue's value: the side ahead named, and a number never below 0 ("Red +105"), whoever is to move
   // (Go writes "B+3.5"). Even: "even" in a sentence, "0" among numbers. In short, from 1,000 on: "Red +1.2k".
@@ -1701,15 +1703,16 @@
   // The position whose number is the game's result: the end of a game that the rules ended (the model's rule,
   // R.endedByRules). The end of a record that ends before is not: its number is the engine's lead.
   const isResult = (i: number) => i === last && R.endedByRules;
-  // The game's own result there, which the scores do not give (a road): its tip and the Report show no margin
-  const ownResult = $derived(R.endedByRules ? R.data.positions[last]?.result : undefined);
+  // The game's own result there, which the scores do not give (a road): the tip has no margin, and the scores are those
+  // on the board, as at the end of a record that ends before
+  const ownResult = $derived(R.endedByRules ? finalOf(R.data).result : undefined);
   // The number after a move with its name, in the move's tooltip in the move list and in the chart's tip, or undefined
   // before its analysis: the lead, "Lead: Red +27.5", the engine's estimate (GLOSSARY.md, "Lead"). After a game's last
   // move, when the rules ended it, the number is the game's result, so its name is "Result:", and it takes the rule
   // for a draw (resultSide), so that a win by 0.03 never reads "even": "Result: Red +0.03". A record that ends before
   // the rules end the game keeps the engine's lead there.
   const leadOrResult = (i: number) => {
-    if (isResult(i)) return `Result: ${resultSide(resultAt({ scores: [R.data.result.blue, R.data.result.red], result: ownResult }))}`;
+    if (isResult(i)) return `Result: ${resultSide(resultAt(finalOf(R.data)))}`;
     const s = R.blueScore[i];
     return s === undefined ? undefined : `Lead: ${sideText(s, 1)}`;
   };
@@ -1720,8 +1723,8 @@
   // result after its last move when the rules ended it (leadOrResult). Under it, the score and the area of the lines
   // shown: the lines are scaled and have no axis, so their numbers are only here. The result repeats the score, so a
   // position with the result (isResult) has no score. The end of a record that ends before has one, as any position:
-  // there the score so far is in no other line. So has a game's own result, which is no score. Made for the position
-  // pointed at only: the chart asks for one note at a time.
+  // there the score so far is in no other line. So has the end with the game's own result (ownResult): its words give
+  // no score. Made for the position pointed at only: the chart asks for one note at a time.
   function chartTip(i: number) {
     const e = i > 0 ? R.edges[i - 1] : null, t = e ? R.turnOf[e.index] : null;
     // By turn, the chart shows the turns' ends only: the turn whole, with its label.
@@ -1919,7 +1922,8 @@
   <p class="mb-3 text-xs text-muted">Analyzed in your browser. Quality labels judge each move by the engine's win chance. ◆ marks a
     hard position. <a href="/how-reviews-work" target="_blank" rel="noopener noreferrer">How it works</a></p>
   <p class="mb-3.75">
-    <strong>{ending}</strong>{ownResult ? "" : ` (${fmtScore(R.data.result.blue)} to ${fmtScore(R.data.result.red)}${R.endedByRules ? "" : " on the board"})`}.
+    <strong>{ending}</strong>
+    ({fmtScore(R.data.result.blue)} to {fmtScore(R.data.result.red)}{R.endedByRules && !ownResult ? "" : " on the board"}).
     {#if reviewRuns}The review is still running: the counts below are partial.{/if}
   </p>
   <!-- The game's own page, when its record's Site tag is an address (Lichess's way): back to the site it was played on. -->
@@ -1999,6 +2003,9 @@
        at its full size, the column as wide as the widest name, and the table wider than its box, which then scrolls
        to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
        (`glyphs`) sit on the middle of its line: their Label sets that (game.ts, `Label`).
+       The Draw column, in a game whose results have a draw chance, takes its room from the edge column. With it the
+       table is 20.25rem wide at least: the other columns, and the 2.5rem that a 360-pixel phone leaves the edge column
+       without the Draw column. In a narrower box the table scrolls, so that the names keep their room.
        The box is a named container (`candidates`), as wide as the closed table: its content width leaves out the
        scroll bar's room. Where it is 24rem wide or more, the Lead column takes 5.5rem in place of 4.75rem, so that a
        lead has room to spare beside the visits. 24rem is the four other columns and the widest name of Cyanotype's
@@ -2016,7 +2023,7 @@
        oncontextmenucapture={e => (lineMenuImage = engineLineAt(e.target as Element))} onclickcapture={lineGuard.click}>
   <div class="@container/candidates flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
-  <table class="w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate"
+  <table class={["w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate", drawColumn && "min-w-81"]}
          bind:this={table} style:width={movesOpen ? `max(100%, ${nameFit.open}px)` : undefined}>
     <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" />{#if drawColumn}<col class="w-15" />{/if}<col class="w-12" /></colgroup>
     <thead>
