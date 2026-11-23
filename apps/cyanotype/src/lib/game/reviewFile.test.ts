@@ -33,7 +33,7 @@ const ENTRIES: [string, unknown][] = [
 test("a review file reads back in Cyanotype's format, and a wrong file says why", () => {
   const file = buildReviewFile(RECORD, BRANCHES, ENTRIES, "abc1234", null, DONE, new Date("2026-11-08T00:00:00Z"));
   assert.equal(file.format, REVIEW_FORMAT);
-  assert.deepEqual(file.review, { ...DONE, networkName: "Stamp Duty 0.2" }); // the name from engine.lock.json
+  assert.deepEqual(file.review, { ...DONE, networkName: "StampDuty 0.2" }); // the name from engine.lock.json
   assert.deepEqual(file.analyses.map(e => e[1]), [{ blueWin: 0.5 }, { blueWin: 0.4 }, { blueWin: 0.3 }]);
   const back = readReviewFile(JSON.stringify(file));
   assert.equal(back.record, RECORD);
@@ -66,7 +66,7 @@ test("a loaded review file keeps its game with its capture marks, variations, ma
   assert.equal(out.site, "def5678");
   assert.equal(out.record, stored!.game.record);
   assert.deepEqual(out.analyses.map(e => e[1]), [{ blueWin: 0.5 }, { blueWin: 0.4 }, { blueWin: 0.3 }]);
-  assert.deepEqual({ ...out.review }, { ...stored!.game.reviewed, networkName: "Stamp Duty 0.2" });
+  assert.deepEqual({ ...out.review }, { ...stored!.game.reviewed, networkName: "StampDuty 0.2" });
 });
 
 test("a review file whose game the review refuses keeps nothing, and says why", async () => {

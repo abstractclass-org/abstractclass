@@ -1,4 +1,4 @@
-// Practice games against Stamp Duty sent to the site when they end (design 33, "Practice against Stamp Duty"; Hedge
+// Practice games against StampDuty sent to the site when they end (design 33, "Practice against StampDuty"; Hedge
 // School's design 25): the practice's sending (@abstractclass/practice/send.ts), with Cyanotype's queue, version and
 // analytics, as Hedge School's src/lib/practice/send.ts. A game that could not be sent waits in this browser, and goes
 // on a later visit (the layout sends it). Only a build that stores games sends them (STORES_PRACTICE_GAMES, the

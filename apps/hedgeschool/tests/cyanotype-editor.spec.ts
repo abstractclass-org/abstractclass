@@ -8,7 +8,7 @@
 // reaches gives way to a new board, with a notice: after a link's refusal, and in its short form under a link's board
 // or New's (Hedge School's design 24, item 15). Each way in refuses a komi, which the board does not take yet
 // (design 33, "The komi"). The review's refusal of a game from a set-up start is in cyanotype-games.spec.ts. The
-// board's engine is off, so nothing searches: the engine's rules check what comes in. The positions are Stamp Duty's
+// board's engine is off, so nothing searches: the engine's rules check what comes in. The positions are StampDuty's
 // own (the lab's games, apps/cyanotype/src/lib/board/fixtures.json), and each move is one of the engine's legal moves
 // there. Each test opens a fresh browser context, so its store starts empty. The tests skip, with a message, when the
 // preview has no engine files. Run: npx playwright test tests/cyanotype-editor.spec.ts, with CYANOTYPE_BASE_URL.

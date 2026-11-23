@@ -14,7 +14,7 @@ export const TURNS = 20;
  *  engine.lock.json takes a new release. */
 export const STORED = "tests/fixtures/cyanotype-review.json";
 /** The test game's file in apps/cyanotype/src/lib/review/fixtures. */
-export const TEST_GAME = "stamp-duty.txt";
+export const TEST_GAME = "stampduty.txt";
 /** The stored review of the whole test game, one of OTHER_STORED. */
 export const WHOLE_STORED = "tests/fixtures/cyanotype-whole-review.json";
 /** The other stored reviews: the results of real reviews at the same visits, each with its file, its game (a file in
@@ -26,10 +26,10 @@ export const WHOLE_STORED = "tests/fixtures/cyanotype-whole-review.json";
  *  scripts/cyanotype-review-fixture.mjs writes them after STORED. */
 export const OTHER_STORED = [
   { file: WHOLE_STORED, game: TEST_GAME, turns: Infinity },
-  { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stamp-duty-seed12.txt", turns: 23 },
-  { file: "tests/fixtures/cyanotype-seed12-whole-review.json", game: "stamp-duty-seed12.txt", turns: Infinity },
-  { file: "tests/fixtures/cyanotype-seed13-review.json", game: "stamp-duty-seed13.txt", turns: Infinity },
-  { file: "tests/fixtures/cyanotype-seed14-review.json", game: "stamp-duty-seed14.txt", turns: Infinity },
+  { file: "tests/fixtures/cyanotype-seed12-review.json", game: "stampduty-seed12.txt", turns: 23 },
+  { file: "tests/fixtures/cyanotype-seed12-whole-review.json", game: "stampduty-seed12.txt", turns: Infinity },
+  { file: "tests/fixtures/cyanotype-seed13-review.json", game: "stampduty-seed13.txt", turns: Infinity },
+  { file: "tests/fixtures/cyanotype-seed14-review.json", game: "stampduty-seed14.txt", turns: Infinity },
 ] as const;
 
 type Stored = { search: string; network: string; model: string; visits: number; analyses: [string, unknown][] };

@@ -105,7 +105,7 @@
     {
       "id": "b6c96-s47076224-d3087660",
       "kind": "model",
-      "displayName": "Stamp Duty 0.2",
+      "displayName": "StampDuty 0.2",
       "file": "model-float16.bin",
       "source": { "release": { "tag": "engine-91ab0b7d", "asset": "b6c96-s47076224-d3087660.model-float16.bin" } },
       "sha256": "64c94b2260d6bb16796db8f9ea2f7a495d770a794e9788c8e2f7d69ab52f9a45",
@@ -115,7 +115,7 @@
       "id": "b6c96-s47076224-d3087660-graph-91ab0b7d",
       "kind": "graph",
       "graphOf": "b6c96-s47076224-d3087660",
-      "displayName": "Stamp Duty 0.2",
+      "displayName": "StampDuty 0.2",
       "file": "model.onnx",
       "source": { "release": { "tag": "engine-91ab0b7d", "asset": "b6c96-s47076224-d3087660.onnx" } },
       "sha256": "5923d4bc496dfc269e7a3002e8d98308ccaabe05d9abaf22e18c814c8d087bd2",

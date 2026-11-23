@@ -1,5 +1,5 @@
-// Cyanotype's Practice (its design 33, "Practice against Stamp Duty"), on its preview (CYANOTYPE_BASE_URL): whole games
-// against Stamp Duty's practice bot, one with each side to start. The player's moves are clicks on the page: a
+// Cyanotype's Practice (its design 33, "Practice against StampDuty"), on its preview (CYANOTYPE_BASE_URL): whole games
+// against StampDuty's practice bot, one with each side to start. The player's moves are clicks on the page: a
 // blueprint in the hand, then a marked anchor hex on the board, chosen at random, or a cell and a marked new place
 // when no blueprint has a legal placement. Each game goes to its end with no page error and no stop. The page checks
 // each of the bot's moves against the rules' legal moves, and stops the game when one is not legal. A reload in the
@@ -66,7 +66,7 @@ async function humanMove(page: Page, player: 0 | 1, random: () => number): Promi
 
 /** Waits for the player's turn or the game's end: the status line's text. */
 async function turn(page: Page): Promise<string> {
-  await page.waitForFunction(s => /^(Your turn|The game is over|You resigned|Stamp Duty (cannot continue|has an error|stopped|did not start)|The page has an error)/
+  await page.waitForFunction(s => /^(Your turn|The game is over|You resigned|StampDuty (cannot continue|has an error|stopped|did not start)|The page has an error)/
     .test(document.querySelector(s)?.textContent ?? ""), STATUS, { timeout: 300_000 });
   return (await page.locator(STATUS).textContent())!;
 }
@@ -126,7 +126,7 @@ async function startGame(page: Page, manifest: BotManifest, side: "Blue" | "Red"
 }
 
 for (const side of ["Blue", "Red"] as const) {
-  test(`a whole game against Stamp Duty on Cyanotype, the player ${side}`, async ({ page }) => {
+  test(`a whole game against StampDuty on Cyanotype, the player ${side}`, async ({ page }) => {
     const manifest = await botManifest(page);
     const errors: string[] = [];
     page.on("pageerror", e => errors.push(String(e)));
@@ -234,7 +234,7 @@ test("the komi on Cyanotype's card, and a game at it: the player's head start in
   await openWithChoices(page, manifest, { komi: 300 });
   await expect(page.locator("#komi")).toHaveValue("300", { timeout: 60_000 });
   await expect(page.locator("#komi-help")).toContainText("You start 300 points ahead.");
-  await expect(page.getByText("Stamp Duty ahead", { exact: true })).toBeVisible();
+  await expect(page.getByText("StampDuty ahead", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Play as Blue" }).click({ timeout: 60_000 });
   expect(await turn(page)).toMatch(/^Your turn/);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cyanotype:practice-game:1")!).komi)).toBe(-300);
@@ -284,7 +284,7 @@ test("btn-danger has the blunder's red in Cyanotype's style, in both themes", as
 // Practice at the position on screen. A game's position goes to the bot as its moves from the standard start, and a
 // set-up start as its own position, with the moves after it played. The moves brought are the game's start: a
 // takeback stops there. A start that no game reaches starts no game, and the card gives the engine's reason. The
-// positions are Stamp Duty's own (the lab's games, apps/cyanotype/src/lib/board/fixtures.json). The board's engine is
+// positions are StampDuty's own (the lab's games, apps/cyanotype/src/lib/board/fixtures.json). The board's engine is
 // off, and the bot runs on the CPU (LITE: the GPU off).
 const fixtures = JSON.parse(readFileSync("../cyanotype/src/lib/board/fixtures.json", "utf8")).fixtures as
   { name: string; moves: string[]; position: SitePosition; legal: string[] }[];
@@ -308,7 +308,7 @@ const TOUCH = "Blue's cell on \\S+ touches Red's cell on \\S+, and neither is a 
 const WHY = { it: `no game can reach it\\. ${TOUCH}`, its: `no game can reach its start\\. ${TOUCH}` };
 const PLAY_HERE = { name: "Play the bot from here" };
 /** The status line of a game that stopped as the bot refused it (practice.ts, stoppedLine). */
-const REFUSED = "Stamp Duty cannot continue this game. Abort the game. Then start a new game.";
+const REFUSED = "StampDuty cannot continue this game. Abort the game. Then start a new game.";
 
 /** The settings of a test from a position, for each page that opens: the board's engine off, the bot on the CPU, and
  *  the bot's choices at 8 visits, the player Red. Gives the bot's network. */
@@ -498,7 +498,7 @@ test("a game that ends goes into Your games and to the site, and its review open
   const [botMove] = (await keptGame(page))!.moves;
   await page.getByRole("button", { name: "Resign" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Resign" }).click();
-  expect(await turn(page)).toBe("You resigned. Stamp Duty wins.");
+  expect(await turn(page)).toBe("You resigned. StampDuty wins.");
   const reviewLink = page.getByRole("link", { name: "Review the game" });
   await expect(reviewLink).toBeVisible();
   // The stored game, as the site receives it: no name, no number without the visitor's consent, where the bot ran
@@ -520,7 +520,7 @@ test("a game that ends goes into Your games and to the site, and its review open
   // and the Review tab lists it
   await page.goto(at("/review"));
   await expect(page.getByRole("region", { name: "Review a game" }).locator("li").getByRole("link"))
-    .toHaveText([/^Stamp Duty .* against Ann$/], { timeout: 60_000 });
+    .toHaveText([/^StampDuty .* against Ann$/], { timeout: 60_000 });
   expect(errors).toEqual([]);
 });
 

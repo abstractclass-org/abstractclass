@@ -2,7 +2,7 @@
 // preview (CYANOTYPE_BASE_URL): the Review tab with games kept in this browser, a pasted record that the engine's rules
 // check before the list keeps it, the records that the review refuses, a game's Delete with its question, the request
 // to keep the games, one tab for each game's review, and a shared review that keeps the sender's network and depth.
-// The games are the review's test game (cyanotype-review.ts, Stamp Duty against itself) cut at three turns, with
+// The games are the review's test game (cyanotype-review.ts, StampDuty against itself) cut at three turns, with
 // players' names made by hand. Each test opens a fresh browser context, so its store starts empty, and loads the
 // stored review with the engine off (storeReview): nothing searches here. The tests skip, with a message, when the
 // preview has no engine files. Run: npx playwright test tests/cyanotype-games.spec.ts, with CYANOTYPE_BASE_URL.

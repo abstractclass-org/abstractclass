@@ -14,7 +14,7 @@ export type EngineFault = "unstarted" | "error";
 const THE_ENGINE = "The engine";
 
 /** The line for an engine that failed (`fault`), with the site's name for its engine (`engine`): Cyanotype's is
- *  "Stamp Duty". */
+ *  "StampDuty". */
 export function engineLine(fault: EngineFault, engine: string = THE_ENGINE): string {
   return fault === "unstarted" ? `${engine} did not start. Load the page again.`
     : `${engine} has an error. Load the page again.`;

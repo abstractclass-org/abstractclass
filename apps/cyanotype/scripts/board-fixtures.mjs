@@ -1,4 +1,4 @@
-// The board lab's positions (src/lib/board/fixtures.ts), from Stamp Duty's build: each position is a game of moves
+// The board lab's positions (src/lib/board/fixtures.ts), from StampDuty's build: each position is a game of moves
 // from the standard start, and the engine gives the position, every legal move and what each move did. The site has
 // no rules (CLAUDE.md): it never computes which moves are legal, so the lab's legal moves come from here, complete. The
 // candidates and their lines are hand-made marks, but the engine plays each of them where it stands, and refuses one

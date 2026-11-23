@@ -1,4 +1,4 @@
-// A game of Stamp Duty against itself, for the review's tests and its look (design 33), as Hedge School's
+// A game of StampDuty against itself, for the review's tests and its look (design 33), as Hedge School's
 // scripts/test-fixture.mjs plays HedgeFund against itself: the practice bot plays both sides from the standard start
 // to the game's end, Blue at fewer visits a move than Red, with Low variety, so that Blue's weaker moves give the
 // review's quality labels their range. The engine's describe gives each position's legal moves, and each of the bot's
@@ -8,7 +8,7 @@
 //   npm run engine && node scripts/selfplay.mjs [--seed N] [--blue VISITS] [--red VISITS] [--out FILE]
 //
 // The bot and the rules run on the CPU in Node, from the site's static/engine, as the site's checks run them
-// (@abstractclass/engine/node-engine.mjs). The output's default is src/lib/review/fixtures/stamp-duty.txt.
+// (@abstractclass/engine/node-engine.mjs). The output's default is src/lib/review/fixtures/stampduty.txt.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -22,7 +22,7 @@ const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 /** The value of the option `--name VALUE`, or `fallback`. @param {string} name @param {string} fallback */
 const option = (name, fallback) => { const k = process.argv.indexOf(`--${name}`); return k < 0 ? fallback : process.argv[k + 1]; };
 const SEED = Number(option("seed", "11")), BLUE = Number(option("blue", "4")), RED = Number(option("red", "64"));
-const OUT = resolve(option("out", join(app, "src", "lib", "review", "fixtures", "stamp-duty.txt")));
+const OUT = resolve(option("out", join(app, "src", "lib", "review", "fixtures", "stampduty.txt")));
 const HALFLIFE = 19; // the practice's (src/lib/practice/stampduty.ts)
 
 if (!hasEngine(app)) throw new Error("no engine in static/engine: run `npm run engine` first");
@@ -74,8 +74,8 @@ moves.forEach((_, i) => {
 const end = positions.at(-1), result = end.outcome?.result ?? "*";
 const visits = (/** @type {number} */ n) => `${n} visit${n === 1 ? "" : "s"}`;
 const record = writeRecord({
-  Event: "Stamp Duty against itself", Date: new Date().toISOString().slice(0, 10).replaceAll("-", "."),
-  Blue: `Stamp Duty, ${visits(BLUE)}`, Red: `Stamp Duty, ${visits(RED)}`, Network: network.id, Seed: String(SEED),
+  Event: "StampDuty against itself", Date: new Date().toISOString().slice(0, 10).replaceAll("-", "."),
+  Blue: `StampDuty, ${visits(BLUE)}`, Red: `StampDuty, ${visits(RED)}`, Network: network.id, Seed: String(SEED),
   Scores: `${end.scores[0]}/${end.scores[1]}`,
 }, texts, turns, result);
 mkdirSync(dirname(OUT), { recursive: true });

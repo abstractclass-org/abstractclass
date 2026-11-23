@@ -1,5 +1,5 @@
 // The player's notes on Cyanotype's board (its design 33, "The player's notes"), on its preview (CYANOTYPE_BASE_URL):
-// on the Analysis board with the review's test game (Stamp Duty against itself), and on Practice with a game in
+// on the Analysis board with the review's test game (StampDuty against itself), and on Practice with a game in
 // progress. A right-click marks a hex and a right drag draws an arrow, in each colour by the keys held (Cyanotype's:
 // Ctrl, Alt or both). The same note again removes it, and in another colour changes its colour. An arrow drawn the
 // other way is another arrow. A right drag with Shift marks each hex that it goes across, or clears that colour's marks

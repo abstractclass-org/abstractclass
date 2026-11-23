@@ -14,7 +14,7 @@ import { hasJspi, sizesOption, type PracticeLibrary } from "@abstractclass/engin
 // files, this is skipped. The threaded bot (abscls-8tl1.29) runs on its CPU evaluator, with the network's sizes of the
 // manifest, as the site's worker sets it up (packages/practice/src/botFormsWorker.ts). Below 16 visits it searches with
 // one thread. At this position, with two threads and the seed 1, it plays the one-thread bot's moves at 1, 4 and 8
-// visits; with more threads a few positions get another move (design 33, "Practice against Stamp Duty"). With
+// visits; with more threads a few positions get another move (design 33, "Practice against StampDuty"). With
 // Enclosure's sizes, the library's default, its evaluations are wrong, and it plays other moves or traps. It needs
 // JSPI, which Node has with no flag from Node 25: without it, its test is skipped.
 //

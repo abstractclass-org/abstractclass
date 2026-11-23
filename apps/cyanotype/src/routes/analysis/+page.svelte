@@ -334,7 +334,7 @@
 </script>
 
 <PageMeta title="Analysis board · {SITE_NAME}"
-          description="A free Blueprints Analysis board: play any line, and Stamp Duty, the engine in your browser, searches the position on screen." />
+          description="A free Blueprints Analysis board: play any line, and StampDuty, the engine in your browser, searches the position on screen." />
 
 {#if failure}
   <p class="{MESSAGE} text-blunder" role="alert">{failure}</p>
@@ -371,6 +371,6 @@
 <ChooseNetwork choice={networkChoice} />
 
 <!-- The board's Import: a position, moves, or both pasted (Hedge School's design 21). An analysis file has its own
-     Load. The examples: the start of the standard start, and the first moves of Stamp Duty's own game. -->
+     Load. The examples: the start of the standard start, and the first moves of StampDuty's own game. -->
 <ImportDialog bind:open={importing} editor={editorHref} positionExample="-10,-1w;-9,-1s;-6,-1;… b1 0/0 0"
               movesExample="1. 1@-1,1 2. 1@1,-3 1@1,2 …" moveWord="moves" onimport={importPasted} />

@@ -1,7 +1,7 @@
 // The candidates table's column widths on Cyanotype or Hedge School (packages/review/src/ReviewView.svelte,
 // engineTable): how well each column of the shared colgroup fits its content (decisions/product.md, "The candidates
 // table's column widths, measured on Cyanotype"). On Cyanotype the script opens the review of the test game from the
-// stored review (tests/cyanotype-review.ts, reviewTestGame: Stamp Duty against itself, up to turn 20, with the engine
+// stored review (tests/cyanotype-review.ts, reviewTestGame: StampDuty against itself, up to turn 20, with the engine
 // on at Lite and the GPU off, so the page asks the engine for no search). Then it reads the table at every position of
 // the game, by move, at each window width (in the Analysis tab where the window has one), in each "Move notation"
 // (Glyphs, the default, and Text). With `--site hedgeschool` it opens Hedge School's stored review instead (the review

@@ -14,13 +14,13 @@ import { EngineError } from "@abstractclass/engine/client.ts";
 import { engineProblem, recordProblem, rulesBy, startChecked, startProblem, type Rules } from "./recordCheck.ts";
 
 // A record's check by the engine's rules (recordCheck.ts), which the import page and the Analysis board make before
-// they open a record: on the review's test game (fixtures/stamp-duty.txt, Stamp Duty against itself), on that game
+// they open a record: on the review's test game (fixtures/stampduty.txt, StampDuty against itself), on that game
 // with a wrong capture mark, on a move that the rules refuse, and on the game's later moves from a set-up start (its
 // position after 40 moves), that start without a cell, and starts that no game reaches (the engine's position check,
 // protocol 0.8.0). The engine runs on the CPU in Node from the site's static/engine: without its files, this is
 // skipped.
 const app = join(import.meta.dirname, "..", "..", "..");
-const text = readFileSync(join(import.meta.dirname, "fixtures", "stamp-duty.txt"), "utf8");
+const text = readFileSync(join(import.meta.dirname, "fixtures", "stampduty.txt"), "utf8");
 
 test("the engine's rules confirm a record, or say what is wrong with it", {
   skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",

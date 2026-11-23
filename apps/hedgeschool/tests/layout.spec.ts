@@ -439,10 +439,10 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE]] as c
   }
 }
 
-// Cyanotype's Practice (its design 33, "Practice against Stamp Duty"), when CYANOTYPE_BASE_URL gives its preview. The
+// Cyanotype's Practice (its design 33, "Practice against StampDuty"), when CYANOTYPE_BASE_URL gives its preview. The
 // page as the site's build gives it: the settings card with the engine's files (the Tests workflow's build has them),
 // a notice without them (a build made before `npm run engine`). With the practice bot, a game in progress, the player
-// to move: the lab's middle game, Stamp Duty's own moves (apps/cyanotype/src/lib/board/fixtures.json). Besides the
+// to move: the lab's middle game, StampDuty's own moves (apps/cyanotype/src/lib/board/fixtures.json). Besides the
 // sweep, design 06's window sizes, 2,560 x 1,440 among them.
 // The page's own rules: the status line shows its whole text, the hands' panel stays on the board, and in one column
 // (under 800 pixels) the field is at least as high as it is wide.

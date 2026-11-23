@@ -12945,3 +12945,19 @@ missing from every count of design 17. Design 27 gives the reasons.
   parts, Practice, the tools, the postponements that wait for the engine, the parts that are Enclosure's alone, the
   prototypes, playtak's games in the repository, other sizes and openings, unfinished games in the review and the
   import, and Takana's features that Hedge School does not have.
+
+### Stamp Duty is StampDuty, one word (2026-11-23)
+
+- **What:** Cyanotype's engine and practice bot are StampDuty, one word, as Hedge School's are HedgeFund, and its
+  networks StampDuty 0.1 and StampDuty 0.2 (design 33, item 1; abscls-ujdk).
+- **Why:** the owner, to cyanotype-coord (pane wC:p29, 2026-11-23, read before 18:52 CST): "I just now realized that
+  the bot name HedgeFund has no space while Stamp Duty has. I prefer no space. Could we change it into StampDuty
+  everywhere?"
+- **Where:** the site's pages, code, tests, fixtures (`src/lib/review/fixtures/stampduty*.txt`, renamed from
+  `stamp-duty*.txt`) and design documents, and `engine.lock.json`'s `displayName`. The lock's check compares each
+  file's SHA-256 and size, the sizes and `maxThreads`, not the names, and `fetch-engine.mjs` writes the lock's
+  `displayName` into `static/engine/manifest.json`: so the site shows StampDuty 0.2 with no new engine release. The
+  engine repository's `network-names.json` names the next release's networks so (abscls-ujdk).
+- **Not changed:** the entries above and `docs/requests/` (history, with the owner's words as written), the engine's
+  releases already published, and the records made before: a stored practice game or review file keeps the name it
+  was made with.

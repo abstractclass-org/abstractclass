@@ -1,6 +1,6 @@
 // The home page's board (src/routes/+page.svelte, src/lib/home/HomeReplay.svelte), as Hedge School's
 // (apps/hedgeschool/scripts/home-replay.mjs): scenes from reviewed games, played on the board with the review's
-// candidates and labels. Each game is a game of Stamp Duty against itself (src/lib/review/fixtures, from
+// candidates and labels. Each game is a game of StampDuty against itself (src/lib/review/fixtures, from
 // scripts/selfplay.mjs), and a stored review of it gives the engine's results: Hedge School's
 // tests/fixtures/cyanotype-review.json (STORED, a review file) or another of its stored reviews (OTHER_STORED in
 // tests/cyanotype-fixture.ts), which its scripts/cyanotype-review-fixture.mjs writes from real reviews. All of them

@@ -106,5 +106,5 @@ test("Cyanotype's engine measure runs to its end with Blueprints' engine, stops 
   test.skip(!CYANOTYPE, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
   await setUp(page);
   const copied = await run(page, new URL(PATH, CYANOTYPE).href, "Cyanotype");
-  expect(copied).toMatch(/^- Positions: Blueprints, the review's test game \(Stamp Duty against itself, 120 positions\)\./m);
+  expect(copied).toMatch(/^- Positions: Blueprints, the review's test game \(StampDuty against itself, 120 positions\)\./m);
 });

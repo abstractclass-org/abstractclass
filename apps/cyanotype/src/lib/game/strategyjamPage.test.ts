@@ -1,4 +1,4 @@
-// Checks Blueprints' game page reader (strategyjamPage.ts) on page states made here: games of moves that Stamp Duty's
+// Checks Blueprints' game page reader (strategyjamPage.ts) on page states made here: games of moves that StampDuty's
 // early build played from the standard start (the board's fixtures.json), a page's two layouts, a game that goes on,
 // pages with no game, and a game from another start, which the record refuses (strategyjam.ts). No game of
 // strategyjam.org's archive: this repository is public. Run: npm test.

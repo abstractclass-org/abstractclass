@@ -11,11 +11,11 @@ import { fmtMargin } from "../review/blueprints.ts";
 import { endResult } from "./stampduty.ts";
 
 // A practice game's result at its end, at a komi (Hedge School's design 24): on the review's test game
-// (../review/fixtures/stamp-duty.txt, Stamp Duty against itself, `r+730`), whose end the engine's rules give. The komi
+// (../review/fixtures/stampduty.txt, StampDuty against itself, `r+730`), whose end the engine's rules give. The komi
 // is Red's starting score, added to Red's final margin. The engine runs on the CPU in Node from the site's
 // static/engine: without its files, this is skipped.
 const app = join(import.meta.dirname, "..", "..", "..");
-const record = parseRecord(readFileSync(join(import.meta.dirname, "..", "review", "fixtures", "stamp-duty.txt"), "utf8"));
+const record = parseRecord(readFileSync(join(import.meta.dirname, "..", "review", "fixtures", "stampduty.txt"), "utf8"));
 
 test("a game's result at its end counts the komi", {
   skip: hasEngine(app) ? false : "no engine in static/engine (npm run engine)",

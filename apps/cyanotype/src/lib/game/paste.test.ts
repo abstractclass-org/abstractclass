@@ -1,6 +1,6 @@
 // Checks the moves pasted in the Analysis board's Import (paste.ts): a record or a plain list of moves, from the
-// standard start or from a position given apart, and where a record that cannot be read is wrong. The moves are Stamp
-// Duty's own (the review's test game, review/fixtures/stamp-duty.txt). Run: npm test.
+// standard start or from a position given apart, and where a record that cannot be read is wrong. The moves are
+// StampDuty's own (the review's test game, review/fixtures/stampduty.txt). Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -10,8 +10,8 @@ import { readPasted } from "./paste.ts";
 import { STANDARD_START, writePosition } from "./position.ts";
 import { parseRecord } from "./record.ts";
 
-const game = parseRecord(readFileSync(join(import.meta.dirname, "..", "review", "fixtures", "stamp-duty.txt"), "utf8")).moves;
-// The lab's middle game after 9 moves of Stamp Duty's own game: Red's first move of turn 6.
+const game = parseRecord(readFileSync(join(import.meta.dirname, "..", "review", "fixtures", "stampduty.txt"), "utf8")).moves;
+// The lab's middle game after 9 moves of StampDuty's own game: Red's first move of turn 6.
 const middle = FIXTURE_DATA.fixtures.find(f => f.name === "A middle game")!;
 const MIDDLE = writePosition(middle.position);
 

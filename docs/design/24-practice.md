@@ -186,7 +186,7 @@ How strong each setting plays against people is not measured yet.
     rules worker, as on the Analysis board.
     - **A form that does not start** gives way to the next. When no form starts, the game stops as on a later
       failure: the error goes in one report, and Abort ends the game. The status line gives the site's own words, not
-      the error's message: "HedgeFund did not start. Load the page again." ("Stamp Duty" on Cyanotype). The error's
+      the error's message: "HedgeFund did not start. Load the page again." ("StampDuty" on Cyanotype). The error's
       message is the code's, such as a module's address, and a player cannot act on it. A script that does not load
       is most often an old page after a new deploy, so a new load of the page is the likely cure. A bot's worker
       whose script does not load fails each request that the page sends to it, so the start does not wait for good.
@@ -213,7 +213,7 @@ How strong each setting plays against people is not measured yet.
       the rules give them without the bot. Abort then keeps them in Your games (item 8), and the stored game holds
       them (design 25).
     - **The page's rules engine that does not start** stops the whole page before a game: no game can start without
-      it. The page shows only the site's line "The engine did not start. Load the page again." ("Stamp Duty did not
+      it. The page shows only the site's line "The engine did not start. Load the page again." ("StampDuty did not
       start. Load the page again." on Cyanotype), and the error goes in one report. The rules engine is the same for
       each game of the page, so the way out is a new load of the page. Its causes are those of a bot's form that does
       not start: an old page after a new deploy, or a module that the network did not give. A site with no engine
@@ -360,7 +360,7 @@ How strong each setting plays against people is not measured yet.
   ending level because Go's scores are whole. Enclosure's are not, so a half point would add a digit and change
   nothing.
 - **The same range and step for Blueprints** (Cyanotype, design 33), from the engine repository's
-  `games/blueprints/README.md`, "Komi": Stamp Duty's run gives every self-play game a komi, out to ±3,000 points (5% of
+  `games/blueprints/README.md`, "Komi": StampDuty's run gives every self-play game a komi, out to ±3,000 points (5% of
   games at a spread of 1,000), and the sweep of bpj2's network (`games/blueprints/docs/decisions/port.md`, 2026-10-26)
   found its win chance rising with the komi in each of 178 positions from −3,000 to +3,000, its expected margin moving
   0.8 to 1.25 times the komi. People's margins in Blueprints are of the same size as Enclosure's: a median of 409

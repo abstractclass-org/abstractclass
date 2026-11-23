@@ -9,7 +9,7 @@ import type { Move } from "../game/notation.ts";
 
 // Two moves with different names that give one position are one move in the review (design 33, item 9): the key of
 // the position that a move gives (afterKey), and each place of the review that compares two moves of one position.
-// The position: the review's test game (fixtures/stamp-duty.txt) after 83 moves, Blue to move. Blue's blueprint 1 is
+// The position: the review's test game (fixtures/stampduty.txt) after 83 moves, Blue to move. Blue's blueprint 1 is
 // a star with a plain cell beside it. The engine's first choice moves the star (1:0,0>1:2,-1), and its fourth moves
 // the plain cell (1:1,0>1:-1,1): both leave the plain cell at -1,1 of the star, the same hand. The candidates are the
 // engine's reply there at 512 visits (engine-70dfdc0f, b6c96-s22323968-d845223), cut to their first two moves.

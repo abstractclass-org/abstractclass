@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Practice (docs/design/33-cyanotype.md, "Practice against Stamp Duty"): a game against Stamp Duty's practice bot
+  // Practice (docs/design/33-cyanotype.md, "Practice against StampDuty"): a game against StampDuty's practice bot
   // in the player's browser, with no clock, as Hedge School's Practice (its design 24). Before the game,
   // the settings card (@abstractclass/practice): the bot's network, visits and variety, the player's name, then a side,
   // which starts the game. During the game, the practice's frame with a board that fills the room: the players' row

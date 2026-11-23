@@ -1,5 +1,5 @@
-// Whether Stamp Duty's threaded practice bot plays the one-thread bot's moves below 16 visits (design 33, "Practice
-// against Stamp Duty"). Hedge School's measurement found that Enclosure's threaded bot searches with one thread there
+// Whether StampDuty's threaded practice bot plays the one-thread bot's moves below 16 visits (design 33, "Practice
+// against StampDuty"). Hedge School's measurement found that Enclosure's threaded bot searches with one thread there
 // (its decisions/product.md, "Practice: the threaded bot's visits at each setting"). The forms: the one-thread bot
 // (`practice-module`), and the threaded bot (`practice-threaded-module`) at each number of search threads, on its CPU
 // evaluator with the manifest's sizes, as the site's worker sets it up (packages/practice/src/botFormsWorker.ts). The

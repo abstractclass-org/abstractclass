@@ -1,4 +1,4 @@
-// Practice against Stamp Duty (docs/design/33-cyanotype.md, "Practice against Stamp Duty"): Cyanotype's part
+// Practice against StampDuty (docs/design/33-cyanotype.md, "Practice against StampDuty"): Cyanotype's part
 // of @abstractclass/practice (Hedge School's design 24). Its keys in this browser, its networks, the bot's half-life,
 // the bot's name and the game's record. Its visits are Hedge School's, 1 to 8,192.
 import {
@@ -37,8 +37,8 @@ export const botCommands = (bot: BotSettings, komi = 0) => settingsCommands(bot,
 export const endResult = (end: Pick<GamePosition, "scores">, komi: number): string =>
   scoreResult(withKomi(end, komi).scores);
 
-/** The bot's name on the page: its network's release name, "Stamp Duty 0.2, 64 visits, Low variety", as Hedge School
- *  names HedgeFund's. A network with no release name has its id as its name: "Stamp Duty (b6c96-s22323968-d845223),
+/** The bot's name on the page: its network's release name, "StampDuty 0.2, 64 visits, Low variety", as Hedge School
+ *  names HedgeFund's. A network with no release name has its id as its name: "StampDuty (b6c96-s22323968-d845223),
  *  64 visits, Low variety". */
 export const botName = (bot: BotSettings) => {
   const name = networkName(bot.network);

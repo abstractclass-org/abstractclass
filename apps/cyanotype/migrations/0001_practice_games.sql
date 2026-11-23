@@ -1,5 +1,5 @@
-/* Cyanotype's practice games against Stamp Duty, stored when they end (docs/design/33-cyanotype.md, "Practice against
-   Stamp Duty", and Hedge School's docs/design/25-practice-games-stored.md). Hedge School's schema, with Blueprints'
+/* Cyanotype's practice games against StampDuty, stored when they end (docs/design/33-cyanotype.md, "Practice against
+   StampDuty", and Hedge School's docs/design/25-practice-games-stored.md). Hedge School's schema, with Blueprints'
    count of moves in the place of Enclosure's edges. One row a game, by its own random id, so that a game sent twice is
    kept once. `game` holds the whole game as the browser sent it (@abstractclass/practice/stored.ts, StoredPractice),
    and the columns before it repeat what the calibration reads most: the setting, the side and the outcome. `browser`

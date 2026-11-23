@@ -1,5 +1,5 @@
 # Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed12-review.json, the game
-# apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed12.txt to the end of turn 23
+# apps/cyanotype/src/lib/review/fixtures/stampduty-seed12.txt to the end of turn 23
 # (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts).
 # Update this file only as the test's header says. The commit message says why each label moved.
 # "-": no label.

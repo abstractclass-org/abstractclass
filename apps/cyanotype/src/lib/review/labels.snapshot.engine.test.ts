@@ -9,17 +9,17 @@
 // @abstractclass/analysis, @abstractclass/review or Blueprints' game that moves a quality label of a stored review fails
 // here. The failure names the move and its quality labels, old and new.
 //
-// The stored reviews, all at Lite (512 visits a position), on games of Stamp Duty against itself, Blue at 4 visits a
+// The stored reviews, all at Lite (512 visits a position), on games of StampDuty against itself, Blue at 4 visits a
 // move and Red at 64 (scripts/selfplay.mjs):
 // - cyanotype-review.json: the game that Cyanotype's browser tests review (testRecord), the review's test game to the
 //   end of turn 20. Its first note is a Mistake at turn 12. It reaches Best, Excellent, Good, Inaccuracy and Mistake.
 // - cyanotype-whole-review.json: the whole test game. It reaches a Blunder by move and by turn (move 60, turn 31), 3
 //   turns that play the engine's best turn in the other order (turns 25, 26 and 33), and twins (two moves that give
 //   one position, design 33, item 9) at the positions after 85 and 93 moves (before turns 44 and 48).
-// - cyanotype-seed12-review.json: the game of seed 12 (fixtures/stamp-duty-seed12.txt) to the end of turn 23. It
+// - cyanotype-seed12-review.json: the game of seed 12 (fixtures/stampduty-seed12.txt) to the end of turn 23. It
 //   reaches a Great by move (move 39, turn 20, Red's capture 2@-27,-17).
 // - cyanotype-seed12-whole-review.json, cyanotype-seed13-review.json and cyanotype-seed14-review.json: the whole games
-//   of seeds 12, 13 and 14 (fixtures/stamp-duty-seed12.txt, stamp-duty-seed13.txt and stamp-duty-seed14.txt). Seed
+//   of seeds 12, 13 and 14 (fixtures/stampduty-seed12.txt, stampduty-seed13.txt and stampduty-seed14.txt). Seed
 //   14's reaches a Blunder on an edit (move 84, turn 43). The home page's board takes a scene from cyanotype-review.json
 //   and from the whole games of seeds 12 and 14 (scripts/home-replay.mjs).
 // The last test fails when the stored reviews stop reaching one of these. The snapshot's header counts the labels by
@@ -79,19 +79,19 @@ const TITLES: Record<string, string[]> = {
     "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
   "tests/fixtures/cyanotype-seed12-review.json": [
     "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed12-review.json, the game",
-    "# apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed12.txt to the end of turn 23",
+    "# apps/cyanotype/src/lib/review/fixtures/stampduty-seed12.txt to the end of turn 23",
     "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
   "tests/fixtures/cyanotype-seed12-whole-review.json": [
     "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed12-whole-review.json, the whole",
-    "# game apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed12.txt",
+    "# game apps/cyanotype/src/lib/review/fixtures/stampduty-seed12.txt",
     "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
   "tests/fixtures/cyanotype-seed13-review.json": [
     "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed13-review.json, the whole",
-    "# game apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed13.txt",
+    "# game apps/cyanotype/src/lib/review/fixtures/stampduty-seed13.txt",
     "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
   "tests/fixtures/cyanotype-seed14-review.json": [
     "# Cyanotype's quality labels on apps/hedgeschool/tests/fixtures/cyanotype-seed14-review.json, the whole",
-    "# game apps/cyanotype/src/lib/review/fixtures/stamp-duty-seed14.txt",
+    "# game apps/cyanotype/src/lib/review/fixtures/stampduty-seed14.txt",
     "# (apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts)."],
 };
 /** A stored review's title (TITLES): a stored review of OTHER_STORED with none fails its test, so that each one has

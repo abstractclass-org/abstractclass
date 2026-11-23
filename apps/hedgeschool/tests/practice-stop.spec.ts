@@ -38,7 +38,7 @@ const SITES = [
   { site: "Hedge School", base: () => test.info().project.use.baseURL!, bot: "HedgeFund", starting: "Starting HedgeFund…",
     key: PRACTICE_GAME_KEY, choicesKey: PRACTICE_CHOICES_KEY, engineKey: ENGINE_KEY,
     moves: firstMoves("hedgefund-review.json", /^[A-T]\d+-[A-T]\d+$/, 6) },
-  { site: "Cyanotype", base: () => CYANOTYPE!, bot: "Stamp Duty", starting: "Stamp Duty starts…",
+  { site: "Cyanotype", base: () => CYANOTYPE!, bot: "StampDuty", starting: "StampDuty starts…",
     key: "cyanotype:practice-game:1", choicesKey: "cyanotype:practice-choices:1", engineKey: CYANOTYPE_ENGINE_KEY,
     moves: firstMoves("cyanotype-review.json", /^\d:-?\d+,-?\d+>\d:-?\d+,-?\d+$/, 3) },
 ];

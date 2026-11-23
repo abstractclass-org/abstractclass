@@ -17,7 +17,7 @@ const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
 const SITES = [
   { site: "Hedge School", base: () => test.info().project.use.baseURL!, engine: "The engine", key: PRACTICE_GAME_KEY,
     engineKey: ENGINE_KEY },
-  { site: "Cyanotype", base: () => CYANOTYPE!, engine: "Stamp Duty", key: "cyanotype:practice-game:1",
+  { site: "Cyanotype", base: () => CYANOTYPE!, engine: "StampDuty", key: "cyanotype:practice-game:1",
     engineKey: CYANOTYPE_ENGINE_KEY },
 ];
 

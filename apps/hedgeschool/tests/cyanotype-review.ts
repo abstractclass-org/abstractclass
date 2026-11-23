@@ -1,5 +1,5 @@
 // Cyanotype's review (its design 33) for the browser tests, on its preview (CYANOTYPE_BASE_URL): the review's test game
-// (apps/cyanotype/src/lib/review/fixtures/stamp-duty.txt, Stamp Duty against itself) up to the end of turn TURNS, at
+// (apps/cyanotype/src/lib/review/fixtures/stampduty.txt, StampDuty against itself) up to the end of turn TURNS, at
 // Lite (512 visits a move): with the release engine-91ab0b7d, its first note is a Mistake at turn 12. The tests load
 // the stored review of the game (STORED, cyanotype-fixture.ts), the results of a real review in the browser, and search
 // nothing: the layout test's review loads it as a review file in the Review tab (reviewStoredFile), the others put its

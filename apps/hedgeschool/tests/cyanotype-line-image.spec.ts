@@ -1,6 +1,6 @@
 // Cyanotype's image of a line (Hedge School's design 07, item 17; Cyanotype's design 33), on its preview
 // (CYANOTYPE_BASE_URL): the checks of Hedge School's line-image-theme.spec.ts (line-image.ts), in a review of the test
-// game (Stamp Duty against itself, from its stored results) and on the Analysis board. The move menu's "Copy static",
+// game (StampDuty against itself, from its stored results) and on the Analysis board. The move menu's "Copy static",
 // "Save static" and "Save animated" each give an image in the theme that the page shows, light then dark, also after a
 // refused copy and a change of theme while the site makes the animated image. The saved files have Cyanotype's names.
 // The board's colour shows in the field, under the hand above it. An image of the position after a turn's second move

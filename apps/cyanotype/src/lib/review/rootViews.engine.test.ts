@@ -40,8 +40,8 @@ test("on a position of more views, a candidate lies outside the rule's view, and
   assert.deepEqual(analysis.candidates.map(c => blueprints.moveName(c.edge)), names, "every candidate, as the engine names it");
   for (const c of analysis.candidates)
     assert.equal(c.edge.kind, /@/.test(blueprints.moveName(c.edge)) ? "place" : "edit");
-  // Each placement's cells, from Blue's hand: a candidate placement lies outside the rule's view. With Stamp Duty 0.1
-  // (engine-3ac5c2fc) it was the best move. With Stamp Duty 0.2 (engine-91ab0b7d) the first two candidates are edits,
+  // Each placement's cells, from Blue's hand: a candidate placement lies outside the rule's view. With StampDuty 0.1
+  // (engine-3ac5c2fc) it was the best move. With StampDuty 0.2 (engine-91ab0b7d) the first two candidates are edits,
   // which lie in no view, and the third is a placement outside the rule's view (2@-3,2).
   const view = placeOf(analysis.ownership!);
   assert.ok(view, "the ownership names its view");

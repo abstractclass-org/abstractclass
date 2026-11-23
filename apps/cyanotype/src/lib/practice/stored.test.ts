@@ -1,4 +1,4 @@
-// Checks the stored practice game against Stamp Duty (stored.ts) and the Function that keeps it
+// Checks the stored practice game against StampDuty (stored.ts) and the Function that keeps it
 // (functions/api/practice-games.ts), as Hedge School's stored.test.ts checks its own: on the schema of migrations/ in
 // Node's own SQLite, behind the part of D1's binding that the Function uses. Run: npm test.
 import { test } from "node:test";

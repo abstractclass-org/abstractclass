@@ -2,7 +2,7 @@
 // (vite.config.ts).
 export const SITE_NAME = "Cyanotype";
 /** The engine's name, as the site shows it: its practice bot and the engine that reviews games. */
-export const ENGINE_NAME = "Stamp Duty";
+export const ENGINE_NAME = "StampDuty";
 export const SITE_VERSION: string = typeof __SITE_VERSION__ === "string" ? __SITE_VERSION__ : "unknown";
 /** The engine files that the build ships (vite.config.ts): its CPU module and networks, by SHA-256. A release that
  *  changes one makes the removal of earlier results due (game/earlierResults.ts). */

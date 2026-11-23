@@ -1,4 +1,4 @@
-// The board's room on a page (design 33, "Practice against Stamp Duty", the layout): the hands in a panel over the
+// The board's room on a page (design 33, "Practice against StampDuty", the layout): the hands in a panel over the
 // board on a computer, and under the board in one column, and the panel's place and size as the player leaves them,
 // kept in this browser. Practice, the review and the Analysis board take the same panel.
 import { MediaQuery } from "svelte/reactivity";

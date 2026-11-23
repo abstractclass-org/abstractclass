@@ -19,7 +19,7 @@ entries before it).
 | Visit counts | PostHog (one project for all the sites, section 4) and Cloudflare Web Analytics, both with no cookies | Counted in the browser (`src/lib/analytics.svelte.ts`). Cyanotype uses the same two (section 9). |
 | Tests | GitHub Actions (`.github/workflows/tests.yml`) | On each push to `dev`: the check, the unit tests and the browser tests on Linux, and the layout test on Windows ("Deploy, check and roll back"). |
 | Documents | GitHub Actions (`.github/workflows/docs.yml`) | On each push to `dev`: refuses an added line over 120 characters in a Markdown file of the pushed range. |
-| Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews. Cyanotype has `cyanotype-games` and `cyanotype-games-preview` | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). Cyanotype's own Function keeps its games against Stamp Duty (section 9). |
+| Practice games | Cloudflare D1: `hedgeschool-games` for production, `hedgeschool-games-preview` for the previews. Cyanotype has `cyanotype-games` and `cyanotype-games-preview` | A Pages Function (`functions/api/practice-games.ts`) keeps each game against HedgeFund when it ends (design 25). Cyanotype's own Function keeps its games against StampDuty (section 9). |
 | The hub | `apps/hub/public`, deployed by the job `hub` of **Deploy** to the Pages project `abstractclass` | The organization's front page at `abstractclass.org`: static files, with no build, script or storage (section 8). |
 | Cyanotype | `apps/cyanotype`, deployed by the job `cyanotype` of **Deploy** to the Pages project `cyanotype` | Blueprints' site at `cyanotype.abstractclass.org`: prerendered pages, with its own Function for its practice games, and the same analytics as Hedge School's (section 9). |
 
@@ -483,7 +483,7 @@ practice games' storage, `CYANOTYPE_STORE_PRACTICE_GAMES` ("Cyanotype's practice
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`): Pages answers each path that the site does not
   have with it, and with status 404.
 - **Its two Functions,** on their paths only (`static/_routes.json`): `/api/practice-games` keeps the practice games
-  against Stamp Duty in Cyanotype's own D1 databases ("Cyanotype's practice games", below), and `/relay/` passes
+  against StampDuty in Cyanotype's own D1 databases ("Cyanotype's practice games", below), and `/relay/` passes
   PostHog's requests on to PostHog, as Hedge School's does (section 4). The job runs Wrangler in `apps/cyanotype`, so
   the deployment takes Cyanotype's `functions/` folder, not Hedge School's. The browser keeps the visitor's games,
   settings and choices (its Privacy page).
@@ -518,7 +518,7 @@ Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
      `node scripts/release-check.mjs https://cyanotype-ztp.pages.dev`. Make sure that the last line of each run says
      `release-check: PASS`.
    - Open `https://cyanotype.abstractclass.org/practice`. Make sure that it shows the button **Play as Blue**, and not
-     the message "Stamp Duty did not start. Load the page again." The script cannot do this check: it reads the
+     the message "StampDuty did not start. Load the page again." The script cannot do this check: it reads the
      site's files, but it does not run the page's code, which starts the engine.
    - In the project's **Deployments**, the first production deployment is under **Production**, not under
      **Preview**. The script cannot do this check: it reads the site's public addresses only, not Cloudflare's
@@ -552,8 +552,8 @@ build without them measures nothing. A malformed one stops the build, as in Hedg
 
 ### Cyanotype's practice games
 
-The games against Stamp Duty go to a D1 database when they end, as Hedge School's games against HedgeFund do (section 7
-and design 25, and [design 33](design/33-cyanotype.md), "Practice against Stamp Duty"). Production and the previews each
+The games against StampDuty go to a D1 database when they end, as Hedge School's games against HedgeFund do (section 7
+and design 25, and [design 33](design/33-cyanotype.md), "Practice against StampDuty"). Production and the previews each
 have their own, apart from Hedge School's: Blueprints' games never mix with Enclosure's. The schema is the file
 `apps/cyanotype/migrations/0001_practice_games.sql`: Hedge School's two tables, with the column `moves` in the place of
 `edges`. The Function (`apps/cyanotype/functions/api/practice-games.ts`) is Hedge School's
@@ -591,9 +591,9 @@ it, Cyanotype keeps each game in the player's games only, and asks for no consen
 6. **Check on the preview:** in `apps/cyanotype`, run `git fetch`, then
    `node scripts/release-check.mjs https://dev.cyanotype-ztp.pages.dev`. Make sure that the line of the Function says
    PASS (`/api/practice-games` answers 400 to a request that is not JSON). Then on
-   `https://dev.cyanotype-ztp.pages.dev/practice`, play a game against Stamp Duty. If the banner "Help Cyanotype get
+   `https://dev.cyanotype-ztp.pages.dev/practice`, play a game against StampDuty. If the banner "Help Cyanotype get
    better" shows, select **Accept** or **Decline**. Choose **Play as Red**, wait for
-   Stamp Duty's first move, then select **Resign** and confirm with **Resign**. In `cyanotype-games-preview`'s
+   StampDuty's first move, then select **Resign** and confirm with **Resign**. In `cyanotype-games-preview`'s
    **Console**, run `SELECT id, browser, outcome, moves, received FROM practice_games;`. The game is there, with the
    outcome `resigned`.
 

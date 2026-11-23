@@ -1,7 +1,7 @@
 <script lang="ts">
   // What the site keeps, and where (Hedge School's design 11), in Hedge School's words: what the browser keeps, the
   // games that come in an address, the visits and what PostHog receives (design 33, "Analytics"), and in a build that
-  // stores practice games, the games against Stamp Duty and the switch of the consent's one purpose, the games' link,
+  // stores practice games, the games against StampDuty and the switch of the consent's one purpose, the games' link,
   // with Hedge School's parts (@abstractclass/practice: StoredGamesNotice.svelte, GamesChoices.svelte). Its visit counts
   // set no cookies. Its Support Us opens Ko-fi's tip panel, so the page has Hedge School's part on Ko-fi
   // (@abstractclass/site/KofiPrivacy.svelte). The section on addresses follows Cyanotype's code: the tools' import

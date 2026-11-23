@@ -11,7 +11,7 @@ import { gpuCheck } from "./gpu-check.mjs";
 
 await gpuCheck({
   name: "Cyanotype", variable: "CYANOTYPE_BASE_URL", base: CYANOTYPE, engineKey: ENGINE_KEY, lite: LITE,
-  liveTurns: LIVE_TURNS, record: testRecord, paste: pasteRecord, bot: "Stamp Duty",
+  liveTurns: LIVE_TURNS, record: testRecord, paste: pasteRecord, bot: "StampDuty",
   /** On the GPU (abscls-8tl1.64-gpu2, GPU On): the review of 3 turns took 34 s, the board 12 s, and the bot's first
    *  turn 1.4 s. Auto's test needs about 20 s of the GPU after its files load. Off the GPU (--cpu, 2 threads): the
    *  review took 113 to 151 s, the board 62 to 67 s, and the bot's first turn 4.9 to 6.6 s. */

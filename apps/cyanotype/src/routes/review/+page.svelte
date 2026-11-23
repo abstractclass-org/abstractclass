@@ -1,6 +1,6 @@
 <script lang="ts">
   // The review page (Hedge School's designs 05 and 06, design 33): one game of Blueprints analysed in the browser by
-  // Stamp Duty (@abstractclass/analysis), in the review's view with Blueprints' parts (blueprintsView.ts).
+  // StampDuty (@abstractclass/analysis), in the review's view with Blueprints' parts (blueprintsView.ts).
   // `#game=ID` opens a game kept in this browser (game/store.ts), as on Hedge School. Without it, the page is the Review
   // tab (ReviewHome.svelte): a pasted record, the last review a click away, and the player's games. One tab reviews a
   // game at a time (@abstractclass/analysis/reviewLock.ts). A shared review after the `#` (`#packed=`, game/share.ts)
@@ -364,7 +364,7 @@
 
 <svelte:head>{@html `<script>${REVIEW_PAGE_SCRIPT}</script>`}</svelte:head>
 <PageMeta title="{kept ? 'Game review' : 'Review a game'} · {SITE_NAME}" noindex={!!kept}
-          description="Review your Blueprints game: Stamp Duty, the engine in your browser, judges each move, and shows where the game turned and what was better." />
+          description="Review your Blueprints game: StampDuty, the engine in your browser, judges each move, and shows where the game turned and what was better." />
 
 {#if packed !== null}
   <SharedArrival {packed} class={MESSAGE} />

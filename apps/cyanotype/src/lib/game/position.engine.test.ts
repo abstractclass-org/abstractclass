@@ -1,5 +1,5 @@
-// Checks a position's notation (position.ts) against the engine's rules: each position of Stamp Duty's own games (the
-// lab's games, board/fixtures.json, and the review's test game, review/fixtures/stamp-duty.txt, Stamp Duty against
+// Checks a position's notation (position.ts) against the engine's rules: each position of StampDuty's own games (the
+// lab's games, board/fixtures.json, and the review's test game, review/fixtures/stampduty.txt, StampDuty against
 // itself), written in the notation and given to the engine in its own form (enginePosition), is the same position: the
 // same cells, hands, scores, moves played and mover, and every legal move the same. A game goes on from a set-up start
 // as from its moves. The Notation page's example position is the engine's, and the engine refuses a hand that the rules
@@ -17,7 +17,7 @@ import { enginePosition, readPosition, STANDARD_START, writePosition } from "./p
 
 const app = join(import.meta.dirname, "..", "..", "..");
 const skip = hasEngine(app) ? false : "no engine in static/engine (npm run engine)";
-const game = parseRecord(readFileSync(join(import.meta.dirname, "..", "review", "fixtures", "stamp-duty.txt"), "utf8")).moves;
+const game = parseRecord(readFileSync(join(import.meta.dirname, "..", "review", "fixtures", "stampduty.txt"), "utf8")).moves;
 
 /** The engine's call, with an error reply thrown, as the worker answers (channel.ts). */
 async function engine() {
@@ -34,7 +34,7 @@ async function engine() {
 const rulesOf = (d: DescribeReply) =>
   ({ notation: writePosition(sitePosition(d)), mover: d.mover, movesLeft: d.movesLeft, legal: d.legal });
 
-test("each position of Stamp Duty's games is the same position from its notation", { skip }, async () => {
+test("each position of StampDuty's games is the same position from its notation", { skip }, async () => {
   const call = await engine();
   const lines = [...FIXTURE_DATA.fixtures.map(f => f.moves), ...Array.from({ length: game.length + 1 }, (_, i) => game.slice(0, i))];
   let checked = 0;

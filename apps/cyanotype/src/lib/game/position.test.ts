@@ -1,5 +1,5 @@
 // Checks a position's notation (position.ts): written and read back for the standard start and the lab's positions,
-// which are Stamp Duty's own games (board/fixtures.json, from the engine), its one spelling, the edge cases of its form,
+// which are StampDuty's own games (board/fixtures.json, from the engine), its one spelling, the edge cases of its form,
 // a cut position, the turn of a record's first move after a start, and the engine's one-line form. Run: npm test. The engine's own
 // check of the notation is position.engine.test.ts.
 import { test } from "node:test";
@@ -13,7 +13,7 @@ test("the standard start is the lab's first position, as the engine describes it
   assert.equal(writePosition(readPosition(STANDARD_START)), STANDARD_START);
 });
 
-test("each position of Stamp Duty's games comes back the same from its notation", () => {
+test("each position of StampDuty's games comes back the same from its notation", () => {
   for (const f of FIXTURE_DATA.fixtures) {
     const text = writePosition(f.position), back = readPosition(text);
     assert.equal(writePosition(back), text, f.name);

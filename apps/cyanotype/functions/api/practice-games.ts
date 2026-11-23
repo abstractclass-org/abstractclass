@@ -1,4 +1,4 @@
-// Practice games against Stamp Duty, stored when they end (docs/design/33-cyanotype.md, "Practice against Stamp Duty";
+// Practice games against StampDuty, stored when they end (docs/design/33-cyanotype.md, "Practice against StampDuty";
 // Hedge School's design 25): POST keeps a game, DELETE removes the games of a browser's random number. A Pages Function
 // on Cyanotype's own Cloudflare project, with a D1 database bound as GAMES: the production deployment's own, and the
 // previews' own (docs/hosting.md, "Cyanotype's practice games"). The schema is in migrations/. The handlers are the

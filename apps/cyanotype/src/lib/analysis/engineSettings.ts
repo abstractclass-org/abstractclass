@@ -19,7 +19,7 @@ const MODELS = (lock.artifacts as Locked[]).filter(a => a.kind === "model"); // 
 
 /** The networks that the site ships (engine.lock.json), the default first: the engine's settings and Practice's card
  *  offer them. Each by its release's name (its manifest's `displayName`), which is the network's own id until a release
- *  gives it a number of Stamp Duty, and with its download in bytes. */
+ *  gives it a number of StampDuty, and with its download in bytes. */
 export const NETWORKS = MODELS.map(a => ({ id: a.id, name: a.displayName ?? a.id, bytes: a.bytes }));
 /** Whether the settings offer the network `id`. */
 export const offersNetwork = (id: string | undefined): boolean => NETWORKS.some(n => n.id === id);

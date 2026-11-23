@@ -1,4 +1,4 @@
-// A practice game (docs/design/33-cyanotype.md, "Practice against Stamp Duty"): the player against Stamp Duty's
+// A practice game (docs/design/33-cyanotype.md, "Practice against StampDuty"): the player against StampDuty's
 // practice bot, as Hedge School's Practice plays one (its src/lib/practice/game.svelte.ts). The positions, what each
 // move did and the player's legal moves come from the engine's rules worker (describe, describe_game): the board draws
 // what the engine says, and the site has no rules. Each move goes to the bot too, so that the two play the same game,
@@ -41,7 +41,7 @@ function playedOf(name: string, before: GamePosition, after: GamePosition): Play
            move: boardMove(step, before.blueprints, "after") };
 }
 
-/** A game of Blueprints against Stamp Duty: the practice's flow (@abstractclass/practice/game.svelte.ts) with the
+/** A game of Blueprints against StampDuty: the practice's flow (@abstractclass/practice/game.svelte.ts) with the
  *  engine's positions and moves, each of the bot's moves checked against the rules' legal moves. The player's legal
  *  moves (`rules`) are on the latest position where the player moved last: they stay through the bot's turn, so that
  *  the board's view, which fits their anchor hexes, does not change at each turn. */

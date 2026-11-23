@@ -115,12 +115,12 @@ test("the komi: any whole number from -3,000 to 3,000 on the card, from the play
   assert.deepEqual([komiSide(300, 1), komiSide(300, 0), komiSide(-300, 0), komiSide(0, 0)], [300, -300, 300, 0]);
   assert.equal(Object.is(komiSide(0, 0), -0), false);
   assert.equal(komiHelp(300), "You start 300 points ahead.");
-  assert.equal(komiHelp(-1500, "Stamp Duty"), "Stamp Duty starts 1,500 points ahead.");
+  assert.equal(komiHelp(-1500, "StampDuty"), "StampDuty starts 1,500 points ahead.");
   assert.equal(komiHelp(1), "You start 1 point ahead.");
   assert.equal(komiHelp(0), "Neither side starts ahead, as in a game online.");
   // A game's line: Red's komi -300 is Blue's head start, the player's when Blue, the bot's when Red; none at 0
-  assert.equal(komiLine({ komi: -300, human: 0 }, "Stamp Duty"), "You start 300 points ahead.");
-  assert.equal(komiLine({ komi: -300, human: 1 }, "Stamp Duty"), "Stamp Duty starts 300 points ahead.");
+  assert.equal(komiLine({ komi: -300, human: 0 }, "StampDuty"), "You start 300 points ahead.");
+  assert.equal(komiLine({ komi: -300, human: 1 }, "StampDuty"), "StampDuty starts 300 points ahead.");
   assert.equal(komiLine({ human: 1 }), "");
 });
 

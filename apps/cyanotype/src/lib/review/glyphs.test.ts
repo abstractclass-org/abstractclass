@@ -8,7 +8,7 @@ import { asPlayed, glyphOf, playedText, shortNote, turnShortNote, type GlyphPart
 import { NAME_LEAST } from "./table.ts";
 
 // The display setting `notation`: a move in its text (playedText) and in its glyphs (glyphOf, which MoveLabel.svelte
-// draws), from moves of the review's test game (fixtures/stamp-duty.txt, turns 1 to 4). And the candidates' table's
+// draws), from moves of the review's test game (fixtures/stampduty.txt, turns 1 to 4). And the candidates' table's
 // least size (table.ts).
 
 const EMPTY: Hand = [{}, {}, {}];

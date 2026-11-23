@@ -314,10 +314,10 @@ test.describe("Cyanotype", () => {
     const stored = readStored(), gone = GONE;
     await putResults(page, stored.analyses);
     await fileInput(page).setInputFiles(analysisFile("cyanotype-analysis", boardOfLine(parseCyanotypeRecord(testRecord()).moves),
-      asModel(stored.analyses, gone), { network: "b0c0-s0-d0", networkName: "Stamp Duty 0.0", model: gone, search: stored.search }));
+      asModel(stored.analyses, gone), { network: "b0c0-s0-d0", networkName: "StampDuty 0.0", model: gone, search: stored.search }));
     const dialog = page.getByRole("dialog", { name: "The file's network is not available" });
     await expect(dialog).toBeVisible({ timeout: 60_000 });
-    await expect(dialog).toContainText("The results in this analysis file are from Stamp Duty 0.0, a network that Cyanotype " +
+    await expect(dialog).toContainText("The results in this analysis file are from StampDuty 0.0, a network that Cyanotype " +
       "does not have now. The board cannot show these results. Choose a network to search the file's positions again, or " +
       "cancel to keep your board.");
     await expect(dialog.getByRole("button", { name: `Use ${cyanotypeName(stored.network)}` })).toBeVisible();

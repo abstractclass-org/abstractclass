@@ -306,7 +306,7 @@ function crowdedResult(k: number): { key: string; stored: StoredResult; crowded:
 
 test("many candidates on one blueprint: the rank chips fit the hand's panel, with +N", async () => {
   // A position whose candidates place one blueprint more often than its panel shows. With the release engine-3ac5c2fc
-  // (Stamp Duty 0.1), the review showed 4 candidates on blueprint 2 after move 8. With engine-91ab0b7d (Stamp Duty
+  // (StampDuty 0.1), the review showed 4 candidates on blueprint 2 after move 8. With engine-91ab0b7d (StampDuty
   // 0.2), it shows at most 2 on one blueprint in turns 1 to 20, so the test makes such a position from the stored
   // result after move 8 (crowdedResult), and puts the stored result back after it. 4 chips fit a panel at 390 pixels,
   // and 3 at 320 pixels, WCAG 2.1's reflow width (success criterion 1.4.10). This test checks the chips only: the
@@ -446,7 +446,7 @@ test("the Analysis board opens a kept board at its komi, and not one beyond the 
 });
 
 test("a review kept with an earlier release of the same search opens with no search", async () => {
-  // The stored results' keys name the search (cache.ts, analysisKey), not the release: Stamp Duty 0.2's results of
+  // The stored results' keys name the search (cache.ts, analysisKey), not the release: StampDuty 0.2's results of
   // engine-91ab0b7d serve engine-887be290, whose module reports the same search.
   const manifest: Manifest = await page.request.get(new URL("/engine/manifest.json", CYANOTYPE).href).then(r => r.json());
   const module = moduleOf(manifest)!, stored = readStored();

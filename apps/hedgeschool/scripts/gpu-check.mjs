@@ -73,7 +73,7 @@ const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  *    board's address at the record's end (by default, the record alone: Cyanotype's board opens a record at its end).
  *    `reviewWorkers`: the CPU workers of On's review, where the site's default workers take its turns with no backlog
  *    (by default, the site's default workers).
- *  - `bot`: the practice bot's name, which starts its line ("Stamp Duty 0.1, ..., on the GPU.").
+ *  - `bot`: the practice bot's name, which starts its line ("StampDuty 0.1, ..., on the GPU.").
  *  - `waits`: by `cpu` and by `gpu`, the longest wait of each step in ms: `autoTest`, `review`, `board` and
  *    `practice`, and those of the site's own parts. `budget`: by `cpu` and by `gpu`, the whole run's limit in minutes.
  *  - `parts`: the site's own parts, each `{ name, settings, run }`, after the board's: `settings` names the GPU

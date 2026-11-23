@@ -14,7 +14,7 @@ import { parseMove } from "./notation.ts";
 import { parseRecord } from "./record.ts";
 
 // A game of the archive: 120 moves of placements, edits and their capture marks.
-const GAME = parseRecord(readFileSync(new URL("../review/fixtures/stamp-duty.txt", import.meta.url), "utf8"));
+const GAME = parseRecord(readFileSync(new URL("../review/fixtures/stampduty.txt", import.meta.url), "utf8"));
 const base = (moves: string[], branches: KeptNode[] = []): SharedReview =>
   ({ module: "0123abcd", model: "89ef4567", visits: 512, tags: { Blue: "Ann", Red: "Ben O'Hara", Result: "b+12" }, moves, branches });
 

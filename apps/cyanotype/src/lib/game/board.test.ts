@@ -10,7 +10,7 @@ import { boardLink, boardOfRecord, keptKomiProblem, readBoardLink } from "./boar
 import { STANDARD_START, writePosition } from "./position.ts";
 import { parseRecord } from "./record.ts";
 
-// A set-up start: the lab's middle game, a position of Stamp Duty's own game (board/fixtures.json).
+// A set-up start: the lab's middle game, a position of StampDuty's own game (board/fixtures.json).
 const MIDDLE = writePosition(FIXTURE_DATA.fixtures.find(f => f.name === "A middle game")!.position);
 
 // The main line 2@-6,-2 1@0,0 1:0,0>3:1,-1, evaluated at its second move, and a variation 3@1,1 from the first move.

@@ -8,13 +8,13 @@ The review's view is in a package, on Hedge School's board and on Blueprints' (d
 strategyjam.org and the import page are built: the page opens the game that a tool sends in the review or on the
 Analysis board. For the review, it keeps the game first, as Hedge School's does ("How a game comes in from
 strategyjam.org"). Their test on strategyjam.org waits for the owner (abscls-8tl1.12). The site fetches Blueprints'
-release `engine-887be290` (Stamp Duty 0.2, protocol 0.8.0), as Hedge School fetches its own ("The engine's files"). It
+release `engine-887be290` (StampDuty 0.2, protocol 0.8.0), as Hedge School fetches its own ("The engine's files"). It
 has the GPU module and the practice bot's three forms, so the engine runs on the visitor's GPU as Hedge School's does.
-Practice against Stamp Duty (`/practice`) is built ("Practice against Stamp Duty"). The review and the Analysis board
+Practice against StampDuty (`/practice`) is built ("Practice against StampDuty"). The review and the Analysis board
 are built (abscls-8tl1.7, "The review and the Analysis board"), with no area map yet. A position's notation, the board
 editor and starts from a set-up position are built (abscls-8tl1.39, "Decision", item 10, and "The board editor"), with
 the engine's check that a game can reach a position (abscls-8tl1.59). The Analysis board's "Play the bot from here"
-and Practice from a set-up start are built (abscls-8tl1.40, "Practice against Stamp Duty", "From a position"). The
+and Practice from a set-up start are built (abscls-8tl1.40, "Practice against StampDuty", "From a position"). The
 early access is built, as Hedge School's ("Decision", item 11). The player's games, kept in this browser, are built as
 Hedge School's (abscls-8tl1.38, "The player's games"), with their review files (abscls-8tl1.34, "The review files"), the
 review snapshot and the annotated record from the store (abscls-8tl1.35). Partner sites are built, with no partner
@@ -57,12 +57,12 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
 
 ## Decision
 
-1. **The names.** The site is **Cyanotype**, in `apps/cyanotype`. Its address is to be `cyanotype.abstractclass.org`,
-   as Hedge School's is `hedgeschool.abstractclass.org`. The address, the Pages project and the DNS name are a step
-   for the owner of the account (abscls-8tl1.3). The engine and its practice bot are **Stamp Duty**, as Hedge
-   School's are HedgeFund. A cyanotype is the printing process that made blueprints: white lines on Prussian blue.
-   The name belongs to Blueprints alone, and a more general name could fit many other games. Stamp duty is a tax on
-   property, and a stamp is the game's main move.
+1. **The names.** The site is **Cyanotype**, in `apps/cyanotype`. Its address is to be `cyanotype.abstractclass.org`, as
+   Hedge School's is `hedgeschool.abstractclass.org`. The address, the Pages project and the DNS name are a step for the
+   owner of the account (abscls-8tl1.3). The engine and its practice bot are **StampDuty**, one word, as Hedge School's
+   are HedgeFund (the owner's choice on 2026-11-23, abscls-ujdk: until then it was Stamp Duty). A cyanotype is the
+   printing process that made blueprints: white lines on Prussian blue. The name belongs to Blueprints alone, and a more
+   general name could fit many other games. Stamp duty is a tax on property, and a stamp is the game's main move.
 2. **Hedge School's design, with Blueprints' parts.** Cyanotype has Hedge School's pages, layout, review, Analysis
    board, import and settings, as Hedge School's design documents give them. Only the game's own parts change: the
    board, the player's own moves, the notation and the record, the players' cards (the scores and the stars), the
@@ -77,7 +77,7 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
    3. **With the engine's browser build** (request 23): the review, the Analysis board, the import of a
       strategyjam.org game into them, and the player's own moves. The tools for strategyjam.org need no engine, and
       the import page needs its rules alone.
-   4. **Later:** practice against Stamp Duty, lessons, puzzles and an opening book. The meaf.us tools stay Hedge
+   4. **Later:** practice against StampDuty, lessons, puzzles and an opening book. The meaf.us tools stay Hedge
       School's: meaf.us plays Enclosure only.
 4. **Move, do not copy.** A part that both sites use goes into `packages/`, as design 29 moved the engine, the storage
    and the analysis. This holds for the site's frame too (its header, its footer, its page metadata). A move keeps
@@ -195,14 +195,14 @@ The game, as the engine repository's `games/blueprints/README.md` gives it:
       notation's text, the stored results' keys name it, and only the engine's queries take the engine's form.
     - **So the engine searches a start from its notation with another view** than the same position reached by its
       moves: the network sees the board round the middle of the cells, not round the last placements. The rules are
-      the same, and the candidates are not. The measurement is of `engine-3ac5c2fc` (Stamp Duty 0.1, the network
+      the same, and the candidates are not. The measurement is of `engine-3ac5c2fc` (StampDuty 0.1, the network
       `b6c96-s40806528-d2304635`), on the CPU at 400 visits, and was not made again at `engine-91ab0b7d`. On 9
-      positions of Stamp Duty's games (the lab's four games with moves, and the review's test game after 9, 20, 40, 77
+      positions of StampDuty's games (the lab's four games with moves, and the review's test game after 9, 20, 40, 77
       and 100 moves), the best move was the same in 2. The two top fives shared 0 to 3 moves, and the
       root's Blue win differed by 0 to 8.3 points (the median 0.9). The same position searched twice from its moves
       gave the same best move and top five each time. The stored results keep the two apart: their keys name the start's
       notation, or the moves from the standard start. A line played from a set-up start gets its placements' boxes
-      from its own moves. Request 28 measured it again with Stamp Duty 0.2 at 400 visits, on 10 positions (the engine
+      from its own moves. Request 28 measured it again with StampDuty 0.2 at 400 visits, on 10 positions (the engine
       repository's games/blueprints/README.md, "A set-up start's view"): the moves gave the game's best move at 10,
       the engine's one-line form at 4 and the site's form at 4. No start without its moves can search as its game,
       because the search reads each player's last placements. So a game's position goes to the engine as its moves,
@@ -352,7 +352,7 @@ list, with its tests), `blueprintInput.svelte.ts` (the `MoveInput` that the boar
 `Board.svelte` and `Hand.svelte` (the dots, the footprint, the chosen blueprint and cell, and the clicks).
 
 **The lab's positions come from the engine.** Each position of the lab page is a game of moves from the standard
-start, which Stamp Duty's early build (`engine-0d2a5416`) played. The script
+start, which StampDuty's early build (`engine-0d2a5416`) played. The script
 `apps/cyanotype/scripts/board-fixtures.mjs` (`npm run fixtures`) runs the site's build in Node, and stores what the
 engine gives in `src/lib/board/fixtures.json`: each position, its mover, every legal move (describe), and what each
 move did (describe_game: the footprint, the captured cells, the points and the hands after it). The candidates and
@@ -382,7 +382,7 @@ Cyanotype takes the engine's files as Hedge School does (design 03): `apps/cyano
 file by its SHA-256, and `npm run engine` (`apps/cyanotype/scripts/engine.mjs`) puts them in `static/engine/` with
 their manifest. The page loads them from there.
 
-1. **The release:** `engine-887be290` (Stamp Duty 0.2), in the public repository
+1. **The release:** `engine-887be290` (StampDuty 0.2), in the public repository
    [abstractclass-org/blueprints-engine](https://github.com/abstractclass-org/blueprints-engine), with its manifest.
    Its files: the module (`blueprints-engine.wasm`, build `887be290`, protocol 0.8.0 with the position check of
    request 28, and the search `91ab0b7d` of request 24's root's views), the GPU module (`blueprints-engine-gpu.wasm`,
@@ -390,7 +390,7 @@ their manifest. The page loads them from there.
    search thread (`blueprints-bot.wasm`, interface 0.1.3, with `practice_bot.mjs`, request 25), the threaded practice
    bot (`blueprints-bot-batched.wasm`, interface 0.1.3) with its CPU evaluator (`blueprints-eval.wasm`,
    `cpu_evaluator.mjs` and `cpu_eval_worker.mjs`), `NOTICES.txt`, `LICENSE.txt` and bpj5's network
-   `b6c96-s47076224-d3087660`, whose name in the release is Stamp Duty 0.2. Interface 0.1.3 adds
+   `b6c96-s47076224-d3087660`, whose name in the release is StampDuty 0.2. Interface 0.1.3 adds
    `blueprints-set-position`, the bot from a set-up start, which Practice takes. Each entry of the lock takes its
    file from a release (a source of kind `release`), with the SHA-256 and the size of the release's manifest. The
    four files that the release changed (the two modules and the two bots) come from `engine-887be290`. The other
@@ -406,7 +406,7 @@ their manifest. The page loads them from there.
    it. The engine repository's record of the release: its
    [games/blueprints/docs/decisions/port.md](https://github.com/abstractclass-org/engines/blob/main/games/blueprints/docs/decisions/port.md),
    entries of 2026-11-07 (`engine-91ab0b7d`) and 2026-11-09 (`engine-887be290`). Blueprints' earlier releases,
-   `engine-3ac5c2fc` (Stamp Duty 0.1, without the GPU module and the threaded bot) and `engine-91ab0b7d` (protocol
+   `engine-3ac5c2fc` (StampDuty 0.1, without the GPU module and the threaded bot) and `engine-91ab0b7d` (protocol
    0.7.1, without the position check), stay in `abstractclass-org/blueprints-engine`. The stored results of
    `engine-91ab0b7d` stay valid: their keys name the search, which is the same, and the network
    (`packages/analysis/src/cache.ts`). The lock lists `engine-91ab0b7d`'s CPU module among the earlier modules of
@@ -434,8 +434,8 @@ their manifest. The page loads them from there.
    (Auto, On and Off, Auto by default, `src/lib/analysis/engineSettings.ts`). The shared engine session starts the GPU
    worker for the review and the Analysis board, with Auto's first-use test (`packages/analysis/src/gpu.svelte.ts`).
    Practice starts the bot in the first form that the browser runs: the threaded bot with its network on the GPU or on
-   the CPU workers, else the bot with one search thread (`packages/practice/src/botForms.ts`, "Practice against Stamp
-   Duty"). A setting kept before the GPU came does not hold: the settings' key is `cyanotype:engine:2`, since
+   the CPU workers, else the bot with one search thread (`packages/practice/src/botForms.ts`, "Practice against
+   StampDuty"). A setting kept before the GPU came does not hold: the settings' key is `cyanotype:engine:2`, since
    version 1 kept the Off that the site set.
    - **The networks' sizes:** both evaluators, the GPU's and the CPU workers', run a network of the size that they are
      given, Enclosure's by default. Blueprints' network has a board of 67 and 6 policy channels, which the release's
@@ -458,9 +458,9 @@ their manifest. The page loads them from there.
    and Cloudflare Pages refuses the upload. The step `cyanotype-build-sizes` of `npm run check:all` fails on a file of
    the build over 25 MiB.
 
-## Practice against Stamp Duty
+## Practice against StampDuty
 
-A game against Stamp Duty in the browser, as Hedge School's Practice (design 24, design 25): the settings card, then
+A game against StampDuty in the browser, as Hedge School's Practice (design 24, design 25): the settings card, then
 the game in the review's layout. The bot is the engine repository's practice bot for Blueprints (abscls-1if9), in
 Hedge School's form where Blueprints allows: KataGo's GTP engine with its play settings, not the analysis module's
 `chooseMove`, for the reasons of request 15 (the analysis settings, and a new tree for each query).
@@ -514,7 +514,7 @@ analytics, as Hedge School's Practice does: the layout does not start them while
 **Below 16 visits,** Practice plays the threaded bot, as Hedge School's Practice does at every setting (design 24,
 item 14). KataGo's play settings give each search thread at least 8 of a move's new playouts, so a move below 16
 visits searches with one thread. A check on the CPU confirmed it for Blueprints (`scripts/practice-forms.mjs`, and the
-decision log's entry "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"). At 1, 4 and 8 visits, the
+decision log's entry "Cyanotype on StampDuty 0.2, with the GPU and the threaded bot"). At 1, 4 and 8 visits, the
 threaded bot with 4 or 16 search threads evaluated as many of the network's rows as with one thread. Its threads
 changed the chosen move at a few positions (1 or 2 of 43 at 4 and 8 visits), not how far it searched. That is the
 usual effect of a search on several threads, and Hedge School's bot has it too. A level is its visits, and those hold,
@@ -523,7 +523,7 @@ so Cyanotype has no rule for the visits below 16.
 **The game:** the engine's rules worker gives each position, what each move did and the player's legal moves
 (describe, describe_game), as on Hedge School's Practice. The page checks each of the bot's moves against the rules'
 legal moves, and stops the game with an error when one is not legal. An error of the engine stops the game too. The
-status line gives Hedge School's words for why the game stopped, with Stamp Duty's name (Hedge School's design 24,
+status line gives Hedge School's words for why the game stopped, with StampDuty's name (Hedge School's design 24,
 item 14), and the error's message goes into the error report only. A bot's move that is not legal stops the game
 as the bot's refusal does. The final score is the rules' score of the
 game's last position (`scores`, and the margin of `outcome`). At a komi, each player's points include their starting
@@ -532,18 +532,18 @@ This browser keeps the game in progress (`cyanotype:practice-game:1`), the choic
 the panel's place and size (`cyanotype:practice-panel:1`) and the points bar's settings
 (`cyanotype:practice-display:1`, with the values of Hedge School's).
 
-**The komi** (design 24): the card's fourth setting, from the shared card, with Hedge School's range and step. Stamp
-Duty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the size
-of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does, and the game's
-id in this browser covers the komi, from a record and from a shared review. A record's komi beyond 90,980 points either
-way, Blueprints' engine's cap, is an error in the record (design 24, item 15), and so is a link's or an analysis file's.
-Past the cap, a practice module refuses the komi. The analysis module searches with no error, but its numbers mean
-nothing: at komi 100,000 every candidate gives Blue 0.0%, and the lead is about 2.4 times the komi. The Analysis board
-analyzes at a board's komi, as Hedge School's does: a record with a `Komi` tag, a link and an analysis file open the
-board at their komi, and its link, its file and its annotated record keep it. Its page builds the board's analysis after
-it chooses the board, with that board's komi, and the Import puts its record in the page's address, so a komi needs no
-step of its own. A komi beyond the cap is an error: a link's in the words of a record's `Komi` tag, which the link
-carries, and an analysis file's in the file's words. A board kept here beyond the cap (kept from a link before the
+**The komi** (design 24): the card's fourth setting, from the shared card, with Hedge School's range and step.
+StampDuty's run trains komi in every self-play game, out to ±3,000 points, and people's margins in Blueprints are of the
+size of Enclosure's (design 24, "Why"). The review searches at a record's `Komi` tag, as Hedge School's does, and the
+game's id in this browser covers the komi, from a record and from a shared review. A record's komi beyond 90,980 points
+either way, Blueprints' engine's cap, is an error in the record (design 24, item 15), and so is a link's or an analysis
+file's. Past the cap, a practice module refuses the komi. The analysis module searches with no error, but its numbers
+mean nothing: at komi 100,000 every candidate gives Blue 0.0%, and the lead is about 2.4 times the komi. The Analysis
+board analyzes at a board's komi, as Hedge School's does: a record with a `Komi` tag, a link and an analysis file open
+the board at their komi, and its link, its file and its annotated record keep it. Its page builds the board's analysis
+after it chooses the board, with that board's komi, and the Import puts its record in the page's address, so a komi
+needs no step of its own. A komi beyond the cap is an error: a link's in the words of a record's `Komi` tag, which the
+link carries, and an analysis file's in the file's words. A board kept here beyond the cap (kept from a link before the
 link's check) does not open: a new board opens, with a notice (`keptKomiProblem`, `packages/analysis/src/kept.ts`, with
 the cap). A position's notation has no komi. A practice game's record has the game's `Komi` tag, Red's komi as the
 engine takes it, and no tag at komi 0.
@@ -716,19 +716,19 @@ Cyanotype has Hedge School's bookmarklet and userscript for strategyjam.org (des
    pixels (design 22).
 
 The tools have not run on strategyjam.org itself: they run in the player's own logged-in page, and that test waits for
-the owner (abscls-8tl1.12). The tests use page states that they make, with moves that Stamp Duty's early build played
+the owner (abscls-8tl1.12). The tests use page states that they make, with moves that StampDuty's early build played
 (`fixtures.json`), and the built tools ran on mock pages of both layouts in Chromium.
 
 ## The review and the Analysis board
 
 Cyanotype's review (`/review`) and Analysis board (`/analysis`) are Hedge School's (designs 05, 06, 07 and 10), in
 the shared view (design 29, item 9) with Blueprints' part (`src/lib/review/blueprintsView.ts`), on the practice page's
-layout. The engine is Stamp Duty's release, with the GPU worker as on Hedge School's review ("The engine's files",
-item 4). Each part below was chosen from drawings of the real page, from the engine's replies (Stamp Duty's early
+layout. The engine is StampDuty's release, with the GPU worker as on Hedge School's review ("The engine's files",
+item 4). Each part below was chosen from drawings of the real page, from the engine's replies (StampDuty's early
 build). The decision log gives the measurements that led to each choice.
 
-1. **The layout:** the practice page's board, with its hands' panel and its kept place ("Practice against Stamp
-   Duty"), and the review's side columns, as Hedge School's. The board's box takes the window's height less the
+1. **The layout:** the practice page's board, with its hands' panel and its kept place ("Practice against StampDuty"),
+   and the review's side columns, as Hedge School's. The board's box takes the window's height less the
    players' row and the charts. On a phone, the hands go under the board.
 2. **The players' cards:** each player's points, and the stars on the board. The chart's second line is the stars'
    difference.
@@ -792,7 +792,7 @@ build). The decision log gives the measurements that led to each choice.
     the engine searches each view, so a candidate can lie outside the rule's view. The board draws a candidate
     anywhere, and the site reads every candidate placement as a placement, with its anchor. A test checks it on a
     position of two views, where a candidate placement of the engine lies outside the rule's view
-    (`src/lib/review/rootViews.engine.test.ts`: Stamp Duty 0.2's third candidate, after two edits).
+    (`src/lib/review/rootViews.engine.test.ts`: StampDuty 0.2's third candidate, after two edits).
 11. **A record's check:** the engine plays each move of a record and confirms each capture mark (item 6), on the
     review and on the Analysis board alike. The review then shows why it cannot review the game. The Analysis board
     keeps the board that this browser kept, and a notice says why it did not open the record. A record that the engine
@@ -831,7 +831,7 @@ build). The decision log gives the measurements that led to each choice.
       little differently, so that on a GPU a close call can rarely give another result.
     - **Blueprints' moves in a link** (the shared format, `packages/analysis/src/share.ts`): a move's kind in 2 bits
       (a placement, an edit or a pass), then each blueprint's number in 2 bits and each coordinate as a signed Elias
-      gamma (1 bit for 0, 3 bits for -1 and 1). The review's test game (`src/lib/review/fixtures/stamp-duty.txt`, 106
+      gamma (1 bit for 0, 3 bits for -1 and 1). The review's test game (`src/lib/review/fixtures/stampduty.txt`, 106
       placements and 14 edits) takes 19.5 bits a move, as an Enclosure edge takes 18. With its 10 tags (184 bytes),
       its link has 706 characters, within a Discord message's 2,000. The test (`src/lib/game/share.test.ts`) also
       sends every legal move of each of the game's positions through a link, from the engine's rules (125,322
@@ -847,7 +847,7 @@ build). The decision log gives the measurements that led to each choice.
     in them. The rules' numbers there come from the shared analysis's code (`cache.ts`, `settings.ts`, `labels.ts`).
     Only the constants of Lichess's accuracy formula are typed, because `model.ts` does not export them. Hedge
     School's page reads as before. Cyanotype's page says what differs for Blueprints:
-    - **Its engine,** Stamp Duty, and "move" where Hedge School says "edge", "opponent" where it says "enemy".
+    - **Its engine,** StampDuty, and "move" where Hedge School says "edge", "opponent" where it says "enemy".
     - **The turns:** Blue's first turn has one move, and each later turn two. The review judges whole turns by
       default, as Hedge School's.
     - **Two moves that give one position** are one move (item 9 of "Decision"): Best for either, one row of the
@@ -1102,7 +1102,7 @@ settings of its design 09 and the marks of its design 13), in the code that both
    …"). The list keeps the record with a capture mark on every move that captures, as Hedge School's adds its cut
    marks. The review checks the game again when it opens, as Hedge School's does. A record after the review's `#`
    (`/review#record=…`) gets the Review tab, as on Hedge School (its design 22): only the import page takes one.
-3. **The komi:** the review takes a record with a `Komi` tag, and searches at it ("Practice against Stamp Duty",
+3. **The komi:** the review takes a record with a `Komi` tag, and searches at it ("Practice against StampDuty",
    "The komi"). A game's id covers its komi, so the same moves at another komi are another game. The Analysis board
    takes a komi too.
 4. **A game's id** is the id that the review used before the list: FNV-1a of the komi and the moves
@@ -1141,7 +1141,7 @@ settings of its design 09 and the marks of its design 13), in the code that both
     the files removes nothing, as `engine-887be290` kept the results of `engine-91ab0b7d`. A release that adds a
     network beside them removes nothing either. Hedge School's lock keeps its earlier networks (its design 09), but
     Cyanotype's ships one, and keeping the earlier ones waits for abscls-8tl1.54 ("The networks" in the gaps below).
-    Until then, a release whose lock replaces Stamp Duty 0.2 removes every result of Stamp Duty 0.2 at the next
+    Until then, a release whose lock replaces StampDuty 0.2 removes every result of StampDuty 0.2 at the next
     start: no review snapshot opens without its network.
     A release that changes the CPU module or a network makes the removal due. The site's next start then waits until
     the page is idle. Then it removes the results of another search, and of a network file that the lock no longer
@@ -1202,7 +1202,7 @@ labels are the ones that these show.
 2. **The annotated record:** the review's Export menu and the Export beside each game in the Review tab have "Copy the
    annotated record" and "Annotated record as a file", after the review file. The record is the Analysis board's
    (item 12 of "The review and the Analysis board"), with the game's tags, result and clocks, and the note "Reviewed by
-   Cyanotype with Stamp Duty 0.2 (the network …), at least N visits a position." The labels are by turn or by move, as
+   Cyanotype with StampDuty 0.2 (the network …), at least N visits a position." The labels are by turn or by move, as
    the review shows them. The review page writes it from its review, the Review tab from the store with the engine's
    rules alone (`src/lib/review/exportText.ts`). The two give one text. A game whose review the store does not hold
    whole says to open the game first.
@@ -1458,7 +1458,7 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
    measured, and the build holds none of PostHog's code. [docs/hosting.md](../hosting.md), "Cyanotype's analytics",
    gives the setup.
 3. **The consent, for the practice games' link only:** PostHog's cookieless mode sets no cookies and keeps nothing in
-   the browser, so the visits need no consent. A build that stores practice games ("Practice against Stamp Duty", "The
+   the browser, so the visits need no consent. A build that stores practice games ("Practice against StampDuty", "The
    stored games") shows Hedge School's banner, with the logo and the title "Help Cyanotype get better", for the random
    number that links the games, and its Privacy page has "Your choices" with the switch and "Delete my practice games".
    The browser keeps the choice under `cyanotype:consent:1` and the number under `cyanotype:browser-number:1`. A build
@@ -1493,7 +1493,7 @@ asks for the consent's one purpose, the random number that links them, as Hedge 
      `partner_review` and the `export_kind` `partner_save`.
    - **`edges` holds the game's moves.** Blueprints has no edges. The parameter keeps Hedge School's name, so that the
      reports have one dimension for a game's length.
-   - **`network`** names Stamp Duty's networks (Stamp Duty 0.2).
+   - **`network`** names StampDuty's networks (StampDuty 0.2).
    - **`practice_game`** is true for a game whose record's event is Cyanotype's practice (`PRACTICE_EVENT`), as on
      Hedge School. `practice_from` takes Hedge School's values: `new`, `analysis_board` for the board's "Play the bot
      from here", `set_up_start` for a set-up start, and `resumed` (`practiceFrom` in
@@ -1534,7 +1534,7 @@ Cyanotype takes tips as Hedge School does (Hedge School's design 22), on the Ko-
    `<main>` and `<body>` is the same in its build before and after the move.
 2. **One Ko-fi page for both sites.** Its address is one constant (`KOFI` in `kofi.ts`).
 3. **The dialog** shows the logo's full print at 56 pixels ("The logo"), where Hedge School's shows its collie. Its
-   words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi train Stamp Duty and
+   words say what the tips pay for, in plain web writing: "Cyanotype is free. Tips through Ko-fi train StampDuty and
    run the site." They take two lines, in Segoe UI and in DejaVu Sans, so that the dialog fits a window of 1,280 × 900
    with no scroll bar of its own, as Hedge School's. Words of three lines or more cut off Ko-fi's note at the
    dialog's foot.
@@ -1646,7 +1646,7 @@ adds "Move notation" ("The review and the Analysis board", item 4). These settin
 
 - **The networks** (design 09): Hedge School's settings and Practice offer two networks, HedgeFund 0.2 Lite and
   HedgeFund 0.2, and its lock keeps the earlier ones for the games that name them. Cyanotype offers the one network
-  of Blueprints' release, Stamp Duty 0.2. Put off until Blueprints' release has a second network: abscls-8tl1.54
+  of Blueprints' release, StampDuty 0.2. Put off until Blueprints' release has a second network: abscls-8tl1.54
   (deferred).
 - **The board's layers of Enclosure** (its regions, its invincible edges), in the display settings and on Practice:
   Blueprints has neither, so they are left out.
@@ -1745,7 +1745,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   through the tools, the Analysis board and its board editor), and a board that plays three scenes from reviewed games,
   as Hedge School's (`src/lib/home/HomeReplay.svelte`, on the shared replay `Replay.svelte` of `packages/site`). The
   scenes are in `src/lib/home/replay.json`, and the first frame in `still.json`, which `scripts/home-replay.mjs` writes
-  from three games of Stamp Duty against itself (`src/lib/review/fixtures`, from `scripts/selfplay.mjs`) and a stored
+  from three games of StampDuty against itself (`src/lib/review/fixtures`, from `scripts/selfplay.mjs`) and a stored
   review of each: Hedge School's `tests/fixtures/cyanotype-review.json` (the review's test game to turn 20) and two
   others of its OTHER_STORED (`tests/cyanotype-fixture.ts`), all from one engine, one network and 512 visits a
   position. Each scene is the 9 turns before its game's latest move with a bad label, and that move. The three scenes
@@ -1836,7 +1836,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   one-thread bot at 1 and 2 visits on a position of more views, and on that position the threaded bot on its CPU
   evaluator with the manifest's sizes, which plays the one-thread bot's moves at 1, 4 and 8 visits.
   `scripts/practice-forms.mjs`: whole games of the threaded bot against the one-thread bot's from one seed, below 16
-  visits ("Practice against Stamp Duty"). `src/lib/board/described.ts`: the engine's describe and describe_game as the
+  visits ("Practice against StampDuty"). `src/lib/board/described.ts`: the engine's describe and describe_game as the
   board draws them, for the lab and Practice. The stored games ("The stored games"): `src/lib/practice/stored.ts`
   (Blueprints' check, with `stored.test.ts`, which also runs the Function on the schema in Node's SQLite), `send.ts`,
   `functions/api/practice-games.ts`, `migrations/0001_practice_games.sql` and `static/_routes.json`.
@@ -1958,8 +1958,8 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   The layout test's review loads it in the Review tab, as a player loads a review file (`cyanotype-review.ts`,
   `reviewStoredFile`). The other tests put its results in the browser's store (`storeReview`). The same script writes
   the other stored reviews (`cyanotype-fixture.ts`, `OTHER_STORED`), which Cyanotype's label snapshot reads
-  (`apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`): the whole test game, and a second game of Stamp
-  Duty against itself to the end of turn 23 (`src/lib/review/fixtures/stamp-duty-seed12.txt`). The browser tests read
+  (`apps/cyanotype/src/lib/review/labels.snapshot.engine.test.ts`): the whole test game, and a second game of StampDuty
+  against itself to the end of turn 23 (`src/lib/review/fixtures/stampduty-seed12.txt`). The browser tests read
   only the whole game's (`WHOLE_STORED`), for the end of a game that the rules ended (`last-move-result.spec.ts`).
   They are not review files: each holds its engine and its results. Their results have no ownership, because only the
   area map reads it, and no test reads the area map from them.
@@ -1968,7 +1968,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   label snapshot too.
   `cyanotype-live-review.spec.ts` reviews the game's first three turns with the engine, on the CPU, and checks that
   the browser's store then holds the stored review's results for them, value for value. The rank chips' test needs
-  a position whose candidates place one blueprint more often than a panel shows. Stamp Duty 0.2's review of the test
+  a position whose candidates place one blueprint more often than a panel shows. StampDuty 0.2's review of the test
   game has none, so the test makes one from the stored result after move 8, and puts the stored result back after
   it.
 - `apps/hedgeschool/scripts/cyanotype-gpu-check.mjs`: the check of the GPU paths on Cyanotype's preview: the review,
@@ -2023,7 +2023,7 @@ review and the Analysis board" (2026-11-01), "Drawing Board's notes" (2026-11-02
 Cyanotype" (2026-11-04), "Cyanotype's review takes two moves that give one position as one move" (2026-11-05),
 "Cyanotype's engine from Blueprints' first release" (2026-11-05), "Cyanotype's build without ONNX Runtime's
 WebAssembly" (2026-11-05), "Cyanotype's logo: the cyanotype" (2026-11-06), "Cyanotype's board editor and a
-Blueprints position's notation" (2026-11-07), "Cyanotype on Stamp Duty 0.2, with the GPU and the threaded bot"
+Blueprints position's notation" (2026-11-07), "Cyanotype on StampDuty 0.2, with the GPU and the threaded bot"
 (2026-11-07), "A note's moves in glyphs on the middle of the line" (2026-11-07), "Cyanotype's variations in
 "Hexes"" (2026-11-07), "Cyanotype's early access, as Hedge School's" (2026-11-07), "Cyanotype keeps the player's
 games, as Hedge School's" (2026-11-07), "Cyanotype refuses a set-up start before the click, and shared lookups"

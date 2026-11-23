@@ -76,7 +76,7 @@ test("the annotated record from the review and from the store is one text, and t
   const { network } = readStored();
   expect(fromReview).toContain('[Annotator "Cyanotype"]');
   // The record wraps its lines, so the note can span two
-  expect(fromReview.replace(/\s+/g, " ")).toContain(`Reviewed by Cyanotype with Stamp Duty 0.2 (the network ${network})`);
+  expect(fromReview.replace(/\s+/g, " ")).toContain(`Reviewed by Cyanotype with StampDuty 0.2 (the network ${network})`);
   // The review file: Cyanotype's format, the game's mark, and the game's results, as the stored review holds them
   expect(file.format).toBe("cyanotype-review");
   expect(file.review).toMatchObject({ search: readStored().search, network, visits: 512 });

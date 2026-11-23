@@ -1,4 +1,4 @@
-// A practice game against Stamp Duty as the site stores it (design 33, "Practice against Stamp Duty"; Hedge School's
+// A practice game against StampDuty as the site stores it (design 33, "Practice against StampDuty"; Hedge School's
 // design 25): the stored game and its check are the practice's (@abstractclass/practice/stored.ts). Cyanotype's part is
 // Blueprints': a move's form as the bot and the rules name it (game/notation.ts), and a record's moves, which the
 // server keeps beside the game (functions/api/practice-games.ts). This module and the shared one have no imports but

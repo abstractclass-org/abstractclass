@@ -6,7 +6,7 @@ import { ENGINE_NAME, SITE_NAME, SITE_ORIGIN, THEME_KEY } from "./site.ts";
 
 test("the site and its engine have their names", () => {
   assert.equal(SITE_NAME, "Cyanotype");
-  assert.equal(ENGINE_NAME, "Stamp Duty");
+  assert.equal(ENGINE_NAME, "StampDuty");
 });
 
 // The files that cannot import site.ts, and repeat a value of it.

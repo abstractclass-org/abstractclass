@@ -148,10 +148,10 @@ const emptyStore = () => { for (const s of [STORES.analysis, STORES.games, STORE
 
 test("a removal between an analysis file's load and the board's start takes none of the results of the board's own network", async () => {
   emptyStore();
-  // A release that adds a later network beside Stamp Duty 0.2, the browser's setting, and a file of the later network:
+  // A release that adds a later network beside StampDuty 0.2, the browser's setting, and a file of the later network:
   // the board takes the file's network as its own, and the load asks nothing
   const later = "e".repeat(64), two = release({ added: [["a later network", later]] });
-  const address = await openAnalysisFile(analysisFileText("a later network", "Stamp Duty 0.3", later), two,
+  const address = await openAnalysisFile(analysisFileText("a later network", "StampDuty 0.3", later), two,
                                          async () => assert.fail("the load asked the player"));
   const ships = (id: string) => !!modelOf(two, id);
   assert.equal(addressNetwork(new URLSearchParams(address!.split("#")[1]), ships), "a later network");
@@ -172,7 +172,7 @@ test("an analysis file of a network that the lock dropped asks first: a cancel k
   for (const [key, value] of STORED.analyses) db.rows(STORES.analysis).set(key, value);
   let asked: NetworkQuestion | undefined;
   const gone = "ab".repeat(32);
-  const address = await openAnalysisFile(analysisFileText("b0c0-s0-d0", "Stamp Duty 0.0", gone), SITE,
+  const address = await openAnalysisFile(analysisFileText("b0c0-s0-d0", "StampDuty 0.0", gone), SITE,
                                          async q => { asked = q; return null; });
   assert.equal(address, null);
   assert.equal(asked?.title, "The file's network is not available");

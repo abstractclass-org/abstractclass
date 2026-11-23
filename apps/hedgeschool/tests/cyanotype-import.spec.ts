@@ -1,5 +1,5 @@
 // Cyanotype's import page (its design 33, "How a game comes in from strategyjam.org") on its preview
-// (CYANOTYPE_BASE_URL), with the review's test game up to turn 20 (cyanotype-review.ts, Stamp Duty against itself), as
+// (CYANOTYPE_BASE_URL), with the review's test game up to turn 20 (cyanotype-review.ts, StampDuty against itself), as
 // the bookmarklet and the userscript send it. The game leaves the address at once. The engine's rules check the record
 // first: a record that they refuse shows why and opens nothing. Else the review's choice keeps the game on the import
 // page, as Hedge School's does, and opens its review by the game's id: a game that the browser cannot keep stays on
@@ -19,7 +19,7 @@ import type { SitePosition } from "../../cyanotype/src/lib/board/position.ts";
 import { BOARD_AT_KEY, LAST_REVIEW_KEY } from "../../cyanotype/src/lib/site.ts";
 import { CYANOTYPE, MOVES, REFUSED, keptGame, noReview, testRecord, toolLink } from "./cyanotype-review.ts";
 
-const PLAYERS = "Stamp Duty, 4 visits against Stamp Duty, 64 visits";
+const PLAYERS = "StampDuty, 4 visits against StampDuty, 64 visits";
 /** The moves of a record up to `at`, as the board keeps the position on screen (its path's key). */
 const boardAt = (at?: number, record = testRecord()) => parseRecord(record).moves.slice(0, at).join(" ");
 const local = (page: Page, key: string) => page.evaluate(k => localStorage.getItem(k), key);

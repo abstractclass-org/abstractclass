@@ -140,8 +140,8 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
     - **A ptn.ninja link,** pasted: the site reads the PTN from the link's path.
     - **A link back:** the review shows "View this game on playtak" from the `PlayTakID` tag, as Hedge School's review
       does from `Site` (design 18, item 2). It also offers "Open in PTN Ninja" at the position on screen.
-11. **The engine:** the engine repository's browser pipeline builds Tak's module, as it builds HedgeFund and Stamp
-    Duty. Before a network exists, the module runs the rules with a test network ("Before the network").
+11. **The engine:** the engine repository's browser pipeline builds Tak's module, as it builds HedgeFund and StampDuty.
+    Before a network exists, the module runs the rules with a test network ("Before the network").
 12. **The site stays unlaunched** until the owner says to launch it ("How the site stays unlaunched").
 
 ## Each feature, and what carries over
@@ -395,7 +395,7 @@ A request in `docs/requests/` and an issue with the label `engines`, as request 
 6. **The draw chance** in each reply, beside the win chance with a draw as half.
 7. **The flat margin** as the reply's score, and the lead off.
 8. **The engine's name and the release,** in a public release repository with its manifest and terms, as for
-   HedgeFund and Stamp Duty.
+   HedgeFund and StampDuty.
 9. **Later:** the GPU module, the maps of heads C0 and C4 for the area map, the search with the other player to move
    for the threat, the practice bot's modules, and an opening book.
 
@@ -443,7 +443,7 @@ A request in `docs/requests/` and an issue with the label `engines`, as request 
 
 ## The owner's questions
 
-1. **The site's name, its engine's name and its address.** Hedge School and HedgeFund, Cyanotype and Stamp Duty name
+1. **The site's name, its engine's name and its address.** Hedge School and HedgeFund, Cyanotype and StampDuty name
    their games without the games' names. Tak's name and art belong to its owners, Crab Fragment Labs
    (`research/community.md`, section 6). **Recommendation:** a name without "Tak", chosen before the app's first
    commit, because the folder, the storage keys, the messages and the review file's format hold it. The address
