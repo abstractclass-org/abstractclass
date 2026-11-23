@@ -12993,3 +12993,19 @@ missing from every count of design 17. Design 27 gives the reasons.
   the D1 databases. No question of the plan stays open.
 - **The tickets:** three new ones (the Analysis board's starts and the editor, the tools, Practice), a second
   `engines` issue for the practice bot, and none for the names or for a letter.
+
+### The Tak site: playtak's API refuses CORS (2026-11-23)
+
+- **What:** the check of whether a page on another site can read playtak's API from the browser
+  ([design/34-tak-site.md](../design/34-tak-site.md), "The check of CORS", abscls-shfz.18.17).
+- **Measured:** 14 requests with `curl` and an `Origin` header, between 13:12 and 13:13 UTC. No browser ran it. A GET
+  of `/v1/games-history/ptn/883258` and of `/v1/games-history?id=883258`, and an OPTIONS preflight, with the origin
+  `https://dev.mistak.pages.dev`, got status 500 and `Not allowed by CORS`, with no `Access-Control-*` header. The
+  origins `https://playtak.com` and `https://ptn.ninja` got the data and their own origin in
+  `Access-Control-Allow-Origin`. `https://www.playtak.com`, `localhost` and `https://hedgeschool.pages.dev` got the
+  500. A request with no `Origin` header got the data (200). The responses show a rate limit of 30 requests a second.
+- **Decided:** the import by id goes through a Pages Function of the site. It takes digit ids on two fixed paths, sends
+  no cookie and no `Origin`, and caches a finished game for a day. The site also asks playtak's administrators to list
+  its address, and the Function works without their answer. Pasted PTN needs no network.
+- **Not measured:** what else is on the API's list, whether the administrators would add an address, and a
+  browser's own request. Ticket 5 checks a game fetched by its id from a preview in a real browser.
