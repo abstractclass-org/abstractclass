@@ -40,34 +40,35 @@ bot. Items 1 to 9 ask for that new work. Each item names the engine's design tha
    does: `query_version`, `load_model`, `describe`, `describe_game`, `play`, the analysis, `continue` and `terminate`,
    with the module's transport, the reproducible search and the search in slices. The shared package then changes only
    by the reply's new fields (items 6 and 7). A query carries:
-   - the board's size: the position's TPS, or the standard start of a size (5x5 or 6x6);
-   - the komi, a multiple of half a flat, added to Black's flat count, as the record's `Komi` tag gives it (design 02,
+   - The board's size: the position's TPS, or the standard start of a size (5x5 or 6x6).
+   - The komi, a multiple of half a flat, added to Black's flat count, as the record's `Komi` tag gives it (design 02,
      "Komi").
 
-   `query_version` gives the rules (playtak's, with the 50-ply draw rule), the sizes, the opening (swap) and the komi
-   that the release's network was trained on, so that the site refuses a game outside them (design 34, item 8).
+   `query_version` gives the rules, the sizes, the opening (swap) and the komi that the release's network was trained
+   on, so that the site refuses a game outside them (design 34, item 8). The rules name their draw rule, which is still
+   an open decision in the engine repository (design 02 proposes playtak's 50-ply rule).
 4. **The position's fields** that the site draws, from `describe` and for each position of `describe_game`:
-   - each square's stack, its stones from the bottom to the top, each with its colour and its kind (flat, wall,
-     capstone);
-   - each player's stones and capstones left;
-   - each player's flats on top (the flat count);
-   - the player to move and the ply's number;
-   - whether the game ends there, and how: a road for White or for Black, the flat count, a flat tie after komi, the
-     50-ply rule. Design 06 ("Decision: the result", item 1) plans this member of the rules part;
-   - for `describe` alone, the legal moves;
-   - for each move of `describe_game`, whether it flattened a wall, so that the site checks a record's `*` mark
+   - Each square's stack, its stones from the bottom to the top, each with its colour and its kind (flat, wall,
+     capstone).
+   - Each player's stones and capstones left.
+   - Each player's flats on top (the flat count).
+   - The player to move and the ply's number.
+   - Whether the game ends there, its winner or a draw, and how: a road, the flat count, a flat tie after komi or the
+     50-ply rule. Design 06 ("Decision: the result", item 1) plans this member of the rules part.
+   - For `describe` alone, the legal moves.
+   - For each move of `describe_game`, whether it flattened a wall, so that the site checks a record's `*` mark
      (design 34, item 5).
 
-   The plies since the last placement or flattening (the draw clock, which design 02's `position_text` writes after the
-   TPS) would let the site show how near the 50-ply rule is, if it is free. Mistak's board lab draws a position from
-   these fields before the engine exists (design 34, "Before the network"), so a field that the engine names otherwise
-   changes only where the site reads it.
+   If it is free, please give the plies since the last placement or flattening too (the draw clock, which design 02's
+   `position_text` writes after the TPS), so that the site shows how near the 50-ply rule is. The fields' names are the
+   engine repository's choice. Mistak's board lab draws a position from these fields before the engine exists (design
+   34, "Before the network"), and only the site's reader changes.
 5. **A position's check** from a TPS, with its reasons, as protocol 0.5 (request 16) and protocol 0.8.0 (request 28)
    give it for Enclosure and Blueprints: `describe` gives `check`, and an analysis of a position that no game reaches
-   is refused. The board editor, the Analysis board's Import and a link's start hold a TPS, and a TPS can hold what no
-   game reaches: more pieces than the reserves, a wall or a capstone under another piece, a road for both players, or
-   a first ply that breaks the swap opening. Which positions are refused, and the reasons' words, are the engine
-   repository's choice. Please document them.
+   is refused. The board editor, the Analysis board's Import and a link's start take any TPS, and a TPS can hold what
+   no game reaches: more stones or capstones of a colour than the size gives a player, a wall or a capstone under
+   another piece, or a first ply that breaks the swap opening. The engine repository chooses which positions it
+   refuses and the reasons' words. Please document them.
 6. **The draw chance** in each reply, for the root and for each candidate, beside the win chance (`winrate`), which
    counts a draw as half a win. Design 06 keeps the draw as its own class, and design 09 shows the win, the draw and
    the loss. The site shows the three. The field's name is the engine repository's choice.
@@ -85,14 +86,14 @@ bot. Items 1 to 9 ask for that new work. Each item names the engine's design tha
 9. **The practice bot,** as request 15 gave Enclosure's and request 25 Blueprints': KataGo's GTP engine with Tak's play
    settings (`gtp_tak.cfg`, design 09's "one play path"), the tree kept from move to move, and the interface of the
    other games' practice bots, so that `packages/practice` serves Tak too. It needs:
-   - its forms: one search thread, and several threads (request 26), with the GPU later (item 10);
-   - its play settings: a move limited by visits, the move temperature and a seed, takebacks, no resignation, and a
-     version;
-   - the size (5x5 or 6x6) and the komi of each game;
-   - a start from a TPS, as request 20 and request 28 gave the other games a start from a set-up position, and a start
-     from a game's moves, for a reload of the page;
-   - the moves in the spelling of item 2, both ways;
-   - the reply's names of the build, the network and the play settings, so that the game's record names its opponent.
+   - Its forms: one search thread, and several threads (request 26), with the GPU later (item 10).
+   - Its play settings: a move limited by visits, the move temperature and a seed, takebacks, no resignation, and a
+     version.
+   - The size (5x5 or 6x6) and the komi of each game.
+   - A start from a TPS, as request 20 and request 28 gave the other games a start from a set-up position, and a start
+     from a game's moves, for a reload of the page.
+   - The moves in the spelling of item 2, both ways.
+   - The reply's names of the build, the network and the play settings, so that the game's record names its opponent.
 
    It can come after the rules and the analysis module, and it runs with the test network first.
 
