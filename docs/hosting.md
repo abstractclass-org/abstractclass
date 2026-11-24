@@ -503,15 +503,19 @@ Each push to `dev` deploys a preview at `dev.cyanotype-ztp.pages.dev`.
    ([Custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/#add-a-custom-domain)) asks
    for no deployment before the domain. The domain serves the production deployment. Until the first one exists, it
    answers with status 522.
-3. **Deploy the live site from a release, when the owner says to launch it.** Do not deploy from a local build. A
-   local build has no branch variables, so its userscript loads from `http://127.0.0.1:4173`. The job also runs the
-   checks and the tests before it uploads. Just before this release, commit Cyanotype's launch on `dev`: in
+3. **Deploy the live site from a release, when the owner says to launch it.** Done (2026-11-18): the launch commit went
+   to `main` with the release of `356c0131`, and its run of **Deploy** put Cyanotype live. Do not deploy from a local
+   build. A local build has no branch variables, so its userscript loads from `http://127.0.0.1:4173`. The job also runs
+   the checks and the tests before it uploads. Just before this release, commit Cyanotype's launch on `dev`: in
    `.github/workflows/deploy.yml`, remove the line `if: github.ref_name != 'main'` of the job `cyanotype` and the
    comment above it. Push `dev`. Then release `dev`: `git push origin dev:main`. A release also releases Hedge School
    and the hub: the push sends all of `dev` to `main`. In GitHub, go to **Actions → Deploy**, and open the run of this
    push. Its job `cyanotype` uploads the build to the production branch. When the job shows a pass, do the checks of
    step 4.
-4. **Check:**
+4. **Check:** Done (2026-11-18), after that release. `release-check: PASS` on the live address (13 of 13 checks) and
+   on the project's address (12 of 12), and `/practice` showed **Play as Blue**. The live address serves the
+   production deployment only (step 2), so its pass also shows the first production deployment. The check of the dev
+   preview passed after later pushes to `dev`.
    - Run the check of a deployed site ("Deploy, check and roll back", below) in `apps/cyanotype`, against the live
      address and against the project's address: `git fetch`, then
      `node scripts/release-check.mjs https://cyanotype.abstractclass.org` and
