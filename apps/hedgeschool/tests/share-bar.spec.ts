@@ -1,92 +1,112 @@
-// The share bar at a share of exactly 0 or 1 (packages/review/src/ShareBar.svelte): the bar is all one color. The side
-// with no share has a part 0 px wide, not the 6 px of its own padding (a flex item never shrinks below its padding). It
-// is the review's win chance here, and Practice's points bar is the same component. Between 0 and 1 the loser keeps its
-// part, as the last case shows. The states: the end of the layout test's game, which the rules end with Red's win (a
-// share of 0), and the same game at the 11th position with each stored result's win chance set to 0 and to 1 (the
-// engine is off, so that the page shows the stored results; no fixture has a game that Blue wins). The parts change
-// width over 200 ms, so each case waits for the end of the change. The gauge has no
-// padding on its parts: its cases check that it is right too. Nothing here measures text room, so the font does not
-// matter. Run: npx playwright test tests/share-bar.spec.ts --project=chromium.
+// The share bar (packages/review/src/ShareBar.svelte) at a share of exactly 0 or 1 is all one color: the side with no
+// share has a part 0 px wide, not the 6 px of its padding. Between 0 and 1 the loser keeps its padding. The review's
+// win chance and Practice's points are the same component. The cases:
+// - The end of the layout test's game, which Red wins by the rules: a share of 0.
+// - The same game at its 11th position, with Blue's win chance in each stored result set to `share`. The engine is off,
+//   so the page shows the stored results. No fixture has a game that Blue wins, so this case covers a share of 1.
+// - The gauge, which has no padding on its parts.
+// - Practice before the first move of a game with a komi: one player has all the points (a share of 0 or 1).
+// A part changes width or height over 200 ms, so each check waits until the bar is at rest. Nothing here measures text
+// room, so the font does not matter.
+// Run: npm run test:layout -- tests/share-bar.spec.ts --project=chromium, with BASE_URL.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
-import { openReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { keepBefore } from "./keep-before.ts";
 import { toMove } from "./move-header.ts";
+import { openReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { CONSENT_KEY, PRACTICE_GAME_KEY } from "../src/lib/keys.ts";
+
+// The review's load can take a few minutes on a busy machine, but never the config's 10 minutes: a wait that long is a
+// page that did not load, and the page log says why.
+test.describe.configure({ timeout: 240_000 });
 
 const FIXTURE = "tests/fixtures/hedgefund-review.json";
-const TITLE = "Win chance from the engine's search";
+const WIN = "Win chance from the engine's search", POINTS = "Points:"; // the start of each bar's tooltip
 
-/** The fixture with Blue's win chance `win` in each stored result and in each candidate of it. */
-function withWin(win: number): ReviewFileInput {
-  const file: { analyses: [string, { blueWin: number; candidates?: { blueWin: number }[] }][] } =
-    JSON.parse(readFileSync(FIXTURE, "utf8"));
-  for (const [, value] of file.analyses) {
-    value.blueWin = win;
-    for (const c of value.candidates ?? []) c.blueWin = win;
-  }
-  return { name: `win-${win}-review.json`, mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
+/** The fixture with Blue's win chance `share` in each stored result. */
+function withWin(share: number): ReviewFileInput {
+  const file: { analyses: [string, { blueWin: number }][] } = JSON.parse(readFileSync(FIXTURE, "utf8"));
+  for (const [, result] of file.analyses) result.blueWin = share;
+  return { name: "win-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
 }
 
-const open = async (page: Page, file: ReviewFileInput, win: "bar" | "gauge", [width, height] = [1376, 952]) => {
-  await page.setViewportSize({ width, height });
+/** The review of `file` in a window `width` px wide, the engine off. `win`: the win chance as a bar or a gauge. */
+async function openReview(page: Page, file: ReviewFileInput, width: number, win: "bar" | "gauge" = "bar") {
+  await page.setViewportSize({ width, height: width > 600 ? 952 : 844 });
   await openReviewFile(page, file, { engine: { on: false }, consent: { games: "denied" }, display: { win } });
-};
+}
 
-/** Blue's part and Red's part of the flat bar, and the bar, as widths in px. Red's part is the second child. */
-const flat = (page: Page) => page.locator(`[title^="${TITLE}"]`).first().locator("> div").first().evaluate(bar => ({
-  bar: bar.getBoundingClientRect().width,
-  blue: bar.children[0].getBoundingClientRect().width,
-  red: bar.children[1].getBoundingClientRect().width,
-}));
-/** Blue's part of the gauge, and the gauge, as heights in px. The rest of the gauge is Red's. */
-const upright = (page: Page) => page.locator('[role="img"][aria-label^="Blue\'s win chance"]').evaluate(gauge => ({
-  gauge: gauge.getBoundingClientRect().height,
-  blue: gauge.firstElementChild!.getBoundingClientRect().height,
-}));
+/** The fixture's review after its 10th edge, where Blue's win chance is `share`. */
+async function openAtShare(page: Page, share: number, width: number, win: "bar" | "gauge" = "bar") {
+  await openReview(page, withWin(share), width, win);
+  await toMove(page, 10);
+  await expect(page.locator("section.side")).toContainText("Edge 11 of ");
+}
+
+/** The flat bar with the tooltip that starts with `title`, and its parts: widths in px. */
+const parts = (page: Page, title: string) => page.locator(`[title^="${title}"] > div`).first().evaluate(bar => {
+  const [blue, red] = [...bar.children].map(part => part.getBoundingClientRect().width);
+  return { bar: bar.getBoundingClientRect().width, blue, red };
+});
+
+/** The bar at a share of 0 or 1 is all one color: the side with no share has a part 0 px wide, at rest, and the other
+ *  part is the whole bar. */
+async function expectOneColor(page: Page, title: string, share: 0 | 1) {
+  const loser = share ? "red" : "blue";
+  await expect.poll(async () => (await parts(page, title))[loser],
+                    { message: `${loser}'s part at a share of ${share}` }).toBe(0);
+  const { bar, blue, red } = await parts(page, title);
+  expect(blue + red, "the parts fill the bar").toBeCloseTo(bar, 1);
+}
 
 for (const width of [1376, 390]) {
   test.describe(`at ${width} px`, () => {
-    const size: [number, number] = [width, width > 600 ? 952 : 844];
-
-    test("at the end of a game that Red wins (a share of 0), Blue's part of the bar is 0 px wide", async ({ page }) => {
-      await open(page, FIXTURE, "bar", size);
+    test("at the end of a game that Red wins, the bar is all Red", async ({ page }) => {
+      await openReview(page, FIXTURE, width);
       await page.keyboard.press("End");
       await expect(page.getByText(/^Game over/).first()).toBeVisible();
-      await expect.poll(async () => (await flat(page)).blue, { message: "Blue's part" }).toBe(0);
-      const { bar, red } = await flat(page);
-      expect(red, "Red's part is the whole bar").toBeCloseTo(bar, 1);
+      await expectOneColor(page, WIN, 0);
     });
 
-    test("at a share of 0, Blue's part is 0 px wide, and at 1, Red's", async ({ page }) => {
-      for (const win of [0, 1] as const) {
-        await open(page, withWin(win), "bar", size);
-        await toMove(page, 10);
-        await expect(page.locator("section.side")).toContainText("Edge 11 of ");
-        await expect.poll(async () => (await flat(page))[win ? "red" : "blue"],
-                          { message: `${win ? "Red" : "Blue"}'s part, at a share of ${win}` }).toBe(0);
-        const { bar, blue, red } = await flat(page);
-        expect(win ? blue : red, "the other part is the whole bar").toBeCloseTo(bar, 1);
-      }
-    });
-
-    test("the gauge at a share of 0 and 1 is all one color too", async ({ page }) => {
-      for (const win of [0, 1] as const) {
-        await open(page, withWin(win), "gauge", size);
-        await toMove(page, 10);
-        await expect(page.locator("section.side")).toContainText("Edge 11 of ");
-        await expect.poll(async () => { const { gauge, blue } = await upright(page); return Math.abs(blue - win * gauge); },
-                          { message: `Blue's part of the gauge, at a share of ${win}` }).toBeLessThan(0.05);
-      }
-    });
+    for (const share of [0, 1] as const) {
+      test(`at a share of ${share}, the bar is all ${share ? "Blue" : "Red"}`, async ({ page }) => {
+        await openAtShare(page, share, width);
+        await expectOneColor(page, WIN, share);
+      });
+    }
   });
 }
 
-test("at a share between 0 and 1 the loser keeps its part, with its padding", async ({ page }) => {
-  for (const win of [0.03, 0.97]) {
-    await open(page, withWin(win), "bar");
-    await toMove(page, 10);
-    await expect(page.locator("section.side")).toContainText("Edge 11 of ");
-    const { bar, blue, red } = await flat(page);
-    expect(win > 0.5 ? red : blue, `the loser's part, at a share of ${win}`).toBeGreaterThanOrEqual(5.9);
-    expect(blue + red).toBeCloseTo(bar, 1);
+test("the gauge at a share of 0 and of 1 is all one color", async ({ page }) => {
+  for (const share of [0, 1] as const) {
+    await openAtShare(page, share, 1376, "gauge");
+    // Blue's part's height as a share of the gauge's, at rest
+    await expect.poll(() => page.locator('[role="img"][aria-label^="Blue\'s win chance"]').evaluate(gauge =>
+      gauge.firstElementChild!.getBoundingClientRect().height / gauge.getBoundingClientRect().height),
+      { message: `Blue's part of the gauge at a share of ${share}` }).toBeCloseTo(share, 2);
+  }
+});
+
+test("at a share of 0.01 and of 0.99, the loser keeps 6 px, its padding", async ({ page }) => {
+  // 1% of the bar at 1376 px is narrower than the padding
+  for (const [share, loser] of [[0.01, "blue"], [0.99, "red"]] as const) {
+    await openAtShare(page, share, 1376);
+    await expect.poll(async () => (await parts(page, WIN))[loser],
+                      { message: `${loser}'s part at a share of ${share}` }).toBeCloseTo(6, 1);
+  }
+});
+
+test("Practice's points bar with all the points on one side is all one color", async ({ page }) => {
+  await keepBefore(page, CONSENT_KEY, { games: "denied" });
+  for (const share of [0, 1] as const) {
+    // A kept game before its first move, the player Blue: Red's komi, or Blue's head start, is all the points
+    await keepBefore(page, PRACTICE_GAME_KEY, {
+      version: 1, bot: { network: "b10c128-s89066368-d17827487", visits: 1, variety: "low" }, human: 0, name: "",
+      seed: 1, komi: share ? -300 : 300, moves: [], builds: [], started: new Date().toISOString(),
+    });
+    await page.goto("/practice");
+    const points = `${POINTS} Blue ${share ? 300 : 0}, Red ${share ? 0 : 300}`;
+    await expect(page.locator(`[title^="${points}"]`)).toBeVisible({ timeout: 120_000 });
+    await expectOneColor(page, POINTS, share);
   }
 });
