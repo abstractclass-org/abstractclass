@@ -3,7 +3,8 @@
 // is the review's win chance here, and Practice's points bar is the same component. Between 0 and 1 the loser keeps its
 // part, as the last case shows. The states: the end of the layout test's game, which the rules end with Red's win (a
 // share of 0), and the same game at the 11th position with each stored result's win chance set to 0 and to 1 (the
-// engine is off, so that the page shows the stored results; no fixture has a game that Blue wins). The gauge has no
+// engine is off, so that the page shows the stored results; no fixture has a game that Blue wins). The parts change
+// width over 200 ms, so each case waits for the end of the change. The gauge has no
 // padding on its parts: its cases check that it is right too. Nothing here measures text room, so the font does not
 // matter. Run: npx playwright test tests/share-bar.spec.ts --project=chromium.
 import { readFileSync } from "node:fs";
@@ -50,8 +51,8 @@ for (const width of [1376, 390]) {
       await open(page, FIXTURE, "bar", size);
       await page.keyboard.press("End");
       await expect(page.getByText(/^Game over/).first()).toBeVisible();
-      const { bar, blue, red } = await flat(page);
-      expect(blue, "Blue's part").toBe(0);
+      await expect.poll(async () => (await flat(page)).blue, { message: "Blue's part" }).toBe(0);
+      const { bar, red } = await flat(page);
       expect(red, "Red's part is the whole bar").toBeCloseTo(bar, 1);
     });
 
@@ -60,8 +61,9 @@ for (const width of [1376, 390]) {
         await open(page, withWin(win), "bar", size);
         await toMove(page, 10);
         await expect(page.locator("section.side")).toContainText("Edge 11 of ");
+        await expect.poll(async () => (await flat(page))[win ? "red" : "blue"],
+                          { message: `${win ? "Red" : "Blue"}'s part, at a share of ${win}` }).toBe(0);
         const { bar, blue, red } = await flat(page);
-        expect(win ? red : blue, `${win ? "Red" : "Blue"}'s part, at a share of ${win}`).toBe(0);
         expect(win ? blue : red, "the other part is the whole bar").toBeCloseTo(bar, 1);
       }
     });
@@ -71,8 +73,8 @@ for (const width of [1376, 390]) {
         await open(page, withWin(win), "gauge", size);
         await toMove(page, 10);
         await expect(page.locator("section.side")).toContainText("Edge 11 of ");
-        const { gauge, blue } = await upright(page);
-        expect(blue, `Blue's part, at a share of ${win}`).toBeCloseTo(win * gauge, 1);
+        await expect.poll(async () => { const { gauge, blue } = await upright(page); return Math.abs(blue - win * gauge); },
+                          { message: `Blue's part of the gauge, at a share of ${win}` }).toBeLessThan(0.05);
       }
     });
   });
