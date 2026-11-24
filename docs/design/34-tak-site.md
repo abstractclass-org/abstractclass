@@ -360,17 +360,19 @@ Tak's board is the site's own part, as Blueprints' hexes are Cyanotype's.
   wall, which has no room for it. The preview card has no number.
 - **The whole stack in text:** a line under the board gives the stack of the square under the mouse, with the
   keyboard's focus or tapped, piece by piece from the top, with a mark after the last piece that a move can carry and
-  PTN's letter on a top wall (S) or capstone (C). It is empty for an empty square, its room is kept (two lines, which
-  hold 26 pieces at 360 pixels), and it takes no click. Nothing opens over the board, as a player moves on it.
+  PTN's letter on a top wall (S) or capstone (C). It is empty for an empty square. Its room is kept: two lines, which
+  hold any stack of 25 pieces at 360 pixels, and any stack of 26 with a flat on top. It takes no click. Nothing opens
+  over the board, as a player moves on it.
 - **The measures:** a full pile never touches the piece in the square behind it: the board's width less one, times the
   step, plus a flat's side, is less than the square's side. A flat is 50% of the square and the step 6.5%, which
   leaves 4.5% on 8x8, more than the pieces' lines on the smallest squares. A test holds it for each width from 3 to 8.
   The site takes the way to show a stack from the sources of PTN-Ninja (`src/components/board/Piece.vue`,
   `src/i18n/en-us/usage.md`) and of playtak-ui (`src/js/board.js`, `src/index.html`), and no code, theme or image:
-  PTN-Ninja is AGPL-3.0. The shapes, the measures and the colours are the site's own.
+  PTN-Ninja is AGPL-3.0. The sizes that are PTN-Ninja's, taken as facts, are the flat's 50%, the bar's width of 15%
+  and the ten bars. The shapes, the colours and the other measures are the site's own.
 - **The kinds:** a flat is a square, a wall a bar turned to the diagonal, White's leaning to the left and Black's to
   the right, as on ptn.ninja, and a capstone the logo's form, a round top on a flat base, not wider than a flat. A
-  wall on a stack stands one step lower. A wall or a capstone on top has a stronger line, as on a flat of its own
+  wall on a stack stands one step lower. A wall or a capstone on top has a stronger line, because on a flat of its own
   colour this line alone shows it.
 - **The colours:** the first player's stones are light and the second's dark, as Tak's white and black. The shared
   code calls the first player "blue" (design 29, item 2), and the site's texts say "White" and "Black".

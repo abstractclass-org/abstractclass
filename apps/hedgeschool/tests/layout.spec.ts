@@ -13,11 +13,12 @@
 // kept, and Practice a game in progress from it. The import page shows the choice for a userscript's game, with the
 // notice to update the userscript. Three tests check that the monospaced font draws no ligatures, on Hedge School, on
 // Cyanotype (CYANOTYPE_BASE_URL) and on Mistak (MISTAK_BASE_URL). One sweeps Cyanotype's home page, and one its Notices
-// page. Four sweep Mistak's home page, Notation page, Notices page and How a review works. Three check the site's menu
-// open on a narrow window, on each site. Three check the Support Us dialog, on each site, in a wide window and on a
-// phone. Six check the header's "Early Access" link, on each site in each theme. Two check Cyanotype's Practice
-// (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its practice bot. Four check that a practice
-// game's and a review's one column agree with themselves between 799 and 800 pixels wide, on each site. Two check
+// page. Five sweep Mistak's home page, Notation page, Notices page, How a review works and its board lab. One walks
+// Mistak's board with the keys. Three check the site's menu open on a narrow window, on each site. Three check the
+// Support Us dialog, on each site, in a wide window and on a phone. Six check the header's "Early Access" link, on each
+// site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the
+// site has its practice bot. Four check that a practice game's and a review's one column agree with themselves between
+// 799 and 800 pixels wide, on each site. Two check
 // Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
 // board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
 // book's table, where the build has it (edition.ts, OPENINGS), while the engine's network loads and once it has loaded.
@@ -271,7 +272,7 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
 // comes. The home page: the invitation and the logo. The Notation page: its examples in code blocks, which scroll
 // sideways on purpose, and its tables. The Notices page: the licences, with their texts in code blocks. How a review
 // works: its table of bands and its formulas in code blocks. The board lab: a game of 8x8 with a stack past the bars
-// and the longest TPS. Each sweep checks the header's row, with the site's menu closed below 900 pixels. The About page
+// and a long TPS. Each sweep checks the header's row, with the site's menu closed below 900 pixels. The About page
 // is in the menu's and the Support Us dialog's tests below.
 for (const [name, path] of [["home page", "/"], ["Notation page", "/notation"], ["Notices page", "/notices"],
                             ["How a review works", "/how-reviews-work"], ["board lab", "/lab/board?p=23"]]) {
@@ -304,13 +305,15 @@ test("Mistak's board walks with the keys", async ({ page }) => {
   const count = (square: number) => board.locator(`[data-square="${square}"] .count`);
   await expect(count(14)).toBeVisible(); // c3, with the focus
   await expect(count(21)).toBeHidden(); // d4
+  // The line under the board has the whole stack of the square under the mouse, then of the one with the focus, and
+  // the board keeps its place.
+  const line = page.locator("[data-stack-line]");
   await board.locator('[data-square="21"]').hover();
   await expect(count(21)).toBeVisible();
   await expect(count(21)).toHaveText("20");
+  await expect(line).toHaveText("d4, 20 pieces, from the top: B W W B B W | B W W B B W W B B W B W W B");
   await page.mouse.move(0, 0);
   await expect(count(21)).toBeHidden();
-  // The line under the board has the whole stack of the square with the focus, and the board keeps its place.
-  const line = page.locator("[data-stack-line]");
   await expect(line).toHaveText("c3, 10 pieces, from the top: WC B B W W B | B W B W");
   const place = await board.boundingBox();
   await page.keyboard.press("ArrowRight"); // d3 is empty

@@ -1,5 +1,5 @@
 // A Tak position as the board draws it (docs/design/34-tak-site.md, "The board"), in the shape of the engine's position
-// fields (request 31, item 4): each square's stack, each player's flats on top, the player to move and the ply. Until
+// fields (request 31, item 4): each square's stack, each player's flat count, the player to move and the ply. Until
 // the engine gives them, they come from a TPS. The fields that a TPS does not hold, and that need the rules, stay out
 // until then: the reserves, the end of the game and the legal moves. The board draws a position and does not judge it.
 import { readPosition, type Position, type Stone } from "../game/tps.ts";

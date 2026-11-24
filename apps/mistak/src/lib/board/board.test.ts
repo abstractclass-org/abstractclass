@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { emptyBoard, type Stone } from "../game/tps.ts";
 import { FIXTURES } from "./fixtures.ts";
-import { BARS, drawStack, FLAT, overhang, pieceShape, raisedLine, STEP } from "./pieces.ts";
+import { BARS, BASE, drawStack, FLAT, overhang, pieceShape, raisedLine, STEP } from "./pieces.ts";
 import { positionOf } from "./position.ts";
 import { placeOf, squareAt, squareByKey, squareName, squareWords, stackLine } from "./squares.ts";
 
@@ -119,7 +119,7 @@ test("the number stands on the top piece, and left of the pile's foot when that 
       assert.equal(count.on, player - 1);
       const lift = STEP * (Math.min(n, size) - 1);
       // The digits lie inside the top piece's box, which is FLAT high and lifted by the pile's steps.
-      assert.ok(count.y - count.size * 0.75 > 56 - FLAT / 2 - lift && count.y < 56 + FLAT / 2 - lift);
+      assert.ok(count.y - count.size * 0.75 > BASE - FLAT / 2 - lift && count.y < BASE + FLAT / 2 - lift);
     }
     const { count, shapes } = drawStack([...flats("1".repeat(n - 1)), { player: 1, kind: "wall" }], size, 40);
     const foot = Math.max(...shapes.filter(s => s.part === "pile").map(s => Number(s.shape[1].y) + FLAT));
@@ -143,7 +143,7 @@ test("a top wall or capstone has a stronger line, and a pile with it still clear
   // A full pile's capstone (48 high) before a capstone and before a flat, on 8x8 at 37 pixels a square: the halves of the
   // two lines fit between them.
   for (const [half, line] of [[24, raisedLine(37)], [FLAT / 2, 1.25]]) {
-    assert.ok((100 - 7 * STEP - 24 - half) * 37 / 100 > (raisedLine(37) + line) / 2);
+    assert.ok((100 - (8 - 1) * STEP - 24 - half) * 37 / 100 > (raisedLine(37) + line) / 2);
   }
 });
 

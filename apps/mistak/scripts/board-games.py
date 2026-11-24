@@ -5,9 +5,11 @@ player's name.
 
 It needs the engine repository's rules module for Tak (core/binding/build.sh tak), and runs from that repository's root:
 
-    PYTHONPATH=. .venv-linux/bin/python <this file> SIZE:SEED:DEPTH... > games.json
+    PYTHONPATH=. .venv-linux/bin/python <this file> COMMIT SIZE:SEED:DEPTH:PLY,PLY... ... > games.json
 
-A job of more than a minute goes through the planning repository's scripts/machine run.
+COMMIT is the engine repository's commit that it runs on. Each other argument plays one game, and games.json gets the
+position after each of the plies that it names, with the commit and this command. A job of more than a minute goes
+through the planning repository's scripts/machine run.
 """
 
 import json
@@ -31,5 +33,19 @@ def play(size, seed, depth):
             "result": position.result_text(0)}
 
 
+def lab_positions(specs):
+    """The positions of games.json, from the arguments SIZE:SEED:DEPTH:PLY,PLY..."""
+    for spec in specs:
+        size, seed, depth, plies = spec.split(":")
+        game = play(int(size), int(seed), int(depth))
+        for ply in map(int, plies.split(",")):
+            yield {"size": game["size"], "seed": game["seed"], "depth": game["depth"], "ply": ply,
+                   "plies": len(game["moves"]), "result": game["result"], "tps": game["tps"][ply]}
+
+
 if __name__ == "__main__":
-    json.dump([play(*map(int, spec.split(":"))) for spec in sys.argv[1:]], sys.stdout, indent=1)
+    commit, *specs = sys.argv[1:]
+    command = "PYTHONPATH=. .venv-linux/bin/python board-games.py " + " ".join(sys.argv[1:])
+    head = [f'  "commit": {json.dumps(commit)},', f'  "command": {json.dumps(command)},', '  "positions": [']
+    rows = ",\n".join("    " + json.dumps(position) for position in lab_positions(specs))
+    print("\n".join(["{", *head, rows, "  ]", "}"]))

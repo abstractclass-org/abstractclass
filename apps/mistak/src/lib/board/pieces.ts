@@ -3,7 +3,8 @@
 // pieces that one move can carry stand as a pile, each a step higher than the one below it, so that each shows its front
 // edge. The top ten pieces under those are bars beside the pile, from the pile's foot up, and the lower ones are only in
 // the line of text. The pile and the bars at its side are ptn.ninja's and playtak's way to show a stack
-// (docs/design/34-tak-site.md, "The board"). The shapes, the measures and the colours are the site's own.
+// (docs/design/34-tak-site.md, "The board"). The flat's side, the bar's width and the ten bars are ptn.ninja's sizes.
+// The shapes, the colours and the other measures are the site's own.
 import type { Shape } from "@abstractclass/site/brand.ts";
 import { capstonePath } from "../brand/logo.ts";
 import type { Stone } from "../game/tps.ts";
@@ -25,8 +26,10 @@ export interface StackDrawing {
 
 /** The box of every piece: a flat's side. */
 export const FLAT = 50;
-/** A flat's corners' radius, and the middle of the pile's lowest piece, the same for each height. */
-const CORNER = 7, BASE = 56;
+/** The middle of the pile's lowest piece, the same for each height. */
+export const BASE = 56;
+/** A flat's corners' radius. */
+const CORNER = 7;
 /**
  * The step from a piece to the next one. A full pile must not touch the piece in the square behind it, which stands on
  * the same baseline: (width - 1) x STEP + FLAT < 100. On 8x8 this leaves 4.5, which is more than the pieces' lines on
