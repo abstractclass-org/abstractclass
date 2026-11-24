@@ -60,16 +60,14 @@
 
   <h2>{site}</h2>
   <p>{site}'s own code, text and design are {copyright}. All rights reserved.</p>
-  <p>The other works below are by others. Their licences cover those works only, not
-    {site}{lock ? " or its engine" : ""}.</p>
+  <p>The other works below are by others. Their licences cover those works only, not {site}{lock ? " or its engine" : ""}.</p>
 
   {#if lock}
   <h2>The engine</h2>
   <p>The engine, {engine}, and its networks: {copyright}, all rights reserved. The engine is built from a fork of
     <a href="https://github.com/lightvector/KataGo">KataGo</a>. KataGo's code is under the MIT licence, and the other
     works that the engine compiles in are under their own licences. Each engine release carries its terms
-    (<a href={shipped(lock, "terms")}>LICENSE.txt</a>) and these licences
-    (<a href={shipped(lock, "notices")}>NOTICES.txt</a>).</p>
+    (<a href={shipped(lock, "terms")}>LICENSE.txt</a>) and these licences (<a href={shipped(lock, "notices")}>NOTICES.txt</a>).</p>
   <p><strong>The engine's outputs.</strong> The engine's outputs are what these files produce: analyses, moves, scores,
     win chances, policies, ownership, and the review files that hold them. You may keep, share and publish the outputs
     as analysis, for example the review of a game. Players and the sites that the holder works with may do so too. You
