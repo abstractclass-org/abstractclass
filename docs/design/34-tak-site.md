@@ -1,7 +1,7 @@
 # Mistak, the Tak site: a plan, on Hedge School's and Cyanotype's design
 
 **Status:** proposed. Built: the site's shell (abscls-shfz.18.4), `apps/mistak`, unlaunched, PTN's moves and records
-and TPS (abscls-shfz.18.5), and the board drawn from a position (abscls-shfz.18.6).
+and TPS (abscls-shfz.18.5), the board drawn from a position (abscls-shfz.18.6), and the import (abscls-shfz.18.7).
 **Planned:** 2026-11-23 (abscls-teoc). **Revised:** 2026-11-23 (abscls-shfz.18.1).
 **Scope:** every feature of Hedge School and of Cyanotype, unless a fact blocks it ("The rules of this work").
 
@@ -510,7 +510,8 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
    - **The writer is Mistak's own** (`apps/mistak/src/lib/game/record.ts`): the package's writer writes Hedge School's
      tags and its turns on one line.
 5. **A game fetched by its id** from a play site's API. It stays the site's own part, as each page reader is. The
-   import's frame (`readImportHash`, the import's events) takes it as a new way in.
+   import's frame (`readImportHash`, the import's events) takes it as a new way in. Until the tools' ticket
+   (abscls-shfz.18.21) moves it there, Mistak's import page reads `#playtak=` itself.
 
 **The site's own parts:** the board, its input and its editor, PTN's moves and marks, TPS, the reader of playtak's
 PTN, of playtak's page and of ptn.ninja's links, the players' cards, and the texts.
@@ -592,7 +593,8 @@ The import by id goes through the smallest proxy that the sites' hosting already
   does not wait for it, because the Function works with no answer. A listing would let the live site's page fetch the
   PTN itself. The previews keep the Function.
 - **Not done in this check:** the Function, its tests, and the check of a game fetched by its id from a preview in a
-  real browser. Those belong to ticket 5, which waits for this one.
+  real browser. Those belong to ticket 5, which waited for this one. The Function and its tests are built ("Where it
+  is"). The check from a preview is not done.
 
 ## Before the network
 
@@ -733,7 +735,7 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
    the fetch by id through the site's Pages Function ("The check of CORS"), and the refusals by the tags (the size,
    the opening, the komi). Check: a test of each refusal and of each way in, a test of the Function's path and method
    checks, a record with the result `*` taken, and a game fetched by its id from a preview in a real browser. After:
-   2, 3, 16.
+   2, 3, 16. Built, but for the fetch from a preview ("Where it is").
 6. **Shared: a game with several board sizes:** the empty board of each size, the size in the stored results' keys
    (first the simplest form, "What the sites share", item 1, with what the shared code does otherwise at a set-up
    start), and the komi limit of each size (item 8). Check: a test that `a1` on 5x5 and `a1` on 6x6 key apart, a
@@ -811,7 +813,8 @@ This document is the plan. The engine's plan is in the engine repository's `game
   move, `record.ts` reads and writes a record and gives its start and its opening, `tps.ts` reads and writes a position,
   and `komi.ts` holds each size's komi limit. The reader is the shared one, in PTN's form. It reads the main line, and
   does not read the branches, the engine notes or the clocks. Writing branches and notes is ticket 11. The refusals of
-  a size, an opening and a komi before the review are ticket 5. The engine's check of a `*` is ticket 9.
+  a size, an opening and a komi before the review are the import's (ticket 5, below). The engine's check of a `*` is
+  ticket 9.
 - **The board and its stacks** (ticket 4, abscls-shfz.18.6): `apps/mistak/src/lib/board`, on `/lab/board`.
   `position.ts` makes the engine's position fields from a TPS, without the ones that need the rules (the reserves, the
   end and the legal moves). `pieces.ts` draws a stack, for the page's board and for the link previews' image.
@@ -819,6 +822,13 @@ This document is the plan. The engine's plan is in the engine repository's `game
   `Board.svelte` draws the board. The lab's positions are from games of the engine repository's alpha-beta bot
   (`scripts/board-games.py`) and from hand-made TPS. The board takes no move (ticket 9) and edits no position (ticket
   19).
+- **The import** (ticket 5, abscls-shfz.18.7): `apps/mistak/src/lib/import` and `src/routes/import`, with a button on
+  the home page that opens the Import dialog. One box takes a playtak number, a ptn.ninja link or PTN (`ways.ts`).
+  `takeRecord` (`src/lib/game/record.ts`) refuses, in this order: a record that does not read, a size, an opening, a
+  reserve and a komi. The Function is `functions/api/playtak/[[path]].ts`, with its handler in `playtakProxy.ts`.
+  Until the review exists, a record that the import takes shows its tags, its moves and the links back, and nothing is
+  kept. Not built: the import's events, which come with the review. Not checked: a game fetched by its id from a
+  preview in a real browser.
 - **The rest** of "The tickets proposed" is not built.
 
 ## Log

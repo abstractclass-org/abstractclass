@@ -2,9 +2,9 @@
   // What the site keeps, and where (Hedge School's design 11), in Cyanotype's words: what the browser keeps, the visits
   // and what PostHog receives (design 34, "The site's frame": the shared analytics, with no consent). Its visit counts
   // set no cookies. Its Support Us opens Ko-fi's tip panel, so the page has the sites' part on Ko-fi
-  // (@abstractclass/site/KofiPrivacy.svelte). The page says what the site does now. The work that adds a request or a
-  // stored game adds its part here: the request to api.playtak.com that the site's Function makes for a game by its
-  // number, the games in an address, and Practice's stored games (design 34, "The pages").
+  // (@abstractclass/site/KofiPrivacy.svelte). The page says what the site does now. The request to
+  // api.playtak.com is the Function's (src/lib/import/playtakProxy.ts), for a game by its number. The work that adds a
+  // stored game adds its part here: Practice's stored games (design 34, "The pages").
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import KofiPrivacy from "@abstractclass/site/KofiPrivacy.svelte";
@@ -22,6 +22,22 @@
   <h2>What your browser keeps</h2>
   <p>Your browser keeps your settings and your choices, such as the theme. They stay in this browser on this computer.
     To delete them, clear this site's data in your browser's settings.</p>
+
+  <h2>Games that you import</h2>
+  <ul>
+    <li><strong>A game by its number.</strong> Your browser sends the number to this site. A small program of the site, on
+      Cloudflare's servers, asks playtak's server (<code>api.playtak.com</code>) for the game and gives it to your
+      browser. The request to playtak holds the number and the name of this site, and nothing about you or your browser.
+      Cloudflare can keep a copy of the game for a day. The program keeps no log.</li>
+    <li><strong>A record or a link of PTN Ninja that you paste.</strong> Your browser reads it. The site sends it to no
+      server.</li>
+    <li><strong>A game in an address.</strong> A link to the import page can hold a game, or its number, after the
+      <code>#</code>. Your browser sends that part of an address to no server. The page takes the game out of its address
+      before it counts the visit.</li>
+    <li><strong>Open in PTN Ninja.</strong> This link holds the game in its address. When you open it, ptn.ninja receives
+      the game.</li>
+  </ul>
+  <p>The site does not keep the games that you import.</p>
 
   <h2>Visits</h2>
   <ul>

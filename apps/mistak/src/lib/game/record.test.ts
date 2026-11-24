@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { komiLimit } from "./komi.ts";
-import { markFlattenings, openingOf, parseRecord, RecordError, startOf, writeRecord } from "./record.ts";
+import { markFlattenings, openingOf, parseRecord, RecordError, startOf, takeRecord, turnsOf, writeRecord } from "./record.ts";
 
 const refused = (text: string): [string, number] => {
   try { parseRecord(text); } catch (e) { assert.ok(e instanceof RecordError, String(e)); return [e.message, e.offset]; }
@@ -226,14 +226,14 @@ test("the reserve: a tag that names the size's own is taken, and any other is an
     assert.deepEqual(parseRecord(`[Size "${size}"]\n${counts}\n\n1. a1`).moves, ["a1"], size);
     for (const player of ["", "1", "2"]) {
       const more = `[Size "${size}"]\n[Flats${player} "${flats + 1}"]\n\n1. a1`;
-      assert.deepEqual(refused(more), [`the Flats${player} tag must be ${flats}, each player's stones on ${size}x${size}: ${flats + 1}`, 11]);
+      assert.deepEqual(refused(more), [`the Flats${player} tag must be ${flats}, each player's stones on ${size} × ${size}: ${flats + 1}`, 11]);
       assert.equal(refused(`[Size "${size}"]\n[Caps${player} "${caps + 1}"]\n\n1. a1`)[0],
-        `the Caps${player} tag must be ${caps}, each player's capstones on ${size}x${size}: ${caps + 1}`);
+        `the Caps${player} tag must be ${caps}, each player's capstones on ${size} × ${size}: ${caps + 1}`);
     }
   }
-  assert.equal(refused('[Size "6"]\n[flats "no"]\n\n1. a1')[0], "the Flats tag must be 30, each player's stones on 6x6: no");
+  assert.equal(refused('[Size "6"]\n[flats "no"]\n\n1. a1')[0], "the Flats tag must be 30, each player's stones on 6 × 6: no");
   // The size is the TPS tag's too, and an empty tag names nothing.
-  assert.equal(refused('[TPS "x5/x5/x5/x5/x5 1 1"]\n[Flats "30"]\n\n1. a1')[0], "the Flats tag must be 21, each player's stones on 5x5: 30");
+  assert.equal(refused('[TPS "x5/x5/x5/x5/x5 1 1"]\n[Flats "30"]\n\n1. a1')[0], "the Flats tag must be 21, each player's stones on 5 × 5: 30");
   assert.deepEqual(parseRecord('[Size "6"]\n[Flats "?"]\n[Caps ""]\n\n1. a1').moves, ["a1"]);
 });
 
@@ -247,4 +247,60 @@ test("a tag's value has no escapes: a quote is written as two apostrophes", () =
   const text = writeRecord({ tags: { Size: "6", Player1: 'Ann "A" Example' }, moves: ["a1"], marked: [false], result: null });
   assert.equal(text, '[Player1 "Ann \'\'A\'\' Example"]\n[Size "6"]\n\n1. a1 *\n');
   assert.equal(parseRecord('[Size "6"] [Event "a \\ b"] 1. a1').tags.Event, "a \\ b");
+});
+
+// The import's reader (takeRecord): what the network does not learn. Each case gives the record's tags.
+const notTaken = (tags: string): string => {
+  const text = `${tags}\n\n1. a1 b2 *\n`;
+  try { takeRecord(text); } catch (e) { assert.ok(e instanceof RecordError, String(e)); return e.message; }
+  assert.fail(`taken: ${tags}`);
+};
+
+test("the import takes 5x5 and 6x6 with the swap opening, a komi in the size's range, and the size's own reserve", () => {
+  for (const tags of ['[Size "5"]', '[Size "6"]', '[Size "5"]\n[Komi "3"]', '[Size "6"]\n[Komi "-5"]', '[Size "6"]\n[Komi "2.5"]',
+                      '[Size "6"]\n[Opening "swap"]', '[Size "6"]\n[Flats "30"]\n[Caps "1"]', '[Size "5"]\n[Flats "21"]\n[Caps "1"]',
+                      '[TPS "x6/x6/x6/x6/x6/x6 1 1"]'])
+    assert.deepEqual(takeRecord(`${tags}\n\n1. a1 b2 *\n`).moves.map(String), parseRecord(`${tags}\n\n1. a1 b2 *\n`).moves.map(String), tags);
+});
+
+test("the import takes a record with the result * and with none", () => {
+  assert.equal(takeRecord('[Size "6"]\n[Result "*"]\n\n1. a1 b2 *\n').result, "*");
+  assert.equal(takeRecord('[Size "6"]\n\n1. a1 b2\n').result, null);
+});
+
+test("the import refuses a size that the network does not learn", () => {
+  const why = "the engine learned the sizes 5 × 5 and 6 × 6 only, so the site does not take a game of another size";
+  for (const size of [3, 4, 7, 8]) assert.equal(notTaken(`[Size "${size}"]`), `${why}: ${size}`);
+  assert.equal(notTaken('[TPS "x4/x4/x4/x4 1 1"]'), `${why}: 4`);
+});
+
+test("the import refuses an opening that the network does not learn", () => {
+  const why = "the engine learned the swap opening only, so the site does not take a game with another opening";
+  assert.equal(notTaken('[Size "6"]\n[Opening "no-swap"]'), `${why}: no-swap`);
+  assert.equal(notTaken('[Size "6"]\n[Opening "double black stack"]'), `${why}: double black stack`);
+});
+
+test("the import refuses a komi out of the size's range", () => {
+  assert.match(notTaken('[Size "5"]\n[Komi "3.5"]'), /Komi tag must be from -3 to 3 flats: 3\.5$/);
+  assert.match(notTaken('[Size "6"]\n[Komi "-5.5"]'), /Komi tag must be from -5 to 5 flats: -5\.5$/);
+});
+
+test("the import refuses another reserve", () => {
+  assert.equal(notTaken('[Size "6"]\n[Flats "20"]'), "the Flats tag must be 30, each player's stones on 6 × 6: 20");
+  assert.equal(notTaken('[Size "5"]\n[Caps2 "0"]'), "the Caps2 tag must be 1, each player's capstones on 5 × 5: 0");
+});
+
+test("of several refusals the import names the size first, then the opening, the reserve and the komi", () => {
+  const size = '[Size "8"]', six = '[Size "6"]', opening = '[Opening "no-swap"]', flats = '[Flats "9"]', komi = '[Komi "9"]';
+  assert.match(notTaken([komi, flats, opening, size].join("\n")), /another size/);
+  assert.match(notTaken([komi, flats, opening, six].join("\n")), /another opening/);
+  assert.match(notTaken([komi, flats, six].join("\n")), /Flats tag/);
+  assert.match(notTaken([komi, six].join("\n")), /Komi tag/);
+});
+
+test("the turns of a record: a turn with one move, and Black's move first from a set-up start", () => {
+  assert.deepEqual(turnsOf(parseRecord('[Size "6"]\n\n1. a1 f6\n2. b1\n')),
+                   [{ number: 1, white: "a1", black: "f6" }, { number: 2, white: "b1", black: null }]);
+  assert.deepEqual(turnsOf(parseRecord('[TPS "x6/x6/x6/x6/x6/2,x4,1 2 2"]\n\n2. -- b2\n3. c3\n')),
+                   [{ number: 2, white: null, black: "b2" }, { number: 3, white: "c3", black: null }]);
 });

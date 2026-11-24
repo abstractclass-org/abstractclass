@@ -32,14 +32,15 @@
   // the package's (notices.spec.ts compares both with node_modules/onnxruntime-web).
   const ORT_VERSION = "1.30.0";
   // `gpu`: the site ships the engine, and so ONNX Runtime Web with it. A site with no engine yet ships neither.
-  let { gpu }: { gpu: boolean } = $props();
+  // `libraries`: the libraries under the MIT licence that one site's pages ship and the others' do not.
+  let { gpu, libraries = [] }: { gpu: boolean; libraries?: [name: string, href: string, copyright: string][] } = $props();
   const ORT_COPYRIGHT = "Copyright (c) Microsoft Corporation. All rights reserved.";
 </script>
 
 <h2>The pages</h2>
 <p>These libraries are under the MIT licence, with their own copyright lines:</p>
 <ul>
-  {#each MIT as [name, href, copyright] (name)}<li><a {href}>{name}</a>: {copyright}.</li>{/each}
+  {#each [...MIT, ...libraries] as [name, href, copyright] (name)}<li><a {href}>{name}</a>: {copyright}.</li>{/each}
 </ul>
 
 {#if gpu}

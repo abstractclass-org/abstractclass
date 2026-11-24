@@ -28,7 +28,8 @@ const pagePaths = (dir: URL, path = ""): string[] =>
 
 test("the sitemap lists each page that a visitor opens, at the live address", async () => {
   const listed = [...(await GET().text()).matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1]);
-  // The lab's pages are for the site's own work.
-  const opened = pagePaths(new URL("../routes/", import.meta.url)).filter(p => !p.startsWith("/lab/"));
+  // The lab's pages are for the site's own work, and the import page is a step on the way to a game.
+  const opened = pagePaths(new URL("../routes/", import.meta.url))
+    .filter(p => !p.startsWith("/lab/") && p !== "/import");
   assert.deepEqual(listed.sort(), opened.map(p => `${SITE_ORIGIN}${p}`).sort());
 });

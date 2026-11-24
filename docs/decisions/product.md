@@ -13190,3 +13190,35 @@ The logo, its files and how each is made are in design 33, "The logo".
 - **Lichess** shows no win chance as text (ui/lib/src/ceval/view/main.ts: the evaluation is in pawns or as a mate, and
   the gauge has no title or aria-label), so it gives no text for this. The aria text and the tooltips say the same words
   as the page.
+
+### Mistak: a playtak game by its id, pasted PTN and a ptn.ninja link (2026-11-25)
+
+- **What:** the Import dialog, the import page, the Function and the refusals by the tags
+  ([design/34-tak-site.md](../design/34-tak-site.md), item 10 and "The check of CORS", abscls-shfz.18.7).
+- **The refusals' order:** a record that does not read, then the size, the opening, the reserve (the `Flats` and
+  `Caps` tags) and the komi. The komi is last because the shared reader checks it after the site's tags. A size that
+  the network did not learn is refused as a size. It has no komi range to check.
+- **Four points of the Function that the design does not give:** a redirect from playtak gives 502 and is not followed.
+  An answer that is not `text/plain` or `application/json` goes out as `text/plain` with `nosniff`, so that a page in
+  its place cannot run on the site's address. A number has 1 to 10 digits and no 0 first. The request ends after 8
+  seconds.
+- **A short link of PTN Ninja** (`ptn.ninja/s/…`) is refused with a reason: reading it needs a request to ptn.ninja.
+- **A record with a TPS tag** is taken, as items 7 and 9 allow a start. The page shows the tag and draws no position:
+  the rules that make one are the engine's.
+- **`startTags` and `withStartTag` are not used here,** so their TPS form stays for the ticket that writes a start.
+- **`#playtak=` is read in Mistak's own page,** so that `packages/import` stays as it is while other work waits for the
+  shared packages. The tools' ticket (abscls-shfz.18.21) moves it.
+- **No import event is counted yet:** the review is what an import leads to, and it does not exist.
+- **The link "View this game on playtak"** is `https://playtak.com/games/<number>/playtakviewer`. playtak.com's deployed
+  script (`games/assets/index-eGvauFXg.js`, read on 2026-11-25) has the case `playtakviewer` for that path, gets the
+  game and goes to `playtak.com/?load=<PTN>`. The server answers 200 with the same page for any path, so a status alone
+  proves nothing.
+- **A refusal's colour:** the message has the text's colour and the box a red border. The shared red gives 4.13:1 on the
+  light page, under 4.5:1 for small text, and the review's darker red comes with the review's style, which Mistak does
+  not load yet.
+- **lz-string (MIT)** reads and writes ptn.ninja's links. `packages/site`'s notices page took an optional list of one
+  site's own libraries. With no list, its HTML is the same as before with Hedge School's and with Cyanotype's lock.
+- **Open:** what an accepted record leads to before the review, one box for the three ways, and the way in on the site
+  (a button on the home page). They are built as proposed, and the choice is not made.
+- **Not checked here:** the Function on Cloudflare, and a game fetched by its id from a preview in a real browser. The
+  browser's checks used a fake answer. No request was made to playtak's API.

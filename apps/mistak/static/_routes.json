@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "include": ["/relay/*"],
+  "include": ["/api/*", "/relay/*"],
   "exclude": []
 }

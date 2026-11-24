@@ -19,7 +19,7 @@
   import { PROSE } from "./prose.ts";
 
   interface Lock { repository: string; artifacts: { id: string; kind: string; file: string; dir?: string }[] }
-  let { site, copyright, engine, lock, sounds }: {
+  let { site, copyright, engine, lock, sounds, libraries }: {
     /** The site's name. */
     site: string;
     /** The holder's copyright of the site, the engine and its networks. */
@@ -31,6 +31,8 @@
     lock?: Lock;
     /** The list items of the sounds that the site ships, if any. */
     sounds?: Snippet;
+    /** The libraries under the MIT licence that this site's pages ship and the others' do not, if any. */
+    libraries?: [name: string, href: string, copyright: string][];
   } = $props();
 
   /** The address of the lock's file of this kind, which the site serves beside the modules, by fetch-engine.mjs's rule.
@@ -83,7 +85,7 @@
   </ul>
   {/if}
 
-  <LibraryNotices gpu={lock !== undefined} />
+  <LibraryNotices {libraries} gpu={lock !== undefined} />
 
   <h2>{sounds ? "An icon and the sounds" : "An icon"}</h2>
   <ul>

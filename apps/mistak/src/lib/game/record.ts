@@ -3,9 +3,9 @@
 // tags. A record names its board by its `Size` tag or by a set-up start's `TPS` tag.
 //
 // The reader checks the notation, not the rules: the engine checks that each move is legal and that its `*` is true, and
-// the import refuses a size, an opening or a komi that the network does not learn.
+// the import refuses a size, an opening or a komi that the network does not learn (takeRecord).
 import * as shared from "@abstractclass/record/record.ts";
-import { komiLimit } from "./komi.ts";
+import { komiLimit, TRAINED_SIZES } from "./komi.ts";
 import { readMove } from "./notation.ts";
 import { emptyBoard, readPosition, setUpStart, writePosition } from "./tps.ts";
 export { RecordError } from "@abstractclass/record/record.ts";
@@ -54,14 +54,19 @@ function reservesProblem(tags: Record<string, string>, size: number): { tag: str
     for (const player of ["", "1", "2"]) {
       const tag = kind + player, count = value(tags, tag);
       if (count !== null && Number(count) !== own)
-        return { tag, problem: `the ${tag} tag must be ${own}, each player's ${what} on ${size}x${size}` };
+        return { tag, problem: `the ${tag} tag must be ${own}, each player's ${what} on ${size} × ${size}` };
     }
   }
   return null;
 }
 
-/** What is wrong with a record's tags. */
-function tagsProblem(tags: Record<string, string>): { tag: string | null; problem: string } | null {
+/** The trained sizes in words. */
+const SIZES = TRAINED_SIZES.map(n => `${n} × ${n}`).join(" and ");
+
+/** What is wrong with a record's tags. `trained`: the game must be of a size and an opening that the network learns. A
+ *  problem that makes the record unreadable comes first, then the size, the opening and the reserve: on a size that the
+ *  site does not take, the reserve says nothing. The komi comes last (the shared reader checks it after these). */
+function tagsProblem(tags: Record<string, string>, trained: boolean): { tag: string | null; problem: string } | null {
   const size = value(tags, "Size"), tps = value(tags, "TPS");
   if (value(tags, "Position") !== null) return { tag: "Position", problem: "a Tak record gives its start in a TPS tag, not in a Position tag" };
   if (size !== null && !/^[3-8]$/.test(size)) return { tag: "Size", problem: "the Size tag must be a number from 3 to 8" };
@@ -73,7 +78,14 @@ function tagsProblem(tags: Record<string, string>): { tag: string | null; proble
       return { tag: "Size", problem: `the Size tag is not the size of the TPS tag's board (${position.size})` };
     side = position.size;
   } else if (size === null) return { tag: null, problem: "the record must have a Size tag, such as [Size \"6\"]" };
-  if (openingOf(tags) === null) return { tag: "Opening", problem: `the Opening tag must be one of ${OPENINGS.join(", ")}` };
+  const opening = openingOf(tags);
+  if (opening === null) return { tag: "Opening", problem: `the Opening tag must be one of ${OPENINGS.join(", ")}` };
+  if (trained && !TRAINED_SIZES.includes(side)) {
+    const problem = `the engine learned the sizes ${SIZES} only, so the site does not take a game of another size`;
+    return size === null ? { tag: null, problem: `${problem}: ${side}` } : { tag: "Size", problem };
+  }
+  if (trained && opening !== "swap")
+    return { tag: "Opening", problem: "the engine learned the swap opening only, so the site does not take a game with another opening" };
   return reservesProblem(tags, side);
 }
 
@@ -111,16 +123,40 @@ const moveNotation: shared.Notation<boolean> = {
   ptn: {
     result: readResult,
     tagName: name => [...TAGS, "Position"].find(tag => tag.toLowerCase() === name.toLowerCase()) ?? name,
-    tagsProblem,
+    tagsProblem: tags => tagsProblem(tags, false),
   },
 };
 
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */
 export const parseRecord = (text: string): GameRecord => shared.readRecord(text, moveNotation);
 
+/** The same notation, for a game that comes in. */
+const takenNotation: shared.Notation<boolean> = {
+  ...moveNotation, ptn: { ...moveNotation.ptn!, tagsProblem: tags => tagsProblem(tags, true) },
+};
+
+/** Reads a game record that comes in (the import). Throws a RecordError as parseRecord does, and for a size or an
+ *  opening that the network does not learn: the engine gives no true values for such a game. */
+export const takeRecord = (text: string): GameRecord => shared.readRecord(text, takenNotation);
+
 /** Adds `*` to every flattening that has none yet. `flattens` is by move, from the engine. */
 export const markFlattenings = (text: string, record: GameRecord, flattens: boolean[]): string =>
   shared.markMoves(text, record, flattens, moveNotation);
+
+/** A turn of a record as it is written: its number, and each player's move, null where the record has none (Black's
+ *  move comes first from a set-up start, and the last turn can have White's alone). */
+export interface Turn { number: number; white: string | null; black: string | null }
+
+/** The turns of a record, in its moves' one spelling. */
+export function turnsOf({ tags, moves, marked }: Pick<GameRecord, "tags" | "moves" | "marked">): Turn[] {
+  const { turn, first } = startTurn(tags);
+  const written: (string | null)[] = moves.map((move, i) => (i === 0 && opensWithStack(tags) ? "2" : "") + move + (marked[i] ? "*" : ""));
+  if (!first) written.unshift(null);
+  const turns: Turn[] = [];
+  for (let i = 0; i < written.length; i += 2)
+    turns.push({ number: turn + i / 2, white: written[i], black: written[i + 1] ?? null });
+  return turns;
+}
 
 /** Writes a game record: its tags in PTN's order, then a line for each number, with the result after the last move. The
  *  `Result` tag is the result's, and a game with no result has none, as ptn.ninja takes no `*` there. A tag's value
@@ -132,10 +168,7 @@ export function writeRecord({ tags, moves, marked, result }: Pick<GameRecord, "t
   const names = [...TAGS.filter(name => name in all), ...Object.keys(all).filter(name => !TAGS.includes(name))];
   const head = names.map(name => `[${name} "${all[name].replaceAll('"', "''")}"]`).join("\n");
 
-  const { turn, first } = startTurn(tags);
-  const written = moves.map((move, i) => (i === 0 && opensWithStack(tags) ? "2" : "") + move + (marked[i] ? "*" : ""));
-  if (!first) written.unshift("--"); // Black's move comes first
-  const lines: string[] = [];
-  for (let i = 0; i < written.length; i += 2) lines.push(`${turn + i / 2}. ${written.slice(i, i + 2).join(" ")}`);
+  const lines = turnsOf({ tags, moves, marked }).map(({ number, white, black }) =>
+    `${number}. ${[white ?? "--", ...(black === null ? [] : [black])].join(" ")}`);
   return `${head}\n\n${lines.join("\n")} ${result ?? "*"}\n`;
 }

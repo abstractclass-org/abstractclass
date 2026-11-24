@@ -631,8 +631,16 @@ the shared `CLOUDFLARE_ACCOUNT_ID`, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN`, and 
 - **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, and a year's cache
   for the build's hashed files. `static/robots.txt` names its sitemap.
 - **Its 404 page,** `404.html`, from the build (`vite.config.ts`).
-- **Its Function,** on its path only (`static/_routes.json`): `/relay/` passes PostHog's requests on to PostHog, as
-  Hedge School's does (section 4). Previews have no PostHog key, so their pages send nothing to it.
+- **Its Functions,** on their paths only (`static/_routes.json`):
+  - `/relay/` passes PostHog's requests on to PostHog, as Hedge School's does (section 4). Previews have no PostHog
+    key, so their pages send nothing to it.
+  - `/api/playtak/ptn/<number>` (`functions/api/playtak/[[path]].ts`) gives the PTN of a finished playtak game, because
+    playtak's API refuses a request from the site's pages
+    ([design 34](design/34-tak-site.md), "The check of CORS"). The handler is `src/lib/import/playtakProxy.ts`. It takes
+    that path and the method GET only, sends playtak the number and none of the browser's headers, and keeps a 200
+    answer for a day in Cloudflare's cache, which does nothing on a pages.dev address. It needs no setting, no secret
+    and no binding. Each import of a game by its number runs it once, and counts against the account's Functions quota,
+    as the proxy's requests do (section 4).
 - **No analytics on the previews, no address and no link:** until the launch, the site has no PostHog key and no
   Web Analytics token (the job gives them to `main` only), no domain, and no link from the hub or from the other
   sites ([design 34](design/34-tak-site.md), "How the site stays unlaunched").
