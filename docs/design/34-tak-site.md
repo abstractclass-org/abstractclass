@@ -1,6 +1,7 @@
 # Mistak, the Tak site: a plan, on Hedge School's and Cyanotype's design
 
-**Status:** proposed. The site's shell is built (abscls-shfz.18.4): `apps/mistak`, unlaunched.
+**Status:** proposed. Built: the site's shell (abscls-shfz.18.4), `apps/mistak`, unlaunched, and PTN's moves and records
+and TPS (abscls-shfz.18.5).
 **Planned:** 2026-11-23 (abscls-teoc). **Revised:** 2026-11-23 (abscls-shfz.18.1).
 **Scope:** every feature of Hedge School and of Cyanotype, unless a fact blocks it ("The rules of this work").
 
@@ -113,7 +114,10 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    stored results key on it (design 29, item 2). The written form is the short one, the form to which ptn.ninja
    normalizes a move (`research/ptn-ninja.md`, 5.6): no `F`, no count of 1, and no drops when all the stones go to the
    next square (`a1`, `c3>`, `3b2+12`). PTN allows each of these omissions (5.2). The reader takes every spelling that
-   ptn.ninja and playtak's export write, the explicit 1s too (`1e4<1`), and reads it as the short form. The engine
+   ptn.ninja and playtak's export write, the explicit 1s too (`1e4<1`), and reads it as the short form. It refuses a
+   move whose drops are not the stones that it takes (`3c3>11`), which ptn.ninja changes silently. It also refuses the
+   PTN page's arrows and the top stone's letter after a stack move (`a1>C`), which neither of the two writes. The
+   double black stack's first move is `a1`, as ptn.ninja and the engine name it. A record writes it `2a1`. The engine
    request settles the form with the engine repository.
 5. **The marks.** The writer writes `*` on a flattening, as the PTN page "most strongly" recommends. The reader
    refuses a `*` that the move does not confirm, as Cyanotype's reader refuses a capture mark. It reads `'` and `"`,
@@ -122,6 +126,8 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
 6. **The record is a PTN file,** with ptn.ninja's extensions where PTN has no form of its own.
    - **The tags:** `Size`, `Komi`, `Opening`, `Player1`, `Player2`, `Rating1`, `Rating2`, `Date`, `Result`, `Site`,
      `PlayTakID`, and `TPS` for a set-up start, in the place of Hedge School's `Position` tag.
+     The writer writes no `Result` tag for a game with no result, because ptn.ninja takes no `*` there. The `*` ends
+     the moves.
    - **The turns** are PTN's: `1. a1 f6`, a number for each pair of plies, as PGN numbers chess. The review judges
      each ply: a game of one move a turn (design 29, item 2).
    - **The variations:** ptn.ninja's branches (`{3w1}`), so that ptn.ninja opens the annotated record.
@@ -140,12 +146,14 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    values for a size or an opening that it did not learn, so its labels there would mislead. Takana reviews the
    double black stack opening too, and the site refuses it until the engine trains it. Each site's
    `scripts/engine.mjs` gives its komi limit, its record's `MAX_RECORD_KOMI`, to the engine step (`fetchEngine`).
-   Tak's limit depends on the size. So each check of a komi (the record's reader, a board's link, an analysis file, the
-   board kept in the browser) takes a limit by the start (`KomiLimit`, `packages/record/src/record.ts`), and the
-   record's reader checks the `Komi` tag once the tags end, so that the `Size` tag can come after it. The engine
-   step needs no limit for each size: the engine's cap is one number for every size (`Rules::MAX_USER_KOMI`), and
-   each size's trained range lies within it. Each new size or opening that the engine learns is a new release of the
-   site.
+   Tak's limit depends on the size. One table holds each size's limit (`apps/mistak/src/lib/game/komi.ts`), behind the
+   record's check by its tags and a board's check by its start. Its values are provisional until a release names its
+   range: the farthest komi mean of the size and three standard deviations (3 flats on 5x5 and 5 on 6x6). So each check
+   of a komi (the record's reader, a board's link, an analysis file, the board kept in the browser) takes a limit by the
+   start (`KomiLimit`, `packages/record/src/record.ts`), and the record's reader checks the `Komi` tag once the tags
+   end, so that the `Size` tag can come after it. The engine step needs no limit for each size: the engine's cap is one
+   number for every size (`Rules::MAX_USER_KOMI`), and each size's trained range lies within it. Each new size or
+   opening that the engine learns is a new release of the site.
 9. **Unfinished games, as on Hedge School.**
    - **The import and the review** take a record whose result is `*`, and review it as any game (design 21, item 8).
    - **The Analysis board** starts from any position, as on Hedge School (design 21): a game, the standard start of
@@ -464,8 +472,15 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
      by"). Practice's move list is not part of this: it takes its rows from its site.
 4. **A record in a format that the game's community owns.** The record package's frame is Hedge School's form, with
    each game's moves as a parameter. PTN is close to it (tags, numbered moves, comments, results). Its branches and
-   its notes are ptn.ninja's. The work checks first whether the record package takes PTN's parts as parameters, or
-   whether Tak's reader and writer stay the site's own.
+   its notes are ptn.ninja's. The check of the package (abscls-shfz.18.5):
+   - **It took already** the moves, the game's mark, the start and the komi's limit as parameters.
+   - **It did not take** the results, the tags' form (no escapes, names in any case, no roster), two moves a number,
+     the branches, the placeholder `--`, and a game with no pass.
+   - **So the reader stays the shared one, with PTN's form as a parameter** (`Notation`'s `ptn`, and `komiWords` for
+     the komi's unit). The reader notes each text for the error reports, and one reader must read every record
+     (`texts.test.ts`). A game without `ptn` reads as before.
+   - **The writer is Mistak's own** (`apps/mistak/src/lib/game/record.ts`): the package's writer writes Hedge School's
+     tags and its turns on one line.
 5. **A game fetched by its id** from a play site's API. It stays the site's own part, as each page reader is. The
    import's frame (`readImportHash`, the import's events) takes it as a new way in.
 
@@ -761,6 +776,11 @@ This document is the plan. The engine's plan is in the engine repository's `game
   (`docs/hosting.md`, section 10). The site ships no engine yet, so its notices page and its check of a deployed site
   have no engine's parts, and its engine lock's exceptions name the issues that bring each part. The Pages project is
   the owner's step.
+- **PTN's moves and records, and TPS** (ticket 3, abscls-shfz.18.5): `apps/mistak/src/lib/game`. `notation.ts` reads a
+  move, `record.ts` reads and writes a record and gives its start and its opening, `tps.ts` reads and writes a position,
+  and `komi.ts` holds each size's komi limit. The reader is the shared one, in PTN's form. It reads the main line, and
+  does not read the branches, the engine notes or the clocks. Writing branches and notes is ticket 11. The refusals of
+  a size, an opening and a komi before the review are ticket 5. The engine's check of a `*` is ticket 9.
 - **The rest** of "The tickets proposed" is not built.
 
 ## Log

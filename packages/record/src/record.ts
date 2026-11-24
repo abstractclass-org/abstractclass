@@ -14,6 +14,10 @@
 // `Komi` tag's: the game's starting score (GameRecord `komi`), which the review searches at, within the game's limit
 // (Notation `maxKomi`).
 //
+// A record form that a game's community owns, PTN (Tak's, Mistak's design 34, item 6), is read here too, in place of
+// Hedge School's form: the game gives PTN's own parts (Notation `ptn`), and this reader reads PTN's numbers (two moves
+// each), its branches and its placeholder. Without `ptn`, nothing of PTN's form is read.
+//
 // The reader notes each tag's value and each comment's text for the error reports (texts.ts). It is the one code that
 // reads a record's text, so every page that reads a record notes them (texts.test.ts checks that no other code reads a
 // tag's value).
@@ -23,11 +27,31 @@ import { noteText } from "./texts.ts";
  *  starts (the word's length when it has none), so that a mark can be written there (markMoves). */
 export interface ReadMove<Mark> { name: string; mark: Mark; markAt: number }
 
+/** Where a word is in the record: its tags, which have ended, and whether the word gives the record's first move. */
+export interface Place { tags: Record<string, string>; first: boolean }
+
+/** PTN's parts that a game gives (Notation `ptn`). The rest of PTN's form is this reader's:
+ *  - a number for each two moves, which the second move can repeat (`1... b`, `1. -- b`), as ptn.ninja reads it. A list
+ *    of moves with no numbers reads too,
+ *  - ptn.ninja's branches: a comment after a blank line, before a number that is not the next move's, is the name of a
+ *    branch (`{3w1}`). The main line ends there, and a branch can follow the result,
+ *  - no pass, no variations in ( ), no `[%eval]` or `[%clk]`, and no escapes in a tag's value. */
+export interface Ptn {
+  /** The result that a word or the `Result` tag's value gives, in its one spelling, or null for a word that is not a
+   *  result. `*` is the record's end with no result. */
+  result(word: string): string | null;
+  /** A tag's name in its one spelling: PTN's names are case-insensitive. */
+  tagName(name: string): string;
+  /** What is wrong with the tags once they end, and the tag it is about (null: the tags as a whole), or null. Its
+   *  message comes before the komi's limit. */
+  tagsProblem(tags: Record<string, string>): { tag: string | null; problem: string } | null;
+}
+
 /** What a game gives the record about its moves. */
 export interface Notation<Mark> {
   /** The move of a word without its quality mark (never a pass), or what is wrong with the word. The reader adds the
    *  word to the text: "not a move, a turn label or a result: Z1-A1". */
-  read(word: string): ReadMove<Mark> | string;
+  read(word: string, place: Place): ReadMove<Mark> | string;
   /** A mark as the record writes it: "" for none. */
   mark(mark: Mark): string;
   /** The mark of a move that has none, and of a pass. */
@@ -42,6 +66,11 @@ export interface Notation<Mark> {
    *  tags (KomiLimit), and the reader checks the komi when the tags end, so that a size's tag can come after it.
    *  Without it, the reader takes any komi that a tag can give (KOMI). */
   maxKomi?: KomiLimit<Record<string, string>>;
+  /** What the game calls its komi's unit, and a komi as an example, for the messages about a `Komi` tag. Without it:
+   *  points. */
+  komiWords?: { unit: string; example: string };
+  /** The record's form is PTN, not Hedge School's. */
+  ptn?: Ptn;
 }
 
 /** A game's komi limit, either way, as a check of a komi takes it: one number, or the limit at each start, for a game
@@ -106,15 +135,15 @@ export const isKomi = (n: unknown): n is number => typeof n === "number" && komi
 
 /** A game's komi limit `max` (Notation's `maxKomi`) as the site writes its numbers, with thousands separated (the
  *  Practice card's "-3,000 to 3,000"): "from -5,052 to 5,052 points". */
-export const komiRange = (max: number): string =>
-  `from ${(-max).toLocaleString("en")} to ${max.toLocaleString("en")} points`;
+export const komiRange = (max: number, unit = "points"): string =>
+  `from ${(-max).toLocaleString("en")} to ${max.toLocaleString("en")} ${unit}`;
 
 /** Why a komi is beyond the game's limit `max`, either way, or null within it: the record's limit, beyond which the
  *  game's analysis module gives numbers that mean nothing. `shown` is the komi as its source writes it, and `what`
  *  names the source: "the Komi tag" for a record and a board's link, which carry it as a tag. "the Komi tag must be
  *  from -5,052 to 5,052 points: 6000". */
-export const komiLimitProblem = (komi: number, max: number, shown: string | number, what = "the Komi tag"): string | null =>
-  Math.abs(komi) > max ? `${what} must be ${komiRange(max)}: ${shown}` : null;
+export const komiLimitProblem = (komi: number, max: number, shown: string | number, what = "the Komi tag", unit = "points"): string | null =>
+  Math.abs(komi) > max ? `${what} must be ${komiRange(max, unit)}: ${shown}` : null;
 
 /** The tags of a game's start, in their order: its set-up start's `Position` tag, then its komi's `Komi` tag, each only
  *  where the game has one. No `Komi` tag at 0, so that such a game's record is as it was before the komi. */
@@ -137,16 +166,17 @@ type Token = { kind: "tag"; name: string; value: string; at: number }
   | { kind: "close"; at: number }
   | { kind: "word"; text: string; at: number };
 
-function tokenize(text: string): Token[] {
+function tokenize(text: string, ptn: boolean): Token[] {
   const tokens: Token[] = [];
   let i = 0;
   while (i < text.length) {
     const c = text[i];
     if (/\s/.test(c)) { i++; continue; }
     if (c === "[") {
-      const m = /^\[\s*([A-Za-z][A-Za-z0-9_]*)\s+"((?:[^"\\]|\\.)*)"\s*\]/.exec(text.slice(i));
+      const m = (ptn ? /^\[\s*([A-Za-z][A-Za-z0-9_]*)\s*"([^"]*)"\s*\]/
+        : /^\[\s*([A-Za-z][A-Za-z0-9_]*)\s+"((?:[^"\\]|\\.)*)"\s*\]/).exec(text.slice(i));
       if (!m) throw new RecordError("a tag must look like [Name \"value\"]", i);
-      const value = m[2].replace(/\\(.)/g, "$1");
+      const value = ptn ? m[2] : m[2].replace(/\\(.)/g, "$1");
       tokens.push({ kind: "tag", name: m[1], value, at: i });
       noteText(value); // for the error reports (texts.ts), as is each comment's text
       i += m[0].length;
@@ -157,11 +187,11 @@ function tokenize(text: string): Token[] {
       tokens.push({ kind: "comment", text: comment, at: i });
       noteText(comment);
       i = end + 1;
-    } else if (c === "(" || c === ")") {
+    } else if (!ptn && (c === "(" || c === ")")) {
       tokens.push(c === "(" ? { kind: "open", at: i } : { kind: "close", at: i });
       i++;
     } else {
-      const m = /^[^\s{}()[\]]+/.exec(text.slice(i))!;
+      const m = (ptn ? /^[^\s{[]+/ : /^[^\s{}()[\]]+/).exec(text.slice(i))!;
       // A turn label can touch its first move: "1.A10-D10".
       const label = /^\d+(?:\.\.\.|\.)/.exec(m[0]);
       const word = label && label[0].length < m[0].length ? label[0] : m[0];
@@ -179,20 +209,92 @@ function readCommands<Mark>(comment: string, record: GameRecord<Mark>, move: num
   if (clk) record.clocks[move] = clk[1];
 }
 
+/** The result that a `Result` tag's value claims, in PTN's form: null for none (PGN's `?` and `-`, or no result yet),
+ *  and undefined for a value that is not a result. */
+function resultTag(ptn: Ptn, value: string | undefined): string | null | undefined {
+  const v = value?.trim() ?? "";
+  if (v === "" || v === "?" || v === "-") return null;
+  const result = ptn.result(v);
+  return result === null ? undefined : result === "*" ? null : result;
+}
+
+/** A PTN record's numbers, its placeholder and its branches (Ptn), for a reader that fills `record`. */
+function readPtnTurns<Mark>(record: GameRecord<Mark>, notation: Notation<Mark>) {
+  let numbered = false, labelled = -1, placeholder = false;
+  let start: { turn: number; first: boolean } | undefined; // the first move's, once the tags have ended
+  // The number of the next move, and whether it is the first player's.
+  const next = () => {
+    start ??= notation.start?.(record.tags) ?? { turn: 1, first: true };
+    const ply = (start.first ? 0 : 1) + record.moves.length;
+    return { number: start.turn + Math.floor(ply / 2), first: ply % 2 === 0 };
+  };
+  return {
+    /** Whether `comment` is the name of a branch (Ptn), by the two tokens after it. The first player's move in a number
+     *  that the main line has opened is a branch's too: the main line would write the second player's. */
+    branches(text: string, comment: Token & { kind: "comment" }, after?: Token, then?: Token): boolean {
+      if (!record.moves.length || after?.kind !== "word" || !/\n[ \t\r]*\n\s*$/.test(text.slice(0, comment.at))) return false;
+      const turn = TURN.exec(after.text), { number, first } = next();
+      const second = turn?.[2] === "..." || (then?.kind === "word" && then.text === "--");
+      return turn !== null && (Number(turn[1]) !== number || (!first && !second));
+    },
+    /** Whether the word is a number or the placeholder, which it reads. */
+    reads(word: string, at: number): boolean {
+      const turn = TURN.exec(word), { number, first } = next();
+      if (turn) {
+        if (Number(turn[1]) !== number) throw new RecordError(`the record gives number ${turn[1]} where the notation gives ${number}`, at);
+        if (turn[2] === "..." && first) throw new RecordError(`the record gives ${word} where the notation gives ${number}.`, at);
+        numbered ||= !record.moves.length;
+        labelled = record.moves.length;
+        placeholder = false;
+        return true;
+      }
+      if (word !== "--") return false;
+      if (labelled !== record.moves.length || placeholder) throw new RecordError("-- comes right after a number", at);
+      if (first) throw new RecordError("-- stands for the first player's move, and the next move is that player's", at);
+      placeholder = true;
+      return true;
+    },
+    /** Checks the number before a move, in a record that numbers its moves. */
+    move(word: string, at: number): void {
+      const { number, first } = next();
+      if (numbered && first && labelled !== record.moves.length)
+        throw new RecordError(`the record gives no number before this move, where the notation gives ${number}: ${word}`, at);
+    },
+  };
+}
+
 /** Reads a game record, with the game's moves and marks. Throws a RecordError with the offset of the first problem. */
 export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRecord<Mark> {
   const record: GameRecord<Mark> = { tags: {}, moves: [], marked: [], ends: [], result: null, evals: [], clocks: [], komi: 0 };
+  const { ptn, komiWords = { unit: "points", example: "300" } } = notation;
   let depth = 0, expectedTurn: number | null = null; // the next turn's number, once the first turn sets it
+  const tagAt: Record<string, number> = {}; // where each tag is
+  let tagsEnded = false;
   // The Komi tag until the reader checks its limit: at the tag for one limit, and when the tags end for a limit by
   // the tags.
   let komiTag: { value: string; at: number } | null = null;
   const checkKomi = () => {
     if (!komiTag) return;
-    const beyond = komiLimitProblem(record.komi, limitAt(notation.maxKomi ?? Infinity, record.tags), komiTag.value);
+    const beyond = komiLimitProblem(record.komi, limitAt(notation.maxKomi ?? Infinity, record.tags), komiTag.value,
+                                    undefined, komiWords.unit);
     if (beyond) throw new RecordError(beyond, komiTag.at);
     komiTag = null;
   };
-  for (const t of tokenize(text)) {
+  // The tags end at the first word, or at the end of a record of tags alone.
+  const endTags = (at: number) => {
+    if (!tagsEnded) {
+      tagsEnded = true;
+      const wrong = ptn?.tagsProblem(record.tags);
+      if (wrong) {
+        const { tag, problem } = wrong;
+        throw new RecordError(tag === null ? problem : `${problem}: ${record.tags[tag]}`, tag === null ? at : tagAt[tag]);
+      }
+    }
+    checkKomi();
+  };
+  const ptnTurns = ptn && readPtnTurns(record, notation);
+  const tokens = tokenize(text, ptn !== undefined);
+  for (const [index, t] of tokens.entries()) {
     if (t.kind === "open") { depth++; continue; }
     if (t.kind === "close") {
       if (depth === 0) throw new RecordError("a ) has no opening (", t.at);
@@ -201,26 +303,33 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
     }
     if (depth > 0) continue; // a variation: not the main line
     if (t.kind === "tag") {
-      if (record.moves.length) throw new RecordError("tags come before the moves", t.at);
+      if (record.moves.length || (ptn && tagsEnded)) throw new RecordError("tags come before the moves", t.at);
       // "?" and "-" are PGN's values for none.
       if (t.name === "Position" && !notation.start && !["", "?", "-"].includes(t.value.trim()))
         throw new RecordError("this site reads a game from the standard start only: remove the Position tag", t.at);
+      const name = ptn ? ptn.tagName(t.name) : t.name;
       // A komi that no reader can take: the game would be reviewed at a komi that the record does not give.
-      if (t.name === "Komi") {
+      if (name === "Komi") {
         const komi = komiOf(t.value);
         if (komi === null)
-          throw new RecordError(`the Komi tag must be a number of points, whole or half, such as "300" or "-300": ${t.value}`, t.at);
+          throw new RecordError(`the Komi tag must be a number of ${komiWords.unit}, whole or half, ` +
+                                `such as "${komiWords.example}" or "-${komiWords.example}": ${t.value}`, t.at);
         record.komi = komi;
         komiTag = { value: t.value, at: t.at };
         if (typeof notation.maxKomi !== "function") checkKomi();
       }
-      record.tags[t.name] = t.value;
+      if (ptn && name === "Result" && resultTag(ptn, t.value) === undefined)
+        throw new RecordError(`the Result tag is not a result: ${t.value}`, t.at);
+      record.tags[name] = t.value;
+      tagAt[name] = t.at;
     } else if (t.kind === "comment") {
-      if (record.moves.length) readCommands(t.text, record, record.moves.length - 1);
+      if (ptnTurns?.branches(text, t, tokens[index + 1], tokens[index + 2])) break; // the main line ends
+      if (record.moves.length && !ptn) readCommands(t.text, record, record.moves.length - 1);
     } else {
-      checkKomi(); // the tags end at the first word
+      endTags(t.at);
       const w = t.text;
       if (record.result !== null) throw new RecordError(`nothing may follow the result (${record.result})`, t.at);
+      if (ptnTurns?.reads(w, t.at)) continue;
       const turn = TURN.exec(w);
       if (turn) {
         const number = Number(turn[1]);
@@ -238,19 +347,25 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
         if (turn[2] === "...") continue; // only a variation starts at a turn's second move
         if (number !== expectedTurn) throw new RecordError(`the record gives turn ${number} where the notation gives turn ${expectedTurn}`, t.at);
         expectedTurn++;
-      } else if (RESULT.test(w)) {
-        record.result = w;
+      } else if (ptn ? ptn.result(w) !== null : RESULT.test(w)) {
+        record.result = ptn ? ptn.result(w) : w;
+        const tagged = ptn && resultTag(ptn, record.tags.Result);
+        if (tagged && tagged !== record.result)
+          throw new RecordError(`the Result tag (${record.tags.Result}) is not the result that ends the moves (${w})`, t.at);
       } else {
         const move = w.replace(QUALITY, ""); // the move without its quality mark
-        const read = move.toLowerCase() === "pass" ? { name: "pass", mark: notation.none, markAt: move.length } : notation.read(move);
+        const read = !ptn && move.toLowerCase() === "pass" ? { name: "pass", mark: notation.none, markAt: move.length }
+          : notation.read(move, { tags: record.tags, first: !record.moves.length });
         if (typeof read === "string") throw new RecordError(`${read}: ${w}`, t.at);
+        ptnTurns?.move(w, t.at);
         record.moves.push(read.name);
         record.marked.push(read.mark);
         record.ends.push(t.at + read.markAt);
       }
     }
   }
-  checkKomi(); // a record of tags alone
+  endTags(0);
+  if (ptn && record.result === null) record.result = resultTag(ptn, record.tags.Result) ?? null;
   if (depth > 0) throw new RecordError("a ( has no closing )", text.length);
   if (!record.moves.length) throw new RecordError("the record has no moves", 0);
   record.evals.length = record.clocks.length = record.moves.length;

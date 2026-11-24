@@ -13125,3 +13125,30 @@ missing from every count of design 17. Design 27 gives the reasons.
   accent stays the lavender.
 
 The logo, its files and how each is made are in design 33, "The logo".
+
+### Mistak: PTN's moves and records, and TPS (2026-11-24)
+
+- **What:** Mistak's reader and writer of a game record and of a position
+  ([design/34-tak-site.md](../design/34-tak-site.md), items 4 to 8, abscls-shfz.18.5): `apps/mistak/src/lib/game`.
+- **The package's check:** `packages/record` took the moves, the mark, the start and the komi's limit as parameters, and
+  not PTN's results, tags, numbers, branches, placeholder and lack of a pass. The reader stays the shared one, with
+  PTN's form as a parameter that Hedge School and Cyanotype do not give. The reason is the error reports: one reader
+  notes every record's texts, and `texts.test.ts` checks that no other code reads a tag. The writer is Mistak's own.
+- **The spellings:** the reader takes what ptn.ninja's parser and playtak's export write (read in their sources), and
+  gives the short form. It is stricter than ptn.ninja in three places. Drops that are not the stones taken are refused:
+  ptn.ninja changes them silently, and the game would not be the one played. A number must be the next move's. The
+  moves' end and the `Result` tag must agree.
+- **The branches:** ptn.ninja takes any comment after a blank line, before a number, as a branch's name. The reader
+  takes it so only when the number is not the next move's: a note between two turns of the main line stays a note.
+  White's move in a number that the main line has opened is a branch's too.
+- **The double black stack:** `2a1` is `a1`, as ptn.ninja and the engine name it, only as the first move of a record
+  whose `Opening` tag names that opening. In a swap opening it is refused, because the record would be another game.
+- **No `Result` tag for an unfinished game:** ptn.ninja refuses `*` in the tag (its `Tag.js`), and reads a `*` at the
+  moves' end as a placeholder. playtak writes `0-0` in both places, which reads as `*`.
+- **The komi's checks:** Mistak's record is checked by its tags, once they end, so only the last of two `Komi` tags is
+  checked. That is the komi that the review searches at, and the record is refused either way when it is beyond the
+  limit. So the package's two paths stay as they are. One table holds each size's limit, for the record and for the
+  boards.
+- **The limits are provisional:** 3 flats on 5x5 and 5 on 6x6, the farthest komi mean of the engine's design 04 (0, and
+  0 and 2) and three standard deviations of one flat. No release names a range yet.
+- **Not checked here:** the rules (the engine's), and a file that ptn.ninja itself opened.

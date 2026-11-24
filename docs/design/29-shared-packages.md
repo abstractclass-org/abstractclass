@@ -474,11 +474,12 @@ edit in the same commit), so their changes still apply.
   scripts), `tsconfig.json` and `src/`. `packages/site/` holds the sites' frame (design 33, item 4), on the same
   rules. Its check is `svelte-check`, since it holds components.
 - `packages/record/`: the game record's frame (design 33). It also holds what both sites do with a set-up start: a
-  record's start given apart (`withStartTag`), the place of a problem in a pasted record (`pastedError`), the check that
-  the record's own start is the one given (`givenStartProblem`) and the review's refusal of a record from a set-up start
-  (`setUpRefusal`). `packages/analysis/src/turns.ts`: the turns of one move, then two, for a game's `turn`, with the
-  mover from the move count (`moverOf`), the last count (`LAST_COUNT`) and the first count with a given player to move
-  (`countWithMover`), which both board editors use.
+  record's start given apart (`withStartTag`), the place of a problem in a pasted record (`pastedError`), the check
+  that the record's own start is the one given (`givenStartProblem`) and the review's refusal of a record from a
+  set-up start (`setUpRefusal`). It reads a record in PTN's form too, for a game that gives PTN's parts (`Notation`'s
+  `ptn`, design 34, "What the sites share"). `packages/analysis/src/turns.ts`: the turns of one move, then two, for a
+  game's `turn`, with the mover from the move count (`moverOf`), the last count (`LAST_COUNT`) and the first count
+  with a given player to move (`countWithMover`), which both board editors use.
 - `packages/analysis/src/share.ts`: the format of a link that carries a game's tree (design 13, item 8), with each
   site's moves as a parameter (`MoveCode`). `boardLink.ts`: the Analysis board's link (design 21). `files.ts`: how a
   site reads its files, the results that belong in a file, a file's kind, and the analysis file, in each site's

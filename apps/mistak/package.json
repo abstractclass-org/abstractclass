@@ -13,6 +13,7 @@
 		"test": "node --test \"src/**/*.test.ts\""
 	},
 	"dependencies": {
+		"@abstractclass/record": "*",
 		"@abstractclass/review": "*",
 		"@abstractclass/site": "*"
 	},
