@@ -21,9 +21,9 @@ export const LARGE_FROM = 48;
 /** The tile, with corners of radius `rx` (none for the iOS icon, which iOS rounds itself). */
 const tile = (rx: number): Shape => ["rect", { width: 100, height: 100, ...(rx ? { rx } : {}), fill: PINE }];
 
-/** The place and size of a stone, with corners of radius `rx`. */
-const place = (x: number, y: number, width: number, height: number, rx: number) => ({ x, y, width, height, rx });
-const stone = (...at: Parameters<typeof place>): Shape => ["rect", { ...place(...at), fill: STONE }];
+/** A stone at (x, y), with corners of radius `rx`, in full colour. */
+const stone = (x: number, y: number, width: number, height: number, rx: number): Shape =>
+  ["rect", { x, y, width, height, rx, fill: STONE }];
 
 /** The mist: the stone's cream over its left part, fading to nothing at its right. */
 const MIST: Gradient = { stops: [[0, STONE], [0.18, STONE], [1, STONE, 0]] };
@@ -34,7 +34,7 @@ const large = (rx: number): Drawing => [
   stone(49, 12, 20, 28, 9),
   stone(12, 43, 62, 12, 6),
   stone(26, 59, 62, 12, 6),
-  ["rect", place(13, 75, 62, 12, 6), MIST],
+  ["rect", { x: 13, y: 75, width: 62, height: 12, rx: 6 }, MIST],
 ];
 
 /** The full drawing, from 48 pixels up, in a view of 100 × 100. */

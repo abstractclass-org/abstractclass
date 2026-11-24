@@ -38,12 +38,14 @@
     <div class="justify-self-center"><Logo size={192} label="Mistak's logo: a stack of stones with a capstone on top" /></div>
   </section>
 
-  <!-- What a visitor can read now: a quieter list, under a rule, in one row from a tablet's width. -->
+  <!-- What a visitor can read now: a quieter list, under a rule, in one row from a tablet's width. Each item keeps its
+       own lines at its top (content-start): a grid in a stretched item shares the rest of the row's height between its
+       lines, and the text of a shorter item then starts lower than the others'. -->
   <section class="grid gap-4 pt-8 border-t border-line" aria-labelledby="ways">
     <h2 id="ways" class="text-lg font-semibold">Read while you wait</h2>
     <ul class="grid gap-x-10 gap-y-5 md:grid-cols-3">
       {#each WAYS as way (way.href)}
-        <li class="grid gap-1">
+        <li class="grid gap-1 content-start">
           <a class="font-semibold text-ink no-underline hover:text-accent hover:underline underline-offset-4" href={way.href}>{way.title}</a>
           <p class="text-sm text-muted text-pretty">{way.text}</p>
         </li>

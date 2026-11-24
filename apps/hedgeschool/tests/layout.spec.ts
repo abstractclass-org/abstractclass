@@ -222,7 +222,7 @@ function monoSettings(page: Page) {
   });
 }
 
-// The monospaced font draws no ligatures (design 06, item 11), on both sites: a record's text shows as it is, and the
+// The monospaced font draws no ligatures (design 06, item 11), on each site: a record's text shows as it is, and the
 // columns keep their width of 0.6 em a character. Fira Code's ligatures keep that width, so the settings show them,
 // not the width. The pages: each site's Notation page and editor, whose position field is in Fira Code.
 // Cyanotype's test runs when CYANOTYPE_BASE_URL gives its running preview, and Mistak's when MISTAK_BASE_URL gives its
@@ -323,9 +323,9 @@ const answerConsent = (key: string) => {
 
 // The site's menu open (packages/site/src/SiteMenu.svelte, design 22), on each site, at each width where the header
 // shows it, by steps of 10, at the lowest of the sweep's heights: Hedge School's below 1,024 pixels, Cyanotype's and
-// Mistak's below 900. At each width, the menu opens from the header's button. Its links are the header's own (Tools only from 640
-// pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. The visitor has
-// answered the consent notice, which would cover the menu until they choose.
+// Mistak's below 900. At each width, the menu opens from the header's button. Its links are the header's own (Tools
+// only from 640 pixels), each in view and inside the menu, and nothing covers it. The page keeps the sweep's rules. The
+// visitor has answered the consent notice, which would cover the menu until they choose.
 for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYANOTYPE, 900],
                                    ["Mistak", MISTAK, 900]] as const) {
   test(`layout of the site's menu on ${site}`, async ({ page }) => {
@@ -372,7 +372,9 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
 // in a window of 1,280 × 900, and from the site's menu on a phone of 390 × 844. In the wide window the dialog has no
 // scroll bar of its own, and the note under Ko-fi's panel is in view (Cyanotype's design 33, "Support Us": its first,
 // longer words cut the note off). On the phone the dialog stays inside the window's width, and it can scroll. At both
-// sizes the page keeps the sweep's rules. No request goes to Ko-fi: its frame keeps its height.
+// sizes the page keeps the sweep's rules. No request goes to Ko-fi: its frame keeps its height. With the dialog open,
+// the page has two large logos, the About page's and the dialog's. Mistak's has a gradient (brandGradient.ts), and each
+// logo's stone must take its own: an id that both had would give the dialog's stone the About page's gradient.
 for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE], ["Mistak", MISTAK]] as const) {
   test(`layout of the Support Us dialog on ${site}`, async ({ page }) => {
     test.skip(base === undefined, NO_PREVIEW[site]);
@@ -392,6 +394,7 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE], ["Mi
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole("link", { name: "open the page on Ko-fi" })).toBeAttached();
+      if (site === "Mistak") await expect(page.locator('svg [fill^="url(#"]')).toHaveCount(2);
       await settle(page);
       const own: OwnRules = () => dialog.evaluate((box, wide) => {
         const out: string[] = [], r = box.getBoundingClientRect();
@@ -400,6 +403,11 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE], ["Mi
         if (box.scrollWidth > box.clientWidth + 1) out.push("the dialog scrolls sideways");
         if (wide && box.scrollHeight > box.clientHeight + 1)
           out.push(`the dialog scrolls: ${box.scrollHeight} pixels in ${box.clientHeight}`);
+        for (const shape of document.querySelectorAll('svg [fill^="url(#"]')) {
+          const id = shape.getAttribute("fill")!.slice("url(#".length, -1);
+          if (document.getElementById(id)?.closest("svg") !== shape.closest("svg"))
+            out.push(`a shape takes the gradient ${id} of another drawing`);
+        }
         const note = box.querySelector("a[target=_blank]")!.closest("p")!.getBoundingClientRect();
         if (wide && note.bottom > r.bottom + 1) out.push("the note under Ko-fi's panel is cut off");
         return out;

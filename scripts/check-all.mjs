@@ -70,7 +70,7 @@ const allSteps = [
   { name: "mistak-test", cwd: mistak, command: "npm test" },
   {
     name: "mistak-build", cwd: mistak, command: "npm run build",
-    env: { VITE_EDITION: "early", VITE_STORE_PRACTICE_GAMES: "on", VITE_POSTHOG_KEY: TEST_POSTHOG_KEY },
+    env: { VITE_EDITION: "early", VITE_POSTHOG_KEY: TEST_POSTHOG_KEY },
   },
   { name: "mistak-build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/mistak/build" },
   // Cyanotype, Blueprints' site (design 33): its engine's release files, its type check, its unit tests, its build

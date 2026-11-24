@@ -30,7 +30,7 @@
   <div class="flex items-center gap-4">
     <Logo size={96} label="Mistak's logo: a stack of stones with a capstone on top" />
     <p class="my-0">The logo is a stack: flat stones under a capstone. In Tak, the player whose stone is on top controls
-      the stack, and moves it. The lowest stone drifts off, as into a mist.</p>
+      the stack, and moves it. The lowest stone drifts off into a mist.</p>
   </div>
 
   <h2 id="early-access">Early access</h2>

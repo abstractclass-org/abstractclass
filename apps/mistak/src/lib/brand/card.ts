@@ -1,8 +1,8 @@
 // The link preview picture (design 34, "The site's frame"): 1,200 × 630 pixels, Open Graph's size, in the form of
 // Cyanotype's (its src/lib/brand/card.ts): on the right the site's name, what it is for and its address, in the site's
 // dark theme. The left holds the logo's full drawing, large, until the board's work draws a corner of Tak's board there
-// with the logo beside the name, as Cyanotype's card has (abscls-shfz.18.6). Drawn as SVG
-// here, and to static/brand/card.png by scripts/brand.mjs. For Node: it reads the site's style sheets.
+// with the logo beside the name, as Cyanotype's card has (abscls-shfz.18.6). Drawn as SVG here, and to
+// static/brand/card.png by scripts/brand.mjs. For Node: it reads the site's style sheets.
 import { drawingMarkup } from "@abstractclass/site/brandGradient.ts";
 import { siteTokens } from "@abstractclass/site/themeTokens.ts";
 import { LOGO_LARGE } from "./logo.ts";

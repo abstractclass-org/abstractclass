@@ -32,7 +32,7 @@
   // the package's (notices.spec.ts compares both with node_modules/onnxruntime-web).
   const ORT_VERSION = "1.30.0";
   // `gpu`: the site ships the engine, and so ONNX Runtime Web with it. A site with no engine yet ships neither.
-  let { gpu = true }: { gpu?: boolean } = $props();
+  let { gpu }: { gpu: boolean } = $props();
   const ORT_COPYRIGHT = "Copyright (c) Microsoft Corporation. All rights reserved.";
 </script>
 

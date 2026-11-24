@@ -54,9 +54,11 @@
          "Early Access", "Support Us" and the theme menu. Below 640 pixels, "Support Us" goes into the menu too. -->
     <span class="min-[900px]:hidden"><SiteMenu tabs={NAV} about={ABOUT} support={support.show} /></span>
     <SiteName class="max-[900px]:mr-auto"><Logo size={28} />{SITE_NAME}</SiteName>
-    <nav class="flex gap-2.5 min-[940px]:gap-4.5 max-[900px]:hidden">
-      {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
-    </nav>
+    {#if NAV.length}
+      <nav class="flex gap-2.5 min-[940px]:gap-4.5 max-[900px]:hidden">
+        {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
+      </nav>
+    {/if}
     <nav class="flex gap-2.5 min-[940px]:gap-4.5 ml-auto text-sm max-[900px]:hidden">
       {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>

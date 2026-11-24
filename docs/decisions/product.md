@@ -13051,9 +13051,11 @@ missing from every count of design 17. Design 27 gives the reasons.
   package, wrote its five files byte for byte as they were.
 - **Copies that stay for now:** Mistak's `hooks.client.ts`, `hooks.server.ts`, `+layout.ts`, `+error.svelte`, its
   relay Function, `app.html`, `Logo.svelte`, the card's text helper and the tests of `site.ts` and of the logo are
-  Cyanotype's files with Mistak's names. The first six are each site's own thin parts on the packages, as on both sites.
-  `Logo.svelte`, the helper and the tests hold code that two sites now share, which design 29, item 11, asks to move:
-  the review judges them.
+  Cyanotype's files with Mistak's names. The review left them. The first six are each site's own thin parts on the
+  packages, at paths that SvelteKit fixes, as on both sites (design 29, item 11). `Logo.svelte` differs: its gradient
+  needs an id, and its markup is a string, where Cyanotype's draws each shape in the page. The card's text helper and
+  the tests' route list are the same lines in two sites, and the build's commit and address, the header's links and the
+  footer in three. Those move together, in a work of its own: they need files of Hedge School and Cyanotype.
 - **The copyright line:** one shared constant, `packages/site/src/copyright.ts`, which each site's own module
   re-exports (`site.ts` in Mistak and Cyanotype, `edition.ts` in Hedge School), so that their footers and their notices
   pages read it as before. The hooks' check of private words refuses the holder's name in a new line, and gets a rule
@@ -13085,6 +13087,11 @@ missing from every count of design 17. Design 27 gives the reasons.
   green: with no project, the job would fail at its address step, as Cyanotype's would (the coordinator's decision,
   2026-11-24 00:13 CST, in abscls-shfz.18.4). An unset variable reads as an empty string in GitHub's expressions. The
   launch commit removes the whole `if:`, when the variable is set.
+- **Home's list:** each item aligns its lines to its top (`content-start`). An item that is a grid, stretched to its
+  row's height, shared the rest of the height between its lines, so a text of fewer lines started lower. Measured on
+  the first build: 10 pixels lower for the third item, at 768 and 800 pixels wide and from 1,100 to 1,600.
+- **The gradient's ids in the page** are checked by the layout test's Support Us case, on the About page with the dialog
+  open: two logos with a gradient, each stone filled from its own.
 - **The tests:** each job of the workflow **Tests** serves Mistak's build on port 4175 (`MISTAK_BASE_URL`), and
   `playwright.config.ts` stops a CI run without it. The layout test sweeps Mistak's home, Notation, Notices and How a
   review works, and checks its menu, its Support Us dialog, its "Early Access" link in both themes and its monospaced

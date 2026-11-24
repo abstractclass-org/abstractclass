@@ -641,11 +641,13 @@ on each push. Do step 1 before step 2: with the variable and no project, the job
 address" on each push to a branch other than `main`, and deploys nothing.
 
 1. **Make the Pages project, with `main` as its production branch.** On a computer with Node.js, in a terminal, run
-   `npx wrangler@4.144.0 login`, and allow the access in the browser that opens. Then run
-   `npx wrangler@4.144.0 pages project create mistak --production-branch=main`. The project's name is `mistak`. The
-   command prints the project's address. If it is not `https://mistak.pages.dev/`, Pages gave another address because
-   that one is taken: tell the coordinator the address that the command printed, because
-   `apps/mistak/scripts/release-check.mjs` names the address.
+   `npx wrangler@4.144.0 login`. A browser tab opens on Cloudflare: sign in, then select **Allow**. Then run
+   `npx wrangler@4.144.0 pages project create mistak --production-branch=main --force`. If Wrangler asks for an
+   account, select the account that holds the project `hedgeschool`. Keep `--force`: without it, Wrangler 4.144 tries to
+   make the project in Cloudflare Workers in place of Pages. The project's name is `mistak`. The command prints the
+   project's address. If it is not `https://mistak.pages.dev/`, Pages gave another address because that one is taken:
+   tell the coordinator the address that the command printed, because `apps/mistak/scripts/release-check.mjs` names the
+   address.
 2. **Set the edition.** In GitHub, open
    `https://github.com/abstractclass-org/abstractclass/settings/variables/actions` and click **New repository
    variable**. Name: `MISTAK_EDITION`. Value: `early`. Click **Add variable**. The variable is the repository's, for
@@ -653,7 +655,7 @@ address" on each push to a branch other than `main`, and deploys nothing.
 3. **Deploy a preview.** In GitHub, open
    `https://github.com/abstractclass-org/abstractclass/actions/workflows/deploy.yml`, click **Run workflow**, choose
    the branch `dev`, and click **Run workflow**. Wait until the run's job `mistak` shows a pass.
-4. **Check the preview.** In a terminal, in the repository's folder `apps/mistak`, run `git fetch`, then
+4. **Check the preview.** In a terminal, in the folder `apps/mistak` of a checkout of `dev`, run `git fetch`, then
    `node scripts/release-check.mjs https://dev.mistak.pages.dev`, with the project's address of step 1 after `dev.`.
    Make sure that the last line says `release-check: PASS`. Its lines include `X-Robots-Tag: noindex`, and the
    footer's version, which shows that the job deployed the latest commit of `dev`.
