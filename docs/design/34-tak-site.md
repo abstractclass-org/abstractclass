@@ -457,8 +457,8 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
    one row a turn, as before.
    - **The rows** (`moveRows`): the turns of one number, the first player's ply on the left. A line that starts with
      the second player to move shows "…" in the first place of its first row, as a continued turn does.
-   - **The names of moves:** "12. e4" and "12... e5", in the charts, the variations, the engine's lines and the images'
-     names. The annotated record numbers so too.
+   - **The names of moves:** "12. e4" and "12... e5", in the charts, the variations, the engine's lines and the move
+     preview. The images' captions give the number. The annotated record numbers so too.
    - **The judgement:** each ply is judged alone, and each ply's label is on its own move in the row. By turn and by
      move judge the same, so the view judges by move and "Review by" does not show (on the board, "Quality labels
      by"). Practice's move list is not part of this: it takes its rows from its site.

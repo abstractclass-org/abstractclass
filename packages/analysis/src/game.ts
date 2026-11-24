@@ -96,10 +96,10 @@ export interface Game<G extends GameTypes> extends Moves<G["move"]> {
    *  game of one move a turn numbers each move. */
   turn(count: number): MoveNumber;
   /** The notation's number of the next move from a position with `count` moves played, and whether that move is the
-   *  first with it, in a game of one move a turn whose notation numbers two moves a number, the first player's first
-   *  (Tak's "12. e4 e5", as chess's: Mistak's design 34, "What the sites share", item 3). Each move counts one. The move
-   *  list has a row a number, with both players' moves, and the moves are named by it. The review judges each move, so
-   *  it has no choice between by turn and by move. None: a number is a turn (`turn`), and a row too. */
+   *  first with that number. For a game of one move a turn, whose notation gives one number to two moves, the first
+   *  player's and the second's ("12. e4 e5" in Tak, as in chess: design 34, "What the sites share", item 3). The move
+   *  list then has one row a number, and the moves are named by the number. The review judges each move, so it has no
+   *  choice between by turn and by move. Not given: each turn (`turn`) has its own number and its own row. */
   numbers?(count: number): MoveNumber;
   /** The engine's points for one of Go's points (KataGame's SCORE_SCALE: Enclosure's 12), for the bands that KaTrain
    *  sets in Go's points. */

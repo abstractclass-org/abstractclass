@@ -180,7 +180,7 @@ edit in the same commit), so their changes still apply.
    - **The turn structure comes from the positions:** each position says who moves next (`player`), and a turn is a
      run of one player's moves. `turn` gives only the notation's numbers. Enclosure's first turn has one edge, then
      two a turn. A game of one move a turn numbers each move. A game whose notation numbers two moves a number gives
-     `numbers` (Mistak's design 34, "What the sites share", item 3): the move list has a row a number, and the moves
+     `numbers` (design 34, "What the sites share", item 3): the move list has a row a number, and the moves
      are named by it.
    - **Each position says whether the game ends there** (`over`, from the engine's outcome). The type requires it. The
      analysis searches the position after the last move when that position is not the end (an unfinished game), and
