@@ -2003,9 +2003,11 @@
        at its full size, the column as wide as the widest name, and the table wider than its box, which then scrolls
        to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
        (`glyphs`) sit on the middle of its line: their Label sets that (game.ts, `Label`).
-       The Draw column, in a game whose results have a draw chance, takes its room from the edge column. With it the
-       table is 20.25rem wide at least: the other columns, and the 2.5rem that a 360-pixel phone leaves the edge column
-       without the Draw column. In a narrower box the table scrolls, so that the names keep their room.
+       The Draw column, in a game whose results have a draw chance, takes its room from the edge column. Its width goes
+       by the page's font, in ch, for its widest text ("100.0%" in the first row's semibold): 52 pixels with the cell's
+       padding in Segoe UI, 66 in Linux's DejaVu Sans. With it the table is never narrower than the columns and the
+       2.5rem that a 360-pixel phone leaves the edge column without the Draw column. In a narrower box the table
+       scrolls, so that the names keep their room.
        The box is a named container (`candidates`), as wide as the closed table: its content width leaves out the
        scroll bar's room. Where it is 24rem wide or more, the Lead column takes 5.5rem in place of 4.75rem, so that a
        lead has room to spare beside the visits. 24rem is the four other columns and the widest name of Cyanotype's
@@ -2023,9 +2025,9 @@
        oncontextmenucapture={e => (lineMenuImage = engineLineAt(e.target as Element))} onclickcapture={lineGuard.click}>
   <div class="@container/candidates flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
-  <table class={["w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate", drawColumn && "min-w-81"]}
+  <table class={["w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate", drawColumn && "min-w-[calc(17rem+6.75ch)]"]}
          bind:this={table} style:width={movesOpen ? `max(100%, ${nameFit.open}px)` : undefined}>
-    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" />{#if drawColumn}<col class="w-15" />{/if}<col class="w-12" /></colgroup>
+    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" />{#if drawColumn}<col class="w-[calc(6.75ch+0.5rem)]" />{/if}<col class="w-12" /></colgroup>
     <thead>
       <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
         <!-- The Move header, while it can open or close the column: a button, its mark after the word. A click does not

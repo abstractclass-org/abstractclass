@@ -41,6 +41,11 @@ const open = async (page: Page, file: ReviewFileInput, win: "bar" | "gauge", [wi
 const moveColumn = (page: Page) => tableBox(page).locator("[data-move-head]").evaluate(el => el.getBoundingClientRect().width);
 const rowsRoom = (page: Page) => tableBox(page).evaluate(el => el.clientHeight);
 const headers = (page: Page) => tableBox(page).locator("th").allTextContents();
+/** Whether the Draw column's header and its widest text, the first row's "100.0%", have room. */
+async function drawColumnFits(page: Page) {
+  for (const cell of [tableBox(page).locator("th").nth(4), tableBox(page).locator("tr[data-rank] td:nth-child(5)").first()])
+    expect(await cell.evaluate(el => el.scrollWidth <= el.clientWidth), await cell.innerText()).toBe(true);
+}
 
 test("results with a draw chance: the bar's tooltip and the table's column show it", async ({ page }) => {
   await open(page, withDraws(), "bar");
@@ -48,9 +53,7 @@ test("results with a draw chance: the bar's tooltip and the table's column show 
   expect(await headers(page)).toEqual(["#", expect.stringMatching(/^Edge/), expect.stringMatching(/ wins$/), "Lead", "Draw", "Visits"]);
   const cells = tableBox(page).locator("tr[data-rank] td:nth-child(5)");
   expect((await cells.allTextContents()).slice(0, 2)).toEqual(["100.0%", "6.3%"]);
-  // Neither the header nor the widest text is cut.
-  for (const cell of [tableBox(page).locator("th").nth(4), cells.first()])
-    expect(await cell.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await drawColumnFits(page);
 });
 
 test("results with a draw chance: the gauge's name and tooltip show it", async ({ page }) => {
@@ -60,27 +63,29 @@ test("results with a draw chance: the gauge's name and tooltip show it", async (
   expect(await gauge.getAttribute("title")).toBe(await gauge.getAttribute("aria-label"));
 });
 
-// The box of a phone's table is narrower than the fixed columns with the Draw column (264 px at 360 px, where the moves
-// have 40 px of it without that column). At 430 px it has room (334 px). The table keeps its place in the page from 430
-// to 360 px, so a window made narrow there measures the scroll bar again (ReviewView.svelte, boxWidth).
+// The box of a phone's table is narrower than the columns with the Draw column (264 px at 360 px, where the moves have
+// 40 px of it without that column). At 430 px it has room (334 px). The table keeps its place in the page from 430 to
+// 360 px, so a window made narrow there measures the scroll bar again (ReviewView.svelte, boxWidth). In Linux's font
+// (CI's), a phone's two widest names are cut without the Draw column too, so the names are compared with those.
 for (const from of [360, 430])
   test(`on a phone, the moves keep their column beside the Draw column, and the table scrolls sideways: opened at ${from} px`, async ({ page }) => {
     const analysis = page.getByRole("tab", { name: "Analysis" });
     await open(page, FIXTURE, "bar", [360, 780]);
     await analysis.click();
-    const without = { move: await moveColumn(page), rows: await rowsRoom(page) };
+    const without = { move: await moveColumn(page), rows: await rowsRoom(page), names: (await readTable(tableBox(page))).names };
     await open(page, withDraws(), "bar", [from, 780]);
     await analysis.click();
     await expect.poll(() => readTable(tableBox(page)).then(t => t.sideways), { message: "scrolls where it has no room" }).toBe(from === 360);
     await page.setViewportSize({ width: 360, height: 780 });
     await expect.poll(() => readTable(tableBox(page)).then(t => t.sideways)).toBe(true);
     await expect.poll(() => rowsRoom(page), { message: "the box takes in the scroll bar's height" }).toBe(without.rows);
-    expect(await moveColumn(page)).toBeGreaterThanOrEqual(without.move);
-    expect((await readTable(tableBox(page))).names.filter(n => n.cut), "the cut names").toEqual([]);
+    expect(await moveColumn(page)).toBeGreaterThanOrEqual(without.move - 0.5); // subpixel widths
+    expect((await readTable(tableBox(page))).names, "the names' sizes and cuts").toEqual(without.names);
+    await drawColumnFits(page);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), "the page's own overflow").toBe(0);
-    // The column that the box cuts is in view at the scroll's end
+    // The column that the box cuts is in view at the scroll's end, but for less than a pixel: a width in ch is not whole
     await tableBox(page).evaluate(el => { el.scrollLeft = el.scrollWidth; });
-    await expect(tableBox(page).locator("th").last()).toBeInViewport({ ratio: 1 });
+    await expect(tableBox(page).locator("th").last()).toBeInViewport({ ratio: 0.95 });
   });
 
 test("results without a draw chance: the bar, the gauge and the table are as before", async ({ page }) => {

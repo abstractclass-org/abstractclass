@@ -444,6 +444,14 @@ public repository and the history rewrites.
   pixels that it has at 360 without the Draw column. Measured on Hedge School's layout-test game, the Move column
   without and with the Draw column was 101 and 41 pixels at 1,376 by 952 (a box of 325), and 175 and 115 at 1,920 by
   1,080 (a box of 411).
+- **The Draw column in Linux's font:** that column was 60 pixels. In DejaVu Sans, "100.0%" in the first row's semibold
+  needs 66.4 with the cell's padding, and 52.1 in Segoe UI. The suite on Windows passed, and the Tests workflow failed
+  on Linux at 13223585. The column is now 6.75ch and its padding, so its width follows the page's font: 58.9 pixels in
+  Segoe UI and 68.1 in DejaVu Sans. The table's least width follows it, 323 and 332 pixels. So the narrowest box of a
+  desktop window (325) has room in Segoe UI, and scrolls 7 pixels sideways in DejaVu Sans. In DejaVu Sans the two widest
+  names (H12-K15 and H12-K11) are cut at every width of the window. They are cut with no draw chance too, and before
+  this change: their slot is 57 pixels, and they need 60.4. So the spec compares the names with the page without a draw
+  chance.
 - **Checked:** new tests of a reply with a draw chance, of each kind of result (a road, a draw by a rule, a flat win, a
   flat tie, a record's own result, none), and of the page with and without a draw chance (`draw-chance.spec.ts`, on
   Hedge School's layout-test game with the chance written into its stored results, at 1,376 and 360 pixels). On 4,000
