@@ -44,11 +44,11 @@
   <p>Tak uses a square board, from 3 × 3 to 8 × 8. Most games on playtak.com use 5 × 5 or 6 × 6. Each player has flat
     stones and capstones: 21 flat stones and 1 capstone on 5 × 5, and 30 and 1 on 6 × 6.</p>
   <ul>
-    <li><strong>A placement</strong> puts one stone on an empty square: a flat stone, a standing stone or a
-      capstone.</li>
+    <li><strong>A placement</strong> puts one stone on an empty square: a flat stone, a wall or a capstone. The
+      printed rules call a wall a standing stone.</li>
     <li><strong>A stack move</strong> moves a stack that your stone tops. It carries up to the board's width in stones,
-      in one direction, and drops at least one stone on each square of its path. Standing stones and capstones stop a
-      stack. A capstone alone, at the end of its move, flattens a standing stone.</li>
+      in one direction, and drops at least one stone on each square of its path. Walls and capstones stop a stack. A
+      capstone alone, at the end of its move, flattens a wall.</li>
     <li><strong>The first turn:</strong> each player places one flat stone of the opponent's.</li>
   </ul>
   <p>A <strong>road</strong> wins: a line of a player's flat stones and capstones that joins two opposite edges of the

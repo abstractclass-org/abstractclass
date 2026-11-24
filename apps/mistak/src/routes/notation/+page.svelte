@@ -13,7 +13,7 @@
   const TPS = "https://ustak.org/tak-positional-system-tps/";
 
   // A game's start, written by hand: White's road of flats on rank 3 is one square short after move 7, so the move
-  // carries the mark of tak. Black's capstone flattens White's standing stone in move 5.
+  // carries the mark of tak. Black's capstone flattens White's wall in move 5.
   const RECORD = `[Size "6"]
 [Komi "2"]
 [Player1 "Ana"]
@@ -49,8 +49,9 @@
   <h2>Moves</h2>
   <ul>
     <li><strong>A placement</strong> is the stone, then the square: <code>a1</code> puts a flat stone on a1,
-      <code>Sd3</code> a standing stone on d3, and <code>Cb4</code> a capstone on b4. A flat stone can also be written
-      with its letter: <code>Fa1</code>.</li>
+      <code>Sd3</code> a wall on d3, and <code>Cb4</code> a capstone on b4. The letter <code>S</code> stands for the
+      printed rules' standing stone, which is a wall. A flat stone can also be written with its letter:
+      <code>Fa1</code>.</li>
     <li><strong>A stack move</strong> is the number of stones, the square, the direction, then the stones that drop on
       each square of the path. <code>3b2+111</code> takes three stones from b2 up, and drops one on b3, one on b4 and
       one on b5. <code>4c3&gt;</code> takes four stones from c3 and drops all four on d3.</li>
@@ -76,7 +77,7 @@
   <h2>Marks</h2>
   <p>A mark comes at the end of a move.</p>
   <ul>
-    <li><code>*</code>: the move's capstone flattened a standing stone. {SITE_NAME} writes it on each flattening, as the
+    <li><code>*</code>: the move's capstone flattened a wall. {SITE_NAME} writes it on each flattening, as the
       PTN page recommends most strongly. It refuses a record with a <code>*</code> on a move that flattens
       nothing.</li>
     <li><code>'</code>: tak, a road on the next move. <code>"</code> or <code>''</code>: Tinuë, a tak that the
@@ -129,7 +130,7 @@
     <li><strong>An empty square</strong> is <code>x</code>, and <code>x3</code> is three empty squares.</li>
     <li><strong>A stack</strong> is its stones from the bottom up, <code>1</code> for a White stone and <code>2</code>
       for a Black one: <code>12</code> is a Black flat stone on a White one. <code>S</code> or <code>C</code> after the
-      last digit makes the top stone a standing stone or a capstone: <code>2211C</code>.</li>
+      last digit makes the top stone a wall or a capstone: <code>2211C</code>.</li>
   </ul>
   <p>The position after <code>1. a6 f1</code>, with White to move in the second pair:</p>
   <pre>{AFTER_ONE}</pre>
