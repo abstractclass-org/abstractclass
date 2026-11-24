@@ -222,16 +222,25 @@ jobs:
 
       # The branch and the preview's address, as in Cyanotype's job: the host is the project's pages.dev address, from
       # Cloudflare's API (its `subdomain`), which is not always <project>.pages.dev. When the API gives no pages.dev
-      # address, the job fails here and deploys nothing.
+      # address, the job fails here and deploys nothing. The same answer gives the project's production branch (its
+      # `production_branch`). The launch switch keeps a push to main from publishing Mistak, but in a project whose
+      # production branch is another one, a push to that branch would be production. So the job fails here, before it
+      # deploys anything, when the production branch is not main.
       - name: The branch and its address
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/mistak"
-          host=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$url" | jq -r '.result.subdomain') || true
+          answer=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$url") || true
+          host=$(printf '%s' "$answer" | jq -r '.result.subdomain') || true
           if [[ "$host" != *.pages.dev ]]; then
             echo "::error::Cloudflare's API gave no pages.dev address for the Pages project mistak."
+            exit 1
+          fi
+          production=$(printf '%s' "$answer" | jq -r '.result.production_branch') || true
+          if [[ "$production" != main ]]; then
+            echo "::error::The production branch of the Pages project mistak is not main (the API gave: $production)."
             exit 1
           fi
           alias=$(printf '%s' "$BRANCH" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g')

@@ -625,7 +625,8 @@ the shared `CLOUDFLARE_ACCOUNT_ID`, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN`, and 
   the header shows "Early Access" beside the name, and it leads to the About page's section on the early access.
 - **The build's address** goes into the build, as Cyanotype's does: the tools for playtak's pages will update from it.
   Before the build, the job reads the project's pages.dev address from Cloudflare's API (its `subdomain`). When the
-  API gives no address, the job fails with a message and deploys nothing.
+  API gives no address, the job fails with a message and deploys nothing. The same answer gives the project's production
+  branch (its `production_branch`): when it is not `main`, the job fails in the same way and deploys nothing.
 - **Its pages** are prerendered. Each names its live address as canonical (`src/lib/site.ts`).
 - **Its headers** (`static/_headers`): `noindex` on Cloudflare's own addresses for the project, and a year's cache
   for the build's hashed files. `static/robots.txt` names its sitemap.
