@@ -270,10 +270,11 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
 // Mistak's pages (its design 34), when MISTAK_BASE_URL gives its preview: its frame and its texts, until its engine
 // comes. The home page: the invitation and the logo. The Notation page: its examples in code blocks, which scroll
 // sideways on purpose, and its tables. The Notices page: the licences, with their texts in code blocks. How a review
-// works: its table of bands and its formulas in code blocks. Each sweep checks the header's row, with the site's menu
-// closed below 900 pixels. The About page is in the menu's and the Support Us dialog's tests below.
+// works: its table of bands and its formulas in code blocks. The board lab: a game of 8x8 with a stack past the bars
+// and the longest TPS. Each sweep checks the header's row, with the site's menu closed below 900 pixels. The About page
+// is in the menu's and the Support Us dialog's tests below.
 for (const [name, path] of [["home page", "/"], ["Notation page", "/notation"], ["Notices page", "/notices"],
-                            ["How a review works", "/how-reviews-work"]]) {
+                            ["How a review works", "/how-reviews-work"], ["board lab", "/lab/board?p=23"]]) {
   test(`layout of Mistak's ${name}`, async ({ page }) => {
     test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
     await page.goto(new URL(path, MISTAK).href);
@@ -281,6 +282,47 @@ for (const [name, path] of [["home page", "/"], ["Notation page", "/notation"], 
     expect(await sweep(page, `Mistak's ${path}`)).toBe("");
   });
 }
+
+// Mistak's board on its lab page (its design 34, "The board"): the keys walk its squares as the screen shows them, also
+// on the turned board, and each square says its whole stack.
+test("Mistak's board walks with the keys", async ({ page }) => {
+  test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
+  await page.goto(new URL("/lab/board", MISTAK).href);
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel("Position").selectOption({ label: "6x6, stacks of 10 and 20" });
+  const board = page.getByRole("grid");
+  const cells = board.getByRole("gridcell");
+  await expect(cells).toHaveCount(36);
+  await expect(board.locator('[tabindex="0"]')).toHaveCount(1);
+  await board.locator('[tabindex="0"]').focus();
+  const focused = page.locator('[role="gridcell"]:focus');
+  await expect(focused).toHaveAttribute("aria-label", /^a1: /);
+  for (const key of ["ArrowUp", "ArrowUp", "ArrowRight", "ArrowRight"]) await page.keyboard.press(key);
+  await expect(focused).toHaveAttribute("aria-label", "c3: White's capstone on a stack of 10. Under it, from the top: "
+    + "2 of Black's flats, 2 of White's flats, 2 of Black's flats, White's flat, Black's flat, White's flat");
+  // The height shows on the square with the keyboard's focus and on the one under the mouse, and on no other.
+  const count = (square: number) => board.locator(`[data-square="${square}"] .count`);
+  await expect(count(14)).toBeVisible(); // c3, with the focus
+  await expect(count(21)).toBeHidden(); // d4
+  await board.locator('[data-square="21"]').hover();
+  await expect(count(21)).toBeVisible();
+  await expect(count(21)).toHaveText("20");
+  await page.mouse.move(0, 0);
+  await expect(count(21)).toBeHidden();
+  // The line under the board has the whole stack of the square with the focus, and the board keeps its place.
+  const line = page.locator("[data-stack-line]");
+  await expect(line).toHaveText("c3, 10 pieces, from the top: WC B B W W B | B W B W");
+  const place = await board.boundingBox();
+  await page.keyboard.press("ArrowRight"); // d3 is empty
+  await expect(line).toHaveText("");
+  expect(await board.boundingBox()).toEqual(place);
+  await page.keyboard.press("ArrowLeft");
+  await page.getByLabel("Turn the board").check();
+  await board.locator('[tabindex="0"]').focus();
+  await expect(focused).toHaveAttribute("aria-label", /^c3: /);
+  await page.keyboard.press("ArrowUp");
+  await expect(focused).toHaveAttribute("aria-label", /^c2: /);
+});
 
 // The buttons for partner sites on both sites' pages for developers (Hedge School's design 18, item 11, and
 // Cyanotype's design 33, "Partner sites", item 11): the four samples on a light and a dark ground, each with the

@@ -44,7 +44,7 @@
 <!-- The icons, the logo (design 34, "The site's frame"), and the link previews' tags that every page shares (Hedge
      School's design 23). scripts/brand.mjs draws the preview picture from src/lib/brand/card.ts. -->
 <SiteHead {favicon} name={SITE_NAME} origin={SITE_ORIGIN}
-          imageAlt="Mistak: learn Tak. The logo: a stack of stones with a capstone on top." />
+          imageAlt="Mistak: learn Tak. A Tak board with flats, walls, capstones and stacks." />
 
 <SiteFrame origin={SITE_ORIGIN} themeKey={THEME_KEY} placesKey={PLACES_KEY}>
   {#snippet header()}

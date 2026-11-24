@@ -1,7 +1,7 @@
 # Mistak, the Tak site: a plan, on Hedge School's and Cyanotype's design
 
-**Status:** proposed. Built: the site's shell (abscls-shfz.18.4), `apps/mistak`, unlaunched, and PTN's moves and records
-and TPS (abscls-shfz.18.5).
+**Status:** proposed. Built: the site's shell (abscls-shfz.18.4), `apps/mistak`, unlaunched, PTN's moves and records
+and TPS (abscls-shfz.18.5), and the board drawn from a position (abscls-shfz.18.6).
 **Planned:** 2026-11-23 (abscls-teoc). **Revised:** 2026-11-23 (abscls-shfz.18.1).
 **Scope:** every feature of Hedge School and of Cyanotype, unless a fact blocks it ("The rules of this work").
 
@@ -351,9 +351,27 @@ Tak's board is the site's own part, as Blueprints' hexes are Cyanotype's.
 
 - **A square for each cell, with the files and the ranks** on its edges, `a1` at the lower left, as ptn.ninja and
   playtak show it. The board turns, so that the second player can see it from their side.
-- **A stack:** the top stone at full size, its kind clear by its shape (a flat, a standing stone, a capstone), and the
-  stones below it as a column of thin bars in their owners' colours, from the bottom up. The height shows as a number
-  from a size that the column cannot show. A click on a stack shows it whole.
+- **A stack:** as ptn.ninja draws it, whose board is playtak's 2D board too. The pieces that one move can carry (the
+  top ones, as many as the board's width) stand as a pile at full size, each a step higher than the one below it, so
+  that each shows its front edge. The top ten of the pieces under those are bars beside the pile, one column from the
+  pile's foot up, so that the highest bar is the next piece under the pile. Pieces below those ten are not drawn: the
+  line of text has the whole stack. The stack's height is a number on the top piece, only while the square is pointed
+  at or has the keyboard's focus, for a stack of two or more. It stands at the pile's foot when the top piece is a
+  wall, which has no room for it. The preview card has no number.
+- **The whole stack in text:** a line under the board gives the stack of the square under the mouse, with the
+  keyboard's focus or tapped, piece by piece from the top, with a mark after the last piece that a move can carry and
+  PTN's letter on a top wall (S) or capstone (C). It is empty for an empty square, its room is kept (two lines, which
+  hold 26 pieces at 360 pixels), and it takes no click. Nothing opens over the board, as a player moves on it.
+- **The measures:** a full pile never touches the piece in the square behind it: the board's width less one, times the
+  step, plus a flat's side, is less than the square's side. A flat is 50% of the square and the step 6.5%, which
+  leaves 4.5% on 8x8, more than the pieces' lines on the smallest squares. A test holds it for each width from 3 to 8.
+  The site takes the way to show a stack from the sources of PTN-Ninja (`src/components/board/Piece.vue`,
+  `src/i18n/en-us/usage.md`) and of playtak-ui (`src/js/board.js`, `src/index.html`), and no code, theme or image:
+  PTN-Ninja is AGPL-3.0. The shapes, the measures and the colours are the site's own.
+- **The kinds:** a flat is a square, a wall a bar turned to the diagonal, White's leaning to the left and Black's to
+  the right, as on ptn.ninja, and a capstone the logo's form, a round top on a flat base, not wider than a flat. A
+  wall on a stack stands one step lower. A wall or a capstone on top has a stronger line, as on a flat of its own
+  colour this line alone shows it.
 - **The colours:** the first player's stones are light and the second's dark, as Tak's white and black. The shared
   code calls the first player "blue" (design 29, item 2), and the site's texts say "White" and "Black".
 - **The player's own move,** from the engine's list of legal moves, as Cyanotype's board takes a move. The site has no
@@ -788,6 +806,13 @@ This document is the plan. The engine's plan is in the engine repository's `game
   and `komi.ts` holds each size's komi limit. The reader is the shared one, in PTN's form. It reads the main line, and
   does not read the branches, the engine notes or the clocks. Writing branches and notes is ticket 11. The refusals of
   a size, an opening and a komi before the review are ticket 5. The engine's check of a `*` is ticket 9.
+- **The board and its stacks** (ticket 4, abscls-shfz.18.6): `apps/mistak/src/lib/board`, on `/lab/board`.
+  `position.ts` makes the engine's position fields from a TPS, without the ones that need the rules (the reserves, the
+  end and the legal moves). `pieces.ts` draws a stack, for the page's board and for the link previews' image.
+  `squares.ts` gives the squares' places, their words, the line of text with a whole stack and the walk with the keys.
+  `Board.svelte` draws the board. The lab's positions are from games of the engine repository's alpha-beta bot
+  (`scripts/board-games.py`) and from hand-made TPS. The board takes no move (ticket 9) and edits no position (ticket
+  19).
 - **The rest** of "The tickets proposed" is not built.
 
 ## Log

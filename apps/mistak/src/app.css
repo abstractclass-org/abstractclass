@@ -18,3 +18,22 @@
   --accent: #b8a6e8; /* pale lavender: 5.9:1 as text on panel-2, 8.2:1 under near-black text */
   --on-accent: #16181c;
 }
+
+/* The board's tokens (design 34, "The board"): the squares and their lines, and each player's pieces, light for White
+   and dark for Black, each with a line of the other lightness around it, so that a piece reads on every square. */
+:root, [data-theme="light"] {
+  --board-bg: #dcc9a3;
+  --board-line: #a08755;
+  --piece-white: #f8f2e4;
+  --piece-white-line: #3a3327;
+  --piece-black: #2c2b29;
+  --piece-black-line: #efe6d2;
+}
+:root[data-theme="dark"] {
+  --board-bg: #575042;
+  --board-line: #7f755f;
+  --piece-white: #efe8d8;
+  --piece-white-line: #1b1a17;
+  --piece-black: #1e1e1f;
+  --piece-black-line: #cfc4ad;
+}

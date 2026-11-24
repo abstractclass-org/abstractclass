@@ -25,16 +25,17 @@ const tile = (rx: number): Shape => ["rect", { width: 100, height: 100, ...(rx ?
 const stone = (x: number, y: number, width: number, height: number, rx: number): Shape =>
   ["rect", { x, y, width, height, rx, fill: STONE }];
 
-/** The capstone in the box at (x, y): its top a half circle of the box's width, and its base flat, with two corners of
- *  radius `base`. */
-const capstone = (x: number, y: number, width: number, height: number, base: number): Shape => {
+/** The capstone's outline in the box at (x, y): its top a half circle of the box's width, and its base flat, with two
+ *  corners of radius `base`. The board's capstone has it too (src/lib/board/pieces.ts). */
+export function capstonePath(x: number, y: number, width: number, height: number, base: number): string {
   const top = width / 2, side = height - top - base;
-  return ["path", {
-    d: `M${x} ${y + top}a${top} ${top} 0 0 1 ${width} 0v${side}a${base} ${base} 0 0 1-${base} ${base}`
-      + `h${2 * base - width}a${base} ${base} 0 0 1-${base}-${base}z`,
-    fill: STONE,
-  }];
-};
+  return `M${x} ${y + top}a${top} ${top} 0 0 1 ${width} 0v${side}a${base} ${base} 0 0 1-${base} ${base}`
+    + `h${2 * base - width}a${base} ${base} 0 0 1-${base}-${base}z`;
+}
+
+/** The capstone in the box at (x, y), in full colour. */
+const capstone = (x: number, y: number, width: number, height: number, base: number): Shape =>
+  ["path", { d: capstonePath(x, y, width, height, base), fill: STONE }];
 
 /** The mist: the stone's cream over its left part, fading to nothing at its right. */
 const MIST: Gradient = { stops: [[0, STONE], [0.18, STONE], [1, STONE, 0]] };

@@ -103,5 +103,5 @@ test("the link preview picture is Open Graph's size and names the site, its game
   for (const words of ["Mistak", "Learn Tak", "mistak.abstractclass.org"]) assert.ok(doc.includes(words));
   assert.doesNotMatch(doc, /NaN|undefined/);
   assert.deepEqual(references(doc), ids(doc));
-  assert.equal(ids(doc).length, 1);
+  assert.equal(ids(doc).length, 2); // the board's rounded corners, and the logo's fading stone
 });
