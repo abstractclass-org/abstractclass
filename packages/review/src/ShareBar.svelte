@@ -32,10 +32,12 @@
   <div class="grid gap-0.5 min-w-0" title={full}>
     <div class={["flex rounded-[3px] overflow-hidden", sub ? "h-3" : "h-[1.15rem]", none ? "items-center justify-center bg-panel-2" : "bg-red"]}>
       {#if !none}
-        <div class="flex items-center pl-1.5 text-xs font-bold text-white bg-blue transition-[width] duration-200" style="width: {100 * share}%">
+        <!-- A flex item never shrinks below its own padding: a side with no share has none, or it keeps a 6 px sliver. -->
+        <div class={["flex items-center text-xs font-bold text-white bg-blue transition-[width] duration-200", share > 0 && "pl-1.5"]}
+             style="width: {100 * share}%">
           {#if labels && share >= 0.12}<span>{labels[0]}</span>{/if}
         </div>
-        <div class="flex flex-1 items-center justify-end pr-1.5 text-xs font-bold text-white bg-red">
+        <div class={["flex flex-1 items-center justify-end text-xs font-bold text-white bg-red", share < 1 && "pr-1.5"]}>
           {#if labels && share <= 0.88}<span>{labels[1]}</span>{/if}
         </div>
       {:else}
