@@ -374,8 +374,8 @@
   const positionOf = (p: string[]): G["position"] | undefined => game?.positionAt(p);
   // The turn of the move from a place, and whether it is the turn's first edge: the game's own turns on its line, and in
   // a variation the turn goes on while the same player moves.
-  const turnCache = $derived.by(() => { void gamePositions; void branches; return new Map<string, { turn: number; first: boolean }>(); });
-  function moveFrom(p: string[]): { turn: number; first: boolean } {
+  const turnCache = $derived.by(() => { void gamePositions; void branches; return new Map<string, MoveNumber>(); });
+  function moveFrom(p: string[]): MoveNumber {
     const i = mainIndex(p, mainNames);
     if (i !== null && i < R.edges.length) return { turn: R.turnOf[i].number, first: opensTurn(R.turnOf[i], i) };
     if (!p.length) return view.turn(positionOf([])?.count ?? 0);
@@ -753,7 +753,7 @@
   // computer lines are nodes of its tree): an edge the player has played shows as the variation's own, and the rest of the
   // line follows it, faded. The line follows the search, and the player's variations stay. When the line changes, a
   // variation off the new line shows as a variation of its own, and a variation on it merges into it.
-  type EngineStep = { k: number; mover: Player; turn: { turn: number; first: boolean } };
+  type EngineStep = { k: number; mover: Player; turn: MoveNumber };
   interface EngineBranch { search: string[]; start: string[]; line: G["move"][]; paths: string[][]; steps: Map<string, EngineStep> }
   function engineBranch(search: string[]): EngineBranch | null {
     const best = bestLine(search);
@@ -1326,7 +1326,8 @@
     // neither, as the page's board shows a variation's preview.
     const turn = { last: moveInto(start) ?? null, earlier: earlierOf(start) }, none = { last: null, earlier: [] };
     const file = line.drawn(from).then(({ edges, end }) => {
-      const caption = image.caption({ ...moveFrom(start), turn: numberFrom(start).turn, position: from }, end, edges.length);
+      // The notation's number, and whether the move opens its turn: where the notation has its own numbers, each move does.
+      const caption = image.caption({ turn: numberFrom(start).turn, first: moveFrom(start).first, position: from }, end, edges.length);
       const board = (k: number) => ({ position: from, ...(k ? none : turn), line: edges.slice(0, k), notes, layers });
       return animated ? image.animate(lineFrames(edges.length).map(f => ({ board: board(f.edges), ms: f.ms })), caption, width)
         : image.draw(board(edges.length), caption, width);
