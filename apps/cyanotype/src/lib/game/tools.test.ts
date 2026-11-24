@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import data from "../board/fixtures.json" with { type: "json" };
 import { readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
 import { holdsGame } from "@abstractclass/site/addressHash.ts";
-import { LOGO_SMALL, svgElement } from "#lib/brand/logo.ts";
+import { LOGO, svgElement } from "#lib/brand/logo.ts";
 import { parseRecord } from "./record.ts";
 import { TOOL_NAME, bookmarkletHref, bookmarkletScript, userscriptHeader, userscriptSource } from "./tools.ts";
 
@@ -30,10 +30,10 @@ test("the userscript's header names the script, its pages, its rights and its fi
   assert.ok(text.startsWith(userscriptHeader(ORIGIN, "2026.10.27.1200")));
 });
 
-test("the button and Tampermonkey's lists show the logo's simple drawing (design 33, \"The logo\")", () => {
+test("the button and Tampermonkey's lists show the logo (design 33, \"The logo\")", () => {
   const text = userscriptSource(ORIGIN, "1", "abc");
-  assert.equal(atob(meta(text, "icon")[0].replace("data:image/svg+xml;base64,", "")), svgElement(LOGO_SMALL, 64));
-  assert.ok(text.includes(JSON.stringify(svgElement(LOGO_SMALL, 44)).slice(1, -1)), "the button's picture");
+  assert.equal(atob(meta(text, "icon")[0].replace("data:image/svg+xml;base64,", "")), svgElement(LOGO, 64));
+  assert.ok(text.includes(JSON.stringify(svgElement(LOGO, 44)).slice(1, -1)), "the button's picture");
 });
 
 test("the code that the userscript and the bookmarklet carry parses, with the site's address and name in it", () => {

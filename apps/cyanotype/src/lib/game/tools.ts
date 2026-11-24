@@ -9,7 +9,7 @@ import type { Tool } from "@abstractclass/import/importHash.ts";
 import type { Found } from "@abstractclass/import/pageCode.ts";
 import { userscriptHeader as header, userscriptSource as source, type ButtonPlace,
          type UserscriptSite } from "@abstractclass/import/userscript.ts";
-import { LOGO_SMALL, svgElement } from "#lib/brand/logo.ts";
+import { LOGO, svgElement } from "#lib/brand/logo.ts";
 import { SITE_NAME } from "#lib/site.ts";
 import { jamRecord } from "./strategyjam.ts";
 import { explain, findJamGame, jamShownMove } from "./strategyjamPage.ts";
@@ -46,9 +46,9 @@ const BUTTON_PLACES: Record<string, ButtonPlace> = {
   },
 };
 
-/** The button's picture, also in Tampermonkey's lists: the logo's simple drawing (design 33, "The logo"), as Hedge
- *  School's button shows its collie's head. */
-const svg = (size: number) => svgElement(LOGO_SMALL, size);
+/** The button's picture, also in Tampermonkey's lists: the logo (design 33, "The logo"), as Hedge School's button
+ *  shows its collie's head. */
+const svg = (size: number) => svgElement(LOGO, size);
 
 /** Cyanotype's parts of both tools (@abstractclass/import's UserscriptSite). */
 const SITE: UserscriptSite<typeof PAGE_CODE> = {

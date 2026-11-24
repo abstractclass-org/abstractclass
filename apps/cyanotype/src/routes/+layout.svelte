@@ -82,7 +82,7 @@
   {@render children()}
 </SiteFrame>
 
-<!-- The logo at 56 pixels, its full print, where Hedge School's dialog has its collie. -->
+<!-- The logo at 56 pixels, where Hedge School's dialog has its collie. -->
 {#snippet supportMark()}<Logo size={56} />{/snippet}
 <SupportDialog bind:open={support.open} site={SITE_NAME} mark={supportMark}
                description={SUPPORT_WORDS} />

@@ -6,7 +6,18 @@ import { CELL_SIZE } from "#lib/board/cellMarks.ts";
 import { center, hexPath, type Hex } from "#lib/board/hex.ts";
 import type { Kind, Player } from "#lib/board/position.ts";
 import { siteTokens } from "@abstractclass/site/themeTokens.ts";
-import { LOGO_LARGE, shapeMarkup, starPath } from "./logo.ts";
+import { LOGO, shapeMarkup } from "./logo.ts";
+
+const r2 = (v: number) => Math.round(v * 100) / 100;
+
+/** A five-pointed star's outline, its points `r` from (x, y): the card's own mark of a star cell. The board's star
+ *  cells have six points (design 33, "The cells' marks"). */
+export function starPath(x: number, y: number, r: number): string {
+  return "M" + Array.from({ length: 10 }, (_, k) => {
+    const a = (Math.PI / 5) * k - Math.PI / 2, d = k % 2 ? r * 0.42 : r;
+    return `${r2(x + d * Math.cos(a))},${r2(y + d * Math.sin(a) + r * 0.06)}`;
+  }).join("L") + "Z";
+}
 
 // The dark theme's colours: the site's tokens, from the style sheets that hold them, in the order that src/app.css
 // imports them. The lead takes the accent's colour, and the marks on the cells the colour of the text on the accent.
@@ -18,6 +29,9 @@ const ON_CELL = token("--on-accent");
 
 /** The card's size, Open Graph's. */
 export const CARD_WIDTH = 1200, CARD_HEIGHT = 630;
+
+/** The logo's size on the card, before the site's name. */
+const LOGO_PIXELS = 92;
 
 /** A corner of a game, drawn by hand: each player's start blueprint, grown towards the other, a wall of each. Blue's
  *  last placement, at (0, 0) and (0, 1), captured the two cells of Red's ring that touched it. As in a game, no
@@ -68,7 +82,7 @@ export function card(): string {
   const x = 600;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" `
     + `height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${BG}"/>${board(56, 80, 470, 31)}`
-    + `<g transform="translate(${x} 122) scale(0.92)">${shapeMarkup(LOGO_LARGE)}</g>`
+    + `<g transform="translate(${x} 122) scale(${LOGO_PIXELS / 100})">${shapeMarkup(LOGO)}</g>`
     + `<g font-family="'Segoe UI', system-ui, sans-serif">`
     + text(x + 110, 190, 62, TEXT, 700, ["Cyanotype"])
     + text(x, 290, 46, LEAD, 600, ["Learn Blueprints"])

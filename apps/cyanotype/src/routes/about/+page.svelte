@@ -1,5 +1,5 @@
 <script lang="ts">
-  // About Cyanotype (design 33): what the site does, the logo's full print at 96 pixels with a sentence on its name
+  // About Cyanotype (design 33): what the site does, the logo at 96 pixels with a sentence on its name
   // (as Hedge School's About page shows its collie), the early access (the header's "Early Access" link leads to its
   // section, as Hedge School's), the game, how a review works (with the link to its page, as Hedge School's) and the
   // engine. It names the players' Discord, which both sites share (@abstractclass/site/community.ts), in Hedge
@@ -30,9 +30,10 @@
 
   <h2>The cyanotype</h2>
   <div class="flex items-center gap-4">
-    <Logo size={96} label="A cyanotype of a blueprint" />
-    <p class="my-0">A cyanotype is a print in white on blue, the print that made the first blueprints. The logo is a
-      cyanotype of a blueprint that each player holds at the start: a star in its ring of six cells.</p>
+    <Logo size={96} label="A contact print of a blueprint" />
+    <p class="my-0">A cyanotype is a print in white on blue, the print that made the first blueprints. It is a contact
+      print: the paper lies under the thing that it prints, in the sun. The logo is a contact print of a blueprint of
+      four cells.</p>
   </div>
 
   <h2 id="early-access">Early access</h2>
