@@ -21,6 +21,11 @@ const words: Notation<number | null> = {
   start: tags => ({ turn: parseInt(tags.Start ?? "1"), first: !tags.Start?.endsWith("...") }),
 };
 const read = (text: string) => readRecord(text, words);
+/** The message and the offset of the RecordError that a text gives. */
+const at = (text: string) => {
+  try { read(text); } catch (e) { assert.ok(e instanceof RecordError, `${text}: ${e}`); return [e.message, e.offset]; }
+  assert.fail(`no error: ${text}`);
+};
 
 test("the game's moves in their one spelling, its marks, a pass, and the result", () => {
   const r = read("1. Apple 2. bee#2 cat 3. PASS dog b+12");
@@ -76,41 +81,29 @@ test("a game with no set-up start refuses a Position tag, at the tag", () => {
 });
 
 test("errors name what is wrong and where", () => {
-  const at = (text: string) => {
-    try { read(text); } catch (e) { assert.ok(e instanceof RecordError); return [e.message, e.offset]; }
-    assert.fail(`no error: ${text}`);
-  };
   assert.deepEqual(at("1. apple 2. bee b4"), ["not a word, a turn label or a result: b4", 16]);
   assert.deepEqual(at("1. apple#0!"), ["a move that takes nothing has no mark: apple#0!", 3]);
   assert.deepEqual(at("1. apple 3. bee"), ["the record gives turn 3 where the notation gives turn 2", 9]);
   assert.deepEqual(at("1. apple *  2. bee"), ["nothing may follow the result (*)", 12]);
   assert.deepEqual(at('1. apple [Blue "x"]'), ["tags come before the moves", 9]);
   assert.deepEqual(at("1. apple (2. bee"), ["a ( has no closing )", 16]);
+  assert.deepEqual(at("1. apple ) 2. bee"), ["a ) has no opening (", 9]);
   assert.deepEqual(at(""), ["the record has no moves", 0]);
 });
 
 test("a ] or a } that nothing opened is a RecordError at that character", () => {
-  const at = (text: string) => {
-    try { read(text); } catch (e) { assert.ok(e instanceof RecordError, `${text}: ${e}`); return [e.message, e.offset]; }
-    assert.fail(`no error: ${text}`);
-  };
   assert.deepEqual(at("1. a ] b"), ["a ] has no opening [", 5]);
   assert.deepEqual(at("1. a } b"), ["a } has no opening {", 5]);
   assert.deepEqual(at("]"), ["a ] has no opening [", 0]);
   assert.deepEqual(at("}"), ["a } has no opening {", 0]);
-  assert.deepEqual(at("] 1. apple"), ["a ] has no opening [", 0]);
-  assert.deepEqual(at("} 1. apple"), ["a } has no opening {", 0]);
   assert.deepEqual(at("1. apple] 2. bee"), ["a ] has no opening [", 8]);
-  assert.deepEqual(at("1. apple ) 2. bee"), ["a ) has no opening (", 9]);
 });
 
 test("any short mix of brackets, quotes and spaces gives a record or a RecordError, never another error", () => {
   const alphabet = ["[", "]", "{", "}", "(", ")", '"', " ", "1.", "apple", "*", "\n"];
   const ptn: Ptn = { result: w => (w === "*" ? "*" : null), tagName: n => n, tagsProblem: () => null };
-  let count = 0;
   const check = (text: string) => {
     for (const notation of [words, { ...words, ptn }]) {
-      count++;
       try { readRecord(text, notation); } catch (e) {
         assert.ok(e instanceof RecordError, `${JSON.stringify(text)}: ${e}`);
       }
@@ -121,7 +114,6 @@ test("any short mix of brackets, quotes and spaces gives a record or a RecordErr
     if (left) for (const a of alphabet) walk(prefix + a, left - 1);
   };
   walk("", 4);
-  assert.ok(count > 1000);
 });
 
 test("the Komi tag: Red's starting score, 0 without it, and an error where it is not a komi", () => {

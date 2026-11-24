@@ -198,7 +198,7 @@ function tokenize(text: string, ptn: boolean): Token[] {
       tokens.push(c === "(" ? { kind: "open", at: i } : { kind: "close", at: i });
       i++;
     } else if (!ptn && (c === "]" || c === "}")) {
-      // The word pattern below stops at these two and matches nothing there: a ] or } here has no [ or { before it.
+      // The word pattern below stops at a ] and at a }. A tag and a comment take their own, so one here closes nothing.
       throw new RecordError(c === "]" ? "a ] has no opening [" : "a } has no opening {", i);
     } else {
       const m = (ptn ? /^[^\s{[]+/ : /^[^\s{}()[\]]+/).exec(text.slice(i))!;
