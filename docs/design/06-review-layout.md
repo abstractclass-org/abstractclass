@@ -156,7 +156,7 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      rounds to them, and that is not exact, reads ">99.9%" or "<0.1%". So a bar that reads "100.0%" has no part of the
      other side, and one with a part of it does not read "100.0%". More decimals grow long near a game's end, change
      the text's width, and claim more than the engine's estimate gives. One function writes the text
-     (`chanceText`, packages/analysis/src/model.ts): of the win chance and the draw chance, in the bar, the gauge, the
+     (`chancePct`, packages/analysis/src/model.ts): of the win chance and the draw chance, in the bar, the gauge, the
      candidates table, the notes and the book. A loss of win chance and the network's prior keep their plain percent.
 6. **Display settings open in the analysis column,** in the place of the engine header, the candidates and the move
    list (below 1,260 pixels, of the tabs), as Lichess's analysis menu takes the move list's place. The board stays in

@@ -525,12 +525,12 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
 }
 
-/** A share as text in percent, with one decimal: a loss of win chance, a network's prior. A chance takes `chanceText`. */
+/** A share as text in percent, with one decimal: a loss of win chance, a network's prior. A chance takes `chancePct`. */
 export const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 
 /** A win chance or a draw chance as text, with one decimal wherever it shows. "100.0%" and "0.0%" mean an exact 1 and 0,
  *  as at the end of a game. A chance that is not exact and that one decimal rounds to them reads ">99.9%" or "<0.1%". */
-export function chanceText(x: number): string {
+export function chancePct(x: number): string {
   const text = pct(x);
   if (text === "100.0%" && x !== 1) return ">99.9%";
   return text === "0.0%" && x !== 0 ? "<0.1%" : text;

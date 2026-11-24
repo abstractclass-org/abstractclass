@@ -1,22 +1,40 @@
-// The layout test's game with one win chance in each stored result, for the browser tests of the win chance (the share
-// bar's and the text's). With the engine off, so that the page shows the stored results.
+// The layout test's game with values changed in its stored results, for the browser tests of the win chance and the
+// draw chance (the share bar, the text of a chance, the table's columns). With the engine off, so that the page shows
+// the stored results.
 import { readFileSync } from "node:fs";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { openReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { toMove } from "./move-header.ts";
 
 export const FIXTURE = "tests/fixtures/hedgefund-review.json";
 
-/** The fixture with Blue's win chance `share` in each stored result and in each of its candidates. */
-export function withWin(share: number): ReviewFileInput {
-  const file: { analyses: [string, { blueWin: number; candidates?: { blueWin: number }[] }][] } =
-    JSON.parse(readFileSync(FIXTURE, "utf8"));
-  for (const [, result] of file.analyses) {
-    result.blueWin = share;
-    for (const c of result.candidates ?? []) c.blueWin = share;
+/** A stored result, as these tests change it. A map's has no candidates. */
+interface Values { blueWin?: number; draw?: number; lead?: number }
+interface Stored extends Values { candidates?: Values[] }
+
+/** The fixture, each of its results but the maps changed by `change`, and each result's candidates with their place. */
+export function changed(name: string, change: (value: Values, place?: number) => void): ReviewFileInput {
+  const file: { analyses: [string, Stored][] } = JSON.parse(readFileSync(FIXTURE, "utf8"));
+  for (const [, value] of file.analyses) {
+    if (!value.candidates) continue;
+    change(value);
+    value.candidates.forEach((c, k) => change(c, k));
   }
-  return { name: "win-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
+  return { name, mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
 }
+
+/** The fixture with Blue's win chance `share` in each stored result and in each of its candidates. */
+const withWin = (share: number) => changed("win-review.json", value => { value.blueWin = share; });
+
+/** Whether a table cell's text has room in its content box. In fractions of a pixel: scrollWidth and clientWidth are
+ *  whole numbers, so a text 0.2 px too wide (">99.9%" in DejaVu Sans, in a column of 6.75ch), which the cell cuts,
+ *  passes a check of them. */
+export const fits = (cell: Locator) => cell.evaluate(el => {
+  const text = document.createRange(), style = getComputedStyle(el);
+  text.selectNodeContents(el);
+  return text.getBoundingClientRect().width
+    <= el.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+});
 
 /** The review of `file` in a window `width` px wide, the engine off. `win`: the win chance as a bar or a gauge. */
 export async function openReview(page: Page, file: ReviewFileInput, width: number, win: "bar" | "gauge" = "bar") {

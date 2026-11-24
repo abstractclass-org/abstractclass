@@ -13164,7 +13164,7 @@ The logo, its files and how each is made are in design 33, "The logo".
 
 - **What:** "100.0%" and "0.0%" mean an exact 1 and 0, as at the end of a game. A win chance or a draw chance that one
   decimal rounds to them, and that is not exact, reads ">99.9%" or "<0.1%". The rule and its reason are in design 06,
-  item 5. `chanceText` (packages/analysis/src/model.ts) is the one function. A loss of win chance (`pct` of the
+  item 5. `chancePct` (packages/analysis/src/model.ts) is the one function. A loss of win chance (`pct` of the
   difficulty) and the network's prior (the engine lab's table) are not chances and keep `pct`.
 - **Why:** since the win-chance bar has no part for a side with no share (abscls-tera), a bar that reads "100.0%" at
   0.9996 still showed 6 pixels of the other side. In the layout test's game, 118 of the 244 stored results read "100.0%"
@@ -13176,6 +13176,17 @@ The logo, its files and how each is made are in design 33, "The logo".
   table's box was 264 to 377 pixels wide, under 24rem, at each of them.
 - **The table's least width:** 324 pixels in Segoe UI (323 before) and 333 in DejaVu Sans (332). The narrowest box of a
   desktop window (325) has room in Segoe UI, and scrolls 8 pixels sideways in DejaVu Sans (7 before).
+- **The specs' room check is in fractions of a pixel:** `scrollWidth` and `clientWidth` are whole numbers. The text that
+  6.75ch cut by 0.2 pixels passed a check of them (68 and 68), though the cell showed ">99.…". `fits`
+  (tests/win-review.ts) compares the widths of the text and the content box.
+- **Linux (not run):** where Chromium rounds each glyph's advance to a whole pixel, ">99.9%" is 61 pixels wide (from the
+  font's advances). 6.9ch is then 62.1, or 61.5 if ch is not rounded. The column has room in both cases.
+- **What can still read "100.0%" without being exact:** the engine writes a chance to 9 significant digits (KataGo's
+  `OUTPUT_PRECISION`). So 1 − 5e-10 or more is stored as 1, and a chance near 0 keeps its digits. Blue's win chance
+  near 1 can read "100.0%" where Red's reads ">99.9%". In the layout test's game, which Red wins, 4 of the 244 stored
+  results are under 5e-10. No fixture's result is exactly 1. The opening book's values have three decimals (design 32),
+  so a value of 0.9995 or more is 1.000 there. The test book's largest is 0.769, and its two values of 0 are lower
+  bounds.
 - **Lichess** shows no win chance as text (ui/lib/src/ceval/view/main.ts: the evaluation is in pawns or as a mate, and
   the gauge has no title or aria-label), so it gives no text for this. The aria text and the tooltips say the same words
   as the page.

@@ -15,7 +15,7 @@ import type { Component, Snippet } from "svelte";
 import type { Game, GameTypes, Player } from "@abstractclass/analysis/game.ts";
 import type { Label } from "@abstractclass/analysis/labels.ts";
 import { resultAt, resultOfRecord, type GameResult, type ScoreResult } from "@abstractclass/analysis/result.ts";
-import { chanceText, finalOf, type FinalData, type MoveReview, type ReviewData, type TurnReview, type Unit } from "@abstractclass/analysis/model.ts";
+import { chancePct, finalOf, type FinalData, type MoveReview, type ReviewData, type TurnReview, type Unit } from "@abstractclass/analysis/model.ts";
 import type { AreaMark, MapStyle } from "./ownership.ts";
 
 /** The players, in every game (the glossary): Blue moves first, Red second. */
@@ -38,7 +38,7 @@ export function smallMargin(m: number): string | undefined {
 /** The draw chance in words, for the win-chance bar's tooltip (the glossary's "Win chance"): "Draw chance 25.4%". None in
  *  a game whose engine gives none. */
 export const drawNote = (draw: number | undefined): string | undefined =>
-  (draw === undefined ? undefined : `Draw chance ${chanceText(draw)}`);
+  (draw === undefined ? undefined : `Draw chance ${chancePct(draw)}`);
 /** A result in words: the words that the game gives (GameResult), or by the scores: "A draw", or the winner and the
  *  margin with no unit (the glossary's "Score"): "Blue won by 28.5". `fmtMargin` writes the margin in the game's format
  *  (ViewGame `fmtMargin`). */

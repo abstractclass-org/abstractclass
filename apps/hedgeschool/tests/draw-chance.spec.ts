@@ -4,27 +4,10 @@
 // (Enclosure's engine gives none), and on the game as it is, which shows no draw chance. And the loss of a move with no
 // lead after it, as the last move's of a game with its own result: in the win chance. With the engine off, so that the
 // page shows the stored results. Run: npx playwright test tests/draw-chance.spec.ts --project=chromium.
-import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { openReviewFile, type ReviewFileInput } from "./review-file.ts";
 import { readTable, tableBox, toMove } from "./move-header.ts";
-
-const FIXTURE = "tests/fixtures/hedgefund-review.json";
-
-/** A stored result, as these tests change it. A map's has no candidates. */
-interface Values { draw?: number; lead?: number }
-interface Stored extends Values { candidates?: Values[] }
-
-/** The fixture, each of its results but the maps changed by `change`, and each result's candidates with their place. */
-function changed(name: string, change: (value: Values, place?: number) => void): ReviewFileInput {
-  const file: { analyses: [string, Stored][] } = JSON.parse(readFileSync(FIXTURE, "utf8"));
-  for (const [, value] of file.analyses) {
-    if (!value.candidates) continue;
-    change(value);
-    value.candidates.forEach((c, k) => change(c, k));
-  }
-  return { name, mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
-}
+import { changed, fits, FIXTURE } from "./win-review.ts";
 
 /** The fixture with a draw chance in each result, and in each of its candidates: 0.9996 for the first, which
  *  reads as the widest text. */
@@ -45,7 +28,7 @@ const headers = (page: Page) => tableBox(page).locator("th").allTextContents();
 /** Whether the Draw column's header and its widest text, the first row's ">99.9%", have room. */
 async function drawColumnFits(page: Page) {
   for (const cell of [tableBox(page).locator("th").nth(4), tableBox(page).locator("tr[data-rank] td:nth-child(5)").first()])
-    expect(await cell.evaluate(el => el.scrollWidth <= el.clientWidth), await cell.innerText()).toBe(true);
+    expect(await fits(cell), await cell.innerText()).toBe(true);
 }
 
 test("results with a draw chance: the bar's tooltip and the table's column show it", async ({ page }) => {

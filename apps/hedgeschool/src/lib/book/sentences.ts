@@ -10,7 +10,7 @@
 // docs/ux/book-explorer/journey-book-explorer.md, "Copy specifications". Design 32, item 6, gives where they depart
 // from the first templates, and why.
 import { GOOD_WIN, classify, type Label } from "@abstractclass/analysis/labels.ts";
-import { chanceText, LABEL_TEXT, moverWin } from "@abstractclass/analysis/model.ts";
+import { chancePct, LABEL_TEXT, moverWin } from "@abstractclass/analysis/model.ts";
 import { playerOf } from "#lib/engine/position.ts";
 import { PLAYER_NAME, otherPlayer, turnFromCount } from "#lib/review/enclosure.ts";
 import type { Book } from "./book.ts";
@@ -149,7 +149,7 @@ export const refutationText = (p: BookPosition, played: number, refutation: stri
 const trapText = (p: BookPosition, t: { move: string; blueWin: number; symbol?: PositionSymbol }, after: string,
                   again: string) =>
   `${t.move} seems good after a short search, but ${again} decreases ${side(p)}'s win chance from ` +
-  `${chanceText(bestWin(p))} to ${chanceText(win(p, t.blueWin))}. After ${after}, ${clause(t.symbol!)}.`;
+  `${chancePct(bestWin(p))} to ${chancePct(win(p, t.blueWin))}. After ${after}, ${clause(t.symbol!)}.`;
 /** A book move's trap text (`trapText`). */
 const moveTrapText = (p: BookPosition, m: BookMove, again: string) =>
   trapText(p, { move: m.move, blueWin: m.value.blueWin, symbol: lineEndSymbol(m) },
