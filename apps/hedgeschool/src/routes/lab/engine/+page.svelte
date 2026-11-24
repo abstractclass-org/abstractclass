@@ -11,7 +11,7 @@
   import { NETWORKS, REVIEW_PRESETS } from "#lib/analysis/engineSettings.ts";
   import { defaultPoolSize } from "@abstractclass/engine/pool.ts";
   import { errorText } from "@abstractclass/engine/errors.ts";
-  import { pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
+  import { chanceText, pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
   import { SAMPLE, SAMPLE_MOVES as MOVES } from "#lib/mock/sample.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
 
@@ -290,9 +290,9 @@
         {@const r = live.reply.rootInfo}
         <h2>Position after edge {edge} {live.final ? "" : "(searching)"}</h2>
         <p class="my-3.75">
-          {PLAYER_NAME[r.currentPlayer === "b" ? 0 : 1]} to play. Blue's win chance <strong>{pct(r.winrate)}</strong>,
+          {PLAYER_NAME[r.currentPlayer === "b" ? 0 : 1]} to play. Blue's win chance <strong>{chanceText(r.winrate)}</strong>,
           margin <strong>{pts(r.scoreSelfplay)} ± {r.scoreStdev.toFixed(0)}</strong>, lead {pts(r.scoreLead)}.
-          {#if r.rawWinrate !== undefined && r.rawScoreSelfplay !== undefined}Network alone: {pct(r.rawWinrate)}, {pts(r.rawScoreSelfplay)}.{/if}
+          {#if r.rawWinrate !== undefined && r.rawScoreSelfplay !== undefined}Network alone: {chanceText(r.rawWinrate)}, {pts(r.rawScoreSelfplay)}.{/if}
           {r.visits} visits in {fmt(live.ms)} ({(r.visits / (live.ms / 1000)).toFixed(0)} a second).
           {#if live.memory}The worker's memory after the search: {mib(live.memory)}.{/if}
         </p>
@@ -301,7 +301,7 @@
           <tbody>
             {#each live.reply.moveInfos.slice(0, 10) as c (c.move)}
               <tr>
-                <td>{c.order + 1}</td><td class="font-mono">{c.move}</td><td>{c.edgeVisits}</td><td>{pct(c.winrate)}</td>
+                <td>{c.order + 1}</td><td class="font-mono">{c.move}</td><td>{c.edgeVisits}</td><td>{chanceText(c.winrate)}</td>
                 <td>{pts(c.scoreSelfplay)}</td><td>{c.scoreStdev.toFixed(0)}</td><td>{pts(c.scoreLead)}</td><td>{pct(c.prior)}</td>
               </tr>
             {/each}

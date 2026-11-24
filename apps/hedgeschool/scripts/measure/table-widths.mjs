@@ -13,7 +13,7 @@
 // - for the Move column: the names at full size, the names made smaller (fitName) and their least size, the names cut,
 //   and the widest name at full size;
 // - the widest value that the column can show, measured in the first row's semibold: "Blue +1.2k" (a lead from 1,000
-//   on), "100.0%" and a 5-digit visit count (the position on screen goes to 16,384 visits: settings.ts). Each is
+//   on), ">99.9%" and a 5-digit visit count (the position on screen goes to 16,384 visits: settings.ts). Each is
 //   measured in Arial too, a wider font than Segoe UI, as a stand-in for other systems' fonts (not a measure of them);
 // - the table's width and the side column's width, and the position whose Lead value is the widest.
 //
@@ -71,7 +71,7 @@ const NOTATIONS = (arg("--notations") ?? (HEDGE ? "edges" : "glyphs,text")).spli
 const COLUMNS = ["#", "Move", "win%", "Lead", "Visits"];
 const NAMES = { "#": "Rank (#)", Move: "Move", "win%": "Win chance", Lead: "Lead", Visits: "Visits" };
 /** The widest values that each column can show (the first row's semibold measures them). */
-const WORST = { "win%": ["100.0%"], Lead: ["Blue +1.2k", "Blue +999", "Red +1.2k"], Visits: ["16384"] };
+const WORST = { "win%": [">99.9%", "100.0%"], Lead: ["Blue +1.2k", "Blue +999", "Red +1.2k"], Visits: ["16384"] };
 /** Shorter headers for the Win chance column, measured in the header's font. */
 const HEADS = ["Blue wins", "Blue %", "Win %", "Win", "%"];
 /** The proposal: the Lead column at LEAD_WIDE where the table is at least TABLE_LEAST wide, so that the Move column

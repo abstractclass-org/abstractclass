@@ -9,39 +9,16 @@
 // A part changes width or height over 200 ms, so each check waits until the bar is at rest. Nothing here measures text
 // room, so the font does not matter.
 // Run: npm run test:layout -- tests/share-bar.spec.ts --project=chromium, with BASE_URL.
-import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./page-log.ts";
 import { keepBefore } from "./keep-before.ts";
-import { toMove } from "./move-header.ts";
-import { openReviewFile, type ReviewFileInput } from "./review-file.ts";
+import { FIXTURE, openAtShare, openReview } from "./win-review.ts";
 import { CONSENT_KEY, PRACTICE_GAME_KEY } from "../src/lib/keys.ts";
 
 // The review's load can take a few minutes on a busy machine, but never the config's 10 minutes: a wait that long is a
 // page that did not load, and the page log says why.
 test.describe.configure({ timeout: 240_000 });
 
-const FIXTURE = "tests/fixtures/hedgefund-review.json";
 const WIN = "Win chance from the engine's search", POINTS = "Points:"; // the start of each bar's tooltip
-
-/** The fixture with Blue's win chance `share` in each stored result. */
-function withWin(share: number): ReviewFileInput {
-  const file: { analyses: [string, { blueWin: number }][] } = JSON.parse(readFileSync(FIXTURE, "utf8"));
-  for (const [, result] of file.analyses) result.blueWin = share;
-  return { name: "win-review.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
-}
-
-/** The review of `file` in a window `width` px wide, the engine off. `win`: the win chance as a bar or a gauge. */
-async function openReview(page: Page, file: ReviewFileInput, width: number, win: "bar" | "gauge" = "bar") {
-  await page.setViewportSize({ width, height: width > 600 ? 952 : 844 });
-  await openReviewFile(page, file, { engine: { on: false }, consent: { games: "denied" }, display: { win } });
-}
-
-/** The fixture's review after its 10th edge, where Blue's win chance is `share`. */
-async function openAtShare(page: Page, share: number, width: number, win: "bar" | "gauge" = "bar") {
-  await openReview(page, withWin(share), width, win);
-  await toMove(page, 10);
-  await expect(page.locator("section.side")).toContainText("Edge 11 of ");
-}
 
 /** The flat bar with the tooltip that starts with `title`, and its parts: widths in px. */
 const partWidths = (page: Page, title: string) => page.locator(`[title^="${title}"] > div`).first().evaluate(bar => {

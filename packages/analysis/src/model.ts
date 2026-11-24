@@ -525,8 +525,16 @@ export function judgeTurn<M>(game: Moves<M>, mover: Player, played: (M | null)[]
   return { ...j, rawLoss: winBefore - winAfter, rawPoints: before !== undefined && afterScore !== undefined ? before - afterScore : undefined };
 }
 
-/** A win chance as text, with one decimal wherever it shows. */
+/** A share as text in percent, with one decimal: a loss of win chance, a network's prior. A chance takes `chanceText`. */
 export const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
+
+/** A win chance or a draw chance as text, with one decimal wherever it shows. "100.0%" and "0.0%" mean an exact 1 and 0,
+ *  as at the end of a game. A chance that is not exact and that one decimal rounds to them reads ">99.9%" or "<0.1%". */
+export function chanceText(x: number): string {
+  const text = pct(x);
+  if (text === "100.0%" && x !== 1) return ">99.9%";
+  return text === "0.0%" && x !== 0 ? "<0.1%" : text;
+}
 
 /** A hard position's tooltip: the mark's meaning, in two words. The Difficulty chart and the engine header's second
  *  line show how hard (design 14). */

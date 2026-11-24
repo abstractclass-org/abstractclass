@@ -162,7 +162,7 @@
   import { imageLine, lineFrames } from "./lineImage.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    moveNumber, moveRows, opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, endValues, finalOf, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    moveNumber, moveRows, opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, endValues, finalOf, moverWin, chanceText, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -428,7 +428,7 @@
   // it, by a little: its cost then has a plus. A symmetric twin is drawn too, with its move's rank and note: it is the
   // same move, and either edge can be played.
   const candidates = $derived<BoardCandidate<G["move"]>[]>(shownCandidates(view, analysis, mover).flatMap(({ c, rank, gap, gapPts, twins }) => {
-    const note = rank === 1 ? `${PLAYER_NAME[mover]} wins ${pct(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · lead ${sideText(c.lead, 1, "0")}` : ""}`
+    const note = rank === 1 ? `${PLAYER_NAME[mover]} wins ${chanceText(moverWin(c.blueWin, mover))}${c.lead !== undefined ? ` · lead ${sideText(c.lead, 1, "0")}` : ""}`
       : costText(gap, gapPts);
     return [c, ...twins].map(x => ({ move: x.edge, rank, note }));
   }));
@@ -2011,8 +2011,8 @@
        to the other columns. The # and Move columns come first, so they show at the scroll's start. A name's glyphs
        (`glyphs`) sit on the middle of its line: their Label sets that (game.ts, `Label`).
        The Draw column, in a game whose results have a draw chance, takes its room from the edge column. Its width goes
-       by the page's font, in ch, for its widest text ("100.0%" in the first row's semibold): 52 pixels with the cell's
-       padding in Segoe UI, 66 in Linux's DejaVu Sans. With it the table is never narrower than the columns and the
+       by the page's font, in ch, for its widest text (">99.9%" in the first row's semibold): 54 pixels with the cell's
+       padding in Segoe UI, 68 in Linux's DejaVu Sans. With it the table is never narrower than the columns and the
        2.5rem that a 360-pixel phone leaves the edge column without the Draw column. In a narrower box the table
        scrolls, so that the names keep their room.
        The box is a named container (`candidates`), as wide as the closed table: its content width leaves out the
@@ -2032,9 +2032,9 @@
        oncontextmenucapture={e => (lineMenuImage = engineLineAt(e.target as Element))} onclickcapture={lineGuard.click}>
   <div class="@container/candidates flex-none mb-3 overflow-y-auto [scrollbar-gutter:stable] text-sm" bind:this={tableBox}
        style="height: calc({(TABLE_ROWS + 1) * ROW_EM}em + {scrollBar}px); --row: {ROW_EM}em">
-  <table class={["w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate", drawColumn && "min-w-[calc(17rem+6.75ch)]"]}
+  <table class={["w-full table-fixed [&_:is(th,td)]:px-1 [&_:is(th,td)]:py-0.5 [&_:is(th,td)]:border-b [&_:is(th,td)]:border-line [&_:is(th,td)]:truncate", drawColumn && "min-w-[calc(17rem+6.9ch)]"]}
          bind:this={table} style:width={movesOpen ? `max(100%, ${nameFit.open}px)` : undefined}>
-    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" />{#if drawColumn}<col class="w-[calc(6.75ch+0.5rem)]" />{/if}<col class="w-12" /></colgroup>
+    <colgroup><col class="w-7" /><col /><col class="w-18" /><col class="w-19 @min-[24rem]/candidates:w-22" />{#if drawColumn}<col class="w-[calc(6.9ch+0.5rem)]" />{/if}<col class="w-12" /></colgroup>
     <thead>
       <tr class="[&>th]:sticky [&>th]:top-0 [&>th]:z-1 [&>th]:h-(--row) [&>th]:bg-panel [&>th]:text-left [&>th]:font-medium [&>th]:text-muted">
         <!-- The Move header, while it can open or close the column: a button, its mark after the word. A click does not
@@ -2062,8 +2062,8 @@
           <td><div class="@container flex items-center gap-1 min-w-0"><span data-name class="flex-none {view.nameText} {twins.length && view.fitName ? 'max-w-[calc(100%_-_1.25em)]' : ''} [--on-text:var(--panel)]
                 data-cut:text-clip data-cut:[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.25em),transparent)]">{#if glyphs}<glyphs.Label played={glyphs.asPlayed(c.edge, mover, position)} />{:else}{view.moveName(c.edge)}{/if}</span>{#if twins.length}<span
                 class="flex-none leading-none font-normal text-muted" title="{view.twinWords ?? "Mirror"}: {twins.map(t => view.moveName(t.edge)).join(', ')}">⇅</span>{/if}</div></td>
-          <td>{pct(moverWin(c.blueWin, mover))}</td>
-          <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td>{#if drawColumn}<td>{c.draw !== undefined ? pct(c.draw) : "–"}</td>{/if}
+          <td>{chanceText(moverWin(c.blueWin, mover))}</td>
+          <td>{c.lead !== undefined ? sideShort(c.lead) : "–"}</td>{#if drawColumn}<td>{c.draw !== undefined ? chanceText(c.draw) : "–"}</td>{/if}
           <td>{c.visits}</td>
         </tr>
       {/each}
@@ -2919,14 +2919,14 @@
       {#snippet blue()}{@render player(0)}{/snippet}
       {#snippet red()}{@render player(1)}{/snippet}
       {#snippet bar()}
-        <ShareBar share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]} empty="not analyzed yet" title="Win chance from the engine's search" note={drawNote(draw)} />
+        <ShareBar share={blueWin} labels={[chanceText(blueWin), chanceText(1 - blueWin)]} empty="not analyzed yet" title="Win chance from the engine's search" note={drawNote(draw)} />
       {/snippet}
     </PlayerRow>
     </div>
     <div class="flex">
       {#if display.win === "gauge"}
-        <ShareBar upright share={blueWin} labels={[pct(blueWin), pct(1 - blueWin)]}
-                  title={Number.isNaN(blueWin) ? "Win chance: not analyzed yet" : `${PLAYER_NAME[0]}'s win chance ${pct(blueWin)}`} note={drawNote(draw)} />
+        <ShareBar upright share={blueWin} labels={[chanceText(blueWin), chanceText(1 - blueWin)]}
+                  title={Number.isNaN(blueWin) ? "Win chance: not analyzed yet" : `${PLAYER_NAME[0]}'s win chance ${chanceText(blueWin)}`} note={drawNote(draw)} />
       {/if}
       <div class="board-wrap relative rounded overflow-hidden" bind:this={boardWrap}>
         <!-- The game's board (the game's `Board`). While a variation's preview shows, the board is at the row's start,

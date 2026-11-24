@@ -152,6 +152,12 @@ Lichess sizes its Analysis board from the window, and keeps the board whole in v
      the row above the board, Blue on the left and Red on the right, as the players start, from the board's edge and
      with nothing between them. A list of the players, Blue above Red, would put Blue above Red next to a gauge that
      puts Blue below Red.
+   - **A chance's text:** "100.0%" and "0.0%" mean an exact 1 and 0, as at the end of a game. A chance that one decimal
+     rounds to them, and that is not exact, reads ">99.9%" or "<0.1%". So a bar that reads "100.0%" has no part of the
+     other side, and one with a part of it does not read "100.0%". More decimals grow long near a game's end, change
+     the text's width, and claim more than the engine's estimate gives. One function writes the text
+     (`chanceText`, packages/analysis/src/model.ts): of the win chance and the draw chance, in the bar, the gauge, the
+     candidates table, the notes and the book. A loss of win chance and the network's prior keep their plain percent.
 6. **Display settings open in the analysis column,** in the place of the engine header, the candidates and the move
    list (below 1,260 pixels, of the tabs), as Lichess's analysis menu takes the move list's place. The board stays in
    view, so each change shows as it is made. The menu button (☰, Lichess's in the same place) in the step controls' bar

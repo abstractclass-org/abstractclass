@@ -13159,3 +13159,23 @@ The logo, its files and how each is made are in design 33, "The logo".
 - **The limits are provisional:** 3 flats on 5x5 and 5 on 6x6, the farthest komi mean of the engine's design 04 (0, and
   0 and 2) and three standard deviations of one flat. No release names a range yet.
 - **Not checked here:** the rules (the engine's), and a file that ptn.ninja itself opened.
+
+### A chance's text: ">99.9%" and "<0.1%" (2026-11-25)
+
+- **What:** "100.0%" and "0.0%" mean an exact 1 and 0, as at the end of a game. A win chance or a draw chance that one
+  decimal rounds to them, and that is not exact, reads ">99.9%" or "<0.1%". The rule and its reason are in design 06,
+  item 5. `chanceText` (packages/analysis/src/model.ts) is the one function. A loss of win chance (`pct` of the
+  difficulty) and the network's prior (the engine lab's table) are not chances and keep `pct`.
+- **Why:** since the win-chance bar has no part for a side with no share (abscls-tera), a bar that reads "100.0%" at
+  0.9996 still showed 6 pixels of the other side. In the layout test's game, 118 of the 244 stored results read "100.0%"
+  or "0.0%", and none of them is exactly 1 or 0 (a script counted them).
+- **The Draw column is 6.9ch and its padding** (it was 6.75ch). In DejaVu Sans bold (14 pixels), ">99.9%" is 60.3 pixels
+  wide, and 6.75ch is 60.1, so the text was cut by 0.2 pixels in CI's font. 6.9ch is 61.5. In Segoe UI the text is 48.3
+  and the room 52. Measured on Hedge School in headless Chromium at 1376, 1024, 390 and 360 pixels, in both fonts, with
+  the win and the Draw column at ">99.9%" and "<0.1%": nothing was cut, and the bar's label had one line. The
+  table's box was 264 to 377 pixels wide, under 24rem, at each of them.
+- **The table's least width:** 324 pixels in Segoe UI (323 before) and 333 in DejaVu Sans (332). The narrowest box of a
+  desktop window (325) has room in Segoe UI, and scrolls 8 pixels sideways in DejaVu Sans (7 before).
+- **Lichess** shows no win chance as text (ui/lib/src/ceval/view/main.ts: the evaluation is in pawns or as a mate, and
+  the gauge has no title or aria-label), so it gives no text for this. The aria text and the tooltips say the same words
+  as the page.

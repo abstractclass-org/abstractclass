@@ -26,9 +26,10 @@ function changed(name: string, change: (value: Values, place?: number) => void):
   return { name, mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) };
 }
 
-/** The fixture with a draw chance in each result, and in each of its candidates: 100% for the first, the widest text. */
+/** The fixture with a draw chance in each result, and in each of its candidates: 0.9996 for the first, which
+ *  reads as the widest text. */
 const withDraws = () => changed("draws-review.json", (value, place) => {
-  value.draw = place === undefined ? 0.125 : place ? 0.0625 : 1;
+  value.draw = place === undefined ? 0.125 : place ? 0.0625 : 0.9996;
 });
 
 const open = async (page: Page, file: ReviewFileInput, win: "bar" | "gauge", [width, height] = [1376, 952]) => {
@@ -41,7 +42,7 @@ const open = async (page: Page, file: ReviewFileInput, win: "bar" | "gauge", [wi
 const moveColumn = (page: Page) => tableBox(page).locator("[data-move-head]").evaluate(el => el.getBoundingClientRect().width);
 const rowsRoom = (page: Page) => tableBox(page).evaluate(el => el.clientHeight);
 const headers = (page: Page) => tableBox(page).locator("th").allTextContents();
-/** Whether the Draw column's header and its widest text, the first row's "100.0%", have room. */
+/** Whether the Draw column's header and its widest text, the first row's ">99.9%", have room. */
 async function drawColumnFits(page: Page) {
   for (const cell of [tableBox(page).locator("th").nth(4), tableBox(page).locator("tr[data-rank] td:nth-child(5)").first()])
     expect(await cell.evaluate(el => el.scrollWidth <= el.clientWidth), await cell.innerText()).toBe(true);
@@ -52,7 +53,7 @@ test("results with a draw chance: the bar's tooltip and the table's column show 
   await expect(page.locator(`[title="Win chance from the engine's search · Draw chance 12.5%"]`)).toHaveCount(1);
   expect(await headers(page)).toEqual(["#", expect.stringMatching(/^Edge/), expect.stringMatching(/ wins$/), "Lead", "Draw", "Visits"]);
   const cells = tableBox(page).locator("tr[data-rank] td:nth-child(5)");
-  expect((await cells.allTextContents()).slice(0, 2)).toEqual(["100.0%", "6.3%"]);
+  expect((await cells.allTextContents()).slice(0, 2)).toEqual([">99.9%", "6.3%"]);
   await drawColumnFits(page);
 });
 

@@ -17,7 +17,7 @@
   // it.
   import type { Snippet } from "svelte";
   import LabelBadge from "@abstractclass/review/LabelBadge.svelte";
-  import { moverWin, pct, PLAYER_NAME } from "#lib/review/enclosure.ts";
+  import { chanceText, moverWin, PLAYER_NAME } from "#lib/review/enclosure.ts";
   import { playerOf } from "#lib/engine/position.ts";
   import BookSymbol from "./BookSymbol.svelte";
   import type { BookAt } from "./lookup.svelte.ts";
@@ -69,11 +69,11 @@
   const mover = $derived(position ? playerOf(position.mover) : 0);
   const side = $derived(PLAYER_NAME[mover]);
   const showsBook = $derived(at.state !== "out" && show === "book");
-  const moverPct = (blueWin: number) => pct(moverWin(blueWin, mover));
+  const moverPct = (blueWin: number) => chanceText(moverWin(blueWin, mover));
   /** Blue's bounds as the mover's, the title of a win chance: "Between 38.7% and 64.2%." (KataGo's book bounds). */
   const bounds = (low: number, high: number) => {
     const [a, b] = mover === 0 ? [low, high] : [1 - high, 1 - low];
-    return `Between ${pct(a)} and ${pct(b)}.`;
+    return `Between ${chanceText(a)} and ${chanceText(b)}.`;
   };
   // The book's source, the heading's title
   const about = $derived(source ? [
