@@ -13,7 +13,7 @@
   import { GROUP_HOVER, MOVE_HERE, MOVE_HOVER, MOVE_LIST, ROUND_GROUP, ROUND_HERE, ROUND_HOVER, TURN_NUMBER, TURN_REM, keepInView, moveButton,
            turnRow } from "./moveList.ts";
   import { chartMarks, listed, type Analysis } from "@abstractclass/analysis/model.ts";
-  import type { GameTypes, Player } from "@abstractclass/analysis/game.ts";
+  import type { GameTypes, MoveNumber, Player } from "@abstractclass/analysis/game.ts";
   import type { BranchNode, MapState, ThreatCost, ThreatState, WallState } from "@abstractclass/analysis/analysis.svelte.ts";
   import { drawNote, PLAYER_NAME, resultText, smallMargin, WHOLE, type ViewTypes } from "./game.ts";
   import { resultAt, type GameResult, type ScoreResult } from "@abstractclass/analysis/result.ts";
@@ -162,7 +162,7 @@
   import { imageLine, lineFrames } from "./lineImage.ts";
   import Toast from "@abstractclass/site/Toast.svelte";
   import {
-    opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, endValues, finalOf, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
+    moveNumber, moveRows, opensTurn, HARD_NOTE, complexity, deepEnough, isHard, turnComplexity, likelyMoves, HARD, METER_GROUPS, turnCost, judgeTurn, judgeBranchMove, valuesAfter, endValues, finalOf, moverWin, costText, pct, shownCandidates, distinctCandidates, rankOf, twinsOf, enoughVisits, threatTurn, trustedLine, type Candidate, LABELS, LABEL_TEXT, LABEL_GLYPH, type Label, type MoveJudgment, type Review, type Unit, type TurnJudgment, type TurnReview,
   } from "@abstractclass/analysis/model.ts";
   import { branchChildren, branchLine, branchRows, mainIndex, nextFork, pathKey, prefixKeys, prevFork, sharedLength, siblingLine, treeLines, withLine,
            type BranchRow } from "@abstractclass/analysis/tree.ts";
@@ -244,8 +244,9 @@
     shownDisplay = now;
   });
   // What the labels judge (design 10): each turn as a whole, or each edge. It sets the labels' unit in the move list, on
-  // the board, in the counts and on the chart.
-  const unit = $derived<Unit>(display.judge);
+  // the board, in the counts and on the chart. A game that numbers its moves apart from its turns has one move a turn:
+  // by turn and by move judge the same, so it has no choice ("Review by"), and each move shows its own label.
+  const unit = $derived<Unit>(view.numbers ? "edge" : display.judge);
   // Whose moves the review explains ("Review for"): both, or one player. The other's moves show without labels, numbers,
   // notes or the engine's lines, on the board and on the chart too. The counts keep both players.
   // The labels of the player chosen in "Review for". The board labels the moves the player asked for, on both sides.
@@ -386,9 +387,13 @@
     turnCache.set(key, t);
     return t;
   }
-  /** The turns of edges played one after another from a place, by who plays them. */
-  function turnsFrom(p: string[], players: Player[]): { turn: number; first: boolean }[] {
-    const out: { turn: number; first: boolean }[] = [];
+  // The notation's numbers: the turns', or the game's own where it numbers its moves apart from its turns (Game.numbers)
+  const ownNumber = (played: number) => moveNumber(view, positionOf([])?.count, played);
+  const numberFrom = (p: string[]): MoveNumber => ownNumber(p.length) ?? moveFrom(p);
+  /** The numbers of edges played one after another from a place, by who plays them. */
+  function turnsFrom(p: string[], players: Player[]): MoveNumber[] {
+    if (view.numbers) return players.map((_, k) => ownNumber(p.length + k)!);
+    const out: MoveNumber[] = [];
     players.forEach((pl, k) => {
       if (k === 0) { out.push(moveFrom(p)); return; }
       const first = pl !== players[k - 1];
@@ -396,11 +401,11 @@
     });
     return out;
   }
-  const turnText = (t: { turn: number; first: boolean }) => `${t.turn}${t.first ? "." : "..."}`;
-  /** A move's turn as the record writes it before the move: "12. ", and "12... " for a turn's second edge. */
+  const turnText = (t: MoveNumber) => `${t.turn}${t.first ? "." : "..."}`;
+  /** A move's number as the record writes it before the move: "12. ", and "12... " for a turn's second edge. */
   const turnBefore = (index: number) => {
     const t = R.turnOf[index];
-    return `${t.number}${opensTurn(t, index) ? "." : "..."} `;
+    return `${turnText(ownNumber(index) ?? { turn: t.number, first: opensTurn(t, index) })} `;
   };
   /** A move in the record's notation with its turn: "12. L10-N11", and "12... N11-Q10" for a turn's second edge. */
   const moveText = (index: number) => `${turnBefore(index)}${view.notation(R.edges[index])}`;
@@ -804,7 +809,7 @@
   // are in glyphs, which have spaces of their own, as in a note (inGlyphs). Not with dots: a disc never reaches its
   // neighbour, and a middle dot between discs would read as a smaller disc. Not in the notation's text, which keeps the
   // record's space.
-  const turnDots = $derived(display.branchForm === "pills" ? !!view.shape.turnDot : display.branchForm === "text" && !!glyphs);
+  const turnDots = $derived(!view.numbers && (display.branchForm === "pills" ? !!view.shape.turnDot : display.branchForm === "text" && !!glyphs));
   /** A note's parts: its text, and the moves that it names (a note of text alone is one part). */
   const partsOf = (note: string | NotePart<G>[]): NotePart<G>[] => (typeof note === "string" ? [note] : note);
   /** A note as text, its moves in their notation: its title, and how a turn's notes say a note once. */
@@ -905,7 +910,7 @@
   function diffName(l: MapLine, j: number, d: DiffBase): string {
     if (l.kind === "threat") return `${stepName(l, j)} vs before the pass`;
     if (!d.played) return j ? `${stepName(l, j)} vs before the ${l.kind}` : stepName(l, j);
-    const p = l.start, from = moveFrom(p.slice(0, -1));
+    const p = l.start, from = numberFrom(p.slice(0, -1));
     return unit === "turn" ? `After turn ${from.turn} vs before it` : `After ${turnText(from)} ${p.at(-1)} vs before it`;
   }
   // The legend's start: the position that the map is from (in the difference style, its two positions), and the edge
@@ -1321,7 +1326,7 @@
     // neither, as the page's board shows a variation's preview.
     const turn = { last: moveInto(start) ?? null, earlier: earlierOf(start) }, none = { last: null, earlier: [] };
     const file = line.drawn(from).then(({ edges, end }) => {
-      const caption = image.caption({ ...moveFrom(start), position: from }, end, edges.length);
+      const caption = image.caption({ ...moveFrom(start), turn: numberFrom(start).turn, position: from }, end, edges.length);
       const board = (k: number) => ({ position: from, ...(k ? none : turn), line: edges.slice(0, k), notes, layers });
       return animated ? image.animate(lineFrames(edges.length).map(f => ({ board: board(f.edges), ms: f.ms })), caption, width)
         : image.draw(board(edges.length), caption, width);
@@ -1625,13 +1630,14 @@
   // The charts' marks: every turn or edge with a label that the move list shows, for the side reviewed (chartMarks).
   // And the Difficulty chart's bars: a turn's or an edge's complexity, for the side reviewed.
   const chartDots = $derived(chartMarks(R, unit, forSide));
+  const rows = $derived(moveRows(view, R)); // the move list's
   const difficultyBars = $derived((unit === "turn"
     ? R.turns.map(t => ({ from: t.start, to: t.end, c: t.complexity, hard: t.hard, player: t.player,
                           title: `${t.number}. ${PLAYER_NAME[t.player]} to play`, played: t.edges.map(e => view.notation(e)).join(" ") }))
     : R.edges.map(e => {
-        const t = R.turnOf[e.index], k = e.index - t.start;
+        const t = R.turnOf[e.index], k = e.index - t.start, own = ownNumber(e.index);
         return { from: e.index, to: e.index + 1, c: e.complexity, hard: e.hard, player: e.player, played: view.notation(e),
-                 title: `${t.number}. ${PLAYER_NAME[e.player]} to play${t.edges.length > 1 ? `, ${view.words.move} ${k + 1}` : ""}` };
+                 title: `${own ? turnText(own) : `${t.number}.`} ${PLAYER_NAME[e.player]} to play${t.edges.length > 1 ? `, ${view.words.move} ${k + 1}` : ""}` };
       }))
     .flatMap(({ player, c, played, ...b }) => (c !== undefined && forSide(player)
       ? [{ ...b, c, details: [`Played ${played}`, ...(b.hard ? [HARD_NOTE] : [])] }] : [])));
@@ -1647,7 +1653,7 @@
     // The position's own turn, in a variation and on the board: the turn as in the game.
     const turnHere = () => {
       const t = moveFrom(path), k = t.first ? 1 : 2;
-      return `Turn ${t.turn} · ${PLAYER_NAME[mover]} to play, ${view.words.move} ${k} of ${k - 1 + view.movesLeft(position)}`;
+      return `Turn ${numberFrom(path).turn} · ${PLAYER_NAME[mover]} to play, ${view.words.move} ${k} of ${k - 1 + view.movesLeft(position)}`;
     };
     if (mainAt === null) return `A variation from ${view.words.move} ${pos + 1} · ${over ? "Game over" : turnHere()}`; // where it leaves the game
     if (board) {
@@ -1657,7 +1663,7 @@
     if (pos === last) return R.endedByRules ? `Game over · ${ending}` : `The record ends here · ${ending}`;
     const t = R.turnOf[pos];
     const k = t.edges.findIndex(e => e.index === pos) + 1;
-    return `${view.words.Move} ${pos + 1} of ${last} · Turn ${t.number} · ${PLAYER_NAME[mover]} to play, ${view.words.move} ${k} of ${t.edges.length}`;
+    return `${view.words.Move} ${pos + 1} of ${last} · Turn ${ownNumber(pos)?.turn ?? t.number} · ${PLAYER_NAME[mover]} to play, ${view.words.move} ${k} of ${t.edges.length}`;
   });
   const statusLine = $derived(
     branchPreview ? `Variation preview: ${branchPreview.edges.length} ${branchPreview.edges.length > 1 ? view.words.moves : view.words.move}, numbered from ${
@@ -2123,20 +2129,24 @@
        onclickcapture={moveGuard.click}
        onmousedown={e => { if ((e.target as Element).closest("button")) e.preventDefault(); }}>
     {#if !rowsDrawn}
-      <!-- Grey bars until the rows come (rowsDrawn), in one element for the frame they show: a bar for each turn, a
-           turn's row apart (TURN_REM). -->
-      <div class="w-[85%]" aria-hidden="true" style:height="{TURN_REM * R.turns.length}rem"
+      <!-- Grey bars until the rows come (rowsDrawn), in one element for the frame they show: a bar for each row, a
+           row's height apart (TURN_REM). -->
+      <div class="w-[85%]" aria-hidden="true" style:height="{TURN_REM * rows.length}rem"
            style:background="repeating-linear-gradient(var(--panel-2) 0 0.75rem, transparent 0.75rem {TURN_REM}rem)"></div>
     {:else}
-    {#each R.turns as t (t.number)}
+    <!-- A row: a turn, or the two turns of one number where the notation numbers the moves apart from the turns
+         (moveRows), whose moves each carry their own label (`unit`). -->
+    {#each rows as row (row.number)}
       <!-- A turn's number, then its edges in two equal columns (Lichess's move list), each at least a move wide:
            with room to spare, the second edge starts halfway across. By turn, a last column judges the whole turn. -->
       <div class={[turnRow(unit === "turn", view.oneMoveALine), unit === "turn" && "relative isolate"]}>
-        <span class={TURN_NUMBER}>{t.number}.</span>
-        {@render turnMoves(t)}
+        <span class={TURN_NUMBER}>{row.number}.</span>
+        {#if row.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
+        {#each row.turns as t (t.start)}{@render turnMoves(t)}{/each}
         <!-- By turn: the turn's glyph and its loss, in the same font and sizes as an edge's by edge, and the turn's note
              with each edge's loss in the lead. -->
-        {#if unit === "turn" && forSide(t.player)}
+        {#if unit === "turn" && forSide(row.turns[0].player)}
+          {@const t = row.turns[0]}
           {@const hard = isHard(t.complexity)}
           {@const end = t.edges.at(-1)!.index}
           <!-- A turn of book moves only: the mark, with the position symbol after the turn. -->
@@ -2182,17 +2192,17 @@
            line, as a name's in the table: an edit's begins with its cell's picture, whose baseline is its lower edge,
            so on the text's baseline it would stand higher than the move beside it (a turn's two moves). In glyphs, a
            middle dot stands between a turn's two moves (inGlyphs): a move there has spaces of its own. -->
-      {@const notes = !display.notes ? [] : unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player)
+      {@const notes = !display.notes ? [] : row.turns.flatMap(t => unit === "turn" ? (t.label && COMMENTED.includes(t.label) && forSide(t.player)
         ? [partsOf(view.turnShortNote(t, R.data.positions[t.start]))] : [])
-        : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => partsOf(view.shortNote(e, R.data.positions[e.index]))))}
-      {@const groups = turnGroups(t)}
+        : onceEach(t.edges.filter(e => !!e.label && COMMENTED.includes(e.label) && forSide(e.player)).map(e => partsOf(view.shortNote(e, R.data.positions[e.index])))))}
+      {@const groups = row.turns.flatMap(turnGroups)}
       <!-- With a fold (Openings), each edge's fold of the other moves at the position before it comes before that
            position's variations. -->
-      {@const froms = fold ? t.edges.map(e => mainNames.slice(0, e.index)) : []}
+      {@const froms = fold ? row.turns.flatMap(t => t.edges.map(e => mainNames.slice(0, e.index))) : []}
       {@const folds = froms.map(p => foldAt(p))}
       {#if notes.length || groups.some(g => g.rows.length) || folds.some(Boolean)}
         <div class="my-1 py-1 bg-panel-2/50 border-y border-line">
-          {#each notes as note (noteText(note))}
+          {#each notes as note, n (n)}
             <div class="mb-0.5 px-2 text-sm text-muted truncate" title={noteText(note)}>{#each glyphs ? inGlyphs(note) : note as part, k (k)}{#if typeof part === "string"}{part}{:else}<span class="{SIDE_TEXT[part.player]}">{@render written(part)}</span>{/if}{/each}</div>
           {/each}
           {#each groups as g, k (k)}
@@ -2273,7 +2283,6 @@
 
 <!-- A turn's moves in the move list, each a step to the position after it. -->
 {#snippet turnMoves(t: TurnReview<G>)}
-  {#if t.continued}<span class="px-[0.2rem] text-muted">…</span>{/if} <!-- its first edge was played before the start -->
   {#each t.edges as e (e.index)}
     {@const words = leadOrResult(e.index + 1)}
     {@const asked = !board || !!board.judged[mainKeys[e.index + 1]]} <!-- the board's moves: evaluated on request -->
@@ -2337,7 +2346,7 @@
         {@const node = branches[pathKey(p)]}
         {@const step = node ? null : engine?.steps.get(pathKey(p))}
         {#if pathKey(p) === engineStart}{@render rankBadge(1, "The engine's best line from here", "mr-0.5 font-sans", true)}{/if}
-        {@const t = moveFrom(p.slice(0, -1))}
+        {@const t = numberFrom(p.slice(0, -1))}
         <!-- By turn, a turn's glyph after the move that ends it, once asked for (branchTurnAt). By edge, each edge's. -->
         {@const bt = unit === "turn" ? branchTurnAt(p) : null}
         <!-- "Review for" hides the other player's labels, and so their wait too, by edge and by turn alike. -->
@@ -2444,7 +2453,7 @@
 
 <!-- A variation edge's turn number, before the row's first edge and each turn's first: every turn has its number. Before
      a turn's second edge, the middle dot where the shapes or the glyphs ask for it (turnDots). -->
-{#snippet turnMark(t: { turn: number; first: boolean }, k: number)}
+{#snippet turnMark(t: MoveNumber, k: number)}
   {#if k === 0 || t.first}<span class={["text-muted text-[0.9em]", k > 0 && "ml-1"]}>{turnText(t)}</span>
   {:else if turnDots}{@render turnDot()}{/if}
 {/snippet}
@@ -2618,10 +2627,13 @@
       <button class="px-2 py-0.5 text-sm" onclick={() => (settingsOpen = false)}>Done</button>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pr-1">
-      <h3 class={SETTINGS_HEAD}>{board ? "Quality labels" : "Review"}</h3>
-      {@render choice(board ? "Quality labels by" : "Review by", board ? `Each turn as a whole, or each ${view.words.move}: the quality labels and the move list's numbers. A turn's note also gives each ${view.words.move}'s loss in the lead.`
-        : `Each turn as a whole, or each ${view.words.move}: the quality labels, the move list's numbers, the counts and the chart. A turn's note also gives each ${view.words.move}'s loss in the lead.`,
-        [["turn", "Turn"], ["edge", view.words.Move]], () => display.judge, v => (display.judge = v as Unit))}
+      <!-- A game with its own numbers judges each move: it has no choice of the unit. -->
+      {#if !board || !view.numbers}<h3 class={SETTINGS_HEAD}>{board ? "Quality labels" : "Review"}</h3>{/if}
+      {#if !view.numbers}
+        {@render choice(board ? "Quality labels by" : "Review by", board ? `Each turn as a whole, or each ${view.words.move}: the quality labels and the move list's numbers. A turn's note also gives each ${view.words.move}'s loss in the lead.`
+          : `Each turn as a whole, or each ${view.words.move}: the quality labels, the move list's numbers, the counts and the chart. A turn's note also gives each ${view.words.move}'s loss in the lead.`,
+          [["turn", "Turn"], ["edge", view.words.Move]], () => display.judge, v => (display.judge = v as Unit))}
+      {/if}
       {#if !board}<!-- the board's labels are the moves asked for, on both sides -->
         {@render choice("Review for", "Both players, or one: the quality labels, numbers, notes and the engine's lines of that player's moves. The counts keep both.",
           [["both", "Both"], ["blue", PLAYER_NAME[0]], ["red", PLAYER_NAME[1]]], () => display.reviewFor, v => (display.reviewFor = v as Display["reviewFor"]))}
@@ -3077,7 +3089,7 @@
         class="{SIDE_TEXT[statusMove.played.player]}">{@render written(statusMove.played)}</span>{statusMove.after}{:else}{statusLine}{/if}</p>{/snippet}
       {#snippet tools()}
         <!-- The page's menus: New on the Analysis board (design 21), and Export (design 13) -->
-        {@render pageTools?.(display.judge)}
+        {@render pageTools?.(unit)}
         <!-- The menu button (Lichess's ☰ in the same place) opens the display settings in the analysis's place, and
              closes them. The gear is the engine's, in the engine header. -->
         <button class="btn-icon aria-expanded:border-accent aria-expanded:text-accent" aria-label="Display settings" title="Display settings"

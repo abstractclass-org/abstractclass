@@ -72,6 +72,9 @@ export interface Moves<M> {
  *  notation (Tak's TPS). */
 export interface BoardSize { name: string; start: string }
 
+/** A move's number in the notation, and whether the move is the first with it ("12."), not a later one ("12..."). */
+export interface MoveNumber { turn: number; first: boolean }
+
 /** A game, as the analysis and the review compute with it. */
 export interface Game<G extends GameTypes> extends Moves<G["move"]> {
   /** The board sizes of a game that has several. Each game, a reviewed one too, keeps its size's empty board as its
@@ -89,9 +92,15 @@ export interface Game<G extends GameTypes> extends Moves<G["move"]> {
   /** A move of a line played, from the position after it. */
   step(after: G["fields"]): G["step"];
   /** The turn of the next move from a position with `count` moves played, and whether that move opens its turn: the
-   *  notation's numbers. Enclosure's first turn has one edge, then each turn two. A game of one move a turn numbers
-   *  each move. */
-  turn(count: number): { turn: number; first: boolean };
+   *  notation's numbers, where the game gives no `numbers`. Enclosure's first turn has one edge, then each turn two. A
+   *  game of one move a turn numbers each move. */
+  turn(count: number): MoveNumber;
+  /** The notation's number of the next move from a position with `count` moves played, and whether that move is the
+   *  first with it, in a game of one move a turn whose notation numbers two moves a number, the first player's first
+   *  (Tak's "12. e4 e5", as chess's: Mistak's design 34, "What the sites share", item 3). Each move counts one. The move
+   *  list has a row a number, with both players' moves, and the moves are named by it. The review judges each move, so
+   *  it has no choice between by turn and by move. None: a number is a turn (`turn`), and a row too. */
+  numbers?(count: number): MoveNumber;
   /** The engine's points for one of Go's points (KataGame's SCORE_SCALE: Enclosure's 12), for the bands that KaTrain
    *  sets in Go's points. */
   scoreScale: number;

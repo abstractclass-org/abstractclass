@@ -229,7 +229,7 @@ Hedge School but those that design 33 ("The gaps from Hedge School") names.
 | The engine's lines and the player's variations | 07 | With a change | A line on hover draws each move: a placement's stone, and a stack move's path with its drops. |
 | The image of a line, and its GIF | 07, item 17 | With a change | Tak's board in the image. The shared code is `packages/review/src/lineImage.ts` and `gif.ts`. |
 | The quality labels | 10 | With a change | Chess.com's bands on the win chance, as on both sites. A draw counts as half a win in the win chance ("Draws"). Takana's own classes (Spectakular, Fatal) are left out for now (item 15). |
-| The review's settings: "Review by" (a turn or a move) and "Review for" (Both, or one player) | 10 | With a change | "Review for" with White and Black. A Tak turn is one ply, so by turn and by move judge the same: the work checks whether "Review by" shows at all ("What the sites share", item 3). |
+| The review's settings: "Review by" (a turn or a move) and "Review for" (Both, or one player) | 10 | With a change | "Review for" with White and Black. A Tak turn is one ply, so by turn and by move judge the same: "Review by" does not show ("What the sites share", item 3). |
 | Hard positions, the accuracy's weights, the Difficulty chart | 14 | As it is | KaTrain's complexity on the win chance. |
 | The Advantage chart | 06, 14 | With a change | A second line for the flat count, with the komi, as Takana's chart shows it and as Hedge School's chart has its area line. The engine gives the flat count in the position ("The engine request", item 4). |
 | The players' cards | 06 | With a change | Each player's name and rating (`Player1`, `Rating1`), the flats on top, the stones and the capstones left. |
@@ -452,7 +452,16 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
    gives the notation's numbers, and the review judges a move by the same turns (`judgeTurn` in
    `packages/analysis/src/model.ts`): Enclosure's turn of two edges is one row and one judgement. Tak numbers two
    plies a turn and judges each ply. The shared change keeps the notation's numbers and the rows apart from the unit
-   that the review judges.
+   that the review judges. A game gives `numbers` for this: the notation's number of the next move, and whether that
+   move is the first with it. `turn` stays each move's own turn. A game without `numbers` (Enclosure, Blueprints) has
+   one row a turn, as before.
+   - **The rows** (`moveRows`): the turns of one number, the first player's ply on the left. A line that starts with
+     the second player to move shows "…" in the first place of its first row, as a continued turn does.
+   - **The names of moves:** "12. e4" and "12... e5", in the charts, the variations, the engine's lines and the images'
+     names. The annotated record numbers so too.
+   - **The judgement:** each ply is judged alone, and each ply's label is on its own move in the row. By turn and by
+     move judge the same, so the view judges by move and "Review by" does not show (on the board, "Quality labels
+     by"). Practice's move list is not part of this: it takes its rows from its site.
 4. **A record in a format that the game's community owns.** The record package's frame is Hedge School's form, with
    each game's moves as a parameter. PTN is close to it (tags, numbered moves, comments, results). Its branches and
    its notes are ptn.ninja's. The work checks first whether the record package takes PTN's parts as parameters, or

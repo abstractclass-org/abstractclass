@@ -1,5 +1,6 @@
-// The move list's look, in the review, on the Analysis board and in Practice: one row a turn, its number, then its
-// moves in two equal columns (Lichess's move list), each at least a move wide, so that the moves line up down the list.
+// The move list's look, in the review, on the Analysis board and in Practice: one row a turn (or one a number, where
+// the notation numbers two turns together: the game's `numbers`), its number, then its moves in two equal columns
+// (Lichess's move list), each at least a move wide, so that the moves line up down the list.
 // Where two moves do not fit, a turn's second move goes under its first (`turnRow`). A game whose moves are too long
 // for two to a row has one move a line, the turn's number at its first (Blueprints', as on Cyanotype's Practice). A move's text has one width, the
 // game's widest move (the view's game interface, `moveText`), in a monospaced font, the same on every system

@@ -28,6 +28,10 @@ export const words: Game<Words> = {
   scoreScale: 1,
 };
 
+/** The same game with a notation that numbers two moves a number, as chess and Tak do: "1. a b 2. c d". The review still
+ *  judges each move. */
+export const pairs: Game<Words> = { ...words, numbers: count => ({ turn: Math.floor(count / 2) + 1, first: count % 2 === 0 }) };
+
 /** The fields of the position after `count` moves from the start, the first player to move at the start. */
 export const wordFields = (count: number, over = false): WordFields =>
   ({ mover: (count % 2) as Player, scores: [0, 0], over, count });

@@ -179,7 +179,9 @@ edit in the same commit), so their changes still apply.
      (`KomiLimit`, in the record package).
    - **The turn structure comes from the positions:** each position says who moves next (`player`), and a turn is a
      run of one player's moves. `turn` gives only the notation's numbers. Enclosure's first turn has one edge, then
-     two a turn. A game of one move a turn numbers each move.
+     two a turn. A game of one move a turn numbers each move. A game whose notation numbers two moves a number gives
+     `numbers` (Mistak's design 34, "What the sites share", item 3): the move list has a row a number, and the moves
+     are named by it.
    - **Each position says whether the game ends there** (`over`, from the engine's outcome). The type requires it. The
      analysis searches the position after the last move when that position is not the end (an unfinished game), and
      the review judges the last move from that search. At the game's end, the review takes the result as the value.
@@ -258,7 +260,8 @@ edit in the same commit), so their changes still apply.
      needs next, for the status line, and lists its clicks for the list of keys and clicks.
    - **A move in the lists:** its notation with the game's marks (`notation`: Enclosure's cut mark), a line's move with
      its mark once the rules have played it (`lineNotation`), its shape (`Shape`: Enclosure's pill along the edge), and
-     the widths of its text (`moveText`, `nameText`). The turn numbers come from the game interface's `turn`.
+     the widths of its text (`moveText`, `nameText`). The turn numbers come from the game interface's `turn`,
+     or from its `numbers` where it has them.
    - **Who plays each move** (`lineMovers`, `movesLeft`), from the turn structure, and what the board draws after a
      move of the game's tree (`treeStep`).
    - **The players:** the names and the colours are every game's (the glossary: Blue moves first). They are the

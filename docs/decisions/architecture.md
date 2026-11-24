@@ -457,3 +457,16 @@ public repository and the history rewrites.
   Hedge School's layout-test game with the chance written into its stored results, at 1,376 and 360 pixels). On 4,000
   random games, `review` before and after the change gave the same win chances, losses and labels (235,690 labels), and
   a draw chance in the results changed none of them.
+
+### Two plies a row in the move list (2026-11-24)
+
+- **What:** the shared packages take a game whose notation numbers two moves a number, as Tak's and chess's do, and
+  whose review judges each move (design 34, "What the sites share", item 3, abscls-shfz.18.10). The game interface has
+  an optional `numbers`. The review's model makes the move list's rows (`moveRows`) and a move's number
+  (`moveNumber`). The review's view and the annotated record write by them.
+- **What stays:** a game without `numbers` has one row a turn, the turn's number. Enclosure and Blueprints have none.
+  The judgement and the stored results do not read `numbers`.
+- **"Review by"** does not show for such a game, as by turn and by move judge the same. Its view judges by move.
+- **Checked:** new tests of a made-up game of two moves a number: its rows, a start with the second player to move,
+  each move's label, and the annotated record's numbers. Hedge School's and Cyanotype's move lists are compared on a
+  page in the report of abscls-shfz.18.10.

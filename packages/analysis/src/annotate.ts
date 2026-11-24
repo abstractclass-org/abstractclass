@@ -14,7 +14,7 @@
 // a turn follow it one after another: those from its start first, then those from its second move, each in the order
 // the player made them.
 import { BAD_LABELS, type Label } from "./labels.ts";
-import { LABEL_TEXT, type Analysis, type Review, type Unit } from "./model.ts";
+import { LABEL_TEXT, moveNumber, type Analysis, type Review, type Unit } from "./model.ts";
 import type { Game, GameTypes, Player } from "./game.ts";
 import { mainIndex, pathKey as key } from "./tree.ts";
 import { writeTags } from "@abstractclass/record/record.ts";
@@ -92,8 +92,13 @@ export function annotatedRecord<G extends GameTypes>(game: Game<G>, played: (mov
   // second.
   const from = game.turn(R.data.positions[0]?.count ?? 0);
   const turnNo = new Map<string, number>();
+  // Where the notation numbers the moves apart from the turns (Game.numbers), a move has its own number.
+  const numbered = (node: Node) => moveNumber(game, R.data.positions[0]?.count, node.path.length - 1);
+  const opensNumber = (node: Node) => numbered(node)?.first ?? startsTurn(node);
   const startsTurn = (node: Node) => node.path.length === 1 ? from.first : nodeAt.get(key(node.path.slice(0, -1)))?.player !== node.player;
   const numberOf = (node: Node): number => {
+    const own = numbered(node);
+    if (own) return own.turn;
     const k = key(node.path);
     if (!turnNo.has(k)) {
       const parent = nodeAt.get(key(node.path.slice(0, -1)));
@@ -110,7 +115,7 @@ export function annotatedRecord<G extends GameTypes>(game: Game<G>, played: (mov
     // second move. The variations in place of the next turn wait for that turn.
     let node: Node | undefined = start, first = true, waiting = alternatives;
     while (node) {
-      if (startsTurn(node)) out.push(`${numberOf(node)}.`);
+      if (opensNumber(node)) out.push(`${numberOf(node)}.`);
       else if (first) out.push(`${numberOf(node)}...`);
       const [next, ...others] = children(node.path);
       const texts = others.map(b => `(${walk(b).join(" ")})`);

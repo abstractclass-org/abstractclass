@@ -8,11 +8,12 @@ import "./testing/svelteModules.ts";
 import type { AnalysisReply, PositionQuery } from "@abstractclass/engine/protocol.ts";
 import type { EnginePool } from "@abstractclass/engine/pool.ts";
 import { memoryDb } from "@abstractclass/storage/memoryDb.ts";
-import { distinctCandidates, judgeTurn, rankOf, review, sameMove, shownCandidates, twinsOf, withTwins, type Analysis,
+import { distinctCandidates, judgeTurn, moveNumber, moveRows, rankOf, review, sameMove, shownCandidates, twinsOf, withTwins, type Analysis,
          type ReviewData } from "./model.ts";
 import { SWEEP_VISITS, analysisKey, cachePut } from "./cache.ts";
 import { toAnalysis } from "./reply.ts";
-import { wordFields, words, type Words } from "./testing/game.ts";
+import { annotatedRecord } from "./annotate.ts";
+import { pairs, wordFields, words, type Words } from "./testing/game.ts";
 
 memoryDb();
 const { GameAnalysis } = await import("./analysis.svelte.ts");
@@ -32,6 +33,62 @@ test("each move is a turn of its own, numbered by the game", () => {
   assert.deepEqual(R.turns.map(t => [t.number, t.player, t.edges.length]), [[1, 0, 1], [2, 1, 1], [3, 0, 1]]);
   assert.deepEqual(R.edges.map(e => e.label), ["best", "excellent", "best"]); // "b" lost no win chance: not the first choice
   assert.deepEqual(R.turns.map(t => t.best), [["a"], ["x"], ["c"]]);
+});
+
+// A game whose notation numbers two moves a number and whose review judges each move (Tak's, design 34): `numbers`.
+const line = (from: number, moves: string[], values: Analysis<string>[]): ReviewData<Words> => ({
+  players: { blue: "First", red: "Second" }, result: { blue: 0, red: 0 },
+  moves: moves.map((m, k) => words.played(m, wordFields(from + k), wordFields(from + k + 1))),
+  positions: Array.from({ length: moves.length + 1 }, (_, k) => words.position(wordFields(from + k))), analysis: values,
+});
+const fromStart = line(0, ["a", "b", "c"], [analysis(0.6, "x"), analysis(0.45, "y"), analysis(0.75, "c"), analysis(0.75, "z")]);
+/** The rows as the list shows them: the number, whether it starts in the row's middle, and each player's moves. */
+const rowsOf = (game: typeof words, data: ReviewData<Words>) => moveRows(game, review(game, data, "lead", 256)).map(r =>
+  [r.number, !!r.continued, r.turns.map(t => [t.player, t.edges.map(e => e.edge).join(" ")])]);
+
+test("two moves a number: a row has both players' moves, the first player's first, and each move is judged", () => {
+  assert.deepEqual(rowsOf(pairs, fromStart), [[1, false, [[0, "a"], [1, "b"]]], [2, false, [[0, "c"]]]]);
+  const R = review(pairs, fromStart, "lead", 256);
+  assert.deepEqual(R.edges.map(e => e.label), ["mistake", "blunder", "best"]);
+  assert.deepEqual(R.turns.map(t => [t.player, t.edges.length, t.label]), [[0, 1, "mistake"], [1, 1, "blunder"], [0, 1, "best"]]);
+  assert.deepEqual(R.summary.turn.map(s => s.counts), R.summary.edge.map(s => s.counts)); // by turn and by move judge the same
+  // A Great too, which each unit confirms by a search of its own: c is the only good move, and keeps what b gave
+  const only = { ...line(0, ["a", "b", "c", "d"], [analysis(0.5, "a"), analysis(0.5, "b"), analysis(0.6, "c", 256, [["x", 0.45]]),
+                                                   analysis(0.6, "d"), analysis(0.6, "e")]),
+                 seconds: [undefined, undefined, analysis(0.45, "y")], others: [undefined, undefined, analysis(0.45, "y")] };
+  const G = review(pairs, only, "lead", 256);
+  assert.deepEqual(G.edges.map(e => e.label), ["best", "best", "great", "best"]);
+  assert.deepEqual(G.turns.map(t => t.label), G.edges.map(e => e.label));
+  // The notation changes no judgment
+  assert.deepEqual(R.edges, review(words, fromStart, "lead", 256).edges);
+});
+
+test("two moves a number: a line with the second player to move starts in its row's middle", () => {
+  const data = line(23, ["a", "b", "c"], [analysis(0.5, "a"), analysis(0.5, "b"), analysis(0.5, "c"), analysis(0.5, "d")]);
+  assert.deepEqual(rowsOf(pairs, data), [[12, true, [[1, "a"]]], [13, false, [[0, "b"], [1, "c"]]]]);
+  assert.deepEqual([0, 1, 2].map(k => moveNumber(pairs, 23, k)), [
+    { turn: 12, first: false }, { turn: 13, first: true }, { turn: 13, first: false }]);
+});
+
+test("a game without numbers of its own has one row a turn, by the turn's number", () => {
+  assert.deepEqual(rowsOf(words, fromStart), [[1, false, [[0, "a"]]], [2, false, [[1, "b"]]], [3, false, [[0, "c"]]]]);
+  assert.equal(moveNumber(words, 0, 1), undefined);
+  // Turns of two, from a set-up start in a turn's middle: the turn's own row, continued
+  const twos = { ...words, turn: (c: number) => ({ turn: Math.floor((c - 1) / 2) + 2, first: (c - 1) % 2 === 0 }) };
+  const movers = [0, 1, 1] as const;
+  const data: ReviewData<Words> = { ...fromStart, moves: ["a", "b", "c"].map((edge, k) => ({ player: movers[k], edge })),
+    positions: [4, 5, 6, 7].map(count => words.position({ mover: 0, scores: [0, 0], over: false, count })) };
+  assert.deepEqual(rowsOf(twos, data), [[3, true, [[0, "a"]]], [4, false, [[1, "b c"]]]]);
+});
+
+test("two moves a number: the annotated record numbers so, a variation of either player's move too", () => {
+  const R = review(pairs, fromStart, "lead", 256);
+  const branch = (path: string[], order: number) => ({ move: words.played(path.at(-1)!, wordFields(path.length - 1), wordFields(path.length)), order });
+  const written = (game: typeof words, unit: "turn" | "edge") => annotatedRecord(game, m => m.edge ?? "pass", {
+    R, unit, tags: {}, result: null, branches: { "a y": branch(["a", "y"], 0), "a y w": branch(["a", "y", "w"], 1), "x": branch(["x"], 2) },
+  }).split("\n\n")[1].replace(/\{[^}]*\} ?/g, "").replace(/\s+/g, " ").trim();
+  assert.equal(written(pairs, "edge"), "1. a (1. x) b (1... y 2. w) 2. c *");
+  assert.equal(written(words, "edge"), "1. a (1. x) 2. b (2. y 3. w) 3. c *");
 });
 
 test("the end is the result where the rules ended the game, and a search where the record ends before", () => {

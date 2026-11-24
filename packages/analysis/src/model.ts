@@ -14,7 +14,7 @@
 // game (game.ts, Moves). Enclosure's own part (its positions, its turn numbers, its texts) is in Hedge School's
 // src/lib/review/enclosure.ts.
 
-import type { Game, GameTypes, Moves, Player, PositionInfo } from "./game.ts";
+import type { Game, GameTypes, MoveNumber, Moves, Player, PositionInfo } from "./game.ts";
 import { GOOD_WIN, HARD, KEPT_GAIN, LABELS, METER_GROUPS, ONLY_MOVE_GAP, accuracyWeight, classify, listed, meterGroup,
          type Label, type MeterGroup } from "./labels.ts";
 import { resultOfScores, type Ended, type GameResult } from "./result.ts";
@@ -664,6 +664,28 @@ export function onlyJudged<G extends GameTypes>(R: Review<G>, judged: (edge: num
     return t.edges.every(e => judged(e.index)) ? { ...t, edges: own } : { ...plain(t), edges: own };
   });
   return { ...R, edges, turns, turnOf: R.edges.map(e => turns[R.turns.indexOf(R.turnOf[e.index])]) };
+}
+
+/** The number of the move from the position `played` moves on from a line's start, where the game's notation numbers its
+ *  moves apart from its turns (Game.numbers). `start`: the moves counted at the line's start. Undefined: the turns give
+ *  the numbers. */
+export const moveNumber = <G extends GameTypes>(game: Game<G>, start: number | undefined, played: number): MoveNumber | undefined =>
+  game.numbers?.((start ?? 0) + played);
+
+/** A row of the move list: its number in the notation, and its turns. One turn a row, or where the notation numbers its
+ *  moves apart from the turns (Game.numbers), the turns of one number, which the review judges each. `continued`: the
+ *  line starts in the row's middle, its first move was played before the start. */
+export interface MoveRow<G extends GameTypes> { number: number; continued?: boolean; turns: TurnReview<G>[] }
+
+export function moveRows<G extends GameTypes>(game: Game<G>, R: Review<G>): MoveRow<G>[] {
+  const rows: MoveRow<G>[] = [];
+  for (const t of R.turns) {
+    const at = moveNumber(game, R.data.positions[0]?.count, t.start), last = rows.at(-1);
+    if (!at) rows.push({ number: t.number, continued: t.continued, turns: [t] });
+    else if (last && last.number === at.turn) last.turns.push(t);
+    else rows.push({ number: at.turn, continued: !at.first, turns: [t] });
+  }
+  return rows;
 }
 
 /** Whether edge `i` opens its turn, as the move list writes it: "12." for the first edge, "12..." for the second. */
