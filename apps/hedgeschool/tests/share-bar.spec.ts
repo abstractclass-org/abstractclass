@@ -44,7 +44,7 @@ async function openAtShare(page: Page, share: number, width: number, win: "bar" 
 }
 
 /** The flat bar with the tooltip that starts with `title`, and its parts: widths in px. */
-const parts = (page: Page, title: string) => page.locator(`[title^="${title}"] > div`).first().evaluate(bar => {
+const partWidths = (page: Page, title: string) => page.locator(`[title^="${title}"] > div`).first().evaluate(bar => {
   const [blue, red] = [...bar.children].map(part => part.getBoundingClientRect().width);
   return { bar: bar.getBoundingClientRect().width, blue, red };
 });
@@ -53,9 +53,9 @@ const parts = (page: Page, title: string) => page.locator(`[title^="${title}"] >
  *  part is the whole bar. */
 async function expectOneColor(page: Page, title: string, share: 0 | 1) {
   const loser = share ? "red" : "blue";
-  await expect.poll(async () => (await parts(page, title))[loser],
+  await expect.poll(async () => (await partWidths(page, title))[loser],
                     { message: `${loser}'s part at a share of ${share}` }).toBe(0);
-  const { bar, blue, red } = await parts(page, title);
+  const { bar, blue, red } = await partWidths(page, title);
   expect(blue + red, "the parts fill the bar").toBeCloseTo(bar, 1);
 }
 
@@ -91,7 +91,7 @@ test("at a share of 0.01 and of 0.99, the loser keeps 6 px, its padding", async 
   // 1% of the bar at 1376 px is narrower than the padding
   for (const [share, loser] of [[0.01, "blue"], [0.99, "red"]] as const) {
     await openAtShare(page, share, 1376);
-    await expect.poll(async () => (await parts(page, WIN))[loser],
+    await expect.poll(async () => (await partWidths(page, WIN))[loser],
                       { message: `${loser}'s part at a share of ${share}` }).toBeCloseTo(6, 1);
   }
 });
