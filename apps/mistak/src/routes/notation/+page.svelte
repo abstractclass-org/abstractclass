@@ -48,13 +48,13 @@
 
   <h2>Moves</h2>
   <ul>
-    <li><strong>A placement</strong> is the stone, then the square: <code>a1</code> puts a flat stone on a1,
+    <li><strong>A placement</strong> is the piece, then the square: <code>a1</code> puts a flat stone on a1,
       <code>Sd3</code> a wall on d3, and <code>Cb4</code> a capstone on b4. The letter <code>S</code> stands for the
       printed rules' standing stone, which is a wall. A flat stone can also be written with its letter:
       <code>Fa1</code>.</li>
-    <li><strong>A stack move</strong> is the number of stones, the square, the direction, then the stones that drop on
-      each square of the path. <code>3b2+111</code> takes three stones from b2 up, and drops one on b3, one on b4 and
-      one on b5. <code>4c3&gt;</code> takes four stones from c3 and drops all four on d3.</li>
+    <li><strong>A stack move</strong> is the number of pieces, the square, the direction, then the pieces that drop on
+      each square of the path. <code>3b2+111</code> takes three pieces from b2 up, and drops one on b3, one on b4 and
+      one on b5. <code>4c3&gt;</code> takes four pieces from c3 and drops all four on d3.</li>
   </ul>
   <table>
     <thead><tr><th>Direction</th><th>The stack moves</th></tr></thead>
@@ -65,12 +65,12 @@
       <tr><td><code>&gt;</code></td><td>right: away from file a</td></tr>
     </tbody>
   </table>
-  <p>PTN lets a record leave out two parts. The number of stones can go when it is 1: <code>a1&gt;</code> moves one
-    stone from a1 to b1. The drops can go when all the stones drop on the next square, as in <code>4c3&gt;</code>.</p>
+  <p>PTN lets a record leave out two parts. The number of pieces can go when it is 1: <code>a1&gt;</code> moves one
+    piece from a1 to b1. The drops can go when all the pieces drop on the next square, as in <code>4c3&gt;</code>.</p>
 
   <h3>The form that {SITE_NAME} writes</h3>
   <p>{SITE_NAME} writes each move in one form, the short one, which PTN Ninja also writes: no <code>F</code>, no number
-    of 1, and no drops when all the stones drop on the next square. So it writes <code>a1</code>,
+    of 1, and no drops when all the pieces drop on the next square. So it writes <code>a1</code>,
     <code>c3&gt;</code> and <code>3b2+12</code>. It reads every form that PTN allows, and reads it as the short form:
     <code>1e4&lt;1</code> is <code>e4&lt;</code>.</p>
 
@@ -93,8 +93,8 @@
   <pre>{RECORD}</pre>
   <ul>
     <li><strong>The moves</strong> come in pairs, one move of each player, after a number and a dot, as in chess. In the
-      first pair, each player places a flat stone of the opponent's: <code>1. a6 f1</code> puts a Black stone on a6
-      and a White stone on f1.</li>
+      first pair, each player places a flat stone of the opponent's: <code>1. a6 f1</code> puts a Black piece on a6
+      and a White piece on f1.</li>
     <li><strong>A comment</strong> is in braces, <code>{"{ … }"}</code>, between two moves.</li>
     <li><strong>The tags</strong> that {SITE_NAME} reads: <code>Size</code>, the board's width (<code>5</code> or
       <code>6</code>), <code>Komi</code>, flats or half flats for Black (<code>2</code>, <code>2.5</code>),
@@ -128,9 +128,9 @@
     <li><strong>The rows</strong> start at the top rank, and a <code>/</code> separates them. A <code>,</code>
       separates the squares of a row.</li>
     <li><strong>An empty square</strong> is <code>x</code>, and <code>x3</code> is three empty squares.</li>
-    <li><strong>A stack</strong> is its stones from the bottom up, <code>1</code> for a White stone and <code>2</code>
+    <li><strong>A stack</strong> is its pieces from the bottom up, <code>1</code> for a White piece and <code>2</code>
       for a Black one: <code>12</code> is a Black flat stone on a White one. <code>S</code> or <code>C</code> after the
-      last digit makes the top stone a wall or a capstone: <code>2211C</code>.</li>
+      last digit makes the top piece a wall or a capstone: <code>2211C</code>.</li>
   </ul>
   <p>The position after <code>1. a6 f1</code>, with White to move in the second pair:</p>
   <pre>{AFTER_ONE}</pre>

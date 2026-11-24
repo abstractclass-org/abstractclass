@@ -38,8 +38,8 @@ test("a word that is no move of PTN's is refused, with what is wrong", () => {
     assert.equal(problem(word), "not a move, a number or a result", word);
   assert.equal(problem("2a1"), "a placement has no count");
   assert.equal(problem("1a1"), "a placement has no count");
-  assert.equal(problem("Sa1>"), "a stack move has no stone's letter");
-  assert.equal(problem("Fa1>"), "a stack move has no stone's letter");
+  assert.equal(problem("Sa1>"), "a stack move has no piece's letter");
+  assert.equal(problem("Fa1>"), "a stack move has no piece's letter");
   assert.equal(problem("3c3>11"), "the move takes 3 and drops 2");
   assert.equal(problem("c3>11"), "the move takes 1 and drops 2");
   assert.equal(problem("2c3>3"), "the move takes 2 and drops 3");
@@ -49,6 +49,6 @@ test("the PTN page's forms that neither ptn.ninja nor playtak writes are refused
   for (const [word, arrow] of [["a1↑", "↑"], ["3b2↓12", "↓"], ["a1←*", "←"], ["2c3→!", "→"], ["a1→C", "→"]])
     assert.equal(problem(word), `the arrow ${arrow} is not read, and a direction is <, >, + or -`, word);
   for (const [word, letter] of [["a1>C", "C"], ["a1>s", "s"], ["3b2+12S", "S"], ["a1>C*'", "C"]])
-    assert.equal(problem(word), `the top stone's letter ${letter} after a stack move is not read`, word);
-  assert.equal(problem("Sa1>S"), "a stack move has no stone's letter");
+    assert.equal(problem(word), `the top piece's letter ${letter} after a stack move is not read`, word);
+  assert.equal(problem("Sa1>S"), "a stack move has no piece's letter");
 });

@@ -33,16 +33,16 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
 ### Tak, as the site needs it
 
 - **The board:** a square grid, 3x3 to 8x8. A square is `a1` to `h8`, and `a1` is the first player's lower left
-  corner (`research/ptn-ninja.md`, 5.2). Each player has flat stones and capstones: 21 and 1 on 5x5, 30 and 1 on 6x6
+  corner (`research/ptn-ninja.md`, 5.2). Each player has stones and capstones: 21 and 1 on 5x5, 30 and 1 on 6x6
   (`research/rules-theory.md`, 1.2).
-- **A move** places a stone on an empty square (a flat, a standing stone or a capstone), or moves a stack that the
-  mover's stone tops. A stack move carries up to the board's side in stones, in one direction, and drops at least one
-  stone on each square of its path. Standing stones and capstones stop a stack. A capstone alone, at the end of its
-  move, flattens a standing stone. There is no pass.
+- **A move** places a piece on an empty square (a flat, a wall or a capstone), or moves a stack that the
+  mover's piece tops. A stack move carries up to the board's side in pieces, in one direction, and drops at least one
+  piece on each square of its path. Walls and capstones stop a stack. A capstone alone, at the end of its
+  move, flattens a wall. There is no pass.
 - **The first turn:** each player places one of the **opponent's** flats. This is the swap opening, the default of a
   record with no `Opening` tag (`research/ptn-ninja.md`, 5.3). playtak also has "no-swap" and "double black stack".
 - **The end:** a road of flats and capstones that joins two opposite edges wins. When the board is full, or a player
-  has no stones left, the most flats on top win. The komi adds half flats to the second player's count, in a flat
+  has no pieces left, the most flats on top win. The komi adds half flats to the second player's count, in a flat
   win only. A flat tie is a draw. playtak also draws a game after 50 plies with no placement and no flattening. The
   engine's rules propose the same draw rule, which waits for a decision (`design/02-rules.md`).
 - **Where people play:** playtak.com. Of its 883,250 games, 73% are 5x5 and 23% are 6x6. In 2026, 6x6 games had komi
@@ -50,7 +50,7 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
 - **Tak's own formats:** PTN for moves and games, TPS for a position (`research/ptn-ninja.md`, section 5).
   - A placement is `a1`, `Sd3` or `Cb4` (`F` for a flat may be left out).
   - A stack move is `4c3>` or `3b2+111`: the count, the square, the direction (`<`, `>`, `+`, `-`) and the drops.
-  - The marks: `*` when a capstone flattens a standing stone, `'` for tak and `"` for Tinuë, and `?? ? ?! !? ! !!`.
+  - The marks: `*` when a capstone flattens a wall, `'` for tak and `"` for Tinuë, and `?? ? ?! !? ! !!`.
   - The results: `R-0`, `0-R`, `F-0`, `0-F`, `1-0`, `0-1` and `1/2-1/2`. A game is `[Tag "value"]` lines, then
     `1. a1 f6` and so on, with comments in `{ }`.
   - TPS is `x6/x6/x6/x6/x6/x6 1 1`: the rows from the top, the player to move and the move number. It holds no
@@ -112,11 +112,11 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    package in its first commit ("What the sites share, and what a third site adds").
 4. **The moves: PTN's strings.** The engine and the site name a move by one PTN spelling, so that the move tree and the
    stored results key on it (design 29, item 2). The written form is the short one, the form to which ptn.ninja
-   normalizes a move (`research/ptn-ninja.md`, 5.6): no `F`, no count of 1, and no drops when all the stones go to the
+   normalizes a move (`research/ptn-ninja.md`, 5.6): no `F`, no count of 1, and no drops when all the pieces go to the
    next square (`a1`, `c3>`, `3b2+12`). PTN allows each of these omissions (5.2). The reader takes every spelling that
    ptn.ninja and playtak's export write, the explicit 1s too (`1e4<1`), and reads it as the short form. It refuses a
-   move whose drops are not the stones that it takes (`3c3>11`), which ptn.ninja changes silently. It also refuses the
-   PTN page's arrows and the top stone's letter after a stack move (`a1>C`), which neither of the two writes, and its
+   move whose drops are not the pieces that it takes (`3c3>11`), which ptn.ninja changes silently. It also refuses the
+   PTN page's arrows and the top piece's letter after a stack move (`a1>C`), which neither of the two writes, and its
    error names the arrow or the letter. The double black stack's first move is `a1`, as ptn.ninja and the engine name
    it. A record writes it `2a1`. The engine request settles the form with the engine repository.
 5. **The marks.** The writer writes `*` on a flattening, as the PTN page "most strongly" recommends. The reader
@@ -243,7 +243,7 @@ Hedge School but those that design 33 ("The gaps from Hedge School") names.
 | The review's analysis: the sweep, then the depth per move | 05, 16 | As it is | The game interface serves a game of one move a turn. The budgets are Hedge School's until Tak's games are measured (design 33, "Consequences"). |
 | An unfinished game (result `*`) | 21, item 8 | As it is | Reviewed as any game (item 9). |
 | The layout: the board, the charts, the columns, the tabs | 06 | With a change | The board is square. A stack needs room for its height ("The board"). |
-| The engine's lines and the player's variations | 07 | With a change | A line on hover draws each move: a placement's stone, and a stack move's path with its drops. |
+| The engine's lines and the player's variations | 07 | With a change | A line on hover draws each move: a placement's piece, and a stack move's path with its drops. |
 | The image of a line, and its GIF | 07, item 17 | With a change | Tak's board in the image. The shared code is `packages/review/src/lineImage.ts` and `gif.ts`. |
 | The quality labels | 10 | With a change | Chess.com's bands on the win chance, as on both sites. A draw counts as half a win in the win chance ("Draws"). Takana's own classes (Spectakular, Fatal) are left out for now (item 15). |
 | The review's settings: "Review by" (a turn or a move) and "Review for" (Both, or one player) | 10 | With a change | "Review for" with White and Black. A Tak turn is one ply, so by turn and by move judge the same: "Review by" does not show ("What the sites share", item 3). |
@@ -253,7 +253,7 @@ Hedge School but those that design 33 ("The gaps from Hedge School") names.
 | The lead | 06, 09 | With a change | Tak's network has no lead. Its score head gives the flat margin if the game ends by the flat count (`games/tak/docs/design/06-heads-and-results.md`). The table and the meter name it so, in flats. |
 | A review by an earlier engine opens as a snapshot | 20 | As it is | `packages/analysis/src/storedReview.ts`. The word "snapshot" is the glossary's: Takana's "game snapshots" are a game's highlights, another thing. |
 | The area map | 30 | Blocked by the engine's maps (heads C0 and C4) | Tak's network has a map of a flat ending (head C0) and a map of road threats (head C4), "Analysis later" in the engine's design 06. The area map's styles fit the flat map. |
-| The weak walls | 30 | Left out | Enclosure's edges alone. Tak's standing stones are another thing. |
+| The weak walls | 30 | Left out | Enclosure's edges alone. Tak's walls are another thing. |
 | The threat | 31 | Blocked by the engine's search with the other player to move | Tak has no pass. The threat needs the engine to search the position with the other player to move. In Tak that is the road threat, and it is worth the work. |
 | The opening book in the review | 32 | Blocked by the engine's opening book for Tak | With the Openings page. |
 | The move sounds | 08 | With a change | "The sounds". |
@@ -375,25 +375,25 @@ Tak's board is the site's own part, as Blueprints' hexes are Cyanotype's.
   the right, as on ptn.ninja, and a capstone the logo's form, a round top on a flat base, not wider than a flat. A
   wall on a stack stands one step lower. A wall or a capstone on top has a stronger line, because on a flat of its own
   colour this line alone shows it.
-- **The colours:** the first player's stones are light and the second's dark, as Tak's white and black. The shared
+- **The colours:** the first player's pieces are light and the second's dark, as Tak's white and black. The shared
   code calls the first player "blue" (design 29, item 2), and the site's texts say "White" and "Black".
 - **The player's own move,** from the engine's list of legal moves, as Cyanotype's board takes a move. The site has no
-  rules. A placement: the square, then the stone. A stack move: the stack, the count, then each square of the path,
-  where each click drops one more stone. The input matches the clicks against the list. The engine's `describe` reply
+  rules. A placement: the square, then the piece. A stack move: the stack, the count, then each square of the path,
+  where each click drops one more piece. The input matches the clicks against the list. The engine's `describe` reply
   gives the list for the position on the board, as it does for Cyanotype (`packages/engine/src/client.ts`). The
   analysis replies do not carry it. 6x6 has 4,572 move slots (`games/tak/docs/design/03-moves-and-policy.md`), so the
   list is short enough for that reply.
-- **The board editor** chooses the size, then builds each stack stone by stone: a click puts the chosen stone (a flat,
-  a standing stone or a capstone, of either colour) on top of the square's stack, and a second action takes the top
-  stone off. Only the top stone of a stack can be a standing stone or a capstone, as TPS writes it. The editor sets
+- **The board editor** chooses the size, then builds each stack piece by piece: a click puts the chosen piece (a flat,
+  a wall or a capstone, of either colour) on top of the square's stack, and a second action takes the top
+  piece off. Only the top piece of a stack can be a wall or a capstone, as TPS writes it. The editor sets
   the player to move and writes a TPS. The engine's position check refuses a position that no game reaches, with its
   reasons, as on both sites.
 
 ## The sounds
 
 Two sounds, as on both sites (design 08): the move's sound, and the removal's sound for the move that changes the board
-most. In Tak, that is a move that covers an opponent's top stone, a flattening too. A placement and a stack move that
-covers only the mover's stones play the move's sound. The settings and the clips are the shared ones.
+most. In Tak, that is a move that covers an opponent's top piece, a flattening too. A placement and a stack move that
+covers only the mover's pieces play the move's sound. The settings and the clips are the shared ones.
 
 ## The tools for playtak's pages
 
@@ -636,7 +636,7 @@ items 1 to 8, abscls-shfz.25 for item 9), as request 23 was for Blueprints:
 3. **The protocol that `packages/engine` speaks** (0.6.x for Hedge School, 0.8.0 for Cyanotype). The package then
    changes only by the reply's new fields (items 6 and 7). A query carries the size (as the position's TPS, or the
    start of a size) and the komi in half flats.
-4. **The position's fields** that the site draws: each stack's stones, the stones and capstones left, the flats on
+4. **The position's fields** that the site draws: each stack's pieces, the stones and capstones left, the flats on
    top for each player, whether the game ends there, and how (a road, the flats, a draw, the 50-ply rule).
 5. **A position's check** from a TPS, with its reasons, as protocols 0.5 and 0.8.0 give it for the two other games.
 6. **The draw chance** in each reply, beside the win chance with a draw as half.
@@ -745,7 +745,7 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
    review judges. Check: a test of a game that numbers two plies a turn and judges each ply, the layout test, and
    Hedge School's and Cyanotype's move lists unchanged.
 9. **Mistak: the engine's rules on the site:** the player's own moves from the engine's legal moves (placements
-    with their stone, stack moves with their drops), the rules' check of a record's moves and marks, and the position
+    with their piece, stack moves with their drops), the rules' check of a record's moves and marks, and the position
     check of a TPS. Check: each legal move of the test positions entered by clicks, a click that matches no move
     refused, and a record with a false `*` refused. After: ticket 1's first `engines` issue, 4, 5.
 10. **Mistak: the review and the Analysis board on Tak's board:** the view's Tak part, the lines drawn on Tak's board
@@ -757,7 +757,7 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
 11. **Mistak: the annotated record in PTN, and links to ptn.ninja:** ptn.ninja's branches and engine notes, and
     "Open in PTN Ninja". Check: an exported record that ptn.ninja opens with its branches and notes, and that the
     site's reader reads back. After: 3, 10.
-12. **Mistak: the move sounds:** the removal's sound for a move that covers an opponent's stone. Check: a test of
+12. **Mistak: the move sounds:** the removal's sound for a move that covers an opponent's piece. Check: a test of
     which move plays which sound. After: 10.
 13. **Mistak: the engine measure with Tak's positions:** `/lab/measure`, its numbers after a network. Check: a run
     of the measure with the test network. After: ticket 1's first `engines` issue, 2.
@@ -769,7 +769,7 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
     abscls-shfz.18.29 (after abscls-shfz.29), the threat abscls-shfz.18.30 (after abscls-shfz.30), the opening book
     with the Openings page abscls-shfz.18.31 (after abscls-shfz.31) and the networks' choice abscls-shfz.18.32 (after
     abscls-shfz.32).
-15. **Planning repository: `glossary/tak.md`:** Tak's official words (flat, standing stone, capstone, road, tak,
+15. **Planning repository: `glossary/tak.md`:** Tak's official words (flat, wall, capstone, road, tak,
     Tinuë, komi, PTN, TPS), and the site's words (Mistak, Takumi), in the shared glossary's "Contexts". Check: the
     file, linked from `GLOSSARY.md`.
 16. **Mistak: the CORS check of playtak's API:** a request to `api.playtak.com` from another site's page. Check: the

@@ -25,9 +25,9 @@ export function readMove(word: string): ReadMove<boolean> | string {
     const stone = letter?.toUpperCase() ?? "";
     return { name: (stone === "F" ? "" : stone) + at, mark: false, markAt };
   }
-  if (letter) return "a stack move has no stone's letter";
+  if (letter) return "a stack move has no piece's letter";
   if (/[↑↓←→]/.test(direction)) return `the arrow ${direction} is not read, and a direction is <, >, + or -`;
-  if (top) return `the top stone's letter ${top} after a stack move is not read`;
+  if (top) return `the top piece's letter ${top} after a stack move is not read`;
   const carried = Number(count ?? 1), dropped = [...drops].reduce((sum, d) => sum + Number(d), 0);
   if (drops && dropped !== carried) return `the move takes ${carried} and drops ${dropped}`;
   return { name: (carried > 1 ? carried : "") + at + direction + (drops.length > 1 ? drops : ""), mark: Boolean(star), markAt };

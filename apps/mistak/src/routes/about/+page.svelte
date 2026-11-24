@@ -29,7 +29,7 @@
   <h2>The stack</h2>
   <div class="flex items-center gap-4">
     <Logo size={96} label="Mistak's logo: a stack of stones with a capstone on top" />
-    <p class="my-0">The logo is a stack: flat stones under a capstone. In Tak, the player whose stone is on top controls
+    <p class="my-0">The logo is a stack: flat stones under a capstone. In Tak, the player whose piece is on top controls
       the stack, and moves it. The lowest stone drifts off into a mist.</p>
   </div>
 
@@ -41,18 +41,18 @@
     the engine.</p>
 
   <h2>The game</h2>
-  <p>Tak uses a square board, from 3 × 3 to 8 × 8. Most games on playtak.com use 5 × 5 or 6 × 6. Each player has flat
-    stones and capstones: 21 flat stones and 1 capstone on 5 × 5, and 30 and 1 on 6 × 6.</p>
+  <p>Tak uses a square board, from 3 × 3 to 8 × 8. Most games on playtak.com use 5 × 5 or 6 × 6. Each player has
+    stones and capstones: 21 stones and 1 capstone on 5 × 5, and 30 and 1 on 6 × 6.</p>
   <ul>
-    <li><strong>A placement</strong> puts one stone on an empty square: a flat stone, a wall or a capstone. The
-      printed rules call a wall a standing stone.</li>
-    <li><strong>A stack move</strong> moves a stack that your stone tops. It carries up to the board's width in stones,
-      in one direction, and drops at least one stone on each square of its path. Walls and capstones stop a stack. A
+    <li><strong>A placement</strong> puts one piece on an empty square: a flat stone, a wall or a capstone. A
+      wall is a stone that stands on its edge, which the printed rules call a standing stone.</li>
+    <li><strong>A stack move</strong> moves a stack that your piece tops. It carries up to the board's width in pieces,
+      in one direction, and drops at least one piece on each square of its path. Walls and capstones stop a stack. A
       capstone alone, at the end of its move, flattens a wall.</li>
     <li><strong>The first turn:</strong> each player places one flat stone of the opponent's.</li>
   </ul>
   <p>A <strong>road</strong> wins: a line of a player's flat stones and capstones that joins two opposite edges of the
-    board. When the board is full, or a player has no stones left, the game ends, and the player with more flat stones
+    board. When the board is full, or a player has no pieces left, the game ends, and the player with more flat stones
     on top wins. A game can give the second player a komi: flats, or half flats, that add to their count. Equal counts
     are a draw.</p>
   <p>James Ernest and Patrick Rothfuss designed Tak in 2016. Its players meet on
