@@ -11,9 +11,17 @@ import { BUTTON_HEAD_SVG, FAVICON_SVG, LARGE_FROM, LOGO_LARGE, LOGO_SMALL, logoA
 const CREAM = "#efe8d8";
 const ids = (svg: string) => [...svg.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
 const references = (svg: string) => [...svg.matchAll(/url\(#([^)]+)\)/g)].map(m => m[1]);
-/** A drawing's shapes after its tile: each one's place, size and corners. */
-const places = (drawing: typeof LOGO_LARGE) =>
-  drawing.slice(1).map(([, a]) => [a.x, a.y, a.width, a.height, a.rx]);
+/** A drawing's flat stones: each one's place, size and corners. */
+const flats = (drawing: typeof LOGO_LARGE) =>
+  drawing.slice(1).filter(([tag]) => tag === "rect").map(([, a]) => [a.x, a.y, a.width, a.height, a.rx]);
+/** The place and the size of a stone after the tile: a flat stone's own, and the capstone's from its path, whose top is
+ *  a half circle (the first arc) and whose base has two rounded corners (the second arc). */
+const box = ([tag, a]: (typeof LOGO_LARGE)[number]): number[] => {
+  if (tag === "rect") return [a.x, a.y, a.width, a.height].map(Number);
+  const [x, y, top, width, side, base] = String(a.d)
+    .match(/^M([\d.]+) ([\d.]+)a([\d.]+) [\d.]+ 0 0 1 ([\d.]+) 0v([\d.]+)a([\d.]+) /)!.slice(1).map(Number);
+  return [x, y - top, width, top + side + base];
+};
 
 test("the favicon's file draws the logo's simple drawing", () => {
   assert.equal(readFileSync("src/lib/assets/favicon.svg", "utf8"), FAVICON_SVG);
@@ -41,7 +49,7 @@ test("each drawing starts with the pine tile and has no broken number", () => {
 
 test("each stone stays inside the tile, and no two stones touch", () => {
   for (const drawing of [LOGO_SMALL, LOGO_LARGE]) {
-    const stones = places(drawing).map(p => p.map(Number));
+    const stones = drawing.slice(1).map(box);
     for (const [x, y, w, h] of stones) assert.ok(x >= 0 && y >= 0 && x + w <= 100 && y + h <= 100, `${x},${y}`);
     const byHeight = [...stones].sort((a, b) => a[1] - b[1]);
     for (let i = 1; i < byHeight.length; i++) assert.ok(byHeight[i - 1][1] + byHeight[i - 1][3] < byHeight[i][1]);
@@ -50,13 +58,16 @@ test("each stone stays inside the tile, and no two stones touch", () => {
 
 test("the full drawing: the capstone, then three flat stones of one size, each moved sideways", () => {
   assert.deepEqual(LOGO_LARGE[0][1], { width: 100, height: 100, rx: 18, fill: PINE });
-  assert.deepEqual(places(LOGO_LARGE),
-    [[49, 12, 20, 28, 9], [12, 43, 62, 12, 6], [26, 59, 62, 12, 6], [13, 75, 62, 12, 6]]);
+  assert.deepEqual(LOGO_LARGE[1][1], { fill: CREAM, d: "M49 22a10 10 0 0 1 20 0v15.5a2.5 2.5 0 0 1-2.5 2.5h-15a2.5 2.5 0 0 1-2.5-2.5z" });
+  assert.deepEqual(box(LOGO_LARGE[1]), [49, 12, 20, 28]);
+  assert.deepEqual(flats(LOGO_LARGE), [[12, 43, 62, 12, 6], [26, 59, 62, 12, 6], [13, 75, 62, 12, 6]]);
 });
 
 test("the simple drawing: the capstone, then two flat stones of one size", () => {
   assert.deepEqual(LOGO_SMALL[0][1], { width: 100, height: 100, rx: 18, fill: PINE });
-  assert.deepEqual(places(LOGO_SMALL), [[49, 13, 22, 30, 8], [12, 48, 64, 15, 6], [24, 68, 64, 15, 6]]);
+  assert.deepEqual(LOGO_SMALL[1][1], { fill: CREAM, d: "M49 24a11 11 0 0 1 22 0v16.5a2.5 2.5 0 0 1-2.5 2.5h-17a2.5 2.5 0 0 1-2.5-2.5z" });
+  assert.deepEqual(box(LOGO_SMALL[1]), [49, 13, 22, 30]);
+  assert.deepEqual(flats(LOGO_SMALL), [[12, 48, 64, 15, 6], [24, 68, 64, 15, 6]]);
 });
 
 test("the stones are cream, and the full drawing's lowest one fades to nothing at its right", () => {

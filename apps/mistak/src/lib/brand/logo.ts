@@ -25,13 +25,24 @@ const tile = (rx: number): Shape => ["rect", { width: 100, height: 100, ...(rx ?
 const stone = (x: number, y: number, width: number, height: number, rx: number): Shape =>
   ["rect", { x, y, width, height, rx, fill: STONE }];
 
+/** The capstone in the box at (x, y): its top a half circle of the box's width, and its base flat, with two corners of
+ *  radius `base`. */
+const capstone = (x: number, y: number, width: number, height: number, base: number): Shape => {
+  const top = width / 2, side = height - top - base;
+  return ["path", {
+    d: `M${x} ${y + top}a${top} ${top} 0 0 1 ${width} 0v${side}a${base} ${base} 0 0 1-${base} ${base}`
+      + `h${2 * base - width}a${base} ${base} 0 0 1-${base}-${base}z`,
+    fill: STONE,
+  }];
+};
+
 /** The mist: the stone's cream over its left part, fading to nothing at its right. */
 const MIST: Gradient = { stops: [[0, STONE], [0.18, STONE], [1, STONE, 0]] };
 
 /** The full drawing: the capstone, and three flat stones of one size, the lowest one in the mist. */
 const large = (rx: number): Drawing => [
   tile(rx),
-  stone(49, 12, 20, 28, 9),
+  capstone(49, 12, 20, 28, 2.5),
   stone(12, 43, 62, 12, 6),
   stone(26, 59, 62, 12, 6),
   ["rect", { x: 13, y: 75, width: 62, height: 12, rx: 6 }, MIST],
@@ -43,7 +54,7 @@ export const LOGO_LARGE = large(18);
 /** The simple drawing, below 48 pixels: the capstone, and two thicker flat stones of one size in full colour. */
 export const LOGO_SMALL: Drawing = [
   tile(18),
-  stone(49, 13, 22, 30, 8),
+  capstone(49, 13, 22, 30, 2.5),
   stone(12, 48, 64, 15, 6),
   stone(24, 68, 64, 15, 6),
 ];

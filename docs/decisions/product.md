@@ -13037,6 +13037,13 @@ missing from every count of design 17. Design 27 gives the reasons.
     (e5b0c9da), verbatim but for a file's path, left out here: "fine, start Mistak's review. but replace the logo: […]".
     tak-coord's reading: the form "Drifting mist" for large sizes and a solid two-stone form for small ones. The
     session that wrote this entry read the comment, not the transcript.
+  - **The capstone** is round on top and flat at its base: the top a half circle of the capstone's width, and the base's
+    two corners 2.5 units round, in place of the rectangle with four round corners that the first build had. The owner
+    said so after a look at the new logo: "logo: the capstone on the top doesn't seem right? it should be flat on the
+    bottom and round on the top" (session f66901e3, 2026-11-24, 11:46:38 CST), then "I choose B", of three shapes
+    drawn into the real page (the same session, 11:54 CST or a minute before). The source: tak-coord's messages to this
+    branch's review at 11:47 and 11:54 CST, which quote both. The session that wrote this entry read the messages, not
+    the transcript.
   - **The switch is at 48 pixels,** as before. The two drawings were looked at 16, 24, 28, 32, 48 and 96 pixels in both
     themes. At 48 the mist reads: three rows apart and a clear fade. At 32 the fade is a smear about 4 pixels tall, and
     at 28 and 24 the rows begin to fuse, while the simple drawing stays crisp. The sites' sizes are 28 (the header), 56
