@@ -3,7 +3,7 @@
 // dark theme. The left holds the logo's full drawing, large, until the board's work draws a corner of Tak's board there
 // with the logo beside the name, as Cyanotype's card has (abscls-shfz.18.6). Drawn as SVG
 // here, and to static/brand/card.png by scripts/brand.mjs. For Node: it reads the site's style sheets.
-import { shapeMarkup } from "@abstractclass/site/brand.ts";
+import { drawingMarkup } from "@abstractclass/site/brandGradient.ts";
 import { siteTokens } from "@abstractclass/site/themeTokens.ts";
 import { LOGO_LARGE } from "./logo.ts";
 
@@ -25,7 +25,7 @@ export function card(): string {
   const x = 600;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" `
     + `height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${BG}"/>`
-    + `<g transform="translate(56 80) scale(4.7)">${shapeMarkup(LOGO_LARGE)}</g>`
+    + `<g transform="translate(56 80) scale(4.7)">${drawingMarkup(LOGO_LARGE, "card")}</g>`
     + `<g font-family="'Segoe UI', system-ui, sans-serif">`
     + text(x, 190, 62, TEXT, 700, ["Mistak"])
     + text(x, 290, 46, LEAD, 600, ["Learn Tak"])

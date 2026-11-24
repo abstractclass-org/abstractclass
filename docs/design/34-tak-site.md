@@ -317,7 +317,7 @@ built with the test network, as each other part is.
 | The header, the footer, the menu, the theme | 29 | As it is | `packages/site`, with the site's name and links. The header's breakpoints need the layout test with Tak's links. |
 | The early access and its build switch | 11 | As it is | `edition.ts` and `SiteName.svelte`, with the site's own repository variable. |
 | Search engines and link previews | 23 | With a change | A preview image of Tak's board. |
-| The logo and the colour | 12 | With a change | A logo of the site's own. No art of Tak's, which belongs to its rights holder ("The rights"). |
+| The logo and the colour | 12 | With a change | A logo of the site's own: a stack of flat stones under a capstone, each stone moved sideways and the lowest one drifting off into a mist, in cream on a dark pine tile (`#24443d`, `#efe8d8`). The flat stones of a drawing have one size. No art of Tak's, which belongs to its rights holder ("The rights"). |
 | The analytics, with PostHog and no consent | 17 | As it is | The shared analytics. The account's one Web Analytics site, `abstractclass.org`, takes every subdomain's beacon, so the site uses the shared `CF_ANALYTICS_TOKEN` and needs no Cloudflare step of its own (`docs/hosting.md`, sections 5 and 9). |
 | Support Us | 22 | As it is | `packages/site`, as on both sites, with the site's name. |
 | The error page, the notices of a page that does not load | | As it is | `packages/site`. |
@@ -756,10 +756,11 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
 This document is the plan. The engine's plan is in the engine repository's `games/tak/docs/design/`.
 
 - **The shell** (ticket 2, abscls-shfz.18.4): `apps/mistak` with the sites' frame, the pages Home, About, Notation,
-  How a review works, For developers, Privacy and Notices, the logo (a stack under a capstone, on a pine tile), the
-  check of a deployed site, and the deploy job `mistak` with the launch switch (`docs/hosting.md`, section 10). The
-  site ships no engine yet, so its notices page and its check of a deployed site have no engine's parts, and its
-  engine lock's exceptions name the issues that bring each part. The Pages project is the owner's step.
+  How a review works, For developers, Privacy and Notices, the logo (a stack under a capstone, on a pine tile, the
+  lowest stone in a mist), the check of a deployed site, and the deploy job `mistak` with the launch switch
+  (`docs/hosting.md`, section 10). The site ships no engine yet, so its notices page and its check of a deployed site
+  have no engine's parts, and its engine lock's exceptions name the issues that bring each part. The Pages project is
+  the owner's step.
 - **The rest** of "The tickets proposed" is not built.
 
 ## Log

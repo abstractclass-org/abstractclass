@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="32" height="32">
   <!-- Mistak's logo, the simple drawing (design 34, src/lib/brand/logo.ts): the same on light and dark tabs. -->
   <rect width="100" height="100" rx="18" fill="#24443d"/>
-  <rect x="18" y="67" width="64" height="15" rx="4" fill="#efe8d8"/>
-  <rect x="18" y="49" width="64" height="15" rx="4" fill="#efe8d8"/>
-  <rect x="36" y="12" width="28" height="34" rx="7" fill="#efe8d8"/>
+  <rect x="49" y="13" width="22" height="30" rx="8" fill="#efe8d8"/>
+  <rect x="12" y="48" width="64" height="15" rx="6" fill="#efe8d8"/>
+  <rect x="24" y="68" width="64" height="15" rx="6" fill="#efe8d8"/>
 </svg>

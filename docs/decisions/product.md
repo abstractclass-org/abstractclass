@@ -13025,10 +13025,26 @@ missing from every count of design 17. Design 27 gives the reasons.
   no consent, the sitemap, `robots.txt` and the headers with `noindex` on Cloudflare's addresses (design 34, "The site's
   frame"; abscls-shfz.18.4). Its pages: Home, About, Notation, How a review works, For developers, Privacy and Notices.
   The game's pages (Practice, Review, Analysis) and Tools join the header with their own work.
-- **The logo:** a stack, Tak's own idea, in plain shapes: flat stones under a capstone, cream on a dark pine tile
-  (`#24443d`), the lower stones fading as into a mist, for the name. Two drawings by size, as Cyanotype's, and no art
-  of Tak's (design 34, "The rights"). The accent stays the sites' lavender, which the partners' buttons share. The link
+- **The logo:** a stack, Tak's own idea, in plain shapes: flat stones under a capstone, cream (`#efe8d8`) on a dark
+  pine tile (`#24443d`), each flat stone moved sideways and the lowest one drifting off into a mist, for the name.
+  No art of Tak's (design 34, "The rights"). Two drawings by size, as Cyanotype's: three flat stones of 62 × 12 units
+  (corners of 6) in the full one, whose lowest fades to nothing at its right, and two solid ones of 64 × 15 in the
+  simple one. The flat stones of a drawing keep one size in any later change. Their place and opacity may vary, and the
+  capstone has its own proportions. The accent stays the sites' lavender, which the partners' buttons share. The link
   preview picture has the logo where Tak's board comes with the board's work (abscls-shfz.18.6).
+  - **Whose choice:** the owner replaced the first proposal, a stack with no offset. The source: tak-coord's comment in
+    abscls-shfz.18.4 (2026-11-24, 11:21 CST) records the owner's message of 11:19 CST in tak-coord's session
+    (e5b0c9da), verbatim but for a file's path, left out here: "fine, start Mistak's review. but replace the logo: […]".
+    tak-coord's reading: the form "Drifting mist" for large sizes and a solid two-stone form for small ones. The
+    session that wrote this entry read the comment, not the transcript.
+  - **The switch is at 48 pixels,** as before. The two drawings were looked at 16, 24, 28, 32, 48 and 96 pixels in both
+    themes. At 48 the mist reads: three rows apart and a clear fade. At 32 the fade is a smear about 4 pixels tall, and
+    at 28 and 24 the rows begin to fuse, while the simple drawing stays crisp. The sites' sizes are 28 (the header), 56
+    (Support Us), 96 (About) and 192 (Home), so no page shows one between.
+  - **The gradient** is in `packages/site/src/brandGradient.ts`, a module that only Mistak's pages import: the builds
+    of the two other sites hold nothing of it. `brand.ts` exports its opening tag for it and is otherwise unchanged.
+    Each logo of a page has an id of its own for its gradient (Svelte's `$props.id()`). The exported SVG files have the
+    simple drawing, which has no gradient and no id.
 - **Moved into `packages/site`:** the logo's drawing tools (`brand.ts`: a drawing's shapes as SVG) and the
   writing of a site's logo files (`brandFiles.ts`: the favicon, the ICO file, the iOS icon, the card and the buttons'
   head). Cyanotype's `logo.ts` and `scripts/brand.mjs` take them from there. Its brand script, run again through the

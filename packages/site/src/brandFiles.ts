@@ -1,5 +1,5 @@
-// A site's logo files from its drawings (brand.ts), as Cyanotype's and Mistak's scripts/brand.mjs write them
-// (Cyanotype's design 33, "The logo"):
+// A site's logo files from its drawings (brand.ts and brandGradient.ts), as Cyanotype's and Mistak's scripts/brand.mjs
+// write them (Cyanotype's design 33, "The logo"):
 // - src/lib/assets/favicon.svg: the simple drawing, the favicon that the page names.
 // - static/favicon.ico: the simple drawing at 16, 32 and 48 pixels, for browsers without SVG icons and for the clients
 //   that ask for /favicon.ico without reading the page, as Hedge School's (its scripts/favicon.mjs, design 12). The
@@ -13,7 +13,7 @@
 // imports it. The paths are the site's folder's: the script runs there.
 import { writeFileSync } from "node:fs";
 import { icoFile } from "./ico.ts";
-import { svgDocument, type Shape } from "./brand.ts";
+import { drawingDocument, type Drawing } from "./brandGradient.ts";
 
 /** The part of Playwright's browser that the drawing uses. */
 interface Browser {
@@ -45,9 +45,9 @@ export interface BrandDrawings {
   /** The head for partner sites' buttons: its name under static/brand/ (`cyanotype.svg`), and its SVG document. */
   head: readonly [file: string, svg: string];
   /** The simple drawing, for the ICO file. */
-  small: readonly Shape[];
+  small: Drawing;
   /** The iOS icon's drawing: a full square, with no transparent pixel. */
-  touch: readonly Shape[];
+  touch: Drawing;
   /** The link preview picture: its SVG document, its width and its height. */
   card: readonly [svg: string, width: number, height: number];
 }
@@ -58,11 +58,11 @@ export async function writeBrandFiles(browser: Browser, d: BrandDrawings): Promi
   writeFileSync(`static/brand/${d.head[0]}`, d.head[1]);
 
   const images: Buffer[] = [];
-  for (const size of ICO_SIZES) images.push(await png(browser, svgDocument(d.small, size), size));
+  for (const size of ICO_SIZES) images.push(await png(browser, drawingDocument(d.small, size, "small"), size));
   const ico = icoFile(images);
   writeFileSync("static/favicon.ico", ico);
 
-  writeFileSync("static/apple-touch-icon.png", await png(browser, svgDocument(d.touch, 180), 180));
+  writeFileSync("static/apple-touch-icon.png", await png(browser, drawingDocument(d.touch, 180, "touch"), 180));
   writeFileSync("static/brand/card.png", await png(browser, ...d.card));
   return `src/lib/assets/favicon.svg, static/favicon.ico (${ICO_SIZES.join(", ")} pixels, ${ico.length} bytes), `
     + `static/apple-touch-icon.png, static/brand/card.png, static/brand/${d.head[0]}`;
