@@ -13109,7 +13109,7 @@ missing from every count of design 17. Design 27 gives the reasons.
 - **What:** Cyanotype's logo is a new drawing, the contact print. A blueprint of four cells, hexagons with a point at
   the top and gaps between them, in the paper's white (`#f5f2e9`) on a tile of Prussian blue (`#123e65`) with small
   rounded corners. It replaces the cyanotype of 2026-11-06 (the start's blueprint, a star in its ring of six cells, on
-  `#163f6f`) everywhere: the header, the About page, the Support Us dialog, the consent banner, the favicon's files,
+  `#163f6f`) everywhere: the header, the Support Us dialog, the consent banner, the favicon's files,
   the iOS icon, the link preview picture, the strategyjam.org tools' button and the userscript's icon, and the head for
   partner sites' buttons.
 - **Why:** the owner drew it and asked for it: "I'd like to change the logo." (abscls-8tl1.118). Its file is a view of
@@ -13118,8 +13118,9 @@ missing from every count of design 17. Design 27 gives the reasons.
 - **One drawing at every size.** The cyanotype had two: a full print with thin lines and a border from 48 pixels up,
   and a simple drawing below that. The contact print has filled cells with gaps and no thin line, so the one drawing
   reads at 16 pixels too.
-- **The About page** says what the drawing shows: a cyanotype is a contact print (the paper lies under the thing that
-  it prints, in the sun), and the logo is a contact print of a blueprint of four cells.
+- **The About page no longer shows or explains the logo.** It had the cyanotype at 96 pixels with a sentence on it. The
+  owner, on a draft sentence for the new drawing: "no need to explain the logo in About page, to be honest. Hedge
+  School is kind of an exception because the logo seemingly has nothing to do with the game".
 - **Not changed:** the link preview picture keeps its corner of a board with its five-point stars, and the site's
   accent stays the lavender.
 

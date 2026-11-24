@@ -1,10 +1,8 @@
 <script lang="ts">
-  // About Cyanotype (design 33): what the site does, the logo at 96 pixels with a sentence on its name
-  // (as Hedge School's About page shows its collie), the early access (the header's "Early Access" link leads to its
+  // About Cyanotype (design 33): what the site does, the early access (the header's "Early Access" link leads to its
   // section, as Hedge School's), the game, how a review works (with the link to its page, as Hedge School's) and the
-  // engine. It names the players' Discord, which both sites share (@abstractclass/site/community.ts), in Hedge
-  // School's words.
-  import Logo from "#lib/brand/Logo.svelte";
+  // engine. Unlike Hedge School's, it does not explain the logo (design 33, "The logo", item 3). It names the players'
+  // Discord, which both sites share (@abstractclass/site/community.ts), in Hedge School's words.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import { DISCORD } from "@abstractclass/site/community.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -27,14 +25,6 @@
     <li><strong><a href="/analysis">The Analysis board</a>:</strong> play any line, and the engine searches the position
       on the screen.</li>
   </ul>
-
-  <h2>The cyanotype</h2>
-  <div class="flex items-center gap-4">
-    <Logo size={96} label="A contact print of a blueprint" />
-    <p class="my-0">A cyanotype is a print in white on blue, the print that made the first blueprints. It is a contact
-      print: the paper lies under the thing that it prints, in the sun. The logo is a contact print of a blueprint of
-      four cells.</p>
-  </div>
 
   <h2 id="early-access">Early access</h2>
   <p><strong>Everything here can change:</strong> the pages and their addresses, the notation, the quality labels and how

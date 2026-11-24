@@ -1554,15 +1554,15 @@ thing that it prints, in the sun. So the logo ties the site's name to its game. 
 this drawing and for the one before it ("Cyanotype's logo: the contact print", and "Cyanotype's logo: the cyanotype").
 
 1. **One drawing at every size.** The four cells are filled, with gaps between them, and the tile has no border and no
-   thin line. So the drawing that the About page shows at 96 pixels reads at 16 pixels too. The logo needs no second
-   drawing for small sizes, as Hedge School's collie does (design 12).
+   thin line. So the drawing reads at 16 pixels as at 56. The logo needs no second drawing for small sizes, as Hedge
+   School's collie does (design 12).
 2. **The same in both themes.** The tile carries its own colour, so the logo needs no dark form. The tile keeps a
    clear edge on a light page and on a dark one. Its blue sits beside the site's accent, Hedge School's lavender, in
    both themes: both are cool colours. The accent stays the lavender.
 3. **The header** shows the logo at 28 pixels before the site's name, on every page, at a phone's width as at full
-   width. The other places of Hedge School's collie take the logo too:
-   - **The About page** shows the logo at 96 pixels, with a sentence on the name: a cyanotype is a contact print, the
-     print that made the first blueprints, and the logo is a contact print of a blueprint of four cells.
+   width. The other places of Hedge School's collie take the logo too, but for the About page:
+   - **The About page does not show or explain the logo.** Hedge School's About page explains its collie because a
+     collie has nothing to do with Enclosure. Cyanotype's logo is a print of the game's cells, so it needs no words.
    - **The strategyjam.org tools' button** shows the logo, and Tampermonkey's lists show it as the userscript's icon
      (`src/lib/game/tools.ts`, through `svgElement` of `logo.ts`).
    - **The Support Us dialog** shows the logo at 56 pixels, where Hedge School's shows its collie ("Support Us").
@@ -1766,7 +1766,7 @@ No gap. `static/_headers` and the check of a deployed site (`scripts/release-che
   field. A labelled edit has its badge in its hand, at the hand's own size (at least 14 pixels wide). When the
   labelled turn draws on no hex of the field, the view stays the scene's. `still.json`, the first paint, is the first
   scene's first frame, in its scene's view.
-- `apps/cyanotype/src/routes/`: the pages. The About page has the logo ("The logo", item 3), the
+- `apps/cyanotype/src/routes/`: the pages. The About page has the
   section on the early access (`#early-access`,
   "Decision", item 11), and the section "How a review works", with the link to its page. `how-reviews-work/`: How a
   review works ("The review and the Analysis board", item 13). The Notation page describes the moves, the marks and
