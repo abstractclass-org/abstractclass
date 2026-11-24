@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   gamePage, isKomi, komiLimitProblem, komiOf, komiPrefix, komiRange, markMoves, pastedError, readRecord, RecordError, setUpRefusal, startTags, withStartTag, withTags,
-  writeRecord, writeTags, type Notation,
+  writeRecord, writeTags, type Notation, type Ptn,
 } from "./record.ts";
 
 /** The test game: its mark is what a move takes, or null for none. A set-up start gives its first turn's label in a
@@ -87,6 +87,41 @@ test("errors name what is wrong and where", () => {
   assert.deepEqual(at('1. apple [Blue "x"]'), ["tags come before the moves", 9]);
   assert.deepEqual(at("1. apple (2. bee"), ["a ( has no closing )", 16]);
   assert.deepEqual(at(""), ["the record has no moves", 0]);
+});
+
+test("a ] or a } that nothing opened is a RecordError at that character", () => {
+  const at = (text: string) => {
+    try { read(text); } catch (e) { assert.ok(e instanceof RecordError, `${text}: ${e}`); return [e.message, e.offset]; }
+    assert.fail(`no error: ${text}`);
+  };
+  assert.deepEqual(at("1. a ] b"), ["a ] has no opening [", 5]);
+  assert.deepEqual(at("1. a } b"), ["a } has no opening {", 5]);
+  assert.deepEqual(at("]"), ["a ] has no opening [", 0]);
+  assert.deepEqual(at("}"), ["a } has no opening {", 0]);
+  assert.deepEqual(at("] 1. apple"), ["a ] has no opening [", 0]);
+  assert.deepEqual(at("} 1. apple"), ["a } has no opening {", 0]);
+  assert.deepEqual(at("1. apple] 2. bee"), ["a ] has no opening [", 8]);
+  assert.deepEqual(at("1. apple ) 2. bee"), ["a ) has no opening (", 9]);
+});
+
+test("any short mix of brackets, quotes and spaces gives a record or a RecordError, never another error", () => {
+  const alphabet = ["[", "]", "{", "}", "(", ")", '"', " ", "1.", "apple", "*", "\n"];
+  const ptn: Ptn = { result: w => (w === "*" ? "*" : null), tagName: n => n, tagsProblem: () => null };
+  let count = 0;
+  const check = (text: string) => {
+    for (const notation of [words, { ...words, ptn }]) {
+      count++;
+      try { readRecord(text, notation); } catch (e) {
+        assert.ok(e instanceof RecordError, `${JSON.stringify(text)}: ${e}`);
+      }
+    }
+  };
+  const walk = (prefix: string, left: number) => {
+    check(prefix);
+    if (left) for (const a of alphabet) walk(prefix + a, left - 1);
+  };
+  walk("", 4);
+  assert.ok(count > 1000);
 });
 
 test("the Komi tag: Red's starting score, 0 without it, and an error where it is not a komi", () => {

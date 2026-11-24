@@ -197,6 +197,9 @@ function tokenize(text: string, ptn: boolean): Token[] {
     } else if (!ptn && (c === "(" || c === ")")) {
       tokens.push(c === "(" ? { kind: "open", at: i } : { kind: "close", at: i });
       i++;
+    } else if (!ptn && (c === "]" || c === "}")) {
+      // The word pattern below stops at these two and matches nothing there: a ] or } here has no [ or { before it.
+      throw new RecordError(c === "]" ? "a ] has no opening [" : "a } has no opening {", i);
     } else {
       const m = (ptn ? /^[^\s{[]+/ : /^[^\s{}()[\]]+/).exec(text.slice(i))!;
       // A turn label can touch its first move: "1.A10-D10".
