@@ -186,6 +186,7 @@ test("a wrong record is refused, at the tag or the move that is wrong", () => {
   assert.equal(refused('[Size "6"]\n[TPS "x5/x5/x5/x5/x5 1 1"]\n\n1. a1')[0], "the Size tag is not the size of the TPS tag's board (5): 6");
   assert.equal(refused('[TPS "x5"]\n\n1. a1')[0], "a position must look like x5/x5/x5/x5/x5 1 1: x5");
   assert.equal(refused('[Size "6"]\n[Opening "other"]\n\n1. a1')[0], "the Opening tag must be one of swap, no-swap, double black stack: other");
+  assert.equal(refused('[Size "6"]\n[position "x"]\n\n1. a1')[0], "a Tak record gives its start in a TPS tag, not in a Position tag: x");
   assert.equal(refused('[Size "6"]\n[Position "x"]\n\n1. a1')[0], "a Tak record gives its start in a TPS tag, not in a Position tag: x");
   assert.equal(refused(SIX)[0], "the record has no moves");
   assert.deepEqual(refused(SIX + "1. a1 f6 2. 3c3>11"), ["the move takes 3 and drops 2: 3c3>11", SIX.length + 12]);
@@ -198,6 +199,13 @@ test("a wrong record is refused, at the tag or the move that is wrong", () => {
 
 test("the komi: half flats within the limit of the record's size", () => {
   assert.equal(parseRecord(`[Size "6"]\n[Komi "0.5"]\n\n1. a1`).komi, 0.5);
+  // ptn.ninja takes a half with no 0: the one spelling has it.
+  for (const [komi, half, tag] of [[".5", 0.5, "0.5"], ["-.5", -0.5, "-0.5"]] as const) {
+    const r = parseRecord(`[Size "6"]\n[Komi "${komi}"]\n\n1. a1`);
+    assert.deepEqual([r.komi, r.tags.Komi], [half, tag]);
+  }
+  for (const komi of [".", ".0", ".25", "5."])
+    assert.match(refused(`[Size "6"]\n[Komi "${komi}"]\n\n1. a1`)[0], /^the Komi tag must be a number of flats/, komi);
   assert.equal(parseRecord(`[Komi "5"]\n[Size "6"]\n\n1. a1`).komi, 5); // the size after the komi
   assert.deepEqual(refused('[Komi "5"]\n[Size "5"]\n\n1. a1'), ["the Komi tag must be from -3 to 3 flats: 5", 0]);
   assert.equal(refused('[Komi "5.5"]\n[Size "6"]\n\n1. a1')[0], "the Komi tag must be from -5 to 5 flats: 5.5");
@@ -209,6 +217,24 @@ test("the komi: half flats within the limit of the record's size", () => {
   assert.equal(komiLimit("x6/x6/x6/x6/x6/x5,1 2 7"), 5);
   assert.equal(komiLimit("x7/x7/x7/x7/x7/x7/x7 1 1"), Infinity); // refused for its size, before the review
   assert.equal(komiLimit(null), 3);
+});
+
+test("the reserve: a tag that names the size's own is taken, and any other is another game", () => {
+  const own = { 3: [10, 0], 4: [15, 0], 5: [21, 1], 6: [30, 1], 7: [40, 2], 8: [50, 2] };
+  for (const [size, [flats, caps]] of Object.entries(own)) {
+    const counts = ["", "1", "2"].map(player => `[Flats${player} "${flats}"]\n[Caps${player} "${caps}"]`).join("\n");
+    assert.deepEqual(parseRecord(`[Size "${size}"]\n${counts}\n\n1. a1`).moves, ["a1"], size);
+    for (const player of ["", "1", "2"]) {
+      const more = `[Size "${size}"]\n[Flats${player} "${flats + 1}"]\n\n1. a1`;
+      assert.deepEqual(refused(more), [`the Flats${player} tag must be ${flats}, each player's stones on ${size}x${size}: ${flats + 1}`, 11]);
+      assert.equal(refused(`[Size "${size}"]\n[Caps${player} "${caps + 1}"]\n\n1. a1`)[0],
+        `the Caps${player} tag must be ${caps}, each player's capstones on ${size}x${size}: ${caps + 1}`);
+    }
+  }
+  assert.equal(refused('[Size "6"]\n[flats "no"]\n\n1. a1')[0], "the Flats tag must be 30, each player's stones on 6x6: no");
+  // The size is the TPS tag's too, and an empty tag names nothing.
+  assert.equal(refused('[TPS "x5/x5/x5/x5/x5 1 1"]\n[Flats "30"]\n\n1. a1')[0], "the Flats tag must be 21, each player's stones on 5x5: 30");
+  assert.deepEqual(parseRecord('[Size "6"]\n[Flats "?"]\n[Caps ""]\n\n1. a1').moves, ["a1"]);
 });
 
 test("a flattening's mark goes where the record has none, before the evaluation marks", () => {

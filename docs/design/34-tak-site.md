@@ -116,9 +116,9 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    next square (`a1`, `c3>`, `3b2+12`). PTN allows each of these omissions (5.2). The reader takes every spelling that
    ptn.ninja and playtak's export write, the explicit 1s too (`1e4<1`), and reads it as the short form. It refuses a
    move whose drops are not the stones that it takes (`3c3>11`), which ptn.ninja changes silently. It also refuses the
-   PTN page's arrows and the top stone's letter after a stack move (`a1>C`), which neither of the two writes. The
-   double black stack's first move is `a1`, as ptn.ninja and the engine name it. A record writes it `2a1`. The engine
-   request settles the form with the engine repository.
+   PTN page's arrows and the top stone's letter after a stack move (`a1>C`), which neither of the two writes, and its
+   error names the arrow or the letter. The double black stack's first move is `a1`, as ptn.ninja and the engine name
+   it. A record writes it `2a1`. The engine request settles the form with the engine repository.
 5. **The marks.** The writer writes `*` on a flattening, as the PTN page "most strongly" recommends. The reader
    refuses a `*` that the move does not confirm, as Cyanotype's reader refuses a capture mark. It reads `'` and `"`,
    and keeps no meaning from them: a mark of tak or Tinuë is a claim that the site does not check. The quality marks
@@ -127,7 +127,15 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    - **The tags:** `Size`, `Komi`, `Opening`, `Player1`, `Player2`, `Rating1`, `Rating2`, `Date`, `Result`, `Site`,
      `PlayTakID`, and `TPS` for a set-up start, in the place of Hedge School's `Position` tag.
      The writer writes no `Result` tag for a game with no result, because ptn.ninja takes no `*` there. The `*` ends
-     the moves.
+     the moves. A `Komi` tag of `.5` reads as 0.5, as ptn.ninja takes it.
+   - **The records that the reader refuses by their tags,** each with a plain sentence at the tag: no size, a size that
+     is not a number from 3 to 8 or is not the `TPS` tag's, a `TPS` that is no position, an `Opening` that PTN does not
+     name, a `Position` tag, a `Komi` that is not a number of flats, whole or half, or is beyond the size's limit, a
+     `Result` that is no result or differs from the moves' end, and a tag of the reserve that is not the size's own
+     count. The reserve's tags are `Flats` and `Caps`, and `Flats1`, `Caps1`, `Flats2` and `Caps2` for one player each
+     (`research/ptn-ninja.md`, 5.3 and 5.6). ptn.ninja plays such a record with the counts that they name, so it is
+     another game, and the engine would play it with the size's own. A tag that names the size's own count is taken:
+     playtak's export writes both on every game.
    - **The turns** are PTN's: `1. a1 f6`, a number for each pair of plies, as PGN numbers chess. The review judges
      each ply: a game of one move a turn (design 29, item 2).
    - **The variations:** ptn.ninja's branches (`{3w1}`), so that ptn.ninja opens the annotated record.
@@ -472,13 +480,12 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
      by"). Practice's move list is not part of this: it takes its rows from its site.
 4. **A record in a format that the game's community owns.** The record package's frame is Hedge School's form, with
    each game's moves as a parameter. PTN is close to it (tags, numbered moves, comments, results). Its branches and
-   its notes are ptn.ninja's. The check of the package (abscls-shfz.18.5):
-   - **It took already** the moves, the game's mark, the start and the komi's limit as parameters.
-   - **It did not take** the results, the tags' form (no escapes, names in any case, no roster), two moves a number,
-     the branches, the placeholder `--`, and a game with no pass.
-   - **So the reader stays the shared one, with PTN's form as a parameter** (`Notation`'s `ptn`, and `komiWords` for
-     the komi's unit). The reader notes each text for the error reports, and one reader must read every record
-     (`texts.test.ts`). A game without `ptn` reads as before.
+   its notes are ptn.ninja's. The package takes PTN in two parts (abscls-shfz.18.5):
+   - **What each game gives already:** the moves, the game's mark, the start and the komi's limit.
+   - **PTN's form, as one parameter** (`Notation`'s `ptn`, and `komiWords` for the komi's unit): the results, the tags'
+     form (no escapes, names in any case, no roster), two moves a number, the branches, the placeholder `--`, and a
+     game with no pass. The reader is the shared one, as it notes each text for the error reports, and one reader must
+     read every record (`texts.test.ts`). A game without `ptn` reads as Hedge School's form does.
    - **The writer is Mistak's own** (`apps/mistak/src/lib/game/record.ts`): the package's writer writes Hedge School's
      tags and its turns on one line.
 5. **A game fetched by its id** from a play site's API. It stays the site's own part, as each page reader is. The

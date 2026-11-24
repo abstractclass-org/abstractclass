@@ -13138,6 +13138,13 @@ The logo, its files and how each is made are in design 33, "The logo".
   gives the short form. It is stricter than ptn.ninja in three places. Drops that are not the stones taken are refused:
   ptn.ninja changes them silently, and the game would not be the one played. A number must be the next move's. The
   moves' end and the `Result` tag must agree.
+- **The refused forms:** the PTN page's arrows and the top stone's letter after a move, which neither site writes, are
+  refused, and the error names the arrow or the letter. `[Komi ".5"]`, which ptn.ninja takes, reads as 0.5.
+- **The reserve:** a `Flats` or `Caps` tag (or `Flats1`, `Caps1`, `Flats2`, `Caps2`) that is not the size's own count is
+  refused. ptn.ninja takes any number there and plays with it, so the record is another game, and the engine would
+  play it with the size's own. playtak's export writes both tags on every game (its `ptn.service.ts`), so a tag that
+  names the size's own count is taken. The counts are a table in Mistak's `record.ts`, as the site has no engine to ask
+  yet.
 - **The branches:** ptn.ninja takes any comment after a blank line, before a number, as a branch's name. The reader
   takes it so only when the number is not the next move's: a note between two turns of the main line stays a note.
   White's move in a number that the main line has opened is a branch's too.

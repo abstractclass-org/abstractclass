@@ -21,11 +21,8 @@ const TAGS = ["Site", "Event", "Date", "Time", "Round", "Player1", "Rating1", "P
 const OPENINGS = ["swap", "no-swap", "double black stack"] as const;
 export type Opening = (typeof OPENINGS)[number];
 
-/** A tag's value, or null for none (PTN takes PGN's `?`). */
-function value(tags: Record<string, string>, name: string): string | null {
-  const v = tags[name]?.trim() ?? "";
-  return v === "" || v === "?" || v === "-" ? null : v;
-}
+/** A tag's value, or null for none. */
+const value = (tags: Record<string, string>, name: string): string | null => shared.tagValue(tags[name]);
 
 /** The opening of a record: the swap opening without an `Opening` tag. Null for a tag that names none. */
 export function openingOf(tags: Record<string, string>): Opening | null {
@@ -41,19 +38,43 @@ export function startOf(tags: Record<string, string>): string {
   return typeof position === "string" ? tps : writePosition(position);
 }
 
+/** Each player's reserve at the start, by size: the standard game's stones and capstones (docs/design/34-tak-site.md,
+ *  "Tak, as the site needs it", and the engine repository's games/tak/docs/research/ptn-ninja.md, 5.2). */
+const RESERVES: Record<number, { Flats: number; Caps: number }> = {
+  3: { Flats: 10, Caps: 0 }, 4: { Flats: 15, Caps: 0 }, 5: { Flats: 21, Caps: 1 },
+  6: { Flats: 30, Caps: 1 }, 7: { Flats: 40, Caps: 2 }, 8: { Flats: 50, Caps: 2 },
+};
+
+/** What is wrong with the tags of the reserve (`Flats` and `Caps`, and `Flats1` to `Caps2` for one player each), or
+ *  null: another reserve is another game, which the engine would play with the size's own. A tag that names the size's
+ *  own count is taken, as playtak writes it on every game. */
+function reservesProblem(tags: Record<string, string>, size: number): { tag: string; problem: string } | null {
+  for (const [kind, what] of [["Flats", "stones"], ["Caps", "capstones"]] as const) {
+    const own = RESERVES[size][kind];
+    for (const player of ["", "1", "2"]) {
+      const tag = kind + player, count = value(tags, tag);
+      if (count !== null && Number(count) !== own)
+        return { tag, problem: `the ${tag} tag must be ${own}, each player's ${what} on ${size}x${size}` };
+    }
+  }
+  return null;
+}
+
 /** What is wrong with a record's tags. */
 function tagsProblem(tags: Record<string, string>): { tag: string | null; problem: string } | null {
   const size = value(tags, "Size"), tps = value(tags, "TPS");
   if (value(tags, "Position") !== null) return { tag: "Position", problem: "a Tak record gives its start in a TPS tag, not in a Position tag" };
   if (size !== null && !/^[3-8]$/.test(size)) return { tag: "Size", problem: "the Size tag must be a number from 3 to 8" };
+  let side = Number(size);
   if (tps !== null) {
     const position = readPosition(tps);
     if (typeof position === "string") return { tag: "TPS", problem: position };
-    if (size !== null && Number(size) !== position.size)
+    if (size !== null && side !== position.size)
       return { tag: "Size", problem: `the Size tag is not the size of the TPS tag's board (${position.size})` };
+    side = position.size;
   } else if (size === null) return { tag: null, problem: "the record must have a Size tag, such as [Size \"6\"]" };
   if (openingOf(tags) === null) return { tag: "Opening", problem: `the Opening tag must be one of ${OPENINGS.join(", ")}` };
-  return null;
+  return reservesProblem(tags, side);
 }
 
 /** A result in its one spelling, or null. playtak writes `0-0` for a game with no result. */
@@ -89,7 +110,7 @@ const moveNotation: shared.Notation<boolean> = {
   komiWords: { unit: "flats", example: "2" },
   ptn: {
     result: readResult,
-    tagName: name => TAGS.find(tag => tag.toLowerCase() === name.toLowerCase()) ?? name,
+    tagName: name => [...TAGS, "Position"].find(tag => tag.toLowerCase() === name.toLowerCase()) ?? name,
     tagsProblem,
   },
 };

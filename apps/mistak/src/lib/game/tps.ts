@@ -7,6 +7,7 @@
 // takes what ptn.ninja's reader takes: either case, `-` between the rows, and runs that are written apart (`x,x2`). It
 // refuses a board that is not a square of 3 to 8 squares a side, and text that is not TPS. Whether a game can reach the
 // position, and the counts of its stones, are the engine's to check.
+import { tagValue } from "@abstractclass/record/record.ts";
 
 export type StoneKind = "flat" | "wall" | "capstone";
 /** A stone: 1 is White's and 2 is Black's, as TPS writes them. */
@@ -64,8 +65,8 @@ export const emptyBoard = (size: number): string => writePosition({ size, square
 /** A start in its one spelling when it is a set-up start, or undefined: no start, or an empty board at move 1, which is
  *  the standard start of its size. A text that is no position is a start as it is, so that its reader refuses it. */
 export function setUpStart(text: string | null | undefined): string | undefined {
-  const start = text?.trim();
-  if (!start) return undefined;
+  const start = tagValue(text);
+  if (start === null) return undefined;
   const position = readPosition(start);
   if (typeof position === "string") return start;
   const written = writePosition(position);

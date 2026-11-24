@@ -42,7 +42,7 @@ test("text that is no position is refused, with what is wrong", () => {
 test("a size's empty board at move 1 is its standard start, and every other start is set up", () => {
   assert.equal(emptyBoard(5), "x5/x5/x5/x5/x5 1 1");
   assert.equal(emptyBoard(6), "x6/x6/x6/x6/x6/x6 1 1");
-  for (const standard of [undefined, null, "", " ", "x6/x6/x6/x6/x6/x6 1 1", "x5-x5-x5-x5-x2,x3 1 1"]) assert.equal(setUpStart(standard), undefined);
+  for (const standard of [undefined, null, "", " ", "?", "-", "x6/x6/x6/x6/x6/x6 1 1", "x5-x5-x5-x5-x2,x3 1 1"]) assert.equal(setUpStart(standard), undefined);
   assert.equal(setUpStart("X3/x,1,x/x3 2 1"), "x3/x,1,x/x3 2 1");
   assert.equal(setUpStart("x5/x5/x5/x5/x5 2 1"), "x5/x5/x5/x5/x5 2 1");
   assert.equal(setUpStart(" nonsense "), "nonsense");

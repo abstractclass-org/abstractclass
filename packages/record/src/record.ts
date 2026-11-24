@@ -35,6 +35,7 @@ export interface Place { tags: Record<string, string>; first: boolean }
  *    of moves with no numbers reads too,
  *  - ptn.ninja's branches: a comment after a blank line, before a number that is not the next move's, is the name of a
  *    branch (`{3w1}`). The main line ends there, and a branch can follow the result,
+ *  - a half komi with no 0 before its point (`.5`), which the record keeps as `0.5`,
  *  - no pass, no variations in ( ), no `[%eval]` or `[%clk]`, and no escapes in a tag's value. */
 export interface Ptn {
   /** The result that a word or the `Result` tag's value gives, in its one spelling, or null for a word that is not a
@@ -118,6 +119,12 @@ export function gamePage(tags: Record<string, string>): { href: string; host: st
   }
 }
 
+/** A tag's value with no spaces at its ends, or null for none: no tag, an empty value, or PGN's `?` and `-`. */
+export function tagValue(value: string | null | undefined): string | null {
+  const v = value?.trim() ?? "";
+  return v === "" || v === "?" || v === "-" ? null : v;
+}
+
 /** A `Komi` tag's value: a number of whole or half points, with its sign. */
 const KOMI = /^[+-]?\d{1,5}(?:\.[05])?$/;
 
@@ -125,8 +132,8 @@ const KOMI = /^[+-]?\d{1,5}(?:\.[05])?$/;
  *  below 0 Blue's. KataGo takes whole and half points. No value, and PGN's `?` and `-` for none, are komi 0. Null for a
  *  value that is not a komi. */
 export function komiOf(value: string | undefined): number | null {
-  const v = value?.trim() ?? "";
-  if (v === "" || v === "?" || v === "-") return 0;
+  const v = tagValue(value);
+  if (v === null) return 0;
   return KOMI.test(v) ? Number(v) || 0 : null;
 }
 
@@ -209,13 +216,11 @@ function readCommands<Mark>(comment: string, record: GameRecord<Mark>, move: num
   if (clk) record.clocks[move] = clk[1];
 }
 
-/** The result that a `Result` tag's value claims, in PTN's form: null for none (PGN's `?` and `-`, or no result yet),
- *  and undefined for a value that is not a result. */
-function resultTag(ptn: Ptn, value: string | undefined): string | null | undefined {
-  const v = value?.trim() ?? "";
-  if (v === "" || v === "?" || v === "-") return null;
-  const result = ptn.result(v);
-  return result === null ? undefined : result === "*" ? null : result;
+/** Whether a blank line comes right before the offset `at`. */
+function afterBlankLine(text: string, at: number): boolean {
+  let newlines = 0;
+  while (at > 0 && /\s/.test(text[at - 1])) if (text[--at] === "\n") newlines++;
+  return newlines > 1;
 }
 
 /** A PTN record's numbers, its placeholder and its branches (Ptn), for a reader that fills `record`. */
@@ -232,7 +237,7 @@ function readPtnTurns<Mark>(record: GameRecord<Mark>, notation: Notation<Mark>) 
     /** Whether `comment` is the name of a branch (Ptn), by the two tokens after it. The first player's move in a number
      *  that the main line has opened is a branch's too: the main line would write the second player's. */
     branches(text: string, comment: Token & { kind: "comment" }, after?: Token, then?: Token): boolean {
-      if (!record.moves.length || after?.kind !== "word" || !/\n[ \t\r]*\n\s*$/.test(text.slice(0, comment.at))) return false;
+      if (!record.moves.length || after?.kind !== "word" || !afterBlankLine(text, comment.at)) return false;
       const turn = TURN.exec(after.text), { number, first } = next();
       const second = turn?.[2] === "..." || (then?.kind === "word" && then.text === "--");
       return turn !== null && (Number(turn[1]) !== number || (!first && !second));
@@ -270,6 +275,7 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
   let depth = 0, expectedTurn: number | null = null; // the next turn's number, once the first turn sets it
   const tagAt: Record<string, number> = {}; // where each tag is
   let tagsEnded = false;
+  let tagged: string | null = null; // the result that PTN's Result tag claims
   // The Komi tag until the reader checks its limit: at the tag for one limit, and when the tags end for a limit by
   // the tags.
   let komiTag: { value: string; at: number } | null = null;
@@ -304,13 +310,13 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
     if (depth > 0) continue; // a variation: not the main line
     if (t.kind === "tag") {
       if (record.moves.length || (ptn && tagsEnded)) throw new RecordError("tags come before the moves", t.at);
-      // "?" and "-" are PGN's values for none.
-      if (t.name === "Position" && !notation.start && !["", "?", "-"].includes(t.value.trim()))
+      if (t.name === "Position" && !notation.start && tagValue(t.value) !== null)
         throw new RecordError("this site reads a game from the standard start only: remove the Position tag", t.at);
       const name = ptn ? ptn.tagName(t.name) : t.name;
+      const value = ptn && name === "Komi" ? t.value.replace(/^(\s*[+-]?)(?=\.5\s*$)/, (_, sign: string) => `${sign}0`) : t.value;
       // A komi that no reader can take: the game would be reviewed at a komi that the record does not give.
       if (name === "Komi") {
-        const komi = komiOf(t.value);
+        const komi = komiOf(value);
         if (komi === null)
           throw new RecordError(`the Komi tag must be a number of ${komiWords.unit}, whole or half, ` +
                                 `such as "${komiWords.example}" or "-${komiWords.example}": ${t.value}`, t.at);
@@ -318,9 +324,12 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
         komiTag = { value: t.value, at: t.at };
         if (typeof notation.maxKomi !== "function") checkKomi();
       }
-      if (ptn && name === "Result" && resultTag(ptn, t.value) === undefined)
-        throw new RecordError(`the Result tag is not a result: ${t.value}`, t.at);
-      record.tags[name] = t.value;
+      if (ptn && name === "Result") {
+        const claimed = tagValue(value) === null ? "*" : ptn.result(value.trim());
+        if (claimed === null) throw new RecordError(`the Result tag is not a result: ${value}`, t.at);
+        tagged = claimed === "*" ? null : claimed;
+      }
+      record.tags[name] = value;
       tagAt[name] = t.at;
     } else if (t.kind === "comment") {
       if (ptnTurns?.branches(text, t, tokens[index + 1], tokens[index + 2])) break; // the main line ends
@@ -330,7 +339,7 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
       const w = t.text;
       if (record.result !== null) throw new RecordError(`nothing may follow the result (${record.result})`, t.at);
       if (ptnTurns?.reads(w, t.at)) continue;
-      const turn = TURN.exec(w);
+      const turn = TURN.exec(w), result = ptn ? ptn.result(w) : RESULT.test(w) ? w : null;
       if (turn) {
         const number = Number(turn[1]);
         if (expectedTurn === null) {
@@ -347,10 +356,9 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
         if (turn[2] === "...") continue; // only a variation starts at a turn's second move
         if (number !== expectedTurn) throw new RecordError(`the record gives turn ${number} where the notation gives turn ${expectedTurn}`, t.at);
         expectedTurn++;
-      } else if (ptn ? ptn.result(w) !== null : RESULT.test(w)) {
-        record.result = ptn ? ptn.result(w) : w;
-        const tagged = ptn && resultTag(ptn, record.tags.Result);
-        if (tagged && tagged !== record.result)
+      } else if (result !== null) {
+        record.result = result;
+        if (tagged !== null && tagged !== result)
           throw new RecordError(`the Result tag (${record.tags.Result}) is not the result that ends the moves (${w})`, t.at);
       } else {
         const move = w.replace(QUALITY, ""); // the move without its quality mark
@@ -365,7 +373,7 @@ export function readRecord<Mark>(text: string, notation: Notation<Mark>): GameRe
     }
   }
   endTags(0);
-  if (ptn && record.result === null) record.result = resultTag(ptn, record.tags.Result) ?? null;
+  record.result ??= tagged;
   if (depth > 0) throw new RecordError("a ( has no closing )", text.length);
   if (!record.moves.length) throw new RecordError("the record has no moves", 0);
   record.evals.length = record.clocks.length = record.moves.length;

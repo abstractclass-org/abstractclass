@@ -32,6 +32,7 @@ test("two moves a number, and the record's own number again for the second move"
   assert.deepEqual(read("1. a b 2. c d *").moves, ["a", "b", "c", "d"]);
   assert.deepEqual(read("1. a {said} 1... b\n2. c").moves, ["a", "b", "c"]);
   assert.deepEqual(read("1. a 1. -- b 2. c").moves, ["a", "b", "c"]);
+  assert.deepEqual(read("1. a 1. b 2. c").moves, ["a", "b", "c"]);
   assert.deepEqual(read("a b c").moves, ["a", "b", "c"]); // moves alone, with no numbers
   assert.deepEqual(refused("1. a 2. b"), ["the record gives number 2 where the notation gives 1", 5]);
   assert.deepEqual(refused("1. a b 3. c"), ["the record gives number 3 where the notation gives 2", 7]);
@@ -71,6 +72,7 @@ test("the main line ends where the first branch starts, after the result too", (
   const won = read("1. a b 2. c d won" + branch);
   assert.deepEqual([won.moves, won.result], [["a", "b", "c", "d"], "won"]);
   assert.deepEqual(read("1. a b 2. c d\r\n\r\n{1b1}\r\n\r\n1. -- x").moves, ["a", "b", "c", "d"]);
+  assert.deepEqual(read("1. a b 2. c d\n \t\n{2w1}\n2. x y").moves, ["a", "b", "c", "d"]); // a blank line of spaces
   // The main line ends with the first player's move, and the branch gives that player another.
   assert.deepEqual(read("1. a b 2. c\n\n{2w1}\n2. x y").moves, ["a", "b", "c"]);
   assert.deepEqual(read("1. a b 2. c\n\n{a note}\n2. -- d").moves, ["a", "b", "c", "d"]);
