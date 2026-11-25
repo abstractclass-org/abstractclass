@@ -105,6 +105,10 @@
   <p>{SITE_NAME} reviews the sizes, the opening and the komi that its engine learned. It refuses a record of another
     size, another opening or a komi outside that range, and says why: an engine gives no true values for a game that it
     did not learn.</p>
+  <p>It also refuses a record with another number of stones or capstones. The <code>Flats</code> and <code>Caps</code>
+    tags (and <code>Flats1</code>, <code>Caps1</code>, <code>Flats2</code> and <code>Caps2</code>, for one player each)
+    can be left out. A tag that is there must give the size's own number: 21 stones and 1 capstone on 5 × 5, and 30 and
+    1 on 6 × 6.</p>
 
   <h3>The result</h3>
   <table>

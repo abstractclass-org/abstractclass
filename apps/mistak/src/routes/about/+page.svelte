@@ -17,8 +17,8 @@
   <h1>About {SITE_NAME}</h1>
   <p>{SITE_NAME} helps you learn Tak, the game of roads and stacks. When its engine is ready, the site has:</p>
   <ul>
-    <li><strong>The review:</strong> bring a game from <a href="https://playtak.com">playtak.com</a> by its number,
-      paste its record, or paste a link to <a href="https://ptn.ninja">PTN Ninja</a>. The engine shows where the game
+    <li><strong>The review:</strong> bring a game from <a href="https://playtak.com">playtak.com</a> by its link,
+      paste its record, or paste a <a href="https://ptn.ninja">PTN Ninja</a> link. The engine shows where the game
       turned, which moves cost you, and what was better.</li>
     <li><strong>The Analysis board:</strong> play any line, and the engine searches the position on the screen.</li>
     <li><strong>Practice:</strong> play {ENGINE_NAME}, the site's bot, at the strength that you choose.</li>
@@ -51,7 +51,7 @@
 
   <h2>How a review works</h2>
   <ul>
-    <li><strong>Your game:</strong> a game from playtak.com, its record in PTN, or a link to PTN Ninja.
+    <li><strong>Your game:</strong> a game from playtak.com, its record in PTN, or a PTN Ninja link.
       <a href="/notation">The notation page</a> describes the records.</li>
     <li><strong>The engine</strong> takes a quick look at every position first, then searches each position
       deeper.</li>
