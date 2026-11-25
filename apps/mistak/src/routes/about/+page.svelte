@@ -28,8 +28,8 @@
   <p><strong>Everything here can change:</strong> the pages and their addresses, the quality labels and how they judge a
     move, the engine and its network, the files and links that the site makes, and what it keeps in your browser. After
     a change, an old link or file can stop working, and a review can read differently.</p>
-  <p>For now the site has its pages about the site and the game. The review, the Analysis board and Practice come with
-    the engine.</p>
+  <p>For now the site has its pages about the site and the game, and the Review tab shows the moves of a game that you
+    bring. The review, the Analysis board and Practice come with the engine.</p>
 
   <h2>The game</h2>
   <p>Tak uses a square board, from 3 × 3 to 8 × 8. Most games on playtak.com use 5 × 5 or 6 × 6. Each player has
