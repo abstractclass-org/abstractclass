@@ -97,7 +97,7 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
 1. **Hedge School's design, with Tak's parts.** The site has Hedge School's and Cyanotype's pages, layout, review,
    Analysis board, import, tools, Practice and settings, as their design documents give them. Only the game's own
    parts change: the board and its stacks, the player's own moves, the notation (PTN) and the position (TPS), the
-   import from playtak, the reader of playtak's page, the players' cards (the flats and the stones left), the sounds
+   import from playtak, the reader of playtak's page, the players' cards (the flats and the pieces left), the sounds
    and the texts that name a move. A design document of Hedge School holds for Mistak, unless this document
    names a departure. This is design 33's item 2.
 2. **The names:** the site is **Mistak**, at `mistak.abstractclass.org`, and its engine is **Takumi**. Both hold
@@ -334,7 +334,7 @@ built with the test network, as each other part is.
 | The header, the footer, the menu, the theme | 29 | As it is | `packages/site`, with the site's name and links. The header's breakpoints need the layout test with Tak's links. |
 | The early access and its build switch | 11 | As it is | `edition.ts` and `SiteName.svelte`, with the site's own repository variable. |
 | Search engines and link previews | 23 | With a change | A preview image of Tak's board. |
-| The logo and the colour | 12 | With a change | A logo of the site's own: a stack of flat stones under a capstone, each stone moved sideways and the lowest one drifting off into a mist, in cream on a dark pine tile (`#24443d`, `#efe8d8`). The flat stones of a drawing have one size. No art of Tak's, which belongs to its rights holder ("The rights"). |
+| The logo and the colour | 12 | With a change | A logo of the site's own: a stack of flat stones under a capstone, each stone moved sideways and the lowest one drifting off into a mist, in cream on a dark pine tile (`#24443d`, `#efe8d8`). The flat stones of a drawing have one size. No art of Tak's, which belongs to its rights holder ("The rights"). The About page does not show or explain the logo, as Cyanotype's does not (design 33, "The logo", item 3). |
 | The analytics, with PostHog and no consent | 17 | As it is | The shared analytics. The account's one Web Analytics site, `abstractclass.org`, takes every subdomain's beacon, so the site uses the shared `CF_ANALYTICS_TOKEN` and needs no Cloudflare step of its own (`docs/hosting.md`, sections 5 and 9). |
 | Support Us | 22 | As it is | `packages/site`, as on both sites, with the site's name. |
 | The error page, the notices of a page that does not load | | As it is | `packages/site`. |
