@@ -188,8 +188,9 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
     bar. It waits for the engine's practice bot for Tak ("The engine request", item 9). Practice's settings add the
     board's size.
 13. **The features that wait for the engine** each get an issue that depends on the engine's issue, as Cyanotype's
-    did: the GPU (design 15), the area map (design 30), the threat (design 31), the opening book with the Openings
-    page (design 32), the networks' choice (design 09) and Practice. Each one needs a part of the engine that its
+    did: the GPU (design 15, abscls-shfz.18.28), the area map (design 30, abscls-shfz.18.29), the threat (design 31,
+    abscls-shfz.18.30), the opening book with the Openings page (design 32, abscls-shfz.18.31), the networks' choice
+    (design 09, abscls-shfz.18.32) and Practice (abscls-shfz.18.22). Each one needs a part of the engine that its
     first release does not have. The check `engine-kinds` holds the engine lock to the same list.
 14. **No playtak game in the public repository.** playtak asks people not to scrape it, and its database has no
     licence (`research/playtak.md`, "Open questions", 7). The repository is public, and CLAUDE.md asks before any
@@ -764,7 +765,10 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
     book with the Openings page, and the networks' choice (item 13), each one with its dependency on the engine's
     issue for its part, and each such kind of the engine lock in its exceptions file. Practice has ticket 21, and its
     kinds' lines stay in the exceptions file until it is done. Check: `engine-kinds` passes, and each such feature
-    has its issue. After: 2.
+    has its issue. After: 2. The issues: the GPU abscls-shfz.18.28 (after abscls-shfz.28), the area map
+    abscls-shfz.18.29 (after abscls-shfz.29), the threat abscls-shfz.18.30 (after abscls-shfz.30), the opening book
+    with the Openings page abscls-shfz.18.31 (after abscls-shfz.31) and the networks' choice abscls-shfz.18.32 (after
+    abscls-shfz.32).
 15. **Planning repository: `glossary/tak.md`:** Tak's official words (flat, standing stone, capstone, road, tak,
     Tinuë, komi, PTN, TPS), and the site's words (Mistak, Takumi), in the shared glossary's "Contexts". Check: the
     file, linked from `GLOSSARY.md`.
