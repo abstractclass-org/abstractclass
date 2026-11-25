@@ -22,10 +22,10 @@
   let { children } = $props();
 
   // The game's pages on the header's left and the pages about the site on its right, from 900 pixels, as Cyanotype's.
-  // Below 900 they are in the site's menu. The others are in the footer. The game's pages (Practice, Review, Analysis)
-  // and Tools join the header with the work that makes each one (design 34, "The tickets proposed"), as Cyanotype's
+  // Below 900 they are in the site's menu. The others are in the footer. The game's other pages (Practice,
+  // Analysis) and Tools join the header with the work that makes each one (design 34, "The tickets proposed"), as Cyanotype's
   // header holds them: the row then needs less than Cyanotype's, whose name is wider.
-  const NAV: { href: string; label: string }[] = [];
+  const NAV = [{ href: "/review", label: "Review" }];
   const ABOUT = [{ href: "/notation", label: "Notation" }, { href: "/about", label: "About" }];
   const linkClass = (href: string) => ["no-underline hover:text-ink", page.url.pathname.startsWith(href) ? "text-ink" : "text-muted"];
   // Ko-fi's tip panel, in the site's own dialog (SupportDialog), as on both sites. Opening it counts: the tips are
@@ -54,11 +54,9 @@
          "Early Access", "Support Us" and the theme menu. Below 640 pixels, "Support Us" goes into the menu too. -->
     <span class="min-[900px]:hidden"><SiteMenu tabs={NAV} about={ABOUT} support={support.show} /></span>
     <SiteName class="max-[900px]:mr-auto"><Logo size={28} />{SITE_NAME}</SiteName>
-    {#if NAV.length}
-      <nav class="flex gap-2.5 min-[940px]:gap-4.5 max-[900px]:hidden">
-        {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
-      </nav>
-    {/if}
+    <nav class="flex gap-2.5 min-[940px]:gap-4.5 max-[900px]:hidden">
+      {#each NAV as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
+    </nav>
     <nav class="flex gap-2.5 min-[940px]:gap-4.5 ml-auto text-sm max-[900px]:hidden">
       {#each ABOUT as item (item.href)}<a href={item.href} class={linkClass(item.href)}>{item.label}</a>{/each}
     </nav>

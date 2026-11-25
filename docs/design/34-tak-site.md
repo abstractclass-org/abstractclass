@@ -169,16 +169,20 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
    - **The tools for playtak's pages** read a game in progress too, with the result `*`, and the page opens it in the
      review or on the board, as Hedge School's tools do ("The tools for playtak's pages").
 10. **The ways in:**
-    - **A playtak game by its id:** the Import dialog and the import page take an id (`/import#playtak=883250`, a
-      parameter named by its payload, design 22). The API refuses a request from the site's page, so the site's own
-      Pages Function fetches the PTN from playtak's API and gives it to the page ("The check of CORS"). The API's
-      history holds finished games, so a game in progress comes in by the tools. After the launch, the owner asks
-      playtak's administrators to list the site's address, and the Function works with no answer. Pasted PTN works
-      with no network.
+    - **The Review tab** (`/review`) takes a game, as on the two other sites: one box and its button. The box takes a
+      link to a playtak game, a link of PTN Ninja, or a record in PTN, which needs no network.
+    - **A link to a playtak game:** `https://playtak.com/games/<number>/playtakviewer` or `/ninjaviewer`. The box also
+      takes the number alone, and its hint does not name it: a player knows the link. The API refuses a request from
+      the site's page, so the site's own Pages Function fetches the PTN from playtak's API and gives it to the page
+      ("The check of CORS"). The API's history holds finished games, so a game in progress comes in by the tools.
+    - **A link of PTN Ninja:** the site reads the PTN from a long link's path. A short link (`ptn.ninja/s/<id>`) holds
+      no game, and the page asks PTN Ninja's shortener for it ("The short link of PTN Ninja").
+    - **The import page** (`/import`) is where a link from outside arrives, as on Hedge School: `#playtak=<number>` (a
+      parameter named by its payload, design 22) and `#record=`. It has no form. A refusal shows why, with a link to
+      the Review tab. The page alone goes to the Review tab until the tools page exists.
+    - **The Import dialog** belongs to the Analysis board, as on the two other sites: a position and moves (ticket 19).
     - **A game from playtak's page,** finished or in progress, by the bookmarklet or the userscript ("The tools for
       playtak's pages").
-    - **Pasted PTN,** in the Import dialog, as Hedge School takes its record.
-    - **A ptn.ninja link,** pasted: the site reads the PTN from the link's path.
     - **A link back:** the review shows "View this game on playtak" from the `PlayTakID` tag, as Hedge School's review
       does from `Site` (design 18, item 2). It also offers "Open in PTN Ninja" at the position on screen.
 11. **The engine:** the engine repository's browser pipeline builds Tak's module, as it builds HedgeFund and StampDuty.
@@ -220,13 +224,13 @@ Hedge School but those that design 33 ("The gaps from Hedge School") names.
 | Page | Carries over | Why, and the work |
 |---|---|---|
 | Home (`/`) and its replay | With a change | A replay of a Tak game on Tak's board. The game is one of the engine's own games, not a playtak game (item 14). |
-| About, Privacy, Notices | With a change | Tak's texts. Privacy names the request to api.playtak.com, which the site's Function makes for the player, and Practice's stored games (design 25). Notices lists the engine's terms and the libraries (lz-string, MIT, for ptn.ninja's links). |
+| About, Privacy, Notices | With a change | Tak's texts. Privacy names the request to api.playtak.com, which the site's Function makes for the player, the request to url.ptn.ninja for a short link, and Practice's stored games (design 25). Notices lists the engine's terms and the libraries (lz-string, MIT, for ptn.ninja's links). |
 | How reviews work | With a change | Tak's words and examples. The shared sections are in `packages/review/src/howReviews`. |
 | Notation (`/notation`) | With a change | PTN and TPS, with links to the ustak pages, and the site's short form (item 4) and its marks (item 5). No notation of our own. |
-| The review (`/review`) | With a change | "The review". |
+| The review (`/review`) | With a change | "The review". The Review tab takes a game (item 10). |
 | The Analysis board (`/analysis`) | With a change | "The Analysis board and its starts". |
 | The board editor (`/editor`) | With a change | A position in TPS, with stacks, for each trained size ("The board"). The engine's position check checks it (the request, item 5). |
-| Import (`/import`) | With a change | A playtak id, PTN, a ptn.ninja link and a tool's game (item 10). An unfinished game is reviewed too (item 9). |
+| Import (`/import`) | With a change | The arrival of a link alone: a playtak game's number, a record and a tool's game (item 10). An unfinished game is reviewed too (item 9). |
 | Tools (`/tools`), bookmarklet, userscript | With a change | "The tools for playtak's pages". |
 | Practice (`/practice`) | Blocked by the engine's practice bot for Tak | "Practice". |
 | Developers (`/developers`) | With a change | The shared sections (`packages/import/src/developers/`), with Tak's refusals and an empty partner list, as Cyanotype's. |
@@ -306,7 +310,8 @@ Takana is the community's review bot (`research/community.md`, 1.0). Each of its
 
 | Feature | Design | Carries over | Why, and the work |
 |---|---|---|---|
-| The Import dialog and the import page | 11, 22 | With a change | Item 10. |
+| The Review tab's box and the import page | 22 | With a change | Item 10. |
+| The Import dialog | 11 | With a change | The Analysis board's: a position and moves (ticket 19). |
 | The review file and the analysis file | 13, 21 | As it is | The site's own formats (`packages/analysis/src/reviewFile.ts`), with the site's format name. |
 | The annotated record | 13 | With a change | PTN with ptn.ninja's branches and engine notes (item 6). |
 | The shared link (`#packed=`) | 13, 22 | As it is | |
@@ -588,13 +593,30 @@ The import by id goes through the smallest proxy that the sites' hosting already
 - **The privacy text:** a player's import by id sends the id to the site's Function, and the Function sends it to
   playtak. The Function keeps no log of its own beyond what Cloudflare keeps for any request. Privacy names this
   request ("The pages").
-- **The request to playtak's administrators** is the owner's step, after the launch, when the site's address exists:
-  ask them to add `https://mistak.abstractclass.org` to `CORS_DOMAIN`. It is the plan's choice (item 10). The import
-  does not wait for it, because the Function works with no answer. A listing would let the live site's page fetch the
-  PTN itself. The previews keep the Function.
 - **Not done in this check:** the Function, its tests, and the check of a game fetched by its id from a preview in a
   real browser. Those belong to ticket 5, which waited for this one. The Function and its tests are built ("Where it
   is"). The check from a preview is not done.
+
+## The short link of PTN Ninja
+
+PTN Ninja's shortener keeps a game under an id, and a short link holds the id alone. The reader is
+`apps/mistak/src/lib/import/shortLink.ts`.
+
+- **The page asks the shortener itself:** `GET https://url.ptn.ninja/short?id=<id>`. The source
+  (`functions/index.js` in `gruppler/PTN-Ninja`, commit 557628d308) sets `Access-Control-Allow-Origin: *` on each
+  answer. Two requests with the `Origin` of the site's preview and an id that does not exist got that header, status
+  400 and `{"message":"URL alias not found"}`, one from each of the two addresses in the source. So no Function is
+  necessary.
+- **The address** is the one that PTN Ninja's README gives, on its own domain. The address of the app's own code
+  (`us-central1-ptn-ninja.cloudfunctions.net/short`) gives the same answer, but it holds the name of the project
+  at the host.
+- **The answer** is JSON, and its `ptn` is the game: PTN, or PTN packed as in a long link. The site reads no other
+  field. The limit on the answer is 1 MiB, which is the limit of a Firestore document, and on the time, 20 seconds. The
+  request sends no cookie and no page address, follows no redirect and keeps no copy: the shortener removes a link that
+  no one opens for 30 days.
+- **A read counts as a visit** in the shortener (`accessed` and `visits`), as it does when PTN Ninja opens the link.
+- **The site sends no game to the shortener:** "Open in PTN Ninja" is a long link.
+- **Not checked:** a short link that exists. The tests use the form that the source shows.
 
 ## Before the network
 
@@ -609,8 +631,8 @@ request 23 asked for Blueprints. So the work goes in three stages.
    - The board drawn from a TPS, on `/lab/board`, in the shape of the engine's position fields (the request, item 4).
      The next stage then changes only where the fields come from.
    - The fetch of a game by its id, through the site's Function ("The check of CORS" has the check's result).
-   - The Import dialog and the import page, which read records and refuse them by their tags (the size, the opening
-     and the komi).
+   - The Review tab's box and the import page, which read records and refuse them by their tags (the size, the opening
+     and the komi), and the short links of PTN Ninja.
    - The reader of playtak's page, the bookmarklet and the userscript, with tests on saved pages.
    - The shared work on board sizes, draws and the move list (items 1 to 3 above), with Hedge School's and Cyanotype's
      tests unchanged.
@@ -731,11 +753,11 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
 4. **Mistak: the board and its stacks, drawn from a position:** `/lab/board`, in the shape of the engine's position
    fields, and the link previews' image of Tak's board (design 23). Check: the board lab in both themes, at every
    width down to 360 pixels, the layout test, and the preview image in the built site. After: 2, 3.
-5. **Mistak: a playtak game by its id, pasted PTN and a ptn.ninja link:** the Import dialog and the import page,
-   the fetch by id through the site's Pages Function ("The check of CORS"), and the refusals by the tags (the size,
-   the opening, the komi). Check: a test of each refusal and of each way in, a test of the Function's path and method
-   checks, a record with the result `*` taken, and a game fetched by its id from a preview in a real browser. After:
-   2, 3, 16. Built, but for the fetch from a preview ("Where it is").
+5. **Mistak: a playtak game by its id, pasted PTN and a ptn.ninja link:** the Review tab's box and the import page,
+   the fetch by id through the site's Pages Function ("The check of CORS"), the short link ("The short link of PTN
+   Ninja"), and the refusals by the tags (the size, the opening, the komi). Check: a test of each refusal and of each
+   way in, a test of the Function's path and method checks, a record with the result `*` taken, and a game fetched by
+   its id from a preview in a real browser. After: 2, 3, 16. Built, but for the fetch from a preview ("Where it is").
 6. **Shared: a game with several board sizes:** the empty board of each size, the size in the stored results' keys
    (first the simplest form, "What the sites share", item 1, with what the shared code does otherwise at a set-up
    start), and the komi limit of each size (item 8). Check: a test that `a1` on 5x5 and `a1` on 6x6 key apart, a
@@ -775,9 +797,8 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
     Tinuë, komi, PTN, TPS), and the site's words (Mistak, Takumi), in the shared glossary's "Contexts". Check: the
     file, linked from `GLOSSARY.md`.
 16. **Mistak: the CORS check of playtak's API:** a request to `api.playtak.com` from another site's page. Check: the
-    answer recorded in ticket 5 and in this document. If the API refuses, the owner asks playtak's administrators
-    (item 10). Done: the API refuses, and the import by id goes through a Pages Function ("The check of CORS"). The
-    owner's request to the administrators comes after the launch.
+    answer recorded in ticket 5 and in this document. Done: the API refuses, and the import by id goes through a Pages
+    Function ("The check of CORS").
 17. **Mistak: the trained network:** the labels and the accuracy on real games, the search budgets, the engine
     measure's numbers, the home page's replay of one of the engine's own games, and the first preview with the
     network. Check: the review's constants measured on Tak's games and recorded in the decision log, and the owner's
@@ -822,13 +843,14 @@ This document is the plan. The engine's plan is in the engine repository's `game
   `Board.svelte` draws the board. The lab's positions are from games of the engine repository's alpha-beta bot
   (`scripts/board-games.py`) and from hand-made TPS. The board takes no move (ticket 9) and edits no position (ticket
   19).
-- **The import** (ticket 5, abscls-shfz.18.7): `apps/mistak/src/lib/import` and `src/routes/import`, with a button on
-  the home page that opens the Import dialog. One box takes a playtak number, a ptn.ninja link or PTN (`ways.ts`).
+- **The import** (ticket 5, abscls-shfz.18.7): `apps/mistak/src/lib/import`, `src/lib/review/ReviewHome.svelte`,
+  `src/routes/review` and `src/routes/import`. The Review tab's box takes a link to a playtak game, a link of PTN Ninja
+  or PTN (`ways.ts`), and `shortLink.ts` reads a short link.
   `takeRecord` (`src/lib/game/record.ts`) refuses, in this order: a record that does not read, a size, an opening, a
   reserve and a komi. The Function is `functions/api/playtak/[[path]].ts`, with its handler in `playtakProxy.ts`.
   Until the review exists, a record that the import takes shows its tags, its moves and the links back, and nothing is
   kept. Not built: the import's events, which come with the review. Not checked: a game fetched by its id from a
-  preview in a real browser.
+  preview in a real browser, and a short link that exists.
 - **The rest** of "The tickets proposed" is not built.
 
 ## Log

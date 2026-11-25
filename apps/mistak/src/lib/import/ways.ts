@@ -1,33 +1,47 @@
-// The ways in of a game that a player gives as text (docs/design/34-tak-site.md, item 10): the number of a playtak game,
-// a ptn.ninja link, or PTN. All of them end in a record that the site takes (takeRecord), or in an Error whose message
-// is a sentence for the player. A ptn.ninja link holds its game in its path, so it needs no request.
+// The ways in of a game that a player gives as text (docs/design/34-tak-site.md, item 10): a link to a playtak game, a
+// ptn.ninja link, or PTN. A playtak game's number alone works too. All of them end in a record that the site takes
+// (takeRecord), or in an Error whose message is a sentence for the player. A long ptn.ninja link holds its game in its
+// path, so it needs no request. A short one holds an id (shortLink.ts).
 import lz from "lz-string";
 import { pastedError, RecordError as SharedRecordError, withTags } from "@abstractclass/record/record.ts";
 import { takeRecord, type GameRecord } from "../game/record.ts";
 import { GAME_ID, PLAYTAK_PATH } from "./playtakProxy.ts";
+import { SHORT_ID, shortRecord } from "./shortLink.ts";
 
-/** What a text is: a playtak game's number, or a record and whether it came in a link. */
-export type Way = { way: "playtak"; id: string } | { way: "link" | "pasted"; record: string };
+/** What a text is: a playtak game's number, a short link's id, or a record and whether it came in a link. */
+export type Way = { way: "playtak" | "short"; id: string } | { way: "link" | "pasted"; record: string };
 
 /** A game that came in: its record's text, and the record. */
 export interface Brought { text: string; game: GameRecord }
 
+const PLAYTAK = /^(?:https?:\/\/)?(?:www\.)?playtak\.com(?:[/?#]|$)/i;
+/** A link to a game on playtak, in either of playtak's two viewers. */
+const PLAYTAK_GAME = /^(?:https?:\/\/)?(?:www\.)?playtak\.com\/games\/(\d+)\/(?:playtakviewer|ninjaviewer)\/?(?:[?#]|$)/i;
 const PTN_NINJA = /^(?:https?:\/\/)?(?:www\.)?ptn\.ninja(?:\/|$)/i;
 
-/** The record in a ptn.ninja link's path (the engine repository's games/tak/docs/research/ptn-ninja.md, 2.6): the part
- *  before the first `&`, packed by lz-string, or plain text, as playtak's archive writes it. */
-function linkRecord(link: string): string {
+/** The record that PTN Ninja's `text` stands for, as PTN Ninja reads it: packed by lz-string, or plain. */
+function unpacked(text: string): string {
+  if (!/^[A-Za-z0-9$+-]+$/.test(text)) return text;
+  const record = lz.decompressFromEncodedURIComponent(text);
+  if (!record) throw new Error("The site cannot read the game in this link.");
+  return record;
+}
+
+/** What a ptn.ninja link is (the engine repository's games/tak/docs/research/ptn-ninja.md, 2.6): a short link's id, or the
+ *  record in the path's part before the first `&`, packed or as plain text, as playtak's archive writes it. */
+function readLink(link: string): Way {
   const path = link.replace(PTN_NINJA, "").split("&")[0];
-  if (/^s\//.test(path)) throw new Error("This is a short link of PTN Ninja, which does not hold the game. Open it, and copy the long link or the PTN.");
+  if (/^s(?:\/|$)/.test(path)) {
+    const id = path.slice(2).split(/[?#]/)[0].replace(/\/$/, "");
+    if (!SHORT_ID.test(id)) throw new Error("The site cannot read this short link of PTN Ninja.");
+    return { way: "short", id };
+  }
   if (!path) throw new Error("This link of PTN Ninja holds no game.");
   const packed = path.split(/[?#]/)[0];
-  if (/^[A-Za-z0-9$+-]+$/.test(packed)) {
-    const record = lz.decompressFromEncodedURIComponent(packed);
-    if (!record) throw new Error("The site cannot read the game in this link.");
-    return record;
-  }
+  const record = unpacked(packed);
+  if (record !== packed) return { way: "link", record };
   try {
-    return decodeURIComponent(path);
+    return { way: "link", record: decodeURIComponent(path) };
   } catch {
     throw new Error("The site cannot read the game in this link.");
   }
@@ -43,8 +57,12 @@ function readNumber(text: string): string {
 export function readWay(given: string): Way {
   const text = given.trim();
   if (/^\d+$/.test(text)) return { way: "playtak", id: readNumber(text) };
-  if (PTN_NINJA.test(text)) return { way: "link", record: linkRecord(text) };
-  if (/^https?:\/\/\S+$/i.test(text)) throw new Error("The site reads links of PTN Ninja only. For a playtak game, type the number of the game.");
+  const game = PLAYTAK_GAME.exec(text);
+  if (game) return { way: "playtak", id: readNumber(game[1]) };
+  if (PLAYTAK.test(text))
+    throw new Error("The site cannot read this link of playtak. The link of a game looks like this: https://playtak.com/games/(number)/playtakviewer.");
+  if (PTN_NINJA.test(text)) return readLink(text);
+  if (/^https?:\/\/\S+$/i.test(text)) throw new Error("The site reads links to games on playtak.com and links of ptn.ninja only.");
   return { way: "pasted", record: text };
 }
 
@@ -93,7 +111,11 @@ export async function bringPlaytak(id: string, request: typeof fetch): Promise<B
 /** The game that the player gave. Throws an Error that says what is wrong, as a sentence for the player. */
 export async function bringGame(given: string, request: typeof fetch): Promise<Brought> {
   const way = readWay(given);
-  return way.way === "playtak" ? bringPlaytak(way.id, request) : bringRecord(way.record, way.way === "pasted");
+  switch (way.way) {
+    case "playtak": return bringPlaytak(way.id, request);
+    case "short": return bringRecord(unpacked(await shortRecord(way.id, request)), false);
+    default: return bringRecord(way.record, way.way === "pasted");
+  }
 }
 
 /** The game's page on playtak, by the `PlayTakID` tag: the page opens the game on playtak's board. Null without a tag

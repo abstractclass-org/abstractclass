@@ -4,7 +4,6 @@
   // Cyanotype's home page. Until a replay of one of the engine's own games comes (design 34, "The pages"), the logo
   // stands where the board's scene will be. Plain web writing: the page invites.
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
-  import ImportDialog from "#lib/import/ImportDialog.svelte";
   import Logo from "#lib/brand/Logo.svelte";
   import { ENGINE_NAME, SITE_NAME, SITE_ORIGIN } from "#lib/site.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
@@ -12,8 +11,6 @@
   // What the site is, for search engines (schema.org, Hedge School's design 23): a website. The web application joins
   // it with the features.
   const STRUCTURED = [{ "@context": "https://schema.org", "@type": "WebSite", name: SITE_NAME, url: `${SITE_ORIGIN}/` }];
-
-  let importing = $state(false);
 
   // What a visitor can read now.
   const WAYS = [
@@ -38,7 +35,7 @@
       <p class="max-w-[34rem] text-muted text-pretty">We are building {SITE_NAME} now. The review, the Analysis board and
         practice games against {ENGINE_NAME} come with the engine. You can bring a game now, and see what the site reads
         in it.</p>
-      <button type="button" onclick={() => (importing = true)}>Import a game</button>
+      <a class="text-ink underline decoration-line underline-offset-4 hover:decoration-accent" href="/review">Review a game you played</a>
     </div>
     <div class="justify-self-center"><Logo size={192} label="Mistak's logo: a stack of stones with a capstone on top" /></div>
   </section>
@@ -59,5 +56,4 @@
   </section>
 </main>
 
-<ImportDialog bind:open={importing} />
 <SiteFooter />

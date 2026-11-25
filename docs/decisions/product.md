@@ -13071,7 +13071,8 @@ missing from every count of design 17. Design 27 gives the reasons.
   chat (session e5b0c9da-2714-4851-94f3-1747e38971ab), verbatim: "1. shared constant, 2. no". The first answers "which
   form Mistak's copyright line takes", and the second whether to ask playtak's administrators to list Mistak's address.
   tak-coord's reading: a shared constant that the three sites import, and a rule for that line alone. The session that
-  wrote this entry read the comment, not the transcript.
+  wrote this entry read the comment, not the transcript. The owner confirmed it, typed, 2026-11-25 11:59 CST (session
+  fdd0af53-71a0-4d58-a64f-f1fa2e2bfd38): 'copyright line: yes keep it'.
 - **A site with no engine yet:** Mistak ships no engine release until the engine's rules come (design 34, "Before the
   network"). So the shared notices page takes no lock: it then shows no engine's section and no section on ONNX Runtime
   Web, which comes with the engine. The shared check of a deployed site takes the site's folder in the place of a lock,
@@ -13193,7 +13194,7 @@ The logo, its files and how each is made are in design 33, "The logo".
 
 ### Mistak: a playtak game by its id, pasted PTN and a ptn.ninja link (2026-11-25)
 
-- **What:** the Import dialog, the import page, the Function and the refusals by the tags
+- **What:** the Review tab's box, the import page, the Function, the short links and the refusals by the tags
   ([design/34-tak-site.md](../design/34-tak-site.md), item 10 and "The check of CORS", abscls-shfz.18.7).
 - **The refusals' order:** a record that does not read, then the size, the opening, the reserve (the `Flats` and
   `Caps` tags) and the komi. The komi is last because the shared reader checks it after the site's tags. A size that
@@ -13202,7 +13203,17 @@ The logo, its files and how each is made are in design 33, "The logo".
   An answer that is not `text/plain` or `application/json` goes out as `text/plain` with `nosniff`, so that a page in
   its place cannot run on the site's address. A number has 1 to 10 digits and no 0 first. The request ends after 8
   seconds.
-- **A short link of PTN Ninja** (`ptn.ninja/s/…`) is refused with a reason: reading it needs a request to ptn.ninja.
+- **The way in is the two other sites':** a game comes in on the Review tab, and the import page is the arrival of a
+  link. The first form had an Import dialog on the home page and a form on the import page, which the two other sites
+  do not have. The Import dialog comes with the Analysis board (abscls-shfz.18.20).
+- **The box takes links, not numbers:** a "game number" means nothing to a player, so the hint names the link of a
+  playtak game. A number alone still works. A link to another site is refused with the two sites that are read.
+- **A short link of PTN Ninja** (`ptn.ninja/s/…`) is read by the page itself, with no Function. Two GET requests on
+  2026-11-25 with `Origin: https://dev.mistak.pages.dev` and an id of 40 zeros, one to `url.ptn.ninja/short` and one to
+  `us-central1-ptn-ninja.cloudfunctions.net/short`, gave status 400, `Access-Control-Allow-Origin: *` and
+  `{"message":"URL alias not found"}`. The source sets that header on each answer. No POST was sent. An answer with a
+  game was not seen: the tests use the source's form.
+- **playtak's administrators are not asked** to list the site's address: the Function covers the import by id.
 - **A record with a TPS tag** is taken, as items 7 and 9 allow a start. The page shows the tag and draws no position:
   the rules that make one are the engine's.
 - **`startTags` and `withStartTag` are not used here,** so their TPS form stays for the ticket that writes a start.
@@ -13218,7 +13229,7 @@ The logo, its files and how each is made are in design 33, "The logo".
   not load yet.
 - **lz-string (MIT)** reads and writes ptn.ninja's links. `packages/site`'s notices page took an optional list of one
   site's own libraries. With no list, its HTML is the same as before with Hedge School's and with Cyanotype's lock.
-- **Open:** what an accepted record leads to before the review, one box for the three ways, and the way in on the site
-  (a button on the home page). They are built as proposed, and the choice is not made.
-- **Not checked here:** the Function on Cloudflare, and a game fetched by its id from a preview in a real browser. The
-  browser's checks used a fake answer. No request was made to playtak's API.
+- **Until the review exists,** an accepted record shows its tags, its moves and the two links, with a line that the
+  review comes with Takumi. The Review tab and the import page show it with one component.
+- **Not checked here:** the Function on Cloudflare, and a game fetched by its id from a preview in a real browser,
+  and a short link that exists. The browser's checks used fake answers. No request was made to playtak's API.

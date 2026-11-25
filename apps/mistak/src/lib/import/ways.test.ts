@@ -1,5 +1,6 @@
-// Checks the ways in (ways.ts): a playtak game's number, a ptn.ninja link and pasted PTN, and the links back. The records
-// and the numbers are ours, and a fake request takes the place of the site's Function. Run: npm test.
+// Checks the ways in (ways.ts): a link to a playtak game or its number, a ptn.ninja link (the request for a short one is
+// in shortLink.test.ts) and pasted PTN, and the links back. The records and the numbers are ours, and a fake request
+// takes the place of the site's Function and of PTN Ninja's shortener. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import lz from "lz-string";
@@ -37,6 +38,28 @@ test("a playtak game's number is asked of the site's Function, and its record is
   assert.deepEqual(game.moves, ["a1", "f6", "b1", "c4"]);
   assert.equal(game.tags.PlayTakID, "123");
   assert.ok(text.startsWith('[PlayTakID "123"]\n'));
+});
+
+test("a link to a playtak game is its number: both viewers, with or without https and www", async () => {
+  for (const link of ["https://playtak.com/games/123/playtakviewer", "https://playtak.com/games/123/ninjaviewer",
+                      "http://playtak.com/games/123/playtakviewer", "https://www.playtak.com/games/123/ninjaviewer",
+                      "playtak.com/games/123/playtakviewer", "www.playtak.com/games/123/ninjaviewer/",
+                      " HTTPS://PlayTak.com/games/123/playtakviewer?x=1#y "]) {
+    const { fake, asked } = request(200, PTN);
+    assert.equal((await bringGame(link, fake)).game.tags.PlayTakID, "123", link);
+    assert.deepEqual(asked, ["/api/playtak/ptn/123"], link);
+  }
+});
+
+test("another link of playtak is refused with what a game's link looks like", async () => {
+  const form = "The site cannot read this link of playtak. The link of a game looks like this: "
+    + "https://playtak.com/games/(number)/playtakviewer.";
+  for (const link of ["https://playtak.com", "https://playtak.com/games", "https://playtak.com/games/123",
+                      "https://playtak.com/games/123/other", "https://playtak.com/games/abc/playtakviewer",
+                      "playtak.com/games/../123/playtakviewer", "https://playtak.com/?load=x"])
+    assert.equal(await problem(link), form, link);
+  assert.equal(await problem("https://playtak.com/games/012/ninjaviewer"),
+               "The number of a playtak game has 1 to 10 digits, and does not start with 0.");
 });
 
 test("a record that has the PlayTakID tag keeps it", async () => {
@@ -79,8 +102,29 @@ test("a ptn.ninja link is read from its path, packed or plain, and its other par
     assert.equal((await bringGame(link, none)).text, PTN, link);
 });
 
-test("a ptn.ninja link's refusals: a short link, no game, and text that is not a record", async () => {
-  assert.match(await problem("https://ptn.ninja/s/abc123"), /short link of PTN Ninja/);
+test("a short link of PTN Ninja is asked of its shortener, and its record is read, plain or packed", async () => {
+  for (const ptn of [PTN, lz.compressToEncodedURIComponent(PTN)])
+    for (const link of ["https://ptn.ninja/s/abc123", "ptn.ninja/s/abc123", "http://www.ptn.ninja/s/abc123/",
+                        "https://ptn.ninja/s/abc123?x=1"]) {
+      const { fake, asked } = request(200, JSON.stringify({ ptn, params: { name: "x" } }), "application/json");
+      assert.equal((await bringGame(link, fake)).text, PTN, link);
+      assert.deepEqual(asked, ["https://url.ptn.ninja/short?id=abc123"], link);
+    }
+});
+
+test("a short link's game is refused by its tags, without a line in a text that the player did not see", async () => {
+  const eight = JSON.stringify({ ptn: PTN.replace('[Size "6"]', '[Size "8"]') });
+  assert.equal(await problem("https://ptn.ninja/s/abc123", request(200, eight, "application/json").fake),
+               "The engine learned the sizes 5 × 5 and 6 × 6 only, so the site does not take a game of another size: 8.");
+});
+
+test("a short link whose id is none is refused before a request", async () => {
+  for (const link of ["https://ptn.ninja/s/", "https://ptn.ninja/s/a%2Fb", "https://ptn.ninja/s/a/b",
+                      `https://ptn.ninja/s/${"a".repeat(65)}`])
+    assert.equal(await problem(link), "The site cannot read this short link of PTN Ninja.", link);
+});
+
+test("a ptn.ninja link's refusals: no game, and text that is not a record", async () => {
   assert.equal(await problem("https://ptn.ninja/"), "This link of PTN Ninja holds no game.");
   assert.equal(await problem("ptn.ninja"), "This link of PTN Ninja holds no game.");
   assert.equal(await problem("https://ptn.ninja/%E0%A4%A"), "The site cannot read the game in this link.");
@@ -88,8 +132,8 @@ test("a ptn.ninja link's refusals: a short link, no game, and text that is not a
 });
 
 test("another link is not read", async () => {
-  assert.equal(await problem("https://playtak.com/games/123/ninjaviewer"),
-               "The site reads links of PTN Ninja only. For a playtak game, type the number of the game.");
+  assert.equal(await problem("https://example.com/games/123"),
+               "The site reads links to games on playtak.com and links of ptn.ninja only.");
 });
 
 test("what a text is", () => {

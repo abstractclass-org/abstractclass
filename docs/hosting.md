@@ -639,7 +639,7 @@ the shared `CLOUDFLARE_ACCOUNT_ID`, `POSTHOG_KEY` and `CF_ANALYTICS_TOKEN`, and 
     ([design 34](design/34-tak-site.md), "The check of CORS"). The handler is `src/lib/import/playtakProxy.ts`. It takes
     that path and the method GET only, sends playtak the number and none of the browser's headers, and keeps a 200
     answer for a day in Cloudflare's cache, which does nothing on a pages.dev address. It needs no setting, no secret
-    and no binding. Each import of a game by its number runs it once, and counts against the account's Functions quota,
+    and no binding. Each import of a playtak game runs it once, and counts against the account's Functions quota,
     as the proxy's requests do (section 4).
 - **No analytics on the previews, no address and no link:** until the launch, the site has no PostHog key and no
   Web Analytics token (the job gives them to `main` only), no domain, and no link from the hub or from the other

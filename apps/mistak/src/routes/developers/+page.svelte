@@ -1,8 +1,8 @@
 <script lang="ts">
   // The page for other sites (design 34, "The pages"). Hedge School's and Cyanotype's pages give the link that sends a
   // game to the review, the link to the Analysis board, the messages that save a review back to a partner site and the
-  // buttons, from the shared sections (@abstractclass/import/developers). Mistak takes no game yet: its import, with a
-  // game in PTN, comes with abscls-shfz.18.7. The shared sections describe a record in Hedge School's form (its
+  // buttons, from the shared sections (@abstractclass/import/developers). Mistak's import takes a game in PTN
+  // (abscls-shfz.18.7), and shows it without a review. The shared sections describe a record in Hedge School's form (its
   // tags `Blue` and `Red`), so this page waits for that work to give Tak's parts. Until then it says what comes, and
   // where the other sites describe it now.
   import { PROSE } from "@abstractclass/site/prose.ts";
@@ -19,7 +19,7 @@
   <p>A site where people play Tak will be able to send its games to {SITE_NAME} for review, or to its Analysis board,
     and a partner site will be able to keep the reviews and open them again. The game goes as a record in PTN,
     <a href="/notation">Tak's notation</a>.</p>
-  <p>{SITE_NAME} takes no game yet. The links, the messages and the buttons come with its import, and this page then
+  <p>{SITE_NAME} reviews no game yet. The links, the messages and the buttons come with its review, and this page then
     describes them. They work as on the two other sites, Hedge School and Cyanotype:
     <a href="https://hedgeschool.abstractclass.org/developers">Hedge School's page for developers</a> describes them
     now.</p>

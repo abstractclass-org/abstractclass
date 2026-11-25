@@ -14,7 +14,7 @@
 // notice to update the userscript. Three tests check that the monospaced font draws no ligatures, on Hedge School, on
 // Cyanotype (CYANOTYPE_BASE_URL) and on Mistak (MISTAK_BASE_URL). One sweeps Cyanotype's home page, and one its Notices
 // page. Five sweep Mistak's home page, Notation page, Notices page, How a review works and its board lab. One walks
-// Mistak's board with the keys. Three sweep Mistak's import page, and one checks its Import dialog.
+// Mistak's board with the keys. Four sweep Mistak's Review tab and import page, and one checks where that page leads.
 // Three check the site's menu open on a narrow window, on each site. Three check the
 // Support Us dialog, on each site, in a wide window and on a phone. Six check the header's "Early Access" link, on each
 // site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the
@@ -328,42 +328,44 @@ test("Mistak's board walks with the keys", async ({ page }) => {
   await expect(focused).toHaveAttribute("aria-label", /^c2: /);
 });
 
-// Mistak's import (its design 34, item 10). The import page: its form, a record that the site refuses, with why under the
-// box, and a record that it takes, with a long name and a long comment. The dialog: over the home page, as wide as the
-// window at most. The records are written by hand for this test.
+// Mistak's import (its design 34, item 10). The Review tab: its form, a record that the site refuses, with why under the
+// box, and a record that it takes, with a long name and a long comment. The import page: a refusal. The records are
+// written by hand for this test.
 const MISTAK_TAKEN = `[Player1 "${"Ann".repeat(20)}"]\n[Player2 "Bob Example"]\n[Size "6"]\n[Komi "2"]\n[PlayTakID "123"]\n\n`
   + `1. a1 f6\n2. c3 {${"long".repeat(30)}} d4\n3. Sb2 Cc4 *\n`;
 const MISTAK_REFUSED = MISTAK_TAKEN.replace('[Size "6"]', '[Size "8"]');
-for (const [name, record, shows] of [["form", "", "Import a game"], ["refusal", MISTAK_REFUSED, "another size: 8"],
+const mistakImport = (record: string) => new URL(`/import#${new URLSearchParams({ record })}`, MISTAK).href;
+for (const [name, record, shows] of [["form", "", "Review your Tak game"], ["refusal", MISTAK_REFUSED, "another size: 8"],
                                      ["taken game", MISTAK_TAKEN, "View this game on playtak"]]) {
-  test(`layout of Mistak's import page with its ${name}`, async ({ page }) => {
+  test(`layout of Mistak's Review tab with its ${name}`, async ({ page }) => {
     test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
-    await page.goto(new URL(`/import${record && "#" + new URLSearchParams({ record })}`, MISTAK).href);
+    await page.goto(new URL("/review", MISTAK).href);
+    await page.waitForLoadState("networkidle");
+    if (record) {
+      await page.getByLabel("A link to a game, or a game record").fill(record);
+      await page.getByRole("button", { name: "Review" }).click();
+    }
     await expect(page.getByText(shows)).toBeVisible();
-    expect(new URL(page.url()).hash).toBe(""); // the game has left the address
-    expect(await sweep(page, `Mistak's import page, ${name}`)).toBe("");
+    expect(await sweep(page, `Mistak's Review tab, ${name}`)).toBe("");
   });
 }
-test("Mistak's Import dialog fits the window, shows a refusal, and opens a game on the import page", async ({ page }) => {
+test("layout of Mistak's import page with its refusal", async ({ page }) => {
   test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
-  for (const width of [360, 1400]) {
-    await page.setViewportSize({ width, height: 800 });
-    await page.goto(new URL("/", MISTAK).href);
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "Import a game" }).click();
-    const dialog = page.getByRole("dialog", { name: "Import a game" });
-    await dialog.getByLabel("The game").fill(MISTAK_REFUSED);
-    await dialog.getByRole("button", { name: "Import" }).click();
-    await expect(dialog.getByRole("alert")).toContainText("another size: 8");
-    const box = (await dialog.boundingBox())!;
-    expect(box.x, `the dialog's left at ${width}`).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width, `the dialog's right at ${width}`).toBeLessThanOrEqual(width);
-    await dialog.getByLabel("The game").fill(MISTAK_TAKEN);
-    await expect(dialog.getByRole("alert")).toHaveCount(0);
-    await dialog.getByRole("button", { name: "Import" }).click();
-    await expect(page.getByRole("link", { name: "Open in PTN Ninja" })).toBeVisible();
-    expect(new URL(page.url()).pathname).toBe("/import");
-  }
+  await page.goto(mistakImport(MISTAK_REFUSED));
+  await expect(page.getByRole("alert")).toContainText("another size: 8");
+  expect(await sweep(page, "Mistak's import page, refusal")).toBe("");
+});
+test("Mistak's import page takes a game out of its address, and alone leads to the Review tab", async ({ page }) => {
+  test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
+  await page.goto(mistakImport(MISTAK_TAKEN));
+  await expect(page.getByRole("link", { name: "Open in PTN Ninja" })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("");
+  await page.getByRole("link", { name: "Review another game" }).click();
+  await expect(page.getByRole("heading", { name: "Review your Tak game" })).toBeVisible();
+  await page.goto("about:blank");
+  await page.goto(new URL("/import", MISTAK).href);
+  await page.waitForURL(url => url.pathname === "/review");
+  await expect(page.getByRole("heading", { name: "Review your Tak game" })).toBeVisible();
 });
 
 // The buttons for partner sites on both sites' pages for developers (Hedge School's design 18, item 11, and
