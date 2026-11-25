@@ -1,11 +1,9 @@
 <script lang="ts">
-  // About Mistak (design 34): what the site is for, the logo's full drawing at 96 pixels with a sentence on it (as
-  // Hedge School's About page shows its collie and Cyanotype's its print), the early access (the header's "Early
-  // Access" link leads to its section, as on both sites), the game, how a review works (with the link to its page) and
-  // the engine. The game's facts are design 34's ("Tak, as the site needs it"). The review, the Analysis board and
-  // Practice come with the engine (design 34, "Before the network"), so this page says what comes, and what is here
-  // now.
-  import Logo from "#lib/brand/Logo.svelte";
+  // About Mistak (design 34): what the site is for, the early access (the header's "Early Access" link leads to its
+  // section, as on both sites), the game, how a review works (with the link to its page) and the engine. It does not
+  // show or explain the logo, as Cyanotype's page does not. The game's facts are design 34's ("Tak, as the site needs
+  // it"). The review, the Analysis board and Practice come with the engine (design 34, "Before the network"), so this
+  // page says what comes, and what is here now.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
@@ -25,13 +23,6 @@
     <li><strong>The Analysis board:</strong> play any line, and the engine searches the position on the screen.</li>
     <li><strong>Practice:</strong> play {ENGINE_NAME}, the site's bot, at the strength that you choose.</li>
   </ul>
-
-  <h2>The stack</h2>
-  <div class="flex items-center gap-4">
-    <Logo size={96} label="Mistak's logo: a stack of stones with a capstone on top" />
-    <p class="my-0">The logo is a stack: flat stones under a capstone. In Tak, the player whose piece is on top controls
-      the stack, and moves it. The lowest stone drifts off into a mist.</p>
-  </div>
 
   <h2 id="early-access">Early access</h2>
   <p><strong>Everything here can change:</strong> the pages and their addresses, the quality labels and how they judge a
