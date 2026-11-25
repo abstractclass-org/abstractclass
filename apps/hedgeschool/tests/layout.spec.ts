@@ -273,7 +273,7 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
 // sideways on purpose, and its tables. The Notices page: the licences, with their texts in code blocks. How a review
 // works: its table of bands and its formulas in code blocks. The board lab: a game of 8x8 with a stack past the bars
 // and a long TPS. Each sweep checks the header's row, with the site's menu closed below 900 pixels. The About page
-// is in the menu's and the Support Us dialog's tests below.
+// is in the menu's test below.
 for (const [name, path] of [["home page", "/"], ["Notation page", "/notation"], ["Notices page", "/notices"],
                             ["How a review works", "/how-reviews-work"], ["board lab", "/lab/board?p=23"]]) {
   test(`layout of Mistak's ${name}`, async ({ page }) => {
@@ -417,9 +417,10 @@ for (const [site, base, below] of [["Hedge School", "", 1024], ["Cyanotype", CYA
 // in a window of 1,280 × 900, and from the site's menu on a phone of 390 × 844. In the wide window the dialog has no
 // scroll bar of its own, and the note under Ko-fi's panel is in view (Cyanotype's design 33, "Support Us": its first,
 // longer words cut the note off). On the phone the dialog stays inside the window's width, and it can scroll. At both
-// sizes the page keeps the sweep's rules. No request goes to Ko-fi: its frame keeps its height. With the dialog open,
-// the page has two large logos, the About page's and the dialog's. Mistak's has a gradient (brandGradient.ts), and each
-// logo's stone must take its own: an id that both had would give the dialog's stone the About page's gradient.
+// sizes the page keeps the sweep's rules. No request goes to Ko-fi: its frame keeps its height. Mistak's test opens its
+// home page: with the dialog open, the page has two large logos, its own at 192 pixels and the dialog's. Mistak's logo
+// has a gradient (brandGradient.ts), and each logo's stone must take its own: an id that both had would give the
+// dialog's stone the home page's gradient. The two other sites open their About page.
 for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE], ["Mistak", MISTAK]] as const) {
   test(`layout of the Support Us dialog on ${site}`, async ({ page }) => {
     test.skip(base === undefined, NO_PREVIEW[site]);
@@ -429,7 +430,8 @@ for (const [site, base] of [["Hedge School", ""], ["Cyanotype", CYANOTYPE], ["Mi
     const found: ProblemAt[] = [];
     for (const [width, height] of [[1280, 900], [390, 844]]) {
       await page.setViewportSize({ width, height });
-      await page.goto(base ? new URL("/about", base).href : "/about");
+      const path = site === "Mistak" ? "/" : "/about";
+      await page.goto(base ? new URL(path, base).href : path);
       await page.waitForLoadState("networkidle");
       if (width >= 640) await page.locator("header").getByRole("button", { name: "Support Us" }).click();
       else {

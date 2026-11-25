@@ -2,7 +2,7 @@
 // stones under a capstone, each stone moved sideways, the lowest one drifting off into a mist, for the site's name.
 // Cream on a dark pine tile. The flat stones of a drawing have one size. Two drawings by size, as Hedge School's
 // collie and Cyanotype's print have (design 12). From 48 pixels up, the full drawing: three flat stones, the lowest
-// one fading to the right (the About page's 96 pixels). Below that, two thicker flat stones in full colour, which
+// one fading to the right (the home page's 192 pixels). Below that, two thicker flat stones in full colour, which
 // read at 16 pixels (the header's 28 pixels, the favicon). The same in both themes: the tile carries its own colour.
 // Logo.svelte draws the logo in the page, and scripts/brand.mjs draws the site's files from these drawings
 // (src/lib/assets/favicon.svg, static/favicon.ico, static/apple-touch-icon.png, static/brand/card.png, and the head

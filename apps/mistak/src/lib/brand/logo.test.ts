@@ -82,10 +82,10 @@ test("the stones are cream, and the full drawing's lowest one fades to nothing a
 });
 
 test("two logos in one page have gradients with two ids, and each stone refers to its own", () => {
-  const [header, about] = [drawingMarkup(LOGO_LARGE, "s1"), drawingMarkup(LOGO_LARGE, "s2")];
+  const [header, home] = [drawingMarkup(LOGO_LARGE, "s1"), drawingMarkup(LOGO_LARGE, "s2")];
   assert.equal(ids(header).length, 1);
-  assert.notDeepEqual(ids(header), ids(about));
-  for (const svg of [header, about]) assert.deepEqual(references(svg), ids(svg));
+  assert.notDeepEqual(ids(header), ids(home));
+  for (const svg of [header, home]) assert.deepEqual(references(svg), ids(svg));
 });
 
 test("the exported SVG files hold no id, so none can collide where one is embedded beside another", () => {
