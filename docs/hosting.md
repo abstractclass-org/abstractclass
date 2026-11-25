@@ -246,9 +246,10 @@ put them behind a sign-in (Cloudflare Access).
 - **The reports:** design 17's six reports are insights on the dashboard "Site reports: Hedge School and Cyanotype".
   [docs/posthog/README.md](posthog/README.md) gives its address and how to change an insight.
 - **Builds on a developer's machine leave `VITE_POSTHOG_KEY` unset,** so that test visits are not counted, and the
-  build holds none of PostHog's code. check:all gives both sites' builds a made-up key, for the browser tests, and
-  the tests' browser resolves none of PostHog's addresses. It also builds Cyanotype once without the key, and its
-  step `cyanotype-no-posthog` refuses a script of that build that holds PostHog's code.
+  build holds none of PostHog's code. check:all gives the sites' builds a made-up key, for the browser tests, and
+  the tests' browser resolves none of PostHog's addresses. It also builds Cyanotype and Mistak once each without the
+  key, and its steps `cyanotype-no-posthog` and `mistak-no-posthog` refuse a script of such a build that holds
+  PostHog's code.
 - **The site loads PostHog itself:** posthog-js from npm, in its slim bundle with no external loading
   (`packages/site/src/posthog.ts`, which names each option and why). PostHog's snippet is not pasted anywhere.
 - **A reverse proxy on the site's own address:** the client sends PostHog's requests to `/relay/` on the site's own

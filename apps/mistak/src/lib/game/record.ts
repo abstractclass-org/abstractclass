@@ -128,12 +128,27 @@ const notation = (trained: boolean): shared.Notation<boolean> => ({
 });
 const moveNotation = notation(false), takenNotation = notation(true);
 
+/** A number of more than 20 digits in a refusal's sentence: its first 10 digits stay, and "…" stands for the others. The
+ *  reader takes a number of any length, such as a TPS tag's number of the move, and its sentences quote the record. */
+const LONG_NUMBER = /(\d{10})\d{11,}/g;
+
+/** The shared reader's record of a text. A RecordError keeps its offset and its words, and its long numbers are short
+ *  (LONG_NUMBER). */
+function read(text: string, how: shared.Notation<boolean>): GameRecord {
+  try {
+    return shared.readRecord(text, how);
+  } catch (e) {
+    if (!(e instanceof shared.RecordError)) throw e;
+    throw new shared.RecordError(e.message.replace(LONG_NUMBER, "$1…"), e.offset);
+  }
+}
+
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */
-export const parseRecord = (text: string): GameRecord => shared.readRecord(text, moveNotation);
+export const parseRecord = (text: string): GameRecord => read(text, moveNotation);
 
 /** Reads a game record that comes in (the import). Throws a RecordError as parseRecord does, and for a size or an
  *  opening that the network does not learn: the engine gives no true values for such a game. */
-export const takeRecord = (text: string): GameRecord => shared.readRecord(text, takenNotation);
+export const takeRecord = (text: string): GameRecord => read(text, takenNotation);
 
 /** Adds `*` to every flattening that has none yet. `flattens` is by move, from the engine. */
 export const markFlattenings = (text: string, record: GameRecord, flattens: boolean[]): string =>

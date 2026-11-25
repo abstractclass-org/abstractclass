@@ -1,7 +1,9 @@
-// The error reports to PostHog (design 17, "Error reports"; Cyanotype's design 33, "Analytics"), on both sites' builds
+// The error reports to PostHog (design 17, "Error reports"; Cyanotype's design 33, "Analytics"), on the sites' builds
 // of check:all, each with a made-up PostHog key. No request reaches PostHog: the context's route (tests/posthog.ts)
 // answers in its place and keeps what the pages sent. Each case gives a page a game: a record with a typed name in its
 // tags, in the page's address or in an error's message. Each report reaches the route, and no event holds the game.
+// Mistak has no engine and no Analysis board yet, so the engine's two cases wait for abscls-shfz.18.12. It has no tools
+// until abscls-shfz.18.21, so its Import page takes a link with a record.
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor, type Sent } from "./posthog.ts";
@@ -9,6 +11,7 @@ import { firstTurns } from "./records.ts";
 import { toolLink } from "./cyanotype-review.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
+const MISTAK = process.env.MISTAK_BASE_URL;
 
 /** A name that a player typed, in the record's tag of Blue. */
 const TYPED = "Wren Typedname";
@@ -22,20 +25,34 @@ const record = (fixture: string) => {
     firstTurns(record, 4).replace(/^\[Event "[^"]*"\]\r?\n/m, "").replace(/^\[Blue "[^"]*"\]$/m, `[Blue "${TYPED}"]`);
 };
 
+/** Mistak's record, our own moves by hand. */
+const MISTAK_RECORD = `[Event "${EVENT}"]\n[Player1 "${TYPED}"]\n[Player2 "Bob Example"]\n[Size "6"]\n[Komi "2"]\n\n` +
+  "1. a1 f6\n2. Cc3 Sd4\n3. Sc4 Cd3\n";
+
 const SITES = [
   { site: "Hedge School", base: () => test.info().project.use.baseURL!, record: record("hedgefund-review.json"),
+    engine: true, noPreview: "", game: "a tool's game", taken: /^A game from /,
     // The bookmarklet's link on meaf.us (tests/tool-choice.spec.ts)
     importLink: (base: string, game: string) =>
       new URL("/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", record: game }), base).href },
   { site: "Cyanotype", base: () => CYANOTYPE!, record: record("cyanotype-review.json"),
+    engine: true, noPreview: CYANOTYPE ? "" : "CYANOTYPE_BASE_URL gives no Cyanotype preview",
+    game: "a tool's game", taken: /^A game from /,
     importLink: (_base: string, game: string) => toolLink({ record: game }) },
+  { site: "Mistak", base: () => MISTAK!, record: MISTAK_RECORD,
+    engine: false, noPreview: MISTAK ? "" : "MISTAK_BASE_URL gives no Mistak preview",
+    game: "a link's game", taken: / against /,
+    importLink: (base: string, game: string) =>
+      new URL(`/import#${new URLSearchParams({ record: game })}`, base).href },
 ];
 
 /** The words that no event may hold: the typed names, and each move of the record, as text and as an address holds
  *  it. */
 function secrets(text: string) {
   const moves = text.split(/\r?\n\r?\n/)[1].trim().split(/\s+/).filter(w => !/^\d+\.$/.test(w));
-  return [TYPED, "Typedname", EVENT, "club night", ...moves.flatMap(m => [m, encodeURIComponent(m)])];
+  // A move of two characters, such as Tak's a1, also stands in an id by chance: it counts with the move after it.
+  const named = moves.map((m, i) => (m.length > 2 ? m : `${m} ${moves[i + 1] ?? ""}`));
+  return [TYPED, "Typedname", EVENT, "club night", ...named.flatMap(m => [m, encodeURIComponent(m)])];
 }
 
 /** The secrets that the events hold, which must be none. */
@@ -55,9 +72,9 @@ const uncaught = (page: Page, code: string) => page.addScriptTag({ content: code
 
 lookLikeAVisitor();
 
-for (const { site, base, record: text, importLink } of SITES) {
+for (const { site, base, record: text, engine, noPreview, game, taken, importLink } of SITES) {
   test.describe(site, () => {
-    test.skip(site === "Cyanotype" && CYANOTYPE === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(noPreview !== "", noPreview);
     const at = (path: string) => new URL(path, base()).href;
 
     /** Opens the site's About page, and waits for its page view: PostHog's client has started. */
@@ -99,7 +116,7 @@ for (const { site, base, record: text, importLink } of SITES) {
       await expect(page.locator("[data-error-page]")).not.toContainText(/module|Internal Error|500/);
     });
 
-    test("an engine that fails to load, on the Analysis board opened with a record, and an error with a player's name are reported without them", async ({ context }) => {
+    if (engine) test("an engine that fails to load, on the Analysis board opened with a record, and an error with a player's name are reported without them", async ({ context }) => {
       const sent = await answerPostHog(context);
       const page = await context.newPage();
       // The engine's network cannot load (packages/engine/src/artifacts.ts: its HTTP status)
@@ -115,7 +132,7 @@ for (const { site, base, record: text, importLink } of SITES) {
       expect(leaked(sent, text)).toEqual([]);
     });
 
-    test("a search worker that fails after it loaded, on the Analysis board opened with a record, is reported once, with its task's rerun", async ({ context }) => {
+    if (engine) test("a search worker that fails after it loaded, on the Analysis board opened with a record, is reported once, with its task's rerun", async ({ context }) => {
       const sent = await answerPostHog(context);
       const page = await context.newPage();
       // The first worker that loads a network fails for good at its first search, as one out of memory does: its error
@@ -150,12 +167,12 @@ for (const { site, base, record: text, importLink } of SITES) {
       expect(leaked(sent, text)).toEqual([]);
     });
 
-    test("a tool's game on the Import page, and an error with its event's and its player's names, reach PostHog without them", async ({ context }) => {
+    test(`${game} on the Import page, and an error with its event's and its player's names, reach PostHog without them`, async ({ context }) => {
       const sent = await answerPostHog(context);
       const page = await context.newPage();
       await page.goto(importLink(base(), text));
-      // The page has read the record: it asks where the game goes.
-      await expect(page.getByRole("heading", { name: /^A game from / })).toBeVisible({ timeout: 60_000 });
+      // The page has read the record: it asks where the game goes, or on Mistak shows the game.
+      await expect(page.getByRole("heading", { name: taken })).toBeVisible({ timeout: 60_000 });
       await expect.poll(() => sent.some(e => e.event === "$pageview"), { timeout: 15_000 }).toBe(true);
       await uncaught(page, `throw new Error(${JSON.stringify(`no rating for ${TYPED} at ${EVENT}`)})`);
       await expect.poll(() => exceptions(sent).map(x => x.value), { timeout: 15_000 }).toContain("no rating for … at …");

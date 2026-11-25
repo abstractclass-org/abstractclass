@@ -29,7 +29,8 @@
     <li><strong>A link to a playtak game.</strong> Your browser sends the number in the link to this site. A small
       program of the site, on Cloudflare's servers, asks playtak's server (<code>api.playtak.com</code>) for the game
       and gives it to your browser. The request to playtak holds the number and the name of this site, and nothing about
-      you or your browser. Cloudflare can keep a copy of the game for a day. The program keeps no log.</li>
+      you or your browser. Cloudflare and your browser can keep a copy of the game for a day. The program
+      keeps no log.</li>
     <li><strong>A record, or a link that holds the game</strong> (a long PTN Ninja link, or a playtak link with
       <code>?load=</code>). Your browser reads the game in it. The site sends it to no server.</li>
     <li><strong>A short PTN Ninja link.</strong> The link does not hold the game. Your browser asks PTN Ninja's server

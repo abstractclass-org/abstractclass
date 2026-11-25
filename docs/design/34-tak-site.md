@@ -554,8 +554,7 @@ What the answers and the API's source show:
   `Cache-Control`. The PTN has the tags that the plan expects (`[Site "PlayTak.com"]`, `[Event "Online Play"]`). An id
   with no game gets status 404.
 - **The list takes no pattern.** The previews' addresses change with each branch (`<branch>.mistak.pages.dev`), so
-  only `*` could cover them, and `*` opens the API to every site. Nothing here says what else the list holds, or
-  whether the administrators would add an address.
+  only `*` could cover them, and `*` opens the API to every site. Nothing here says what else the list holds.
 
 **The answer:** the page cannot read playtak's API from the browser, from a preview or from the site's own address.
 The import by id goes through the smallest proxy that the sites' hosting already allows.
@@ -858,6 +857,11 @@ This document is the plan. The engine's plan is in the engine repository's `game
   Until the review exists, a record that the import takes shows its tags, its moves and the links back, and nothing is
   kept. Not built: the import's events, which come with the review. Not checked: a game fetched by its id from a
   preview in a real browser, and a short link that exists.
+- **The shared specs on Mistak** (abscls-shfz.18.24): `error-page`, `load-notice`, `notices`, `analytics` and
+  `error-reports` in `apps/hedgeschool/tests` open Mistak too, for what its pages have. check:all also builds Mistak
+  once without PostHog's key, and its step `mistak-no-posthog` checks that build. Not on Mistak yet, each with its
+  issue in the spec's comment: the engine's cases and the engine's notices, the consent and the practice games,
+  the home page's replay, and all of `site-failure`.
 - **The rest** of "The tickets proposed" is not built.
 
 ## Log

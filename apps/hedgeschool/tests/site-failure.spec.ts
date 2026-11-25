@@ -1,9 +1,11 @@
-// The site's own failures that are not the engine's, on both sites: the image of a line that the site did not make,
-// an export that did not complete, and the practice games that the site did not delete. Each shows the site's line in
-// strict Simplified Technical English (what failed, then what the player can do), and the error's message goes into
-// the error report only (design 17, "Error reports": siteError), with no engine_error event. The page never shows the
-// message. engine-failure.spec.ts checks the engine's failures in the same way. The image and the export run on the
-// Analysis board, whose parts are the review's (ReviewView, ExportMenu), with the engine off.
+// The site's own failures that are not the engine's, on Hedge School and Cyanotype: the image of a line that the site
+// did not make, an export that did not complete, and the practice games that the site did not delete. Each shows the
+// site's line in strict Simplified Technical English (what failed, then what the player can do), and the error's
+// message goes into the error report only (design 17, "Error reports": siteError), with no engine_error event. The page
+// never shows the message. engine-failure.spec.ts checks the engine's failures in the same way. The image and the
+// export run on the Analysis board, whose parts are the review's (ReviewView, ExportMenu), with the engine off. Mistak
+// has none of the three yet: the image and the export come with its Analysis board (abscls-shfz.18.12), and the
+// practice games with its Practice (abscls-shfz.18.22).
 import { expect, test, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor, type Sent } from "./posthog.ts";
 import { declineGames } from "./cyanotype-consent.ts";

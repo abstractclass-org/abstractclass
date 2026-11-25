@@ -1,14 +1,20 @@
-// The error page of each site (@abstractclass/site's ErrorPage.svelte and pageError.ts), on Hedge School and on
-// Cyanotype (CYANOTYPE_BASE_URL). A link to a page whose code does not load is the failure that the load notice
-// (tests/load-notice.spec.ts) cannot see: SvelteKit catches the failure of the page's node, and shows the site's error
-// page with the notice's words and button. An address that the site does not have shows the site's own line. Run:
-// npm run test:layout -- tests/error-page.spec.ts, with CYANOTYPE_BASE_URL for Cyanotype's cases.
+// The error page of each site (@abstractclass/site's ErrorPage.svelte and pageError.ts), on Hedge School, on Cyanotype
+// (CYANOTYPE_BASE_URL) and on Mistak (MISTAK_BASE_URL). A link to a page whose code does not load is the failure that
+// the load notice (tests/load-notice.spec.ts) cannot see: SvelteKit catches the failure of the page's node, and shows
+// the site's error page with the notice's words and button. An address that the site does not have shows the site's own
+// line. Run: npm run test:layout -- tests/error-page.spec.ts, with CYANOTYPE_BASE_URL for Cyanotype's cases and
+// MISTAK_BASE_URL for Mistak's.
 import { expect, test, type Page } from "./page-log.ts";
 import { CYANOTYPE } from "./cyanotype-review.ts";
 import { LOAD_NOTICE } from "../../../packages/site/src/loadNotice.ts";
 import { HOME_ACTION, NOT_FOUND_LINE } from "../../../packages/site/src/pageError.ts";
+import { SITE_NAME as MISTAK_NAME } from "../../mistak/src/lib/site.ts";
 
-const SITES = [{ site: "Hedge School", base: "" }, { site: "Cyanotype", base: CYANOTYPE }];
+const SITES = [
+  { site: "Hedge School", base: "", noPreview: "" },
+  { site: "Cyanotype", base: CYANOTYPE, noPreview: "CYANOTYPE_BASE_URL gives no Cyanotype preview" },
+  { site: MISTAK_NAME, base: process.env.MISTAK_BASE_URL, noPreview: "MISTAK_BASE_URL gives no Mistak preview" },
+];
 
 /** Each route's node but the root layout's (nodes/0) and the error page's (nodes/1). */
 const PAGE_NODES = /\/_app\/immutable\/nodes\/(?![01]\.)[^/]+\.js$/;
@@ -18,9 +24,9 @@ const errorPage = (page: Page) => page.locator("[data-error-page]");
 /** The address of a page on the site whose preview is `base` (Hedge School's: the tests' baseURL). */
 const at = (base: string | undefined, path: string) => (base ? new URL(path, base).href : path);
 
-for (const { site, base } of SITES) {
+for (const { site, base, noPreview } of SITES) {
   test.describe(site, () => {
-    test.skip(base === undefined, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(base === undefined, noPreview);
     test.beforeEach(({ context }) => context.route(/^https:\/\/([^/]+\.)?posthog\.com\//, route => route.abort()));
 
     test("a link to a page whose code does not load shows the error page, and its button loads the page",

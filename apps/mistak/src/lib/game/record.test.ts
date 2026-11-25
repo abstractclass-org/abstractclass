@@ -173,6 +173,30 @@ test("the start: the size's empty board, or the TPS tag's in its one spelling", 
   assert.deepEqual(parseRecord('[TPS "x5/x5/x5/x5/x5 2 3"]\n\n3... a1 4. b1').moves, ["a1", "b1"]);
 });
 
+test("a refusal gives a number of more than 20 digits by its first 10 and …, and keeps its words and its place", () => {
+  const long = "9".repeat(400), shown = "9999999999…", zeros = "0".repeat(400);
+  const start = (number: string) => `[TPS "x5/x5/x5/x5/x5 1 ${number}"]
+
+`;
+  // The record's own number, which the number of a TPS that long does not give.
+  assert.deepEqual(refused(`${start(long)}${long}. a1 b2`),
+                   [`the record gives number ${shown} where the notation gives 1`, start(long).length]);
+  // The TPS tag's text after the sentence.
+  assert.deepEqual(refused(`[TPS "x5/x5/x5/x5/x5 1 ${zeros}"]
+
+1. a1`),
+                   ["a position's number of the move starts at 1: x5/x5/x5/x5/x5 1 0000000000…", 0]);
+  assert.equal(refused(`[Size "6"]
+[Size "${long}"]
+
+1. a1`)[0].includes(long), false);
+  // 20 digits stay whole, in the import's refusals too.
+  const whole = "9".repeat(20);
+  assert.equal(refused(`${start("3")}${whole}. a1`)[0], `the record gives number ${whole} where the notation gives 3`);
+  assert.throws(() => takeRecord(`${start(long)}${long}. a1 b2`),
+                (e: Error) => e instanceof RecordError && e.message === `the record gives number ${shown} where the notation gives 1`);
+});
+
 test("the opening: swap without a tag, in any case", () => {
   assert.equal(openingOf({}), "swap");
   assert.equal(openingOf({ Opening: "?" }), "swap");

@@ -1,7 +1,7 @@
 // A site's build without VITE_POSTHOG_KEY, as in development and on the previews, holds none of PostHog's code
 // (Hedge School's design 11, Cyanotype's design 33, "Analytics"): the site imports PostHog's client only in a build
 // with the key (packages/site/src/analytics.svelte.ts). `npm run check:all` runs this check on a build of Cyanotype
-// without the key, before the build with a made-up key that the browser tests use.
+// and on one of Mistak without the key, before each site's build with a made-up key that the browser tests use.
 //
 //   node scripts/no-posthog.mjs DIR
 //

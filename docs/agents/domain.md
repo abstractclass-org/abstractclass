@@ -10,7 +10,8 @@ repository, one copy for the sites and the engines.
   - `GLOSSARY.md`: the terms that every game, site and engine shares. Its "Contexts" list links to each game's
     glossary.
   - `glossary/<game>.md`: the game's own terms (its official words), what its site shows, and its engine's own
-    words. Read the one of the game you work on: `blueprints.md` for Cyanotype, `enclosure.md` for Hedge School.
+    words. Read the one of the game you work on: `blueprints.md` for Cyanotype, `enclosure.md` for Hedge School,
+    `tak.md` for Mistak.
 - **The design documents** in `docs/design/` (`NN-topic.md`, one for each decision still in force, listed in
   `docs/design/README.md`). They are this repository's decision records (ADRs). Read the ones that touch the area
   you are about to work in.
@@ -40,11 +41,12 @@ glossary when its first term is settled, and adds it to the shared glossary's "C
 ├── docs/decisions/        ← the archive, by topic
 ├── packages/              ← the shared packages: engine, storage, analysis, review (design 29), record, site (design 33)
 ├── apps/hedgeschool/      ← Hedge School, Enclosure's site (design 26)
-└── apps/cyanotype/        ← Cyanotype, Blueprints' site (design 33)
+├── apps/cyanotype/        ← Cyanotype, Blueprints' site (design 33)
+└── apps/mistak/           ← Mistak, Tak's site (design 34)
 
 ../                        ← the planning repository
 ├── GLOSSARY.md            ← the shared terms, and the list of the games' glossaries
-└── glossary/              ← one glossary for each game: blueprints.md, enclosure.md
+└── glossary/              ← one glossary for each game: blueprints.md, enclosure.md, tak.md
 ```
 
 ## Use the glossary's vocabulary

@@ -1,14 +1,16 @@
-// The measuring with PostHog (design 11 and 17), on both sites' builds of check:all, each with a made-up PostHog key
+// The measuring with PostHog (design 11 and 17), on the sites' builds of check:all, each with a made-up PostHog key
 // (scripts/check-all.mjs). The pages send PostHog's requests to the site's own path (design 27, item 6), whose
 // Function the previews do not run. No request reaches PostHog: tests/posthog.ts answers the path and PostHog's
 // addresses in PostHog's place, and keeps what the pages sent. That a build without the key holds none of PostHog's
-// code is check:all's step `cyanotype-no-posthog`, on a build of Cyanotype without the key.
+// code is check:all's steps `cyanotype-no-posthog` and `mistak-no-posthog`, each on a build without the key. Mistak's
+// consent banner waits for its practice games (abscls-shfz.18.22).
 import { test, expect, type Page } from "./page-log.ts";
 import { answerPostHog, lookLikeAVisitor } from "./posthog.ts";
 import { CONSENT_KEY } from "../src/lib/keys.ts";
 import { POSTHOG_PATH } from "../../../packages/site/src/posthogProxy.ts";
 
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
+const MISTAK = process.env.MISTAK_BASE_URL;
 
 lookLikeAVisitor();
 
@@ -101,6 +103,36 @@ test("Cyanotype, a build with PostHog's key: its page views carry internal: true
   await banner.getByRole("button", { name: "Decline" }).click();
   await expect(banner).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem("cyanotype:consent:1"))).toBe(JSON.stringify({ games: "denied" }));
+  const { cookies, keys } = await kept(page);
+  expect(cookies).toBe("");
+  expect(keys.filter(k => /(^|_)ph_|posthog/i.test(k))).toEqual([]);
+});
+
+test("Mistak, a build with PostHog's key: its page views carry internal: true after ?internal=on, it asks for nothing, and keeps nothing for PostHog", async ({ context }) => {
+  test.skip(MISTAK === undefined, "MISTAK_BASE_URL gives no Mistak preview");
+  const at = (path: string) => new URL(path, MISTAK).href;
+  const sent = await answerPostHog(context);
+  const page = await context.newPage();
+  await page.goto(at("/?internal=on"));
+  const views = () => sent.filter(e => e.event === "$pageview");
+  await expect.poll(() => views().length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
+  expect(views()[0].properties).toMatchObject({ internal: true, $host: new URL(MISTAK!).host, $pathname: "/" });
+  // The next page, by the site's router: a page view of its own, still internal.
+  await page.getByRole("link", { name: "About" }).first().click();
+  await page.waitForURL("**/about");
+  await expect.poll(() => views().map(e => e.properties.$pathname), { timeout: 15_000 }).toContain("/about");
+  expect(views().every(e => e.properties.internal === true && e.properties.$cookieless_mode === true)).toBe(true);
+  // Only events, to Mistak's own address and its path for PostHog.
+  expect([...new Set(sent.map(e => e.origin))]).toEqual([new URL(MISTAK!).origin]);
+  expect([...new Set(sent.map(e => e.path))]).toEqual([`${POSTHOG_PATH}/e/`]);
+
+  // Mistak stores no practice games: no consent banner and no choice on the privacy page. Nothing of PostHog's in the
+  // browser, and no cookie.
+  await page.goto(at("/privacy"));
+  await expect(page.getByRole("heading", { name: "Privacy", level: 1 })).toBeVisible();
+  await expect.poll(() => views().map(e => e.properties.$pathname), { timeout: 15_000 }).toContain("/privacy");
+  await expect(page.getByRole("region", { name: /get better/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Your choices" })).toHaveCount(0);
   const { cookies, keys } = await kept(page);
   expect(cookies).toBe("");
   expect(keys.filter(k => /(^|_)ph_|posthog/i.test(k))).toEqual([]);

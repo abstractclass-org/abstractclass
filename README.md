@@ -88,6 +88,8 @@ repository variable ([docs/hosting.md](docs/hosting.md), section 3).
 | `packages/import/` | `@abstractclass/import`: the import's frame (design 29, item 10): the bookmarklet and the userscript that bring a game from a game site's page, with each site's page code as a parameter, the hash that they send to the import page, and the import's events. |
 | `packages/review/` | `@abstractclass/review`: the review's and the Analysis board's view (layout: design 06), its charts, cards, move list and step bar, and the view's game interface (design 29, item 9). |
 | `packages/site/` | `@abstractclass/site`: the sites' frame (the colour tokens, the header's bar and the page's area, the theme, the page's metadata) and their general controls (the icons, the toast, the settings' parts). |
+| `apps/cyanotype/` | Cyanotype, the site for Blueprints ([design 33](docs/design/33-cyanotype.md)). |
+| `apps/mistak/` | Mistak, the site for Tak ([design 34](docs/design/34-tak-site.md)). |
 | `apps/hedgeschool/` | Hedge School, the site. The paths below start there. |
 | `src/lib/engine/` | Enclosure's notation, and its engine's description of a position as the board draws it. |
 | `src/routes/` | The pages. `review/` is the game review, on the engine. `import/` takes a game from the meaf.us bookmarklet. `about/`, `notation/`, `privacy/` and `notices/` are about the site. `lab/engine/` is the engine lab. |

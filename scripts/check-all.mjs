@@ -3,8 +3,8 @@
 // Each step runs with the environment that the workflow gave it. Each site's engine step takes --deploy: it refuses a
 // local engine file, as the deploy does. Each site's build is the production build of the browser tests, in the early
 // edition (VITE_EDITION=early), with a made-up PostHog key and the practice games' storage on.
-// Cyanotype is also built once without the key, for the check that such a build holds none of PostHog's code. A
-// failed step does not stop the steps after it, except an engine step: the others need its files.
+// Cyanotype and Mistak are also built once without the key, for the check that such a build holds none of PostHog's
+// code. A failed step does not stop the steps after it, except an engine step: the others need its files.
 // The output ends with one line: `check:all: PASS` or `check:all: FAIL`, then each step with PASS, FAIL or SKIP.
 // `--only <step>,<step>` runs only the named steps, in this list's order: the workflow's job test-webkit takes the
 // engines and the builds of the browser tests from here, so that its builds are the ones that the other parts test.
@@ -63,11 +63,18 @@ const allSteps = [
   },
   // No file of a build over 25 MiB: Cloudflare Pages refuses the upload of a larger file (docs/hosting.md, section 2).
   { name: "build-sizes", cwd: root, command: "node scripts/build-sizes.mjs apps/hedgeschool/build" },
-  // Mistak, Tak's site (design 34): its type check, its unit tests, its build for the browser tests and its build's
-  // file sizes. It ships no engine yet, so it has no engine step, and its steps come before Cyanotype's, whose engine
-  // step stops the steps after it when it fails.
+  // Mistak, Tak's site (design 34): its type check, its unit tests, its build without the key and the check that it
+  // holds none of PostHog's code, its build for the browser tests and its build's file sizes. It ships no engine yet,
+  // so it has no engine step, and its steps come before Cyanotype's, whose engine step stops the steps after it when it
+  // fails.
   { name: "mistak-check", cwd: mistak, command: "npm run check" },
   { name: "mistak-test", cwd: mistak, command: "npm test" },
+  // A build without the key, as the previews': the next build replaces it.
+  {
+    name: "mistak-build-no-key", cwd: mistak, command: "npm run build",
+    env: { VITE_EDITION: "early", VITE_POSTHOG_KEY: "" },
+  },
+  { name: "mistak-no-posthog", cwd: root, command: "node scripts/no-posthog.mjs apps/mistak/build" },
   {
     name: "mistak-build", cwd: mistak, command: "npm run build",
     env: { VITE_EDITION: "early", VITE_POSTHOG_KEY: TEST_POSTHOG_KEY },

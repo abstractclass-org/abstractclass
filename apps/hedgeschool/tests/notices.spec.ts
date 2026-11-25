@@ -1,6 +1,8 @@
 // Each site's Notices page names the works of others that the site ships (design 11), from packages/site's
 // NoticesPage.svelte. Hedge School's tests run on the preview of BASE_URL. Cyanotype's tests run when
-// CYANOTYPE_BASE_URL gives its preview. The tests on each page:
+// CYANOTYPE_BASE_URL gives its preview, and Mistak's when MISTAK_BASE_URL gives its. Mistak ships no engine yet, so its
+// page has the font's test and one of its own library. The test of the engine's section waits for abscls-shfz.18.11,
+// and that of ONNX Runtime Web for abscls-shfz.18.28. The tests on each page:
 //   - The font Fira Code, its copyright line and its licence, the SIL Open Font License 1.1 (design 11, item 10, and
 //     design 06, item 11). The licence asks that each copy of the font carries the copyright line and the licence. The
 //     page gives both as the package's own LICENSE file has them (LibraryNotices.svelte).
@@ -12,6 +14,7 @@
 //     Eigen is in the modules that run the network on the CPU, as the list says. The build's ONNX Runtime files are the
 //     version that the page names. A build with no engine files (before `npm run engine`) skips this test, and fails
 //     it in CI, where the Tests workflow builds each site with them.
+//   - lz-string, on Mistak's page alone: its copyright line, as the npm package's LICENSE file has it.
 // Run: npm run test:layout -- tests/notices.spec.ts
 import { expect, test } from "./page-log.ts";
 import { readFileSync } from "node:fs";
@@ -28,7 +31,13 @@ const ORT_VERSION: string = JSON.parse(read("onnxruntime-web/package.json")).ver
 const ORT_BANNER = read("onnxruntime-web/dist/ort.webgpu.min.mjs").slice(0, 500);
 const ORT_COPYRIGHT = ORT_BANNER.match(/Copyright \(c\) Microsoft.*/)?.[0];
 if (!ORT_COPYRIGHT) throw new Error("ONNX Runtime Web's ort.webgpu.min.mjs has no copyright line in its banner");
+const LZ_COPYRIGHT = read("lz-string/LICENSE").match(/^Copyright .*/m)?.[0];
+if (!LZ_COPYRIGHT) throw new Error("lz-string's LICENSE file has no copyright line");
 const CYANOTYPE = process.env.CYANOTYPE_BASE_URL;
+const MISTAK = process.env.MISTAK_BASE_URL;
+const NO_PREVIEW: Record<string, string> = {
+  "Cyanotype": "CYANOTYPE_BASE_URL gives no Cyanotype preview", "Mistak": "MISTAK_BASE_URL gives no Mistak preview",
+};
 
 /** The words of a text, with a list's dashes and the lines' breaks gone. */
 const words = (text: string) => text.replace(/^- /gm, "").trim().replace(/\s+/g, " ");
@@ -36,9 +45,10 @@ const words = (text: string) => text.replace(/^- /gm, "").trim().replace(/\s+/g,
 for (const [site, url] of Object.entries({
   "Hedge School": "/notices",
   "Cyanotype": CYANOTYPE ? new URL("/notices", CYANOTYPE).href : "",
+  "Mistak": MISTAK ? new URL("/notices", MISTAK).href : "",
 })) {
   test(`${site}'s Notices page names Fira Code, its copyright line and its licence`, async ({ page }) => {
-    test.skip(!url, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(!url, NO_PREVIEW[site]);
     await page.goto(url);
     const text = await page.locator("main").innerText();
     await expect(page.locator("main a", { hasText: "Fira Code" })).toHaveCount(1);
@@ -46,8 +56,18 @@ for (const [site, url] of Object.entries({
     expect(text).toContain(OFL);
   });
 
+  if (site === "Mistak") {
+    test("Mistak's Notices page names lz-string and its copyright line", async ({ page }) => {
+      test.skip(!url, NO_PREVIEW[site]);
+      await page.goto(url);
+      await expect(page.locator("main a", { hasText: "lz-string" })).toHaveCount(1);
+      expect(await page.locator("main").innerText()).toContain(LZ_COPYRIGHT);
+    });
+    continue;
+  }
+
   test(`${site}'s Notices page names ONNX Runtime Web, its version and its copyright line`, async ({ page }) => {
-    test.skip(!url, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(!url, NO_PREVIEW[site]);
     await page.goto(url);
     const text = await page.locator("main").innerText();
     await expect(page.locator("main a", { hasText: "ONNX Runtime Web" }))
@@ -59,7 +79,7 @@ for (const [site, url] of Object.entries({
   });
 
   test(`${site}'s Notices page agrees with the engine's files that the site serves`, async ({ page }) => {
-    test.skip(!url, "CYANOTYPE_BASE_URL gives no Cyanotype preview");
+    test.skip(!url, NO_PREVIEW[site]);
     await page.goto(url);
     const manifest = await page.request.get(new URL("/engine/manifest.json", page.url()).href);
     const noEngine = "the build has no engine files: run `npm run engine` in the site's folder before its build";
