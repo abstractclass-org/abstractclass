@@ -13,20 +13,20 @@
 // kept, and Practice a game in progress from it. The import page shows the choice for a userscript's game, with the
 // notice to update the userscript. Three tests check that the monospaced font draws no ligatures, on Hedge School, on
 // Cyanotype (CYANOTYPE_BASE_URL) and on Mistak (MISTAK_BASE_URL). One sweeps Cyanotype's home page, and one its Notices
-// page. Five sweep Mistak's home page, Notation page, Notices page, How a review works and its board lab. One walks
-// Mistak's board with the keys. Four sweep Mistak's Review tab and import page, and one checks where that page leads.
-// Three check the site's menu open on a narrow window, on each site. Three check the
-// Support Us dialog, on each site, in a wide window and on a phone. Six check the header's "Early Access" link, on each
-// site in each theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the
-// site has its practice bot. Four check that a practice game's and a review's one column agree with themselves between
-// 799 and 800 pixels wide, on each site. Two check
-// Cyanotype's import page: the choice for a tool's game, and a record that the engine refuses. One checks Cyanotype's
-// board with the player's notes, at design 06's sizes. One checks Openings (design 32) on the test book, with the
-// book's table, where the build has it (edition.ts, OPENINGS), while the engine's network loads and once it has loaded.
-// One checks that the sentence under the book's table keeps the move list in place, on Openings and the Analysis board
-// (the review's book table test checks the review). Every page's sweep checks the header's row, with Openings' fourth
-// tab where the build has it. A last test checks the step bar on a phone, on the review, the Analysis board, Openings
-// and Practice. Run: npm run test:layout (the site running first).
+// page. Six sweep Mistak's home page, About page, Notation page, Notices page, How a review works and its board lab.
+// One walks Mistak's board with the keys. Four sweep Mistak's Review tab and import page, and one checks where that
+// page leads. Three check the site's menu open on a narrow window, on each site. Three check the Support Us dialog,
+// on each site, in a wide window and on a phone. Six check the header's "Early Access" link, on each site in each
+// theme. Two check Cyanotype's Practice (CYANOTYPE_BASE_URL): its page, and a game in progress when the site has its
+// practice bot. Four check that a practice game's and a review's one column agree with themselves between 799 and
+// 800 pixels wide, on each site. Two check Cyanotype's import page: the choice for a tool's game, and a record that
+// the engine refuses. One checks Cyanotype's board with the player's notes, at design 06's sizes. One checks
+// Openings (design 32) on the test book, with the book's table, where the build has it (edition.ts, OPENINGS), while
+// the engine's network loads and once it has loaded. One checks that the sentence under the book's table keeps the
+// move list in place, on Openings and the Analysis board (the review's book table test checks the review). Every
+// page's sweep checks the header's row, with Openings' fourth tab where the build has it. A last test checks the step
+// bar on a phone, on the review, the Analysis board, Openings and Practice. Run: npm run test:layout (the site running
+// first).
 import type { Browser, LaunchOptions } from "@playwright/test";
 import { expect, test, type Locator, type Page } from "./page-log.ts";
 import { readFileSync } from "node:fs";
@@ -270,13 +270,14 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
 }
 
 // Mistak's pages (its design 34), when MISTAK_BASE_URL gives its preview: its frame and its texts, until its engine
-// comes. The home page: the invitation and the logo. The Notation page: its examples in code blocks, which scroll
-// sideways on purpose, and its tables. The Notices page: the licences, with their texts in code blocks. How a review
-// works: its table of bands and its formulas in code blocks. The board lab: a game of 8x8 with a stack past the bars
-// and a long TPS. Each sweep checks the header's row, with the site's menu closed below 900 pixels. The About page
-// is in the menu's test below.
-for (const [name, path] of [["home page", "/"], ["Notation page", "/notation"], ["Notices page", "/notices"],
-                            ["How a review works", "/how-reviews-work"], ["board lab", "/lab/board?p=23"]]) {
+// comes. The home page: the invitation and the logo. The About page: its texts and lists. The Notation page: its
+// examples in code blocks, which scroll sideways on purpose, and its tables. The Notices page: the licences, with
+// their texts in code blocks. How a review works: its table of bands and its formulas in code blocks. The board lab:
+// a game of 8x8 with a stack past the bars and a long TPS. Each sweep checks the header's row, with the site's menu
+// closed below 900 pixels.
+for (const [name, path] of [["home page", "/"], ["About page", "/about"], ["Notation page", "/notation"],
+                            ["Notices page", "/notices"], ["How a review works", "/how-reviews-work"],
+                            ["board lab", "/lab/board?p=23"]]) {
   test(`layout of Mistak's ${name}`, async ({ page }) => {
     test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
     await page.goto(new URL(path, MISTAK).href);
