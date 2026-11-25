@@ -12,7 +12,7 @@
 </script>
 
 <PageMeta title="Review a game · {SITE_NAME}"
-          description="Bring a game of Tak: a link to a playtak game, a link of PTN Ninja, or its record in PTN." />
+          description="Bring a game of Tak: a link to a playtak game, a PTN Ninja link, or its record in PTN." />
 
 {#if brought}
   <BroughtGame {brought}>

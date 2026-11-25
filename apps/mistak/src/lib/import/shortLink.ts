@@ -1,4 +1,4 @@
-// The game of a short link of PTN Ninja, `ptn.ninja/s/<id>` (docs/design/34-tak-site.md, item 10): the link holds an id
+// The game of a short PTN Ninja link, `ptn.ninja/s/<id>` (docs/design/34-tak-site.md, item 10): the link holds an id
 // alone, so the page asks PTN Ninja's shortener for the game, as PTN Ninja itself does when it opens the link. The
 // shortener lets any site's page ask it, so no Function of the site is between them. Its source is in
 // github.com/gruppler/PTN-Ninja (functions/index.js, `short`; src/store/ui/getters.js, `urlUnshort`).

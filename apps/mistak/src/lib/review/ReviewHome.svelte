@@ -1,6 +1,6 @@
 <script lang="ts">
   // The Review tab without a game (docs/design/34-tak-site.md, item 10; Hedge School's design 22), as Hedge School's and
-  // Cyanotype's: one box and its button. The box takes a link to a playtak game, a ptn.ninja link or PTN (ways.ts tells
+  // Cyanotype's: one box and its button. The box takes a link to a playtak game, a PTN Ninja link or PTN (ways.ts tells
   // them apart). A game that the site does not take shows why under the box, and the text stays, so that the player can
   // correct it. The box's border is then red and the reason is in the text's own colour: the shared red is too light for
   // small text, and the review's darker red comes with the review's style. A review file, the last review and the
@@ -48,16 +48,9 @@
       {#if problem}<p class="mt-1.5 text-sm font-medium [overflow-wrap:anywhere]" role="alert">{problem}</p>{/if}
       <div class="flex flex-wrap items-center gap-3 mt-2">
         <button class="btn-primary" type="submit" disabled={!text.trim() || busy}>{busy && asks ? "Getting the game…" : "Review"}</button>
-        <span id="game-hint" class="flex-1 min-w-56 text-xs text-muted">A link to a finished game on playtak, a link of PTN
-          Ninja, or a record in <a href="/notation">PTN</a>.</span>
+        <span id="game-hint" class="flex-1 min-w-56 text-xs text-muted">Paste a link to a finished game on playtak.com, a
+          PTN Ninja link, or the game's record in <a href="/notation">PTN</a>.</span>
       </div>
-      <!-- `anywhere`: a long link breaks, so that the list fits a phone's width. -->
-      <dl class="grid gap-x-3 gap-y-1 mt-2.5 text-xs text-muted sm:grid-cols-[max-content_minmax(0,1fr)] [overflow-wrap:anywhere]">
-        <dt>A link to a playtak game:</dt>
-        <dd><code>https://playtak.com/games/(number)/playtakviewer</code>, or <code>ninjaviewer</code> at its end</dd>
-        <dt>A link of PTN Ninja:</dt>
-        <dd><code>https://ptn.ninja/(game)</code>, or a short link, <code>https://ptn.ninja/s/(code)</code></dd>
-      </dl>
     </form>
   </section>
 </main>

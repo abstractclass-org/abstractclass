@@ -170,13 +170,16 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
      review or on the board, as Hedge School's tools do ("The tools for playtak's pages").
 10. **The ways in:**
     - **The Review tab** (`/review`) takes a game, as on the two other sites: one box and its button. The box takes a
-      link to a playtak game, a link of PTN Ninja, or a record in PTN, which needs no network.
-    - **A link to a playtak game:** `https://playtak.com/games/<number>/playtakviewer` or `/ninjaviewer`. The box also
-      takes the number alone, and its hint does not name it: a player knows the link. The API refuses a request from
-      the site's page, so the site's own Pages Function fetches the PTN from playtak's API and gives it to the page
-      ("The check of CORS"). The API's history holds finished games, so a game in progress comes in by the tools.
-    - **A link of PTN Ninja:** the site reads the PTN from a long link's path. A short link (`ptn.ninja/s/<id>`) holds
-      no game, and the page asks PTN Ninja's shortener for it ("The short link of PTN Ninja").
+      link to a playtak game, a PTN Ninja link, or a record in PTN, which needs no network.
+    - **A link to a playtak game:** any address under `https://playtak.com/games/<number>`, such as a viewer's. Only
+      the number counts. The box also takes the number alone, and its hint does not name it: a player knows the link.
+      The API refuses a request from the site's page, so the site's own Pages Function fetches the PTN from playtak's
+      API and gives it to the page ("The check of CORS"). The API's history holds finished games, so a game in
+      progress comes in by the tools.
+    - **A playtak link that holds its game:** `https://playtak.com/?load=<PTN>`, which playtak's board writes and
+      opens, for a finished game or one in progress. The page reads the PTN from the link, with no request.
+    - **A PTN Ninja link:** the site reads the PTN from a long link's path. A short link (`ptn.ninja/s/<id>`) holds no
+      game, and the page asks PTN Ninja's shortener for it ("PTN Ninja's short link").
     - **The import page** (`/import`) is where a link from outside arrives, as on Hedge School: `#playtak=<number>` (a
       parameter named by its payload, design 22) and `#record=`. It has no form. A refusal shows why, with a link to
       the Review tab. The page alone goes to the Review tab until the tools page exists.
@@ -597,7 +600,7 @@ The import by id goes through the smallest proxy that the sites' hosting already
   real browser. Those belong to ticket 5, which waited for this one. The Function and its tests are built ("Where it
   is"). The check from a preview is not done.
 
-## The short link of PTN Ninja
+## PTN Ninja's short link
 
 PTN Ninja's shortener keeps a game under an id, and a short link holds the id alone. The reader is
 `apps/mistak/src/lib/import/shortLink.ts`.
@@ -632,7 +635,7 @@ request 23 asked for Blueprints. So the work goes in three stages.
      The next stage then changes only where the fields come from.
    - The fetch of a game by its id, through the site's Function ("The check of CORS" has the check's result).
    - The Review tab's box and the import page, which read records and refuse them by their tags (the size, the opening
-     and the komi), and the short links of PTN Ninja.
+     and the komi), and PTN Ninja's short links.
    - The reader of playtak's page, the bookmarklet and the userscript, with tests on saved pages.
    - The shared work on board sizes, draws and the move list (items 1 to 3 above), with Hedge School's and Cyanotype's
      tests unchanged.
@@ -754,10 +757,10 @@ A ticket with no "After" can start at once. Takana's own marks and snapshots hav
    fields, and the link previews' image of Tak's board (design 23). Check: the board lab in both themes, at every
    width down to 360 pixels, the layout test, and the preview image in the built site. After: 2, 3.
 5. **Mistak: a playtak game by its id, pasted PTN and a ptn.ninja link:** the Review tab's box and the import page,
-   the fetch by id through the site's Pages Function ("The check of CORS"), the short link ("The short link of PTN
-   Ninja"), and the refusals by the tags (the size, the opening, the komi). Check: a test of each refusal and of each
-   way in, a test of the Function's path and method checks, a record with the result `*` taken, and a game fetched by
-   its id from a preview in a real browser. After: 2, 3, 16. Built, but for the fetch from a preview ("Where it is").
+   the fetch by id through the site's Pages Function ("The check of CORS"), the short link ("PTN Ninja's short link"),
+   and the refusals by the tags (the size, the opening, the komi). Check: a test of each refusal and of each way in, a
+   test of the Function's path and method checks, a record with the result `*` taken, and a game fetched by its id
+   from a preview in a real browser. After: 2, 3, 16. Built, but for the fetch from a preview ("Where it is").
 6. **Shared: a game with several board sizes:** the empty board of each size, the size in the stored results' keys
    (first the simplest form, "What the sites share", item 1, with what the shared code does otherwise at a set-up
    start), and the komi limit of each size (item 8). Check: a test that `a1` on 5x5 and `a1` on 6x6 key apart, a
@@ -844,7 +847,7 @@ This document is the plan. The engine's plan is in the engine repository's `game
   (`scripts/board-games.py`) and from hand-made TPS. The board takes no move (ticket 9) and edits no position (ticket
   19).
 - **The import** (ticket 5, abscls-shfz.18.7): `apps/mistak/src/lib/import`, `src/lib/review/ReviewHome.svelte`,
-  `src/routes/review` and `src/routes/import`. The Review tab's box takes a link to a playtak game, a link of PTN Ninja
+  `src/routes/review` and `src/routes/import`. The Review tab's box takes a link to a playtak game, a PTN Ninja link
   or PTN (`ways.ts`), and `shortLink.ts` reads a short link.
   `takeRecord` (`src/lib/game/record.ts`) refuses, in this order: a record that does not read, a size, an opening, a
   reserve and a komi. The Function is `functions/api/playtak/[[path]].ts`, with its handler in `playtakProxy.ts`.

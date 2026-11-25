@@ -4,7 +4,7 @@
   // set no cookies. Its Support Us opens Ko-fi's tip panel, so the page has the sites' part on Ko-fi
   // (@abstractclass/site/KofiPrivacy.svelte). The page says what the site does now. The request to
   // api.playtak.com is the Function's (src/lib/import/playtakProxy.ts), for a playtak game. The request to url.ptn.ninja
-  // is the page's own (src/lib/import/shortLink.ts), for a short link of PTN Ninja. The work that adds a
+  // is the page's own (src/lib/import/shortLink.ts), for a short PTN Ninja link. The work that adds a
   // stored game adds its part here: Practice's stored games (design 34, "The pages").
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
@@ -30,9 +30,9 @@
       program of the site, on Cloudflare's servers, asks playtak's server (<code>api.playtak.com</code>) for the game
       and gives it to your browser. The request to playtak holds the number and the name of this site, and nothing about
       you or your browser. Cloudflare can keep a copy of the game for a day. The program keeps no log.</li>
-    <li><strong>A record or a long link of PTN Ninja.</strong> Your browser reads the game in it. The site sends it to no
-      server.</li>
-    <li><strong>A short link of PTN Ninja.</strong> The link does not hold the game. Your browser asks PTN Ninja's server
+    <li><strong>A record, or a link that holds the game</strong> (a long PTN Ninja link, or a playtak link with
+      <code>?load=</code>). Your browser reads the game in it. The site sends it to no server.</li>
+    <li><strong>A short PTN Ninja link.</strong> The link does not hold the game. Your browser asks PTN Ninja's server
       (<code>url.ptn.ninja</code>) for it, and sends the code in the link. Like any web host, that server receives your IP
       address, your browser's name and the name of this site. PTN Ninja counts that the link was opened.</li>
     <li><strong>A game in an address.</strong> A link to the import page can hold a game, or its number, after the

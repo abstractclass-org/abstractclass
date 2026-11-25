@@ -1,4 +1,4 @@
-// Checks the request for a short link of PTN Ninja (shortLink.ts). The answers have the form that PTN Ninja's source gives
+// Checks the request for a short PTN Ninja link (shortLink.ts). The answers have the form that PTN Ninja's source gives
 // (its functions/index.js, `short`), and a fake request takes the place of its shortener. Run: npm test.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -13207,8 +13207,13 @@ The logo, its files and how each is made are in design 33, "The logo".
   link. The first form had an Import dialog on the home page and a form on the import page, which the two other sites
   do not have. The Import dialog comes with the Analysis board (abscls-shfz.18.20).
 - **The box takes links, not numbers:** a "game number" means nothing to a player, so the hint names the link of a
-  playtak game. A number alone still works. A link to another site is refused with the two sites that are read.
-- **A short link of PTN Ninja** (`ptn.ninja/s/…`) is read by the page itself, with no Function. Two GET requests on
+  playtak game. A number alone still works. Any address under `playtak.com/games/<number>` is a game's, and a refusal
+  names the number only to a player who typed it. A link to another site is refused with the two sites that are read.
+- **`playtak.com/?load=<PTN>` is read with no request.** playtak.com's deployed scripts, read on 2026-11-25:
+  `js/main.js` (`copyNotationLink`) writes the link with `encodeURIComponent`, and `js/board.js` reads it when the
+  query starts with `?load=`: `decodeURIComponent` of the text up to another `?load=`. So an `&` ends nothing, and a `+`
+  is a move's. The site reads it in the same way.
+- **A short PTN Ninja link** (`ptn.ninja/s/…`) is read by the page itself, with no Function. Two GET requests on
   2026-11-25 with `Origin: https://dev.mistak.pages.dev` and an id of 40 zeros, one to `url.ptn.ninja/short` and one to
   `us-central1-ptn-ninja.cloudfunctions.net/short`, gave status 400, `Access-Control-Allow-Origin: *` and
   `{"message":"URL alias not found"}`. The source sets that header on each answer. No POST was sent. An answer with a
