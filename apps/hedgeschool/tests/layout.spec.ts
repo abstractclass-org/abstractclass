@@ -329,8 +329,8 @@ test("Mistak's board walks with the keys", async ({ page }) => {
   await expect(focused).toHaveAttribute("aria-label", /^c2: /);
 });
 
-// Mistak's import (its design 34, item 10). The Review tab: its form, a record that the site refuses, with why under the
-// box, and a record that it takes, with a long name and a long comment. The import page: a refusal. The records are
+// Mistak's import (its design 34, item 10). The Review tab: its form, a record that the site refuses, with why under
+// the box, and a record that it takes, with a long name and a long comment. The import page: a refusal. The records are
 // written by hand for this test.
 const MISTAK_TAKEN = `[Player1 "${"Ann".repeat(20)}"]\n[Player2 "Bob Example"]\n[Size "6"]\n[Komi "2"]\n[PlayTakID "123"]\n\n`
   + `1. a1 f6\n2. c3 {${"long".repeat(30)}} d4\n3. Sb2 Cc4 *\n`;

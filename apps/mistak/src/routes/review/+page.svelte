@@ -1,7 +1,7 @@
 <script lang="ts">
-  // The review page (docs/design/34-tak-site.md, item 10), as Hedge School's and Cyanotype's (design 22): the Review tab
-  // (ReviewHome.svelte). Until the review exists, a game that the site takes shows its tags and its moves in the tab's
-  // place (BroughtGame.svelte), and nothing is kept.
+  // The review page (docs/design/34-tak-site.md, item 10), as Hedge School's and Cyanotype's (design 22): the Review
+  // tab (ReviewHome.svelte). Until the review exists, a game that the site takes shows its tags and its moves in the
+  // tab's place (BroughtGame.svelte), and nothing is kept.
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import BroughtGame from "#lib/import/BroughtGame.svelte";
   import type { Brought } from "#lib/import/ways.ts";

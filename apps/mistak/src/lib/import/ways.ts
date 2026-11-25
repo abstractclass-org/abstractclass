@@ -9,8 +9,8 @@ import { takeRecord, type GameRecord } from "../game/record.ts";
 import { GAME_ID, PLAYTAK_PATH } from "./playtakProxy.ts";
 import { SHORT_ID, shortRecord } from "./shortLink.ts";
 
-/** What a text is: a playtak game's number, `linked` if it came in a link, a short link's id, or a record and whether it
- *  came in a link. */
+/** What a text is: a playtak game's number, `linked` if it came in a link, a short link's id, or a record and whether
+ *  it came in a link. */
 export type Way = { way: "playtak"; id: string; linked: boolean } | { way: "short"; id: string }
   | { way: "link" | "pasted"; record: string };
 
@@ -58,8 +58,8 @@ function readLoad(query: string): Way {
   return { way: "link", record };
 }
 
-/** What a PTN Ninja link is (the engine repository's games/tak/docs/research/ptn-ninja.md, 2.6): a short link's id, or the
- *  record in the path's part before the first `&`, packed or as plain text, as playtak's archive writes it. */
+/** What a PTN Ninja link is (the engine repository's games/tak/docs/research/ptn-ninja.md, 2.6): a short link's id, or
+ *  the record in the path's part before the first `&`, packed or as plain text, as playtak's archive writes it. */
 function readLink(link: string): Way {
   const path = link.replace(PTN_NINJA, "").split("&")[0];
   if (/^s(?:\/|$)/.test(path)) {
@@ -99,7 +99,8 @@ export function readWay(given: string): Way {
 /** A message as a sentence: the reader's messages start in lower case. */
 const sentence = (message: string) => message.charAt(0).toUpperCase() + message.slice(1).replace(/\.?$/, ".");
 
-/** Reads a record that came in. The Error of a record whose text the player sees (`pasted`) says where its problem is. */
+/** Reads a record that came in. The Error of a record whose text the player sees (`pasted`) says where its problem
+ *  is. */
 export function bringRecord(text: string, pasted: boolean): Brought {
   try {
     return { text, game: takeRecord(text) };
@@ -110,8 +111,8 @@ export function bringRecord(text: string, pasted: boolean): Brought {
 }
 
 /** A playtak game's PTN by its number, from the site's Function, with the game's number in its `PlayTakID` tag, which
- *  playtak's PTN does not have: the link back to the game takes it from there. The Error of a game that playtak does not
- *  have names the number only to a player who gave it, and the link to one who gave that (`linked`). */
+ *  playtak's PTN does not have: the link back to the game takes it from there. The Error of a game that playtak does
+ *  not have names the number only to a player who gave it, and the link to one who gave that (`linked`). */
 export async function playtakRecord(id: string, request: typeof fetch, linked: boolean): Promise<string> {
   const failed = "The site could not get the game from playtak. Paste the PTN of the game, or try again later.";
   let response: Response, record: string;
@@ -121,8 +122,8 @@ export async function playtakRecord(id: string, request: typeof fetch, linked: b
   } catch {
     throw new Error(failed);
   }
-  // A page is not the Function's answer, whatever its status: a development server's, a copy of the site elsewhere, or the
-  // site's own 404 page, which Cloudflare can give where it does not run the Function.
+  // A page is not the Function's answer, whatever its status: a development server's, a copy of the site elsewhere, or
+  // the site's own 404 page, which Cloudflare can give where it does not run the Function.
   const type = response.headers.get("Content-Type") ?? "";
   if (response.status === 404 && !/^text\/html\b/i.test(type))
     throw new Error(`Playtak has no finished game ${linked ? "at this link" : `with the number ${id}`}.`);

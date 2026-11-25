@@ -1,8 +1,8 @@
 <script lang="ts">
-  // A game that the import took, until the review exists (docs/design/34-tak-site.md, "Before the network"): its tags and
-  // its moves as the record gives them, the links back (item 10), and one line that the review comes with the engine. It
-  // draws no position: the rules that make one from the moves are the engine's. The review page and the import page show
-  // it. `children` is the way to another game.
+  // A game that the import took, until the review exists (docs/design/34-tak-site.md, "Before the network"): its tags
+  // and its moves as the record gives them, the links back (item 10), and one line that the review comes with the
+  // engine. It draws no position: the rules that make one from the moves are the engine's. The review page and the
+  // import page show it. `children` is the way to another game.
   import type { Snippet } from "svelte";
   import { tagValue } from "@abstractclass/record/record.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";

@@ -2,9 +2,9 @@
   // The page for other sites (design 34, "The pages"). Hedge School's and Cyanotype's pages give the link that sends a
   // game to the review, the link to the Analysis board, the messages that save a review back to a partner site and the
   // buttons, from the shared sections (@abstractclass/import/developers). Mistak's import takes a game in PTN
-  // (abscls-shfz.18.7), and shows it without a review. The shared sections describe a record in Hedge School's form (its
-  // tags `Blue` and `Red`), so this page waits for that work to give Tak's parts. Until then it says what comes, and
-  // where the other sites describe it now.
+  // (abscls-shfz.18.7), and shows it without a review. The shared sections describe a record in Hedge School's form
+  // (its tags `Blue` and `Red`), so this page waits for that work to give Tak's parts. Until then it says what comes,
+  // and where the other sites describe it now.
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import { SITE_NAME } from "#lib/site.ts";

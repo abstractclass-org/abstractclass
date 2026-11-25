@@ -1,11 +1,11 @@
 <script lang="ts">
-  // The Review tab without a game (docs/design/34-tak-site.md, item 10; Hedge School's design 22), as Hedge School's and
-  // Cyanotype's: one box and its button. The box takes a link to a playtak game, a PTN Ninja link or PTN (ways.ts tells
-  // them apart). A game that the site does not take shows why under the box, and the text stays, so that the player can
-  // correct it. The box's border is then red and the reason is in the text's own colour: the shared red is too light for
-  // small text, and the review's darker red comes with the review's style. A review file, the last review and the
-  // player's games come with the review. The heading and its line invite: plain web writing. The form's texts are
-  // followed: strict Simplified Technical English.
+  // The Review tab without a game (docs/design/34-tak-site.md, item 10; Hedge School's design 22), as Hedge School's
+  // and Cyanotype's: one box and its button. The box takes a link to a playtak game, a PTN Ninja link or PTN (ways.ts
+  // tells them apart). A game that the site does not take shows why under the box, and the text stays, so that the
+  // player can correct it. The box's border is then red and the reason is in the text's own colour: the shared red is
+  // too light for small text, and the review's darker red comes with the review's style. A review file, the last review
+  // and the player's games come with the review. The heading and its line invite: plain web writing. The form's texts
+  // are followed: strict Simplified Technical English.
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
   import { bringGame, readWay, type Brought } from "#lib/import/ways.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";

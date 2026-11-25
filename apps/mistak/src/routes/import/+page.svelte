@@ -1,10 +1,10 @@
 <script lang="ts">
   // The import page (docs/design/34-tak-site.md, item 10; design 22): where a link from outside arrives. After the `#`
-  // it takes a playtak game's number (`playtak=`, a parameter that its payload names), which the site's Function fetches,
-  // and a record as the other sites take it (@abstractclass/import's importHash.ts): `record=`, from another site's link.
-  // The game leaves the address at once, and the visit counts start after that. Until the review exists, a game that the
-  // site takes shows its tags and its moves (BroughtGame.svelte), and nothing is kept. The page alone goes to the Review
-  // tab, until the tools page exists. The texts are strict Simplified Technical English.
+  // it takes a playtak game's number (`playtak=`, a parameter that its payload names), which the site's Function
+  // fetches, and a record as the other sites take it (@abstractclass/import's importHash.ts): `record=`, from another
+  // site's link. The game leaves the address at once, and the visit counts start after that. Until the review exists, a
+  // game that the site takes shows its tags and its moves (BroughtGame.svelte), and nothing is kept. The page alone
+  // goes to the Review tab, until the tools page exists. The texts are strict Simplified Technical English.
   import { onMount } from "svelte";
   import { goto, replaceState } from "$app/navigation";
   import { hashParams, holdsGame } from "@abstractclass/site/addressHash.ts";
