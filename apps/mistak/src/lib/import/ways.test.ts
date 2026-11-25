@@ -105,7 +105,8 @@ test("the number's refusals: none on playtak, no answer, a page in its place, a 
   assert.equal(await problem("123", request(404, "{}", "application/json").fake), "Playtak has no finished game with the number 123.");
   const failed = "The site could not get the game from playtak. Paste the PTN of the game, or try again later.";
   assert.equal(await problem("123", request(502, "").fake), failed);
-  assert.equal(await problem("123", request(200, "<!doctype html>", "text/html").fake), failed);
+  for (const status of [200, 404]) // the site's own 404 page, where the Function does not run, says nothing of the game
+    assert.equal(await problem("123", request(status, "<!doctype html>", "text/html; charset=utf-8").fake), failed);
   assert.equal(await problem("123", (async () => { throw new TypeError("no connection"); }) as unknown as typeof fetch), failed);
   for (const bad of ["012", "12345678901"])
     assert.equal(await problem(bad), "The number of a playtak game has 1 to 10 digits, and does not start with 0.");
@@ -162,7 +163,20 @@ test("a PTN Ninja link's refusals: no game, and text that is not a record", asyn
   assert.equal(await problem("https://ptn.ninja/"), "This PTN Ninja link holds no game.");
   assert.equal(await problem("ptn.ninja"), "This PTN Ninja link holds no game.");
   assert.equal(await problem("https://ptn.ninja/%E0%A4%A"), "The site cannot read the game in this link.");
-  assert.ok(await problem("https://ptn.ninja/QQQQ")); // packed text that holds no record
+  // Packed texts that hold no record: lz-string gives none of the first, and throws for the second.
+  for (const none of ["QQQQ", "zzzzzzzz"])
+    assert.equal(await problem(`https://ptn.ninja/${none}`), "The site cannot read the game in this link.", none);
+});
+
+test("a packed text that holds too long a record, or is too long itself, is not read", async () => {
+  const unread = "The site cannot read the game in this link.";
+  const long = PTN.replace(" *", ` {${"a".repeat(2 ** 20)}} *`), short = PTN.replace(" *", ` {${"a".repeat(10 ** 5)}} *`);
+  const packed = lz.compressToEncodedURIComponent(long);
+  assert.ok(packed.length < 5000, String(packed.length));
+  assert.equal(await problem(`https://ptn.ninja/${packed}`), unread);
+  assert.equal(await problem("https://ptn.ninja/s/abc123", request(200, JSON.stringify({ ptn: packed }), "application/json").fake), unread);
+  assert.equal(await problem(`https://ptn.ninja/${"A".repeat(2 ** 15 + 1)}`), unread);
+  assert.equal((await bringGame(`https://ptn.ninja/${lz.compressToEncodedURIComponent(short)}`, none)).text, short);
 });
 
 test("another link is not read", async () => {

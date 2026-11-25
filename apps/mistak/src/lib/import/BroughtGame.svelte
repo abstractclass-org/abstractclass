@@ -29,15 +29,14 @@
   ].filter((fact): fact is [string, string] => fact[1] !== null));
   const turns = $derived(turnsOf(game));
   const page = $derived(playtakPage(game.tags));
-  const link = "text-sm";
 </script>
 
 <main class="box-content max-w-184 mx-auto my-6 px-4 grid gap-4">
   <h1 class="text-2xl font-bold [overflow-wrap:anywhere]">{player(1)} against {player(2)}</h1>
   <p>The review comes with {ENGINE_NAME}, the engine. Until then, {SITE_NAME} shows the record and keeps nothing.</p>
   <p class="flex flex-wrap gap-x-5 gap-y-1">
-    {#if page}<a class={link} href={page} target="_blank" rel="noopener noreferrer">View this game on playtak</a>{/if}
-    <a class={link} href={ptnNinjaLink(brought.text)} target="_blank" rel="noopener noreferrer">Open in PTN Ninja</a>
+    {#if page}<a class="text-sm" href={page} target="_blank" rel="noopener noreferrer">View this game on playtak</a>{/if}
+    <a class="text-sm" href={ptnNinjaLink(brought.text)} target="_blank" rel="noopener noreferrer">Open in PTN Ninja</a>
   </p>
   <dl class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1">
     {#each facts as [name, text] (name)}
@@ -49,7 +48,8 @@
     <table class="w-full max-w-md text-left font-mono text-sm tabular-nums">
       <thead class="font-sans text-muted"><tr><th class="w-12 font-normal">No.</th><th class="font-normal">White</th><th class="font-normal">Black</th></tr></thead>
       <tbody>
-        {#each turns as turn (turn.number)}
+        <!-- No key: a TPS tag's number can be past a double's whole numbers, and two turns then have one number. -->
+        {#each turns as turn}
           <tr><td class="text-muted">{turn.number}</td><td>{turn.white ?? "…"}</td><td>{turn.black ?? ""}</td></tr>
         {/each}
       </tbody>

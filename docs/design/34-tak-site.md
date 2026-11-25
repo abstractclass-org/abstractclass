@@ -568,9 +568,10 @@ The import by id goes through the smallest proxy that the sites' hosting already
 - **It is not an open proxy.** It takes `GET /api/playtak/ptn/<digits>` only, and refuses every other path and method
   with status 404 or 405. It sends a new request to `https://api.playtak.com/v1/games-history/ptn/<digits>`. The
   request has none of the browser's headers, so no cookie and no `Origin`, and its `User-Agent` names Mistak. The
-  Function passes the status and the body back with the content type. It answers a status 5xx or a timeout of the API
-  with its own status 502. Its answers have no CORS header, so another site's page cannot read them. A script outside
-  a browser can call it, but it gets one game's PTN for each request.
+  Function passes the status and the body back, as text or as JSON. It answers a status 5xx or a timeout of the API
+  with its own status 502, and also an answer over 1 MiB and a 200 that is not `text/plain`, which is no game. Its
+  answers have no CORS header, so another site's page cannot read them. A script outside a browser can call it, but it
+  gets one game's PTN for each request.
 - **It caches a finished game.** A finished game never changes, so the Function sets `Cache-Control: public,
   max-age=86400` on a 200 answer. It keeps that answer in Cloudflare's Cache API (`caches.default`, which the PostHog
   proxy uses for PostHog's assets). It caches no other answer. The Cache API keeps a copy in each data center apart
@@ -617,6 +618,9 @@ PTN Ninja's shortener keeps a game under an id, and a short link holds the id al
   field. The limit on the answer is 1 MiB, which is the limit of a Firestore document, and on the time, 20 seconds. The
   request sends no cookie and no page address, follows no redirect and keeps no copy: the shortener removes a link that
   no one opens for 30 days.
+- **A packed game has two limits,** in a short link and in a long one: the packed text has at most 32,768 characters,
+  and its record at most 1,048,576. A short packed text can hold a record that is thousands of times longer, and the
+  page would stop while it reads that.
 - **A read counts as a visit** in the shortener (`accessed` and `visits`), as it does when PTN Ninja opens the link.
 - **The site sends no game to the shortener:** "Open in PTN Ninja" is a long link.
 - **Not checked:** a short link that exists. The tests use the form that the source shows.

@@ -68,11 +68,24 @@ test("a kept game asks playtak nothing, whatever query its address has", async (
   assert.equal(sent.length, 0);
 });
 
+test("the address's query does not reach playtak", async () => {
+  const { call, sent, kept } = setUp([text(PTN)]);
+  await call(`${PLAYTAK_PATH}123?limit=1&id=4#x`);
+  assert.equal(sent[0].url, "https://api.playtak.com/v1/games-history/ptn/123");
+  assert.deepEqual([...kept.keys()], [`${SITE}${PLAYTAK_PATH}123`]);
+});
+
 test("every other path is not found, and asks playtak nothing", async () => {
   const { call, sent } = setUp([]);
   for (const path of [PLAYTAK_PATH, `${PLAYTAK_PATH}abc`, `${PLAYTAK_PATH}12a`, `${PLAYTAK_PATH}12/34`, `${PLAYTAK_PATH}-1`,
                       `${PLAYTAK_PATH}012`, `${PLAYTAK_PATH}0`, `${PLAYTAK_PATH}12345678901`, `${PLAYTAK_PATH}%31`,
-                      `${PLAYTAK_PATH}../1`, "/api/playtak/", "/api/playtak/games/1", "/api/other/ptn/1"])
+                      `${PLAYTAK_PATH}../1`, "/api/playtak/", "/api/playtak/games/1", "/api/other/ptn/1",
+                      `${PLAYTAK_PATH}1%2f..%2f..`, `${PLAYTAK_PATH}1%2F2`, `${PLAYTAK_PATH}%2e%2e/1`, `${PLAYTAK_PATH}1%00`,
+                      `${PLAYTAK_PATH}1%0a`, `${PLAYTAK_PATH}1%3flimit=1`, `${PLAYTAK_PATH}1;x`, `${PLAYTAK_PATH}/1`,
+                      `${PLAYTAK_PATH}1/`, `${PLAYTAK_PATH}1\\2`, `${PLAYTAK_PATH}１２`, `${PLAYTAK_PATH}%EF%BC%91`,
+                      `${PLAYTAK_PATH}1e3`, `${PLAYTAK_PATH}0x1`, `${PLAYTAK_PATH}+1`, `${PLAYTAK_PATH}1.0`,
+                      `${PLAYTAK_PATH}${"9".repeat(400)}`, `/x${PLAYTAK_PATH}1`, `/${PLAYTAK_PATH}1`,
+                      PLAYTAK_PATH.toUpperCase() + "1"])
     assert.equal((await call(path)).status, 404, path);
   assert.equal(sent.length, 0);
 });
@@ -124,11 +137,44 @@ test("a second status 429 answers 502", async () => {
   assert.equal(kept.size, 0);
 });
 
-test("an answer that calls itself a page comes back as text", async () => {
-  const { call } = setUp([text("<script>1</script>", 200, "text/html")]);
-  const response = await call(`${PLAYTAK_PATH}123`);
-  assert.equal(response.headers.get("Content-Type"), "text/plain; charset=utf-8");
-  assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+test("an answer 200 that is not text is no game: it answers 502, and is not kept", async () => {
+  for (const type of ["text/html", "application/json; charset=utf-8", "text/plain, text/html", "text/plainer", ""]) {
+    const { call, kept } = setUp([text("<script>1</script>", 200, type)]);
+    const response = await call(`${PLAYTAK_PATH}123`);
+    assert.equal(response.status, 502, type);
+    assert.equal(await response.text(), "");
+    assert.equal(kept.size, 0);
+  }
+});
+
+test("another answer that calls itself a page comes back as text", async () => {
+  for (const type of ["text/html", "text/plain, text/html", "text/plain;,text/html", "text/plain; charset=utf-16", ""]) {
+    const { call } = setUp([text("<script>1</script>", 404, type)]);
+    const response = await call(`${PLAYTAK_PATH}123`);
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get("Content-Type"), "text/plain; charset=utf-8", type);
+    assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+  }
+});
+
+test("an answer comes back with none of playtak's headers", async () => {
+  const { call } = setUp([new Response(PTN, { headers: {
+    "Content-Type": "text/plain", "Set-Cookie": "a=b", "Access-Control-Allow-Origin": "*", "X-Own": "1" } })]);
+  assert.deepEqual([...(await call(`${PLAYTAK_PATH}123`)).headers.keys()],
+                   ["cache-control", "content-type", "x-content-type-options"]);
+});
+
+test("an answer over 1 MiB is not read to its end, answers 502 and is not kept", async () => {
+  let given = 0, stopped = false;
+  const endless = new ReadableStream<Uint8Array>({
+    pull(c) { given += 65536; c.enqueue(new Uint8Array(65536).fill(32)); },
+    cancel() { stopped = true; },
+  });
+  const { call, kept } = setUp([new Response(endless, { headers: { "Content-Type": "text/plain" } })]);
+  assert.equal((await call(`${PLAYTAK_PATH}123`)).status, 502);
+  assert.ok(stopped);
+  assert.ok(given < 2 ** 21, String(given));
+  assert.equal(kept.size, 0);
 });
 
 test("without a cache the proxy answers all the same", async () => {

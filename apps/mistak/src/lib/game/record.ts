@@ -108,8 +108,8 @@ function startTurn(tags: Record<string, string>): { turn: number; first: boolean
 const opensWithStack = (tags: Record<string, string>): boolean =>
   openingOf(tags) === "double black stack" && setUpStart(startOf(tags)) === undefined;
 
-/** Tak's moves, marks, starts and tags, for the shared record. */
-const moveNotation: shared.Notation<boolean> = {
+/** Tak's moves, marks, starts and tags, for the shared record. `trained`: for a game that comes in (tagsProblem). */
+const notation = (trained: boolean): shared.Notation<boolean> => ({
   read(word, { tags, first }) {
     const stack = first && opensWithStack(tags) && /^2[a-h][1-8](?!.*[<>+-])/i.test(word);
     const move = readMove(stack ? word.slice(1) : word);
@@ -123,17 +123,13 @@ const moveNotation: shared.Notation<boolean> = {
   ptn: {
     result: readResult,
     tagName: name => [...TAGS, "Position"].find(tag => tag.toLowerCase() === name.toLowerCase()) ?? name,
-    tagsProblem: tags => tagsProblem(tags, false),
+    tagsProblem: tags => tagsProblem(tags, trained),
   },
-};
+});
+const moveNotation = notation(false), takenNotation = notation(true);
 
 /** Reads a game record. Throws a RecordError with the offset of the first problem. */
 export const parseRecord = (text: string): GameRecord => shared.readRecord(text, moveNotation);
-
-/** The same notation, for a game that comes in. */
-const takenNotation: shared.Notation<boolean> = {
-  ...moveNotation, ptn: { ...moveNotation.ptn!, tagsProblem: tags => tagsProblem(tags, true) },
-};
 
 /** Reads a game record that comes in (the import). Throws a RecordError as parseRecord does, and for a size or an
  *  opening that the network does not learn: the engine gives no true values for such a game. */
@@ -169,6 +165,6 @@ export function writeRecord({ tags, moves, marked, result }: Pick<GameRecord, "t
   const head = names.map(name => `[${name} "${all[name].replaceAll('"', "''")}"]`).join("\n");
 
   const lines = turnsOf({ tags, moves, marked }).map(({ number, white, black }) =>
-    `${number}. ${[white ?? "--", ...(black === null ? [] : [black])].join(" ")}`);
+    `${number}. ${white ?? "--"}${black === null ? "" : ` ${black}`}`);
   return `${head}\n\n${lines.join("\n")} ${result ?? "*"}\n`;
 }

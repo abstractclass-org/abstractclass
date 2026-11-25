@@ -13200,9 +13200,17 @@ The logo, its files and how each is made are in design 33, "The logo".
   `Caps` tags) and the komi. The komi is last because the shared reader checks it after the site's tags. A size that
   the network did not learn is refused as a size. It has no komi range to check.
 - **Four points of the Function that the design does not give:** a redirect from playtak gives 502 and is not followed.
-  An answer that is not `text/plain` or `application/json` goes out as `text/plain` with `nosniff`, so that a page in
-  its place cannot run on the site's address. A number has 1 to 10 digits and no 0 first. The request ends after 8
+  An answer goes out as `text/plain` or `application/json` in the Function's own words, with `nosniff`, so that a page
+  in its place cannot run on the site's address. A number has 1 to 10 digits and no 0 first. The request ends after 8
   seconds.
+- **A 200 that is not `text/plain` gives 502,** and so does an answer over 1 MiB. The Function and the browser keep a
+  200 for a day, so an error or a page with the status 200 would stay in the game's place.
+- **A 404 that is a page says nothing about the game.** The Function gives a 404 as text or JSON. Where Cloudflare does
+  not run the Function, the site's own 404 page answers, so the page says that it could not get the game.
+- **The limits of a packed game:** 32,768 characters packed and 1,048,576 unpacked. lz-string has no limit of its own.
+  The longest record that 32,768 characters can hold is 116 million characters, measured with a text made by hand. It
+  took 0.1 seconds and 250 MB to unpack in Node. lz-string also throws a TypeError for some texts that it did not
+  write, and the site then says that it cannot read the link.
 - **The way in is the two other sites':** a game comes in on the Review tab, and the import page is the arrival of a
   link. The first form had an Import dialog on the home page and a form on the import page, which the two other sites
   do not have. The Import dialog comes with the Analysis board (abscls-shfz.18.20).

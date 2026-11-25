@@ -18,19 +18,31 @@ export type Way = { way: "playtak"; id: string; linked: boolean } | { way: "shor
 export interface Brought { text: string; game: GameRecord }
 
 const PLAYTAK = /^(?:https?:\/\/)?(?:www\.)?playtak\.com(?:[/?#]|$)/i;
-/** A link to a game on playtak: an address under its number, such as the one of a viewer. Only the number counts. */
-const PLAYTAK_GAME = /^(?:https?:\/\/)?(?:www\.)?playtak\.com\/games\/(\d+)(?:[/?#]|$)/i;
+/** A link to a game on playtak: an address under its number (GAME_ID), such as the one of a viewer. Only the number
+ *  counts. */
+const PLAYTAK_GAME = /^(?:https?:\/\/)?(?:www\.)?playtak\.com\/games\/([1-9]\d{0,9})(?:[/?#]|$)/i;
 /** A link to playtak's board with a game in it, as the board's page writes and reads it (`copyNotationLink` in its
  *  js/main.js, and js/board.js): the text after `?load=` at the query's start, up to another `?load=`. An `&` ends
  *  nothing, and a `+` is a move's. The letters of `load` are small. */
 const PLAYTAK_LOAD = /^(?:https?:\/\/)?(?:www\.)?playtak\.com\/?(\?[^#]*)/i;
 const PTN_NINJA = /^(?:https?:\/\/)?(?:www\.)?ptn\.ninja(?:\/|$)/i;
 
-/** The record that PTN Ninja's `text` stands for, as PTN Ninja reads it: packed by lz-string, or plain. */
-function unpacked(text: string): string {
-  if (!/^[A-Za-z0-9$+-]+$/.test(text)) return text;
-  const record = lz.decompressFromEncodedURIComponent(text);
-  if (!record) throw new Error("The site cannot read the game in this link.");
+/** What a link says whose game does not come out of it. */
+const UNREAD = "The site cannot read the game in this link.";
+
+/** The longest packed text that the site unpacks, and the longest record that it takes from one, in characters. A short
+ *  packed text can hold a record that is thousands of times longer: 32,768 characters hold up to 116 million. */
+const MOST_PACKED = 2 ** 15, MOST_RECORD = 2 ** 20;
+
+/** The record that PTN Ninja's `text` is as lz-string packed it, or null for a text that is not packed. PTN Ninja reads
+ *  both. */
+function unpacked(text: string): string | null {
+  if (!/^[A-Za-z0-9$+-]+$/.test(text)) return null;
+  let record: string | null = null;
+  try {
+    if (text.length <= MOST_PACKED) record = lz.decompressFromEncodedURIComponent(text);
+  } catch { /* lz-string throws a TypeError for some texts that it did not write */ }
+  if (!record || record.length > MOST_RECORD) throw new Error(UNREAD);
   return record;
 }
 
@@ -40,7 +52,7 @@ function readLoad(query: string): Way {
   try {
     record = decodeURIComponent(query.split("?load=")[0]);
   } catch {
-    throw new Error("The site cannot read the game in this link.");
+    throw new Error(UNREAD);
   }
   if (!record.trim()) throw new Error("This playtak link holds no game.");
   return { way: "link", record };
@@ -56,13 +68,10 @@ function readLink(link: string): Way {
     return { way: "short", id };
   }
   if (!path) throw new Error("This PTN Ninja link holds no game.");
-  const packed = path.split(/[?#]/)[0];
-  const record = unpacked(packed);
-  if (record !== packed) return { way: "link", record };
   try {
-    return { way: "link", record: decodeURIComponent(path) };
+    return { way: "link", record: unpacked(path.split(/[?#]/)[0]) ?? decodeURIComponent(path) };
   } catch {
-    throw new Error("The site cannot read the game in this link.");
+    throw new Error(UNREAD);
   }
 }
 
@@ -77,7 +86,7 @@ export function readWay(given: string): Way {
   const text = given.trim();
   if (/^\d+$/.test(text)) return { way: "playtak", id: readNumber(text), linked: false };
   const id = PLAYTAK_GAME.exec(text)?.[1];
-  if (id && GAME_ID.test(id)) return { way: "playtak", id, linked: true };
+  if (id) return { way: "playtak", id, linked: true };
   const query = PLAYTAK_LOAD.exec(text)?.[1];
   if (query?.startsWith("?load=")) return readLoad(query.slice("?load=".length));
   if (PLAYTAK.test(text))
@@ -104,23 +113,20 @@ export function bringRecord(text: string, pasted: boolean): Brought {
  *  playtak's PTN does not have: the link back to the game takes it from there. The Error of a game that playtak does not
  *  have names the number only to a player who gave it, and the link to one who gave that (`linked`). */
 export async function playtakRecord(id: string, request: typeof fetch, linked: boolean): Promise<string> {
-  const paste = "Paste the PTN of the game, or try again later.";
-  let response: Response;
+  const failed = "The site could not get the game from playtak. Paste the PTN of the game, or try again later.";
+  let response: Response, record: string;
   try {
     response = await request(PLAYTAK_PATH + id, { signal: AbortSignal.timeout(20000) });
-  } catch {
-    throw new Error(`The site could not get the game from playtak. ${paste}`);
-  }
-  if (response.status === 404) throw new Error(`Playtak has no finished game ${linked ? "at this link" : `with the number ${id}`}.`);
-  // Another address than the Function's answers with a page (a development server's, a copy of the site elsewhere).
-  if (!response.ok || !/^text\/plain\b/i.test(response.headers.get("Content-Type") ?? ""))
-    throw new Error(`The site could not get the game from playtak. ${paste}`);
-  let record: string;
-  try {
     record = await response.text();
   } catch {
-    throw new Error(`The site could not get the game from playtak. ${paste}`);
+    throw new Error(failed);
   }
+  // A page is not the Function's answer, whatever its status: a development server's, a copy of the site elsewhere, or the
+  // site's own 404 page, which Cloudflare can give where it does not run the Function.
+  const type = response.headers.get("Content-Type") ?? "";
+  if (response.status === 404 && !/^text\/html\b/i.test(type))
+    throw new Error(`Playtak has no finished game ${linked ? "at this link" : `with the number ${id}`}.`);
+  if (!response.ok || !/^text\/plain\b/i.test(type)) throw new Error(failed);
   return /^\s*\[\s*PlayTakID\s/im.test(record) ? record : withTags(record, { PlayTakID: id });
 }
 
@@ -135,7 +141,10 @@ export async function bringGame(given: string, request: typeof fetch): Promise<B
   const way = readWay(given);
   switch (way.way) {
     case "playtak": return bringPlaytak(way.id, request, way.linked);
-    case "short": return bringRecord(unpacked(await shortRecord(way.id, request)), false);
+    case "short": {
+      const record = await shortRecord(way.id, request);
+      return bringRecord(unpacked(record) ?? record, false);
+    }
     default: return bringRecord(way.record, way.way === "pasted");
   }
 }

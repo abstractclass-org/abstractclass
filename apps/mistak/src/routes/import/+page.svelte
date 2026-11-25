@@ -26,13 +26,17 @@
     await replaceState(location.pathname, {});
     startAnalytics();
     try {
-      const { record } = id === null ? readImportHash(hash) : { record: "" };
-      if (id === null && !record.trim()) throw new Error("This link holds no game.");
-      phase = { at: "game", brought: id === null ? bringRecord(record, false) : await bringPlaytak(id, fetch) };
+      phase = { at: "game", brought: id === null ? readGame(hash) : await bringPlaytak(id, fetch) };
     } catch (e) {
       phase = { at: "refused", why: e instanceof URIError ? "The site cannot read this link." : (e as Error).message };
     }
   });
+  /** The game whose record the link holds. */
+  function readGame(hash: string): Brought {
+    const { record } = readImportHash(hash);
+    if (!record.trim()) throw new Error("This link holds no game.");
+    return bringRecord(record, false);
+  }
   /** A link with a game opened in this tab: a change of the `#` alone loads nothing. */
   const linked = () => { if (holdsGame(location.hash)) location.reload(); };
 </script>

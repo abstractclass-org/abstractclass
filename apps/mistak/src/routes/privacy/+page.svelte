@@ -2,10 +2,10 @@
   // What the site keeps, and where (Hedge School's design 11), in Cyanotype's words: what the browser keeps, the visits
   // and what PostHog receives (design 34, "The site's frame": the shared analytics, with no consent). Its visit counts
   // set no cookies. Its Support Us opens Ko-fi's tip panel, so the page has the sites' part on Ko-fi
-  // (@abstractclass/site/KofiPrivacy.svelte). The page says what the site does now. The request to
-  // api.playtak.com is the Function's (src/lib/import/playtakProxy.ts), for a playtak game. The request to url.ptn.ninja
-  // is the page's own (src/lib/import/shortLink.ts), for a short PTN Ninja link. The work that adds a
-  // stored game adds its part here: Practice's stored games (design 34, "The pages").
+  // (@abstractclass/site/KofiPrivacy.svelte). The page says what the site does now. The request to api.playtak.com is
+  // the Function's (src/lib/import/playtakProxy.ts), for a playtak game. The request to url.ptn.ninja is the page's own
+  // (src/lib/import/shortLink.ts), for a short PTN Ninja link. The work that adds a stored game adds its part here:
+  // Practice's stored games (design 34, "The pages").
   import { PROSE } from "@abstractclass/site/prose.ts";
   import PageMeta from "@abstractclass/site/PageMeta.svelte";
   import KofiPrivacy from "@abstractclass/site/KofiPrivacy.svelte";
