@@ -137,3 +137,33 @@ test("Mistak, a build with PostHog's key: its page views carry internal: true af
   expect(cookies).toBe("");
   expect(keys.filter(k => /(^|_)ph_|posthog/i.test(k))).toEqual([]);
 });
+
+// A game that a link brings to Mistak travels in its address's `#` part (its import page: `#record=`, `#playtak=`). An
+// event that kept that part would send the game to PostHog. The record is written by hand for this test.
+const MISTAK_RECORD = `[Player1 "Ann Example"]\n[Player2 "Bob Example"]\n[Size "6"]\n[Komi "2"]\n\n`
+  + "1. a1 f6\n2. c3 d4 *\n";
+
+test("Mistak, a build with PostHog's key: without the flag, no `internal`, and no `#` part after a link with a game", async ({ context }) => {
+  test.skip(MISTAK === undefined, "MISTAK_BASE_URL gives no Mistak preview");
+  const at = (path: string) => new URL(path, MISTAK).href;
+  const sent = await answerPostHog(context);
+  const page = await context.newPage();
+  await page.goto(at(`/import#${new URLSearchParams({ record: MISTAK_RECORD })}`));
+  await expect(page.getByRole("link", { name: "Open in PTN Ninja" })).toBeVisible();
+  const views = () => sent.filter(e => e.event === "$pageview");
+  await expect.poll(() => views().length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
+  expect(views()[0].properties).toMatchObject({ $current_url: at("/import"), $pathname: "/import" });
+
+  // The next page, by the site's router: a page view of its own, which names the import page as the one before.
+  await page.getByRole("link", { name: "Review another game" }).click();
+  await page.waitForURL("**/review");
+  await expect.poll(() => views().map(e => e.properties.$pathname), { timeout: 15_000 }).toContain("/review");
+  for (const e of views()) expect(e.properties.internal, `the page view of ${e.properties.$pathname}`).toBeUndefined();
+  // Every address in every event (the page's, the one before it, the referrer's): no `#` part. No other text of an
+  // event holds a `#` either.
+  for (const e of sent) {
+    for (const [name, value] of Object.entries(e.properties)) {
+      if (typeof value === "string") expect(value, `${e.event}'s ${name}`).not.toContain("#");
+    }
+  }
+});
