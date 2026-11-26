@@ -13299,5 +13299,7 @@ frame of `packages/import`, as Hedge School's and Cyanotype's tools do.
   the import page's notice speaks only when the userscript's code changed. A bookmarklet's version is
   `BOOKMARK_VERSION`.
 - **Checks:** `node --test` in `packages/import` (18 pass) and Mistak's `npm test` (117 pass), with
-  `src/lib/import/tools.test.ts`; `npm run check` with no error; the browser test, 8 cases, on the preview. Not
-  checked: each tool on playtak.com in a real browser, with a game that the server sends.
+  `src/lib/import/tools.test.ts`; `npm run check` with no error; the browser test, 8 cases, on the preview. Mistak's
+  18 layout cases pass, with the tools page's sweep. `npm run check:all` passes all its 29 steps, and the whole
+  browser suite (`scripts/site-suite`) passes 505 cases, with none failed, flaky or skipped. Not checked: each tool on
+  playtak.com in a real browser, with a game that the server sends.
