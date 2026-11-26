@@ -2,14 +2,15 @@
   // A game that the import took, until the review exists (docs/design/34-tak-site.md, "Before the network"): its tags
   // and its moves as the record gives them, the links back (item 10), and one line that the review comes with the
   // engine. It draws no position: the rules that make one from the moves are the engine's. The review page and the
-  // import page show it. `children` is the way to another game.
+  // import page show it. `note` says more about how the game came (the import page's, for a tool's game), and
+  // `children` is the way to another game.
   import type { Snippet } from "svelte";
   import { tagValue } from "@abstractclass/record/record.ts";
   import { ENGINE_NAME, SITE_NAME } from "#lib/site.ts";
   import { startOf, turnsOf } from "#lib/game/record.ts";
   import SiteFooter from "#lib/SiteFooter.svelte";
   import { playtakPage, ptnNinjaLink, type Brought } from "./ways.ts";
-  let { brought, children }: { brought: Brought; children: Snippet } = $props();
+  let { brought, note, children }: { brought: Brought; note?: Snippet; children: Snippet } = $props();
 
   const game = $derived(brought.game);
   const tag = (name: string) => tagValue(game.tags[name]);
@@ -33,6 +34,7 @@
 
 <main class="box-content max-w-184 mx-auto my-6 px-4 grid gap-4">
   <h1 class="text-2xl font-bold [overflow-wrap:anywhere]">{player(1)} against {player(2)}</h1>
+  {@render note?.()}
   <p>The review comes with {ENGINE_NAME}, the engine. Until then, {SITE_NAME} shows the record and keeps nothing.</p>
   <p class="flex flex-wrap gap-x-5 gap-y-1">
     {#if page}<a class="text-sm" href={page} target="_blank" rel="noopener noreferrer">View this game on playtak</a>{/if}

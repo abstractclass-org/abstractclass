@@ -194,7 +194,9 @@ one item for each turn, separated by spaces.
 
 The two tools work on the game pages of meaf.us and of strategyjam.org. strategyjam.org replaces meaf.us as the site
 of the Enclosure strategy jam, the tournament (the engine repository's `docs/context.md`). On each site the tools
-read the game from the player's own page.
+read the game from the player's own page. The frame of the tools is shared (`packages/import`): Cyanotype's tools read
+Blueprints' pages on strategyjam.org (design 33), and Mistak's read playtak.com's pages (design 34, "The tools for
+playtak's pages").
 
 - **On meaf.us, it reads the game that the board holds:** React's `game` property of the board. It sends no request
   to meaf.us and uses nothing from the player's login. It opens the import page (`/import`) with the record after the

@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- A page with the state shape of playtak.com's web client (playtak-ui), written by hand for Mistak's tools
+     (tests/mistak-tools.spec.ts), as playtak-finished.html. The game is made up: a game in progress on 6×6, with a
+     capstone, a wall and a stack move, komi 2.5, between two made-up players. The page shows the position after
+     Black's third move (move_shown 6), and highlights Cd4. The game's number is made up too. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A game in progress, by hand</title>
+<style>
+  body { display: flex; gap: 16px; margin: 0; font: 14px sans-serif; background: #222; color: #eee; }
+  #board { flex: 1; height: 100vh; background: #435; }
+  #rmenu { width: 200px; }
+  #notationbar { height: 300px; overflow-y: auto; }
+  .optlist { text-align: center; }
+  .curmove { background: #666; }
+  .navitem { width: 26px; height: 36px; margin: 0 5px; padding: 0; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div id="board"></div>
+<div id="rmenu">
+  <p><span class="player1-name">alder_test</span> against <span class="player2-name">birch_test</span></p>
+  <div id="notationbar">
+    <table id="moveslist">
+      <tr><td>1.</td><td><a href="#"><span class="moveno0">a6</span></a></td><td><a href="#"><span class="moveno1">f1</span></a></td></tr>
+      <tr><td>2.</td><td><a href="#"><span class="moveno2">c3</span></a></td><td><a href="#"><span class="moveno3">d3</span></a></td></tr>
+      <tr><td>3.</td><td><a href="#"><span class="moveno4">c4</span></a></td><td><a href="#"><span class="moveno5 curmove">Cd4</span></a></td></tr>
+      <tr><td>4.</td><td><a href="#"><span class="moveno6">Sc2</span></a></td><td><a href="#"><span class="moveno7">1d4&lt;</span></a></td></tr>
+      <tr><td>5.</td><td><a href="#"><span class="moveno8">b3</span></a></td><td></td></tr>
+    </table>
+  </div>
+  <div class="optlist center">
+    <button class="navitem">|&lt;</button>
+    <button class="navitem">&lt;</button>
+    <button class="navitem">&gt;</button>
+    <button class="navitem">&gt;|</button>
+  </div>
+</div>
+<script>
+  let gameData = { id: 999999902, size: 6, komi: 5, pieces: 30, capstones: 1, opening: "swap", result: "",
+                   observing: false, is_scratch: false, is_game_end: false, move_count: 9, move_start: 0, move_shown: 6 };
+</script>
+</body>
+</html>

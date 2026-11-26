@@ -13,7 +13,8 @@
 // kept, and Practice a game in progress from it. The import page shows the choice for a userscript's game, with the
 // notice to update the userscript. Three tests check that the monospaced font draws no ligatures, on Hedge School, on
 // Cyanotype (CYANOTYPE_BASE_URL) and on Mistak (MISTAK_BASE_URL). One sweeps Cyanotype's home page, and one its Notices
-// page. Six sweep Mistak's home page, About page, Notation page, Notices page, How a review works and its board lab.
+// page. Seven sweep Mistak's home page, About page, Notation page, Notices page, How a review works, tools page and
+// its board lab.
 // One walks Mistak's board with the keys. Four sweep Mistak's Review tab and import page, and one checks where that
 // page leads. Three check the site's menu open on a narrow window, on each site. Three check the Support Us dialog,
 // on each site, in a wide window and on a phone. Six check the header's "Early Access" link, on each site in each
@@ -272,12 +273,13 @@ for (const [name, path] of [["home page", "/"], ["Notices page", "/notices"],
 // Mistak's pages (its design 34), when MISTAK_BASE_URL gives its preview: its frame and its texts, until its engine
 // comes. The home page: the invitation and the logo. The About page: its texts and lists. The Notation page: its
 // examples in code blocks, which scroll sideways on purpose, and its tables. The Notices page: the licences, with
-// their texts in code blocks. How a review works: its table of bands and its formulas in code blocks. The board lab:
+// their texts in code blocks. How a review works: its table of bands and its formulas in code blocks. The tools page:
+// the bookmarklet's button in its step, and the steps for Tampermonkey. The board lab:
 // a game of 8x8 with a stack past the bars and a long TPS. Each sweep checks the header's row, with the site's menu
 // closed below 900 pixels.
 for (const [name, path] of [["home page", "/"], ["About page", "/about"], ["Notation page", "/notation"],
                             ["Notices page", "/notices"], ["How a review works", "/how-reviews-work"],
-                            ["board lab", "/lab/board?p=23"]]) {
+                            ["tools page", "/tools"], ["board lab", "/lab/board?p=23"]]) {
   test(`layout of Mistak's ${name}`, async ({ page }) => {
     test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
     await page.goto(new URL(path, MISTAK).href);
@@ -356,7 +358,7 @@ test("layout of Mistak's import page with its refusal", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText("another size: 8");
   expect(await sweep(page, "Mistak's import page, refusal")).toBe("");
 });
-test("Mistak's import page takes a game out of its address, and alone leads to the Review tab", async ({ page }) => {
+test("Mistak's import page takes a game out of its address, and alone leads to the tools page", async ({ page }) => {
   test.skip(!MISTAK, NO_PREVIEW["Mistak"]);
   await page.goto(mistakImport(MISTAK_TAKEN));
   await expect(page.getByRole("link", { name: "Open in PTN Ninja" })).toBeVisible();
@@ -365,8 +367,8 @@ test("Mistak's import page takes a game out of its address, and alone leads to t
   await expect(page.getByRole("heading", { name: "Review your Tak game" })).toBeVisible();
   await page.goto("about:blank");
   await page.goto(new URL("/import", MISTAK).href);
-  await page.waitForURL(url => url.pathname === "/review");
-  await expect(page.getByRole("heading", { name: "Review your Tak game" })).toBeVisible();
+  await page.waitForURL(url => url.pathname === "/tools");
+  await expect(page.getByRole("heading", { name: "Bring your games from playtak.com" })).toBeVisible();
 });
 
 // The buttons for partner sites on both sites' pages for developers (Hedge School's design 18, item 11, and

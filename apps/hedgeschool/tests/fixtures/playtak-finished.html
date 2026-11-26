@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- A page with the state shape of playtak.com's web client (playtak-ui), written by hand for Mistak's tools
+     (tests/mistak-tools.spec.ts): its game in `let gameData` (komi in half flats), its moves only in the table
+     #moveslist, each move in the client's markup (a span "moveno<ply>", and "curmove" on the ply that led to the position
+     on the board: move_shown - 1, as setShownMove in the client's game-interface.js highlights it), the players' names
+     in .player1-name and .player2-name, and the row of buttons under the move list. The game is made up: a finished
+     game on 5×5, a road for White on the third row, between two made-up players. The game's number is made up too. Nothing of playtak-ui's own page or code is here. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A finished game, by hand</title>
+<style>
+  body { display: flex; gap: 16px; margin: 0; font: 14px sans-serif; background: #222; color: #eee; }
+  #board { flex: 1; height: 100vh; background: #435; }
+  #rmenu { width: 200px; }
+  #notationbar { height: 300px; overflow-y: auto; }
+  .optlist { text-align: center; }
+  .curmove { background: #666; }
+  .navitem { width: 26px; height: 36px; margin: 0 5px; padding: 0; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div id="board"></div>
+<div id="rmenu">
+  <p><span class="player1-name">alder_test</span> against <span class="player2-name">birch_test</span></p>
+  <div id="notationbar">
+    <table id="moveslist">
+      <tr><td>1.</td><td><a href="#"><span class="moveno0">e5</span></a></td><td><a href="#"><span class="moveno1">a1</span></a></td></tr>
+      <tr><td>2.</td><td><a href="#"><span class="moveno2">a3</span></a></td><td><a href="#"><span class="moveno3">e4</span></a></td></tr>
+      <tr><td>3.</td><td><a href="#"><span class="moveno4">b3</span></a></td><td><a href="#"><span class="moveno5">Sd4</span></a></td></tr>
+      <tr><td>4.</td><td><a href="#"><span class="moveno6">c3</span></a></td><td><a href="#"><span class="moveno7">c4</span></a></td></tr>
+      <tr><td>5.</td><td><a href="#"><span class="moveno8">d3</span></a></td><td><a href="#"><span class="moveno9">b4</span></a></td></tr>
+      <tr><td>6.</td><td><a href="#"><span class="moveno10 curmove">e3</span></a></td><td></td></tr>
+      <tr><td></td><td>R-0</td></tr>
+    </table>
+  </div>
+  <div class="optlist center">
+    <button class="navitem">|&lt;</button>
+    <button class="navitem">&lt;</button>
+    <button class="navitem">&gt;</button>
+    <button class="navitem">&gt;|</button>
+  </div>
+</div>
+<script>
+  let gameData = { id: 999999901, size: 5, komi: 4, pieces: 21, capstones: 1, opening: "swap", result: "R-0",
+                   observing: true, is_scratch: false, is_game_end: true, move_count: 11, move_start: 0, move_shown: 11 };
+</script>
+</body>
+</html>

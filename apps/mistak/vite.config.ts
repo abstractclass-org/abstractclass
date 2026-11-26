@@ -3,6 +3,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { analyticsTokenCheck } from '@abstractclass/site/analyticsTokens.ts';
 
 // Mistak, Tak's site (docs/design/34-tak-site.md), on Hedge School's and Cyanotype's build (apps/cyanotype).
@@ -12,15 +14,29 @@ const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_
 	?? (() => { try { return execSync('git rev-parse HEAD').toString().trim(); } catch { return 'unknown'; } })();
 
 // The site's address, for what leaves the site and comes back to it, as Cyanotype's: the tools for playtak's pages
-// (design 34, "The tools for playtak's pages") will update from it and open their games there. The deploy's build of
+// (design 34, "The tools for playtak's pages", src/lib/import/tools.ts) update from it and open their games there. The deploy's build of
 // main (.github/workflows/deploy.yml, which sets Cloudflare's build variables) is the live site, a build of another
 // branch its preview, and a local build the local preview server. SITE_ORIGIN sets another.
 const origin = process.env.SITE_ORIGIN
 	?? (process.env.CF_PAGES_BRANCH === 'main' ? 'https://mistak.abstractclass.org'
 		: process.env.CF_PAGES_URL ?? 'http://127.0.0.1:4173');
 
+// The userscript's versions (src/lib/import/tools.ts), as Cyanotype's. For Tampermonkey: the build's time (UTC), which
+// grows with each build. For the import page: a hash of the files that make its code (its frame in packages/import,
+// and Mistak's page code), so that it tells a player of an out-of-date userscript only when that code changed.
+const now = new Date(), pad = (n: number) => String(n).padStart(2, '0');
+const userscriptVersion = `${now.getUTCFullYear()}.${now.getUTCMonth() + 1}.${now.getUTCDate()}.${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
+const userscriptCode = createHash('sha256')
+	.update(['../../packages/import/src/userscript.ts', '../../packages/import/src/pageCode.ts',
+		...['tools.ts', 'playtakPage.ts'].map(f => `src/lib/import/${f}`)]
+		.map(f => readFileSync(f, 'utf8')).join('\0'))
+	.digest('hex').slice(0, 12);
+
 export default defineConfig({
-	define: { __SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin) },
+	define: {
+		__SITE_VERSION__: JSON.stringify(commit.slice(0, 7)), __SITE_ORIGIN__: JSON.stringify(origin),
+		__USERSCRIPT_VERSION__: JSON.stringify(userscriptVersion), __USERSCRIPT_CODE__: JSON.stringify(userscriptCode),
+	},
 	plugins: [
 		// A malformed analytics token stops the build.
 		analyticsTokenCheck(),

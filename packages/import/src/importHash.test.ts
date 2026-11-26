@@ -31,6 +31,25 @@ test("another site's link, a partner's page that sends a kept review, and an old
   assert.deepEqual(readImportHash(encodeURIComponent(bare)), { ...NONE, record: bare });
 });
 
+test("a game that the site fetches by its id: its parameter gives the id, and without it the hash reads as before", () => {
+  const tool = String(new URLSearchParams({ tool: "bookmarklet", v: "1", site: "play.example", at: "1", record }));
+  const link = String(new URLSearchParams({ record, save: "https://partner.example/save" })), bare = encodeURIComponent(record);
+  // With the site's parameter: the id, "" for an empty one, and null where the hash has none.
+  assert.deepEqual(readImportHash("playtak=123", "playtak"), { ...NONE, record: "", link: true, id: "123" });
+  assert.equal(readImportHash("playtak=", "playtak").id, "");
+  assert.equal(readImportHash("playtak=123&record=x", "playtak").id, "123");
+  for (const hash of [tool, link, bare, "other=123"]) {
+    assert.deepEqual(readImportHash(hash, "playtak"), { ...readImportHash(hash), id: null }, hash);
+  }
+  // A tool's record that holds the parameter's name is no id.
+  assert.equal(readImportHash(String(new URLSearchParams({ tool: "userscript", record: "playtak=1" })), "playtak").id, null);
+  // Without it: what the import pages read before, with no `id`.
+  assert.deepEqual(readImportHash(tool), { ...NONE, record, tool: "bookmarklet", version: "1", site: "play.example", at: 1 });
+  assert.deepEqual(readImportHash(link), { ...NONE, record, link: true, save: "https://partner.example/save" });
+  assert.deepEqual(readImportHash(bare), { ...NONE, record });
+  assert.deepEqual(readImportHash("playtak=123"), { ...NONE, record: "", link: true });
+});
+
 // Which part holds a game (holdsGame) and a bare record's parameters (hashParams): @abstractclass/site's
 // addressHash.test.ts.
 test("which part after the `#` the review's arrival step takes", () => {

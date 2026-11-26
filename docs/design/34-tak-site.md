@@ -181,8 +181,8 @@ The engine repository's research and plan for Tak are in its `games/tak/docs/`:
     - **A PTN Ninja link:** the site reads the PTN from a long link's path. A short link (`ptn.ninja/s/<id>`) holds no
       game, and the page asks PTN Ninja's shortener for it ("PTN Ninja's short link").
     - **The import page** (`/import`) is where a link from outside arrives, as on Hedge School: `#playtak=<number>` (a
-      parameter named by its payload, design 22) and `#record=`. It has no form. A refusal shows why, with a link to
-      the Review tab. The page alone goes to the Review tab until the tools page exists.
+      parameter named by its payload, design 22), `#record=` and a tool's game (`#tool=`). It has no form. A refusal
+      shows why, with a link to the Review tab. The page alone goes to the tools page.
     - **The Import dialog** belongs to the Analysis board, as on the two other sites: a position and moves (ticket 19).
     - **A game from playtak's page,** finished or in progress, by the bookmarklet or the userscript ("The tools for
       playtak's pages").
@@ -410,15 +410,41 @@ bookmarklet and the userscript"). The loader, the import page's `tool=` hash, th
 shared ones (`packages/import`). The site's own part is the reader of playtak's page.
 
 - **The page:** playtak.com's web client, `playtak-ui`. Its code is public (MIT), so the work first reads it, to find
-  where the page keeps the game's moves, its size, its komi, its opening, its players and its id.
+  where the page keeps the game's moves, its size, its komi, its opening, its players and its id. The page shows one
+  game at a time: one that the player plays, watches or loaded by a link, or one that ended there.
 - **What the tool reads:** the game that the player's page shows, from the client's own state, as Hedge School's tools
   read meaf.us's board. It sends no request to playtak, and uses nothing from the player's login. A game in progress
   gives the result `*`, as any unfinished game (item 9). The record carries the `PlayTakID` tag when the page gives
-  the id.
+  the id. The reader is `apps/mistak/src/lib/import/playtakPage.ts`:
+  - **The game's facts** come from the client's `gameData`, a `let` of its scripts that a script reads by its name:
+    the id (0 for a game that a link loaded, which then gets no `PlayTakID`), the size, the komi (in half flats, as
+    playtak's server sends it, so the reader halves it), the reserves, the opening, the result and the position on
+    the screen. The record writes them as playtak's own export does, with no `Opening` tag for the swap opening.
+  - **The moves** come from the move list, `#moveslist`, the one place where the page keeps them, as PTN text. The
+    reader skips the result's row and a result's word in a move's cell (an aborted game's `0-0`).
+  - **The players** are the names in the page's first `.player1-name` and `.player2-name`.
+  - **The record has no date.** The page knows only the day of the click, as its own export writes it.
+- **What the tool refuses,** with a message that tells the player what to do: a page with no game, a game with no move
+  yet, a game from a set-up position (the page keeps no TPS, only the word "load" in its move list: the player pastes
+  the PTN or the link that loaded the game in the Review tab), and a game of playtak's history (`/games/<number>`,
+  a page that the Review tab takes by its address).
+- **The button** is on a line of its own, at the middle, under the row of buttons under the move list, which step
+  through the moves. That row fills the panel, so a button at its end goes to the next line at some widths: a line of
+  its own puts the button in one place at every width. It shows only while the move list has a row. The tools page is
+  `/tools`, with the header's link from 640 pixels and the footer's below, as on Cyanotype.
+- **The import page** shows the game as it shows any game until the review exists ("Before the network"), with the
+  position that the page showed, and the notice of an out-of-date tool.
 - **playtak's rules:** the research found no rule of playtak's on tools that read its pages. Its one rule on its data
   asks people not to scrape the site ("Please don't scrape this site", `research/playtak.md`). A tool reads one game,
   the one on the player's screen, at the player's click.
-- **The tests** read saved pages that hold games written by hand, never a playtak game (item 14).
+- **The tests** read saved pages that hold games written by hand, never a playtak game (item 14). The saved pages are
+  written by hand in the client's state shape (`apps/hedgeschool/tests/fixtures/playtak-*.html`), not saved from the
+  client: a saved copy of the client's page carries its code, and keeps none of its state (`gameData` lives only in
+  the running page). The browser test serves them at playtak.com's address through Playwright's routes, and the
+  browser resolves no address of playtak. A check that is not in the repository ran the tools on `playtak-ui`'s own
+  client, from a clone, with no request out of the browser. It loaded the same two games through the client's Load
+  box, on its 2D board (the 3D board needs WebGL). The client's move list, names and row of buttons were as the saved
+  pages hold them, and it showed that the button does not fit at the end of the row.
 
 ## Draws
 
@@ -518,8 +544,9 @@ modules and an optional GPU module. Its JavaScript stays in `games/enclosure/was
    - **The writer is Mistak's own** (`apps/mistak/src/lib/game/record.ts`): the package's writer writes Hedge School's
      tags and its turns on one line.
 5. **A game fetched by its id** from a play site's API. It stays the site's own part, as each page reader is. The
-   import's frame (`readImportHash`, the import's events) takes it as a new way in. Until the tools' ticket
-   (abscls-shfz.18.21) moves it there, Mistak's import page reads `#playtak=` itself.
+   import's frame takes it as a new way in: `readImportHash` takes the name of the site's parameter (Mistak's
+   `playtak`) and gives its value as `id`. Without the name, it reads as before, so the sites without such a way
+   change nothing. The import's events take it with the review (ticket 10).
 
 **The site's own parts:** the board, its input and its editor, PTN's moves and marks, TPS, the reader of playtak's
 PTN, of playtak's page and of ptn.ninja's links, the players' cards, and the texts.
@@ -862,6 +889,13 @@ This document is the plan. The engine's plan is in the engine repository's `game
   once without PostHog's key, and its step `mistak-no-posthog` checks that build. Not on Mistak yet, each with its
   issue in the spec's comment: the engine's cases and the engine's notices, the consent and the practice games,
   the home page's replay, and all of `site-failure`.
+- **The tools for playtak's pages** (ticket 20, abscls-shfz.18.21): `apps/mistak/src/lib/import/playtakPage.ts` reads
+  the page, `tools.ts` makes the bookmarklet and the userscript on `packages/import`, the site serves them at
+  `/bookmarklet.js`, `/mistak.user.js` and `/mistak.meta.js`, and `src/routes/tools` is the tools page. The import
+  page takes a tool's game, and reads `#playtak=` through `readImportHash` (item 5). The tests are
+  `src/lib/import/tools.test.ts` and `apps/hedgeschool/tests/mistak-tools.spec.ts`. Not checked: each tool on
+  playtak.com in a real browser, with a game that the server sends (an id above 0, a result from the server, and the
+  game of a player who plays it).
 - **The rest** of "The tickets proposed" is not built.
 
 ## Log

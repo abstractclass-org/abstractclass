@@ -13246,3 +13246,58 @@ The logo, its files and how each is made are in design 33, "The logo".
   review comes with Takumi. The Review tab and the import page show it with one component.
 - **Not checked here:** the Function on Cloudflare, and a game fetched by its id from a preview in a real browser,
   and a short link that exists. The browser's checks used fake answers. No request was made to playtak's API.
+
+### Mistak: the tools for playtak's pages (2026-11-27)
+
+Ticket 20 of design 34 (abscls-shfz.18.21): a bookmarklet, a Tampermonkey userscript and the tools page `/tools`,
+which bring a game from playtak.com's board to Mistak's import page, also a game that is not finished. They use the
+frame of `packages/import`, as Hedge School's and Cyanotype's tools do.
+
+- **What the client holds.** The reading is of `playtak-ui` on GitHub (MIT), commit `ba2b351`. The page's game is in
+  `let gameData`, a script's global: `id` (0 for a scratch game and a loaded game), `size`, `komi` in half flats,
+  `pieces`, `capstones`, `opening`, `result` (empty while the game goes on), `move_start` and `move_shown`. The moves
+  are only in the table `#moveslist`, a row for each number: the number, White's move, Black's move. The players'
+  names are in `.player1-name` and `.player2-name`. The page keeps no date and no position of a set-up start.
+- **`move_shown` is the number of plies in the position on the board.** `setShownMove` in `src/js/game-interface.js`
+  sets it and highlights the ply that led to that position (`curmove` on the span `moveno<move_shown - 1>`).
+  `previousMove` and `nextMove` step it, and both boards follow it. A new ply moves it only when it shows the last ply
+  (`incrementMoveCounter`). So the import page's position is `move_shown` plies into the game.
+- **The reader's rules** (`apps/mistak/src/lib/import/playtakPage.ts`). The tags are Site, Player1, Player2, Result,
+  Size, Komi (`komi / 2`), Flats, Caps, Opening (only when it is not swap, as the client writes it) and PlayTakID (only
+  when the id is above 0). The result is the page's result when PTN knows it, else `*`. The moves are each cell after
+  the number, with no empty cell, no `--` and no result: the client writes a result in a row of its own, and also
+  `0-0` in a move's cell. The position on the page goes as `at` only when it is a whole number from 0 to the number of
+  moves. No Date tag: the page has no date.
+- **The double black stack** is read as the client writes it (`2a1`), with its Opening tag, and the import refuses it
+  with the reason that it refuses any opening that is not swap: the engine learned the swap opening only.
+- **The tools refuse** a page with no `gameData` (they name the tools page), a game with no move, a game from a set-up
+  position (the cell `load`, or `move_start` above 0: the page keeps no position, so they name the Review tab, which
+  takes the PTN), and a page of playtak's history (`/games/<number>`, which the Review tab takes by its address).
+- **The button** is on a line of its own under the row of buttons under the move list. A check on the client itself
+  (below) showed that its panel is 198 pixels wide and that a button at the end of the row goes to the next line.
+- **The saved pages for the tests** are written by hand in the client's state shape, with made-up players and made-up
+  ids (999999901, 999999902): a finished game on 5×5 and a game in progress on 6×6. Each move is in the client's
+  markup, with the highlight on the ply that `move_shown` names, and the browser test checks that the two agree. A
+  copy saved from the client
+  carries the client's code and keeps no `gameData`, so it cannot be the test's page, and the rules keep playtak's
+  games and code out of the repository. The browser test (`apps/hedgeschool/tests/mistak-tools.spec.ts`) serves them
+  at `https://playtak.com/` through Playwright's routes and aborts each other request to playtak, ptn.ninja and
+  ustak.org. The Playwright config maps those hosts to no address in the browser's resolver. The page at a public
+  address loads the bookmarklet's code from the preview on this computer only with Chromium's `local-network-access`
+  permission, which the test grants to that origin. The live site has a public address and needs none.
+- **The check on the client itself,** a script out of the repository: the clone's files served at playtak.com's address
+  through Playwright's routes, every other request aborted and every WebSocket closed, in headless Chromium with the
+  config's launch options. The 3D board needs WebGL, which the browser off the GPU does not have, so the check used
+  the client's 2D board. The two games, loaded through the client's Load box, gave the move list, the names and the
+  row of buttons that the saved pages hold. The bookmarklet opened each game on the import page. The client drops a
+  loaded record's result, so a loaded finished game arrives with `*`.
+- **`#playtak=` moved into `readImportHash`** (design 34, item 5). The function takes the name of a site's parameter
+  and then gives `id`, the parameter's value when the hash is not a tool's. Without the name it returns what it
+  returned before, so Hedge School and Cyanotype do not change. site-coord agreed to this change in `packages/import`
+  on this branch, with its conditions: a unit test for both forms, and the header comment that names Mistak's way in.
+- **The userscript's version** is the build's time, and its code version is a hash of the four files that make it, so
+  the import page's notice speaks only when the userscript's code changed. A bookmarklet's version is
+  `BOOKMARK_VERSION`.
+- **Checks:** `node --test` in `packages/import` (18 pass) and Mistak's `npm test` (117 pass), with
+  `src/lib/import/tools.test.ts`; `npm run check` with no error; the browser test, 8 cases, on the preview. Not
+  checked: each tool on playtak.com in a real browser, with a game that the server sends.

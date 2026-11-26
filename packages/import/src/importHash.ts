@@ -8,6 +8,9 @@
 //     version to tell a player whose tool is out of date (design 11).
 //   - A link from another site (design 18): `record`, the game's record, and `save`, the page where a partner site
 //     takes the review back (Hedge School's partners.ts).
+//   - A game that the site fetches by its id from a play site, in a parameter that the site names (readImportHash's
+//     `idParam`): Mistak's `playtak=<id>`, a playtak game's number, which its own Function fetches (Mistak's design
+//     34, item 5, "A game fetched by its id"). The sites without one give no `idParam`.
 // - The review's (`/review`): `game`, a game kept in this browser. Its arrival step takes the others (reviewArrives):
 //   `packed`, a shared review, `from`, the origin of a partner's page that kept a review, which then sends the review
 //   file by a window message, and a tool's game from a tool older than the import page.
@@ -32,7 +35,22 @@ const NO_SENDER = { tool: null, version: "", site: null, at: null, link: false, 
 /** Whether the part after the `#` is a tool's game (bookmarklet.ts, userscript.ts). */
 const fromTool = (hash: string) => hash.startsWith("tool=");
 
-export function readImportHash(hash: string): ImportHash {
+/** The record after the `#` and what sent it (ImportHash), and the id of a game that the site fetches (`id`): the value
+ *  of the site's parameter for it, "" when the parameter is empty, or null when the part after the `#` has none. */
+export interface FetchHash extends ImportHash { id: string | null }
+
+/** Reads the part after an import page's `#`. With `idParam`, the name of the site's parameter for a game that it
+ *  fetches by its id (Mistak's "playtak"), it also gives that id. Without it, it gives what it always gave. */
+export function readImportHash(hash: string): ImportHash;
+export function readImportHash(hash: string, idParam: string): FetchHash;
+export function readImportHash(hash: string, idParam?: string): ImportHash | FetchHash {
+  const sent = readSent(hash);
+  if (idParam === undefined) return sent;
+  return { ...sent, id: (fromTool(hash) ? null : hashParams(hash))?.get(idParam) ?? null };
+}
+
+/** The record after the `#`, and what sent it. */
+function readSent(hash: string): ImportHash {
   if (fromTool(hash)) {
     const p = new URLSearchParams(hash), tool = p.get("tool"), at = p.get("at") ?? "";
     return { ...NO_SENDER, record: p.get("record") ?? "", tool: tool === "bookmarklet" || tool === "userscript" ? tool : null,

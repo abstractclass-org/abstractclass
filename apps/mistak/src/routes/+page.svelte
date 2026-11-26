@@ -36,6 +36,7 @@
         practice games against {ENGINE_NAME} come with the engine. You can bring a game now, and see what the site reads
         in it.</p>
       <a class="text-ink underline decoration-line underline-offset-4 hover:decoration-accent" href="/review">Review a game you played</a>
+      <a class="text-ink underline decoration-line underline-offset-4 hover:decoration-accent" href="/tools">Bring a game from playtak.com in one click</a>
     </div>
     <div class="justify-self-center"><Logo size={192} label="Mistak's logo: a stack of stones with a capstone on top" /></div>
   </section>

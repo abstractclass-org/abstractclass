@@ -51,6 +51,8 @@
         <span id="game-hint" class="flex-1 min-w-56 text-xs text-muted">Paste a link to a finished game on playtak.com, a
           PTN Ninja link, or the game's record in <a href="/notation">PTN</a>.</span>
       </div>
+      <p class="mt-2.5 text-xs text-muted">For a game on playtak.com that is not finished, use the
+        <a href="/tools">bookmarklet or the userscript</a>: one click on the game's page.</p>
     </form>
   </section>
 </main>

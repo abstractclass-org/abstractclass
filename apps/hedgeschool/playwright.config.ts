@@ -26,8 +26,10 @@ for (const [variable, site] of [["CYANOTYPE_BASE_URL", "Cyanotype"], ["MISTAK_BA
 const showScrollBars = { ignoreDefaultArgs: ["--hide-scrollbars"] };
 // No test reaches PostHog: the browser resolves none of its addresses, so a build with a PostHog key (check:all gives
 // Hedge School's a made-up one) sends nothing out. Playwright's routes still answer them, before the browser resolves
-// the address (tests/analytics.spec.ts).
-const NO_POSTHOG = ["--host-resolver-rules=MAP posthog.com ~NOTFOUND, MAP *.posthog.com ~NOTFOUND"];
+// the address (tests/analytics.spec.ts). No test reaches playtak.com either: Mistak's tools run on saved pages that the
+// routes serve at its address (tests/mistak-tools.spec.ts), and no test sends a request to playtak or PTN Ninja.
+const NOT_OUT = ["posthog.com", "playtak.com", "ptn.ninja", "ustak.org"];
+const NO_OUTSIDE = [`--host-resolver-rules=${NOT_OUT.flatMap(host => [`MAP ${host} ~NOTFOUND`, `MAP *.${host} ~NOTFOUND`]).join(", ")}`];
 
 export default defineConfig({
   testDir: "tests",
@@ -37,9 +39,9 @@ export default defineConfig({
   reporter: [["list"]],
   use: { baseURL: process.env.BASE_URL ?? "http://127.0.0.1:4173", screenshot: "only-on-failure" },
   projects: [
-    { name: "chromium", use: { browserName: "chromium", launchOptions: { ...showScrollBars, args: [...OFF_THE_GPU, ...NO_POSTHOG] } } },
+    { name: "chromium", use: { browserName: "chromium", launchOptions: { ...showScrollBars, args: [...OFF_THE_GPU, ...NO_OUTSIDE] } } },
     ...(withEdge()
-      ? [{ name: "edge", use: { browserName: "chromium" as const, channel: "msedge", launchOptions: { ...showScrollBars, args: NO_POSTHOG } } }]
+      ? [{ name: "edge", use: { browserName: "chromium" as const, channel: "msedge", launchOptions: { ...showScrollBars, args: NO_OUTSIDE } } }]
       : []),
     // WebKit, Safari's engine, for the load notice's cases only: Safari's message for a module that did not load names
     // no module (@abstractclass/site/loadNotice.ts). It needs `npx playwright install webkit` once. On Windows it takes

@@ -6,7 +6,8 @@ import { SITE_ORIGIN } from "#lib/site.ts";
 
 export const prerender = true;
 
-const PAGES = ["/", "/review", "/how-reviews-work", "/notation", "/about", "/developers", "/privacy", "/notices"];
+const PAGES = ["/", "/review", "/how-reviews-work", "/tools", "/notation", "/about", "/developers", "/privacy",
+               "/notices"];
 
 export function GET() {
   return sitemapResponse(SITE_ORIGIN, PAGES);
