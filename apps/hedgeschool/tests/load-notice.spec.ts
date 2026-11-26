@@ -11,7 +11,6 @@
 import { expect, test, type Page } from "./page-log.ts";
 import { CYANOTYPE } from "./cyanotype-review.ts";
 import { LOAD_NOTICE } from "../../../packages/site/src/loadNotice.ts";
-import { SITE_NAME as MISTAK_NAME } from "../../mistak/src/lib/site.ts";
 
 const START = "**/_app/immutable/entry/start.*.js";
 
@@ -27,14 +26,12 @@ const boxReady = async (page: Page) => {
   }).toPass({ timeout: 60_000 });
 };
 
-/** Each site's preview, and what its cases open: the page whose route's code fails (Mistak has no Practice until
- *  abscls-shfz.18.22), whether the home page has a replay, and how the Review tab shows that it has started. */
+/** Each site's preview, and where its cases differ: the page whose route's code fails (Mistak has no Practice until
+ *  abscls-shfz.18.22), whether the home page has a replay, and how the Review tab shows that it has started. The
+ *  defaults are Hedge School's and Cyanotype's (the loop below). */
 const SITES = [
-  { site: "Hedge School", base: "", route: "/practice", replay: true, ready: tabReady, noPreview: "" },
-  { site: "Cyanotype", base: CYANOTYPE, route: "/practice", replay: true, ready: tabReady,
-    noPreview: "CYANOTYPE_BASE_URL gives no Cyanotype preview" },
-  { site: MISTAK_NAME, base: process.env.MISTAK_BASE_URL, route: "/notation", replay: false, ready: boxReady,
-    noPreview: "MISTAK_BASE_URL gives no Mistak preview" },
+  { site: "Hedge School", base: "" }, { site: "Cyanotype", base: CYANOTYPE },
+  { site: "Mistak", base: process.env.MISTAK_BASE_URL, route: "/notation", replay: false, ready: boxReady },
 ];
 
 const notice = (page: Page) => page.locator("[data-load-notice]");
@@ -52,9 +49,9 @@ async function preloads(page: Page, address: string): Promise<Set<string>> {
   return new Set([...links].map(m => new URL(m[1], response.url()).href));
 }
 
-for (const { site, base, route, replay, ready, noPreview } of SITES) {
+for (const { site, base, route = "/practice", replay = true, ready = tabReady } of SITES) {
   test.describe(site, () => {
-    test.skip(base === undefined, noPreview);
+    test.skip(base === undefined, `${site.toUpperCase()}_BASE_URL gives no ${site} preview`);
     test.beforeEach(({ context }) => context.route(/^https:\/\/([^/]+\.)?posthog\.com\//, route => route.abort()));
 
     test("a page whose start.js does not load says to load it again, and its button does", async ({ page,
@@ -79,7 +76,9 @@ for (const { site, base, route, replay, ready, noPreview } of SITES) {
     });
 
     test("a page whose route's code does not load says to load it again", async ({ page }) => {
-      await page.route("**/_app/immutable/nodes/**", route => route.abort());
+      // The route's own nodes, not the root layout's or the error page's: SvelteKit catches the failure and shows its
+      // error page, so only Vite's `vite:preloadError` tells the script. A node's unhandled failure is the 404 case's.
+      await page.route(/\/_app\/immutable\/nodes\/(?![01]\.)[^/]+\.js$/, route => route.abort());
       await page.goto(at(base, route));
       await expect(notice(page)).toBeVisible();
       await expect(notice(page).getByRole("button", { name: LOAD_NOTICE.action })).toBeVisible();

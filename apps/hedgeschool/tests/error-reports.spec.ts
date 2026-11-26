@@ -29,19 +29,17 @@ const record = (fixture: string) => {
 const MISTAK_RECORD = `[Event "${EVENT}"]\n[Player1 "${TYPED}"]\n[Player2 "Bob Example"]\n[Size "6"]\n[Komi "2"]\n\n` +
   "1. a1 f6\n2. Cc3 Sd4\n3. Sc4 Cd3\n";
 
+// `missing`: the site has no preview. `engine`, `game` and `taken` differ on Mistak, which has no engine and no tools
+// yet, and whose Import page shows the game at once (BroughtGame.svelte).
 const SITES = [
   { site: "Hedge School", base: () => test.info().project.use.baseURL!, record: record("hedgefund-review.json"),
-    engine: true, noPreview: "", game: "a tool's game", taken: /^A game from /,
     // The bookmarklet's link on meaf.us (tests/tool-choice.spec.ts)
     importLink: (base: string, game: string) =>
       new URL("/import#" + new URLSearchParams({ tool: "bookmarklet", v: "1", site: "meaf.us", record: game }), base).href },
-  { site: "Cyanotype", base: () => CYANOTYPE!, record: record("cyanotype-review.json"),
-    engine: true, noPreview: CYANOTYPE ? "" : "CYANOTYPE_BASE_URL gives no Cyanotype preview",
-    game: "a tool's game", taken: /^A game from /,
+  { site: "Cyanotype", missing: !CYANOTYPE, base: () => CYANOTYPE!, record: record("cyanotype-review.json"),
     importLink: (_base: string, game: string) => toolLink({ record: game }) },
-  { site: "Mistak", base: () => MISTAK!, record: MISTAK_RECORD,
-    engine: false, noPreview: MISTAK ? "" : "MISTAK_BASE_URL gives no Mistak preview",
-    game: "a link's game", taken: / against /,
+  { site: "Mistak", missing: !MISTAK, base: () => MISTAK!, record: MISTAK_RECORD,
+    engine: false, game: "a link's game", taken: new RegExp(`^${TYPED} against Bob Example$`),
     importLink: (base: string, game: string) =>
       new URL(`/import#${new URLSearchParams({ record: game })}`, base).href },
 ];
@@ -50,15 +48,18 @@ const SITES = [
  *  it. */
 function secrets(text: string) {
   const moves = text.split(/\r?\n\r?\n/)[1].trim().split(/\s+/).filter(w => !/^\d+\.$/.test(w));
-  // A move of two characters, such as Tak's a1, also stands in an id by chance: it counts with the move after it.
-  const named = moves.map((m, i) => (m.length > 2 ? m : `${m} ${moves[i + 1] ?? ""}`));
-  return [TYPED, "Typedname", EVENT, "club night", ...named.flatMap(m => [m, encodeURIComponent(m)])];
+  return [TYPED, "Typedname", EVENT, "club night", ...moves.flatMap(m => [m, encodeURIComponent(m)])];
 }
 
-/** The secrets that the events hold, which must be none. */
+/** A word as a whole: no letter or digit beside it. */
+const wholeWord = (word: string) =>
+  new RegExp(`(?<![\\p{L}\\p{N}])${word.replace(/\W/g, "\\$&")}(?![\\p{L}\\p{N}])`, "u");
+
+/** The secrets that the events hold, which must be none. A move of two characters, such as Tak's a1, also stands in an
+ *  id by chance: it counts as a whole word, with an address's escape (%20) and JSON's (\n) as spaces. */
 const leaked = (sent: Sent[], text: string) => {
-  const all = JSON.stringify(sent);
-  return secrets(text).filter(s => all.includes(s));
+  const all = JSON.stringify(sent), spaced = all.replace(/%[\dA-F]{2}|\\[nrt]/g, " ");
+  return secrets(text).filter(s => (s.length > 2 ? all.includes(s) : wholeWord(s).test(spaced)));
 };
 
 const reports = (sent: Sent[]) => sent.filter(e => e.event === "$exception");
@@ -72,9 +73,10 @@ const uncaught = (page: Page, code: string) => page.addScriptTag({ content: code
 
 lookLikeAVisitor();
 
-for (const { site, base, record: text, engine, noPreview, game, taken, importLink } of SITES) {
+for (const { site, missing = false, base, record: text, engine = true, game = "a tool's game",
+             taken = /^A game from /, importLink } of SITES) {
   test.describe(site, () => {
-    test.skip(noPreview !== "", noPreview);
+    test.skip(missing, `${site.toUpperCase()}_BASE_URL gives no ${site} preview`);
     const at = (path: string) => new URL(path, base()).href;
 
     /** Opens the site's About page, and waits for its page view: PostHog's client has started. */

@@ -8,13 +8,9 @@ import { expect, test, type Page } from "./page-log.ts";
 import { CYANOTYPE } from "./cyanotype-review.ts";
 import { LOAD_NOTICE } from "../../../packages/site/src/loadNotice.ts";
 import { HOME_ACTION, NOT_FOUND_LINE } from "../../../packages/site/src/pageError.ts";
-import { SITE_NAME as MISTAK_NAME } from "../../mistak/src/lib/site.ts";
 
-const SITES = [
-  { site: "Hedge School", base: "", noPreview: "" },
-  { site: "Cyanotype", base: CYANOTYPE, noPreview: "CYANOTYPE_BASE_URL gives no Cyanotype preview" },
-  { site: MISTAK_NAME, base: process.env.MISTAK_BASE_URL, noPreview: "MISTAK_BASE_URL gives no Mistak preview" },
-];
+const SITES = [{ site: "Hedge School", base: "" }, { site: "Cyanotype", base: CYANOTYPE },
+               { site: "Mistak", base: process.env.MISTAK_BASE_URL }];
 
 /** Each route's node but the root layout's (nodes/0) and the error page's (nodes/1). */
 const PAGE_NODES = /\/_app\/immutable\/nodes\/(?![01]\.)[^/]+\.js$/;
@@ -24,9 +20,9 @@ const errorPage = (page: Page) => page.locator("[data-error-page]");
 /** The address of a page on the site whose preview is `base` (Hedge School's: the tests' baseURL). */
 const at = (base: string | undefined, path: string) => (base ? new URL(path, base).href : path);
 
-for (const { site, base, noPreview } of SITES) {
+for (const { site, base } of SITES) {
   test.describe(site, () => {
-    test.skip(base === undefined, noPreview);
+    test.skip(base === undefined, `${site.toUpperCase()}_BASE_URL gives no ${site} preview`);
     test.beforeEach(({ context }) => context.route(/^https:\/\/([^/]+\.)?posthog\.com\//, route => route.abort()));
 
     test("a link to a page whose code does not load shows the error page, and its button loads the page",
