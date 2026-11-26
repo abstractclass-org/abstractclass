@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
 import { holdsGame } from "@abstractclass/site/addressHash.ts";
 import { parseRecord } from "#lib/game/record.ts";
+import { SITE_COPYRIGHT } from "#lib/site.ts";
 import { bringRecord } from "./ways.ts";
 import { TOOL_NAME, bookmarkletHref, bookmarkletScript, userscriptHeader, userscriptSource } from "./tools.ts";
 
@@ -28,6 +29,15 @@ test("the userscript's header names the script, playtak's pages, its rights and 
   assert.deepEqual(meta(text, "downloadURL"), [`${ORIGIN}/mistak.user.js`]);
   assert.match(meta(text, "icon")[0], /^data:image\/svg\+xml;base64,/);
   assert.ok(text.startsWith(userscriptHeader(ORIGIN, "2026.11.26.1200")));
+});
+
+test("the userscript's author is the holder in the sites' copyright line, with no sign and no year", () => {
+  // tools.ts takes the name from SITE_COPYRIGHT, the one line where the hooks' check of private words allows it.
+  const author = meta(userscriptHeader(ORIGIN, "2026.11.26.1200"), "author");
+  assert.equal(author.length, 1);
+  assert.match(author[0], /\S/);
+  assert.doesNotMatch(author[0], /©|\d{4}/);
+  assert.ok(SITE_COPYRIGHT.endsWith(` ${author[0]}`));
 });
 
 test("the code that the userscript and the bookmarklet carry parses, with the site's address and name in it", () => {
