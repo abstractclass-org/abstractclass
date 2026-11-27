@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readImportHash, staleTool } from "@abstractclass/import/importHash.ts";
 import { holdsGame } from "@abstractclass/site/addressHash.ts";
-import { parseRecord } from "#lib/game/record.ts";
+import { parseRecord, writeRecord } from "#lib/game/record.ts";
 import { SITE_COPYRIGHT } from "#lib/site.ts";
 import { bringRecord } from "./ways.ts";
 import { TOOL_NAME, bookmarkletHref, bookmarkletScript, userscriptHeader, userscriptSource } from "./tools.ts";
@@ -66,7 +66,7 @@ function click({ data, rows, names = ["alder_test", "birch_test"], path = "/" }:
       return rows.map(cells => ({ querySelectorAll: (td: string) => (assert.equal(td, "td"), cells.map(element)) }));
     },
   };
-  Object.assign(globalThis, {
+  const stubs = {
     gameData: data ?? undefined,
     document: {
       currentScript: { src: `${ORIGIN}/bookmarklet.js?bookmark=1` },
@@ -76,11 +76,12 @@ function click({ data, rows, names = ["alder_test", "birch_test"], path = "/" }:
     location: { hostname: "playtak.com", origin: "https://playtak.com", pathname: path },
     alert: (text: string) => done.alerts.push(text),
     window: { open: (url: string) => { done.opened.push(url); return {}; } },
-  });
+  };
+  Object.assign(globalThis, stubs);
   try {
     new Function(bookmarkletScript())();
   } finally {
-    delete (globalThis as { gameData?: unknown }).gameData;
+    for (const name of Object.keys(stubs)) delete (globalThis as Record<string, unknown>)[name];
   }
   return done;
 }
@@ -104,7 +105,6 @@ const FINISHED: Page = {
   rows: [["1.", "e5", "a1"], ["2.", "a3", "e4"], ["3.", "b3", "Sd4"], ["4.", "c3", "c4"], ["5.", "d3", "b4"],
          ["6.", "e3", ""], ["", "R-0"]],
 };
-const FINISHED_MOVES = ["e5", "a1", "a3", "e4", "b3", "Sd4", "c3", "c4", "d3", "b4", "e3"];
 
 // A game in progress on 6×6, written by hand: a capstone, a wall and a stack move, komi 2.5. The page shows the
 // position after Black's third move.
@@ -125,9 +125,12 @@ test("a finished game: the tool, its version, the site, the position on the page
     "1. e5 a1", "2. a3 e4", "3. b3 Sd4", "4. c3 c4", "5. d3 b4", "6. e3 R-0", "",
   ].join("\n"));
   const r = parseRecord(read.record);
-  assert.deepEqual([r.moves.length, r.result, r.komi], [FINISHED_MOVES.length, "R-0", 2]);
+  assert.deepEqual([r.moves.length, r.result, r.komi], [11, "R-0", 2]);
+  // The page code writes the tags and the lines as Mistak's own writer does, which it cannot import, as it runs in
+  // playtak's page. It keeps each move as the page writes it (the writer writes `1d4<` as `d4<`).
+  assert.equal(writeRecord(r), read.record);
   // What the import page does with it.
-  assert.equal(bringRecord(read.record, false).game.moves.length, FINISHED_MOVES.length);
+  assert.equal(bringRecord(read.record, false).game.moves.length, 11);
 });
 
 test("a game in progress: no result, half a flat of komi, and the position on the page", () => {
@@ -158,7 +161,7 @@ test("what the page gives: no number for a loaded game, a name's quote, no posit
   // playtak writes "0-0" in a move's cell, and "Game Over" (the 2D board's scratch game) as its result: no move, and
   // no result that PTN knows.
   const aborted = sent({ data: { ...FINISHED.data, result: "0-0" }, rows: [["1.", "e5", "a1"], ["2.", "0-0", ""]] });
-  assert.deepEqual(parseRecord(aborted.record).moves.length, 2);
+  assert.equal(parseRecord(aborted.record).moves.length, 2);
   const scratch = sent({ data: { ...FINISHED.data, result: "Game Over" }, rows: [["1.", "e5", "a1"]] });
   assert.equal(parseRecord(scratch.record).result, "*");
 });

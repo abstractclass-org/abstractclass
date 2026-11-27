@@ -22,7 +22,12 @@
   type Phase = { at: "opening" | "playtak" } | { at: "game"; brought: Brought } | { at: "refused"; why: string };
   let phase = $state.raw<Phase>({ at: "opening" });
   let sent = $state.raw<FetchHash | null>(null); // what the address held
-  let stale = $state<Tool | null>(null); // the tool, when it is out of date
+  // The tool, when it is out of date. Mistak's tools always send their version, so a record with no tool (a link's,
+  // which staleTool calls "older") has no tool to update.
+  const stale = $derived.by((): Tool | null => {
+    const old = sent && staleTool(sent, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
+    return old === "older" ? null : old;
+  });
 
   onMount(async () => {
     if (!holdsGame(location.hash)) return goto("/tools", { replaceState: true });
@@ -33,11 +38,6 @@
     if (read?.id != null) phase = { at: "playtak" };
     await replaceState(location.pathname, {});
     startAnalytics();
-    if (read?.tool) {
-      // Mistak's tools always send their version, so a record with no tool (a link's) has no tool to update.
-      const old = staleTool(read, { bookmarklet: String(BOOKMARK_VERSION), userscript: __USERSCRIPT_CODE__ });
-      stale = old === "older" ? null : old;
-    }
     try {
       if (!read) throw new URIError();
       phase = { at: "game", brought: read.id === null ? readGame(read) : await bringPlaytak(read.id, fetch) };

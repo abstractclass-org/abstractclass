@@ -12,6 +12,8 @@ const BASE = process.env.MISTAK_BASE_URL;
 test.skip(BASE === undefined, "MISTAK_BASE_URL gives no Mistak preview");
 
 const PLAYTAK = "https://playtak.com/";
+/** An address of playtak, PTN Ninja or ustak.org: the browser resolves none (playwright.config.ts). */
+const OUTSIDE = /^https?:\/\/([^/]*\.)?(playtak\.com|ptn\.ninja|ustak\.org)\//;
 const OPEN = "Open this game in Mistak";
 const GAMES = [
   { name: "finished", shown: "The playtak.com page showed the position after the last move.", result: "R-0",
@@ -25,7 +27,7 @@ async function openSaved(page: Page, name: string): Promise<string[]> {
   const asked: string[] = [];
   page.context().on("request", r => { asked.push(r.url()); });
   const html = readFileSync(new URL(`fixtures/playtak-${name}.html`, import.meta.url), "utf8");
-  await page.context().route(/^https?:\/\/([^/]*\.)?(playtak\.com|ptn\.ninja|ustak\.org)\//, route =>
+  await page.context().route(OUTSIDE, route =>
     (route.request().url() === PLAYTAK ? route.fulfill({ contentType: "text/html", body: html }) : route.abort()));
   // The bookmark loads its code from the preview on this computer, and Chromium lets a page on a public address
   // reach this computer only with the permission. The live site's address is public, and needs none.
@@ -36,6 +38,14 @@ async function openSaved(page: Page, name: string): Promise<string[]> {
   const shown = await page.evaluate(() => (0, eval)("gameData").move_shown as number);
   await expect(page.locator("#moveslist .curmove")).toHaveClass(new RegExp(`(^| )moveno${shown - 1}( |$)`));
   return asked;
+}
+
+/** The code of the bookmark on the tools page, which the browser runs on a click. */
+async function bookmarkletCode(page: Page): Promise<string> {
+  await page.goto(`${BASE}/tools`);
+  const href = await page.getByRole("link", { name: "Open in Mistak" }).getAttribute("href");
+  expect(href).toMatch(/^javascript:/);
+  return decodeURIComponent(href!.slice("javascript:".length));
 }
 
 /** Checks the game that the tool opened in a new tab, on Mistak's import page. */
@@ -49,17 +59,15 @@ async function checkOpened(tab: Page, game: (typeof GAMES)[number], asked: strin
   await expect(tab.getByText("Your bookmarklet is an old version")).toHaveCount(0);
   await expect(tab.getByText("Your userscript is older")).toHaveCount(0);
   // The saved page was the one address of playtak that the browser asked for, and Playwright's route answered it.
-  expect(asked.filter(url => /^https?:\/\/([^/]*\.)?(playtak\.com|ptn\.ninja|ustak\.org)\//.test(url))).toEqual([PLAYTAK]);
+  expect(asked.filter(url => OUTSIDE.test(url))).toEqual([PLAYTAK]);
 }
 
 for (const game of GAMES) {
   test(`the bookmarklet from the tools page opens the ${game.name} game on Mistak's import page`, async ({ page }) => {
-    await page.goto(`${BASE}/tools`);
-    const href = await page.getByRole("link", { name: "Open in Mistak" }).getAttribute("href");
-    expect(href).toMatch(/^javascript:/);
+    const content = await bookmarkletCode(page);
     const asked = await openSaved(page, game.name);
     const tab = page.waitForEvent("popup");
-    await page.addScriptTag({ content: decodeURIComponent(href!.slice("javascript:".length)) });
+    await page.addScriptTag({ content });
     await checkOpened(await tab, game, asked);
   });
 
@@ -96,15 +104,14 @@ for (const game of GAMES) {
   });
 }
 
-test("a playtak page with no game: the bookmarklet says why, and opens nothing", async ({ page }) => {
-  await page.goto(`${BASE}/tools`);
-  const href = await page.getByRole("link", { name: "Open in Mistak" }).getAttribute("href");
+test("a playtak game with no move yet: the bookmarklet says why, and opens nothing", async ({ page }) => {
+  const content = await bookmarkletCode(page);
   await openSaved(page, "finished");
   await page.evaluate(() => { document.querySelector("#moveslist")!.replaceChildren(); });
   const said = page.waitForEvent("dialog");
   let opened = false;
   page.on("popup", () => { opened = true; });
-  await page.addScriptTag({ content: decodeURIComponent(href!.slice("javascript:".length)) });
+  await page.addScriptTag({ content });
   const dialog = await said;
   expect(dialog.message()).toMatch(/^Mistak: this game has no moves yet\./);
   await dialog.dismiss();

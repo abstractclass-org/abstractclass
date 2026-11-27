@@ -41,6 +41,7 @@ export function findPlaytakGame(): PlaytakGame | PlaytakMissing {
   const data = (typeof gameData === "object" && gameData !== null ? gameData : null) as Data | null;
   const list = document.querySelector("#moveslist");
   if (!data || !list) return /^\/games\/\d+/.test(location.pathname) ? "history" : "none";
+  if (Number(data.move_start) > 0) return "start";
   const moves: string[] = [];
   for (const row of Array.from(list.querySelectorAll("tr"))) {
     const cells = Array.from(row.querySelectorAll("td")).map(cell => (cell.textContent ?? "").trim());
@@ -50,7 +51,6 @@ export function findPlaytakGame(): PlaytakGame | PlaytakMissing {
       if (text !== "" && text !== "--" && !RESULTS.includes(text)) moves.push(text);
     }
   }
-  if (Number(data.move_start) > 0) return "start";
   if (moves.length === 0) return "empty";
   const number = (value: unknown) => (typeof value === "number" || typeof value === "string") && value !== ""
     && Number.isFinite(Number(value)) ? Number(value) : null;
