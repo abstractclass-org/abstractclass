@@ -14,9 +14,9 @@ const commit = process.env.CF_PAGES_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_
 	?? (() => { try { return execSync('git rev-parse HEAD').toString().trim(); } catch { return 'unknown'; } })();
 
 // The site's address, for what leaves the site and comes back to it, as Cyanotype's: the tools for playtak's pages
-// (design 34, "The tools for playtak's pages", src/lib/import/tools.ts) update from it and open their games there. The deploy's build of
-// main (.github/workflows/deploy.yml, which sets Cloudflare's build variables) is the live site, a build of another
-// branch its preview, and a local build the local preview server. SITE_ORIGIN sets another.
+// (design 34, "The tools for playtak's pages", src/lib/import/tools.ts) update from it and open their games there.
+// The deploy's build of main (.github/workflows/deploy.yml, which sets Cloudflare's build variables) is the live site,
+// a build of another branch its preview, and a local build the local preview server. SITE_ORIGIN sets another.
 const origin = process.env.SITE_ORIGIN
 	?? (process.env.CF_PAGES_BRANCH === 'main' ? 'https://mistak.abstractclass.org'
 		: process.env.CF_PAGES_URL ?? 'http://127.0.0.1:4173');
